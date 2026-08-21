@@ -4,7 +4,7 @@
 
 - Dense Figma-like editor, not a marketing page.
 - 44px flat top bar with product title, project title, save/share/export actions.
-- 240px left sidebar: search/filter, Pages, Layers, visibility/lock controls, nested layer hierarchy and drag handles.
+- 240px left sidebar: search/filter, flat Layers list, visibility/lock controls and direct drag handles. The current document has one print frame, so do not show a `Page 1` collection hierarchy.
 - Full-bleed map canvas in the center with a subtle neutral pasteboard and white print-frame overlay.
 - 272px right sidebar: when selection is empty, show Project properties; when a layer is selected, show Layer properties.
 - Compact floating toolbar centered near the bottom, inspired by Atlas.co: selection, pan, route, pin, shape, text, fit. It may use a 1px border and solid surface but no decorative shadow.
@@ -25,6 +25,8 @@
 
 - Clicking the map/background clears selection and switches the right panel to Project properties.
 - Clicking a layer in the list or canvas selects it and switches the right panel to Layer properties.
+- Hovering a layer list row only highlights/previews its map content; hover must not change selection.
+- Dragging a layer handle reorders layers. Duplicate/Delete live in the compact layer overflow menu instead of persistent inspector action buttons.
 - Layer visibility, lock, rename, delete and reorder update the canvas immediately.
 - Bottom toolbar tools have clear active state and keyboard shortcuts.
 - Avoid modal dialogs for routine edits; use sidebars/popovers.

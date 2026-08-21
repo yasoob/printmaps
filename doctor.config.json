@@ -1,0 +1,14 @@
+{
+  "$schema": "https://react.doctor/schema/config.json",
+  "blocking": "warning",
+  "noScore": true,
+  "ignore": {
+    "files": [
+      "printmaps-inspection/**",
+      "dist/**",
+      "coverage/**",
+      "playwright-report/**",
+      "test-results/**"
+    ]
+  }
+}

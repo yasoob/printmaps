@@ -9,12 +9,13 @@
   --studio-text: #1f1f1f;
   --studio-text-strong: #000000;
   --studio-text-secondary: #555555;
-  --studio-text-muted: #777777;
-  --studio-text-subtle: #8a8a8a;
+  --studio-text-muted: #6b6b6b;
+  --studio-text-subtle: #6b6b6b;
   --studio-line: #e5e5e5;
   --studio-line-strong: #d5d5d5;
   --studio-line-hover: #d8d8d8;
   --studio-accent: #0d99ff;
+  --studio-focus: #005fb8;
   --studio-accent-strong: #0878c9;
   --studio-accent-soft: #e8f4ff;
   --studio-danger: #c5352c;
@@ -39,6 +40,7 @@
   --studio-font-control: 0.71875rem;
   --studio-font-label: 0.65625rem;
   --studio-font-meta: 0.59375rem;
+  --studio-font-micro: 0.5rem;
   --studio-border-width: 1px;
   --studio-focus-width: 2px;
 }

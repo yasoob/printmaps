@@ -1,0 +1,117 @@
+import { createProjectStore } from '../../src/app/store';
+import { PROJECT_SCHEMA_VERSION, type ProjectDocument } from '../../src/domain/project';
+
+const layers = [
+  { id: 'route-1', name: 'Route 1', type: 'route' as const, visible: true, locked: false, opacity: 100 },
+  { id: 'poi-1', name: 'Coffee', type: 'poi' as const, visible: true, locked: false, opacity: 100 },
+  { id: 'shape-1', name: 'Center', type: 'shape' as const, visible: true, locked: false, opacity: 30 },
+];
+
+function createDocument(): ProjectDocument {
+  return {
+    schemaVersion: PROJECT_SCHEMA_VERSION,
+    id: 'test-project',
+    title: 'Test project',
+    layers,
+  };
+}
+
+const layerState = (store: ReturnType<typeof createProjectStore>) => store.getState().document.layers;
+
+describe('project store history', () => {
+  it('rejects a non-finite reorder index without changing history', () => {
+    const store = createProjectStore(createDocument());
+
+    store.getState().moveLayer('shape-1', Number.NaN);
+
+    expect(layerState(store).map((layer) => layer.id)).toEqual(['route-1', 'poi-1', 'shape-1']);
+    expect(store.getState().canUndo).toBe(false);
+  });
+
+  it('clears redo history when a new edit follows undo', () => {
+    const store = createProjectStore(createDocument());
+    store.getState().toggleLayerVisibility('route-1');
+    store.getState().undo();
+    expect(store.getState().canRedo).toBe(true);
+
+    store.getState().toggleLayerLock('poi-1');
+
+    expect(store.getState().canRedo).toBe(false);
+  });
+
+  it('clears selection when redo removes the selected layer again', () => {
+    const store = createProjectStore(createDocument());
+    store.getState().deleteLayer('poi-1');
+    store.getState().undo();
+    store.getState().selectLayer('poi-1');
+
+    store.getState().redo();
+
+    expect(store.getState().selectedId).toBeNull();
+  });
+
+  it('clamps opacity edits to the supported percentage range', () => {
+    const store = createProjectStore(createDocument());
+
+    store.getState().setLayerOpacity('shape-1', 140);
+
+    expect(layerState(store)[2].opacity).toBe(100);
+  });
+
+  it('deletes the selected layer, clears selection, and restores the layer on undo', () => {
+    const store = createProjectStore(createDocument());
+    store.getState().selectLayer('poi-1');
+
+    store.getState().deleteLayer('poi-1');
+    expect(layerState(store).map((layer) => layer.id)).toEqual(['route-1', 'shape-1']);
+    expect(store.getState().selectedId).toBeNull();
+
+    store.getState().undo();
+    expect(layerState(store).map((layer) => layer.id)).toEqual(['route-1', 'poi-1', 'shape-1']);
+  });
+
+  it('reorders layers and can undo the order change', () => {
+    const store = createProjectStore(createDocument());
+
+    store.getState().moveLayer('shape-1', 0);
+    expect(layerState(store).map((layer) => layer.id)).toEqual(['shape-1', 'route-1', 'poi-1']);
+
+    store.getState().undo();
+    expect(layerState(store).map((layer) => layer.id)).toEqual(['route-1', 'poi-1', 'shape-1']);
+  });
+
+  it('renames a layer and records the edit in history', () => {
+    const store = createProjectStore(createDocument());
+
+    store.getState().renameLayer('route-1', 'Danube loop');
+
+    expect(layerState(store)[0].name).toBe('Danube loop');
+    expect(store.getState().canUndo).toBe(true);
+  });
+
+  it('toggles a layer lock without changing another layer', () => {
+    const store = createProjectStore(createDocument());
+
+    store.getState().toggleLayerLock('poi-1');
+
+    expect(layerState(store).find((layer) => layer.id === 'poi-1')?.locked).toBe(true);
+    expect(layerState(store).find((layer) => layer.id === 'route-1')?.locked).toBe(false);
+  });
+
+  it('undoes and redoes a visibility change', () => {
+    const store = createProjectStore(createDocument());
+
+    store.getState().toggleLayerVisibility('route-1');
+    expect(layerState(store)[0].visible).toBe(false);
+    expect(store.getState().canUndo).toBe(true);
+    expect(store.getState().canRedo).toBe(false);
+
+    store.getState().undo();
+    expect(layerState(store)[0].visible).toBe(true);
+    expect(store.getState().canUndo).toBe(false);
+    expect(store.getState().canRedo).toBe(true);
+
+    store.getState().redo();
+    expect(layerState(store)[0].visible).toBe(false);
+  });
+});
