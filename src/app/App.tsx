@@ -25,7 +25,7 @@ import {
   Unlock,
 } from 'lucide-react';
 import { useStore } from 'zustand';
-import type { ContentLayer, LayerType, PageSettings, StandardPagePreset } from '../domain/project';
+import type { ContentLayer, LayerType, PageSettings, ProjectDocument, StandardPagePreset } from '../domain/project';
 import { startPreviewDownload, type PreviewPngExporter } from '../export/previewPng';
 import { MapCanvas } from '../map/MapCanvas';
 import { createProjectStore } from './store';
@@ -48,6 +48,20 @@ const tools = [
 ];
 
 type MobilePanel = 'layers' | 'properties';
+
+function downloadProjectDocument(document: ProjectDocument) {
+  const filenameId = document.id.replace(/[^a-z0-9._-]+/gi, '-').replace(/^[-.]+|[-.]+$/g, '') || 'project';
+  const blob = new Blob([`${JSON.stringify(document, null, 2)}\n`], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  try {
+    const link = window.document.createElement('a');
+    link.href = url;
+    link.download = `${filenameId}.printmap.json`;
+    link.click();
+  } finally {
+    window.setTimeout(() => URL.revokeObjectURL(url), 1_000);
+  }
+}
 
 function useMobilePanels() {
   const [mobilePanel, setMobilePanel] = useState<MobilePanel | null>(null);
@@ -207,7 +221,7 @@ export function App() {
           <button className="icon-button" type="button" aria-label="Redo" title="Redo" disabled={!project.canRedo} onClick={project.redo}><Redo2 size={15} /></button>
         </div>
         <div className="document-actions">
-          <button className="quiet-button" type="button"><Save size={14} /> Save</button>
+          <button className="quiet-button" type="button" onClick={() => downloadProjectDocument(project.document)}><Save size={14} /> Save</button>
           <button className="quiet-button" type="button"><Share2 size={14} /> Share</button>
           <button ref={exportButtonRef} className="primary-button" type="button" onClick={() => setExportOpen(true)}><Download size={14} /> Export</button>
         </div>

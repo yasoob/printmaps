@@ -201,6 +201,29 @@
 - Fresh final gate after these corrections: typecheck pass; ESLint zero warnings; React Doctor no issues with telemetry disabled; Vitest 6 files / 84 tests; build pass with the existing size warning; Playwright 14 pass / 4 runtime Firefox WebGL skips; audit 0 vulnerabilities; diff/security scan clean; live HTTPS 200.
 - Refreshed evidence: desktop SHA-256 `9e10cbda5725247c5bdaaa6cc6eecb9b778b8544a076781b4f9c7f3333f1c8a8`, mobile SHA-256 `224dea1d3944499bc38525d0f282d64059dd2a677c4d82a37bf1eec3916b4d21`; Properties and Export screenshots now show the current disabled Browser preview/required-attribution controls.
 
+### 2026-08-21 — Vertical slice 7: portable versioned project JSON download (verified)
+
+- Wired the existing desktop **Save** action to download the current canonical `ProjectDocument` as human-readable JSON with the portable `.printmap.json` suffix. The filename is derived from a sanitized project ID, and the object URL is revoked after download initiation.
+- The saved artifact reflects current canonical state rather than startup defaults: after changing A4 to Portrait, the browser download contains schema version 3, `210×297` portrait page settings, project identity, and all four ordered layers.
+- Strict TDD evidence:
+  - `npm run test:e2e -- --project=chromium --grep "Save downloads the current project"` first failed after 30 seconds waiting for a download because Save had no handler.
+  - After the minimal download implementation, the same focused command passed 1/1 in 5.5 seconds.
+- Fresh verification on the current working tree:
+  - `npm run typecheck` — pass.
+  - `npm run lint` — pass, zero warnings.
+  - `npm run doctor` — pass, no issues at warning-blocking severity; telemetry disabled.
+  - `npm test -- --run` — pass, 6 files / 84 tests.
+  - `npm run build` — pass; existing ~1.17 MB pre-gzip bundle warning remains.
+  - `npm audit --omit=dev` — 0 vulnerabilities.
+  - `npm run test:e2e` — 17 pass / 4 documented Firefox WebGL-environment skips across 21 cases; the new portable-save flow passes in Chromium, Firefox, and WebKit.
+- Browser evidence:
+  - Refreshed exact 1440×900 Chromium screenshot: `docs/screenshots/latest-desktop.png`, SHA-256 `0d7a2c44d57c9b9546484b83a2d6fc7a237dd999b65fb175a6a123f7e1c81216`.
+  - Live browser interaction changed the page to `210×297` Portrait and clicked Save with `data-map-ready=true`, zero body overflow, zero gradients, zero computed box shadows, and no console errors or warnings.
+  - Screenshot review found no material clipping, overlap, hierarchy, frame, or legibility defect; the Save action remains visible in the flat top bar.
+- Independent fail-closed review passed with no security concerns or logic errors. Its non-blocking suggestion is dedicated filename-sanitization edge coverage plus full-document equality; the current cross-browser test already proves canonical schema, identity, page state, and complete ordered layer IDs.
+- Scope remains bounded: this slice adds portable JSON download only. Portable project upload/open, schema validation/error UX, IndexedDB autosave, and ZIP support remain unresolved.
+- `.env.local` and tokens remain untracked/uncommitted. `docs/COMPLETE.md` does not exist and scheduler job `3a05bbc81515` remains enabled.
+
 ## Next unresolved slice
 
-Obtain one passing combined fail-closed review for the custom-dimension, mobile and preview-export corrections, then commit the verified tree. After that, the highest-value core gap is local persistence/portable project open-save, followed by real create/edit/import workflows and full print exports.
+Add validated portable `.printmap.json` upload/open as one history-resetting, focus-safe flow, then implement IndexedDB autosave/recovery in a separate slice.

@@ -39,6 +39,32 @@ test('desktop editor switches between project and layer properties', async ({ pa
   expect(consoleProblems).toEqual([]);
 });
 
+test('Save downloads the current project as portable versioned JSON', async ({ page }, testInfo) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Portrait' }).click();
+
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Save' }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe('vienna-field-guide.printmap.json');
+
+  const outputPath = testInfo.outputPath('vienna-field-guide.printmap.json');
+  await download.saveAs(outputPath);
+  const savedProject = JSON.parse(await readFile(outputPath, 'utf8'));
+  expect(savedProject).toMatchObject({
+    schemaVersion: 3,
+    id: 'vienna-field-guide',
+    title: 'Vienna field guide',
+    page: { preset: 'A4', widthMm: 210, heightMm: 297, orientation: 'portrait' },
+  });
+  expect(savedProject.layers.map((layer: { id: string }) => layer.id)).toEqual([
+    'route-01',
+    'poi-cafe',
+    'area-center',
+    'basemap',
+  ]);
+});
+
 test('map content overlays preview on list hover and select from the canvas', async ({ page, browserName }) => {
   test.skip(browserName === 'firefox', 'Firefox fixture intentionally exercises the WebGL fallback path.');
   await page.goto('/');
