@@ -5,6 +5,7 @@ import {
   migrateProjectDocument,
   type ContentLayer,
   type PageOrientation,
+  type StandardPagePreset,
   type ProjectDocument,
   type StoredProjectDocument,
 } from '../domain/project';
@@ -22,6 +23,7 @@ export type ProjectState = {
   renameLayer: (id: string, name: string) => void;
   selectLayer: (id: string | null) => void;
   setPageOrientation: (orientation: PageOrientation) => void;
+  setPagePreset: (preset: StandardPagePreset) => void;
   setLayerOpacity: (id: string, opacity: number) => void;
   toggleLayerVisibility: (id: string) => void;
   toggleLayerLock: (id: string) => void;
@@ -134,10 +136,30 @@ export function createProjectStore(
       return commitDocument(state, {
         ...state.document,
         page: {
+          ...state.document.page,
           widthMm,
           heightMm,
           orientation,
         },
+      });
+    }),
+    setPagePreset: (preset) => set((state) => {
+      const dimensions = {
+        A4: [297, 210],
+        A3: [420, 297],
+        Letter: [279.4, 215.9],
+      } satisfies Record<StandardPagePreset, [number, number]>;
+      const [longEdge, shortEdge] = dimensions[preset];
+      const widthMm = state.document.page.orientation === 'landscape' ? longEdge : shortEdge;
+      const heightMm = state.document.page.orientation === 'landscape' ? shortEdge : longEdge;
+      if (
+        state.document.page.preset === preset
+        && state.document.page.widthMm === widthMm
+        && state.document.page.heightMm === heightMm
+      ) return state;
+      return commitDocument(state, {
+        ...state.document,
+        page: { ...state.document.page, preset, widthMm, heightMm },
       });
     }),
     setLayerOpacity: (id, opacity) => set((state) => {

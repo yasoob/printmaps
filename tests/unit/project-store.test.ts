@@ -4,6 +4,7 @@ import {
   PROJECT_SCHEMA_VERSION,
   type ProjectDocument,
   type ProjectDocumentV1,
+  type ProjectDocumentV2,
 } from '../../src/domain/project';
 
 const layers = [
@@ -17,7 +18,7 @@ function createDocument(): ProjectDocument {
     schemaVersion: PROJECT_SCHEMA_VERSION,
     id: 'test-project',
     title: 'Test project',
-    page: { widthMm: 297, heightMm: 210, orientation: 'landscape' },
+    page: { preset: 'A4', widthMm: 297, heightMm: 210, orientation: 'landscape' },
     layers,
   };
 }
@@ -36,19 +37,55 @@ describe('project store history', () => {
     const store = createProjectStore(versionOneDocument);
 
     expect(store.getState().document).toMatchObject({
-      schemaVersion: 2,
-      page: { widthMm: 297, heightMm: 210, orientation: 'landscape' },
+      schemaVersion: 3,
+      page: { preset: 'A4', widthMm: 297, heightMm: 210, orientation: 'landscape' },
     });
+  });
+
+  it.each([
+    {
+      name: 'standard landscape dimensions',
+      page: { widthMm: 297, heightMm: 210, orientation: 'landscape' as const },
+      preset: 'A4',
+    },
+    {
+      name: 'standard portrait dimensions',
+      page: { widthMm: 210, heightMm: 297, orientation: 'portrait' as const },
+      preset: 'A4',
+    },
+    {
+      name: 'standard dimensions inconsistent with the declared orientation',
+      page: { widthMm: 210, heightMm: 297, orientation: 'landscape' as const },
+      preset: 'Custom',
+    },
+    {
+      name: 'genuinely custom dimensions',
+      page: { widthMm: 250, heightMm: 180, orientation: 'landscape' as const },
+      preset: 'Custom',
+    },
+  ])('migrates version-2 $name without changing dimensions', ({ page, preset }) => {
+    const versionTwoDocument: ProjectDocumentV2 = {
+      schemaVersion: 2,
+      id: 'legacy-project',
+      title: 'Legacy project',
+      page,
+      layers,
+    };
+
+    const store = createProjectStore(versionTwoDocument);
+
+    expect(store.getState().document.page).toEqual({ ...page, preset });
   });
 
   it('canonicalizes inconsistent dimensions when reselecting the current orientation', () => {
     const document = createDocument();
-    document.page = { widthMm: 210, heightMm: 297, orientation: 'landscape' };
+    document.page = { preset: 'A4', widthMm: 210, heightMm: 297, orientation: 'landscape' };
     const store = createProjectStore(document);
 
     store.getState().setPageOrientation('landscape');
 
     expect(store.getState().document.page).toEqual({
+      preset: 'A4',
       widthMm: 297,
       heightMm: 210,
       orientation: 'landscape',

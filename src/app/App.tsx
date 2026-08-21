@@ -23,7 +23,7 @@ import {
   Unlock,
 } from 'lucide-react';
 import { useStore } from 'zustand';
-import type { ContentLayer, LayerType, PageSettings } from '../domain/project';
+import type { ContentLayer, LayerType, PageSettings, StandardPagePreset } from '../domain/project';
 import { MapCanvas } from '../map/MapCanvas';
 import { createProjectStore } from './store';
 
@@ -165,6 +165,7 @@ export function App() {
           onBackgroundClick={clearSelection}
           fitRequest={fitRequest}
           orientation={project.document.page.orientation}
+          page={project.document.page}
         />
         <nav className="tool-palette" aria-label="Map tools">
           {tools.map(({ id, label, shortcut, icon: Icon, command }, index) => (
@@ -227,7 +228,11 @@ export function App() {
             }}
           />
         ) : (
-          <ProjectProperties page={project.document.page} onOrientationChange={project.setPageOrientation} />
+          <ProjectProperties
+            page={project.document.page}
+            onOrientationChange={project.setPageOrientation}
+            onPresetChange={project.setPagePreset}
+          />
         )}
       </aside>
     </main>
@@ -237,15 +242,17 @@ export function App() {
 function ProjectProperties({
   page,
   onOrientationChange,
+  onPresetChange,
 }: {
   page: PageSettings;
   onOrientationChange: (orientation: PageSettings['orientation']) => void;
+  onPresetChange: (preset: StandardPagePreset) => void;
 }) {
   return (
     <div className="properties-panel">
       <div className="properties-title"><div><span className="eyebrow">Properties</span><h2 data-project-heading tabIndex={-1}>Project</h2></div><button className="icon-button" type="button" aria-label="Project menu">•••</button></div>
       <PropertySection title="Page">
-        <PropertyRow label="Preset"><select aria-label="Page preset" defaultValue="A4"><option>A4</option><option>A3</option><option>Letter</option><option>Custom</option></select></PropertyRow>
+        <PropertyRow label="Preset"><select aria-label="Page preset" value={page.preset} onChange={(event) => onPresetChange(event.target.value as StandardPagePreset)}><option>A4</option><option>A3</option><option>Letter</option><option disabled>Custom</option></select></PropertyRow>
         <div className="paired-fields"><label><span>W</span><input aria-label="Page width" value={page.widthMm} readOnly /><small>mm</small></label><label><span>H</span><input aria-label="Page height" value={page.heightMm} readOnly /><small>mm</small></label></div>
         <PropertyRow label="Orientation"><div className="segmented"><button className={page.orientation === 'landscape' ? 'is-active' : undefined} type="button" aria-pressed={page.orientation === 'landscape'} onClick={() => onOrientationChange('landscape')}>Landscape</button><button className={page.orientation === 'portrait' ? 'is-active' : undefined} type="button" aria-pressed={page.orientation === 'portrait'} onClick={() => onOrientationChange('portrait')}>Portrait</button></div></PropertyRow>
       </PropertySection>

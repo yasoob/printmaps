@@ -102,6 +102,28 @@
 - Fail-closed review initially rejected missing schema migration and inconsistent same-orientation dimensions. An independent fix agent added the RED-first regressions and minimal remediation; independent re-review then passed with no security concerns or logic errors. The only non-blocking suggestion is a direct page-object isolation regression across both history directions.
 - `.env.local` and tokens remain untracked/uncommitted. `docs/COMPLETE.md` does not exist and scheduler job `3a05bbc81515` remains enabled.
 
+### 2026-08-21 — Vertical slice 5: canonical standard page presets
+
+- Added canonical `A4`, `A3`, `Letter`, and `Custom` preset identity to schema-version 3 page settings. Version-1 documents receive A4 defaults; version-2 documents preserve dimensions/orientation and infer a matching standard preset or `Custom`.
+- The Project preset control is now controlled by the project store. Choosing A4, A3, or Letter commits dimensions in the current orientation as one history entry; Undo restores the prior preset, dimensions, and visible frame together. Custom remains visibly disabled until transaction-safe dimension editing is implemented.
+- The print frame now reads the canonical page dimensions for its aspect ratio and displays the canonical preset in its label rather than hard-coding A4.
+- Strict TDD evidence:
+  - `npm test -- --run tests/unit/app-selection.test.tsx -t "applies a standard page preset"` first failed at the expected width assertion (`expected 420`, received `297`).
+  - After the minimal store/UI/frame implementation, the focused command passed 1/1. The existing orientation regression then caught a missing preset spread in the full suite; preserving the page object made both focused tests and the full suite pass.
+- Fresh verification on the completed working tree:
+  - `npm test -- --run` — pass, 5 files / 61 tests.
+  - `npm run typecheck` — pass.
+  - `npm run lint` — pass, zero warnings.
+  - `npm run doctor` — pass, no issues at warning-blocking severity; telemetry disabled.
+  - `npm run build` — pass; existing ~1.16 MB pre-gzip bundle warning remains.
+  - `npm run test:e2e` — 12 pass / 3 documented Firefox WebGL-environment skips across 15 Chromium, Firefox and WebKit cases.
+- Browser evidence:
+  - Fresh 1440×900 Chromium screenshot: `docs/screenshots/latest-desktop.png`, SHA-256 `151c3a8038d928fe31161d88556f527bd7fb9c6ad3a4928ee254e3ce87e72be8`.
+  - Live browser selection of A3 produced `420×297`, frame label `A3 · Landscape`, CSS aspect ratio `420 / 297`, enabled Undo, a ready live map, zero body overflow, and no JavaScript errors. The exact-size headless screenshot emitted only the previously classified Chromium `GPU stall due to ReadPixels` diagnostic; the interactive browser console had zero errors or warnings.
+  - Screenshot review found the three-pane hierarchy, map overlays, A3 frame, page controls, and bottom palette readable with no material clipping, overlap, gradients, or decorative shadows.
+- Fail-closed review initially rejected contradictory version-2 migration states and missing migration coverage. An independent fix agent observed the expected RED failure (`Custom` expected, `A4` received) for `210×297` declared landscape, then made standard-preset inference orientation-aware and added four version-2 migration cases covering landscape, portrait, inconsistent, and custom dimensions. Full verification passed after the fix; independent re-review passed with no security concerns or logic errors. Its only non-blocking suggestion is direct A3/Letter migration and preset-redo coverage.
+- `.env.local` and tokens remain untracked/uncommitted. `docs/COMPLETE.md` does not exist and scheduler job `3a05bbc81515` remains enabled.
+
 ## Next unresolved slice
 
-Make Page preset selection canonical and undoable: A4, A3 and Letter must update stored dimensions and the visible frame/properties together, while Custom dimensions remain a later transaction-safe field-edit slice.
+Implement transaction-safe Custom page dimensions: editing width or height should switch the canonical preset to Custom, validate positive finite millimetres, commit once on blur, update the frame aspect ratio, and remain undoable.

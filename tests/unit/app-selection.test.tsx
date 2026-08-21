@@ -12,6 +12,7 @@ vi.mock('../../src/map/MapCanvas', () => ({
     onBackgroundClick,
     fitRequest,
     orientation,
+    page,
   }: {
     layers?: ContentLayer[];
     selectedId?: string | null;
@@ -20,11 +21,14 @@ vi.mock('../../src/map/MapCanvas', () => ({
     onBackgroundClick: () => void;
     fitRequest?: number;
     orientation?: 'landscape' | 'portrait';
+    page?: { preset?: string; widthMm: number; heightMm: number };
   }) => (
     <div
       data-testid="map-canvas"
       data-fit-request={fitRequest}
       data-orientation={orientation}
+      data-page-preset={page?.preset}
+      data-page-size={page ? `${page.widthMm}x${page.heightMm}` : ''}
       data-layer-state={layers.map(({ id, visible }) => `${id}:${visible}`).join(',')}
       data-selected-layer={selectedId ?? ''}
       data-previewed-layer={previewedId ?? ''}
@@ -162,6 +166,26 @@ describe('editor selection context', () => {
     await user.click(screen.getByRole('button', { name: 'Redo' }));
     expect(portrait).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-orientation', 'portrait');
+  });
+
+  it('applies a standard page preset to properties and canvas as one undoable change', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const preset = screen.getByRole('combobox', { name: 'Page preset' });
+    const map = screen.getByTestId('map-canvas');
+
+    await user.selectOptions(preset, 'A3');
+
+    expect(preset).toHaveValue('A3');
+    expect(screen.getByRole('textbox', { name: 'Page width' })).toHaveValue('420');
+    expect(screen.getByRole('textbox', { name: 'Page height' })).toHaveValue('297');
+    expect(map).toHaveAttribute('data-page-preset', 'A3');
+    expect(map).toHaveAttribute('data-page-size', '420x297');
+
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(preset).toHaveValue('A4');
+    expect(screen.getByRole('textbox', { name: 'Page width' })).toHaveValue('297');
+    expect(map).toHaveAttribute('data-page-preset', 'A4');
   });
 
   it('fits the page without changing the persistent tool', async () => {

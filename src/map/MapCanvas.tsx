@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { AttributionControl, Map, NavigationControl, type Map as MapLibreMap } from 'maplibre-gl';
-import type { ContentLayer } from '../domain/project';
+import type { ContentLayer, PageSettings } from '../domain/project';
 import {
   createMapLibreContentAdapter,
   type MapContentAdapter,
@@ -15,6 +15,7 @@ type MapCanvasProps = {
   onBackgroundClick: () => void;
   fitRequest?: number;
   orientation?: 'landscape' | 'portrait';
+  page?: PageSettings;
 };
 
 type MapError = {
@@ -37,6 +38,7 @@ export function MapCanvas({
   onBackgroundClick,
   fitRequest = 0,
   orientation = 'landscape',
+  page,
 }: MapCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -206,8 +208,12 @@ export function MapCanvas({
           <div><strong>Map preview unavailable</strong><span>{visibleError.message}</span></div>
         </div>
       )}
-      <div className={`print-frame is-${orientation}`} aria-hidden="true">
-        <span className="page-label">A4 · {orientation === 'landscape' ? 'Landscape' : 'Portrait'}</span>
+      <div
+        className={`print-frame is-${orientation}`}
+        style={{ aspectRatio: page ? `${page.widthMm} / ${page.heightMm}` : undefined }}
+        aria-hidden="true"
+      >
+        <span className="page-label">{page?.preset ?? 'A4'} · {orientation === 'landscape' ? 'Landscape' : 'Portrait'}</span>
       </div>
     </div>
   );

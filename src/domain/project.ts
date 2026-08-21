@@ -1,9 +1,12 @@
-export const PROJECT_SCHEMA_VERSION = 2 as const;
+export const PROJECT_SCHEMA_VERSION = 3 as const;
 
 export type LayerType = 'route' | 'poi' | 'shape' | 'basemap';
 export type PageOrientation = 'landscape' | 'portrait';
+export type PagePreset = 'A4' | 'A3' | 'Letter' | 'Custom';
+export type StandardPagePreset = Exclude<PagePreset, 'Custom'>;
 
 export type PageSettings = {
+  preset: PagePreset;
   widthMm: number;
   heightMm: number;
   orientation: PageOrientation;
@@ -39,9 +42,18 @@ export type ProjectDocumentV1 = {
   layers: ContentLayer[];
 };
 
-export type StoredProjectDocument = ProjectDocumentV1 | ProjectDocument;
+export type ProjectDocumentV2 = {
+  schemaVersion: 2;
+  id: string;
+  title: string;
+  page: Omit<PageSettings, 'preset'>;
+  layers: ContentLayer[];
+};
+
+export type StoredProjectDocument = ProjectDocumentV1 | ProjectDocumentV2 | ProjectDocument;
 
 const createDefaultPageSettings = (): PageSettings => ({
+  preset: 'A4',
   widthMm: 297,
   heightMm: 210,
   orientation: 'landscape',
@@ -55,7 +67,38 @@ export function migrateProjectDocument(document: StoredProjectDocument): Project
       page: createDefaultPageSettings(),
     };
   }
+  if (document.schemaVersion === 2) {
+    return {
+      ...document,
+      schemaVersion: PROJECT_SCHEMA_VERSION,
+      page: {
+        ...document.page,
+        preset: inferPagePreset(
+          document.page.widthMm,
+          document.page.heightMm,
+          document.page.orientation,
+        ),
+      },
+    };
+  }
   return document;
+}
+
+function inferPagePreset(
+  widthMm: number,
+  heightMm: number,
+  orientation: PageOrientation,
+): PagePreset {
+  const dimensionsMatchOrientation = orientation === 'landscape'
+    ? widthMm >= heightMm
+    : heightMm >= widthMm;
+  if (!dimensionsMatchOrientation) return 'Custom';
+
+  const edges = [widthMm, heightMm].sort((left, right) => left - right);
+  if (edges[0] === 210 && edges[1] === 297) return 'A4';
+  if (edges[0] === 297 && edges[1] === 420) return 'A3';
+  if (edges[0] === 215.9 && edges[1] === 279.4) return 'Letter';
+  return 'Custom';
 }
 
 export function cloneContentLayer(layer: ContentLayer): ContentLayer {
