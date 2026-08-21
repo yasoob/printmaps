@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { AttributionControl, Map, NavigationControl, type Map as MapLibreMap } from 'maplibre-gl';
 import type { ContentLayer, PageSettings } from '../domain/project';
+import { capturePrintFramePng, type PreviewPngExporter } from '../export/previewPng';
 import {
   createMapLibreContentAdapter,
   type MapContentAdapter,
@@ -13,6 +14,7 @@ type MapCanvasProps = {
   previewedId: string | null;
   onLayerSelect: (id: string) => void;
   onBackgroundClick: () => void;
+  onExporterChange?: (exporter: PreviewPngExporter | null) => void;
   fitRequest?: number;
   orientation?: 'landscape' | 'portrait';
   page?: PageSettings;
@@ -36,6 +38,7 @@ export function MapCanvas({
   previewedId,
   onLayerSelect,
   onBackgroundClick,
+  onExporterChange,
   fitRequest = 0,
   orientation = 'landscape',
   page,
@@ -45,13 +48,28 @@ export function MapCanvas({
   const contentAdapterRef = useRef<MapContentAdapter | null>(null);
   const contentStateRef = useRef<MapContentState>({ layers, selectedId, previewedId });
   const contentSyncDeferredRef = useRef(false);
+  const contentReadyRef = useRef(false);
   const layerSelectRef = useRef(onLayerSelect);
   const backgroundClickRef = useRef(onBackgroundClick);
+  const exporterChangeRef = useRef(onExporterChange);
+  const availableExporterRef = useRef<PreviewPngExporter | null>(null);
   const [mapError, setMapError] = useState<MapError | null>(null);
   const [contentError, setContentError] = useState<ContentError | null>(null);
 
-  const handleContentSyncResult = (result: ReturnType<MapContentAdapter['sync']> | undefined) => {
+  const invalidateExporter = useCallback(() => {
+    if (availableExporterRef.current) {
+      availableExporterRef.current = null;
+      exporterChangeRef.current?.(null);
+    }
+  }, []);
+
+  const handleContentSyncResult = useCallback((result: ReturnType<MapContentAdapter['sync']> | undefined) => {
     contentSyncDeferredRef.current = result === 'deferred';
+    if (result === 'failed' || result === 'deferred') {
+      contentReadyRef.current = false;
+      containerRef.current?.removeAttribute('data-map-ready');
+      invalidateExporter();
+    }
     if (result === 'failed') {
       queueMicrotask(() => setContentError({
         kind: 'content',
@@ -59,9 +77,10 @@ export function MapCanvas({
         message: 'The map content could not be rendered. Review the layer data and retry.',
       }));
     } else if (result === 'synced') {
+      contentReadyRef.current = true;
       queueMicrotask(() => setContentError((error) => error?.source === 'sync' ? null : error));
     }
-  };
+  }, [invalidateExporter]);
 
   useEffect(() => {
     backgroundClickRef.current = onBackgroundClick;
@@ -69,10 +88,16 @@ export function MapCanvas({
   }, [onBackgroundClick, onLayerSelect]);
 
   useEffect(() => {
+    exporterChangeRef.current = onExporterChange;
+    onExporterChange?.(availableExporterRef.current);
+    return () => onExporterChange?.(null);
+  }, [onExporterChange]);
+
+  useEffect(() => {
     contentStateRef.current = { layers, selectedId, previewedId };
     const adapter = contentAdapterRef.current;
     handleContentSyncResult(adapter?.sync(contentStateRef.current));
-  }, [layers, previewedId, selectedId]);
+  }, [handleContentSyncResult, layers, previewedId, selectedId]);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -94,6 +119,7 @@ export function MapCanvas({
         center: [16.3725, 48.2084],
         zoom: 11.2,
         attributionControl: false,
+        canvasContextAttributes: { preserveDrawingBuffer: true },
       });
     } catch {
       queueMicrotask(() => setMapError({
@@ -104,6 +130,30 @@ export function MapCanvas({
     }
 
     let styleLoaded = false;
+    let mapFailed = false;
+    let attributionInitialized = false;
+    let attributionResizeFrame: number | null = null;
+    const mobileViewportQuery = typeof window.matchMedia === 'function'
+      ? window.matchMedia('(max-width: 760px)')
+      : null;
+    const syncAttributionState = (mobile: boolean) => {
+      const attribution = containerRef.current?.querySelector<HTMLDetailsElement>('.maplibregl-ctrl-attrib');
+      if (!attribution) return;
+      if (mobile) {
+        attribution.removeAttribute('open');
+        attribution.classList.remove('maplibregl-compact-show');
+      } else {
+        attribution.setAttribute('open', '');
+        attribution.classList.add('maplibregl-compact-show');
+      }
+    };
+    const handleViewportChange = (event: MediaQueryListEvent) => {
+      if (attributionResizeFrame !== null) cancelAnimationFrame(attributionResizeFrame);
+      attributionResizeFrame = requestAnimationFrame(() => {
+        attributionResizeFrame = null;
+        syncAttributionState(event.matches);
+      });
+    };
     const handleMapClick = (event: { point: Parameters<MapContentAdapter['hitTest']>[0] }) => {
       const adapter = contentAdapterRef.current;
       if (!adapter) {
@@ -135,13 +185,41 @@ export function MapCanvas({
         handleContentSyncResult(contentAdapterRef.current.sync(contentStateRef.current));
       }
     };
+    const exportPreview: PreviewPngExporter = () => {
+      const printFrame = containerRef.current?.parentElement?.querySelector<HTMLElement>('.print-frame');
+      if (!printFrame) return Promise.reject(new Error('The print frame is not ready to export.'));
+      const attribution = containerRef.current
+        ?.querySelector<HTMLElement>('.maplibregl-ctrl-attrib-inner')
+        ?.textContent ?? '';
+      return capturePrintFramePng(map.getCanvas(), printFrame, attribution);
+    };
     const handleIdle = () => {
-      containerRef.current?.setAttribute('data-map-ready', 'true');
+      if (mapFailed) return;
+      if (!attributionInitialized) {
+        syncAttributionState(mobileViewportQuery?.matches ?? false);
+        attributionInitialized = true;
+      }
       if (contentSyncDeferredRef.current && contentAdapterRef.current) {
         handleContentSyncResult(contentAdapterRef.current.sync(contentStateRef.current));
       }
+      if (!contentReadyRef.current) return;
+      if (availableExporterRef.current !== exportPreview) {
+        availableExporterRef.current = exportPreview;
+        exporterChangeRef.current?.(exportPreview);
+      }
+      containerRef.current?.setAttribute('data-map-ready', 'true');
+    };
+    const handleAttributionDrag = () => {
+      if (!mobileViewportQuery?.matches) return;
+      syncAttributionState(true);
     };
     const handleError = () => {
+      mapFailed = true;
+      containerRef.current?.removeAttribute('data-map-ready');
+      if (availableExporterRef.current === exportPreview) {
+        availableExporterRef.current = null;
+        exporterChangeRef.current?.(null);
+      }
       if (!styleLoaded) {
         setMapError({
           kind: 'style',
@@ -156,18 +234,29 @@ export function MapCanvas({
     };
     map.addControl(new NavigationControl({ showCompass: false }), 'bottom-right');
     map.addControl(new AttributionControl({ compact: true }), 'bottom-left');
+    mobileViewportQuery?.addEventListener('change', handleViewportChange);
     map.once('load', handleLoad);
     map.on('idle', handleIdle);
+    map.on('drag', handleAttributionDrag);
     map.on('error', handleError);
     map.on('click', handleMapClick);
     mapRef.current = map;
 
     return () => {
+      if (availableExporterRef.current === exportPreview) {
+        availableExporterRef.current = null;
+        exporterChangeRef.current?.(null);
+      }
+      mobileViewportQuery?.removeEventListener('change', handleViewportChange);
+      if (attributionResizeFrame !== null) cancelAnimationFrame(attributionResizeFrame);
       try { map.off('load', handleLoad); } catch {
         try { map.off('load', handleLoad); } catch { /* Cleanup retries are bounded and contained. */ }
       }
       try { map.off('idle', handleIdle); } catch {
         try { map.off('idle', handleIdle); } catch { /* Cleanup retries are bounded and contained. */ }
+      }
+      try { map.off('drag', handleAttributionDrag); } catch {
+        try { map.off('drag', handleAttributionDrag); } catch { /* Cleanup retries are bounded and contained. */ }
       }
       try { map.off('error', handleError); } catch {
         try { map.off('error', handleError); } catch { /* Cleanup retries are bounded and contained. */ }
@@ -189,7 +278,7 @@ export function MapCanvas({
         }
       }
     };
-  }, []);
+  }, [handleContentSyncResult]);
 
   useEffect(() => {
     if (fitRequest > 0 && mapRef.current) {
@@ -210,7 +299,10 @@ export function MapCanvas({
       )}
       <div
         className={`print-frame is-${orientation}`}
-        style={{ aspectRatio: page ? `${page.widthMm} / ${page.heightMm}` : undefined }}
+        style={{
+          aspectRatio: page ? `${page.widthMm} / ${page.heightMm}` : undefined,
+          '--studio-page-ratio': page ? page.widthMm / page.heightMm : 297 / 210,
+        } as CSSProperties}
         aria-hidden="true"
       >
         <span className="page-label">{page?.preset ?? 'A4'} · {orientation === 'landscape' ? 'Landscape' : 'Portrait'}</span>

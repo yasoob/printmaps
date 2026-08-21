@@ -124,6 +124,83 @@
 - Fail-closed review initially rejected contradictory version-2 migration states and missing migration coverage. An independent fix agent observed the expected RED failure (`Custom` expected, `A4` received) for `210×297` declared landscape, then made standard-preset inference orientation-aware and added four version-2 migration cases covering landscape, portrait, inconsistent, and custom dimensions. Full verification passed after the fix; independent re-review passed with no security concerns or logic errors. Its only non-blocking suggestion is direct A3/Letter migration and preset-redo coverage.
 - `.env.local` and tokens remain untracked/uncommitted. `docs/COMPLETE.md` does not exist and scheduler job `3a05bbc81515` remains enabled.
 
+### 2026-08-21 — Vertical slice 6: transaction-safe custom page dimensions (remediated, pending combined review)
+
+- Added controlled width/height drafts that reject empty, non-finite and non-positive values, expose `aria-invalid`, avoid history while typing, commit once on blur, switch the canonical preset to `Custom`, update the print-frame aspect ratio, and remain undoable.
+- Added explicit dirty tracking so merely focusing and blurring an untouched dimension does not create history. Re-entering the same numeric value after an actual edit still creates one `Custom` transaction.
+- Strict TDD evidence:
+  - Initial focused command `npm test -- --run tests/unit/app-selection.test.tsx -t "validates and commits a custom"` failed 2/2 because both page fields were read-only; after implementation it passed 2/2.
+  - Review remediation observed RED for re-entering `297` (`Custom` expected, `A4` received), then GREEN after the store no-op invariant was narrowed.
+  - Second remediation observed RED for untouched focus/blur (`A4` expected, `Custom` received), then GREEN after per-field dirty tracking.
+- Fresh verification on the current uncommitted working tree:
+  - `npm test -- --run` — pass, 5 files / 65 tests.
+  - `npm run typecheck` — pass.
+  - `npm run lint` — pass, zero warnings.
+  - `npm run doctor` — pass, no issues at warning-blocking severity; telemetry disabled.
+  - `npm run build` — pass; existing ~1.16 MB pre-gzip bundle warning remains.
+  - `npm run test:e2e` — 12 pass / 3 documented Firefox WebGL-environment skips across 15 Chromium, Firefox and WebKit cases.
+- Browser evidence:
+  - Fresh 1440×900 Chromium screenshot: `docs/screenshots/latest-desktop.png`, SHA-256 `9e10cbda5725247c5bdaaa6cc6eecb9b778b8544a076781b4f9c7f3333f1c8a8`.
+  - Live invalid `-1` input set `aria-invalid=true` without enabling Undo; valid `240` committed `Custom`, produced frame aspect ratio `240 / 210`, enabled Undo, kept the live map ready, had zero body overflow, and emitted no browser console/page errors.
+  - Fresh untouched focus/Tab verification preserved `A4` with Undo disabled.
+  - Screenshot review found the custom frame, map, page controls and three-pane editor readable with no material clipping, overlap, gradient or decorative shadow.
+- **Stale-draft blocker remediated:** the final earlier review found that an external page update could move a canonical dimension away from a dirty draft's source and later restore that source, resurrecting the abandoned draft. A focused RED regression reproduced `297 → dirty 240 → canonical 210 → canonical 297` returning `240`. Each dimension is now an independently keyed transaction field, so any canonical dimension/preset change remounts that edit boundary and permanently discards superseded drafts; untouched blur, same-value Custom, invalid reset, Undo and Redo behavior remain covered.
+- Fresh combined verification after remediation: typecheck, ESLint, no-telemetry React Doctor and build pass; Vitest 6 files / 84 tests; Playwright 14 pass / 4 runtime Firefox WebGL skips across 18; audit 0 vulnerabilities. Final combined fail-closed re-review remains required before commit.
+- `.env.local` and tokens remain untracked/uncommitted. `docs/COMPLETE.md` does not exist and scheduler job `3a05bbc81515` remains enabled.
+
+### 2026-08-21 — Mobile responsiveness and attribution correction (verified, uncommitted with active slice)
+
+- Reproduced the reported mobile defects at 390×844 and 360×800: both sidebars were `display:none`, making layer/project controls unreachable, while expanded attribution measured about 248×26 and overlapped the bottom toolbar; MapLibre's compact padding made its icon appear disproportionate.
+- Added mobile Layers and Properties triggers plus modal left/right slide-in drawers, backdrop dismissal, explicit close controls, bounded toolbar sizing and safe-area-aware bottom placement. Drawers move focus inside after their transition, trap Tab, close on Escape/backdrop/selection, restore focus to the correct trigger, and respect reduced-motion preferences. The layer list scrolls independently for long projects.
+- Attribution initializes collapsed on mobile by clearing both MapLibre state markers (`open` and `maplibregl-compact-show`), so the first click expands and the second collapses. Its visual glyph is 8×8 inside a 24×24 touch target; expanded text is 9.5px, constrained to the viewport, and translated above the toolbar. The toolbar and attribution derive placement from the same injectable safe-area variable, and `viewport-fit=cover` enables real iOS insets.
+- Strict TDD/browser evidence:
+  - The initial mobile test failed because attribution remained open, then exposed the real 6px collapsed-details height and MapLibre's 50×18 computed compact box.
+  - The first independent review rejected the apparent fix because only `open` was cleared, expanded attribution still overlapped, drawer focus was unmanaged, safe-area geometry diverged, and the Firefox test assumed renderer availability from browser identity. Each issue was reproduced with focused Playwright probes before remediation.
+  - The second independent review exposed three deeper lifecycle bugs: MapLibre drag removed only the class marker, topbar controls could escape the modal drawer, and an open drawer retained dialog semantics after resizing to desktop. New RED browser assertions reproduced each before implementation.
+  - The third independent review found bidirectional breakpoint attribution drift, mobile Duplicate focus escaping to `BODY`, incomplete top/inline safe-area use, and a stale screenshot checksum. The browser regression was extended for every case before fixing them.
+  - Final behavior now synchronizes both attribution markers on drag and in both breakpoint directions; applies native `inert` to every background application region while a drawer is modal; keeps Duplicate focus inside Properties; consumes top, bottom, left and right safe-area values; and clears drawer semantics/focus timers on desktop transition. The drawer lifecycle was extracted to `useMobilePanels` after React Doctor caught an oversized `App` component.
+  - The final E2E case detects actual map-ready/fallback state; verifies pristine, post-drag, desktop-to-mobile and mobile-to-desktop attribution cycles; expanded geometry with all four simulated safe-area insets; a 24px target with 8px glyph; modal focus entry/Tab containment/Escape/backdrop/selection/Duplicate behavior; 320/390 overflow; resize cleanup; and all three browser engines.
+- Fresh verification on the combined current working tree:
+  - `npm run typecheck` — pass.
+  - `npm run lint` — pass, zero warnings.
+  - `npm run doctor` — pass, no issues; telemetry disabled.
+  - `npm test -- --run` — pass, 5 files / 65 tests.
+  - `npm run build` — pass; existing bundle-size warning remains.
+  - `npm run test:e2e` — 12 pass / 3 documented Firefox WebGL-environment skips across 15 cases.
+  - `npm audit --omit=dev` — 0 vulnerabilities.
+- Browser evidence: `docs/screenshots/latest-mobile.png`, `docs/screenshots/mobile/attribution-open.png`, `docs/screenshots/mobile/layers-open.png`, and `docs/screenshots/mobile/properties-open.png`. Measured expanded attribution is 239×28 at y=754–782 versus toolbar y=786–830; the button is 24×24 with an 8×8 glyph. The Tailscale deployment at `https://ubuntu-2gb-hil-1-1.tail7787.ts.net:8443/` serves the corrected source with a clean browser console.
+- These edits share `App.tsx`, `MapCanvas.tsx`, styles and tests with the custom-dimension and export corrections, so the combined tree awaits one final fail-closed review before commit.
+
+### 2026-08-21 — Export no-op correction (verified, uncommitted with active slices)
+
+- Reproduced the user report at both 1440×900 and 390×844: clicking `Export` produced no dialog, no download event and no focus change because the button had no handler on either layout.
+- Added an accessible `Export map` modal with initial focus, Tab containment, Escape/backdrop/Cancel/close behavior, trigger-focus restoration, busy state and a visible not-ready/error path. The wording explicitly identifies this as a current print-frame preview rather than claiming the later 300-dpi/tiled export gate is complete.
+- Added a real browser-only PNG path. MapLibre now preserves its drawing buffer, registers the exporter only after the first rendered idle frame, crops the live canvas to the visible print frame, and downloads `<project-id>.png`. The crop includes the rendered basemap plus route/POI/shape layers and writes the style's visible source attribution into the PNG.
+- Strict TDD/browser evidence:
+  - The new Playwright case first failed because no `Export map` dialog existed.
+  - The attribution unit case then failed because the cropped PNG omitted source attribution.
+  - Export-only fail-closed review rejected the first implementation for clipped/outside crop math, busy-modal focus loss, stale exporter availability after renderer errors, unbounded/missing attribution, object-URL cleanup, and a non-awaited browser assertion. Focused RED tests reproduced every defect before remediation.
+  - The corrected exporter intersects frame/canvas bounds, rejects zero/outside/missing-attribution states, bounds attribution text, normalizes rendering/encoding errors, sanitizes filenames, and revokes object URLs even when download initiation throws. Map errors now withdraw readiness and exporter capability; late callback replacement and StrictMode cleanup are covered. Busy export focuses the modal container and keeps Escape/Tab contained.
+  - Chromium and WebKit now download non-empty files from desktop, 390×844 mobile, and 390×520 short-mobile viewports; Firefox activates the same case automatically when the runtime supplies WebGL 2 instead of being skipped by browser name. The browser test awaits file size, verifies PNG signature/IHDR dimensions against frame×DPR, decodes opaque/nonblank pixels, and checks attribution-strip pixel evidence.
+  - Actual PNGs were visually inspected and contain the Liberty basemap, Route 01, Coffee stop, City center and an embedded attribution strip rather than blank/transparent pixels.
+  - Direct downloads through the deployed Tailscale HTTPS endpoint produced the same 687×486 and 335×237 files and checksums as the Chromium regression path, with clean browser console/page-error capture.
+  - Desktop and 390px modal screenshots have zero body overflow, focus `Download PNG`, remain inside safe-area padding and emit no console/page errors.
+- Fresh combined-tree verification: typecheck pass; ESLint pass with zero warnings; no-telemetry React Doctor pass/no issues; Vitest 6 files / 84 tests; production build pass with the existing bundle-size warning; Playwright 14 pass / 4 runtime Firefox WebGL-environment skips across 18; `npm audit --omit=dev` reports 0 vulnerabilities.
+- Evidence: `docs/screenshots/export-desktop.png`, `docs/screenshots/export-mobile.png`, `docs/screenshots/export-preview-desktop.png` (687×486, SHA-256 `30fc9413f1c80e9cd2b91a0cb6fde07c66ebbd19ce7cc0e593b22e6b68affb48`), `docs/screenshots/export-preview-mobile.png` (335×237, SHA-256 `655102e9cfbed4e08ccbfb6a124d82fbd220581007e9747fce0fd2705cd3443a`), and `docs/screenshots/export-preview-custom-100x300.png` (223×668, approximately 1:3, SHA-256 `29be3ff44544edb77188417e80d15272a2d9a3c494d3abd2dce529adff2267c9`).
+- Scope remains honest: high-resolution tiled PNG, PDF and layered SVG are still future mission stages. This correction makes the existing top-bar control visibly and functionally useful without claiming those formats are finished.
+
+### 2026-08-21 — Combined fail-closed review remediation (pending re-review)
+
+- The first combined review reported no security concerns but rejected six logic/evidence areas. Each was reproduced with a focused RED assertion before correction:
+  1. Mobile Delete could leave `BODY` focused while Properties remained modal. Delete now restores focus to the Project heading inside the active Properties dialog (or the appropriate desktop list target), and Chromium verifies focus plus Escape closure.
+  2. Orientation-inconsistent Custom dimensions could distort the frame. Custom edits now derive orientation from canonical width/height, and container-query-unit sizing fits the exact ratio inside both axes. A real 100×300 page renders and exports at approximately 1:3 (`223×668`).
+  3. Degenerate frame crops could produce unusable 687×2 previews. Export now rejects output below 120×48 with an explicit useful-content/attribution error.
+  4. Content synchronization failures could retain an exporter. Failed/deferred synchronization now clears `data-map-ready`, invalidates exporter capability, and blocks idle republishing until content is synchronized.
+  5. The 8px attribution glyph repeated as a 3×3 tile. CSS now sets `background-repeat:no-repeat` and centered positioning; computed-style browser assertions and refreshed screenshots verify one glyph in the 24px target.
+  6. Evidence was too weak. Busy export now exercises forward and reverse Tab while no controls are enabled; PNG tests verify an exact opaque surface-colored attribution strip plus non-surface text pixels rather than generic bottom-row dominance.
+- Fresh final gate after these corrections: typecheck pass; ESLint zero warnings; React Doctor no issues with telemetry disabled; Vitest 6 files / 84 tests; build pass with the existing size warning; Playwright 14 pass / 4 runtime Firefox WebGL skips; audit 0 vulnerabilities; diff/security scan clean; live HTTPS 200.
+- Refreshed evidence: desktop SHA-256 `9e10cbda5725247c5bdaaa6cc6eecb9b778b8544a076781b4f9c7f3333f1c8a8`, mobile SHA-256 `224dea1d3944499bc38525d0f282d64059dd2a677c4d82a37bf1eec3916b4d21`; Properties and Export screenshots now show the current disabled Browser preview/required-attribution controls.
+
 ## Next unresolved slice
 
-Implement transaction-safe Custom page dimensions: editing width or height should switch the canonical preset to Custom, validate positive finite millimetres, commit once on blur, update the frame aspect ratio, and remain undoable.
+Obtain one passing combined fail-closed review for the custom-dimension, mobile and preview-export corrections, then commit the verified tree. After that, the highest-value core gap is local persistence/portable project open-save, followed by real create/edit/import workflows and full print exports.

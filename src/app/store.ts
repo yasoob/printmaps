@@ -5,6 +5,7 @@ import {
   migrateProjectDocument,
   type ContentLayer,
   type PageOrientation,
+  type PageSettings,
   type StandardPagePreset,
   type ProjectDocument,
   type StoredProjectDocument,
@@ -22,6 +23,7 @@ export type ProjectState = {
   moveLayer: (id: string, toIndex: number) => void;
   renameLayer: (id: string, name: string) => void;
   selectLayer: (id: string | null) => void;
+  setPageDimension: (dimension: 'widthMm' | 'heightMm', value: number) => void;
   setPageOrientation: (orientation: PageOrientation) => void;
   setPagePreset: (preset: StandardPagePreset) => void;
   setLayerOpacity: (id: string, opacity: number) => void;
@@ -123,6 +125,19 @@ export function createProjectStore(
         ? id
         : state.selectedId,
     })),
+    setPageDimension: (dimension, value) => set((state) => {
+      if (
+        !Number.isFinite(value)
+        || value <= 0
+        || (state.document.page[dimension] === value && state.document.page.preset === 'Custom')
+      ) return state;
+      const nextPage: PageSettings = { ...state.document.page, preset: 'Custom', [dimension]: value };
+      nextPage.orientation = nextPage.widthMm >= nextPage.heightMm ? 'landscape' : 'portrait';
+      return commitDocument(state, {
+        ...state.document,
+        page: nextPage,
+      });
+    }),
     setPageOrientation: (orientation) => set((state) => {
       const shortEdge = Math.min(state.document.page.widthMm, state.document.page.heightMm);
       const longEdge = Math.max(state.document.page.widthMm, state.document.page.heightMm);

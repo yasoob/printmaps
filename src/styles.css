@@ -99,7 +99,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   height: var(--studio-control-height);
   font-size: var(--studio-font-control);
 }
-.layer-tree { @apply m-0 list-none py-1 pl-0; }
+.layer-tree { @apply m-0 min-h-0 list-none overflow-y-auto py-1 pl-0; }
 .layer-row {
   @apply grid items-center px-1;
   grid-template-columns: 1.625rem minmax(0, 1fr) 1.5rem 1.5rem;
@@ -134,24 +134,18 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 
 .canvas-region { @apply relative min-h-0 min-w-0 overflow-hidden; background: var(--studio-canvas); }
+.canvas-surface { container-type: size; }
 .canvas-surface, .map-root { @apply absolute inset-0; }
 .map-root { background: var(--studio-map-fallback); }
 .print-frame {
   @apply absolute pointer-events-none;
   top: 50%;
   left: 50%;
-  width: 74%;
+  width: min(74cqw, calc(78cqh * var(--studio-page-ratio, 1.4142857)));
   height: auto;
-  max-height: 80%;
-  aspect-ratio: 297 / 210;
+  aspect-ratio: var(--studio-page-ratio, 1.4142857);
   transform: translate(-50%, -50%);
   border: var(--studio-border-width) solid var(--studio-frame);
-}
-.print-frame.is-portrait {
-  width: auto;
-  height: 78%;
-  max-width: 74%;
-  aspect-ratio: 210 / 297;
 }
 .print-frame::before, .print-frame::after {
   content: "";
@@ -181,15 +175,39 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   border: var(--studio-border-width) solid var(--studio-line-hover);
 }
 .maplibregl-ctrl-attrib {
-  max-width: 14rem;
-  padding: 1px 3px;
+  max-width: 12rem;
   font-size: var(--studio-font-micro);
   line-height: 1.15;
   opacity: .72;
 }
-.maplibregl-ctrl-attrib-button { width: 1rem; height: 1rem; }
+.maplibregl-ctrl-attrib.maplibregl-compact {
+  min-height: 16px;
+  margin: 0;
+  padding: 0;
+}
+.maplibregl-ctrl-attrib.maplibregl-compact:not([open]) {
+  width: 16px !important;
+  min-width: 16px !important;
+  height: 16px !important;
+  min-height: 16px !important;
+  overflow: hidden;
+  padding: 0 !important;
+}
+.maplibregl-ctrl-attrib.maplibregl-compact[open] {
+  width: auto !important;
+  height: auto !important;
+  padding: 1px 3px 1px 18px !important;
+}
+.maplibregl-ctrl-attrib-button {
+  width: 16px;
+  height: 16px;
+  background-size: 8px 8px;
+  background-repeat: no-repeat;
+  background-position: center;
+}
 .maplibregl-ctrl-bottom-right { bottom: 42px; right: 10px; }
 .maplibregl-ctrl-bottom-left { bottom: 3px; left: 4px; }
+.mobile-panel-actions, .mobile-panel-backdrop, .mobile-drawer-close { display: none; }
 .tool-palette {
   @apply absolute bottom-[18px] left-1/2 flex -translate-x-1/2 items-center p-1;
   height: 2.75rem;
@@ -294,24 +312,149 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .layer-menu button:hover { background: var(--studio-field); }
 .layer-menu .danger-button { color: var(--studio-danger); }
 
+.export-overlay {
+  @apply fixed inset-0 z-[100] grid place-items-center;
+  padding: max(1rem, var(--studio-safe-top)) max(1rem, var(--studio-safe-right)) max(1rem, var(--studio-safe-bottom)) max(1rem, var(--studio-safe-left));
+}
+.export-backdrop {
+  @apply absolute inset-0 cursor-default;
+  background: var(--studio-scrim);
+}
+.export-dialog {
+  @apply relative z-10 grid w-full overflow-hidden;
+  max-width: 28rem;
+  max-height: calc(100dvh - max(2rem, var(--studio-safe-top)) - max(2rem, var(--studio-safe-bottom)));
+  border: var(--studio-border-width) solid var(--studio-line-strong);
+  border-radius: var(--studio-radius-lg);
+  background: var(--studio-surface);
+}
+.export-dialog-header {
+  @apply flex items-start justify-between gap-4 border-b px-4 py-3;
+  border-color: var(--studio-line);
+}
+.export-dialog-header h2 { @apply mt-0.5 text-sm font-semibold; color: var(--studio-text-strong); }
+.export-dialog-body { @apply grid gap-2 overflow-y-auto px-4 py-4; font-size: var(--studio-font-control); color: var(--studio-text-secondary); }
+.export-dialog-body strong { color: var(--studio-text-strong); }
+.export-dialog-body p { @apply m-0; line-height: 1.45; }
+.export-dialog-body [role='status'] { font-variant-numeric: tabular-nums; color: var(--studio-text-muted); }
+.export-error { color: var(--studio-danger) !important; }
+.export-dialog-actions {
+  @apply flex justify-end gap-2 border-t px-4 py-3;
+  border-color: var(--studio-line);
+  background: var(--studio-panel);
+}
+.export-dialog-actions > button:not(.primary-button) {
+  @apply min-h-8 rounded px-3;
+  border: var(--studio-border-width) solid var(--studio-line-strong);
+  background: var(--studio-surface);
+  font-size: var(--studio-font-control);
+}
+
 @media (max-width: 980px) {
   .studio-shell { grid-template-columns: 13rem minmax(360px, 1fr) 15rem; }
   .brand-name { @apply hidden; }
 }
 
 @media (max-width: 760px) {
-  .studio-shell { grid-template: var(--studio-topbar-height) minmax(0, 1fr) / minmax(0, 1fr); }
-  .left-sidebar, .right-sidebar, .history-actions, .quiet-button, .canvas-status { @apply hidden; }
-  .topbar { grid-template-columns: 1fr auto; }
-  .project-title { @apply max-w-[132px] overflow-hidden text-ellipsis whitespace-nowrap; }
+  .studio-shell { grid-template: calc(var(--studio-topbar-height) + var(--studio-safe-top)) minmax(0, 1fr) / minmax(0, 1fr); }
+  .history-actions, .quiet-button, .canvas-status { @apply hidden; }
+  .topbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding-top: var(--studio-safe-top);
+    padding-left: calc(8px + var(--studio-safe-left));
+    padding-right: calc(8px + var(--studio-safe-right));
+  }
+  .brand-block { @apply min-w-0; }
+  .project-title { @apply max-w-[116px] overflow-hidden text-ellipsis whitespace-nowrap; }
+  .document-actions { @apply min-w-0; }
+  .primary-button { @apply px-2; }
+
+  .left-sidebar, .right-sidebar {
+    @apply fixed z-[60];
+    top: calc(var(--studio-topbar-height) + var(--studio-safe-top));
+    bottom: var(--studio-safe-bottom);
+    display: flex;
+    width: min(calc(88vw - var(--studio-safe-left) - var(--studio-safe-right)), 20rem);
+    visibility: hidden;
+    pointer-events: none;
+    transition: transform 160ms ease-out, visibility 160ms;
+  }
+  .left-sidebar {
+    left: var(--studio-safe-left);
+    transform: translateX(-110%);
+  }
+  .right-sidebar {
+    right: var(--studio-safe-right);
+    display: block;
+    transform: translateX(100%);
+  }
+  .left-sidebar.is-mobile-open, .right-sidebar.is-mobile-open {
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateX(0);
+  }
+  .mobile-panel-backdrop {
+    @apply fixed bottom-0 left-0 right-0 z-40 block cursor-default;
+    top: calc(var(--studio-topbar-height) + var(--studio-safe-top));
+    background: var(--studio-scrim);
+  }
+  .mobile-panel-actions {
+    @apply absolute top-2 z-30 flex gap-1;
+    left: calc(8px + var(--studio-safe-left));
+  }
+  .mobile-panel-actions button {
+    @apply inline-flex min-h-9 items-center gap-1.5 px-2.5 font-medium;
+    border: var(--studio-border-width) solid var(--studio-line-strong);
+    border-radius: var(--studio-radius-md);
+    background: var(--studio-surface-raised);
+    font-size: var(--studio-font-control);
+  }
+  .mobile-drawer-close {
+    @apply absolute right-10 top-2 z-10 grid h-7 w-7 place-items-center;
+    border-radius: var(--studio-radius-sm);
+    color: var(--studio-text-secondary);
+  }
+  .mobile-drawer-close:hover { background: var(--studio-field); }
+
+  .tool-palette {
+    bottom: max(14px, var(--studio-safe-bottom));
+    left: calc(50% + (var(--studio-safe-left) - var(--studio-safe-right)) / 2);
+    max-width: calc(100vw - 16px - var(--studio-safe-left) - var(--studio-safe-right));
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tool-palette::-webkit-scrollbar { display: none; }
+  .maplibregl-ctrl-bottom-left {
+    bottom: var(--studio-safe-bottom);
+    left: calc(4px + var(--studio-safe-left));
+  }
+  .maplibregl-ctrl-bottom-right { right: calc(10px + var(--studio-safe-right)); }
+  .maplibregl-ctrl-attrib.maplibregl-compact {
+    min-height: 24px;
+  }
+  .maplibregl-ctrl-attrib.maplibregl-compact:not([open]) {
+    width: 24px !important;
+    min-width: 24px !important;
+    height: 24px !important;
+    min-height: 24px !important;
+  }
+  .maplibregl-ctrl-attrib-button {
+    width: 24px !important;
+    height: 24px !important;
+    background-size: 8px 8px !important;
+  }
+  .maplibregl-ctrl-attrib.maplibregl-compact[open] {
+    max-width: min(72vw, 13rem);
+    padding-left: 26px !important;
+    transform: translateY(-62px);
+    font-size: var(--studio-font-meta);
+  }
+
   .print-frame {
-    width: 86%;
-    height: auto;
-    max-height: 66%;
+    width: min(86cqw, calc(64cqh * var(--studio-page-ratio, 1.4142857)));
   }
-  .print-frame.is-portrait {
-    width: auto;
-    height: 64%;
-    max-width: 86%;
-  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .left-sidebar, .right-sidebar { transition: none; }
 }

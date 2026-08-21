@@ -189,6 +189,59 @@ describe('MapCanvas content recovery', () => {
     expect(fallback).toHaveTextContent('Reload the page and retry');
   });
 
+  it('invalidates export readiness when map content synchronization fails', async () => {
+    const onExporterChange = vi.fn();
+    const { rerender } = render(<MapCanvas {...baseProps} selectedId={null} onExporterChange={onExporterChange} />);
+    await waitFor(() => expect(onExporterChange).toHaveBeenCalledWith(expect.any(Function)));
+    mocks.adapterSync.mockReturnValue('failed');
+
+    rerender(<MapCanvas {...baseProps} selectedId="route-01" onExporterChange={onExporterChange} />);
+
+    await waitFor(() => expect(onExporterChange).toHaveBeenLastCalledWith(null));
+    expect(await screen.findByRole('status')).toHaveTextContent('map content could not be rendered');
+  });
+
+  it('does not publish export readiness when initial content synchronization fails', async () => {
+    mocks.adapterSync.mockReturnValue('failed');
+    const onExporterChange = vi.fn();
+    render(<MapCanvas {...baseProps} selectedId={null} onExporterChange={onExporterChange} />);
+
+    expect(await screen.findByRole('status')).toHaveTextContent('map content could not be rendered');
+    expect(onExporterChange).not.toHaveBeenCalledWith(expect.any(Function));
+  });
+
+  it('invalidates an available exporter after a post-load renderer error', async () => {
+    const onExporterChange = vi.fn();
+    render(<MapCanvas {...baseProps} selectedId={null} onExporterChange={onExporterChange} />);
+    await waitFor(() => expect(onExporterChange).toHaveBeenCalledWith(expect.any(Function)));
+
+    act(() => {
+      for (const handler of latestMapHandlers().error ?? []) handler(new Error('WebGL context lost'));
+    });
+
+    await waitFor(() => expect(onExporterChange).toHaveBeenLastCalledWith(null));
+    expect(await screen.findByRole('status')).toHaveTextContent('map renderer encountered an error');
+  });
+
+  it('does not publish an exporter after a style error before readiness', async () => {
+    mocks.styleErrorBeforeLoad = true;
+    const onExporterChange = vi.fn();
+    render(<MapCanvas {...baseProps} selectedId={null} onExporterChange={onExporterChange} />);
+
+    expect(await screen.findByRole('status')).toHaveTextContent('map style could not be loaded');
+    await waitFor(() => expect(onExporterChange).not.toHaveBeenCalledWith(expect.any(Function)));
+  });
+
+  it('hands an already-ready exporter to a callback supplied later', async () => {
+    const { rerender } = render(<MapCanvas {...baseProps} selectedId={null} />);
+    await waitFor(() => expect(mocks.adapterSync).toHaveBeenCalledTimes(1));
+    const onExporterChange = vi.fn();
+
+    rerender(<MapCanvas {...baseProps} selectedId={null} onExporterChange={onExporterChange} />);
+
+    await waitFor(() => expect(onExporterChange).toHaveBeenCalledWith(expect.any(Function)));
+  });
+
   it('retries the current content state on idle after sync is deferred', async () => {
     mocks.adapterSync.mockReturnValueOnce('deferred').mockReturnValue('synced');
 
@@ -276,7 +329,8 @@ describe('MapCanvas content recovery', () => {
     expect([...mocks.activeMapIds]).toEqual([1]);
     expect([...mocks.activeAdapterIds]).toEqual([1]);
     expect(Object.values(mocks.mapHandlers[0]).every((handlers) => handlers.length === 0)).toBe(true);
-    expect(mocks.mapOff).toHaveBeenCalledTimes(8);
+    expect(mocks.mapOff).toHaveBeenCalledTimes(10);
+    expect(mocks.mapOff.mock.calls.filter(([event]) => event === 'drag')).toHaveLength(2);
     expect(mocks.adapterDestroy).toHaveBeenCalledTimes(2);
     expect(mocks.mapRemove).toHaveBeenCalledTimes(2);
 
@@ -286,7 +340,8 @@ describe('MapCanvas content recovery', () => {
     expect(mocks.mapHandlers.every((handlersByEvent) => (
       Object.values(handlersByEvent).every((handlers) => handlers.length === 0)
     ))).toBe(true);
-    expect(mocks.mapOff).toHaveBeenCalledTimes(12);
+    expect(mocks.mapOff).toHaveBeenCalledTimes(15);
+    expect(mocks.mapOff.mock.calls.filter(([event]) => event === 'drag')).toHaveLength(3);
     expect(mocks.adapterDestroy).toHaveBeenCalledTimes(3);
     expect(mocks.mapRemove).toHaveBeenCalledTimes(3);
   });

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Download,
   Eye,
@@ -11,6 +11,8 @@ import {
   MapPin,
   MousePointer2,
   PanelLeftClose,
+  SlidersHorizontal,
+  X,
   PenLine,
   Redo2,
   Route,
@@ -24,6 +26,7 @@ import {
 } from 'lucide-react';
 import { useStore } from 'zustand';
 import type { ContentLayer, LayerType, PageSettings, StandardPagePreset } from '../domain/project';
+import { startPreviewDownload, type PreviewPngExporter } from '../export/previewPng';
 import { MapCanvas } from '../map/MapCanvas';
 import { createProjectStore } from './store';
 
@@ -44,14 +47,132 @@ const tools = [
   { id: 'frame', label: 'Fit page', shortcut: 'Shift+1', icon: Frame, command: true },
 ];
 
+type MobilePanel = 'layers' | 'properties';
+
+function useMobilePanels() {
+  const [mobilePanel, setMobilePanel] = useState<MobilePanel | null>(null);
+  const [isMobileViewport, setIsMobileViewport] = useState(() => (
+    typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 760px)').matches
+  ));
+  const layersTriggerRef = useRef<HTMLButtonElement>(null);
+  const propertiesTriggerRef = useRef<HTMLButtonElement>(null);
+  const layersPanelRef = useRef<HTMLElement>(null);
+  const propertiesPanelRef = useRef<HTMLElement>(null);
+  const projectTitleRef = useRef<HTMLButtonElement>(null);
+  const focusTimerRef = useRef<number | null>(null);
+  const activePanel = isMobileViewport ? mobilePanel : null;
+
+  const getPanelElements = (panel: MobilePanel) => {
+    const panelElement = panel === 'layers' ? layersPanelRef.current : propertiesPanelRef.current;
+    return panelElement
+      ? [...panelElement.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])')]
+      : [];
+  };
+
+  const scheduleFocus = (callback: () => void, delay = 180) => {
+    if (focusTimerRef.current !== null) window.clearTimeout(focusTimerRef.current);
+    const reducedMotion = typeof window.matchMedia === 'function'
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    focusTimerRef.current = window.setTimeout(() => {
+      focusTimerRef.current = null;
+      callback();
+    }, reducedMotion ? 0 : delay);
+  };
+
+  const closePanel = (panel: MobilePanel | null = activePanel) => {
+    setMobilePanel(null);
+    if (panel && isMobileViewport) {
+      scheduleFocus(() => (panel === 'layers' ? layersTriggerRef.current : propertiesTriggerRef.current)?.focus(), 32);
+    }
+  };
+
+  const openPanel = (panel: MobilePanel) => {
+    if (!isMobileViewport) return;
+    if (activePanel === panel) {
+      closePanel(panel);
+      return;
+    }
+    setMobilePanel(panel);
+    scheduleFocus(() => getPanelElements(panel)[0]?.focus());
+  };
+
+  const handlePanelKeyDown = (event: React.KeyboardEvent<HTMLElement>, panel: MobilePanel) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closePanel(panel);
+      return;
+    }
+    if (event.key !== 'Tab') return;
+
+    const focusable = getPanelElements(panel);
+    if (focusable.length === 0) return;
+    const currentIndex = focusable.indexOf(document.activeElement as HTMLElement);
+    if (event.shiftKey && currentIndex <= 0) {
+      event.preventDefault();
+      focusable.at(-1)?.focus();
+    } else if (!event.shiftKey && currentIndex === focusable.length - 1) {
+      event.preventDefault();
+      focusable[0]?.focus();
+    }
+  };
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return;
+    const mediaQuery = window.matchMedia('(max-width: 760px)');
+    const handleChange = (event: MediaQueryListEvent) => {
+      const hadOpenDialog = document.querySelector('[aria-modal="true"]') !== null;
+      setIsMobileViewport(event.matches);
+      if (!event.matches) {
+        if (focusTimerRef.current !== null) {
+          window.clearTimeout(focusTimerRef.current);
+          focusTimerRef.current = null;
+        }
+        setMobilePanel(null);
+        if (hadOpenDialog) requestAnimationFrame(() => projectTitleRef.current?.focus());
+      }
+    };
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
+
+  useEffect(() => () => {
+    if (focusTimerRef.current !== null) window.clearTimeout(focusTimerRef.current);
+  }, []);
+
+  return {
+    activePanel,
+    closePanel,
+    handlePanelKeyDown,
+    layersPanelRef,
+    layersTriggerRef,
+    openPanel,
+    projectTitleRef,
+    propertiesPanelRef,
+    propertiesTriggerRef,
+  };
+}
+
 export function App() {
   const [projectStore] = useState(() => createProjectStore());
   const project = useStore(projectStore);
   const [activeTool, setActiveTool] = useState('select');
   const [previewedLayerId, setPreviewedLayerId] = useState<string | null>(null);
   const [fitRequest, setFitRequest] = useState(0);
-
+  const [exportOpen, setExportOpen] = useState(false);
+  const [mapExporter, setMapExporter] = useState<{ run: PreviewPngExporter } | null>(null);
   const draggedLayerIdRef = useRef<string | null>(null);
+  const exportButtonRef = useRef<HTMLButtonElement>(null);
+  const {
+    activePanel: activeMobilePanel,
+    closePanel: closeMobilePanel,
+    handlePanelKeyDown: handleMobilePanelKeyDown,
+    layersPanelRef,
+    layersTriggerRef,
+    openPanel: openMobilePanel,
+    projectTitleRef,
+    propertiesPanelRef,
+    propertiesTriggerRef,
+  } = useMobilePanels();
 
   const layers = project.document.layers;
   const mapPreviewedLayerId = previewedLayerId !== null && layers.some((layer) => (
@@ -63,15 +184,23 @@ export function App() {
     : -1;
   const selectLayer = project.selectLayer;
   const clearSelection = useCallback(() => selectLayer(null), [selectLayer]);
+  const handleExporterChange = useCallback((exporter: PreviewPngExporter | null) => {
+    setMapExporter(exporter ? { run: exporter } : null);
+  }, []);
+  const closeExport = () => {
+    setExportOpen(false);
+    window.setTimeout(() => exportButtonRef.current?.focus(), 0);
+  };
 
   return (
-    <main className="studio-shell">
-      <header className="topbar">
+    <>
+      <main className="studio-shell" inert={exportOpen}>
+      <header className="topbar" inert={activeMobilePanel !== null}>
         <div className="brand-block">
           <div className="brand-mark" aria-hidden="true"><PenLine size={16} strokeWidth={2} /></div>
           <span className="brand-name">Print Map Studio</span>
           <span className="top-divider" />
-          <button className="project-title" type="button">{project.document.title}</button>
+          <button ref={projectTitleRef} className="project-title" type="button">{project.document.title}</button>
         </div>
         <div className="history-actions" aria-label="History">
           <button className="icon-button" type="button" aria-label="Undo" title="Undo" disabled={!project.canUndo} onClick={project.undo}><Undo2 size={15} /></button>
@@ -80,14 +209,23 @@ export function App() {
         <div className="document-actions">
           <button className="quiet-button" type="button"><Save size={14} /> Save</button>
           <button className="quiet-button" type="button"><Share2 size={14} /> Share</button>
-          <button className="primary-button" type="button"><Download size={14} /> Export</button>
+          <button ref={exportButtonRef} className="primary-button" type="button" onClick={() => setExportOpen(true)}><Download size={14} /> Export</button>
         </div>
       </header>
 
-      <aside className="left-sidebar" aria-label="Layers sidebar">
+      <aside
+        ref={layersPanelRef}
+        id="layers-panel"
+        className={`left-sidebar${activeMobilePanel === 'layers' ? ' is-mobile-open' : ''}`}
+        aria-label="Layers sidebar"
+        role={activeMobilePanel === 'layers' ? 'dialog' : undefined}
+        aria-modal={activeMobilePanel === 'layers' ? true : undefined}
+        inert={activeMobilePanel === 'properties'}
+        onKeyDown={(event) => handleMobilePanelKeyDown(event, 'layers')}
+      >
         <div className="panel-header">
           <span>Layers</span>
-          <button className="icon-button" type="button" aria-label="Collapse layers"><PanelLeftClose size={15} /></button>
+          <button className="icon-button" type="button" aria-label="Collapse layers" onClick={() => closeMobilePanel('layers')}><PanelLeftClose size={15} /></button>
         </div>
         <label className="panel-search">
           <Search size={14} aria-hidden="true" />
@@ -115,7 +253,7 @@ export function App() {
                   >
                     {layer.visible ? <Eye size={13} /> : <EyeOff size={13} />}
                   </button>
-                  <button className="layer-select" type="button" data-layer-select={layer.id} aria-current={selected ? 'true' : undefined} onClick={() => project.selectLayer(layer.id)} aria-label={`Select ${layer.name}`}>
+                  <button className="layer-select" type="button" data-layer-select={layer.id} aria-current={selected ? 'true' : undefined} onClick={() => { project.selectLayer(layer.id); if (activeMobilePanel === 'layers') closeMobilePanel('layers'); }} aria-label={`Select ${layer.name}`}>
                     <Icon size={14} />
                     <span>{layer.name}</span>
                   </button>
@@ -156,17 +294,22 @@ export function App() {
         <div className="sidebar-footer"><span>{layers.length} layers</span><span>Local draft</span></div>
       </aside>
 
-      <section className="canvas-region">
+      <section className="canvas-region" inert={activeMobilePanel !== null}>
         <MapCanvas
           layers={layers.filter((layer) => layer.geometry)}
           selectedId={project.selectedId}
           previewedId={mapPreviewedLayerId}
           onLayerSelect={project.selectLayer}
           onBackgroundClick={clearSelection}
+          onExporterChange={handleExporterChange}
           fitRequest={fitRequest}
           orientation={project.document.page.orientation}
           page={project.document.page}
         />
+        <div className="mobile-panel-actions" aria-label="Editor panels">
+          <button ref={layersTriggerRef} type="button" aria-label="Open layers" aria-controls="layers-panel" aria-expanded={activeMobilePanel === 'layers'} onClick={() => openMobilePanel('layers')}><Layers3 size={15} /><span>Layers</span></button>
+          <button ref={propertiesTriggerRef} type="button" aria-label="Open properties" aria-controls="properties-panel" aria-expanded={activeMobilePanel === 'properties'} onClick={() => openMobilePanel('properties')}><SlidersHorizontal size={15} /><span>Properties</span></button>
+        </div>
         <nav className="tool-palette" aria-label="Map tools">
           {tools.map(({ id, label, shortcut, icon: Icon, command }, index) => (
             <div className="tool-slot" key={id}>
@@ -195,7 +338,19 @@ export function App() {
         </div>
       </section>
 
-      <aside className="right-sidebar" aria-label="Properties sidebar">
+      {activeMobilePanel && <button className="mobile-panel-backdrop" type="button" aria-label="Close open panel" onClick={() => closeMobilePanel()} />}
+
+      <aside
+        ref={propertiesPanelRef}
+        id="properties-panel"
+        className={`right-sidebar${activeMobilePanel === 'properties' ? ' is-mobile-open' : ''}`}
+        aria-label="Properties sidebar"
+        role={activeMobilePanel === 'properties' ? 'dialog' : undefined}
+        aria-modal={activeMobilePanel === 'properties' ? true : undefined}
+        inert={activeMobilePanel === 'layers'}
+        onKeyDown={(event) => handleMobilePanelKeyDown(event, 'properties')}
+      >
+        <button className="mobile-drawer-close" type="button" aria-label="Close properties" onClick={() => closeMobilePanel('properties')}><X size={16} /></button>
         {selectedLayer ? (
           <LayerProperties
             layer={selectedLayer}
@@ -208,43 +363,209 @@ export function App() {
             onToggleLock={() => project.toggleLayerLock(selectedLayer.id)}
             onDuplicate={() => {
               project.duplicateLayer(selectedLayer.id);
-              queueMicrotask(() => {
-                [...document.querySelectorAll<HTMLElement>('[data-layer-select]')]
-                  .find((element) => element.getAttribute('aria-current') === 'true')
-                  ?.focus();
-              });
+              window.setTimeout(() => {
+                const focusTarget = activeMobilePanel === 'properties'
+                  ? propertiesPanelRef.current?.querySelector<HTMLElement>('[aria-label="Layer menu"]')
+                  : [...document.querySelectorAll<HTMLElement>('[data-layer-select]')]
+                    .find((element) => element.getAttribute('aria-current') === 'true');
+                focusTarget?.focus();
+              }, 0);
             }}
             onDelete={() => {
               const focusLayer = layers[selectedIndex + 1] ?? layers[selectedIndex - 1];
               setPreviewedLayerId((current) => current === selectedLayer.id ? null : current);
               project.deleteLayer(selectedLayer.id);
-              queueMicrotask(() => {
-                const focusTarget = focusLayer
-                  ? [...document.querySelectorAll<HTMLElement>('[data-layer-select]')]
-                    .find((element) => element.dataset.layerSelect === focusLayer.id)
-                  : document.querySelector<HTMLElement>('[data-project-heading]');
+              window.setTimeout(() => {
+                const focusTarget = activeMobilePanel === 'properties'
+                  ? propertiesPanelRef.current?.querySelector<HTMLElement>('[aria-label="Layer menu"], [data-project-heading]')
+                  : focusLayer
+                    ? [...document.querySelectorAll<HTMLElement>('[data-layer-select]')]
+                      .find((element) => element.dataset.layerSelect === focusLayer.id)
+                    : document.querySelector<HTMLElement>('[data-project-heading]');
                 focusTarget?.focus();
-              });
+              }, 0);
             }}
           />
         ) : (
           <ProjectProperties
             page={project.document.page}
+            onDimensionChange={project.setPageDimension}
             onOrientationChange={project.setPageOrientation}
             onPresetChange={project.setPagePreset}
           />
         )}
       </aside>
-    </main>
+      </main>
+      {exportOpen && (
+        <ExportDialog
+          exporter={mapExporter?.run ?? null}
+          filename={`${project.document.id}.png`}
+          onClose={closeExport}
+        />
+      )}
+    </>
+  );
+}
+
+type ExportDialogProps = {
+  exporter: PreviewPngExporter | null;
+  filename: string;
+  onClose: () => void;
+};
+
+function ExportDialog({ exporter, filename, onClose }: ExportDialogProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const downloadButtonRef = useRef<HTMLButtonElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState('Ready to export the current print-frame preview.');
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    downloadButtonRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    if (busy) dialogRef.current?.focus();
+  }, [busy]);
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      if (!busy) onClose();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+
+    const focusable = [...(dialogRef.current?.querySelectorAll<HTMLElement>('button:not([disabled])') ?? [])];
+    if (focusable.length === 0) {
+      event.preventDefault();
+      dialogRef.current?.focus();
+      return;
+    }
+    const currentIndex = focusable.indexOf(document.activeElement as HTMLElement);
+    if (event.shiftKey && currentIndex <= 0) {
+      event.preventDefault();
+      focusable.at(-1)?.focus();
+    } else if (!event.shiftKey && currentIndex === focusable.length - 1) {
+      event.preventDefault();
+      focusable[0]?.focus();
+    }
+  };
+
+  const download = async () => {
+    if (!exporter) {
+      setError('The live map preview is not ready yet. Wait for the map to load and try again.');
+      return;
+    }
+
+    setBusy(true);
+    setError(null);
+    setStatus('Preparing PNG…');
+    try {
+      const result = await exporter();
+      startPreviewDownload(result.blob, filename);
+      setStatus(`Download started for ${result.width} × ${result.height} PNG.`);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'PNG export failed.');
+      setStatus('Export failed.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="export-overlay">
+      <div className="export-backdrop" aria-hidden="true" onClick={busy ? undefined : onClose} />
+      <div
+        ref={dialogRef}
+        className="export-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="export-title"
+        aria-busy={busy}
+        tabIndex={-1}
+        onKeyDown={handleKeyDown}
+      >
+        <div className="export-dialog-header">
+          <div><span className="eyebrow">Export</span><h2 id="export-title">Export map</h2></div>
+          <button className="icon-button" type="button" aria-label="Close export" disabled={busy} onClick={onClose}><X size={16} /></button>
+        </div>
+        <div className="export-dialog-body">
+          <strong>PNG preview</strong>
+          <p>Downloads the current print-frame preview at the browser’s rendered resolution. High-resolution tiled PNG, PDF, and layered SVG remain upcoming export stages.</p>
+          <p role="status">{status}</p>
+          {error && <p className="export-error" role="alert">{error}</p>}
+        </div>
+        <div className="export-dialog-actions">
+          <button type="button" disabled={busy} onClick={onClose}>Cancel</button>
+          <button ref={downloadButtonRef} className="primary-button" type="button" disabled={busy} onClick={download}>{busy ? 'Preparing…' : 'Download PNG'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function isValidPageDimension(draft: string) {
+  const value = Number(draft);
+  return draft.trim() !== '' && Number.isFinite(value) && value > 0;
+}
+
+function PageDimensionField({
+  label,
+  ariaLabel,
+  dimension,
+  value,
+  onCommit,
+}: {
+  label: string;
+  ariaLabel: string;
+  dimension: 'widthMm' | 'heightMm';
+  value: number;
+  onCommit: (dimension: 'widthMm' | 'heightMm', value: number) => void;
+}) {
+  const [draft, setDraft] = useState(String(value));
+  const dirtyRef = useRef(false);
+  const commit = () => {
+    if (!dirtyRef.current) return;
+    if (!isValidPageDimension(draft)) {
+      setDraft(String(value));
+      dirtyRef.current = false;
+      return;
+    }
+    const nextValue = Number(draft);
+    setDraft(String(nextValue));
+    dirtyRef.current = false;
+    onCommit(dimension, nextValue);
+  };
+
+  return (
+    <label>
+      <span>{label}</span>
+      <input
+        aria-label={ariaLabel}
+        inputMode="decimal"
+        value={draft}
+        aria-invalid={!isValidPageDimension(draft)}
+        onChange={(event) => {
+          setDraft(event.target.value);
+          dirtyRef.current = true;
+        }}
+        onBlur={commit}
+      />
+      <small>mm</small>
+    </label>
   );
 }
 
 function ProjectProperties({
   page,
+  onDimensionChange,
   onOrientationChange,
   onPresetChange,
 }: {
   page: PageSettings;
+  onDimensionChange: (dimension: 'widthMm' | 'heightMm', value: number) => void;
   onOrientationChange: (orientation: PageSettings['orientation']) => void;
   onPresetChange: (preset: StandardPagePreset) => void;
 }) {
@@ -253,7 +574,24 @@ function ProjectProperties({
       <div className="properties-title"><div><span className="eyebrow">Properties</span><h2 data-project-heading tabIndex={-1}>Project</h2></div><button className="icon-button" type="button" aria-label="Project menu">•••</button></div>
       <PropertySection title="Page">
         <PropertyRow label="Preset"><select aria-label="Page preset" value={page.preset} onChange={(event) => onPresetChange(event.target.value as StandardPagePreset)}><option>A4</option><option>A3</option><option>Letter</option><option disabled>Custom</option></select></PropertyRow>
-        <div className="paired-fields"><label><span>W</span><input aria-label="Page width" value={page.widthMm} readOnly /><small>mm</small></label><label><span>H</span><input aria-label="Page height" value={page.heightMm} readOnly /><small>mm</small></label></div>
+        <div className="paired-fields">
+          <PageDimensionField
+            key={`width-${page.widthMm}-${page.preset}`}
+            label="W"
+            ariaLabel="Page width"
+            dimension="widthMm"
+            value={page.widthMm}
+            onCommit={onDimensionChange}
+          />
+          <PageDimensionField
+            key={`height-${page.heightMm}-${page.preset}`}
+            label="H"
+            ariaLabel="Page height"
+            dimension="heightMm"
+            value={page.heightMm}
+            onCommit={onDimensionChange}
+          />
+        </div>
         <PropertyRow label="Orientation"><div className="segmented"><button className={page.orientation === 'landscape' ? 'is-active' : undefined} type="button" aria-pressed={page.orientation === 'landscape'} onClick={() => onOrientationChange('landscape')}>Landscape</button><button className={page.orientation === 'portrait' ? 'is-active' : undefined} type="button" aria-pressed={page.orientation === 'portrait'} onClick={() => onOrientationChange('portrait')}>Portrait</button></div></PropertyRow>
       </PropertySection>
       <PropertySection title="Map">
@@ -263,8 +601,8 @@ function ProjectProperties({
         <PropertyRow label="Text scale"><NumberField value="100" suffix="%" ariaLabel="Text scale" /></PropertyRow>
       </PropertySection>
       <PropertySection title="Export">
-        <PropertyRow label="Resolution"><select aria-label="Export resolution" defaultValue="300 dpi"><option>150 dpi</option><option>300 dpi</option><option>600 dpi</option></select></PropertyRow>
-        <label className="check-row"><input type="checkbox" defaultChecked /> Include map attribution</label>
+        <PropertyRow label="Resolution"><select aria-label="Export resolution" value="Browser preview" disabled><option>Browser preview</option></select></PropertyRow>
+        <label className="check-row"><input type="checkbox" checked disabled readOnly /> Include map attribution</label>
       </PropertySection>
     </div>
   );

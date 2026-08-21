@@ -1,0 +1,148 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { capturePrintFramePng, startPreviewDownload } from '../../src/export/previewPng';
+
+const rect = (left: number, top: number, width: number, height: number): DOMRect => ({
+  x: left,
+  y: top,
+  left,
+  top,
+  right: left + width,
+  bottom: top + height,
+  width,
+  height,
+  toJSON: () => ({}),
+});
+
+function installCanvasContext(measuredWidth = 180) {
+  const context = {
+    drawImage: vi.fn(),
+    fillRect: vi.fn(),
+    fillText: vi.fn(),
+    measureText: vi.fn(() => ({ width: measuredWidth } as TextMetrics)),
+    set fillStyle(_value: string) {},
+    set font(_value: string) {},
+    set textBaseline(_value: CanvasTextBaseline) {},
+    set globalAlpha(_value: number) {},
+  };
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(context as unknown as CanvasRenderingContext2D);
+  vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation((callback) => {
+    callback(new Blob(['png'], { type: 'image/png' }));
+  });
+  return context;
+}
+
+function createFixture(frameRect = rect(50, 40, 300, 200)) {
+  const mapCanvas = document.createElement('canvas');
+  mapCanvas.width = 800;
+  mapCanvas.height = 600;
+  vi.spyOn(mapCanvas, 'getBoundingClientRect').mockReturnValue(rect(0, 0, 400, 300));
+  const frame = document.createElement('div');
+  vi.spyOn(frame, 'getBoundingClientRect').mockReturnValue(frameRect);
+  return { mapCanvas, frame };
+}
+
+describe('preview PNG export', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it('crops the print frame and writes bounded map attribution into the PNG', async () => {
+    const context = installCanvasContext(900);
+    const { mapCanvas, frame } = createFixture();
+    const attribution = '© OpenStreetMap contributors — long attribution text that must remain inside the image';
+
+    const result = await capturePrintFramePng(mapCanvas, frame, attribution);
+
+    expect(result).toMatchObject({ width: 600, height: 400 });
+    expect(context.drawImage).toHaveBeenCalledWith(mapCanvas, 100, 80, 600, 400, 0, 0, 600, 400);
+    expect(context.fillRect).toHaveBeenCalled();
+    expect(context.fillText).toHaveBeenCalledWith(attribution, expect.any(Number), expect.any(Number), expect.any(Number));
+    const maxWidth = context.fillText.mock.calls[0][3] as number;
+    expect(maxWidth).toBeLessThanOrEqual(result.width - 8);
+  });
+
+  it('exports only the actual intersection when the frame is partially outside the canvas', async () => {
+    const context = installCanvasContext();
+    const { mapCanvas, frame } = createFixture(rect(-10, 20, 100, 40));
+
+    const result = await capturePrintFramePng(mapCanvas, frame, '© OpenStreetMap contributors');
+
+    expect(result).toMatchObject({ width: 180, height: 80 });
+    expect(context.drawImage).toHaveBeenCalledWith(mapCanvas, 0, 40, 180, 80, 0, 0, 180, 80);
+  });
+
+  it.each([
+    ['a frame outside the canvas', rect(450, 20, 60, 40), 800, 600],
+    ['a zero-width backing store', rect(10, 10, 60, 40), 0, 600],
+  ])('rejects %s', async (_label, frameRect, canvasWidth, canvasHeight) => {
+    installCanvasContext();
+    const { mapCanvas, frame } = createFixture(frameRect);
+    mapCanvas.width = canvasWidth;
+    mapCanvas.height = canvasHeight;
+
+    await expect(capturePrintFramePng(mapCanvas, frame, '© OpenStreetMap contributors'))
+      .rejects.toThrow('print frame is not ready');
+  });
+
+  it('rejects a crop too small to contain map content and attribution', async () => {
+    installCanvasContext();
+    const { mapCanvas, frame } = createFixture(rect(0, 0, 400, 1));
+
+    await expect(capturePrintFramePng(mapCanvas, frame, '© OpenStreetMap contributors'))
+      .rejects.toThrow('too small');
+  });
+
+  it('rejects export when required attribution is missing', async () => {
+    installCanvasContext();
+    const { mapCanvas, frame } = createFixture();
+
+    await expect(capturePrintFramePng(mapCanvas, frame, '   ')).rejects.toThrow('attribution is unavailable');
+  });
+
+  it('reports canvas rendering failures through the exporter promise', async () => {
+    const context = installCanvasContext();
+    context.drawImage.mockImplementation(() => { throw new DOMException('Tainted canvas', 'SecurityError'); });
+    const { mapCanvas, frame } = createFixture();
+
+    await expect(capturePrintFramePng(mapCanvas, frame, '© OpenStreetMap contributors'))
+      .rejects.toThrow('could not render the PNG');
+  });
+
+  it('reports canvas encoding failures', async () => {
+    installCanvasContext();
+    vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation((callback) => callback(null));
+    const { mapCanvas, frame } = createFixture();
+
+    await expect(capturePrintFramePng(mapCanvas, frame, '© OpenStreetMap contributors'))
+      .rejects.toThrow('could not create the PNG');
+  });
+
+  it('sanitizes the suggested filename before starting a download', () => {
+    vi.useFakeTimers();
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:preview');
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+    let downloadName = '';
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function captureName(this: HTMLAnchorElement) {
+      downloadName = this.download;
+    });
+
+    startPreviewDownload(new Blob(['png']), '../Unsafe Project?.png');
+
+    expect(downloadName).toMatch(/^[a-z0-9._-]+\.png$/i);
+    expect(downloadName).not.toContain('..');
+    expect(downloadName).not.toContain('/');
+  });
+
+  it('revokes the object URL even when download initiation throws', () => {
+    vi.useFakeTimers();
+    const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:preview');
+    const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => { throw new Error('download blocked'); });
+
+    expect(() => startPreviewDownload(new Blob(['png']), '../Unsafe Project?.png')).toThrow('download blocked');
+    expect(createObjectURL).toHaveBeenCalledOnce();
+    vi.runAllTimers();
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:preview');
+  });
+});

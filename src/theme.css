@@ -27,6 +27,11 @@
   --studio-frame-inner: color-mix(in srgb, var(--studio-on-dark) 45%, transparent);
   --studio-surface-overlay: color-mix(in srgb, var(--studio-surface) 92%, transparent);
   --studio-marker-border: color-mix(in srgb, var(--studio-text-strong) 15%, transparent);
+  --studio-scrim: color-mix(in srgb, var(--studio-text-strong) 24%, transparent);
+  --studio-safe-top: env(safe-area-inset-top, 0px);
+  --studio-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --studio-safe-left: env(safe-area-inset-left, 0px);
+  --studio-safe-right: env(safe-area-inset-right, 0px);
 
   --studio-topbar-height: 2.75rem;
   --studio-left-panel-width: 15rem;
