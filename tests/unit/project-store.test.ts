@@ -141,6 +141,26 @@ describe('project store history', () => {
     expect(store.getState().canRedo).toBe(false);
   });
 
+  it('opens a project as a fresh history root with no selection', () => {
+    const store = createProjectStore(createDocument());
+    store.getState().selectLayer('route-1');
+    store.getState().toggleLayerVisibility('route-1');
+    store.getState().undo();
+    expect(store.getState().canRedo).toBe(true);
+
+    const openedDocument = createDocument();
+    openedDocument.id = 'opened-project';
+    openedDocument.title = 'Opened project';
+    store.getState().openDocument(openedDocument);
+
+    expect(store.getState().document).toEqual(openedDocument);
+    expect(store.getState().selectedId).toBeNull();
+    expect(store.getState().past).toEqual([]);
+    expect(store.getState().future).toEqual([]);
+    expect(store.getState().canUndo).toBe(false);
+    expect(store.getState().canRedo).toBe(false);
+  });
+
   it('clears selection when redo removes the selected layer again', () => {
     const store = createProjectStore(createDocument());
     store.getState().deleteLayer('poi-1');

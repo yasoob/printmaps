@@ -1,4 +1,5 @@
 import { readFile, stat } from 'node:fs/promises';
+import path from 'node:path';
 import { expect, test } from '@playwright/test';
 
 const isHeadlessWebGlDiagnostic = (message: string) => (
@@ -63,6 +64,74 @@ test('Save downloads the current project as portable versioned JSON', async ({ p
     'area-center',
     'basemap',
   ]);
+});
+
+test('opens a validated portable project as a focused fresh history root', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Portrait' }).click();
+  await page.getByRole('button', { name: 'Select Route 01' }).click();
+  await expect(page.getByRole('button', { name: 'Undo' })).toBeEnabled();
+
+  const chooserPromise = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'Open' }).click();
+  const chooser = await chooserPromise;
+  await chooser.setFiles(path.resolve('tests/fixtures/alpine-poster.printmap.json'));
+
+  await expect(page.getByRole('button', { name: 'Alpine poster' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Project' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Select Summit route' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Select Route 01' })).not.toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Page width' })).toHaveValue('297');
+  await expect(page.getByRole('textbox', { name: 'Page height' })).toHaveValue('420');
+  await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Redo' })).toBeDisabled();
+  await expect(page.getByRole('status', { name: 'Project file status' })).toHaveText('Opened Alpine poster. Edit history was reset.');
+  await expect(page.getByRole('button', { name: 'Open' })).toBeFocused();
+});
+
+test('rejects invalid project files without replacing work and allows a retry', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Portrait' }).click();
+
+  for (const invalidFile of [
+    {
+      file: { name: 'broken.printmap.json', mimeType: 'application/json', buffer: Buffer.from('{') },
+      error: 'not valid JSON',
+    },
+    {
+      file: {
+        name: 'renamed.json',
+        mimeType: 'application/json',
+        buffer: await readFile(path.resolve('tests/fixtures/alpine-poster.printmap.json')),
+      },
+      error: '.printmap.json',
+    },
+    {
+      file: {
+        name: 'oversized.printmap.json',
+        mimeType: 'application/json',
+        buffer: Buffer.alloc(10 * 1024 * 1024 + 1, 0x20),
+      },
+      error: '10 MB',
+    },
+  ]) {
+    const chooserPromise = page.waitForEvent('filechooser');
+    await page.getByRole('button', { name: 'Open' }).click();
+    await (await chooserPromise).setFiles(invalidFile.file);
+
+    await expect(page.getByRole('alert', { name: 'Project file status' })).toContainText(invalidFile.error);
+    await expect(page.getByRole('button', { name: 'Vienna field guide' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Portrait' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByRole('button', { name: 'Undo' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Open' })).toBeFocused();
+  }
+
+  const retryChooser = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'Open' }).click();
+  await (await retryChooser).setFiles(path.resolve('tests/fixtures/alpine-poster.printmap.json'));
+  await expect(page.getByRole('button', { name: 'Alpine poster' })).toBeVisible();
+  await expect(page.getByRole('status', { name: 'Project file status' })).toContainText('Edit history was reset');
+  await expect(page.getByRole('button', { name: 'Open' })).toBeFocused();
 });
 
 test('map content overlays preview on list hover and select from the canvas', async ({ page, browserName }) => {

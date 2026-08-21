@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 3,
+  "id": "alpine-poster",
+  "title": "Alpine poster",
+  "page": {
+    "preset": "A3",
+    "widthMm": 297,
+    "heightMm": 420,
+    "orientation": "portrait"
+  },
+  "layers": [
+    {
+      "id": "summit-route",
+      "name": "Summit route",
+      "type": "route",
+      "visible": true,
+      "locked": false,
+      "opacity": 100,
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [11.323, 47.298],
+          [11.341, 47.312],
+          [11.356, 47.326]
+        ]
+      }
+    },
+    {
+      "id": "summit",
+      "name": "Summit",
+      "type": "poi",
+      "visible": true,
+      "locked": false,
+      "opacity": 100,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.356, 47.326]
+      }
+    },
+    {
+      "id": "basemap",
+      "name": "Liberty basemap",
+      "type": "basemap",
+      "visible": true,
+      "locked": true,
+      "opacity": 100
+    }
+  ]
+}

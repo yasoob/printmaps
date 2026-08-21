@@ -224,6 +224,32 @@
 - Scope remains bounded: this slice adds portable JSON download only. Portable project upload/open, schema validation/error UX, IndexedDB autosave, and ZIP support remain unresolved.
 - `.env.local` and tokens remain untracked/uncommitted. `docs/COMPLETE.md` does not exist and scheduler job `3a05bbc81515` remains enabled.
 
+### 2026-08-21 — Vertical slice 8: validated portable project open (verified)
+
+- Added an explicit **Open** action for portable `.printmap.json` files. The browser validates the suffix and rejects files above 10 MiB before reading them, then parses untrusted JSON through a normalizing validator rather than casting it into the project store.
+- Current schema-3 projects and migrated schema-1/2 documents pass through the same store boundary. Validation covers the root/schema, project identity, canonical standard-page dimensions, page orientation, layer count/IDs/types/state, geometry/type compatibility, coordinate structure/ranges/ring closure, opacity, and aggregate coordinate limits. Imported objects are rebuilt from known fields so unknown input does not become canonical state.
+- A successful open replaces the canonical document, clears selection/hover preview, and establishes a fresh history root with Undo and Redo disabled. Invalid JSON, renamed files, unsupported/contradictory documents, and oversized files leave the current project and history untouched.
+- The hidden file input is cleared after every attempt, so the same file can be retried. Success uses an accessible status; failures use an accessible alert with corrective text. Both paths restore focus to **Open** after the chooser closes.
+- Strict TDD evidence:
+  - The store regression first failed with `openDocument is not a function`, then passed after the history-reset action was added.
+  - The parser test first failed because `projectFile.ts` did not exist; the invalid-fixture matrix then failed 8/8 against the unsafe cast-only parser before structural validation was implemented.
+  - The nominal Playwright flow first timed out waiting for an **Open** file chooser. The invalid/retry flow then failed with an unhandled `ProjectFileError` and no alert before guarded error handling and focus restoration were added.
+  - Geometry/type contradiction and noncanonical standard-page regressions each failed before their focused validation rules were added.
+- Fresh verification on the reviewed working tree:
+  - `npm run typecheck` — pass.
+  - `npm run lint` — pass, zero warnings.
+  - `npm run doctor` — pass, no issues; telemetry disabled. The first run rejected the enlarged `App`; extracting a dedicated project-open component restored the clean gate.
+  - `npm test -- --run` — pass, 7 files / 96 tests.
+  - `npm run build` — pass; existing ~1.18 MB pre-gzip bundle warning remains.
+  - `npm audit --omit=dev` — 0 vulnerabilities.
+  - `npm run test:e2e` — 23 pass / 4 documented Firefox WebGL-environment skips across 27 Chromium, Firefox, and WebKit cases. Save, valid Open, invalid retention/retry, and focus/history behavior pass in all three engines.
+- Browser and process evidence:
+  - Fresh 1440×900 Chromium screenshot: `docs/screenshots/latest-desktop.png`, SHA-256 `52a5342e40bd762bafa21800a36598a8294f5dd9a723e2bb7f9a74e88fcd10d5`.
+  - Exact-viewport inspection reported `data-map-ready=true`, overlay order `route-01,poi-cafe,area-center`, zero body overflow, zero gradients, zero computed box shadows, and no console warnings/errors. Screenshot review found the Open/Save/Share/Export actions, three-pane hierarchy, frame, and toolbar legible with no material clipping or overlap.
+  - Seven stale duplicate workspace Vite process groups were stopped; the enabled `print-map-studio.service` preview remained healthy on `127.0.0.1:4178` with HTTP 200 and was the only remaining workspace Vite process.
+- Independent fail-closed review passed with no security concerns or logic errors. Non-blocking suggestions were explicit same-file/boundary/legacy/limit coverage, serializing overlapping asynchronous opens, and exposing Open through a future mobile overflow action.
+- Scope remains bounded: IndexedDB autosave/recovery and ZIP project packaging are still unresolved. `docs/COMPLETE.md` does not exist.
+
 ## Next unresolved slice
 
-Add validated portable `.printmap.json` upload/open as one history-resetting, focus-safe flow, then implement IndexedDB autosave/recovery in a separate slice.
+Implement IndexedDB autosave/recovery as a separately tested, versioned persistence flow with corruption/quota handling and an explicit recovery decision.

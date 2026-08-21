@@ -3,6 +3,7 @@ import {
   Download,
   Eye,
   EyeOff,
+  FolderOpen,
   Frame,
   GripVertical,
   Hand,
@@ -26,6 +27,7 @@ import {
 } from 'lucide-react';
 import { useStore } from 'zustand';
 import type { ContentLayer, LayerType, PageSettings, ProjectDocument, StandardPagePreset } from '../domain/project';
+import { MAX_PROJECT_FILE_BYTES, parseProjectFileText } from '../domain/projectFile';
 import { startPreviewDownload, type PreviewPngExporter } from '../export/previewPng';
 import { MapCanvas } from '../map/MapCanvas';
 import { createProjectStore } from './store';
@@ -61,6 +63,69 @@ function downloadProjectDocument(document: ProjectDocument) {
   } finally {
     window.setTimeout(() => URL.revokeObjectURL(url), 1_000);
   }
+}
+
+type ProjectFileStatus = {
+  kind: 'success' | 'error';
+  message: string;
+};
+
+function ProjectFileOpenButton({ onOpen }: { onOpen: (document: ProjectDocument) => void }) {
+  const [status, setStatus] = useState<ProjectFileStatus | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const handleChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    try {
+      if (!file.name.toLowerCase().endsWith('.printmap.json')) {
+        throw new Error('Choose a portable project with the .printmap.json filename suffix.');
+      }
+      if (file.size > MAX_PROJECT_FILE_BYTES) {
+        throw new Error('Project files must be 10 MB or smaller.');
+      }
+      const openedDocument = parseProjectFileText(await file.text());
+      onOpen(openedDocument);
+      setStatus({
+        kind: 'success',
+        message: `Opened ${openedDocument.title}. Edit history was reset.`,
+      });
+    } catch (reason) {
+      setStatus({
+        kind: 'error',
+        message: reason instanceof Error ? reason.message : 'This project file could not be opened.',
+      });
+    } finally {
+      input.value = '';
+      window.setTimeout(() => buttonRef.current?.focus(), 0);
+    }
+  };
+
+  return (
+    <>
+      <input
+        ref={inputRef}
+        hidden
+        type="file"
+        accept=".printmap.json,application/json"
+        onChange={handleChange}
+      />
+      <button ref={buttonRef} className="quiet-button" type="button" onClick={() => inputRef.current?.click()}>
+        <FolderOpen size={14} /> Open
+      </button>
+      {status && (
+        <div
+          className={`project-file-status${status.kind === 'error' ? ' is-error' : ''}`}
+          role={status.kind === 'error' ? 'alert' : 'status'}
+          aria-label="Project file status"
+        >
+          {status.message}
+        </div>
+      )}
+    </>
+  );
 }
 
 function useMobilePanels() {
@@ -176,6 +241,11 @@ export function App() {
   const [mapExporter, setMapExporter] = useState<{ run: PreviewPngExporter } | null>(null);
   const draggedLayerIdRef = useRef<string | null>(null);
   const exportButtonRef = useRef<HTMLButtonElement>(null);
+  const openDocument = project.openDocument;
+  const handleOpenedDocument = useCallback((document: ProjectDocument) => {
+    openDocument(document);
+    setPreviewedLayerId(null);
+  }, [openDocument]);
   const {
     activePanel: activeMobilePanel,
     closePanel: closeMobilePanel,
@@ -221,6 +291,7 @@ export function App() {
           <button className="icon-button" type="button" aria-label="Redo" title="Redo" disabled={!project.canRedo} onClick={project.redo}><Redo2 size={15} /></button>
         </div>
         <div className="document-actions">
+          <ProjectFileOpenButton onOpen={handleOpenedDocument} />
           <button className="quiet-button" type="button" onClick={() => downloadProjectDocument(project.document)}><Save size={14} /> Save</button>
           <button className="quiet-button" type="button"><Share2 size={14} /> Share</button>
           <button ref={exportButtonRef} className="primary-button" type="button" onClick={() => setExportOpen(true)}><Download size={14} /> Export</button>

@@ -29,7 +29,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 
 .topbar {
-  @apply z-50 grid min-w-0 items-center px-2;
+  @apply relative z-50 grid min-w-0 items-center px-2;
   grid-column: 1 / -1;
   grid-template-columns: 1fr auto 1fr;
   border-bottom: var(--studio-border-width) solid var(--studio-line);
@@ -38,6 +38,17 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 
 .brand-block, .document-actions, .history-actions { @apply flex items-center gap-1; }
 .document-actions { @apply justify-end; }
+.project-file-status {
+  @apply absolute right-2 top-full mt-1 max-w-sm px-3 py-2 text-xs;
+  border: var(--studio-border-width) solid var(--studio-line-strong);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface);
+  color: var(--studio-text-strong);
+}
+.project-file-status.is-error {
+  border-color: var(--studio-danger);
+  color: var(--studio-danger);
+}
 .brand-mark {
   @apply grid place-items-center;
   width: var(--studio-control-height);

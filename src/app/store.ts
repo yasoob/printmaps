@@ -21,6 +21,7 @@ export type ProjectState = {
   deleteLayer: (id: string) => void;
   duplicateLayer: (id: string) => void;
   moveLayer: (id: string, toIndex: number) => void;
+  openDocument: (document: StoredProjectDocument) => void;
   renameLayer: (id: string, name: string) => void;
   selectLayer: (id: string | null) => void;
   setPageDimension: (dimension: 'widthMm' | 'heightMm', value: number) => void;
@@ -109,6 +110,17 @@ export function createProjectStore(
       layers.splice(targetIndex, 0, layer);
       return commitDocument(state, replaceLayers(state.document, layers));
     }),
+    openDocument: (storedDocument) => {
+      const openedDocument = copyDocument(migrateProjectDocument(storedDocument));
+      set({
+        document: openedDocument,
+        selectedId: null,
+        past: [],
+        future: [],
+        canUndo: false,
+        canRedo: false,
+      });
+    },
     renameLayer: (id, name) => set((state) => {
       const layer = state.document.layers.find((candidate) => candidate.id === id);
       if (!layer || !name.trim() || layer.name === name) return state;
