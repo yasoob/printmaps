@@ -11,6 +11,7 @@ vi.mock('../../src/map/MapCanvas', () => ({
     onLayerSelect,
     onBackgroundClick,
     fitRequest,
+    orientation,
   }: {
     layers?: ContentLayer[];
     selectedId?: string | null;
@@ -18,10 +19,12 @@ vi.mock('../../src/map/MapCanvas', () => ({
     onLayerSelect?: (id: string) => void;
     onBackgroundClick: () => void;
     fitRequest?: number;
+    orientation?: 'landscape' | 'portrait';
   }) => (
     <div
       data-testid="map-canvas"
       data-fit-request={fitRequest}
+      data-orientation={orientation}
       data-layer-state={layers.map(({ id, visible }) => `${id}:${visible}`).join(',')}
       data-selected-layer={selectedId ?? ''}
       data-previewed-layer={previewedId ?? ''}
@@ -135,7 +138,7 @@ describe('editor selection context', () => {
     expect(screen.getByRole('list', { name: 'Map layers' })).toBeInTheDocument();
   });
 
-  it('updates the selected project orientation', async () => {
+  it('commits project orientation to history and keeps the canvas and dimensions synchronized', async () => {
     const user = userEvent.setup();
     render(<App />);
     const landscape = screen.getByRole('button', { name: 'Landscape' });
@@ -143,9 +146,22 @@ describe('editor selection context', () => {
 
     expect(landscape).toHaveAttribute('aria-pressed', 'true');
     expect(portrait).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-orientation', 'landscape');
     await user.click(portrait);
     expect(landscape).toHaveAttribute('aria-pressed', 'false');
     expect(portrait).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('textbox', { name: 'Page width' })).toHaveValue('210');
+    expect(screen.getByRole('textbox', { name: 'Page height' })).toHaveValue('297');
+    expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-orientation', 'portrait');
+
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(landscape).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('textbox', { name: 'Page width' })).toHaveValue('297');
+    expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-orientation', 'landscape');
+
+    await user.click(screen.getByRole('button', { name: 'Redo' }));
+    expect(portrait).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-orientation', 'portrait');
   });
 
   it('fits the page without changing the persistent tool', async () => {

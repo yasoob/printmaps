@@ -1,6 +1,13 @@
-export const PROJECT_SCHEMA_VERSION = 1 as const;
+export const PROJECT_SCHEMA_VERSION = 2 as const;
 
 export type LayerType = 'route' | 'poi' | 'shape' | 'basemap';
+export type PageOrientation = 'landscape' | 'portrait';
+
+export type PageSettings = {
+  widthMm: number;
+  heightMm: number;
+  orientation: PageOrientation;
+};
 
 export type LayerGeometry =
   | { type: 'Point'; coordinates: [number, number] }
@@ -21,8 +28,35 @@ export type ProjectDocument = {
   schemaVersion: typeof PROJECT_SCHEMA_VERSION;
   id: string;
   title: string;
+  page: PageSettings;
   layers: ContentLayer[];
 };
+
+export type ProjectDocumentV1 = {
+  schemaVersion: 1;
+  id: string;
+  title: string;
+  layers: ContentLayer[];
+};
+
+export type StoredProjectDocument = ProjectDocumentV1 | ProjectDocument;
+
+const createDefaultPageSettings = (): PageSettings => ({
+  widthMm: 297,
+  heightMm: 210,
+  orientation: 'landscape',
+});
+
+export function migrateProjectDocument(document: StoredProjectDocument): ProjectDocument {
+  if (document.schemaVersion === 1) {
+    return {
+      ...document,
+      schemaVersion: PROJECT_SCHEMA_VERSION,
+      page: createDefaultPageSettings(),
+    };
+  }
+  return document;
+}
 
 export function cloneContentLayer(layer: ContentLayer): ContentLayer {
   if (!layer.geometry) return { ...layer };
@@ -95,6 +129,7 @@ export function createInitialProjectDocument(): ProjectDocument {
     schemaVersion: PROJECT_SCHEMA_VERSION,
     id: 'vienna-field-guide',
     title: 'Vienna field guide',
+    page: createDefaultPageSettings(),
     layers: initialLayers.map(cloneContentLayer),
   };
 }

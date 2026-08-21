@@ -3,6 +3,7 @@ import {
   createInitialProjectDocument,
   PROJECT_SCHEMA_VERSION,
   type ProjectDocument,
+  type ProjectDocumentV1,
 } from '../../src/domain/project';
 
 const layers = [
@@ -16,6 +17,7 @@ function createDocument(): ProjectDocument {
     schemaVersion: PROJECT_SCHEMA_VERSION,
     id: 'test-project',
     title: 'Test project',
+    page: { widthMm: 297, heightMm: 210, orientation: 'landscape' },
     layers,
   };
 }
@@ -23,6 +25,37 @@ function createDocument(): ProjectDocument {
 const layerState = (store: ReturnType<typeof createProjectStore>) => store.getState().document.layers;
 
 describe('project store history', () => {
+  it('migrates a version-1 document without page settings at the store boundary', () => {
+    const versionOneDocument: ProjectDocumentV1 = {
+      schemaVersion: 1,
+      id: 'legacy-project',
+      title: 'Legacy project',
+      layers,
+    };
+
+    const store = createProjectStore(versionOneDocument);
+
+    expect(store.getState().document).toMatchObject({
+      schemaVersion: 2,
+      page: { widthMm: 297, heightMm: 210, orientation: 'landscape' },
+    });
+  });
+
+  it('canonicalizes inconsistent dimensions when reselecting the current orientation', () => {
+    const document = createDocument();
+    document.page = { widthMm: 210, heightMm: 297, orientation: 'landscape' };
+    const store = createProjectStore(document);
+
+    store.getState().setPageOrientation('landscape');
+
+    expect(store.getState().document.page).toEqual({
+      widthMm: 297,
+      heightMm: 210,
+      orientation: 'landscape',
+    });
+    expect(store.getState().canUndo).toBe(true);
+  });
+
   it('isolates nested geometry across documents, history snapshots, and duplicates', () => {
     const first = createInitialProjectDocument();
     const second = createInitialProjectDocument();

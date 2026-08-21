@@ -23,7 +23,7 @@ import {
   Unlock,
 } from 'lucide-react';
 import { useStore } from 'zustand';
-import type { ContentLayer, LayerType } from '../domain/project';
+import type { ContentLayer, LayerType, PageSettings } from '../domain/project';
 import { MapCanvas } from '../map/MapCanvas';
 import { createProjectStore } from './store';
 
@@ -50,7 +50,7 @@ export function App() {
   const [activeTool, setActiveTool] = useState('select');
   const [previewedLayerId, setPreviewedLayerId] = useState<string | null>(null);
   const [fitRequest, setFitRequest] = useState(0);
-  const [orientation, setOrientation] = useState<'landscape' | 'portrait'>('landscape');
+
   const draggedLayerIdRef = useRef<string | null>(null);
 
   const layers = project.document.layers;
@@ -164,7 +164,7 @@ export function App() {
           onLayerSelect={project.selectLayer}
           onBackgroundClick={clearSelection}
           fitRequest={fitRequest}
-          orientation={orientation}
+          orientation={project.document.page.orientation}
         />
         <nav className="tool-palette" aria-label="Map tools">
           {tools.map(({ id, label, shortcut, icon: Icon, command }, index) => (
@@ -227,7 +227,7 @@ export function App() {
             }}
           />
         ) : (
-          <ProjectProperties orientation={orientation} onOrientationChange={setOrientation} />
+          <ProjectProperties page={project.document.page} onOrientationChange={project.setPageOrientation} />
         )}
       </aside>
     </main>
@@ -235,19 +235,19 @@ export function App() {
 }
 
 function ProjectProperties({
-  orientation,
+  page,
   onOrientationChange,
 }: {
-  orientation: 'landscape' | 'portrait';
-  onOrientationChange: (orientation: 'landscape' | 'portrait') => void;
+  page: PageSettings;
+  onOrientationChange: (orientation: PageSettings['orientation']) => void;
 }) {
   return (
     <div className="properties-panel">
       <div className="properties-title"><div><span className="eyebrow">Properties</span><h2 data-project-heading tabIndex={-1}>Project</h2></div><button className="icon-button" type="button" aria-label="Project menu">•••</button></div>
       <PropertySection title="Page">
         <PropertyRow label="Preset"><select aria-label="Page preset" defaultValue="A4"><option>A4</option><option>A3</option><option>Letter</option><option>Custom</option></select></PropertyRow>
-        <div className="paired-fields"><label><span>W</span><input aria-label="Page width" value={orientation === 'landscape' ? '297' : '210'} readOnly /><small>mm</small></label><label><span>H</span><input aria-label="Page height" value={orientation === 'landscape' ? '210' : '297'} readOnly /><small>mm</small></label></div>
-        <PropertyRow label="Orientation"><div className="segmented"><button className={orientation === 'landscape' ? 'is-active' : undefined} type="button" aria-pressed={orientation === 'landscape'} onClick={() => onOrientationChange('landscape')}>Landscape</button><button className={orientation === 'portrait' ? 'is-active' : undefined} type="button" aria-pressed={orientation === 'portrait'} onClick={() => onOrientationChange('portrait')}>Portrait</button></div></PropertyRow>
+        <div className="paired-fields"><label><span>W</span><input aria-label="Page width" value={page.widthMm} readOnly /><small>mm</small></label><label><span>H</span><input aria-label="Page height" value={page.heightMm} readOnly /><small>mm</small></label></div>
+        <PropertyRow label="Orientation"><div className="segmented"><button className={page.orientation === 'landscape' ? 'is-active' : undefined} type="button" aria-pressed={page.orientation === 'landscape'} onClick={() => onOrientationChange('landscape')}>Landscape</button><button className={page.orientation === 'portrait' ? 'is-active' : undefined} type="button" aria-pressed={page.orientation === 'portrait'} onClick={() => onOrientationChange('portrait')}>Portrait</button></div></PropertyRow>
       </PropertySection>
       <PropertySection title="Map">
         <PropertyRow label="Style"><select aria-label="Map style" defaultValue="Liberty"><option>Liberty</option><option>Positron</option><option>Dark</option></select></PropertyRow>

@@ -79,6 +79,29 @@
   - Final independent re-review passed with no security concerns or logic errors. Its only non-blocking suggestion is a combined style-error/post-load-error precedence regression; the implementation was verified to preserve the existing style error.
 - `.env.local` and tokens remain untracked/uncommitted. `docs/COMPLETE.md` does not exist and the scheduler remains enabled.
 
+### 2026-08-21 — Vertical slice 4: canonical page orientation and versioned migration
+
+- Moved A4 width, height and orientation from transient React state into schema-versioned `ProjectDocument.page`; Project properties and the canvas now read the same canonical values.
+- Portrait/Landscape is one immutable history transaction. Undo and redo restore the segmented control, 297×210 / 210×297 mm fields and canvas-frame orientation together.
+- Bumped the document schema to version 2 and added an explicit version-1 migration at the store boundary so pre-page documents receive fresh A4 landscape settings instead of failing at `document.page` access.
+- Orientation changes canonicalize edge ordering even when a malformed document declares the requested orientation with swapped dimensions; already-canonical repeated clicks remain history no-ops.
+- Strict TDD evidence:
+  - `npm test -- --run tests/unit/app-selection.test.tsx -t "commits project orientation"` first failed at the post-Undo landscape assertion (`aria-pressed` remained `false`), then passed after the document/store/UI wiring.
+  - Review remediation added RED-first regressions for legacy v1 migration (received schema 1/no page instead of schema 2/A4) and same-orientation canonicalization (landscape remained 210×297); both focused commands passed after the minimal fixes.
+- Final verification on the reviewed working tree:
+  - `npm test -- --run` — pass, 5 files / 56 tests.
+  - `npm run typecheck` — pass.
+  - `npm run lint` — pass, zero warnings.
+  - `npm run doctor` — pass, no issues at warning-blocking severity; telemetry disabled.
+  - `npm run build` — pass; existing ~1.16 MB pre-gzip bundle warning remains.
+  - `npm run test:e2e` — 12 pass / 3 documented Firefox WebGL-environment skips across 15 Chromium, Firefox and WebKit cases.
+- Browser evidence:
+  - Stable 1440×900 Chromium screenshot: `docs/screenshots/latest-desktop.png`, SHA-256 `6ac8c9cdea89f7ed15db3a431aee572f5896cf732e137f5bcdce22af063cb383`.
+  - Fresh live-browser interaction changed to Portrait and Undo restored 297×210 landscape with Redo enabled; `data-map-ready=true`, body overflow was 0 and the browser console/page-error buffers were empty.
+  - Screenshot review found the live map and all three editor panes readable with no material clipping, toolbar overlap, gradient or decorative shadow.
+- Fail-closed review initially rejected missing schema migration and inconsistent same-orientation dimensions. An independent fix agent added the RED-first regressions and minimal remediation; independent re-review then passed with no security concerns or logic errors. The only non-blocking suggestion is a direct page-object isolation regression across both history directions.
+- `.env.local` and tokens remain untracked/uncommitted. `docs/COMPLETE.md` does not exist and scheduler job `3a05bbc81515` remains enabled.
+
 ## Next unresolved slice
 
-Move project-level page dimensions/orientation, camera bearing/pitch, style, text scale and attribution into the canonical document with one transaction-safe property interaction, then prove undo/redo and visible canvas/property synchronization through strict TDD.
+Make Page preset selection canonical and undoable: A4, A3 and Letter must update stored dimensions and the visible frame/properties together, while Custom dimensions remain a later transaction-safe field-edit slice.

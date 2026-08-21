@@ -2,8 +2,11 @@ import { createStore } from 'zustand/vanilla';
 import {
   cloneContentLayer,
   createInitialProjectDocument,
+  migrateProjectDocument,
   type ContentLayer,
+  type PageOrientation,
   type ProjectDocument,
+  type StoredProjectDocument,
 } from '../domain/project';
 
 export type ProjectState = {
@@ -18,6 +21,7 @@ export type ProjectState = {
   moveLayer: (id: string, toIndex: number) => void;
   renameLayer: (id: string, name: string) => void;
   selectLayer: (id: string | null) => void;
+  setPageOrientation: (orientation: PageOrientation) => void;
   setLayerOpacity: (id: string, opacity: number) => void;
   toggleLayerVisibility: (id: string) => void;
   toggleLayerLock: (id: string) => void;
@@ -28,6 +32,7 @@ export type ProjectState = {
 function copyDocument(document: ProjectDocument): ProjectDocument {
   return {
     ...document,
+    page: { ...document.page },
     layers: document.layers.map(cloneContentLayer),
   };
 }
@@ -46,9 +51,12 @@ function commitDocument(state: ProjectState, document: ProjectDocument) {
   };
 }
 
-export function createProjectStore(initialDocument = createInitialProjectDocument()) {
+export function createProjectStore(
+  initialDocument: StoredProjectDocument = createInitialProjectDocument(),
+) {
+  const document = migrateProjectDocument(initialDocument);
   return createStore<ProjectState>((set) => ({
-    document: copyDocument(initialDocument),
+    document: copyDocument(document),
     selectedId: null,
     past: [],
     future: [],
@@ -113,6 +121,25 @@ export function createProjectStore(initialDocument = createInitialProjectDocumen
         ? id
         : state.selectedId,
     })),
+    setPageOrientation: (orientation) => set((state) => {
+      const shortEdge = Math.min(state.document.page.widthMm, state.document.page.heightMm);
+      const longEdge = Math.max(state.document.page.widthMm, state.document.page.heightMm);
+      const widthMm = orientation === 'landscape' ? longEdge : shortEdge;
+      const heightMm = orientation === 'landscape' ? shortEdge : longEdge;
+      if (
+        state.document.page.orientation === orientation
+        && state.document.page.widthMm === widthMm
+        && state.document.page.heightMm === heightMm
+      ) return state;
+      return commitDocument(state, {
+        ...state.document,
+        page: {
+          widthMm,
+          heightMm,
+          orientation,
+        },
+      });
+    }),
     setLayerOpacity: (id, opacity) => set((state) => {
       const layer = state.document.layers.find((candidate) => candidate.id === id);
       const nextOpacity = Math.max(0, Math.min(100, opacity));
