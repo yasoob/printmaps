@@ -38,6 +38,33 @@ test('desktop editor switches between project and layer properties', async ({ pa
   expect(consoleProblems).toEqual([]);
 });
 
+test('map content overlays preview on list hover and select from the canvas', async ({ page, browserName }) => {
+  test.skip(browserName === 'firefox', 'Firefox fixture intentionally exercises the WebGL fallback path.');
+  await page.goto('/');
+  const mapRoot = page.getByTestId('map-canvas');
+  await expect(mapRoot).toHaveAttribute('data-map-layer-order', 'route-01,poi-cafe,area-center', { timeout: 20_000 });
+
+  await page.getByRole('button', { name: 'Select Coffee stop' }).hover();
+  await expect(mapRoot).toHaveAttribute('data-previewed-layer', 'poi-cafe');
+  await expect(page.getByRole('heading', { name: 'Project' })).toBeVisible();
+  await page.getByRole('button', { name: 'Select Route 01' }).hover();
+  await expect(mapRoot).toHaveAttribute('data-previewed-layer', 'route-01');
+
+  const mapBox = await mapRoot.boundingBox();
+  expect(mapBox).not.toBeNull();
+  await page.locator('.maplibregl-canvas').click({
+    position: { x: mapBox!.width / 2, y: mapBox!.height / 2 },
+  });
+  await expect(page.getByRole('heading', { name: 'Coffee stop' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Select Coffee stop' })).toHaveAttribute('aria-current', 'true');
+
+  await page.getByRole('button', { name: 'Hide Route 01' }).click();
+  await expect(mapRoot).toHaveAttribute('data-map-layer-order', 'poi-cafe,area-center');
+  const cityHandle = page.getByRole('button', { name: 'Reorder City center' });
+  await cityHandle.dragTo(page.getByRole('button', { name: 'Reorder Coffee stop' }));
+  await expect(mapRoot).toHaveAttribute('data-map-layer-order', 'area-center,poi-cafe');
+});
+
 test('desktop commands, orientation, reorder, and overflow menu work in a real browser', async ({ page, browserName }) => {
   test.skip(browserName === 'firefox', 'Firefox fixture intentionally exercises the WebGL fallback path.');
   await page.goto('/');

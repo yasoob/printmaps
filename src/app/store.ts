@@ -1,5 +1,6 @@
 import { createStore } from 'zustand/vanilla';
 import {
+  cloneContentLayer,
   createInitialProjectDocument,
   type ContentLayer,
   type ProjectDocument,
@@ -27,7 +28,7 @@ export type ProjectState = {
 function copyDocument(document: ProjectDocument): ProjectDocument {
   return {
     ...document,
-    layers: document.layers.map((layer) => ({ ...layer })),
+    layers: document.layers.map(cloneContentLayer),
   };
 }
 
@@ -77,7 +78,7 @@ export function createProjectStore(initialDocument = createInitialProjectDocumen
         duplicateId = `${id}-copy-${suffix}`;
       }
 
-      const duplicate = { ...source, id: duplicateId, name: `${source.name} copy` };
+      const duplicate = { ...cloneContentLayer(source), id: duplicateId, name: `${source.name} copy` };
       const layers = [...state.document.layers];
       layers.splice(sourceIndex + 1, 0, duplicate);
       return {

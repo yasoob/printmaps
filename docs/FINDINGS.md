@@ -54,6 +54,31 @@
   - 390×844 smoke remains covered by Playwright with no body overflow.
 - Remaining known issue: the main JavaScript bundle is about 1.15 MB before gzip; MapLibre lazy loading/code splitting remains a later performance task.
 
+## 2026-08-21 — Vertical slice 3: live content overlays and diagnostic recovery
+
+- Added typed point, line and polygon geometry to the canonical project document and rendered real route, POI and shape GeoJSON through a dedicated MapLibre content adapter.
+- Sidebar hover previews only the matching visible overlay without selecting it. Canvas feature hits select back into the canonical store; background clicks still clear selection. Visibility and drag/keyboard ordering propagate to actual MapLibre paint and stacking order.
+- Selection/hover paint updates keep stable MapLibre sources and layers. The adapter distinguishes synced/deferred/failed states, retries deferred state on idle, contains readiness/paint/rollback/hit-test/destroy failures, and preserves retryable cleanup state.
+- Strict TDD evidence:
+  - Earlier focused recovery tests failed before implementation for deferred synchronization, style-error preservation, hit-test recovery, exception-safe teardown, and visible fallback recovery.
+  - `npm test -- --run tests/unit/map-content-adapter.test.ts -t "clears a previous hit-test diagnostic"` failed 2/2 with the expected stale `data-map-content-error="true"` assertion after successful feature and background hits.
+  - The minimal adapter change clears that diagnostic only after a successful query; the same focused command then passed 2/2.
+- Fresh verification on the completed working tree:
+  - `npm test -- --run` — pass, 5 files / 54 tests.
+  - `npm run typecheck` — pass.
+  - `npm run lint` — pass, zero warnings.
+  - `npm run doctor` — pass, no issues at warning-blocking severity; telemetry disabled.
+  - `npm run build` — pass; existing ~1.16 MB pre-gzip bundle warning remains.
+  - `npm run test:e2e` — 12 pass / 3 documented Firefox WebGL-environment skips across 15 Chromium, Firefox and WebKit cases.
+- Browser evidence:
+  - Fresh 1440×900 Chromium screenshot: `docs/screenshots/latest-desktop.png`, SHA-256 `6ac8c9cdea89f7ed15db3a431aee572f5896cf732e137f5bcdce22af063cb383`.
+  - Live browser inspection reported `mapReady=true`, overlay order `route-01,poi-cafe,area-center`, no visible fallback, no stale content-error diagnostic, no body overflow and zero console errors/page errors. Route, POI and polygon overlays were all visible; screenshot review found no material clipping, overlap, gradient, decorative shadow or hierarchy defect.
+- Fail-closed review remediation:
+  - Review 1 rejected incomplete old-overlay cleanup, ignored post-load renderer errors, and a lifecycle mock that could hide stale handlers. An independent fix agent added RED-first regressions (`expected 'synced' to be 'failed'` and `Unable to find role="status"`), blocked rebuilds until cleanup succeeds, surfaced an actionable renderer fallback, and added per-map/per-adapter tracking.
+  - Review 2 found the empty-target cleanup fast path still reachable and pre-side-effect cleanup exceptions still unproved. A second independent fix agent observed RED failures with one stale MapLibre layer and leaked map `0`, then added an explicit cleanup-pending invariant plus one bounded teardown retry. The first retry helper form triggered React Doctor's `effect-needs-cleanup`; inlining the same bounded retries made React Doctor pass with no suppression.
+  - Final independent re-review passed with no security concerns or logic errors. Its only non-blocking suggestion is a combined style-error/post-load-error precedence regression; the implementation was verified to preserve the existing style error.
+- `.env.local` and tokens remain untracked/uncommitted. `docs/COMPLETE.md` does not exist and the scheduler remains enabled.
+
 ## Next unresolved slice
 
-Render actual route, POI and shape GeoJSON from the project document through a map-adapter boundary. Sidebar hover must only highlight the matching map feature; click must select it. Canvas hit selection must synchronize back to the store, and visibility/order changes must update rendered layers.
+Move project-level page dimensions/orientation, camera bearing/pitch, style, text scale and attribution into the canonical document with one transaction-safe property interaction, then prove undo/redo and visible canvas/property synchronization through strict TDD.

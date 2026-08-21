@@ -1,5 +1,9 @@
 import { createProjectStore } from '../../src/app/store';
-import { PROJECT_SCHEMA_VERSION, type ProjectDocument } from '../../src/domain/project';
+import {
+  createInitialProjectDocument,
+  PROJECT_SCHEMA_VERSION,
+  type ProjectDocument,
+} from '../../src/domain/project';
 
 const layers = [
   { id: 'route-1', name: 'Route 1', type: 'route' as const, visible: true, locked: false, opacity: 100 },
@@ -19,6 +23,34 @@ function createDocument(): ProjectDocument {
 const layerState = (store: ReturnType<typeof createProjectStore>) => store.getState().document.layers;
 
 describe('project store history', () => {
+  it('isolates nested geometry across documents, history snapshots, and duplicates', () => {
+    const first = createInitialProjectDocument();
+    const second = createInitialProjectDocument();
+    const firstRoute = first.layers[0].geometry;
+    const secondRoute = second.layers[0].geometry;
+    expect(firstRoute?.type).toBe('LineString');
+    expect(secondRoute?.type).toBe('LineString');
+    if (firstRoute?.type !== 'LineString' || secondRoute?.type !== 'LineString') return;
+    firstRoute.coordinates[0][0] = 0;
+    expect(secondRoute.coordinates[0][0]).not.toBe(0);
+
+    const store = createProjectStore(second);
+    store.getState().duplicateLayer('route-01');
+    const sourceGeometry = store.getState().document.layers[0].geometry;
+    const duplicateGeometry = store.getState().document.layers[1].geometry;
+    if (sourceGeometry?.type !== 'LineString' || duplicateGeometry?.type !== 'LineString') return;
+    sourceGeometry.coordinates[0][0] = 1;
+    expect(duplicateGeometry.coordinates[0][0]).not.toBe(1);
+
+    store.getState().toggleLayerVisibility('route-01');
+    const currentGeometry = store.getState().document.layers[0].geometry;
+    if (currentGeometry?.type !== 'LineString') return;
+    currentGeometry.coordinates[0][0] = 2;
+    store.getState().undo();
+    const restoredGeometry = store.getState().document.layers[0].geometry;
+    expect(restoredGeometry?.type === 'LineString' ? restoredGeometry.coordinates[0][0] : null).not.toBe(2);
+  });
+
   it('rejects a non-finite reorder index without changing history', () => {
     const store = createProjectStore(createDocument());
 

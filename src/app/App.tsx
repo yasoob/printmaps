@@ -48,11 +48,15 @@ export function App() {
   const [projectStore] = useState(() => createProjectStore());
   const project = useStore(projectStore);
   const [activeTool, setActiveTool] = useState('select');
+  const [previewedLayerId, setPreviewedLayerId] = useState<string | null>(null);
   const [fitRequest, setFitRequest] = useState(0);
   const [orientation, setOrientation] = useState<'landscape' | 'portrait'>('landscape');
   const draggedLayerIdRef = useRef<string | null>(null);
 
   const layers = project.document.layers;
+  const mapPreviewedLayerId = previewedLayerId !== null && layers.some((layer) => (
+    layer.id === previewedLayerId && layer.visible && layer.geometry
+  )) ? previewedLayerId : null;
   const selectedLayer = layers.find((layer) => layer.id === project.selectedId) ?? null;
   const selectedIndex = selectedLayer
     ? layers.findIndex((layer) => layer.id === selectedLayer.id)
@@ -94,12 +98,20 @@ export function App() {
               const Icon = layerIcons[layer.type];
               const selected = project.selectedId === layer.id;
               return (
-                <li className={`layer-row${selected ? ' is-selected' : ''}`} key={layer.id}>
+                <li
+                  className={`layer-row${selected ? ' is-selected' : ''}`}
+                  key={layer.id}
+                  onMouseEnter={() => setPreviewedLayerId(layer.visible && layer.geometry ? layer.id : null)}
+                  onMouseLeave={() => setPreviewedLayerId((current) => current === layer.id ? null : current)}
+                >
                   <button
                     className="layer-visibility"
                     type="button"
                     aria-label={`${layer.visible ? 'Hide' : 'Show'} ${layer.name}`}
-                    onClick={() => project.toggleLayerVisibility(layer.id)}
+                    onClick={() => {
+                      setPreviewedLayerId((current) => current === layer.id ? null : current);
+                      project.toggleLayerVisibility(layer.id);
+                    }}
                   >
                     {layer.visible ? <Eye size={13} /> : <EyeOff size={13} />}
                   </button>
@@ -145,7 +157,15 @@ export function App() {
       </aside>
 
       <section className="canvas-region">
-        <MapCanvas onBackgroundClick={clearSelection} fitRequest={fitRequest} orientation={orientation} />
+        <MapCanvas
+          layers={layers.filter((layer) => layer.geometry)}
+          selectedId={project.selectedId}
+          previewedId={mapPreviewedLayerId}
+          onLayerSelect={project.selectLayer}
+          onBackgroundClick={clearSelection}
+          fitRequest={fitRequest}
+          orientation={orientation}
+        />
         <nav className="tool-palette" aria-label="Map tools">
           {tools.map(({ id, label, shortcut, icon: Icon, command }, index) => (
             <div className="tool-slot" key={id}>
@@ -180,7 +200,10 @@ export function App() {
             layer={selectedLayer}
             onRename={(name) => project.renameLayer(selectedLayer.id, name)}
             onOpacityChange={(opacity) => project.setLayerOpacity(selectedLayer.id, opacity)}
-            onToggleVisibility={() => project.toggleLayerVisibility(selectedLayer.id)}
+            onToggleVisibility={() => {
+              setPreviewedLayerId((current) => current === selectedLayer.id ? null : current);
+              project.toggleLayerVisibility(selectedLayer.id);
+            }}
             onToggleLock={() => project.toggleLayerLock(selectedLayer.id)}
             onDuplicate={() => {
               project.duplicateLayer(selectedLayer.id);
@@ -192,6 +215,7 @@ export function App() {
             }}
             onDelete={() => {
               const focusLayer = layers[selectedIndex + 1] ?? layers[selectedIndex - 1];
+              setPreviewedLayerId((current) => current === selectedLayer.id ? null : current);
               project.deleteLayer(selectedLayer.id);
               queueMicrotask(() => {
                 const focusTarget = focusLayer
