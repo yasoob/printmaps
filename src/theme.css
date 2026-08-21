@@ -1,0 +1,64 @@
+:root {
+  --studio-surface: #ffffff;
+  --studio-surface-raised: #ffffff;
+  --studio-background: #ededed;
+  --studio-canvas: #e9e9e9;
+  --studio-map-fallback: #dfe4e2;
+  --studio-field: #f5f5f5;
+  --studio-hover: #f7f7f7;
+  --studio-text: #1f1f1f;
+  --studio-text-strong: #000000;
+  --studio-text-secondary: #555555;
+  --studio-text-muted: #777777;
+  --studio-text-subtle: #8a8a8a;
+  --studio-line: #e5e5e5;
+  --studio-line-strong: #d5d5d5;
+  --studio-line-hover: #d8d8d8;
+  --studio-accent: #0d99ff;
+  --studio-accent-strong: #0878c9;
+  --studio-accent-soft: #e8f4ff;
+  --studio-danger: #c5352c;
+  --studio-route: #ff4f3d;
+  --studio-on-dark: #ffffff;
+  --studio-transparent: transparent;
+  --studio-frame: color-mix(in srgb, var(--studio-text) 55%, transparent);
+  --studio-frame-ring: color-mix(in srgb, var(--studio-on-dark) 85%, transparent);
+  --studio-frame-inner: color-mix(in srgb, var(--studio-on-dark) 45%, transparent);
+  --studio-surface-overlay: color-mix(in srgb, var(--studio-surface) 92%, transparent);
+  --studio-marker-border: color-mix(in srgb, var(--studio-text-strong) 15%, transparent);
+
+  --studio-topbar-height: 2.75rem;
+  --studio-left-panel-width: 15rem;
+  --studio-right-panel-width: 17rem;
+  --studio-control-height: 1.75rem;
+  --studio-tool-size: 2rem;
+  --studio-radius-xs: 0.1875rem;
+  --studio-radius-sm: 0.25rem;
+  --studio-radius-md: 0.3125rem;
+  --studio-radius-lg: 0.4375rem;
+  --studio-font-control: 0.71875rem;
+  --studio-font-label: 0.65625rem;
+  --studio-font-meta: 0.59375rem;
+  --studio-border-width: 1px;
+  --studio-focus-width: 2px;
+}
+
+@theme inline {
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --color-surface: var(--studio-surface);
+  --color-surface-raised: var(--studio-surface-raised);
+  --color-studio-bg: var(--studio-background);
+  --color-canvas: var(--studio-canvas);
+  --color-field: var(--studio-field);
+  --color-hover: var(--studio-hover);
+  --color-ink: var(--studio-text);
+  --color-muted: var(--studio-text-muted);
+  --color-line: var(--studio-line);
+  --color-accent: var(--studio-accent);
+  --color-accent-soft: var(--studio-accent-soft);
+  --color-danger: var(--studio-danger);
+  --radius-control: var(--studio-radius-md);
+  --spacing-topbar: var(--studio-topbar-height);
+  --spacing-panel-left: var(--studio-left-panel-width);
+  --spacing-panel-right: var(--studio-right-panel-width);
+}

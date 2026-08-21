@@ -1,0 +1,19 @@
+node_modules/
+dist/
+playwright-report/
+test-results/
+coverage/
+.env
+.env.local
+*.log
+*.tsbuildinfo
+.DS_Store
+.hermes/mission.lock
+
+# Raw research captures; keep synthesized reports and implementation plan.
+printmaps-inspection/
+printmaps_pages.md
+printmaps_support_articles.md
+printmaps_api_page.md
+printmaps_pricing_dynamic.txt
+maptoolkit_api_supporting_pages.md
