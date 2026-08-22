@@ -247,6 +247,57 @@ describe('project store history', () => {
 });
 
 describe('project store layer imports', () => {
+  it('creates a straight route as one selected undoable layer', () => {
+    const store = createProjectStore(createInitialProjectDocument());
+    const coordinates = [[16.31, 48.19], [16.4, 48.24]] as const;
+
+    store.getState().createRoute(coordinates);
+
+    const created = layerState(store).find((layer) => layer.id === 'route-02');
+    expect(created).toMatchObject({
+      id: 'route-02',
+      name: 'Route 02',
+      type: 'route',
+      geometry: { type: 'LineString', coordinates },
+    });
+    expect(layerState(store).at(-1)?.type).toBe('basemap');
+    expect(store.getState().selectedId).toBe('route-02');
+    expect(store.getState().canUndo).toBe(true);
+
+    store.getState().undo();
+    expect(layerState(store).some((layer) => layer.id === 'route-02')).toBe(false);
+    expect(store.getState().selectedId).toBeNull();
+    expect(store.getState().canRedo).toBe(true);
+
+    store.getState().redo();
+    expect(layerState(store).some((layer) => layer.id === 'route-02')).toBe(true);
+  });
+
+  it('uses the lowest available canonical route number', () => {
+    const document = createInitialProjectDocument();
+    document.layers = document.layers.filter((layer) => layer.type !== 'route');
+    const store = createProjectStore(document);
+
+    store.getState().createRoute([[16.31, 48.19], [16.4, 48.24]]);
+
+    expect(store.getState().selectedId).toBe('route-01');
+    expect(layerState(store).find((layer) => layer.id === 'route-01')?.name).toBe('Route 01');
+  });
+
+  it.each([
+    { label: 'one point', coordinates: [[16.31, 48.19]] },
+    { label: 'non-finite longitude', coordinates: [[16.31, 48.19], [NaN, 48.24]] },
+    { label: 'out-of-range latitude', coordinates: [[16.31, 48.19], [16.4, 91]] },
+  ])('rejects $label route geometry without changing history', ({ coordinates }) => {
+    const store = createProjectStore(createInitialProjectDocument());
+
+    store.getState().createRoute(coordinates as [number, number][]);
+
+    expect(layerState(store).some((layer) => layer.id === 'route-02')).toBe(false);
+    expect(store.getState().canUndo).toBe(false);
+    expect(store.getState().selectedId).toBeNull();
+  });
+
   it('imports a layer batch before the basemap as one undoable edit', () => {
     const store = createProjectStore(createInitialProjectDocument());
     const importedLayers: ContentLayer[] = [

@@ -32,6 +32,7 @@ export function App({ autosaveRepository }: AppProps = {}) {
   const autosave = useProjectAutosave(projectStore, resolvedAutosaveRepository);
   const [previewedLayerId, setPreviewedLayerId] = useState<string | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
+  const [authoringState, setAuthoringState] = useState({ documentEpoch: 0, active: false });
   const [mapExporter, setMapExporter] = useState<{ run: PreviewPngExporter } | null>(null);
   const draggedLayerIdRef = useRef<string | null>(null);
   const exportButtonRef = useRef<HTMLButtonElement>(null);
@@ -43,6 +44,7 @@ export function App({ autosaveRepository }: AppProps = {}) {
   )) ? previewedLayerId : null;
   const selectedLayer = layers.find((layer) => layer.id === project.selectedId) ?? null;
   const selectedIndex = selectedLayer ? layers.findIndex((layer) => layer.id === selectedLayer.id) : -1;
+  const isAuthoring = authoringState.documentEpoch === project.documentEpoch && authoringState.active;
   const selectLayer = project.selectLayer;
   const openDocument = project.openDocument;
   const importLayers = project.importLayers;
@@ -60,6 +62,9 @@ export function App({ autosaveRepository }: AppProps = {}) {
     setPreviewedLayerId(null);
     return true;
   }, [importLayers]);
+  const handleAuthoringChange = useCallback((documentEpoch: number, isActive: boolean) => {
+    setAuthoringState({ documentEpoch, active: isActive });
+  }, []);
 
   return (
     <>
@@ -68,6 +73,7 @@ export function App({ autosaveRepository }: AppProps = {}) {
           project={project}
           projectTitleRef={mobile.projectTitleRef}
           exportButtonRef={exportButtonRef}
+          exportDisabled={isAuthoring}
           inert={modal.mobilePanel !== null}
           onOpen={handleOpenedDocument}
           onImport={handleImportedLayers}
@@ -89,10 +95,13 @@ export function App({ autosaveRepository }: AppProps = {}) {
           selectedId={project.selectedId}
           previewedId={mapPreviewedLayerId}
           page={project.document.page}
+          documentEpoch={project.documentEpoch}
           activePanel={modal.mobilePanel}
           layersTriggerRef={mobile.layersTriggerRef}
           propertiesTriggerRef={mobile.propertiesTriggerRef}
           onLayerSelect={project.selectLayer}
+          onCreateRoute={project.createRoute}
+          onAuthoringChange={handleAuthoringChange}
           onBackgroundClick={clearSelection}
           onExporterChange={handleExporterChange}
           openPanel={mobile.openPanel}

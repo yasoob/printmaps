@@ -20,6 +20,7 @@ export type ProjectState = {
   future: ProjectDocument[];
   canUndo: boolean;
   canRedo: boolean;
+  createRoute: (coordinates: readonly (readonly [number, number])[]) => void;
   deleteLayer: (id: string) => void;
   duplicateLayer: (id: string) => void;
   importLayers: (layers: readonly ContentLayer[], documentEpoch: number) => boolean;

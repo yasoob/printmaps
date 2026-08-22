@@ -4,7 +4,7 @@ import { commitDocument, replaceLayers, type ProjectSet } from './storeDocument'
 
 type LayerStructureActions = Pick<
   ProjectState,
-  'deleteLayer' | 'duplicateLayer' | 'importLayers' | 'moveLayer'
+  'createRoute' | 'deleteLayer' | 'duplicateLayer' | 'importLayers' | 'moveLayer'
 >;
 type LayerPropertyActions = Pick<
   ProjectState,
@@ -13,6 +13,42 @@ type LayerPropertyActions = Pick<
 
 export function createLayerStructureActions(set: ProjectSet): LayerStructureActions {
   return {
+    createRoute: (coordinates) => set((state) => {
+      if (coordinates.length < 2 || coordinates.some(([longitude, latitude]) => (
+        !Number.isFinite(longitude)
+        || !Number.isFinite(latitude)
+        || longitude < -180
+        || longitude > 180
+        || latitude < -90
+        || latitude > 90
+      ))) return state;
+      const usedIds = new Set(state.document.layers.map((layer) => layer.id));
+      let routeNumber = 0;
+      let id: string;
+      do {
+        routeNumber += 1;
+        id = `route-${String(routeNumber).padStart(2, '0')}`;
+      } while (usedIds.has(id));
+      const route = {
+        id,
+        name: `Route ${String(routeNumber).padStart(2, '0')}`,
+        type: 'route' as const,
+        visible: true,
+        locked: false,
+        opacity: 100,
+        geometry: {
+          type: 'LineString' as const,
+          coordinates: coordinates.map(([longitude, latitude]) => [longitude, latitude] as [number, number]),
+        },
+      };
+      const layers = [...state.document.layers];
+      const basemapIndex = layers.findIndex((layer) => layer.type === 'basemap');
+      layers.splice(basemapIndex === -1 ? layers.length : basemapIndex, 0, route);
+      return {
+        ...commitDocument(state, replaceLayers(state.document, layers)),
+        selectedId: id,
+      };
+    }),
     deleteLayer: (id) => set((state) => {
       if (state.document.layers.every((layer) => layer.id !== id)) return state;
 

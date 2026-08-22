@@ -29,6 +29,7 @@ type LifecycleReferences = {
   contentSyncDeferred: MutableReference<boolean>;
   exporterChange: MutableReference<((exporter: PreviewPngExporter | null) => void) | undefined>;
   layerSelect: MutableReference<(id: string) => void>;
+  mapClick: MutableReference<((coordinate: [number, number]) => void) | undefined>;
   map: MutableReference<MapLibreMap | null>;
 };
 
@@ -45,7 +46,6 @@ type LifecycleState = {
 };
 
 const OPEN_STYLE = '/styles/liberty.json';
-
 function waitForMapRender(map: MapLibreMap, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) {
@@ -215,12 +215,10 @@ function createMapEventHandlers(
     }
     references.container.current?.setAttribute('data-map-ready', 'true');
   };
-  const handleClick = (event: { point: Parameters<MapContentAdapter['hitTest']>[0] }) => {
+  const handleClick = (event: { point: Parameters<MapContentAdapter['hitTest']>[0]; lngLat: { lng: number; lat: number } }) => {
+    if (references.mapClick.current) return references.mapClick.current([event.lngLat.lng, event.lngLat.lat]);
     const adapter = references.contentAdapter.current;
-    if (!adapter) {
-      references.backgroundClick.current();
-      return;
-    }
+    if (!adapter) return references.backgroundClick.current();
     const hitLayerId = adapter.hitTest(event.point);
     if (hitLayerId === undefined) {
       setContentError((error) => error?.source === 'sync' ? error : {
@@ -231,8 +229,7 @@ function createMapEventHandlers(
       return;
     }
     setContentError((error) => error?.source === 'hit-test' ? null : error);
-    if (hitLayerId) references.layerSelect.current(hitLayerId);
-    else references.backgroundClick.current();
+    if (hitLayerId) references.layerSelect.current(hitLayerId); else references.backgroundClick.current();
   };
   const handleError = () => {
     state.isMapFailed = true;

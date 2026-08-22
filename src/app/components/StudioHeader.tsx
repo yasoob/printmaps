@@ -9,6 +9,7 @@ type StudioHeaderProps = {
   project: ProjectState;
   projectTitleRef: RefObject<HTMLButtonElement | null>;
   exportButtonRef: RefObject<HTMLButtonElement | null>;
+  exportDisabled: boolean;
   inert: boolean;
   onOpen: (document: ProjectDocument) => void;
   onImport: (layers: readonly ContentLayer[], documentEpoch: number) => boolean;
@@ -19,6 +20,7 @@ export function StudioHeader({
   project,
   projectTitleRef,
   exportButtonRef,
+  exportDisabled,
   inert,
   onOpen,
   onImport,
@@ -45,7 +47,7 @@ export function StudioHeader({
         />
         <ProjectSaveButton document={project.document} />
         <button className="quiet-button" type="button"><Share2 size={14} /> Share</button>
-        <button ref={exportButtonRef} className="primary-button" type="button" onClick={onExport}><Download size={14} /> Export</button>
+        <button ref={exportButtonRef} className="primary-button" type="button" disabled={exportDisabled} title={exportDisabled ? 'Finish or cancel route drawing before export' : undefined} onClick={onExport}><Download size={14} /> Export</button>
       </div>
     </header>
   );

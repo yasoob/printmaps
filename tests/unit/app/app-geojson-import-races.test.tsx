@@ -26,6 +26,22 @@ function fileInputs(container: HTMLElement) {
 }
 
 describe('GeoJSON import document isolation', () => {
+  it('does not steal focus when the user moves to another control during a pending read', async () => {
+    let finishImport: ((text: string) => void) | undefined;
+    const slowText = new Promise<string>((resolve) => { finishImport = resolve; });
+    const { container } = render(<App autosaveRepository={null} />);
+    const { importInput } = fileInputs(container);
+    fireEvent.change(importInput, {
+      target: { files: [fileWithText('slow.geojson', slowText, 'application/geo+json')] },
+    });
+    const projectTitle = screen.getByRole('button', { name: 'Vienna field guide' });
+    projectTitle.focus();
+
+    await act(async () => { finishImport?.(pointGeoJson); });
+
+    expect(projectTitle).toHaveFocus();
+  });
+
   it('does not finish a pending import into a document opened later', async () => {
     let finishImport: ((text: string) => void) | undefined;
     const slowText = new Promise<string>((resolve) => { finishImport = resolve; });

@@ -7,6 +7,7 @@ type MapCanvasMockProps = {
   selectedId?: string | null;
   previewedId?: string | null;
   onLayerSelect?: (id: string) => void;
+  onMapClick?: (coordinate: [number, number]) => void;
   onBackgroundClick: () => void;
   onExporterChange?: (exporter: typeof exportMocks.exporter) => void;
   fitRequest?: number;
@@ -19,6 +20,7 @@ export function MapCanvas({
   selectedId,
   previewedId,
   onLayerSelect,
+  onMapClick,
   onBackgroundClick,
   onExporterChange,
   fitRequest,
@@ -43,6 +45,8 @@ export function MapCanvas({
     >
       <button type="button" onClick={onBackgroundClick}>Map background</button>
       <button type="button" onClick={() => onLayerSelect?.('poi-cafe')}>Map Coffee stop</button>
+      <button type="button" onClick={() => onMapClick?.([16.31, 48.19])}>Map route point 1</button>
+      <button type="button" onClick={() => onMapClick?.([16.4, 48.24])}>Map route point 2</button>
     </div>
   );
 }

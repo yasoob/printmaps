@@ -371,6 +371,31 @@
 - The first two fail-closed reviews rejected hidden-content/opacity semantics and then layer stacking/order. Each blocker received a focused RED regression and minimal fix. A fresh final reviewer passed with no security concerns, logic errors or suggestions after independently rerunning 13 focused tests, typecheck and lint.
 - One full-suite run logged a transient OpenFreeMap Noto Sans glyph-origin outage while every case still passed. External glyph/tile availability remains a tracked third-party risk. `docs/COMPLETE.md` does not exist because the wider mission gate remains open.
 
+### 2026-08-22 — Straight-segment route authoring (verified)
+
+- The Route tool now accepts map clicks into a visible noncanonical draft with point markers, a straight line, live point count, disabled-until-valid Finish, and explicit Cancel. Finish and Cancel return focus to Select; changing tools discards the draft.
+- Finish validates coordinate count/ranges, creates the lowest available canonical `Route NN` ID/name, inserts the route above the basemap, selects it, and records the complete route as one Undo step. Undo removes it and Redo restores it.
+- While Route is active, geographic map clicks bypass ordinary feature hit testing. The callback is removed immediately on finish/cancel/tool change, so normal canvas selection and background clearing resume.
+- Draft state is excluded from autosave and print/export. Opening or recovering another project invalidates the draft by document epoch, including the stale-source restoration case when Route is reactivated later.
+- The complete browser flow creates a route, verifies draft/canonical map synchronization, Undo/Redo, and downloads a layered SVG containing the new route as a named vector group.
+- Strict TDD evidence:
+  - Store creation first failed because `createRoute` was absent; canonical naming then failed with `route-02` when `route-01` was available, and invalid one-point/non-finite/out-of-range inputs initially created layers before focused fixes.
+  - The app flow first failed with no Finish action, then failed before temporary line/point feedback, Cancel behavior, post-Finish focus, project-open invalidation, tool-switch cleanup, and stale-draft nonresurrection were added.
+  - The map lifecycle regression first failed because authoring coordinates never reached the application; the minimal routing path now consumes clicks before hit testing only while the authoring callback exists.
+  - A full-suite regression exposed that remounting the canvas workspace on document open broke delayed autosave modal focus restoration. Epoch-keyed draft state replaced the remount; the focused autosave arbitration and route suites both pass.
+- The first independent fail-closed review rejected two inconsistencies: a composite PNG could include noncanonical draft geometry, and the imperative MapLibre click handler could observe stale authoring mode before its passive callback-ref update. Export is now disabled for the matching document epoch until Finish/Cancel/tool change, with unit and Chromium assertions. A child-before-parent layout-effect regression failed under the passive update and passes after synchronizing click-routing refs during layout.
+- Fresh serial verification on the completed tree:
+  - `npm test -- --run` — pass, 29 files / 308 tests.
+  - `npm run typecheck` — pass.
+  - `npm run lint` — pass, zero warnings.
+  - `npm run doctor` — pass, no issues; telemetry disabled.
+  - `npm run build` — pass; the known ~1.25 MB pre-gzip bundle warning remains.
+  - `npm audit --omit=dev` — 0 vulnerabilities.
+  - `npm run test:e2e` — 53 pass / 7 documented Firefox WebGL-runtime skips across 60 Chromium, Firefox and WebKit cases. Route authoring/export passes in Chromium and WebKit and runtime-skips in the Firefox fallback environment.
+- Browser evidence: refreshed exact 1440×900 `docs/screenshots/latest-desktop.png`, SHA-256 `b01c49876d0ca7fb3ea041b958e00976538699d472d101839bcd6e5832519912`. The live capture showed both draft endpoints, the straight line, and the Finish/Cancel panel with a ready map, zero body overflow, zero gradients/shadows, and empty console/page-error buffers. Visual review found no material clipping, collision, hierarchy, or legibility defect; the preview remained HTTP 200 on `127.0.0.1:4178`.
+- Intermediate full browser gates encountered a transient OpenFreeMap glyph-origin outage, then a Chromium PNG case that timed out only after its final download had started; the exact PNG case passed in 9.3 seconds. A later gate exposed the previously tracked Import-trigger focus flake twice in Chromium. Focus restoration now runs from the committed non-pending state rather than a timer plus animation frame. A final review then rejected unconditional refocusing when a user had intentionally moved elsewhere during a pending read; a RED unit regression reproduced the focus theft, and restoration is now gated to neutral/file-input/Import focus. The exact Chromium case and final complete serial suite pass; the suite reports 53 pass / 7 Firefox WebGL-runtime skips. External font/tile availability remains a tracked third-party risk.
+- Independent fail-closed route re-review passed with no security concerns, logic errors, or suggestions after 70 focused tests across seven files. The bounded final focus re-review also passed after inspecting all staged files and rerunning 52 focused tests. `docs/COMPLETE.md` does not exist because the wider mission gate remains open.
+
 ## Next unresolved slice
 
-Build one bounded authoring slice: create a straight-segment route from map clicks with explicit finish/cancel, canonical undo/redo and selection, plus browser and print/export coverage. Portable ZIP, POI/shape authoring, map design controls and the Mapbox renderer/storage decision remain later completion blockers.
+Build one bounded POI authoring slice: place a canonical point from a map click with explicit cancel, selection, Undo/Redo, and print/export coverage. Portable ZIP, shape authoring, route editing/styles, map design controls and the Mapbox renderer/storage decision remain later completion blockers.

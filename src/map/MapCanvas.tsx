@@ -8,6 +8,7 @@ type MapCanvasProps = {
   selectedId: string | null;
   previewedId: string | null;
   onLayerSelect: (id: string) => void;
+  onMapClick?: (coordinate: [number, number]) => void;
   onBackgroundClick: () => void;
   onExporterChange?: (exporter: PreviewPngExporter | null) => void;
   fitRequest?: number;
@@ -21,6 +22,7 @@ export function MapCanvas({
   selectedId,
   previewedId,
   onLayerSelect,
+  onMapClick,
   onBackgroundClick,
   onExporterChange,
   fitRequest = 0,
@@ -34,6 +36,7 @@ export function MapCanvas({
     onBackgroundClick,
     onExporterChange,
     onLayerSelect,
+    onMapClick,
     previewedId,
     selectedId,
     contentRevision,

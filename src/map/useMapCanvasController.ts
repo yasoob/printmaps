@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { ContentLayer } from '../domain/project';
 import type { PreviewPngExporter } from '../export/previewPng';
@@ -15,6 +15,7 @@ type MapCanvasControllerOptions = {
   onBackgroundClick: () => void;
   onExporterChange?: (exporter: PreviewPngExporter | null) => void;
   onLayerSelect: (id: string) => void;
+  onMapClick?: (coordinate: [number, number]) => void;
   previewedId: string | null;
   selectedId: string | null;
   contentRevision?: object;
@@ -28,6 +29,7 @@ export function useMapCanvasController({
   onBackgroundClick,
   onExporterChange,
   onLayerSelect,
+  onMapClick,
   previewedId,
   selectedId,
   contentRevision,
@@ -40,6 +42,7 @@ export function useMapCanvasController({
   const contentReady = useRef(false);
   const layerSelect = useRef(onLayerSelect);
   const backgroundClick = useRef(onBackgroundClick);
+  const mapClick = useRef(onMapClick);
   const exporterChange = useRef(onExporterChange);
   const availableExporter = useRef<PreviewPngExporter | null>(null);
   const [mapError, setMapError] = useState<MapError | null>(null);
@@ -70,10 +73,11 @@ export function useMapCanvasController({
     }
   }, [invalidateExporter]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     backgroundClick.current = onBackgroundClick;
     layerSelect.current = onLayerSelect;
-  }, [onBackgroundClick, onLayerSelect]);
+    mapClick.current = onMapClick;
+  }, [onBackgroundClick, onLayerSelect, onMapClick]);
 
   useEffect(() => {
     exporterChange.current = onExporterChange;
@@ -98,6 +102,7 @@ export function useMapCanvasController({
       contentSyncDeferred,
       exporterChange,
       layerSelect,
+      mapClick,
       map,
     },
     setContentError,

@@ -1,5 +1,5 @@
-import { StrictMode } from 'react';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { StrictMode, useLayoutEffect, useState } from 'react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ContentLayer } from '../../src/domain/project';
 
 const mocks = vi.hoisted(() => ({
@@ -217,6 +217,40 @@ async function verifyRendererErrorRejection() {
   expect(latestMapHandlers().error ?? []).toHaveLength(1);
 }
 
+async function verifyAuthoringClick() {
+  const onMapClick = vi.fn();
+  render(<MapCanvas {...baseProps} selectedId={null} onMapClick={onMapClick} />);
+  await waitFor(() => expect(mocks.adapterSync).toHaveBeenCalledTimes(1));
+
+  act(() => {
+    emitLatestMapEvent('click', {
+      point: [12, 34],
+      lngLat: { lng: 16.31, lat: 48.19 },
+    });
+  });
+
+  expect(onMapClick).toHaveBeenCalledWith([16.31, 48.19]);
+  expect(mocks.hitTest).not.toHaveBeenCalled();
+  expect(baseProps.onBackgroundClick).not.toHaveBeenCalled();
+  expect(baseProps.onLayerSelect).not.toHaveBeenCalled();
+}
+
+function ActivationRaceHarness({ onMapClick }: { onMapClick: (coordinate: [number, number]) => void }) {
+  const [active, setActive] = useState(false);
+  useLayoutEffect(() => {
+    if (active) emitLatestMapEvent('click', {
+      point: [12, 34],
+      lngLat: { lng: 16.31, lat: 48.19 },
+    });
+  }, [active]);
+  return (
+    <>
+      <button type="button" onClick={() => setActive(true)}>Activate route</button>
+      <MapCanvas {...baseProps} selectedId={null} onMapClick={active ? onMapClick : undefined} />
+    </>
+  );
+}
+
 function resetHarness() {
   mocks.adapterSync.mockReset();
   mocks.adapterSync.mockReturnValue('synced');
@@ -394,6 +428,19 @@ describe('MapCanvas content recovery', () => {
 
     expect(baseProps.onLayerSelect).toHaveBeenCalledWith(route.id);
     await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument());
+  });
+
+  it('routes click coordinates to the active authoring tool before hit testing', verifyAuthoringClick);
+
+  it('updates authoring click routing before parent layout work can dispatch a click', async () => {
+    const onMapClick = vi.fn();
+    render(<ActivationRaceHarness onMapClick={onMapClick} />);
+    await waitFor(() => expect(mocks.adapterSync).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Activate route' }));
+
+    expect(onMapClick).toHaveBeenCalledWith([16.31, 48.19]);
+    expect(mocks.hitTest).not.toHaveBeenCalled();
   });
 
   it('does not clear a sync fallback when a failed hit later succeeds', async () => {

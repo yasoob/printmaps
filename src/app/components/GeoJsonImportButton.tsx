@@ -1,5 +1,5 @@
 import { FileUp } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ContentLayer } from '../../domain/project';
 import {
   MAX_GEOJSON_FILE_BYTES,
@@ -56,6 +56,19 @@ export function GeoJsonImportButton({ documentEpoch, existingLayerIds, onImport 
   const buttonRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const pendingRef = useRef(false);
+  const shouldRestoreFocusRef = useRef(false);
+
+  useEffect(() => {
+    if (pending || !shouldRestoreFocusRef.current) return;
+    shouldRestoreFocusRef.current = false;
+    const activeElement = document.activeElement;
+    const shouldRestoreFocus = !activeElement
+      || activeElement === document.body
+      || activeElement === document.documentElement
+      || activeElement === inputRef.current
+      || activeElement === buttonRef.current;
+    if (shouldRestoreFocus) buttonRef.current?.focus();
+  }, [pending]);
 
   const handleChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const input = event.currentTarget;
@@ -83,11 +96,9 @@ export function GeoJsonImportButton({ documentEpoch, existingLayerIds, onImport 
       });
     } finally {
       pendingRef.current = false;
+      shouldRestoreFocusRef.current = true;
       setPending(false);
       input.value = '';
-      window.setTimeout(() => {
-        window.requestAnimationFrame(() => buttonRef.current?.focus());
-      }, 0);
     }
   };
 
