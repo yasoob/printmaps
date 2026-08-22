@@ -43,6 +43,8 @@ export type ExportPreflightLimits = {
   rounding: PixelRounding;
 };
 
+export const MAX_SAFE_EXPORT_TILE_COUNT = 4096;
+
 export const DEFAULT_EXPORT_PREFLIGHT_LIMITS: Readonly<ExportPreflightLimits> = Object.freeze({
   minDpi: 36,
   maxDpi: 600,
@@ -55,7 +57,7 @@ export const DEFAULT_EXPORT_PREFLIGHT_LIMITS: Readonly<ExportPreflightLimits> = 
   preferredTileSidePx: 4096,
   tileOverlapPx: 16,
   tileBufferCount: 2,
-  maxTileCount: 4096,
+  maxTileCount: MAX_SAFE_EXPORT_TILE_COUNT,
   minEffectivePpi: 150,
   rounding: 'round',
 });

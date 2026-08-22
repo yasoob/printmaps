@@ -1,3 +1,5 @@
+import { getPixelSurfaceAllocationIssue } from './preflight';
+
 export type PreviewPng = {
   blob: Blob;
   width: number;
@@ -133,6 +135,10 @@ export function capturePrintFramePng(
   if (!crop) return Promise.reject(unavailableError());
   if (crop.width < 120 || crop.height < 48) {
     return Promise.reject(new Error('The rendered print frame is too small to export with useful map content and legible attribution.'));
+  }
+  const allocationIssue = getPixelSurfaceAllocationIssue(crop.width, crop.height);
+  if (allocationIssue) {
+    return Promise.reject(new Error(`The rendered print frame is too large to export safely. ${allocationIssue.message}`));
   }
 
   const output = document.createElement('canvas');

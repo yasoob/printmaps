@@ -1,10 +1,11 @@
-import type {
-  ExportFormat,
-  ExportPreflightIssue,
-  ExportPreflightLimits,
-  ExportPreflightRequest,
-  ExportPreflightResult,
-  RasterLayerResolution,
+import {
+  MAX_SAFE_EXPORT_TILE_COUNT,
+  type ExportFormat,
+  type ExportPreflightIssue,
+  type ExportPreflightLimits,
+  type ExportPreflightRequest,
+  type ExportPreflightResult,
+  type RasterLayerResolution,
 } from './preflightTypes';
 
 export type ExportGrid = {
@@ -20,6 +21,8 @@ type Estimates = NonNullable<ExportPreflightResult['estimates']>;
 type Cancellation = ExportPreflightResult['cancellation'];
 
 const isInteger = Number.isInteger.bind(Number);
+// Covers 13 numeric fields, the array reference, and conservative JS object/array overhead.
+const ESTIMATED_TILE_PLAN_RECORD_BYTES = 256;
 
 function hasInvalidLimits(limits: ExportPreflightLimits): boolean {
   const positiveValues = [
@@ -151,10 +154,14 @@ export function appendTileCountIssue(
   limits: ExportPreflightLimits,
   errors: ExportPreflightIssue[],
 ): void {
-  if (!Number.isSafeInteger(grid.tileCount) || grid.tileCount > limits.maxTileCount) {
+  const effectiveMaximum = Math.min(limits.maxTileCount, MAX_SAFE_EXPORT_TILE_COUNT);
+  if (!Number.isSafeInteger(grid.tileCount) || grid.tileCount > effectiveMaximum) {
+    const maximumKind = limits.maxTileCount > MAX_SAFE_EXPORT_TILE_COUNT
+      ? 'safe hard maximum'
+      : 'configured maximum';
     errors.push({
       code: 'TILE_COUNT_LIMIT_EXCEEDED',
-      message: `Export needs ${grid.tileCount} tiles; the configured maximum is ${limits.maxTileCount}.`,
+      message: `Export needs ${grid.tileCount} tiles; the ${maximumKind} is ${effectiveMaximum}.`,
     });
   }
 }
@@ -180,9 +187,10 @@ export function estimateMemory(
   const rgbaBytes = dimensions.pixelCount * 4;
   const peakTileRgbaBytes = largestRenderWidth * largestRenderHeight * 4 * limits.tileBufferCount;
   const encodedOutputBytes = estimatedOutputBytes(request.format, rgbaBytes);
-  const peakBytes = rgbaBytes + peakTileRgbaBytes + encodedOutputBytes;
+  const tilePlanBytes = grid.tileCount * ESTIMATED_TILE_PLAN_RECORD_BYTES;
+  const peakBytes = rgbaBytes + peakTileRgbaBytes + encodedOutputBytes + tilePlanBytes;
   const estimates = { rgbaBytes, peakTileRgbaBytes, encodedOutputBytes, peakBytes };
-  const values = [rgbaBytes, peakTileRgbaBytes, encodedOutputBytes, peakBytes];
+  const values = [rgbaBytes, peakTileRgbaBytes, encodedOutputBytes, tilePlanBytes, peakBytes];
   if (values.some((value) => !Number.isSafeInteger(value))) {
     return {
       estimates,

@@ -39,7 +39,7 @@ describe('export preflight planning', () => {
       rgbaBytes: 3508 * 2480 * 4,
       peakTileRgbaBytes: 3508 * 2480 * 4 * 2,
       encodedOutputBytes: Math.ceil(3508 * 2480 * 4 * 1.05),
-      peakBytes: (3508 * 2480 * 4 * 3) + Math.ceil(3508 * 2480 * 4 * 1.05),
+      peakBytes: (3508 * 2480 * 4 * 3) + Math.ceil(3508 * 2480 * 4 * 1.05) + 256,
     });
     expect(result.plan).toMatchObject({ mode: 'single', columns: 1, rows: 1, overlapPx: 16 });
     expect(result.plan?.tiles).toHaveLength(1);
@@ -98,6 +98,7 @@ describe('export preflight planning', () => {
     });
   });
 
+
   it.each([
     ['non-finite page dimensions', completeRequest({ page: { widthMm: NaN, heightMm: 210 } }), {}, 'INVALID_PAGE_DIMENSIONS'],
     ['DPI outside the configured range', completeRequest({ dpi: 1200 }), {}, 'DPI_OUT_OF_RANGE'],
@@ -115,6 +116,10 @@ describe('export preflight planning', () => {
     expect(result.errors.map((issue) => issue.code)).toContain(code);
   });
 
+
+});
+
+describe('export preflight readiness', () => {
   it('blocks incomplete or non-cancellable tiled jobs with named readiness errors', () => {
     const result = planExportPreflight(completeRequest({
       page: { widthMm: 100, heightMm: 100 },
@@ -211,5 +216,58 @@ describe('export preflight planning', () => {
     expect(result.warnings.map(({ code }) => code)).not.toContain('LAYERED_SVG_CONTAINS_RASTER');
     expect(result.warnings.find(({ code }) => code === 'VECTOR_OVERLAYS_REMAIN_VECTOR')?.message)
       .toBe('User overlays remain vector in layered SVG output.');
+  });
+});
+
+describe('export preflight allocation safety', () => {
+  it('includes conservative tile-plan record storage in peak memory', () => {
+    const result = planExportPreflight(completeRequest({
+      page: { widthMm: 100, heightMm: 100 },
+      dpi: 254,
+    }), {
+      gpuMaxSidePx: 512,
+      preferredTileSidePx: 512,
+      tileOverlapPx: 16,
+      memoryBudgetBytes: 256 * 1024 * 1024,
+    });
+    const rgbaBytes = 1000 * 1000 * 4;
+    const peakTileRgbaBytes = 512 * 512 * 4 * 2;
+    const encodedOutputBytes = Math.ceil(rgbaBytes * 1.05);
+
+    expect(result.plan?.tiles).toHaveLength(9);
+    expect(result.estimates?.peakBytes)
+      .toBe(rgbaBytes + peakTileRgbaBytes + encodedOutputBytes + 9 * 256);
+  });
+
+  it('enforces a hard tile-plan ceiling before a million-record plan can be allocated', () => {
+    const originalPush = Array.prototype.push;
+    Array.prototype.push = function guardedPush(this: unknown[], ...items: unknown[]) {
+      const isTileRecord = items.some((item) => (
+        typeof item === 'object'
+        && item !== null
+        && 'renderWidth' in item
+        && 'cropX' in item
+      ));
+      if (isTileRecord) throw new Error('Tile plan allocation was attempted.');
+      return Reflect.apply(originalPush, this, items);
+    };
+
+    try {
+      const result = planExportPreflight(completeRequest({
+        page: { widthMm: 254, heightMm: 254 },
+        dpi: 100,
+      }), {
+        gpuMaxSidePx: 1,
+        preferredTileSidePx: 1,
+        tileOverlapPx: 0,
+        maxTileCount: 1_000_000,
+      });
+
+      expect(result.safe).toBe(false);
+      expect(result.plan).toBeNull();
+      expect(result.errors.map(({ code }) => code)).toContain('TILE_COUNT_LIMIT_EXCEEDED');
+    } finally {
+      Array.prototype.push = originalPush;
+    }
   });
 });
