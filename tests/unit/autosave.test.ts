@@ -1,6 +1,7 @@
 import 'fake-indexeddb/auto';
 import {
   AUTOSAVE_RECORD_VERSION,
+  AutosaveConflictError,
   AutosaveCorruptionError,
   createIndexedDbAutosaveRepository,
   getAutosaveFailureMessage,
@@ -90,9 +91,54 @@ describe('IndexedDB project autosave', () => {
     repository.close();
   });
 
+  it('rejects a stale save instead of overwriting a newer tab', async () => {
+    const name = databaseName();
+    const firstTab = createIndexedDbAutosaveRepository({ databaseName: name });
+    const secondTab = createIndexedDbAutosaveRepository({ databaseName: name });
+    const verifier = createIndexedDbAutosaveRepository({ databaseName: name });
+    const original = createInitialProjectDocument();
+    const newer = { ...original, title: 'Newer tab edit' };
+    const stale = { ...original, title: 'Stale tab edit' };
+
+    await firstTab.save(original, '2026-08-22T10:00:00.000Z');
+    await firstTab.load();
+    await secondTab.load();
+    await firstTab.save(newer, '2026-08-22T10:01:00.000Z');
+
+    await expect(secondTab.save(stale, '2026-08-22T10:02:00.000Z'))
+      .rejects.toBeInstanceOf(AutosaveConflictError);
+    await expect(verifier.load()).resolves.toMatchObject({ document: { title: 'Newer tab edit' } });
+
+    firstTab.close();
+    secondTab.close();
+    verifier.close();
+  });
+
+  it('rejects a stale discard instead of deleting a newer tab save', async () => {
+    const name = databaseName();
+    const firstTab = createIndexedDbAutosaveRepository({ databaseName: name });
+    const secondTab = createIndexedDbAutosaveRepository({ databaseName: name });
+    const verifier = createIndexedDbAutosaveRepository({ databaseName: name });
+    const original = createInitialProjectDocument();
+    const newer = { ...original, title: 'Do not discard me' };
+
+    await firstTab.save(original, '2026-08-22T10:00:00.000Z');
+    await firstTab.load();
+    await secondTab.load();
+    await firstTab.save(newer, '2026-08-22T10:01:00.000Z');
+
+    await expect(secondTab.discard()).rejects.toBeInstanceOf(AutosaveConflictError);
+    await expect(verifier.load()).resolves.toMatchObject({ document: { title: 'Do not discard me' } });
+
+    firstTab.close();
+    secondTab.close();
+    verifier.close();
+  });
+
   it('gives quota and generic storage failures actionable messages', () => {
     expect(getAutosaveFailureMessage(new DOMException('full', 'QuotaExceededError'))).toContain('storage is full');
     expect(getAutosaveFailureMessage({ name: 'QuotaExceededError' })).toContain('storage is full');
     expect(getAutosaveFailureMessage(new Error('offline'))).toContain('Save a project file');
+    expect(getAutosaveFailureMessage(new AutosaveConflictError())).toContain('another tab');
   });
 });

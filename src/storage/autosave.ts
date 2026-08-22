@@ -27,6 +27,13 @@ export class AutosaveCorruptionError extends Error {
   }
 }
 
+export class AutosaveConflictError extends Error {
+  constructor(message = 'The local autosave changed in another tab.') {
+    super(message);
+    this.name = 'AutosaveConflictError';
+  }
+}
+
 function requestResult<T>(request: IDBRequest<T>) {
   return new Promise<T>((resolve, reject) => {
     request.onsuccess = () => resolve(request.result);
@@ -64,6 +71,29 @@ function validatedDraft(value: unknown): AutosaveDraft {
   }
 }
 
+function storedRevision(value: unknown) {
+  if (value === undefined) return 0;
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new AutosaveCorruptionError();
+  }
+  const revision = (value as Record<string, unknown>).revision;
+  if (revision === undefined) return 0;
+  if (!Number.isSafeInteger(revision) || Number(revision) < 0) {
+    throw new AutosaveCorruptionError('The local autosave has an invalid storage revision.');
+  }
+  return Number(revision);
+}
+
+function isDiscardedRecord(value: unknown) {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+  const record = value as Record<string, unknown>;
+  if (record.discarded !== true) return false;
+  if (record.recordVersion !== AUTOSAVE_RECORD_VERSION || record.revision === undefined) {
+    throw new AutosaveCorruptionError();
+  }
+  return true;
+}
+
 export function getAutosaveFailureMessage(reason: unknown) {
   const errorName = typeof reason === 'object' && reason !== null && 'name' in reason
     ? String(reason.name)
@@ -74,6 +104,9 @@ export function getAutosaveFailureMessage(reason: unknown) {
   ) {
     return 'Autosave paused because browser storage is full. Use Save to download a project file, then free browser storage.';
   }
+  if (reason instanceof AutosaveConflictError || errorName === 'AutosaveConflictError') {
+    return 'Autosave paused because this draft changed in another tab. Reload to review the newer draft before continuing.';
+  }
   return 'Autosave is unavailable. Save a project file to keep a portable copy of your work.';
 }
 
@@ -81,20 +114,42 @@ export function createIndexedDbAutosaveRepository({
   databaseName = DEFAULT_DATABASE_NAME,
 }: { databaseName?: string } = {}): AutosaveRepository {
   let openDatabase: Promise<IDBDatabase> | null = null;
+  let knownRevision: number | null = null;
 
   const database = () => {
     if (!openDatabase) {
-      openDatabase = new Promise<IDBDatabase>((resolve, reject) => {
+      const opening = new Promise<IDBDatabase>((resolve, reject) => {
         const request = indexedDB.open(databaseName, AUTOSAVE_DATABASE_VERSION);
+        let settled = false;
         request.onupgradeneeded = () => {
           if (!request.result.objectStoreNames.contains(AUTOSAVE_STORE)) {
             request.result.createObjectStore(AUTOSAVE_STORE);
           }
         };
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error ?? new Error('Could not open local project storage.'));
-        request.onblocked = () => reject(new Error('Local project storage is blocked by another tab.'));
+        request.onsuccess = () => {
+          if (settled) {
+            request.result.close();
+            return;
+          }
+          settled = true;
+          request.result.onversionchange = () => {
+            request.result.close();
+            if (openDatabase === opening) openDatabase = null;
+          };
+          resolve(request.result);
+        };
+        request.onerror = () => {
+          settled = true;
+          reject(request.error ?? new Error('Could not open local project storage.'));
+        };
+        request.onblocked = () => {
+          if (settled) return;
+          settled = true;
+          if (openDatabase === opening) openDatabase = null;
+          reject(new Error('Local project storage is blocked by another tab.'));
+        };
       });
+      openDatabase = opening;
     }
     return openDatabase;
   };
@@ -105,7 +160,9 @@ export function createIndexedDbAutosaveRepository({
       const transaction = db.transaction(AUTOSAVE_STORE, 'readonly');
       const value = await requestResult(transaction.objectStore(AUTOSAVE_STORE).get(CURRENT_DRAFT_KEY));
       await transactionComplete(transaction);
-      return value === undefined ? null : validatedDraft(value);
+      knownRevision = storedRevision(value);
+      if (value === undefined || isDiscardedRecord(value)) return null;
+      return validatedDraft(value);
     },
     async save(document, savedAt = new Date().toISOString()) {
       const record = validatedDraft({
@@ -115,14 +172,42 @@ export function createIndexedDbAutosaveRepository({
       });
       const db = await database();
       const transaction = db.transaction(AUTOSAVE_STORE, 'readwrite');
-      transaction.objectStore(AUTOSAVE_STORE).put(record, CURRENT_DRAFT_KEY);
-      await transactionComplete(transaction);
+      const complete = transactionComplete(transaction);
+      const store = transaction.objectStore(AUTOSAVE_STORE);
+      const current = await requestResult(store.get(CURRENT_DRAFT_KEY));
+      const currentRevision = storedRevision(current);
+      const expectedRevision = knownRevision ?? currentRevision;
+      if (currentRevision !== expectedRevision) {
+        transaction.abort();
+        await complete.catch(() => undefined);
+        throw new AutosaveConflictError();
+      }
+      const nextRevision = currentRevision + 1;
+      store.put({ ...record, revision: nextRevision }, CURRENT_DRAFT_KEY);
+      await complete;
+      knownRevision = nextRevision;
     },
     async discard() {
       const db = await database();
       const transaction = db.transaction(AUTOSAVE_STORE, 'readwrite');
-      transaction.objectStore(AUTOSAVE_STORE).delete(CURRENT_DRAFT_KEY);
-      await transactionComplete(transaction);
+      const complete = transactionComplete(transaction);
+      const store = transaction.objectStore(AUTOSAVE_STORE);
+      const current = await requestResult(store.get(CURRENT_DRAFT_KEY));
+      const currentRevision = storedRevision(current);
+      const expectedRevision = knownRevision ?? currentRevision;
+      if (currentRevision !== expectedRevision) {
+        transaction.abort();
+        await complete.catch(() => undefined);
+        throw new AutosaveConflictError();
+      }
+      const nextRevision = currentRevision + 1;
+      store.put({
+        recordVersion: AUTOSAVE_RECORD_VERSION,
+        revision: nextRevision,
+        discarded: true,
+      }, CURRENT_DRAFT_KEY);
+      await complete;
+      knownRevision = nextRevision;
     },
     close() {
       if (openDatabase) void openDatabase.then((db) => db.close(), () => undefined);

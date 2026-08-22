@@ -32,6 +32,7 @@ export function useProjectAutosave(
   const saveTimerRef = useRef<number | null>(null);
   const saveRevisionRef = useRef(0);
   const saveQueueRef = useRef<Promise<void> | null>(null);
+  const debouncedDocumentRef = useRef<ProjectState['document'] | null>(null);
   const pendingDocumentRef = useRef<ProjectState['document'] | null>(null);
   const scheduleSaveRef = useRef<((document: ProjectState['document']) => void) | null>(null);
   const decisionPendingRef = useRef(false);
@@ -46,12 +47,14 @@ export function useProjectAutosave(
 
     const scheduleSave = (document: ProjectState['document']) => {
       pendingDocumentRef.current = null;
+      debouncedDocumentRef.current = document;
       if (saveTimerRef.current !== null) window.clearTimeout(saveTimerRef.current);
       const revision = ++saveRevisionRef.current;
       setStatusKind('status');
       setStatus('Saving local draft…');
       saveTimerRef.current = window.setTimeout(() => {
         saveTimerRef.current = null;
+        debouncedDocumentRef.current = null;
         saveQueueRef.current = (saveQueueRef.current ?? Promise.resolve())
           .catch(() => undefined)
           .then(() => (active ? repository.save(document) : undefined))
@@ -69,6 +72,29 @@ export function useProjectAutosave(
       }, 300);
     };
     scheduleSaveRef.current = scheduleSave;
+
+    const flushDebouncedSave = () => {
+      const document = debouncedDocumentRef.current;
+      if (saveTimerRef.current === null || !document) return;
+      window.clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+      debouncedDocumentRef.current = null;
+      const revision = saveRevisionRef.current;
+      const priorSave = saveQueueRef.current?.catch(() => undefined) ?? Promise.resolve();
+      const immediateSave = repository.save(document).then(() => {
+        if (active && revision === saveRevisionRef.current) {
+          setStatusKind('status');
+          setStatus('All changes saved locally');
+        }
+      }, (reason) => {
+        if (active && revision === saveRevisionRef.current) {
+          setStatusKind('error');
+          setStatus(getAutosaveFailureMessage(reason));
+        }
+      });
+      saveQueueRef.current = Promise.all([priorSave, immediateSave]).then(() => undefined);
+    };
+    window.addEventListener('pagehide', flushDebouncedSave);
 
     void repository.load().then((draft) => {
       if (!active) return;
@@ -102,7 +128,8 @@ export function useProjectAutosave(
       mountedRef.current = false;
       unsubscribe();
       scheduleSaveRef.current = null;
-      if (saveTimerRef.current !== null) window.clearTimeout(saveTimerRef.current);
+      window.removeEventListener('pagehide', flushDebouncedSave);
+      flushDebouncedSave();
       repository.close();
     };
   }, [repository, store]);
