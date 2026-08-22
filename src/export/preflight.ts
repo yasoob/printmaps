@@ -183,7 +183,10 @@ export function planExportPreflight(
     dimensions: null,
     estimates: null,
     effectivePpi: [],
-    attributions: [...new Set(request.attributions.map((value) => value.trim()).filter(Boolean))],
+    attributions: [...new Set(request.attributions.flatMap((value) => {
+      const attribution = value.trim();
+      return attribution ? [attribution] : [];
+    }))],
     cancellation: { required: false, suitable: true, checkpoint: 'not-required' },
     warnings: outputTruthWarnings(request),
     errors,

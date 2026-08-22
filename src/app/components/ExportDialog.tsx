@@ -8,7 +8,7 @@ export type ExportDialogProps = {
   onClose: () => void;
 };
 
-function trapDialogFocus(event: React.KeyboardEvent<HTMLDivElement>, dialog: HTMLDivElement | null) {
+function trapDialogFocus(event: React.KeyboardEvent<HTMLDialogElement>, dialog: HTMLDialogElement | null) {
   if (event.key !== 'Tab') return;
   const focusable = [...(dialog?.querySelectorAll<HTMLElement>('button:not([disabled])') ?? [])];
   if (focusable.length === 0) {
@@ -26,7 +26,7 @@ function trapDialogFocus(event: React.KeyboardEvent<HTMLDivElement>, dialog: HTM
 }
 
 export function ExportDialog({ exporter, filename, onClose }: ExportDialogProps) {
-  const dialogRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const downloadButtonRef = useRef<HTMLButtonElement>(null);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('Ready to export the current print-frame preview.');
@@ -37,7 +37,7 @@ export function ExportDialog({ exporter, filename, onClose }: ExportDialogProps)
     if (busy) dialogRef.current?.focus();
   }, [busy]);
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDialogElement>) => {
     if (event.key === 'Escape') {
       event.preventDefault();
       event.stopPropagation();
@@ -70,10 +70,10 @@ export function ExportDialog({ exporter, filename, onClose }: ExportDialogProps)
   return (
     <div className="export-overlay">
       <div className="export-backdrop" aria-hidden="true" onClick={busy ? undefined : onClose} />
-      <div
+      <dialog
         ref={dialogRef}
         className="export-dialog"
-        role="dialog"
+        open
         aria-modal="true"
         aria-labelledby="export-title"
         aria-busy={busy}
@@ -94,7 +94,7 @@ export function ExportDialog({ exporter, filename, onClose }: ExportDialogProps)
           <button type="button" disabled={busy} onClick={onClose}>Cancel</button>
           <button ref={downloadButtonRef} className="primary-button" type="button" disabled={busy} onClick={download}>{busy ? 'Preparing…' : 'Download PNG'}</button>
         </div>
-      </div>
+      </dialog>
     </div>
   );
 }

@@ -214,7 +214,10 @@ export function appendMissingIssues(
     ['fonts', 'MISSING_FONTS', 'Required fonts are missing.'],
   ];
   for (const [key, code, message] of missingGroups) {
-    const values = [...new Set((request.missing?.[key] ?? []).map((value) => value.trim()).filter(Boolean))];
+    const values = [...new Set((request.missing?.[key] ?? []).flatMap((value) => {
+      const missingValue = value.trim();
+      return missingValue ? [missingValue] : [];
+    }))];
     if (values.length > 0) errors.push({ code, message, details: values });
   }
 }

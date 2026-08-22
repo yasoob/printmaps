@@ -217,5 +217,3 @@ export function parseGeoJsonText(
   const coordinateCount = { value: 0 };
   return features.map((candidate, index) => featureAt(candidate, index, coordinateCount, usedIds));
 }
-
-export const importGeoJsonText = parseGeoJsonText;
