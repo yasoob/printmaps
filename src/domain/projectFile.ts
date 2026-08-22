@@ -164,9 +164,12 @@ function layersAt(value: unknown) {
   });
 }
 
-function pageAt(value: unknown, includePreset: false): ProjectDocumentV2['page'];
-function pageAt(value: unknown, includePreset: true): ProjectDocument['page'];
-function pageAt(value: unknown, includePreset: boolean): ProjectDocumentV2['page'] | ProjectDocument['page'] {
+function pageAt(value: unknown, shouldIncludePreset: false): ProjectDocumentV2['page'];
+function pageAt(value: unknown, shouldIncludePreset: true): ProjectDocument['page'];
+function pageAt(
+  value: unknown,
+  shouldIncludePreset: boolean,
+): ProjectDocumentV2['page'] | ProjectDocument['page'] {
   const page = objectAt(value, 'Project page');
   const orientation = page.orientation;
   if (typeof orientation !== 'string' || !PAGE_ORIENTATIONS.has(orientation as PageOrientation)) {
@@ -177,7 +180,7 @@ function pageAt(value: unknown, includePreset: boolean): ProjectDocumentV2['page
     heightMm: positiveNumber(page.heightMm, 'Page height'),
     orientation: orientation as PageOrientation,
   };
-  if (!includePreset) return base;
+  if (!shouldIncludePreset) return base;
   if (typeof page.preset !== 'string' || !PAGE_PRESETS.has(page.preset as PagePreset)) {
     throw new ProjectFileError('Page preset must be A4, A3, Letter, or Custom.');
   }
