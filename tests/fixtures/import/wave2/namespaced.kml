@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml:kml xmlns:kml="http://www.opengis.net/kml/2.2">
+  <kml:Document>
+    <kml:Placemark>
+      <kml:name>Café point</kml:name>
+      <kml:Point><kml:coordinates>16.3738,48.2082,171.4</kml:coordinates></kml:Point>
+    </kml:Placemark>
+    <kml:Folder>
+      <kml:Placemark>
+        <kml:name>Río line</kml:name>
+        <kml:LineString>
+          <kml:coordinates>16.35,48.20,160 16.40,48.22,165</kml:coordinates>
+        </kml:LineString>
+      </kml:Placemark>
+      <kml:Placemark>
+        <kml:name>公園 polygon</kml:name>
+        <kml:Polygon>
+          <kml:outerBoundaryIs><kml:LinearRing><kml:coordinates>
+            16.36,48.20,0 16.39,48.20,0 16.39,48.22,0 16.36,48.20,0
+          </kml:coordinates></kml:LinearRing></kml:outerBoundaryIs>
+        </kml:Polygon>
+      </kml:Placemark>
+    </kml:Folder>
+  </kml:Document>
+</kml:kml>
