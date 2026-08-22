@@ -190,6 +190,51 @@ describe('MapLibre content adapter', () => {
     ]));
   });
 
+  it('reuses the structural signature for selection and hover syncs with the same layer array', () => {
+    const { map } = createMapHarness();
+    const adapter = createMapLibreContentAdapter(map, document.createElement('div'));
+    const layers = [contentLayer('route', 'route', {
+      type: 'LineString',
+      coordinates: [[0, 0], [1, 1]],
+    })];
+    const stringify = vi.spyOn(JSON, 'stringify');
+
+    adapter.sync({ layers, selectedId: null, previewedId: null });
+    const initialStringifyCalls = stringify.mock.calls.length;
+    adapter.sync({ layers, selectedId: 'route', previewedId: null });
+    adapter.sync({ layers, selectedId: null, previewedId: 'route' });
+    const finalStringifyCalls = stringify.mock.calls.length;
+    stringify.mockRestore();
+
+    expect(initialStringifyCalls).toBeGreaterThan(0);
+    expect(finalStringifyCalls).toBe(initialStringifyCalls);
+  });
+
+  it('reapplies every initial paint descriptor during an incremental update', () => {
+    const { map, layers: renderedLayers, paintUpdates } = createMapHarness();
+    const adapter = createMapLibreContentAdapter(map, document.createElement('div'));
+    const layers = [
+      contentLayer('route', 'route', { type: 'LineString', coordinates: [[0, 0], [1, 1]] }),
+      contentLayer('poi', 'poi', { type: 'Point', coordinates: [1, 1] }),
+      contentLayer('shape', 'shape', {
+        type: 'Polygon',
+        coordinates: [[[0, 0], [1, 0], [1, 1], [0, 0]]],
+      }),
+    ];
+    const state = { layers, selectedId: 'route', previewedId: 'shape' };
+
+    adapter.sync(state);
+    const initialPaint = [...renderedLayers.values()].flatMap(({ id, paint = {} }) => (
+      Object.entries(paint).map(([property, value]) => [id, property, value] as const)
+    ));
+    paintUpdates.length = 0;
+
+    adapter.sync(state);
+
+    expect(paintUpdates).toHaveLength(initialPaint.length);
+    expect(paintUpdates).toEqual(expect.arrayContaining(initialPaint));
+  });
+
   it('adds rendered MapLibre layers from bottom to top in content stacking order', () => {
     const { map, layers } = createMapHarness();
     const adapter = createMapLibreContentAdapter(map, document.createElement('div'));

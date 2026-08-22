@@ -22,8 +22,12 @@ export type MapContentAdapter = {
   destroy: () => void;
 };
 
-function updateContainerState(container: HTMLElement, state: MapContentState) {
-  container.dataset.mapLayerOrder = visibleContentLayers(state.layers).map((layer) => layer.id).join(',');
+function updateContainerState(
+  container: HTMLElement,
+  state: MapContentState,
+  visibleLayers: ContentLayer[],
+) {
+  container.dataset.mapLayerOrder = visibleLayers.map((layer) => layer.id).join(',');
   container.dataset.selectedLayer = state.selectedId ?? '';
   container.dataset.previewedLayer = state.previewedId ?? '';
   delete container.dataset.mapContentError;
@@ -58,18 +62,22 @@ function removeRenderedContent(map: MapLibreMap, rendered: RenderedMapContent) {
   return !isCleanupPending;
 }
 
-function updateRenderedContent(map: MapLibreMap, state: MapContentState) {
+function updateRenderedContent(
+  map: MapLibreMap,
+  visibleLayers: ContentLayer[],
+  state: MapContentState,
+) {
   const highlight = { selectedId: state.selectedId, previewedId: state.previewedId };
-  for (const layer of visibleContentLayers(state.layers)) updateLayerPaint(map, layer, highlight);
+  for (const layer of visibleLayers) updateLayerPaint(map, layer, highlight);
 }
 
 function addRenderedContent(
   map: MapLibreMap,
+  visibleLayers: ContentLayer[],
   state: MapContentState,
   rendered: RenderedMapContent,
 ) {
   const highlight = { selectedId: state.selectedId, previewedId: state.previewedId };
-  const visibleLayers = visibleContentLayers(state.layers);
   let index = visibleLayers.length;
   while (index > 0) {
     index -= 1;
@@ -83,7 +91,19 @@ export function createMapLibreContentAdapter(
   container: HTMLElement,
 ): MapContentAdapter {
   const rendered: RenderedMapContent = { mapLayerIds: [], sourceIds: [], structure: '' };
+  let cachedLayers: ContentLayer[] | undefined;
+  let cachedVisibleLayers: ContentLayer[] = [];
+  let cachedStructure = '';
   let isCleanupPending = false;
+
+  const layerSnapshot = (layers: ContentLayer[]) => {
+    if (layers !== cachedLayers) {
+      cachedLayers = layers;
+      cachedVisibleLayers = visibleContentLayers(layers);
+      cachedStructure = contentStructure(cachedVisibleLayers);
+    }
+    return { structure: cachedStructure, visibleLayers: cachedVisibleLayers };
+  };
 
   const cleanup = () => {
     const isComplete = removeRenderedContent(map, rendered);
@@ -95,17 +115,17 @@ export function createMapLibreContentAdapter(
     const state = { layers, selectedId, previewedId };
     try {
       if (!map.isStyleLoaded()) return 'deferred';
-      const nextStructure = contentStructure(visibleContentLayers(layers));
+      const { structure: nextStructure, visibleLayers } = layerSnapshot(layers);
       if (!isCleanupPending && nextStructure === rendered.structure) {
-        updateRenderedContent(map, state);
-        updateContainerState(container, state);
+        updateRenderedContent(map, visibleLayers, state);
+        updateContainerState(container, state, visibleLayers);
         return 'synced';
       }
 
       if (!cleanup()) throw new Error('Map content cleanup incomplete');
-      addRenderedContent(map, state, rendered);
+      addRenderedContent(map, visibleLayers, state, rendered);
       rendered.structure = nextStructure;
-      updateContainerState(container, state);
+      updateContainerState(container, state, visibleLayers);
       return 'synced';
     } catch {
       cleanup();
