@@ -6,6 +6,79 @@ import { exportMocks } from './exportMocks';
 
 vi.mock('../../../src/map/MapCanvas', async () => import('./MapCanvasMock'));
 
+async function verifyLayeredSvgDownload() {
+  const user = userEvent.setup();
+  const pngBytes = Uint8Array.from(
+    atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='),
+    (character) => character.codePointAt(0) ?? 0,
+  );
+  const source = document.createElement('canvas');
+  source.width = 1;
+  source.height = 1;
+  exportMocks.exporter = vi.fn().mockResolvedValue({
+    blob: new Blob([pngBytes], { type: 'image/png' }),
+    width: 1,
+    height: 1,
+    surface: source,
+    projectToFrame: ([longitude, latitude]: readonly [number, number]) => ({
+      x: (longitude - 16.28) / 0.2,
+      y: (48.26 - latitude) / 0.12,
+    }),
+  });
+  let downloadedBlob: Blob | undefined;
+  let downloadName = '';
+  vi.spyOn(URL, 'createObjectURL').mockImplementation((blob) => {
+    if (!(blob instanceof Blob)) throw new TypeError('Expected a Blob download');
+    downloadedBlob = blob;
+    return 'blob:layered-svg';
+  });
+  vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function captureDownload(this: HTMLAnchorElement) {
+    downloadName = this.download;
+  });
+  render(<App />);
+
+  await user.click(screen.getByRole('button', { name: 'Export' }));
+  const dialog = screen.getByRole('dialog', { name: 'Export map' });
+  await user.click(screen.getByRole('button', { name: 'Download layered SVG' }));
+
+  await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Download started for layered SVG'));
+  expect(exportMocks.exporter).toHaveBeenCalledWith({
+    content: 'basemap',
+    signal: expect.any(AbortSignal),
+  });
+  expect(downloadName).toBe('vienna-field-guide.layered.svg');
+  expect(downloadedBlob?.type).toBe('image/svg+xml');
+  const svgText = await downloadedBlob?.text();
+  expect(svgText).toContain('width="297mm" height="210mm"');
+  expect(svgText).toContain('data-scene-role="raster-basemap"');
+  expect(svgText).toContain('data-layer-name="Route 01"');
+  expect(svgText).toContain('data-layer-name="Coffee stop"');
+  expect(svgText).toContain('data-layer-name="City center"');
+  expect(dialog).toHaveTextContent('raster basemap');
+  expect(dialog).toHaveTextContent('vector overlays');
+  expect(source).toMatchObject({ width: 0, height: 0 });
+}
+
+async function verifyLayeredMapCaptureCancellation() {
+  const user = userEvent.setup();
+  let receivedSignal: AbortSignal | undefined;
+  exportMocks.exporter = vi.fn((options) => new Promise<PreviewPng>((_resolve, reject) => {
+    receivedSignal = (options as { signal?: AbortSignal } | undefined)?.signal;
+    receivedSignal?.addEventListener('abort', () => reject(receivedSignal?.reason), { once: true });
+  }));
+  const downloadClick = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+  render(<App />);
+
+  await user.click(screen.getByRole('button', { name: 'Export' }));
+  await user.click(screen.getByRole('button', { name: 'Download layered SVG' }));
+
+  expect(receivedSignal).toBeInstanceOf(AbortSignal);
+  await user.click(screen.getByRole('button', { name: 'Cancel export' }));
+  await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Export cancelled'));
+  expect(downloadClick).not.toHaveBeenCalled();
+}
+
 describe('editor export', () => {
   beforeEach(() => {
     exportMocks.exporter = null;
@@ -36,6 +109,10 @@ describe('editor export', () => {
     expect(dialog).not.toBeInTheDocument();
     expect(trigger).toHaveFocus();
   });
+
+  it('downloads a layered SVG with an embedded raster basemap and named vector groups', verifyLayeredSvgDownload);
+
+  it('propagates Cancel to an in-progress layered map capture', verifyLayeredMapCaptureCancellation);
 
   it('blocks an unsafe print-size allocation before capture', async () => {
     const user = userEvent.setup();

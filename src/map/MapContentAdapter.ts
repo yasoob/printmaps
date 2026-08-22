@@ -23,6 +23,7 @@ export type MapContentSyncResult = 'synced' | 'deferred' | 'failed';
 export type MapContentAdapter = {
   sync: (state: MapContentState) => MapContentSyncResult;
   hitTest: (point: PointLike) => string | null | undefined;
+  setExportVisibility: (isVisible: boolean) => boolean;
   destroy: () => void;
 };
 
@@ -155,6 +156,27 @@ export function createMapLibreContentAdapter(
       } catch {
         container.dataset.mapContentError = 'true';
         return;
+      }
+    },
+    setExportVisibility: (isVisible) => {
+      const changed: string[] = [];
+      const visibility = isVisible ? 'visible' : 'none';
+      try {
+        for (const id of rendered.mapLayerIds) {
+          map.setLayoutProperty(id, 'visibility', visibility);
+          changed.push(id);
+        }
+        return true;
+      } catch {
+        const rollbackVisibility = isVisible ? 'none' : 'visible';
+        for (const id of changed) {
+          try {
+            map.setLayoutProperty(id, 'visibility', rollbackVisibility);
+          } catch {
+            // The caller treats a failed visibility transition as an unavailable export.
+          }
+        }
+        return false;
       }
     },
     destroy: cleanup,

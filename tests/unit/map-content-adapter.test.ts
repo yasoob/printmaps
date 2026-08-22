@@ -38,6 +38,7 @@ function createMapHarness({
   let removeSourceCalls = 0;
   let queryRenderedFeaturesCalls = 0;
   const paintUpdates: Array<[string, string, unknown]> = [];
+  const layoutUpdates: Array<[string, string, unknown]> = [];
   const shouldFailAt = (configuredCalls: number | number[] | undefined, call: number) => (
     Array.isArray(configuredCalls) ? configuredCalls.includes(call) : configuredCalls === call
   );
@@ -77,6 +78,10 @@ function createMapHarness({
       const layer = layers.get(id);
       if (layer) layer.paint = { ...layer.paint, [property]: value };
     },
+    setLayoutProperty: (id: string, property: string, value: unknown) => {
+      if (!layers.has(id)) throw new Error(`Layer ${id} does not exist`);
+      layoutUpdates.push([id, property, value]);
+    },
     queryRenderedFeatures: () => {
       if (failQueryRenderedFeatures) throw new Error('queryRenderedFeatures failure');
       const result = queryRenderedFeaturesResults?.[queryRenderedFeaturesCalls++];
@@ -85,7 +90,7 @@ function createMapHarness({
     },
   } as unknown as MapLibreMap;
 
-  return { map, sources, layers, paintUpdates };
+  return { map, sources, layers, paintUpdates, layoutUpdates };
 }
 
 function contentLayer(
@@ -98,6 +103,29 @@ function contentLayer(
 }
 
 describe('MapLibre content adapter', () => {
+  it('hides every rendered content layer for basemap capture and restores them', () => {
+    const { map, layoutUpdates } = createMapHarness();
+    const adapter = createMapLibreContentAdapter(map, document.createElement('div'));
+    adapter.sync({
+      layers: [
+        contentLayer('route', 'route', { type: 'LineString', coordinates: [[0, 0], [1, 1]] }),
+        contentLayer('shape', 'shape', {
+          type: 'Polygon',
+          coordinates: [[[0, 0], [1, 0], [1, 1], [0, 0]]],
+        }),
+      ],
+      selectedId: null,
+      previewedId: null,
+    });
+
+    expect(adapter.setExportVisibility(false)).toBe(true);
+    expect(layoutUpdates).toHaveLength(3);
+    expect(layoutUpdates.every(([, property, value]) => property === 'visibility' && value === 'none')).toBe(true);
+    expect(adapter.setExportVisibility(true)).toBe(true);
+    expect(layoutUpdates.slice(3)).toHaveLength(3);
+    expect(layoutUpdates.slice(3).every(([, property, value]) => property === 'visibility' && value === 'visible')).toBe(true);
+  });
+
   it('reports content sync as deferred while the style is not loaded', () => {
     const { map, sources, layers } = createMapHarness({ styleLoaded: false });
     const adapter = createMapLibreContentAdapter(map, document.createElement('div'));

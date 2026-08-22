@@ -1,6 +1,64 @@
 import { readFile, stat } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
 
+test('layered SVG download embeds the raster basemap and preserves named vector groups', async ({ page }, testInfo) => {
+  await page.goto('/');
+  const mapReady = page.locator('[data-map-ready="true"]');
+  const mapFallback = page.getByText('Map preview unavailable');
+  await expect(mapReady.or(mapFallback)).toBeVisible({ timeout: 20_000 });
+  test.skip(await mapFallback.isVisible(), 'This browser fixture has no WebGL 2 renderer, so export cannot be exercised.');
+
+  await page.getByRole('button', { name: 'Export' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Export map' });
+  await expect(dialog).toContainText('raster basemap');
+  await expect(dialog).toContainText('named vector overlays');
+  const downloadPromise = page.waitForEvent('download');
+  await dialog.getByRole('button', { name: 'Download layered SVG' }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe('vienna-field-guide.layered.svg');
+  const outputPath = testInfo.outputPath('vienna-field-guide.layered.svg');
+  await download.saveAs(outputPath);
+  const svgText = await readFile(outputPath, 'utf8');
+  const structure = await page.evaluate((text) => {
+    const svg = new DOMParser().parseFromString(text, 'image/svg+xml');
+    const root = svg.documentElement as unknown as SVGSVGElement;
+    return {
+      parserError: svg.querySelector('parsererror')?.textContent ?? null,
+      width: root.getAttribute('width'),
+      height: root.getAttribute('height'),
+      viewBox: root.getAttribute('viewBox'),
+      basemapMode: root.dataset.basemapContent,
+      overlayMode: root.dataset.overlayContent,
+      imageHref: root.querySelector(':scope > [data-scene-role="raster-basemap"] image')?.getAttribute('href') ?? '',
+      groups: [...root.querySelectorAll(':scope > g')].map((group) => ({
+        name: (group as SVGGElement).dataset.layerName,
+        role: (group as SVGGElement).dataset.sceneRole,
+        vectorElements: group.querySelectorAll('path, circle').length,
+      })),
+    };
+  }, svgText);
+  expect(structure.parserError).toBeNull();
+  expect(structure).toMatchObject({
+    width: '297mm',
+    height: '210mm',
+    viewBox: '0 0 297 210',
+    basemapMode: 'raster',
+    overlayMode: 'vector',
+  });
+  expect(structure.imageHref).toMatch(/^data:image\/png;base64,/);
+  expect(structure.groups.map(({ name }) => name)).toEqual([
+    'Liberty basemap',
+    'Route 01',
+    'Coffee stop',
+    'City center',
+    'Attribution',
+  ]);
+  expect(structure.groups.slice(1, 4).every(({ role, vectorElements }) => (
+    role === 'vector-overlay' && vectorElements > 0
+  ))).toBe(true);
+  await expect(dialog.getByRole('status')).toContainText('Download started for layered SVG');
+});
+
 test('export downloads the current print frame as PNG on desktop and mobile', async ({ page }, testInfo) => {
   await page.goto('/');
   const mapReady = page.locator('[data-map-ready="true"]');

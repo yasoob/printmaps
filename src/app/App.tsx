@@ -110,7 +110,7 @@ export function App({ autosaveRepository }: AppProps = {}) {
         />
       </main>
       <ProjectAutosaveErrorNotice autosave={autosave} />
-      {modal.surface === 'export' && <ExportDialog exporter={mapExporter?.run ?? null} filename={`${project.document.id}.png`} page={project.document.page} onClose={modal.closeExport} />}
+      {modal.surface === 'export' && <ExportDialog exporter={mapExporter?.run ?? null} filename={project.document.id} document={project.document} onClose={modal.closeExport} />}
       <ProjectAutosaveDialogs
         autosave={autosave}
         onBeforeDecision={modal.preemptSurface}

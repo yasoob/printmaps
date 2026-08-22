@@ -62,6 +62,36 @@ describe('preview PNG export', () => {
     expect(maxWidth).toBeLessThanOrEqual(result.width - 8);
   });
 
+  it('projects map coordinates into normalized print-frame positions', async () => {
+    installCanvasContext();
+    const { mapCanvas, frame } = createFixture();
+
+    const result = await capturePrintFramePng(
+      mapCanvas,
+      frame,
+      '© OpenStreetMap contributors',
+      { projectToCanvas: ([longitude, latitude]) => ({ x: longitude * 10, y: latitude * 10 }) },
+    );
+
+    expect(result.projectToFrame?.([20, 14])).toEqual({ x: 0.5, y: 0.5 });
+    expect(result.projectToFrame?.([5, 4])).toEqual({ x: 0, y: 0 });
+  });
+
+  it('omits the raster attribution strip when the caller will add vector attribution', async () => {
+    const context = installCanvasContext();
+    const { mapCanvas, frame } = createFixture();
+
+    await capturePrintFramePng(
+      mapCanvas,
+      frame,
+      '© OpenStreetMap contributors',
+      { isAttributionIncluded: false },
+    );
+
+    expect(context.fillRect).not.toHaveBeenCalled();
+    expect(context.fillText).not.toHaveBeenCalled();
+  });
+
   it('exports only the actual intersection when the frame is partially outside the canvas', async () => {
     const context = installCanvasContext();
     const { mapCanvas, frame } = createFixture(rect(-10, 20, 100, 40));

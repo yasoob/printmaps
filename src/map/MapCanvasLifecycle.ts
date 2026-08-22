@@ -6,6 +6,7 @@ import {
   type MapContentAdapter,
   type MapContentState,
 } from './MapContentAdapter';
+import { captureBasemapOnly } from './MapExportCapture';
 
 export type MapError = {
   kind: 'content' | 'renderer' | 'style';
@@ -44,6 +45,42 @@ type LifecycleState = {
 };
 
 const OPEN_STYLE = '/styles/liberty.json';
+
+function waitForMapRender(map: MapLibreMap, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new DOMException('Export cancelled.', 'AbortError'));
+      return;
+    }
+    const cleanup = () => {
+      clearTimeout(timeout);
+      map.off('render', handleRender);
+      map.off('error', handleRendererError);
+      signal?.removeEventListener('abort', handleAbort);
+    };
+    const finish = (error?: unknown) => {
+      cleanup();
+      if (error) reject(error);
+      else resolve();
+    };
+    const handleRender = () => finish();
+    const handleRendererError = (event?: { error?: unknown }) => finish(
+      event?.error instanceof Error
+        ? event.error
+        : new Error('The map renderer failed while preparing the export.'),
+    );
+    const handleAbort = () => finish(new DOMException('Export cancelled.', 'AbortError'));
+    const timeout = setTimeout(() => finish(new Error('The map renderer timed out while preparing the export.')), 1000);
+    signal?.addEventListener('abort', handleAbort, { once: true });
+    try {
+      map.once('render', handleRender);
+      map.once('error', handleRendererError);
+      map.triggerRepaint();
+    } catch (error) {
+      finish(error);
+    }
+  });
+}
 
 function createMap(container: HTMLDivElement, setMapError: MapLifecycleOptions['setMapError']) {
   const probe = document.createElement('canvas');
@@ -122,13 +159,41 @@ function createMapEventHandlers(
   initializeAttribution: () => void,
 ) {
   const { references, handleContentSyncResult, setContentError, setMapError } = options;
-  const exportPreview: PreviewPngExporter = () => {
+  const exportPreview: PreviewPngExporter = async (exportOptions) => {
     const printFrame = references.container.current?.parentElement?.querySelector<HTMLElement>('.print-frame');
-    if (!printFrame) return Promise.reject(new Error('The print frame is not ready to export.'));
+    if (!printFrame) throw new Error('The print frame is not ready to export.');
     const attribution = references.container.current
       ?.querySelector<HTMLElement>('.maplibregl-ctrl-attrib-inner')
       ?.textContent ?? '';
-    return capturePrintFramePng(map.getCanvas(), printFrame, attribution);
+    const capture = (isAttributionIncluded: boolean) => capturePrintFramePng(
+      map.getCanvas(),
+      printFrame,
+      attribution,
+      {
+        projectToCanvas: (coordinate) => map.project([coordinate[0], coordinate[1]]),
+        isAttributionIncluded,
+      },
+    );
+    if (exportOptions?.content !== 'basemap') return capture(true);
+
+    return captureBasemapOnly(
+      references.contentAdapter.current,
+      () => capture(false),
+      (signal) => waitForMapRender(map, signal),
+      {
+        onRestoreFailure: () => {
+          references.contentReady.current = false;
+          references.container.current?.removeAttribute('data-map-ready');
+          references.availableExporter.current = null;
+          references.exporterChange.current?.(null);
+          setMapError((error) => error ?? {
+            kind: 'renderer',
+            message: 'The map renderer could not restore content after export. Reload the page and retry.',
+          });
+        },
+        signal: exportOptions.signal,
+      },
+    );
   };
   const handleLoad = () => {
     state.isStyleLoaded = true;

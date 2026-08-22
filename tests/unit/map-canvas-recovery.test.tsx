@@ -5,6 +5,7 @@ import type { ContentLayer } from '../../src/domain/project';
 const mocks = vi.hoisted(() => ({
   adapterSync: vi.fn(),
   adapterDestroy: vi.fn(),
+  adapterSetExportVisibility: vi.fn(),
   hitTest: vi.fn(),
   mapOff: vi.fn(),
   mapRemove: vi.fn(),
@@ -17,6 +18,7 @@ const mocks = vi.hoisted(() => ({
   adapterCount: 0,
   mapCount: 0,
   autoLoad: true,
+  autoRender: true,
   synchronousLoad: false,
   throwOnFirstCleanup: false,
   styleErrorBeforeLoad: false,
@@ -29,6 +31,7 @@ vi.mock('../../src/map/MapContentAdapter', () => ({
     return {
       sync: mocks.adapterSync,
       hitTest: mocks.hitTest,
+      setExportVisibility: mocks.adapterSetExportVisibility,
       destroy: () => {
         mocks.adapterDestroy();
         if (adapterIndex === 0 && mocks.throwOnFirstCleanup && !mocks.failedAdapterDestroyIds.has(adapterIndex)) {
@@ -73,6 +76,10 @@ vi.mock('maplibre-gl', () => {
       }
       mocks.activeMapIds.delete(this.mapIndex);
     }
+    getCanvas() {
+      return document.createElement('canvas');
+    }
+    triggerRepaint() {}
     fitBounds() {}
     once(event: string, callback: (event?: unknown) => void) {
       (this.handlers[event] ??= []).push(callback);
@@ -86,7 +93,7 @@ vi.mock('maplibre-gl', () => {
         };
         if (mocks.synchronousLoad) load();
         else queueMicrotask(load);
-      } else if (event === 'idle') {
+      } else if (event === 'idle' || (event === 'render' && mocks.autoRender)) {
         queueMicrotask(callback);
       }
     }
@@ -127,33 +134,124 @@ const baseProps = {
   onBackgroundClick: vi.fn(),
 };
 
+async function verifyBasemapCaptureRestoration() {
+  const onExporterChange = vi.fn();
+  render(<MapCanvas {...baseProps} selectedId={null} onExporterChange={onExporterChange} />);
+  await waitFor(() => expect(onExporterChange).toHaveBeenCalledWith(expect.any(Function)));
+  const exporter = onExporterChange.mock.calls.find(([value]) => typeof value === 'function')?.[0];
+  expect(exporter).toBeTypeOf('function');
+
+  await expect(exporter({ content: 'basemap' })).rejects.toThrow('print frame is not ready');
+
+  expect(mocks.adapterSetExportVisibility.mock.calls).toEqual([[false], [true]]);
+}
+
+async function verifyInitialIsolationFailure() {
+  mocks.adapterSetExportVisibility.mockReturnValueOnce(false);
+  const onExporterChange = vi.fn();
+  render(<MapCanvas {...baseProps} selectedId={null} onExporterChange={onExporterChange} />);
+  await waitFor(() => expect(onExporterChange).toHaveBeenCalledWith(expect.any(Function)));
+  const exporter = onExporterChange.mock.calls.find(([value]) => typeof value === 'function')?.[0];
+
+  await expect(exporter({ content: 'basemap' })).rejects.toThrow('could not be isolated');
+  await waitFor(() => expect(onExporterChange).toHaveBeenLastCalledWith(null));
+  expect(screen.getByRole('status')).toHaveTextContent('could not restore content after export');
+}
+
+async function verifyPendingRenderAbort() {
+  mocks.autoRender = false;
+  const onExporterChange = vi.fn();
+  render(<MapCanvas {...baseProps} selectedId={null} onExporterChange={onExporterChange} />);
+  await waitFor(() => expect(onExporterChange).toHaveBeenCalledWith(expect.any(Function)));
+  const exporter = onExporterChange.mock.calls.find(([value]) => typeof value === 'function')?.[0];
+  const controller = new AbortController();
+
+  const capture = exporter({ content: 'basemap', signal: controller.signal });
+  await waitFor(() => expect(mocks.adapterSetExportVisibility).toHaveBeenCalledWith(false));
+  mocks.autoRender = true;
+  controller.abort();
+
+  await expect(Promise.race([
+    capture,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('capture did not abort')), 50)),
+  ])).rejects.toMatchObject({ name: 'AbortError' });
+  expect(mocks.adapterSetExportVisibility.mock.calls).toEqual([[false], [true]]);
+  expect(onExporterChange).toHaveBeenLastCalledWith(exporter);
+  expect(latestMapHandlers().render ?? []).toHaveLength(0);
+}
+
+async function verifyRenderTimeout() {
+  const onExporterChange = vi.fn();
+  render(<MapCanvas {...baseProps} selectedId={null} onExporterChange={onExporterChange} />);
+  await waitFor(() => expect(onExporterChange).toHaveBeenCalledWith(expect.any(Function)));
+  const exporter = onExporterChange.mock.calls.find(([value]) => typeof value === 'function')?.[0];
+  mocks.autoRender = false;
+  vi.useFakeTimers();
+
+  const capture = exporter({ content: 'basemap' });
+  const rejection = expect(capture).rejects.toThrow('could not finish restoring');
+  await act(async () => vi.advanceTimersByTimeAsync(2500));
+  await rejection;
+  expect(mocks.adapterSetExportVisibility.mock.calls).toEqual([[false], [true]]);
+  expect(onExporterChange).toHaveBeenLastCalledWith(null);
+  expect(latestMapHandlers().render ?? []).toHaveLength(0);
+  expect(latestMapHandlers().error ?? []).toHaveLength(1);
+}
+
+async function verifyRendererErrorRejection() {
+  const onExporterChange = vi.fn();
+  render(<MapCanvas {...baseProps} selectedId={null} onExporterChange={onExporterChange} />);
+  await waitFor(() => expect(onExporterChange).toHaveBeenCalledWith(expect.any(Function)));
+  const exporter = onExporterChange.mock.calls.find(([value]) => typeof value === 'function')?.[0];
+  mocks.autoRender = false;
+
+  const capture = exporter({ content: 'basemap' });
+  await waitFor(() => expect(mocks.adapterSetExportVisibility).toHaveBeenCalledWith(false));
+  mocks.autoRender = true;
+  act(() => emitLatestMapEvent('error', { error: new Error('renderer exploded') }));
+
+  await expect(capture).rejects.toThrow('renderer exploded');
+  expect(mocks.adapterSetExportVisibility.mock.calls).toEqual([[false], [true]]);
+  expect(onExporterChange).toHaveBeenLastCalledWith(null);
+  expect(latestMapHandlers().render ?? []).toHaveLength(0);
+  expect(latestMapHandlers().error ?? []).toHaveLength(1);
+}
+
+function resetHarness() {
+  mocks.adapterSync.mockReset();
+  mocks.adapterSync.mockReturnValue('synced');
+  mocks.adapterDestroy.mockReset();
+  mocks.adapterSetExportVisibility.mockReset();
+  mocks.adapterSetExportVisibility.mockReturnValue(true);
+  mocks.hitTest.mockReset();
+  mocks.hitTest.mockReturnValue(null);
+  mocks.mapOff.mockReset();
+  mocks.mapRemove.mockReset();
+  mocks.mapHandlers = [];
+  mocks.activeAdapterIds.clear();
+  mocks.activeMapIds.clear();
+  mocks.failedAdapterDestroyIds.clear();
+  mocks.failedMapOffOperations.clear();
+  mocks.failedMapRemoveIds.clear();
+  mocks.adapterCount = 0;
+  mocks.mapCount = 0;
+  mocks.autoLoad = true;
+  mocks.autoRender = true;
+  mocks.synchronousLoad = false;
+  mocks.throwOnFirstCleanup = false;
+  mocks.styleErrorBeforeLoad = false;
+  baseProps.onLayerSelect.mockReset();
+  baseProps.onBackgroundClick.mockReset();
+}
+
 describe('MapCanvas content recovery', () => {
   beforeEach(() => {
-    mocks.adapterSync.mockReset();
-    mocks.adapterSync.mockReturnValue('synced');
-    mocks.adapterDestroy.mockReset();
-    mocks.hitTest.mockReset();
-    mocks.hitTest.mockReturnValue(null);
-    mocks.mapOff.mockReset();
-    mocks.mapRemove.mockReset();
-    mocks.mapHandlers = [];
-    mocks.activeAdapterIds.clear();
-    mocks.activeMapIds.clear();
-    mocks.failedAdapterDestroyIds.clear();
-    mocks.failedMapOffOperations.clear();
-    mocks.failedMapRemoveIds.clear();
-    mocks.adapterCount = 0;
-    mocks.mapCount = 0;
-    mocks.autoLoad = true;
-    mocks.synchronousLoad = false;
-    mocks.throwOnFirstCleanup = false;
-    mocks.styleErrorBeforeLoad = false;
-    baseProps.onLayerSelect.mockReset();
-    baseProps.onBackgroundClick.mockReset();
+    resetHarness();
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({} as RenderingContext);
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -205,6 +303,16 @@ describe('MapCanvas content recovery', () => {
     await waitFor(() => expect(onExporterChange).toHaveBeenLastCalledWith(null));
     expect(await screen.findByRole('status')).toHaveTextContent('map content could not be rendered');
   });
+
+  it('restores vector content when a basemap-only capture fails', verifyBasemapCaptureRestoration);
+
+  it('invalidates export readiness when initial overlay isolation fails', verifyInitialIsolationFailure);
+
+  it('aborts a pending basemap render wait and restores overlays without invalidating readiness', verifyPendingRenderAbort);
+
+  it('times out bounded render waits and invalidates readiness when restoration cannot render', verifyRenderTimeout);
+
+  it('rejects a render wait on renderer error and removes its temporary handlers', verifyRendererErrorRejection);
 
   it('does not publish export readiness when initial content synchronization fails', async () => {
     mocks.adapterSync.mockReturnValue('failed');
