@@ -1,0 +1,227 @@
+import { expect, type Locator, type Page, test } from '@playwright/test';
+
+const setSafeAreaInsets = async (page: Page) => {
+  await page.evaluate(() => {
+    const root = document.documentElement.style;
+    root.setProperty('--studio-safe-top', '20px');
+    root.setProperty('--studio-safe-bottom', '24px');
+    root.setProperty('--studio-safe-left', '16px');
+    root.setProperty('--studio-safe-right', '12px');
+  });
+};
+
+const clearSafeAreaInsets = async (page: Page) => {
+  await page.evaluate(() => {
+    const root = document.documentElement.style;
+    root.removeProperty('--studio-safe-top');
+    root.removeProperty('--studio-safe-bottom');
+    root.removeProperty('--studio-safe-left');
+    root.removeProperty('--studio-safe-right');
+  });
+};
+
+const verifyMapAttribution = async (
+  page: Page,
+  toolbar: Locator,
+  initialToolbarBox: NonNullable<Awaited<ReturnType<Locator['boundingBox']>>>,
+) => {
+  const attribution = page.locator('.maplibregl-ctrl-attrib');
+  const attributionButton = page.locator('.maplibregl-ctrl-attrib-button');
+  await expect(attribution).not.toHaveAttribute('open');
+  await expect(attribution).not.toHaveClass(/maplibregl-compact-show/);
+  const buttonBox = await attributionButton.boundingBox();
+  expect(buttonBox).not.toBeNull();
+  expect(buttonBox!.width).toBeGreaterThanOrEqual(24);
+  expect(buttonBox!.height).toBeGreaterThanOrEqual(24);
+  const buttonStyle = await attributionButton.evaluate((element) => ({
+    size: getComputedStyle(element).backgroundSize,
+    repeat: getComputedStyle(element).backgroundRepeat,
+    position: getComputedStyle(element).backgroundPosition,
+  }));
+  expect(buttonStyle).toEqual({ size: '8px 8px', repeat: 'no-repeat', position: '50% 50%' });
+
+  await attributionButton.click();
+  await expect(attribution).toHaveAttribute('open');
+  await expect(attribution).toHaveClass(/maplibregl-compact-show/);
+  let expandedBox = await attribution.boundingBox();
+  expect(expandedBox).not.toBeNull();
+  expect(expandedBox!.y + expandedBox!.height).toBeLessThanOrEqual(initialToolbarBox.y);
+
+  await attributionButton.click();
+  await expect(attribution).not.toHaveAttribute('open');
+  await expect(attribution).not.toHaveClass(/maplibregl-compact-show/);
+
+  await setSafeAreaInsets(page);
+  const toolbarBox = await toolbar.boundingBox();
+  const topbarBox = await page.locator('.topbar').boundingBox();
+  const exportBox = await page.getByRole('button', { name: 'Export' }).boundingBox();
+  const mobileActionsBox = await page.locator('.mobile-panel-actions').boundingBox();
+  expect(topbarBox).not.toBeNull();
+  expect(exportBox).not.toBeNull();
+  expect(mobileActionsBox).not.toBeNull();
+  expect(topbarBox!.height).toBeGreaterThanOrEqual(64);
+  expect(exportBox!.y).toBeGreaterThanOrEqual(20);
+  expect(exportBox!.x + exportBox!.width).toBeLessThanOrEqual(378);
+  expect(mobileActionsBox!.x).toBeGreaterThanOrEqual(24);
+  expect(toolbarBox!.x).toBeGreaterThanOrEqual(24);
+  expect(toolbarBox!.x + toolbarBox!.width).toBeLessThanOrEqual(370);
+  await attributionButton.click();
+  expandedBox = await attribution.boundingBox();
+  expect(toolbarBox).not.toBeNull();
+  expect(expandedBox).not.toBeNull();
+  expect(expandedBox!.y + expandedBox!.height).toBeLessThanOrEqual(toolbarBox!.y);
+  await attributionButton.click();
+  await expect(attribution).not.toHaveAttribute('open');
+  await expect(attribution).not.toHaveClass(/maplibregl-compact-show/);
+  await clearSafeAreaInsets(page);
+
+  const mapCanvas = page.locator('.maplibregl-canvas');
+  const mapBox = await mapCanvas.boundingBox();
+  expect(mapBox).not.toBeNull();
+  await attributionButton.click();
+  await expect(attribution).toHaveAttribute('open');
+  await page.mouse.move(mapBox!.x + mapBox!.width / 2, mapBox!.y + mapBox!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(mapBox!.x + mapBox!.width / 2 + 32, mapBox!.y + mapBox!.height / 2, { steps: 4 });
+  await page.mouse.up();
+  await expect(attribution).not.toHaveAttribute('open');
+  await expect(attribution).not.toHaveClass(/maplibregl-compact-show/);
+  await attributionButton.click();
+  await expect(attribution).toHaveAttribute('open');
+  await expect(attribution).toHaveClass(/maplibregl-compact-show/);
+  await attributionButton.click();
+};
+
+const verifyMobileDrawers = async (page: Page) => {
+  const layersButton = page.getByRole('button', { name: 'Open layers' });
+  const propertiesButton = page.getByRole('button', { name: 'Open properties' });
+  await setSafeAreaInsets(page);
+  await layersButton.click();
+  const layersDialog = page.getByRole('dialog', { name: 'Layers sidebar' });
+  const collapseLayers = page.getByRole('button', { name: 'Collapse layers' });
+  await expect(layersDialog).toBeVisible();
+  await expect(layersButton).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.locator('.topbar')).toHaveAttribute('inert');
+  await expect(page.locator('.canvas-region')).toHaveAttribute('inert');
+  await expect(page.locator('#properties-panel')).toHaveAttribute('inert');
+  await expect.poll(async () => {
+    const bounds = await layersDialog.boundingBox();
+    return bounds?.x ?? -999;
+  }).toBeGreaterThanOrEqual(16);
+  const safeDrawerBox = await layersDialog.boundingBox();
+  expect(safeDrawerBox).not.toBeNull();
+  expect(safeDrawerBox!.y).toBeGreaterThanOrEqual(64);
+  expect(safeDrawerBox!.y + safeDrawerBox!.height).toBeLessThanOrEqual(820);
+  await clearSafeAreaInsets(page);
+  await expect(collapseLayers).toBeFocused();
+  await collapseLayers.press('Shift+Tab');
+  await expect(layersDialog.locator('button:not([disabled]), input:not([disabled]), select:not([disabled])').last()).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(collapseLayers).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(layersDialog).not.toBeVisible();
+  await expect(layersButton).toBeFocused();
+
+  await layersButton.click();
+  await page.getByRole('button', { name: 'Close open panel' }).click({ position: { x: 385, y: 400 } });
+  await expect(layersDialog).not.toBeVisible();
+  await expect(layersButton).toBeFocused();
+
+  await layersButton.click();
+  await page.getByRole('button', { name: 'Select Route 01' }).click();
+  await expect(layersDialog).not.toBeVisible();
+  await expect(layersButton).toBeFocused();
+
+  await propertiesButton.click();
+  const propertiesDialog = page.getByRole('dialog', { name: 'Properties sidebar' });
+  const closeProperties = page.getByRole('button', { name: 'Close properties' });
+  await expect(propertiesDialog).toBeVisible();
+  await expect(propertiesButton).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.locator('.topbar')).toHaveAttribute('inert');
+  await expect(page.locator('.canvas-region')).toHaveAttribute('inert');
+  await expect(page.locator('#layers-panel')).toHaveAttribute('inert');
+  await expect(closeProperties).toBeFocused();
+  await page.getByRole('button', { name: 'Layer menu' }).click();
+  await page.getByRole('menuitem', { name: 'Duplicate layer' }).click();
+  await expect(page.getByRole('heading', { name: 'Route 01 copy' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Layer menu' })).toBeFocused();
+  await page.getByRole('button', { name: 'Layer menu' }).click();
+  await page.getByRole('menuitem', { name: 'Delete layer' }).click();
+  const projectHeading = page.getByRole('heading', { name: 'Project' });
+  await expect(projectHeading).toBeVisible();
+  await expect(projectHeading).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(propertiesDialog).not.toBeVisible();
+  await expect(propertiesButton).toBeFocused();
+};
+
+const verifyResponsiveTransitions = async (page: Page, toolbar: Locator, mapReady: Locator) => {
+  const layersButton = page.getByRole('button', { name: 'Open layers' });
+  await page.setViewportSize({ width: 320, height: 844 });
+  const narrowMetrics = await page.evaluate(() => ({
+    body: document.body.scrollWidth,
+    viewport: document.documentElement.clientWidth,
+  }));
+  expect(narrowMetrics.body).toBeLessThanOrEqual(narrowMetrics.viewport);
+  const narrowToolbarBox = await toolbar.boundingBox();
+  expect(narrowToolbarBox).not.toBeNull();
+  expect(narrowToolbarBox!.x).toBeGreaterThanOrEqual(8);
+  expect(narrowToolbarBox!.x + narrowToolbarBox!.width).toBeLessThanOrEqual(312);
+
+  await layersButton.click();
+  await expect(page.getByRole('dialog', { name: 'Layers sidebar' })).toBeVisible();
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const desktopLayers = page.locator('#layers-panel');
+  await expect(desktopLayers).toBeVisible();
+  await expect(desktopLayers).not.toHaveAttribute('role');
+  await expect(desktopLayers).not.toHaveAttribute('aria-modal');
+  await expect(desktopLayers).not.toHaveClass(/is-mobile-open/);
+  await expect(page.locator('.topbar')).not.toHaveAttribute('inert');
+  await expect(page.locator('.canvas-region')).not.toHaveAttribute('inert');
+  await expect(page.getByRole('button', { name: 'Vienna field guide' })).toBeFocused();
+
+  if (await mapReady.isVisible()) {
+    const attribution = page.locator('.maplibregl-ctrl-attrib');
+    const attributionButton = page.locator('.maplibregl-ctrl-attrib-button');
+    await expect(attribution).toHaveAttribute('open');
+    await expect(attribution).toHaveClass(/maplibregl-compact-show/);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(attribution).not.toHaveAttribute('open');
+    await expect(attribution).not.toHaveClass(/maplibregl-compact-show/);
+    await attributionButton.click();
+    await expect(attribution).toHaveAttribute('open');
+    await expect(attribution).toHaveClass(/maplibregl-compact-show/);
+    await attributionButton.click();
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await expect(attribution).toHaveAttribute('open');
+    await expect(attribution).toHaveClass(/maplibregl-compact-show/);
+  }
+};
+
+test('mobile shell exposes accessible drawers and non-overlapping attribution states', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+
+  const mapReady = page.locator('[data-map-ready="true"]');
+  const mapFallback = page.getByRole('status');
+  await expect(mapReady.or(mapFallback)).toBeVisible({ timeout: 20_000 });
+
+  const metrics = await page.evaluate(() => ({
+    body: document.body.scrollWidth,
+    viewport: document.documentElement.clientWidth,
+  }));
+  expect(metrics.body).toBeLessThanOrEqual(metrics.viewport);
+
+  const toolbar = page.getByRole('navigation', { name: 'Map tools' });
+  await expect(toolbar).toBeVisible();
+  const toolbarBox = await toolbar.boundingBox();
+  expect(toolbarBox).not.toBeNull();
+  expect(toolbarBox!.x).toBeGreaterThanOrEqual(8);
+  expect(toolbarBox!.x + toolbarBox!.width).toBeLessThanOrEqual(382);
+
+  if (await mapReady.isVisible()) {
+    await verifyMapAttribution(page, toolbar, toolbarBox!);
+  }
+  await verifyMobileDrawers(page);
+  await verifyResponsiveTransitions(page, toolbar, mapReady);
+});
