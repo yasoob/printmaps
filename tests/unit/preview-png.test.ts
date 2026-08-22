@@ -85,6 +85,18 @@ describe('preview PNG export', () => {
       .rejects.toThrow('print frame is not ready');
   });
 
+  it('rejects an unsafe crop before allocating an output canvas', async () => {
+    installCanvasContext();
+    const { mapCanvas, frame } = createFixture(rect(0, 0, 400, 300));
+    mapCanvas.width = 50_000;
+    mapCanvas.height = 3000;
+    const createElement = vi.spyOn(document, 'createElement');
+
+    await expect(capturePrintFramePng(mapCanvas, frame, '© OpenStreetMap contributors'))
+      .rejects.toThrow('too large to export safely');
+    expect(createElement).not.toHaveBeenCalledWith('canvas');
+  });
+
   it('rejects a crop too small to contain map content and attribution', async () => {
     installCanvasContext();
     const { mapCanvas, frame } = createFixture(rect(0, 0, 400, 1));

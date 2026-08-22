@@ -21,6 +21,7 @@ import {
 import type { ExportGrid } from './preflightValidation';
 
 export { DEFAULT_EXPORT_PREFLIGHT_LIMITS } from './preflightTypes';
+export { getPixelSurfaceAllocationIssue } from './preflightAllocation';
 export type {
   BasemapMode,
   ExportFormat,
