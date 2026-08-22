@@ -1,0 +1,131 @@
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { App } from '../../../src/app/App';
+import { exportMocks } from './exportMocks';
+
+vi.mock('../../../src/map/MapCanvas', async () => import('./MapCanvasMock'));
+
+describe('editor page settings and tools', () => {
+  beforeEach(() => {
+    exportMocks.exporter = null;
+  });
+
+  it('exposes project fields, tool state, and page disclosure accessibly', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    expect(screen.getByRole('combobox', { name: 'Page preset' })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Map style' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Bearing' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Pitch' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Text scale' })).toBeInTheDocument();
+    const exportResolution = screen.getByRole('combobox', { name: 'Export resolution' });
+    expect(exportResolution).toHaveValue('Browser preview');
+    expect(exportResolution).toBeDisabled();
+    const attribution = screen.getByRole('checkbox', { name: 'Include map attribution' });
+    expect(attribution).toBeChecked();
+    expect(attribution).toBeDisabled();
+
+    const select = screen.getByRole('button', { name: 'Select (V)' });
+    const pan = screen.getByRole('button', { name: 'Pan (H)' });
+    expect(select).toHaveAttribute('aria-pressed', 'true');
+    expect(pan).toHaveAttribute('aria-pressed', 'false');
+    await user.click(pan);
+    expect(select).toHaveAttribute('aria-pressed', 'false');
+    expect(pan).toHaveAttribute('aria-pressed', 'true');
+
+    expect(screen.queryByRole('button', { name: 'Page 1' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Add page' })).not.toBeInTheDocument();
+    expect(screen.getByRole('list', { name: 'Map layers' })).toBeInTheDocument();
+  });
+
+  it('commits project orientation to history and keeps the canvas and dimensions synchronized', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const landscape = screen.getByRole('button', { name: 'Landscape' });
+    const portrait = screen.getByRole('button', { name: 'Portrait' });
+
+    expect(landscape).toHaveAttribute('aria-pressed', 'true');
+    expect(portrait).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-orientation', 'landscape');
+    await user.click(portrait);
+    expect(landscape).toHaveAttribute('aria-pressed', 'false');
+    expect(portrait).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('textbox', { name: 'Page width' })).toHaveValue('210');
+    expect(screen.getByRole('textbox', { name: 'Page height' })).toHaveValue('297');
+    expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-orientation', 'portrait');
+
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(landscape).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('textbox', { name: 'Page width' })).toHaveValue('297');
+    expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-orientation', 'landscape');
+
+    await user.click(screen.getByRole('button', { name: 'Redo' }));
+    expect(portrait).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-orientation', 'portrait');
+  });
+
+  it('applies a standard page preset to properties and canvas as one undoable change', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const preset = screen.getByRole('combobox', { name: 'Page preset' });
+    const map = screen.getByTestId('map-canvas');
+
+    await user.selectOptions(preset, 'A3');
+
+    expect(preset).toHaveValue('A3');
+    expect(screen.getByRole('textbox', { name: 'Page width' })).toHaveValue('420');
+    expect(screen.getByRole('textbox', { name: 'Page height' })).toHaveValue('297');
+    expect(map).toHaveAttribute('data-page-preset', 'A3');
+    expect(map).toHaveAttribute('data-page-size', '420x297');
+
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(preset).toHaveValue('A4');
+    expect(screen.getByRole('textbox', { name: 'Page width' })).toHaveValue('297');
+    expect(map).toHaveAttribute('data-page-preset', 'A4');
+  });
+
+  it('keeps the A4 preset and history unchanged when page width is blurred without editing', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const field = screen.getByRole('textbox', { name: 'Page width' });
+    const preset = screen.getByRole('combobox', { name: 'Page preset' });
+    const undo = screen.getByRole('button', { name: 'Undo' });
+
+    await user.click(field);
+    await user.tab();
+
+    expect(preset).toHaveValue('A4');
+    expect(undo).toBeDisabled();
+  });
+
+  it('commits an unchanged valid page dimension as Custom on blur', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const field = screen.getByRole('textbox', { name: 'Page width' });
+    const preset = screen.getByRole('combobox', { name: 'Page preset' });
+    const undo = screen.getByRole('button', { name: 'Undo' });
+
+    await user.clear(field);
+    await user.type(field, '297');
+    expect(undo).toBeDisabled();
+    await user.tab();
+
+    expect(preset).toHaveValue('Custom');
+    expect(undo).toBeEnabled();
+    await user.click(undo);
+    expect(preset).toHaveValue('A4');
+    expect(undo).toBeDisabled();
+  });
+  it('fits the page without changing the persistent tool', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const pan = screen.getByRole('button', { name: 'Pan (H)' });
+    const map = screen.getByTestId('map-canvas');
+    expect(map).toHaveAttribute('data-fit-request', '0');
+    await user.click(pan);
+    await user.click(screen.getByRole('button', { name: 'Fit page (Shift+1)' }));
+    expect(pan).toHaveAttribute('aria-pressed', 'true');
+    expect(map).toHaveAttribute('data-fit-request', '1');
+  });
+});
