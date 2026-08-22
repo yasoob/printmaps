@@ -124,6 +124,16 @@ Run three isolated foundation agents:
 
 Then integrate provider/search UI, import UI, and export UI serially.
 
+Wave 2 was assigned from verified base `e4b8a7e` with these conflict-safe boundaries:
+
+| Branch | Worktree | Exclusive ownership |
+|---|---|---|
+| `agent/mapbox-provider-core` | `/root/printmap-agents/mapbox-provider-core` | new `src/services/mapbox/**` files and `tests/unit/mapbox-provider-core.test.ts` |
+| `agent/import-gpx-kml` | `/root/printmap-agents/import-gpx-kml` | new GPX/KML leaf modules, `tests/unit/gpx-kml-import.test.ts`, and `tests/fixtures/import/wave2/**` |
+| `agent/raster-compositor` | `/root/printmap-agents/raster-compositor` | new raster-compositor leaf modules and `tests/unit/raster-compositor.test.ts` |
+
+No Wave 2 worker owns a manifest, lockfile, shared domain/store/UI file, or browser suite. Their branches are durable work artifacts; a later integration run must inspect actual status, SHA, scope and evidence before treating any lane as complete.
+
 ### Wave 3 — authoring tools
 
 Parallelize lower-level engines only:
