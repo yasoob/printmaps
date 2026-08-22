@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Map as MapLibreMap } from 'maplibre-gl';
-import type { CameraSettings, ContentLayer, MapStylePreset } from '../domain/project';
+import type { CameraSettings, ContentLayer, MapFeatureVisibility, MapStylePreset } from '../domain/project';
 import type { PreviewPngExporter } from '../export/previewPng';
 import type { MapContentAdapter, MapContentState } from './MapContentAdapter';
 import {
@@ -9,12 +9,14 @@ import {
   type MapError,
 } from './MapCanvasLifecycle';
 import { mapStyleUrl } from './mapStyles';
+import { useMapFeatureVisibility } from './useMapFeatureVisibility';
 import { useMapTextScale } from './useMapTextScale';
 
 type MapCanvasControllerOptions = {
   camera: CameraSettings;
   stylePreset: MapStylePreset;
   textScalePercent: number;
+  featureVisibility: MapFeatureVisibility;
   fitRequest: number;
   layers: ContentLayer[];
   onBackgroundClick: () => void;
@@ -28,10 +30,17 @@ type MapCanvasControllerOptions = {
 
 const PAGE_BOUNDS: [[number, number], [number, number]] = [[16.28, 48.14], [16.48, 48.26]];
 
+function clearMapStateAttributes(container: HTMLDivElement | null) {
+  container?.removeAttribute('data-map-ready');
+  container?.removeAttribute('data-map-bearing');
+  container?.removeAttribute('data-map-pitch');
+}
+
 export function useMapCanvasController({
   camera,
   stylePreset,
   textScalePercent,
+  featureVisibility,
   fitRequest,
   layers,
   onBackgroundClick,
@@ -54,8 +63,7 @@ export function useMapCanvasController({
   const exporterChange = useRef(onExporterChange);
   const availableExporter = useRef<PreviewPngExporter | null>(null);
   const handledFitRequest = useRef(0);
-  const [mapError, setMapError] = useState<MapError | null>(null);
-  const [contentError, setContentError] = useState<ContentError | null>(null);
+  const [mapError, setMapError] = useState<MapError | null>(null), [contentError, setContentError] = useState<ContentError | null>(null);
 
   const invalidateExporter = useCallback(() => {
     if (!availableExporter.current) return;
@@ -63,6 +71,7 @@ export function useMapCanvasController({
     exporterChange.current?.(null);
   }, []);
   const { resetTextScale, synchronizeTextScale } = useMapTextScale({ containerRef: container, contentReadyRef: contentReady, invalidateExporter, mapFailedRef: mapFailed, mapRef: map, setMapError, textScalePercent });
+  const { resetFeatureVisibility, synchronizeFeatureVisibility } = useMapFeatureVisibility({ containerRef: container, contentReadyRef: contentReady, featureVisibility, invalidateExporter, mapFailedRef: mapFailed, mapRef: map, setMapError });
 
   const handleContentSyncResult = useCallback((result: ReturnType<MapContentAdapter['sync']> | undefined) => {
     contentSyncDeferred.current = result === 'deferred';
@@ -103,9 +112,8 @@ export function useMapCanvasController({
   useEffect(() => {
     contentReady.current = false;
     contentSyncDeferred.current = false;
-    container.current?.removeAttribute('data-map-ready');
-    container.current?.removeAttribute('data-map-bearing');
-    container.current?.removeAttribute('data-map-pitch');
+    clearMapStateAttributes(container.current);
+    resetFeatureVisibility();
     resetTextScale();
     invalidateExporter();
     queueMicrotask(() => {
@@ -127,13 +135,14 @@ export function useMapCanvasController({
         layerSelect,
         mapClick,
         map, mapFailed,
+        synchronizeFeatureVisibility: { current: synchronizeFeatureVisibility },
         synchronizeTextScale: { current: synchronizeTextScale },
       },
       setContentError,
       setMapError,
       styleUrl: mapStyleUrl(stylePreset),
     });
-  }, [handleContentSyncResult, invalidateExporter, resetTextScale, stylePreset, synchronizeTextScale]);
+  }, [handleContentSyncResult, invalidateExporter, resetFeatureVisibility, resetTextScale, stylePreset, synchronizeFeatureVisibility, synchronizeTextScale]);
 
   useEffect(() => {
     if (!map.current) return;

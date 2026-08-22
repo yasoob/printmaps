@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import type { CameraSettings, MapStylePreset, MapStyleSettings, PageSettings, StandardPagePreset } from '../../domain/project';
+import type { CameraSettings, MapFeatureVisibilityCategory, MapStylePreset, MapStyleSettings, PageSettings, StandardPagePreset } from '../../domain/project';
 import { PropertyRow, PropertySection } from './PropertyControls';
 
 function isValidPageDimension(draft: string) {
@@ -135,6 +135,7 @@ type ProjectPropertiesProps = {
   style: MapStyleSettings;
   onBearingChange: (bearing: number) => void;
   onDimensionChange: (dimension: 'widthMm' | 'heightMm', value: number) => void;
+  onFeatureVisibilityChange: (category: MapFeatureVisibilityCategory, isVisible: boolean) => void;
   onOrientationChange: (orientation: PageSettings['orientation']) => void;
   onPitchChange: (pitch: number) => void;
   onPresetChange: (preset: StandardPagePreset) => void;
@@ -148,6 +149,7 @@ export function ProjectProperties({
   onBearingChange,
   page,
   onDimensionChange,
+  onFeatureVisibilityChange,
   onOrientationChange,
   onPitchChange,
   onPresetChange,
@@ -170,6 +172,9 @@ export function ProjectProperties({
         <PropertyRow label="Bearing"><CameraField key={`bearing-${camera.bearing}`} field="bearing" value={camera.bearing} onCommit={onBearingChange} /></PropertyRow>
         <PropertyRow label="Pitch"><CameraField key={`pitch-${camera.pitch}`} field="pitch" value={camera.pitch} onCommit={onPitchChange} /></PropertyRow>
         <PropertyRow label="Text scale"><TextScaleField key={`text-scale-${style.textScalePercent}`} value={style.textScalePercent} onCommit={onTextScaleChange} /></PropertyRow>
+        <label className="check-row"><input type="checkbox" checked={style.visibility.roads} onChange={(event) => onFeatureVisibilityChange('roads', event.target.checked)} /> Show roads</label>
+        <label className="check-row"><input type="checkbox" checked={style.visibility.buildings} onChange={(event) => onFeatureVisibilityChange('buildings', event.target.checked)} /> Show buildings</label>
+        <label className="check-row"><input type="checkbox" checked={style.visibility.labels} onChange={(event) => onFeatureVisibilityChange('labels', event.target.checked)} /> Show labels</label>
       </PropertySection>
       <PropertySection title="Export">
         <PropertyRow label="Resolution"><select aria-label="Export resolution" value="Browser preview" disabled><option>Browser preview</option></select></PropertyRow>

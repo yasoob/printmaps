@@ -98,6 +98,7 @@ export function App({ autosaveRepository }: AppProps = {}) {
           camera={project.document.camera}
           stylePreset={project.document.style.preset}
           textScalePercent={project.document.style.textScalePercent}
+          featureVisibility={project.document.style.visibility}
           documentEpoch={project.documentEpoch}
           activePanel={modal.mobilePanel}
           layersTriggerRef={mobile.layersTriggerRef}

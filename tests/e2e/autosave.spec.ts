@@ -11,6 +11,7 @@ test('autosaves to IndexedDB and requires explicit recover or discard choices', 
   await page.getByRole('textbox', { name: 'Pitch' }).press('Tab');
   await page.getByRole('textbox', { name: 'Text scale' }).fill('135');
   await page.getByRole('textbox', { name: 'Text scale' }).press('Tab');
+  await page.getByRole('checkbox', { name: 'Show labels' }).uncheck();
   await page.getByRole('button', { name: 'Portrait' }).click();
   await expect(autosaveStatus).toHaveText('All changes saved locally');
 
@@ -33,9 +34,14 @@ test('autosaves to IndexedDB and requires explicit recover or discard choices', 
   await expect(page.getByRole('textbox', { name: 'Pitch' })).toHaveValue('35');
   await expect(page.getByRole('combobox', { name: 'Map style' })).toHaveValue('positron');
   await expect(page.getByRole('textbox', { name: 'Text scale' })).toHaveValue('135');
+  await expect(page.getByRole('checkbox', { name: 'Show labels' })).not.toBeChecked();
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-style-preset', 'positron');
   if (browserName !== 'firefox') {
     await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-text-scale', '135');
+    await expect(page.getByTestId('map-canvas')).toHaveAttribute(
+      'data-map-feature-visibility',
+      'roads:true,buildings:true,labels:false',
+    );
   }
   await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
 

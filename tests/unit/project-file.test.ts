@@ -12,8 +12,30 @@ describe('portable project validation', () => {
 
     const parsed = parseProjectFileText(JSON.stringify(versionFive));
 
-    expect(parsed.schemaVersion).toBe(6);
-    expect(parsed.style).toEqual({ preset: 'liberty', textScalePercent: 100 });
+    expect(parsed.schemaVersion).toBe(7);
+    expect(parsed.style).toEqual({
+      preset: 'liberty',
+      textScalePercent: 100,
+      visibility: { roads: true, buildings: true, labels: true },
+    });
+  });
+
+  it('migrates a version-6 project to default feature visibility', () => {
+    const source = createInitialProjectDocument();
+    const versionSix = {
+      ...source,
+      schemaVersion: 6,
+      style: { preset: source.style.preset, textScalePercent: 125 },
+    };
+
+    const parsed = parseProjectFileText(JSON.stringify(versionSix));
+
+    expect(parsed.schemaVersion).toBe(7);
+    expect(parsed.style).toEqual({
+      preset: 'liberty',
+      textScalePercent: 125,
+      visibility: { roads: true, buildings: true, labels: true },
+    });
   });
 
   it('parses a current portable project into a detached canonical document', () => {
@@ -29,7 +51,7 @@ describe('portable project validation', () => {
 
   it('preserves a current portable project custom basemap layer name', () => {
     const source = createInitialProjectDocument();
-    source.style = { preset: 'positron', textScalePercent: 100 };
+    source.style = { ...source.style, preset: 'positron', textScalePercent: 100 };
     const basemap = source.layers.find((layer) => layer.type === 'basemap');
     if (!basemap) throw new Error('Expected fixture basemap.');
     basemap.name = 'Client reference map';
@@ -91,8 +113,15 @@ describe('portable project validation', () => {
     }), 'Map style preset must be liberty or positron'],
     ['an out-of-range map text scale', JSON.stringify({
       ...createInitialProjectDocument(),
-      style: { preset: 'liberty', textScalePercent: 201 },
+      style: { ...createInitialProjectDocument().style, textScalePercent: 201 },
     }), 'Map text scale must be between 50 and 200 percent'],
+    ['a non-boolean map feature visibility value', JSON.stringify({
+      ...createInitialProjectDocument(),
+      style: {
+        ...createInitialProjectDocument().style,
+        visibility: { roads: 'yes', buildings: true, labels: true },
+      },
+    }), 'Map road visibility must be true or false'],
   ])('rejects %s without producing a project', (_name, text, message) => {
     expect(() => parseProjectFileText(text)).toThrow(message);
   });

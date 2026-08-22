@@ -12,6 +12,7 @@ import {
   type ProjectDocumentV3,
   type ProjectDocumentV4,
   type ProjectDocumentV5,
+  type ProjectDocumentV6,
   type StoredProjectDocument,
 } from './project';
 
@@ -22,7 +23,7 @@ const LAYER_TYPES = new Set<LayerType>(['route', 'poi', 'shape', 'basemap']);
 const PAGE_PRESETS = new Set<PagePreset>(['A4', 'A3', 'Letter', 'Custom']);
 const PAGE_ORIENTATIONS = new Set<PageOrientation>(['landscape', 'portrait']);
 const MAP_STYLE_PRESETS = new Set<MapStylePreset>(['liberty', 'positron']);
-const SUPPORTED_SCHEMA_VERSIONS = new Set([1, 2, 3, 4, 5, 6]);
+const SUPPORTED_SCHEMA_VERSIONS = new Set([1, 2, 3, 4, 5, 6, 7]);
 
 type JsonObject = Record<string, unknown>;
 
@@ -226,20 +227,31 @@ function cameraAt(value: unknown): ProjectDocument['camera'] {
   return { bearing, pitch };
 }
 
-function styleAt(value: unknown, shouldIncludeTextScale: false): ProjectDocumentV5['style'];
-function styleAt(value: unknown, shouldIncludeTextScale: true): ProjectDocument['style'];
-function styleAt(value: unknown, shouldIncludeTextScale: boolean): ProjectDocumentV5['style'] | ProjectDocument['style'] {
+function styleAt(value: unknown, schemaVersion: 5): ProjectDocumentV5['style'];
+function styleAt(value: unknown, schemaVersion: 6): ProjectDocumentV6['style'];
+function styleAt(value: unknown, schemaVersion: 7): ProjectDocument['style'];
+function styleAt(value: unknown, schemaVersion: 5 | 6 | 7): ProjectDocumentV5['style'] | ProjectDocumentV6['style'] | ProjectDocument['style'] {
   const style = objectAt(value, 'Project style');
   if (typeof style.preset !== 'string' || !MAP_STYLE_PRESETS.has(style.preset as MapStylePreset)) {
     throw new ProjectFileError('Map style preset must be liberty or positron.');
   }
   const preset = style.preset as MapStylePreset;
-  if (!shouldIncludeTextScale) return { preset };
+  if (schemaVersion === 5) return { preset };
   const textScalePercent = finiteNumber(style.textScalePercent, 'Map text scale');
   if (textScalePercent < 50 || textScalePercent > 200) {
     throw new ProjectFileError('Map text scale must be between 50 and 200 percent.');
   }
-  return { preset, textScalePercent };
+  if (schemaVersion === 6) return { preset, textScalePercent };
+  const visibility = objectAt(style.visibility, 'Map feature visibility');
+  return {
+    preset,
+    textScalePercent,
+    visibility: {
+      roads: booleanAt(visibility.roads, 'Map road visibility'),
+      buildings: booleanAt(visibility.buildings, 'Map building visibility'),
+      labels: booleanAt(visibility.labels, 'Map label visibility'),
+    },
+  };
 }
 
 function storedDocumentAt(value: unknown): StoredProjectDocument {
@@ -265,14 +277,17 @@ function storedDocumentAt(value: unknown): StoredProjectDocument {
   const camera = cameraAt(root.camera);
   if (schemaVersion === 4) return { schemaVersion, ...common, page, camera } satisfies ProjectDocumentV4;
   if (schemaVersion === 5) {
-    return { schemaVersion, ...common, page, camera, style: styleAt(root.style, false) } satisfies ProjectDocumentV5;
+    return { schemaVersion, ...common, page, camera, style: styleAt(root.style, 5) } satisfies ProjectDocumentV5;
+  }
+  if (schemaVersion === 6) {
+    return { schemaVersion, ...common, page, camera, style: styleAt(root.style, 6) } satisfies ProjectDocumentV6;
   }
   return {
     schemaVersion,
     ...common,
     page,
     camera,
-    style: styleAt(root.style, true),
+    style: styleAt(root.style, 7),
   } satisfies ProjectDocument;
 }
 

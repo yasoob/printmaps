@@ -19,6 +19,9 @@ describe('editor page settings and tools', () => {
     expect(screen.getByRole('textbox', { name: 'Bearing' })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Pitch' })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Text scale' })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Show roads' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Show buildings' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Show labels' })).toBeChecked();
     const exportResolution = screen.getByRole('combobox', { name: 'Export resolution' });
     expect(exportResolution).toHaveValue('Browser preview');
     expect(exportResolution).toBeDisabled();
@@ -142,6 +145,23 @@ describe('editor page settings and tools', () => {
 
     expect(screen.getByRole('textbox', { name: 'Text scale' })).toHaveValue('100');
     expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
+  });
+
+  it('toggles a map feature category as one undoable change', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const roads = screen.getByRole('checkbox', { name: 'Show roads' });
+    const map = screen.getByTestId('map-canvas');
+
+    await user.click(roads);
+
+    expect(roads).not.toBeChecked();
+    expect(map).toHaveAttribute('data-map-feature-visibility', 'roads:false,buildings:true,labels:true');
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(roads).toBeChecked();
+    expect(map).toHaveAttribute('data-map-feature-visibility', 'roads:true,buildings:true,labels:true');
+    await user.click(screen.getByRole('button', { name: 'Redo' }));
+    expect(roads).not.toBeChecked();
   });
 
   it('keeps the A4 preset and history unchanged when page width is blurred without editing', async () => {

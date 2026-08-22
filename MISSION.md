@@ -32,6 +32,16 @@ The mission is complete only when all of the following are true:
 6. Accessibility, responsive behavior, visual QA, performance and final review.
 7. Phase-2 capabilities from the plan only after the core gate is solid.
 
+## Pre-release schema policy
+
+This product is not deployed and has no compatibility obligation to earlier development schemas.
+
+- Prefer one coherent current schema over migration chains or parity with old development fixtures.
+- Schema changes may replace, renumber, or restructure the document and IndexedDB formats directly. Update the app, fixtures, tests, and sample documents atomically.
+- Old local drafts or portable development files may be rejected with a clear reset/reopen message; migration code is optional and should be added only when the user explicitly requests compatibility or an authoritative external fixture requires it.
+- Remove obsolete migration branches and migration-only tests when they impede delivery or make the model harder to understand.
+- Spend engineering time on complete user-visible workflows, interaction quality, export fidelity, authoring capability, and reliability rather than preserving unreleased schema history.
+
 ## Per-run protocol
 
 1. Read this file, `docs/FINDINGS.md`, `docs/UI_BRIEF.md`, the implementation plan, `git status`, recent commits and test output.

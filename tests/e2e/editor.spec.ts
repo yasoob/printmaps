@@ -44,6 +44,7 @@ test('desktop editor switches between project and layer properties', async ({ pa
     await page.getByRole('textbox', { name: 'Pitch' }).fill('40');
     await page.getByRole('textbox', { name: 'Pitch' }).press('Tab');
     await page.getByRole('textbox', { name: 'Text scale' }).fill('125');
+    await page.getByRole('checkbox', { name: 'Show roads' }).uncheck();
     const style = page.getByRole('combobox', { name: 'Map style' });
     await style.focus();
     await style.selectOption('positron');
@@ -55,6 +56,7 @@ test('desktop editor switches between project and layer properties', async ({ pa
     await expect(map).toHaveAttribute('data-map-bearing', '35');
     await expect(map).toHaveAttribute('data-map-pitch', '40');
     await expect(map).toHaveAttribute('data-map-text-scale', '125');
+    await expect(map).toHaveAttribute('data-map-feature-visibility', 'roads:false,buildings:true,labels:true');
   }
 
   await page.screenshot({ path: testInfo.outputPath('editor-desktop.png'), fullPage: true });

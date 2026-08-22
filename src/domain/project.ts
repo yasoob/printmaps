@@ -1,10 +1,12 @@
-export const PROJECT_SCHEMA_VERSION = 6 as const;
+export const PROJECT_SCHEMA_VERSION = 7 as const;
 
 export type LayerType = 'route' | 'poi' | 'shape' | 'basemap';
 export type PageOrientation = 'landscape' | 'portrait';
 export type PagePreset = 'A4' | 'A3' | 'Letter' | 'Custom';
 export type StandardPagePreset = Exclude<PagePreset, 'Custom'>;
 export type MapStylePreset = 'liberty' | 'positron';
+export type MapFeatureVisibilityCategory = 'roads' | 'buildings' | 'labels';
+export type MapFeatureVisibility = Record<MapFeatureVisibilityCategory, boolean>;
 
 export type PageSettings = {
   preset: PagePreset;
@@ -21,6 +23,7 @@ export type CameraSettings = {
 export type MapStyleSettings = {
   preset: MapStylePreset;
   textScalePercent: number;
+  visibility: MapFeatureVisibility;
 };
 
 export type LayerGeometry =
@@ -86,11 +89,21 @@ export type ProjectDocumentV5 = {
   title: string;
   page: PageSettings;
   camera: CameraSettings;
-  style: Omit<MapStyleSettings, 'textScalePercent'>;
+  style: Pick<MapStyleSettings, 'preset'>;
   layers: ContentLayer[];
 };
 
-export type StoredProjectDocument = ProjectDocumentV1 | ProjectDocumentV2 | ProjectDocumentV3 | ProjectDocumentV4 | ProjectDocumentV5 | ProjectDocument;
+export type ProjectDocumentV6 = {
+  schemaVersion: 6;
+  id: string;
+  title: string;
+  page: PageSettings;
+  camera: CameraSettings;
+  style: Omit<MapStyleSettings, 'visibility'>;
+  layers: ContentLayer[];
+};
+
+export type StoredProjectDocument = ProjectDocumentV1 | ProjectDocumentV2 | ProjectDocumentV3 | ProjectDocumentV4 | ProjectDocumentV5 | ProjectDocumentV6 | ProjectDocument;
 
 const createDefaultPageSettings = (): PageSettings => ({
   preset: 'A4',
@@ -100,7 +113,16 @@ const createDefaultPageSettings = (): PageSettings => ({
 });
 
 const createDefaultCameraSettings = (): CameraSettings => ({ bearing: 0, pitch: 0 });
-const createDefaultMapStyleSettings = (): MapStyleSettings => ({ preset: 'liberty', textScalePercent: 100 });
+const createDefaultMapFeatureVisibility = (): MapFeatureVisibility => ({
+  roads: true,
+  buildings: true,
+  labels: true,
+});
+const createDefaultMapStyleSettings = (): MapStyleSettings => ({
+  preset: 'liberty',
+  textScalePercent: 100,
+  visibility: createDefaultMapFeatureVisibility(),
+});
 
 export function mapStyleBasemapName(preset: MapStylePreset): string {
   return `${preset === 'liberty' ? 'Liberty' : 'Positron'} basemap`;
@@ -151,7 +173,18 @@ export function migrateProjectDocument(document: StoredProjectDocument): Project
     return {
       ...document,
       schemaVersion: PROJECT_SCHEMA_VERSION,
-      style: { ...document.style, textScalePercent: 100 },
+      style: {
+        ...document.style,
+        textScalePercent: 100,
+        visibility: createDefaultMapFeatureVisibility(),
+      },
+    };
+  }
+  if (document.schemaVersion === 6) {
+    return {
+      ...document,
+      schemaVersion: PROJECT_SCHEMA_VERSION,
+      style: { ...document.style, visibility: createDefaultMapFeatureVisibility() },
     };
   }
   return document;

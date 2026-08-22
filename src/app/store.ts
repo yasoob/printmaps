@@ -3,6 +3,7 @@ import {
   createInitialProjectDocument,
   migrateProjectDocument,
   type ContentLayer,
+  type MapFeatureVisibilityCategory,
   type MapStylePreset,
   type PageOrientation,
   type StandardPagePreset,
@@ -41,6 +42,7 @@ export type ProjectState = {
   setLayerOpacity: (id: string, opacity: number) => void;
   setMapStyle: (preset: MapStylePreset) => void;
   setMapTextScale: (textScalePercent: number) => void;
+  setMapFeatureVisibility: (category: MapFeatureVisibilityCategory, isVisible: boolean) => void;
   toggleLayerVisibility: (id: string) => void;
   toggleLayerLock: (id: string) => void;
   undo: () => void;

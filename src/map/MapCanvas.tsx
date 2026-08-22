@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import type { CameraSettings, ContentLayer, MapStylePreset, PageSettings } from '../domain/project';
+import type { CameraSettings, ContentLayer, MapFeatureVisibility, MapStylePreset, PageSettings } from '../domain/project';
 import type { PreviewPngExporter } from '../export/previewPng';
 import { useMapCanvasController } from './useMapCanvasController';
 
@@ -7,6 +7,7 @@ type MapCanvasProps = {
   camera?: CameraSettings;
   stylePreset?: MapStylePreset;
   textScalePercent?: number;
+  featureVisibility?: MapFeatureVisibility;
   layers: ContentLayer[];
   selectedId: string | null;
   previewedId: string | null;
@@ -20,10 +21,14 @@ type MapCanvasProps = {
   contentRevision?: object;
 };
 
+const DEFAULT_FEATURE_VISIBILITY: MapFeatureVisibility = { roads: true, buildings: true, labels: true };
+const resolveFeatureVisibility = (visibility?: MapFeatureVisibility) => visibility ?? DEFAULT_FEATURE_VISIBILITY;
+
 export function MapCanvas({
   camera = { bearing: 0, pitch: 0 },
   stylePreset = 'liberty',
   textScalePercent = 100,
+  featureVisibility,
   layers,
   selectedId,
   previewedId,
@@ -40,6 +45,7 @@ export function MapCanvas({
     camera,
     stylePreset,
     textScalePercent,
+    featureVisibility: resolveFeatureVisibility(featureVisibility),
     fitRequest,
     layers,
     onBackgroundClick,

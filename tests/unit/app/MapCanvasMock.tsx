@@ -1,11 +1,12 @@
 import { useEffect } from 'react';
-import type { CameraSettings, ContentLayer, MapStylePreset } from '../../../src/domain/project';
+import type { CameraSettings, ContentLayer, MapFeatureVisibility, MapStylePreset } from '../../../src/domain/project';
 import { exportMocks } from './exportMocks';
 
 type MapCanvasMockProps = {
   camera?: CameraSettings;
   stylePreset?: MapStylePreset;
   textScalePercent?: number;
+  featureVisibility?: MapFeatureVisibility;
   layers?: ContentLayer[];
   selectedId?: string | null;
   previewedId?: string | null;
@@ -22,6 +23,7 @@ export function MapCanvas({
   camera = { bearing: 0, pitch: 0 },
   stylePreset = 'liberty',
   textScalePercent = 100,
+  featureVisibility = { roads: true, buildings: true, labels: true },
   layers = [],
   selectedId,
   previewedId,
@@ -45,6 +47,7 @@ export function MapCanvas({
       data-camera={`${camera.bearing},${camera.pitch}`}
       data-style-preset={stylePreset}
       data-text-scale={textScalePercent}
+      data-map-feature-visibility={`roads:${featureVisibility.roads},buildings:${featureVisibility.buildings},labels:${featureVisibility.labels}`}
       data-orientation={orientation}
       data-page-preset={page?.preset}
       data-page-size={page ? `${page.widthMm}x${page.heightMm}` : ''}

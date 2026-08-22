@@ -42,6 +42,7 @@ const sharedProps = {
   camera: { bearing: 0, pitch: 0 },
   stylePreset: 'liberty' as const,
   textScalePercent: 100,
+  featureVisibility: { roads: true, buildings: true, labels: true },
   previewedId: null,
   documentEpoch: 0,
   page: { preset: 'A4', widthMm: 297, heightMm: 210, orientation: 'landscape' } as const,

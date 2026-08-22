@@ -32,7 +32,7 @@ type LifecycleReferences = {
   mapClick: MutableReference<((coordinate: [number, number]) => void) | undefined>;
   map: MutableReference<MapLibreMap | null>;
   mapFailed: MutableReference<boolean>;
-  synchronizeTextScale: MutableReference<(map: MapLibreMap) => boolean>;
+  synchronizeFeatureVisibility: MutableReference<(map: MapLibreMap) => boolean>; synchronizeTextScale: MutableReference<(map: MapLibreMap) => boolean>;
 };
 
 export type MapLifecycleOptions = {
@@ -197,7 +197,7 @@ function createMapEventHandlers(
     state.isStyleLoaded = true;
     const container = references.container.current;
     if (!container) return;
-    if (!references.synchronizeTextScale.current(map)) return;
+    if (!references.synchronizeTextScale.current(map) || !references.synchronizeFeatureVisibility.current(map)) return;
     references.contentAdapter.current = createMapLibreContentAdapter(map, container);
     handleContentSyncResult(references.contentAdapter.current.sync(references.contentState.current));
   };

@@ -24,7 +24,7 @@ function createDocument(): ProjectDocument {
     title: 'Test project',
     page: { preset: 'A4', widthMm: 297, heightMm: 210, orientation: 'landscape' },
     camera: { bearing: 0, pitch: 0 },
-    style: { preset: 'liberty', textScalePercent: 100 },
+    style: { preset: 'liberty', textScalePercent: 100, visibility: { roads: true, buildings: true, labels: true } },
     layers,
   };
 }
@@ -55,8 +55,8 @@ describe('project store camera history', () => {
     const store = createProjectStore(versionFourDocument);
 
     expect(store.getState().document).toMatchObject({
-      schemaVersion: 6,
-      style: { preset: 'liberty', textScalePercent: 100 },
+      schemaVersion: 7,
+      style: { preset: 'liberty', textScalePercent: 100, visibility: { roads: true, buildings: true, labels: true } },
     });
   });
 
@@ -73,9 +73,9 @@ describe('project store camera history', () => {
     const store = createProjectStore(versionThreeDocument);
 
     expect(store.getState().document).toMatchObject({
-      schemaVersion: 6,
+      schemaVersion: 7,
       camera: { bearing: 0, pitch: 0 },
-      style: { preset: 'liberty', textScalePercent: 100 },
+      style: { preset: 'liberty', textScalePercent: 100, visibility: { roads: true, buildings: true, labels: true } },
     });
   });
 
@@ -131,9 +131,9 @@ describe('project store history', () => {
     const store = createProjectStore(versionOneDocument);
 
     expect(store.getState().document).toMatchObject({
-      schemaVersion: 6,
+      schemaVersion: 7,
       page: { preset: 'A4', widthMm: 297, heightMm: 210, orientation: 'landscape' },
-      style: { preset: 'liberty', textScalePercent: 100 },
+      style: { preset: 'liberty', textScalePercent: 100, visibility: { roads: true, buildings: true, labels: true } },
     });
   });
 

@@ -14,7 +14,7 @@ export function copyDocument(document: ProjectDocument): ProjectDocument {
     ...document,
     page: { ...document.page },
     camera: { ...document.camera },
-    style: { ...document.style },
+    style: { ...document.style, visibility: { ...document.style.visibility } },
     layers: document.layers.map((layer) => cloneContentLayer(layer)),
   };
 }
