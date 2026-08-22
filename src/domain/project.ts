@@ -89,10 +89,10 @@ function inferPagePreset(
   heightMm: number,
   orientation: PageOrientation,
 ): PagePreset {
-  const dimensionsMatchOrientation = orientation === 'landscape'
+  const isDimensionsMatchOrientation = orientation === 'landscape'
     ? widthMm >= heightMm
     : heightMm >= widthMm;
-  if (!dimensionsMatchOrientation) return 'Custom';
+  if (!isDimensionsMatchOrientation) return 'Custom';
 
   const edges = [widthMm, heightMm].sort((left, right) => left - right);
   if (edges[0] === 210 && edges[1] === 297) return 'A4';

@@ -52,7 +52,7 @@ const tools = [
 type MobilePanel = 'layers' | 'properties';
 
 function downloadProjectDocument(document: ProjectDocument) {
-  const filenameId = document.id.replace(/[^a-z0-9._-]+/gi, '-').replace(/^[-.]+|[-.]+$/g, '') || 'project';
+  const filenameId = document.id.replaceAll(/[^a-z0-9._-]+/gi, '-').replaceAll(/^[-.]+|[-.]+$/g, '') || 'project';
   const blob = new Blob([`${JSON.stringify(document, null, 2)}\n`], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   try {
@@ -61,7 +61,7 @@ function downloadProjectDocument(document: ProjectDocument) {
     link.download = `${filenameId}.printmap.json`;
     link.click();
   } finally {
-    window.setTimeout(() => URL.revokeObjectURL(url), 1_000);
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 }
 
@@ -92,10 +92,10 @@ function ProjectFileOpenButton({ onOpen }: { onOpen: (document: ProjectDocument)
         kind: 'success',
         message: `Opened ${openedDocument.title}. Edit history was reset.`,
       });
-    } catch (reason) {
+    } catch (error) {
       setStatus({
         kind: 'error',
-        message: reason instanceof Error ? reason.message : 'This project file could not be opened.',
+        message: error instanceof Error ? error.message : 'This project file could not be opened.',
       });
     } finally {
       input.value = '';
@@ -199,7 +199,7 @@ function useMobilePanels() {
     if (typeof window.matchMedia !== 'function') return;
     const mediaQuery = window.matchMedia('(max-width: 760px)');
     const handleChange = (event: MediaQueryListEvent) => {
-      const hadOpenDialog = document.querySelector('[aria-modal="true"]') !== null;
+      const isHadOpenDialog = document.querySelector('[aria-modal="true"]') !== null;
       setIsMobileViewport(event.matches);
       if (!event.matches) {
         if (focusTimerRef.current !== null) {
@@ -207,7 +207,7 @@ function useMobilePanels() {
           focusTimerRef.current = null;
         }
         setMobilePanel(null);
-        if (hadOpenDialog) requestAnimationFrame(() => projectTitleRef.current?.focus());
+        if (isHadOpenDialog) requestAnimationFrame(() => projectTitleRef.current?.focus());
       }
     };
     mediaQuery.addEventListener('change', handleChange);
@@ -319,10 +319,10 @@ export function App() {
         <ul className="layer-tree" aria-label="Map layers">
           {layers.map((layer, index) => {
               const Icon = layerIcons[layer.type];
-              const selected = project.selectedId === layer.id;
+              const isSelected = project.selectedId === layer.id;
               return (
                 <li
-                  className={`layer-row${selected ? ' is-selected' : ''}`}
+                  className={`layer-row${isSelected ? ' is-selected' : ''}`}
                   key={layer.id}
                   onMouseEnter={() => setPreviewedLayerId(layer.visible && layer.geometry ? layer.id : null)}
                   onMouseLeave={() => setPreviewedLayerId((current) => current === layer.id ? null : current)}
@@ -338,7 +338,7 @@ export function App() {
                   >
                     {layer.visible ? <Eye size={13} /> : <EyeOff size={13} />}
                   </button>
-                  <button className="layer-select" type="button" data-layer-select={layer.id} aria-current={selected ? 'true' : undefined} onClick={() => { project.selectLayer(layer.id); if (activeMobilePanel === 'layers') closeMobilePanel('layers'); }} aria-label={`Select ${layer.name}`}>
+                  <button className="layer-select" type="button" data-layer-select={layer.id} aria-current={isSelected ? 'true' : undefined} onClick={() => { project.selectLayer(layer.id); if (activeMobilePanel === 'layers') closeMobilePanel('layers'); }} aria-label={`Select ${layer.name}`}>
                     <Icon size={14} />
                     <span>{layer.name}</span>
                   </button>
@@ -357,10 +357,12 @@ export function App() {
                     aria-label={`Reorder ${layer.name}`}
                     title="Drag to reorder · Alt+Arrow keys"
                     onKeyDown={(event) => {
-                      if (event.altKey && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
-                        event.preventDefault();
-                        project.moveLayer(layer.id, index + (event.key === 'ArrowUp' ? -1 : 1));
+                      if (!(event.altKey && (event.key === 'ArrowUp' || event.key === 'ArrowDown'))) {
+                        return;
                       }
+
+                      event.preventDefault();
+                      project.moveLayer(layer.id, index + (event.key === 'ArrowUp' ? -1 : 1));
                     }}
                     onDragStart={() => { draggedLayerIdRef.current = layer.id; }}
                     onDragOver={(event) => event.preventDefault()}
@@ -463,10 +465,10 @@ export function App() {
               window.setTimeout(() => {
                 const focusTarget = activeMobilePanel === 'properties'
                   ? propertiesPanelRef.current?.querySelector<HTMLElement>('[aria-label="Layer menu"], [data-project-heading]')
-                  : focusLayer
+                  : (focusLayer
                     ? [...document.querySelectorAll<HTMLElement>('[data-layer-select]')]
                       .find((element) => element.dataset.layerSelect === focusLayer.id)
-                    : document.querySelector<HTMLElement>('[data-project-heading]');
+                    : document.querySelector<HTMLElement>('[data-project-heading]'));
                 focusTarget?.focus();
               }, 0);
             }}
@@ -551,8 +553,8 @@ function ExportDialog({ exporter, filename, onClose }: ExportDialogProps) {
       const result = await exporter();
       startPreviewDownload(result.blob, filename);
       setStatus(`Download started for ${result.width} × ${result.height} PNG.`);
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'PNG export failed.');
+    } catch (error_) {
+      setError(error_ instanceof Error ? error_.message : 'PNG export failed.');
       setStatus('Export failed.');
     } finally {
       setBusy(false);

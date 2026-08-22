@@ -34,7 +34,7 @@ export function createMapLibreContentAdapter(
   let renderedMapLayerIds: string[] = [];
   let renderedSourceIds: string[] = [];
   let renderedStructure = '';
-  let cleanupPending = false;
+  let isCleanupPending = false;
 
   const removeRenderedContent = () => {
     renderedMapLayerIds = renderedMapLayerIds.filter((id) => {
@@ -53,28 +53,36 @@ export function createMapLibreContentAdapter(
         return true;
       }
     });
-    cleanupPending = renderedMapLayerIds.length > 0 || renderedSourceIds.length > 0;
-    if (!cleanupPending) renderedStructure = '';
-    return !cleanupPending;
+    isCleanupPending = renderedMapLayerIds.length > 0 || renderedSourceIds.length > 0;
+    if (!isCleanupPending) renderedStructure = '';
+    return !isCleanupPending;
   };
 
   const updateLayerPaint = (layer: ContentLayer, selectedId: string | null, previewedId: string | null) => {
-    const highlighted = layer.id === selectedId || layer.id === previewedId;
+    const isHighlighted = layer.id === selectedId || layer.id === previewedId;
     const opacity = layer.opacity / 100;
-    if (layer.type === 'route') {
-      map.setPaintProperty(layerId(layer.id), 'line-color', highlighted ? HIGHLIGHT_COLOR : ROUTE_COLOR);
-      map.setPaintProperty(layerId(layer.id), 'line-opacity', opacity);
-      map.setPaintProperty(layerId(layer.id), 'line-width', highlighted ? 6 : 4);
-    } else if (layer.type === 'poi') {
-      map.setPaintProperty(layerId(layer.id), 'circle-color', highlighted ? HIGHLIGHT_COLOR : POI_COLOR);
-      map.setPaintProperty(layerId(layer.id), 'circle-opacity', opacity);
-      map.setPaintProperty(layerId(layer.id), 'circle-radius', highlighted ? 9 : 7);
-    } else if (layer.type === 'shape') {
-      map.setPaintProperty(layerId(layer.id, 'fill'), 'fill-color', highlighted ? HIGHLIGHT_COLOR : SHAPE_COLOR);
-      map.setPaintProperty(layerId(layer.id, 'fill'), 'fill-opacity', opacity);
-      map.setPaintProperty(layerId(layer.id, 'line'), 'line-color', highlighted ? HIGHLIGHT_COLOR : SHAPE_COLOR);
-      map.setPaintProperty(layerId(layer.id, 'line'), 'line-opacity', opacity);
-      map.setPaintProperty(layerId(layer.id, 'line'), 'line-width', highlighted ? 3 : 2);
+    switch (layer.type) {
+      case 'route': {
+        map.setPaintProperty(layerId(layer.id), 'line-color', isHighlighted ? HIGHLIGHT_COLOR : ROUTE_COLOR);
+        map.setPaintProperty(layerId(layer.id), 'line-opacity', opacity);
+        map.setPaintProperty(layerId(layer.id), 'line-width', isHighlighted ? 6 : 4);
+        break;
+      }
+      case 'poi': {
+        map.setPaintProperty(layerId(layer.id), 'circle-color', isHighlighted ? HIGHLIGHT_COLOR : POI_COLOR);
+        map.setPaintProperty(layerId(layer.id), 'circle-opacity', opacity);
+        map.setPaintProperty(layerId(layer.id), 'circle-radius', isHighlighted ? 9 : 7);
+        break;
+      }
+      case 'shape': {
+        map.setPaintProperty(layerId(layer.id, 'fill'), 'fill-color', isHighlighted ? HIGHLIGHT_COLOR : SHAPE_COLOR);
+        map.setPaintProperty(layerId(layer.id, 'fill'), 'fill-opacity', opacity);
+        map.setPaintProperty(layerId(layer.id, 'line'), 'line-color', isHighlighted ? HIGHLIGHT_COLOR : SHAPE_COLOR);
+        map.setPaintProperty(layerId(layer.id, 'line'), 'line-opacity', opacity);
+        map.setPaintProperty(layerId(layer.id, 'line'), 'line-width', isHighlighted ? 3 : 2);
+        break;
+      }
+      // No default
     }
   };
 
@@ -85,7 +93,7 @@ export function createMapLibreContentAdapter(
       const nextStructure = visibleLayers
         .map((layer) => `${encodedContentId(layer.id)}:${layer.type}:${JSON.stringify(layer.geometry)}`)
         .join('|');
-      if (!cleanupPending && nextStructure === renderedStructure) {
+      if (!isCleanupPending && nextStructure === renderedStructure) {
         visibleLayers.forEach((layer) => updateLayerPaint(layer, selectedId, previewedId));
         container.dataset.mapLayerOrder = visibleLayers.map((layer) => layer.id).join(',');
         container.dataset.selectedLayer = selectedId ?? '';
@@ -97,7 +105,7 @@ export function createMapLibreContentAdapter(
       if (!removeRenderedContent()) throw new Error('Map content cleanup incomplete');
       for (const layer of [...visibleLayers].reverse()) {
         const source = sourceId(layer.id);
-        const highlighted = layer.id === selectedId || layer.id === previewedId;
+        const isHighlighted = layer.id === selectedId || layer.id === previewedId;
         const opacity = layer.opacity / 100;
         map.addSource(source, {
           type: 'geojson',
@@ -109,59 +117,67 @@ export function createMapLibreContentAdapter(
         });
         renderedSourceIds.push(source);
 
-        if (layer.type === 'route') {
-          const id = layerId(layer.id);
-          map.addLayer({
-            id,
-            source,
-            type: 'line',
-            paint: {
-              'line-color': highlighted ? HIGHLIGHT_COLOR : ROUTE_COLOR,
-              'line-opacity': opacity,
-              'line-width': highlighted ? 6 : 4,
-            },
-            layout: { 'line-cap': 'round', 'line-join': 'round' },
-          });
-          renderedMapLayerIds.push(id);
-        } else if (layer.type === 'poi') {
-          const id = layerId(layer.id);
-          map.addLayer({
-            id,
-            source,
-            type: 'circle',
-            paint: {
-              'circle-color': highlighted ? HIGHLIGHT_COLOR : POI_COLOR,
-              'circle-opacity': opacity,
-              'circle-radius': highlighted ? 9 : 7,
-              'circle-stroke-color': POI_STROKE,
-              'circle-stroke-width': 2,
-            },
-          });
-          renderedMapLayerIds.push(id);
-        } else if (layer.type === 'shape') {
-          const fillId = layerId(layer.id, 'fill');
-          const lineId = layerId(layer.id, 'line');
-          map.addLayer({
-            id: fillId,
-            source,
-            type: 'fill',
-            paint: {
-              'fill-color': highlighted ? HIGHLIGHT_COLOR : SHAPE_COLOR,
-              'fill-opacity': opacity,
-            },
-          });
-          renderedMapLayerIds.push(fillId);
-          map.addLayer({
-            id: lineId,
-            source,
-            type: 'line',
-            paint: {
-              'line-color': highlighted ? HIGHLIGHT_COLOR : SHAPE_COLOR,
-              'line-opacity': opacity,
-              'line-width': highlighted ? 3 : 2,
-            },
-          });
-          renderedMapLayerIds.push(lineId);
+        switch (layer.type) {
+          case 'route': {
+            const id = layerId(layer.id);
+            map.addLayer({
+              id,
+              source,
+              type: 'line',
+              paint: {
+                'line-color': isHighlighted ? HIGHLIGHT_COLOR : ROUTE_COLOR,
+                'line-opacity': opacity,
+                'line-width': isHighlighted ? 6 : 4,
+              },
+              layout: { 'line-cap': 'round', 'line-join': 'round' },
+            });
+            renderedMapLayerIds.push(id);
+            break;
+          }
+          case 'poi': {
+            const id = layerId(layer.id);
+            map.addLayer({
+              id,
+              source,
+              type: 'circle',
+              paint: {
+                'circle-color': isHighlighted ? HIGHLIGHT_COLOR : POI_COLOR,
+                'circle-opacity': opacity,
+                'circle-radius': isHighlighted ? 9 : 7,
+                'circle-stroke-color': POI_STROKE,
+                'circle-stroke-width': 2,
+              },
+            });
+            renderedMapLayerIds.push(id);
+            break;
+          }
+          case 'shape': {
+            const fillId = layerId(layer.id, 'fill');
+            const lineId = layerId(layer.id, 'line');
+            map.addLayer({
+              id: fillId,
+              source,
+              type: 'fill',
+              paint: {
+                'fill-color': isHighlighted ? HIGHLIGHT_COLOR : SHAPE_COLOR,
+                'fill-opacity': opacity,
+              },
+            });
+            renderedMapLayerIds.push(fillId);
+            map.addLayer({
+              id: lineId,
+              source,
+              type: 'line',
+              paint: {
+                'line-color': isHighlighted ? HIGHLIGHT_COLOR : SHAPE_COLOR,
+                'line-opacity': opacity,
+                'line-width': isHighlighted ? 3 : 2,
+              },
+            });
+            renderedMapLayerIds.push(lineId);
+            break;
+          }
+          // No default
         }
       }
       renderedStructure = nextStructure;
@@ -191,7 +207,7 @@ export function createMapLibreContentAdapter(
         return hitLayerId;
       } catch {
         container.dataset.mapContentError = 'true';
-        return undefined;
+        return;
       }
     },
     destroy: removeRenderedContent,

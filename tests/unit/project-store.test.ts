@@ -124,7 +124,7 @@ describe('project store history', () => {
   it('rejects a non-finite reorder index without changing history', () => {
     const store = createProjectStore(createDocument());
 
-    store.getState().moveLayer('shape-1', Number.NaN);
+    store.getState().moveLayer('shape-1', NaN);
 
     expect(layerState(store).map((layer) => layer.id)).toEqual(['route-1', 'poi-1', 'shape-1']);
     expect(store.getState().canUndo).toBe(false);

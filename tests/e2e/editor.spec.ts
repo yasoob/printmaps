@@ -233,7 +233,7 @@ test('export downloads the current print frame as PNG on desktop and mobile', as
     expect(download.suggestedFilename()).toBe('vienna-field-guide.png');
     const outputPath = testInfo.outputPath(`vienna-field-guide-${viewport.label}.png`);
     await download.saveAs(outputPath);
-    expect((await stat(outputPath)).size).toBeGreaterThan(1_000);
+    expect((await stat(outputPath)).size).toBeGreaterThan(1000);
     const png = await readFile(outputPath);
     expect([...png.subarray(0, 8)]).toEqual([137, 80, 78, 71, 13, 10, 26, 10]);
     const pngWidth = png.readUInt32BE(16);
@@ -272,11 +272,11 @@ test('export downloads the current print frame as PNG on desktop and mobile', as
       let surfacePixels = 0;
       let textPixels = 0;
       for (let index = 0; index < bottom.length; index += 4) {
-        const matchesSurface = bottom[index] === surface[0]
+        const isMatchesSurface = bottom[index] === surface[0]
           && bottom[index + 1] === surface[1]
           && bottom[index + 2] === surface[2]
           && bottom[index + 3] === surface[3];
-        if (matchesSurface) surfacePixels += 1;
+        if (isMatchesSurface) surfacePixels += 1;
         else if (bottom[index + 3] > 0) textPixels += 1;
       }
       return {

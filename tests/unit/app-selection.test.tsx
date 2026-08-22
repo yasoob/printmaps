@@ -104,8 +104,8 @@ describe('editor selection context', () => {
     let finishExport: ((result: { blob: Blob; width: number; height: number }) => void) | undefined;
     exportMocks.exporter = vi.fn(() => new Promise<{ blob: Blob; width: number; height: number }>((resolve) => { finishExport = resolve; }));
     vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:preview');
-    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
-    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     render(<App />);
 
     await user.click(screen.getByRole('button', { name: 'Export' }));

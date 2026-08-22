@@ -26,7 +26,7 @@ export function capturePrintFramePng(
     return Promise.reject(unavailableError());
   }
 
-  const attributionText = attribution.replace(/\s+/g, ' ').trim();
+  const attributionText = attribution.replaceAll(/\s+/g, ' ').trim();
   if (!attributionText) {
     return Promise.reject(new Error('Map attribution is unavailable, so this preview cannot be exported.'));
   }
@@ -112,8 +112,8 @@ export function capturePrintFramePng(
 
 export function startPreviewDownload(blob: Blob, filename: string) {
   const safeFilename = filename
-    .replace(/[^a-z0-9._-]+/gi, '-')
-    .replace(/^[-.]+|[-.]+$/g, '') || 'map-preview.png';
+    .replaceAll(/[^a-z0-9._-]+/gi, '-')
+    .replaceAll(/^[-.]+|[-.]+$/g, '') || 'map-preview.png';
   const downloadName = safeFilename.toLowerCase().endsWith('.png') ? safeFilename : `${safeFilename}.png`;
   const url = URL.createObjectURL(blob);
   try {
@@ -122,6 +122,6 @@ export function startPreviewDownload(blob: Blob, filename: string) {
     link.download = downloadName;
     link.click();
   } finally {
-    window.setTimeout(() => URL.revokeObjectURL(url), 1_000);
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 }

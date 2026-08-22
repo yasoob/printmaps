@@ -3,4 +3,4 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import './styles.css';
 import { App } from './app/App';
 
-ReactDOM.createRoot(document.getElementById('root')!).render(<App />);
+ReactDOM.createRoot(document.querySelector('#root')!).render(<App />);

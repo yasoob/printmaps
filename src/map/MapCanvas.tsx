@@ -57,10 +57,12 @@ export function MapCanvas({
   const [contentError, setContentError] = useState<ContentError | null>(null);
 
   const invalidateExporter = useCallback(() => {
-    if (availableExporterRef.current) {
-      availableExporterRef.current = null;
-      exporterChangeRef.current?.(null);
+    if (!availableExporterRef.current) {
+      return;
     }
+
+    availableExporterRef.current = null;
+    exporterChangeRef.current?.(null);
   }, []);
 
   const handleContentSyncResult = useCallback((result: ReturnType<MapContentAdapter['sync']> | undefined) => {
@@ -129,9 +131,9 @@ export function MapCanvas({
       return;
     }
 
-    let styleLoaded = false;
-    let mapFailed = false;
-    let attributionInitialized = false;
+    let isStyleLoaded = false;
+    let isMapFailed = false;
+    let isAttributionInitialized = false;
     let attributionResizeFrame: number | null = null;
     const mobileViewportQuery = typeof window.matchMedia === 'function'
       ? window.matchMedia('(max-width: 760px)')
@@ -179,7 +181,7 @@ export function MapCanvas({
       }
     };
     const handleLoad = () => {
-      styleLoaded = true;
+      isStyleLoaded = true;
       if (containerRef.current) {
         contentAdapterRef.current = createMapLibreContentAdapter(map, containerRef.current);
         handleContentSyncResult(contentAdapterRef.current.sync(contentStateRef.current));
@@ -194,10 +196,10 @@ export function MapCanvas({
       return capturePrintFramePng(map.getCanvas(), printFrame, attribution);
     };
     const handleIdle = () => {
-      if (mapFailed) return;
-      if (!attributionInitialized) {
+      if (isMapFailed) return;
+      if (!isAttributionInitialized) {
         syncAttributionState(mobileViewportQuery?.matches ?? false);
-        attributionInitialized = true;
+        isAttributionInitialized = true;
       }
       if (contentSyncDeferredRef.current && contentAdapterRef.current) {
         handleContentSyncResult(contentAdapterRef.current.sync(contentStateRef.current));
@@ -214,21 +216,21 @@ export function MapCanvas({
       syncAttributionState(true);
     };
     const handleError = () => {
-      mapFailed = true;
+      isMapFailed = true;
       containerRef.current?.removeAttribute('data-map-ready');
       if (availableExporterRef.current === exportPreview) {
         availableExporterRef.current = null;
         exporterChangeRef.current?.(null);
       }
-      if (!styleLoaded) {
-        setMapError({
-          kind: 'style',
-          message: 'The map style could not be loaded. Check your connection and retry.',
-        });
-      } else {
+      if (isStyleLoaded) {
         setMapError((error) => error ?? {
           kind: 'renderer',
           message: 'The map renderer encountered an error. Reload the page and retry.',
+        });
+      } else {
+        setMapError({
+          kind: 'style',
+          message: 'The map style could not be loaded. Check your connection and retry.',
         });
       }
     };
@@ -281,10 +283,12 @@ export function MapCanvas({
   }, [handleContentSyncResult]);
 
   useEffect(() => {
-    if (fitRequest > 0 && mapRef.current) {
-      mapRef.current.fitBounds(PAGE_BOUNDS, { padding: 64, duration: 0 });
-      containerRef.current?.setAttribute('data-camera-fit-request', String(fitRequest));
+    if (!(fitRequest > 0 && mapRef.current)) {
+      return;
     }
+
+    mapRef.current.fitBounds(PAGE_BOUNDS, { padding: 64, duration: 0 });
+    containerRef.current?.setAttribute('data-camera-fit-request', String(fitRequest));
   }, [fitRequest]);
 
   const visibleError = mapError ?? contentError;

@@ -68,7 +68,7 @@ export function createProjectStore(
     canUndo: false,
     canRedo: false,
     deleteLayer: (id) => set((state) => {
-      if (!state.document.layers.some((layer) => layer.id === id)) return state;
+      if (state.document.layers.every((layer) => layer.id !== id)) return state;
 
       return {
         ...commitDocument(
@@ -80,7 +80,7 @@ export function createProjectStore(
     }),
     duplicateLayer: (id) => set((state) => {
       const sourceIndex = state.document.layers.findIndex((layer) => layer.id === id);
-      if (sourceIndex < 0) return state;
+      if (sourceIndex === -1) return state;
 
       const source = state.document.layers[sourceIndex];
       const usedIds = new Set(state.document.layers.map((layer) => layer.id));
@@ -103,7 +103,7 @@ export function createProjectStore(
       if (!Number.isFinite(toIndex)) return state;
       const fromIndex = state.document.layers.findIndex((layer) => layer.id === id);
       const targetIndex = Math.max(0, Math.min(Math.trunc(toIndex), state.document.layers.length - 1));
-      if (fromIndex < 0 || fromIndex === targetIndex) return state;
+      if (fromIndex === -1 || fromIndex === targetIndex) return state;
 
       const layers = [...state.document.layers];
       const [layer] = layers.splice(fromIndex, 1);

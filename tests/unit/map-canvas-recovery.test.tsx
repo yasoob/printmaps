@@ -100,7 +100,7 @@ vi.mock('maplibre-gl', () => {
 
 import { MapCanvas } from '../../src/map/MapCanvas';
 
-const latestMapHandlers = () => mocks.mapHandlers[mocks.mapHandlers.length - 1] ?? {};
+const latestMapHandlers = () => mocks.mapHandlers.at(-1) ?? {};
 
 const route: ContentLayer = {
   id: 'route-01',
