@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx xmlns="http://www.topografix.com/GPX/1/1" version="1.1" creator="Print Map Studio tests">
+  <wpt lat="48.2082" lon="16.3738">
+    <ele>171.4</ele>
+    <time>2026-08-22T08:15:00Z</time>
+    <name>Café Central</name>
+  </wpt>
+  <rte>
+    <name>Danube route</name>
+    <rtept lat="48.2000" lon="16.3500"><ele>160</ele></rtept>
+    <rtept lat="48.2200" lon="16.4000"><time>2026-08-22T08:30:00Z</time></rtept>
+  </rte>
+  <trk>
+    <name>Morgenweg 東京</name>
+    <trkseg>
+      <trkpt lat="48.2300" lon="16.4100"><ele>180</ele><time>2026-08-22T09:00:00Z</time></trkpt>
+      <trkpt lat="48.2400" lon="16.4200"><ele>182</ele><time>2026-08-22T09:05:00Z</time></trkpt>
+    </trkseg>
+  </trk>
+</gpx>
