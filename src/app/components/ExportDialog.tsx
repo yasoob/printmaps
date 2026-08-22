@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import type { ProjectDocument } from '../../domain/project';
 import { createLayeredSvg, startLayeredSvgDownload } from '../../export/layeredSvg';
 import { planExportPreflight } from '../../export/preflight';
+import { createPrintPdf, startPrintPdfDownload } from '../../export/printPdf';
 import { createPrintSizePng } from '../../export/printSizePng';
 import { startPreviewDownload, type PreviewPngExporter } from '../../export/previewPng';
 
@@ -57,6 +58,7 @@ type ExportDialogViewProps = {
   onCancel: () => void;
   onClose: () => void;
   onDownloadLayeredSvg: () => void;
+  onDownloadPdf: () => void;
   onDownloadPng: () => void;
   onKeyDown: React.KeyboardEventHandler<HTMLDialogElement>;
   preflight: ReturnType<typeof planExportPreflight>;
@@ -64,7 +66,7 @@ type ExportDialogViewProps = {
 };
 
 function ExportDialogView(props: ExportDialogViewProps) {
-  const { busy, cancelButtonRef, dialogRef, downloadButtonRef, error, onCancel, onClose, onDownloadLayeredSvg, onDownloadPng, onKeyDown, preflight, status } = props;
+  const { busy, cancelButtonRef, dialogRef, downloadButtonRef, error, onCancel, onClose, onDownloadLayeredSvg, onDownloadPdf, onDownloadPng, onKeyDown, preflight, status } = props;
   return (
     <div className="export-overlay">
       <div className="export-backdrop" aria-hidden="true" onClick={busy ? undefined : onClose} />
@@ -80,7 +82,7 @@ function ExportDialogView(props: ExportDialogViewProps) {
           )}
           {preflight.estimates && <p>Estimated peak memory {formatBytes(preflight.estimates.peakBytes)}.</p>}
           <p>PNG physical-resolution metadata is not embedded.</p>
-          <p>This print-size preview resamples the current browser render; it does not create new map detail. Layered SVG embeds a raster basemap while route, POI, and shape remain named vector overlays. Native high-resolution tile rendering and PDF remain upcoming export stages.</p>
+          <p>This print-size preview resamples the current browser render; it does not create new map detail. Layered SVG and exact-page PDF embed a raster basemap while route, POI, and shape remain named vector overlays. Native high-resolution tile rendering remains an upcoming export stage.</p>
           {preflight.errors.length > 0 && (
             <div className="export-error" role="alert">
               <strong>Export blocked</strong>
@@ -93,12 +95,57 @@ function ExportDialogView(props: ExportDialogViewProps) {
         </div>
         <div className="export-dialog-actions">
           <button ref={cancelButtonRef} type="button" onClick={busy ? onCancel : onClose}>{busy ? 'Cancel export' : 'Cancel'}</button>
+          <button type="button" disabled={busy} onClick={onDownloadPdf}>Download PDF</button>
           <button type="button" disabled={busy} onClick={onDownloadLayeredSvg}>Download layered SVG</button>
           <button ref={downloadButtonRef} className="primary-button" type="button" disabled={busy || !preflight.safe} onClick={onDownloadPng}>{busy ? 'Preparing…' : 'Download PNG'}</button>
         </div>
       </dialog>
     </div>
   );
+}
+
+type PdfExportOptions = Pick<ExportDialogProps, 'document' | 'exporter' | 'filename'> & {
+  abortControllerRef: React.RefObject<AbortController | null>;
+  setBusy: (isBusy: boolean) => void;
+  setError: (error: string | null) => void;
+  setStatus: (status: string) => void;
+};
+
+async function runPdfExport(options: PdfExportOptions): Promise<void> {
+  const { abortControllerRef, document, exporter, filename, setBusy, setError, setStatus } = options;
+  if (!exporter) {
+    setError('The live map preview is not ready yet. Wait for the map to load and try again.');
+    return;
+  }
+  const controller = new AbortController();
+  abortControllerRef.current = controller;
+  setBusy(true);
+  setError(null);
+  setStatus('Capturing a raster basemap for PDF…');
+  let sourceSurface: HTMLCanvasElement | null = null;
+  try {
+    const source = await exporter({ content: 'basemap', signal: controller.signal });
+    sourceSurface = source.surface;
+    if (controller.signal.aborted) throw new DOMException('PDF export was cancelled.', 'AbortError');
+    const pdf = await createPrintPdf(document, source, controller.signal);
+    if (controller.signal.aborted) throw new DOMException('PDF export was cancelled.', 'AbortError');
+    startPrintPdfDownload(pdf, filename);
+    setStatus('Download started for PDF.');
+  } catch (error_) {
+    if (controller.signal.aborted || (error_ instanceof DOMException && error_.name === 'AbortError')) {
+      setStatus('Export cancelled.');
+    } else {
+      setError(error_ instanceof Error ? error_.message : 'PDF export failed.');
+      setStatus('Export failed.');
+    }
+  } finally {
+    if (sourceSurface) {
+      sourceSurface.width = 0;
+      sourceSurface.height = 0;
+    }
+    if (abortControllerRef.current === controller) abortControllerRef.current = null;
+    setBusy(false);
+  }
 }
 
 export function ExportDialog({ exporter, filename, document, onClose }: ExportDialogProps) {
@@ -216,5 +263,7 @@ export function ExportDialog({ exporter, filename, document, onClose }: ExportDi
     }
   };
 
-  return <ExportDialogView busy={busy} cancelButtonRef={cancelButtonRef} dialogRef={dialogRef} downloadButtonRef={downloadButtonRef} error={error} onCancel={cancelExport} onClose={onClose} onDownloadLayeredSvg={downloadLayeredSvg} onDownloadPng={download} onKeyDown={handleKeyDown} preflight={preflight} status={status} />;
+  const downloadPdf = () => void runPdfExport({ abortControllerRef, document, exporter, filename, setBusy, setError, setStatus });
+
+  return <ExportDialogView busy={busy} cancelButtonRef={cancelButtonRef} dialogRef={dialogRef} downloadButtonRef={downloadButtonRef} error={error} onCancel={cancelExport} onClose={onClose} onDownloadLayeredSvg={downloadLayeredSvg} onDownloadPdf={downloadPdf} onDownloadPng={download} onKeyDown={handleKeyDown} preflight={preflight} status={status} />;
 }

@@ -59,6 +59,39 @@ test('layered SVG download embeds the raster basemap and preserves named vector 
   await expect(dialog.getByRole('status')).toContainText('Download started for layered SVG');
 });
 
+test('PDF download has the exact page box with a raster basemap and named vector overlays', async ({ page }, testInfo) => {
+  await page.goto('/');
+  const mapReady = page.locator('[data-map-ready="true"]');
+  const mapFallback = page.getByText('Map preview unavailable');
+  await expect(mapReady.or(mapFallback)).toBeVisible({ timeout: 20_000 });
+  test.skip(await mapFallback.isVisible(), 'This browser fixture has no WebGL 2 renderer, so export cannot be exercised.');
+
+  await page.getByRole('button', { name: 'Export' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Export map' });
+  await expect(dialog).toContainText('exact-page PDF');
+  const downloadPromise = page.waitForEvent('download');
+  await dialog.getByRole('button', { name: 'Download PDF' }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe('vienna-field-guide.pdf');
+  const outputPath = testInfo.outputPath('vienna-field-guide.pdf');
+  await download.saveAs(outputPath);
+  const pdf = await readFile(outputPath);
+  expect(pdf.subarray(0, 8).toString('latin1')).toBe('%PDF-1.7');
+  expect(pdf.length).toBeGreaterThan(1000);
+  const pdfText = pdf.toString('latin1');
+  expect(pdfText).toContain('/MediaBox [0 0 841.889764 595.275591]');
+  expect(pdfText).toContain('/CropBox [0 0 841.889764 595.275591]');
+  expect(pdfText).toContain('/Subtype /Image');
+  expect(pdfText).toContain('/Filter /DCTDecode');
+  expect(pdfText).toContain('/Type /OCG /Name (Route 01)');
+  expect(pdfText).toContain('/Type /OCG /Name (Coffee stop)');
+  expect(pdfText).toContain('/Type /OCG /Name (City center)');
+  expect(pdfText).toContain('% Vector layer: Route 01');
+  expect(pdfText).toContain('% Vector layer: Coffee stop');
+  expect(pdfText).toContain('% Vector layer: City center');
+  await expect(dialog.getByRole('status')).toContainText('Download started for PDF');
+});
+
 test('export downloads the current print frame as PNG on desktop and mobile', async ({ page }, testInfo) => {
   await page.goto('/');
   const mapReady = page.locator('[data-map-ready="true"]');

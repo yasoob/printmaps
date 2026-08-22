@@ -345,6 +345,32 @@
 - The first post-remediation browser gate hit an isolated WebKit Import-trigger focus timeout in the pre-existing invalid-GPX/KML flow. The exact WebKit case passed immediately in isolation and the complete serial suite then passed; this remains tracked with the earlier third-party/focus flakes rather than being attributed to the export change.
 - Final independent fail-closed re-review passed with no security concerns, logic errors, or suggestions. It independently reran the 60 focused remediation/export tests and confirmed bounded abort/error/timeout handling, fail-closed capability invalidation, surface cleanup, PNG preservation, safe downloads, and the raster-basemap/vector-overlay structure. `docs/COMPLETE.md` does not exist because the wider mission gate remains open.
 
+### 2026-08-22 — Exact-page layered PDF export (verified)
+
+- Added a fourth explicit Export action for PDF. It captures the same raster-only basemap used by layered SVG, places it on the exact physical page, and draws route, POI and shape geometry as separate named vector optional-content groups with a required vector attribution layer.
+- The default A4 landscape PDF has an exact `841.889764 × 595.275591 pt` MediaBox/CropBox. The generated browser artifact is one PDF 1.7 page with a DCT/JPEG raster XObject, named OCGs, per-layer opacity ExtGStates, no JavaScript and no encryption.
+- Layer semantics match the editor: vector commands paint bottom-to-top so the first sidebar layer remains visually topmost; the PDF layer panel lists content top-to-bottom; hidden vector content remains embedded but starts OFF; basemap and vector opacity are preserved.
+- The dialog states the export contract honestly: PDF and layered SVG retain vector user overlays over a raster basemap; native high-resolution tile detail remains unresolved. PDF export supports the existing busy focus trap, cancellation, renderer-error withdrawal, object-URL cleanup and source-surface release.
+- Strict TDD evidence:
+  - The first focused app test failed because `Download PDF` did not exist, then passed with exact page-box, raster image, named OCG and attribution assertions.
+  - A rendered artifact exposed a UTF-16 BOM as visible attribution garbage. A RED assertion required WinAnsi-safe middle-dot/copyright escapes; the corrected artifact starts cleanly with `OpenFreeMap`.
+  - Review remediation tests failed first for hidden layers omitting their vector commands, missing basemap opacity, and route/POI/shape stacking in document order; all pass after embedding hidden commands behind OFF OCG state, adding the basemap ExtGState, and reversing paint order while preserving sidebar OCG order.
+- Final serial verification on the reviewed tree:
+  - `npm run typecheck` — pass.
+  - `npm run lint` — pass, zero warnings.
+  - `npm run doctor` — pass, no issues; telemetry disabled.
+  - `npm test -- --run` — pass, 28 files / 296 tests.
+  - `npm run build` — pass; the known ~1.24 MB pre-gzip bundle warning remains.
+  - `npm audit --omit=dev` — 0 vulnerabilities.
+  - `npm run test:e2e` — 51 pass / 6 documented Firefox WebGL-runtime skips across 57 Chromium, Firefox and WebKit cases. PDF download passes in Chromium and WebKit and is runtime-skipped with the other renderer-dependent exports in Firefox.
+- Structural and browser evidence:
+  - `qpdf --check` passes for fresh Chromium and WebKit PDFs. `pdfinfo` reports one A4 landscape page, PDF 1.7, exact page size, no JavaScript and no encryption.
+  - Current Chromium PDF: 117,582 bytes, SHA-256 `b769fa13eb761e40a6380322905afe612d9becbcc12f94b87ed0d06f7d0a955b`.
+  - Rendered PDF evidence: `docs/screenshots/pdf-export-20260822.png`, SHA-256 `ab901118abc70884be2082d75380cebc5ab19117f8f4a90aabb36fe7cdd604a3`. Visual review confirmed the raster map, polygon, POI, route and clean attribution are aligned, unclipped and not duplicated.
+  - Fresh 1440×900 editor: `docs/screenshots/latest-desktop.png`, SHA-256 `0c2057ae314b8bd7a5a60dae7346d5a00467969a4a2d74284d488696249cb8f6`. Live preview remained map-ready with zero body overflow, gradients, computed box shadows, console errors or page errors and returned HTTP 200 on `127.0.0.1:4178`.
+- The first two fail-closed reviews rejected hidden-content/opacity semantics and then layer stacking/order. Each blocker received a focused RED regression and minimal fix. A fresh final reviewer passed with no security concerns, logic errors or suggestions after independently rerunning 13 focused tests, typecheck and lint.
+- One full-suite run logged a transient OpenFreeMap Noto Sans glyph-origin outage while every case still passed. External glyph/tile availability remains a tracked third-party risk. `docs/COMPLETE.md` does not exist because the wider mission gate remains open.
+
 ## Next unresolved slice
 
-Build one bounded exact-page-size PDF export on the deterministic print scene with structural page-box, raster-basemap/vector-overlay honesty, download and interaction coverage. Core authoring tools, ZIP portability, map design controls and the Mapbox renderer/storage decision remain later completion blockers.
+Build one bounded authoring slice: create a straight-segment route from map clicks with explicit finish/cancel, canonical undo/redo and selection, plus browser and print/export coverage. Portable ZIP, POI/shape authoring, map design controls and the Mapbox renderer/storage decision remain later completion blockers.
