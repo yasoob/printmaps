@@ -110,7 +110,7 @@ test('imports supported GeoJSON as one undoable editable layer batch', async ({ 
   await expect(page.getByRole('button', { name: 'Select Café Central' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Select Danube path' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Select Inner district' })).toBeVisible();
-  await expect(page.getByRole('status', { name: 'GeoJSON import status' }))
+  await expect(page.getByRole('status', { name: 'Map data import status' }))
     .toHaveText('Imported 3 GeoJSON layers. Undo removes the whole import.');
   await expect(page.getByRole('button', { name: 'Import' })).toBeFocused();
   await expect(page.getByRole('button', { name: 'Undo' })).toBeEnabled();
@@ -120,6 +120,83 @@ test('imports supported GeoJSON as one undoable editable layer batch', async ({ 
   await page.getByRole('button', { name: 'Undo' }).click();
   await expect(page.getByRole('button', { name: 'Select Café Central' })).not.toBeVisible();
   await expect(page.getByRole('heading', { name: 'Project' })).toBeVisible();
+});
+
+test('imports GPX as one undoable editable layer batch', async ({ page }) => {
+  await page.goto('/');
+
+  const chooserPromise = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'Import' }).click();
+  const chooser = await chooserPromise;
+  await chooser.setFiles(path.resolve('tests/fixtures/import/wave2/namespaced.gpx'));
+
+  await expect(page.getByRole('heading', { name: 'Café Central' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Select Café Central' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Select Danube route' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Select Morgenweg 東京' })).toBeVisible();
+  await expect(page.getByRole('status', { name: 'Map data import status' }))
+    .toHaveText('Imported 3 GPX layers. Undo removes the whole import.');
+  await expect(page.getByRole('button', { name: 'Import' })).toBeFocused();
+
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(page.getByRole('button', { name: 'Select Café Central' })).not.toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Project' })).toBeVisible();
+});
+
+test('imports KML as one undoable editable layer batch', async ({ page }) => {
+  await page.goto('/');
+
+  const chooserPromise = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'Import' }).click();
+  const chooser = await chooserPromise;
+  await chooser.setFiles(path.resolve('tests/fixtures/import/wave2/namespaced.kml'));
+
+  await expect(page.getByRole('heading', { name: 'Café point' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Select Café point' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Select Río line' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Select 公園 polygon' })).toBeVisible();
+  await expect(page.getByRole('status', { name: 'Map data import status' }))
+    .toHaveText('Imported 3 KML layers. Undo removes the whole import.');
+  await expect(page.getByRole('button', { name: 'Import' })).toBeFocused();
+
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(page.getByRole('button', { name: 'Select Café point' })).not.toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Project' })).toBeVisible();
+});
+
+test('rejects invalid GPX and KML without changing history and allows a retry', async ({ page }) => {
+  await page.goto('/');
+
+  for (const invalidFile of [
+    {
+      file: { name: 'empty.gpx', mimeType: 'application/gpx+xml', buffer: Buffer.from('<gpx xmlns="http://www.topografix.com/GPX/1/1"/>') },
+      error: 'GPX contains no supported features',
+    },
+    {
+      file: { name: 'broken.kml', mimeType: 'application/vnd.google-earth.kml+xml', buffer: Buffer.from('<kml>') },
+      error: 'not valid KML XML',
+    },
+    {
+      file: { name: 'renamed.txt', mimeType: 'text/plain', buffer: Buffer.from('<gpx/>') },
+      error: 'GeoJSON, GPX, or KML file',
+    },
+  ]) {
+    const chooserPromise = page.waitForEvent('filechooser');
+    await page.getByRole('button', { name: 'Import' }).click();
+    const chooser = await chooserPromise;
+    await chooser.setFiles(invalidFile.file);
+
+    await expect(page.getByRole('alert', { name: 'Map data import status' })).toContainText(invalidFile.error);
+    await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Import' })).toBeFocused();
+  }
+
+  const retryChooserPromise = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'Import' }).click();
+  const retryChooser = await retryChooserPromise;
+  await retryChooser.setFiles(path.resolve('tests/fixtures/import/wave2/namespaced.kml'));
+  await expect(page.getByRole('status', { name: 'Map data import status' })).toContainText('Imported 3 KML layers');
+  await expect(page.getByRole('button', { name: 'Import' })).toBeFocused();
 });
 
 test('rejects empty GeoJSON without changing history and allows the same chooser to retry', async ({ page }) => {
@@ -134,7 +211,7 @@ test('rejects empty GeoJSON without changing history and allows the same chooser
     buffer: Buffer.from('{"type":"FeatureCollection","features":[]}'),
   });
 
-  await expect(page.getByRole('alert', { name: 'GeoJSON import status' }))
+  await expect(page.getByRole('alert', { name: 'Map data import status' }))
     .toContainText('at least one supported Point, LineString, or Polygon feature');
   await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Import' })).toBeFocused();
@@ -143,7 +220,7 @@ test('rejects empty GeoJSON without changing history and allows the same chooser
   await page.getByRole('button', { name: 'Import' }).click();
   const retryChooser = await retryChooserPromise;
   await retryChooser.setFiles(path.resolve('tests/fixtures/import/supported.geojson'));
-  await expect(page.getByRole('status', { name: 'GeoJSON import status' })).toContainText('Imported 3');
+  await expect(page.getByRole('status', { name: 'Map data import status' })).toContainText('Imported 3');
   await expect(page.getByRole('button', { name: 'Select Café Central' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Import' })).toBeFocused();
 });

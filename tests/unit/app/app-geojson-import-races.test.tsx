@@ -54,7 +54,7 @@ describe('GeoJSON import document isolation', () => {
     await act(async () => { finishImport?.(pointGeoJson); });
 
     expect(screen.queryByRole('button', { name: 'Select Slow café' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('status', { name: 'GeoJSON import status' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('status', { name: 'Map data import status' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
   });
 
@@ -65,7 +65,7 @@ describe('GeoJSON import document isolation', () => {
     fireEvent.change(importInput, {
       target: { files: [fileWithText('point.geojson', pointGeoJson, 'application/geo+json')] },
     });
-    expect(await screen.findByRole('status', { name: 'GeoJSON import status' }))
+    expect(await screen.findByRole('status', { name: 'Map data import status' }))
       .toHaveTextContent('Imported 1 GeoJSON layer');
 
     const opened = createInitialProjectDocument();
@@ -81,6 +81,6 @@ describe('GeoJSON import document isolation', () => {
     });
     expect(await screen.findByRole('button', { name: 'Opened after import' })).toBeInTheDocument();
 
-    expect(screen.queryByRole('status', { name: 'GeoJSON import status' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('status', { name: 'Map data import status' })).not.toBeInTheDocument();
   });
 });

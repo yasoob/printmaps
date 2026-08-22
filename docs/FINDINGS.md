@@ -273,10 +273,6 @@
   - Visual review found the compact footer status and centered recovery dialog readable with no material clipping, overlap, gradient, decorative shadow, or hierarchy defect.
 - `docs/COMPLETE.md` does not exist; the mission completion gate remains open.
 
-## Next unresolved slice
-
-Prepare the three conflict-safe Wave 2 foundation worktrees, then wire one additional integrated surface only after the current GeoJSON UI slice is reviewed and committed.
-
 ### 2026-08-22 — Wave 1 audit and bounded GeoJSON UI integration (verified)
 
 - Audited every registered worktree, branch status, live Hermes/test process and preview artifact before acting. No duplicate implementation worker or test server was launched; the enabled preview remained the sole workspace Vite service on `127.0.0.1:4178`.
@@ -293,3 +289,28 @@ Prepare the three conflict-safe Wave 2 foundation worktrees, then wire one addit
 - Fresh serial verification: focused Wave 1 tests pass (17 export-preflight, 7 print-scene, 23 GeoJSON parser); typecheck passes; ESLint passes with zero warnings; React Doctor reports no issues; Vitest passes 23 files / 196 tests; production build passes with the known bundle-size warning; audit reports 0 vulnerabilities; Playwright passes 38 with 4 runtime Firefox WebGL skips across 42 Chromium, Firefox and WebKit cases.
 - Browser evidence: fresh 1440×900 `docs/screenshots/latest-desktop.png`, SHA-256 `6559e34c73f7e433c72b8b2bb0a13ef7d6007f93e34f44e395f9a008cc7fa056`. The new Import action fits the flat top bar without clipping or overlap; the editor screenshot shows no visible error, gradient or decorative shadow. Live preview inspection reported a ready map, zero body overflow, zero computed gradients/shadows and an empty console/page-error buffer; the preview returned HTTP 200.
 - A transient OpenFreeMap glyph-origin fetch failure appeared in an earlier temporary Playwright server output while the suite continued successfully; external tile/font availability remains a tracked third-party risk. The first fail-closed review rejected asynchronous import/open races; remediation was verified and the final independent re-review passed with no security concerns or logic errors. Non-blocking follow-ups are clearing a prior status as soon as a new read starts and adding a direct stale-epoch store regression in addition to the app-level race coverage.
+
+### 2026-08-22 — Wave 2 foundations and bounded GPX/KML UI integration (verified)
+
+- Recovered three interrupted Wave 2 worktrees without resetting their partial artifacts. Each worker stayed within its exclusive leaf-module/test scope, avoided manifests and integration hotspots, committed verified work, removed its temporary `node_modules` symlink, and left a clean worktree.
+- Integrated the independently reviewed foundations one at a time:
+  - raster compositor `6a2177d` via merge `e443ef3`: sequential tile/strip execution, exact overlap crop/destination mapping, monotonic progress, cancellation checkpoints and deterministic release/error behavior (10 focused tests);
+  - Mapbox provider core `f44784c` via merge `8d22bbe`: provider-neutral contracts, strict public-token and HTTPS API-host validation, terms/storage-use boundary, abort-race containment, and actionable offline/401/403/422/429/other failure normalization (26 focused tests);
+  - GPX/KML import `8803cd3` plus review fix `27c1427` via merge `1bf44d9`: bounded namespace-aware XML parsing, DTD/entity rejection, deterministic canonical layers, points/lines/polygons with KML holes, and strict decimal lexical validation (39 focused tests).
+- The first GPX/KML review correctly rejected JavaScript-only numeric literals such as `0x10`; a RED matrix failed 9 cases before complete decimal lexical validation made 39 tests pass. Final re-review found no remaining security, logic or scope blocker. Independent raster and Mapbox reviews also passed.
+- Wired one bounded integration surface: the existing **Import** chooser now accepts `.geojson`, `.gpx`, and `.kml`, dispatches to the strict local parser, inserts each file as one undoable editable layer batch, selects the first imported layer, restores focus, and reports format-correct accessible status/errors. Empty GPX, malformed KML, wrong suffix, unchanged history and retry are covered across Chromium, Firefox and WebKit.
+- Strict UI TDD evidence: the GPX flow first failed with no `Café Central` heading; the KML flow first failed with no `Café point` heading; an existing empty-GeoJSON regression then failed on the broadened error wording before the exact corrective message was restored. The first UI review rejected a shared zero-layer fallback and missing invalid-format interaction coverage; isolating GeoJSON's empty check and adding the invalid/retry flow produced a clean final re-review (24/24 project-file browser cases).
+- Final serial verification on the completed tree:
+  - `npm run typecheck` — pass.
+  - `npm run lint` — pass, zero warnings.
+  - `npm run doctor` — pass, no issues; telemetry disabled.
+  - `npm test -- --run` — pass, 26 files / 271 tests.
+  - `npm run build` — pass; the known ~1.21 MB pre-gzip bundle warning remains.
+  - `npm audit --omit=dev` — 0 vulnerabilities.
+  - `npm run test:e2e` — 47 pass / 4 documented Firefox WebGL-environment skips across 51 Chromium, Firefox and WebKit cases.
+- Fresh browser evidence: `docs/screenshots/latest-desktop.png` is a current 1440×900 Chromium capture, SHA-256 `6559e34c73f7e433c72b8b2bb0a13ef7d6007f93e34f44e395f9a008cc7fa056`. Live inspection reported a ready map, overlay order `route-01,poi-cafe,area-center`, GPX/KML accept filters, zero body overflow, zero computed gradients/shadows and an empty console/error buffer. Visual review found no clipping, topbar crowding, overlap or hierarchy defect; the enabled preview remained healthy on `127.0.0.1:4178` with HTTP 200.
+- `docs/COMPLETE.md` does not exist. Core authoring, portable ZIP, high-resolution PNG/PDF/layered-SVG UI and the Mapbox renderer/storage decision still keep the mission gate open.
+
+## Next unresolved slice
+
+Wire export preflight and the reviewed raster compositor into one bounded Export-dialog flow with progress/cancellation and allocation-error coverage. Keep provider/search UI behind the explicit Mapbox renderer/storage decision rather than treating the new provider core as permission to ship it.

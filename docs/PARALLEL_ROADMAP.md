@@ -132,7 +132,7 @@ Wave 2 was assigned from verified base `e4b8a7e` with these conflict-safe bounda
 | `agent/import-gpx-kml` | `/root/printmap-agents/import-gpx-kml` | new GPX/KML leaf modules, `tests/unit/gpx-kml-import.test.ts`, and `tests/fixtures/import/wave2/**` |
 | `agent/raster-compositor` | `/root/printmap-agents/raster-compositor` | new raster-compositor leaf modules and `tests/unit/raster-compositor.test.ts` |
 
-No Wave 2 worker owns a manifest, lockfile, shared domain/store/UI file, or browser suite. Their branches are durable work artifacts; a later integration run must inspect actual status, SHA, scope and evidence before treating any lane as complete.
+No Wave 2 worker owned a manifest, lockfile, shared domain/store/UI file, or browser suite. The integration owner inspected and independently reviewed every branch, remediated GPX/KML decimal validation, and merged the clean foundations as `e443ef3` (raster), `8d22bbe` (Mapbox core), and `1bf44d9` (GPX/KML). A subsequent serial UI slice connected GPX/KML to the existing Import chooser with nominal, invalid, focus, retry and Undo coverage; provider and export UI wiring remain serial follow-ups.
 
 ### Wave 3 — authoring tools
 
