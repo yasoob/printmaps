@@ -49,6 +49,15 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   border-color: var(--studio-danger);
   color: var(--studio-danger);
 }
+.autosave-error-notice {
+  @apply fixed left-1/2 z-[90] max-w-md -translate-x-1/2 px-3 py-2 text-xs;
+  top: calc(var(--studio-topbar-height) + var(--studio-safe-top) + 4px);
+  width: calc(100vw - 2rem - var(--studio-safe-left) - var(--studio-safe-right));
+  border: var(--studio-border-width) solid var(--studio-danger);
+  border-radius: var(--studio-radius-md);
+  color: var(--studio-danger);
+  background: var(--studio-surface);
+}
 .brand-mark {
   @apply grid place-items-center;
   width: var(--studio-control-height);
@@ -355,6 +364,45 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   background: var(--studio-panel);
 }
 .export-dialog-actions > button:not(.primary-button) {
+  @apply min-h-8 rounded px-3;
+  border: var(--studio-border-width) solid var(--studio-line-strong);
+  background: var(--studio-surface);
+  font-size: var(--studio-font-control);
+}
+
+.recovery-overlay {
+  @apply fixed inset-0 z-[110] grid place-items-center;
+  padding: max(1rem, var(--studio-safe-top)) max(1rem, var(--studio-safe-right)) max(1rem, var(--studio-safe-bottom)) max(1rem, var(--studio-safe-left));
+}
+.recovery-backdrop {
+  @apply absolute inset-0;
+  background: var(--studio-scrim);
+}
+.recovery-dialog {
+  @apply relative z-10 grid w-full overflow-hidden;
+  max-width: 28rem;
+  border: var(--studio-border-width) solid var(--studio-line-strong);
+  border-radius: var(--studio-radius-lg);
+  background: var(--studio-surface);
+}
+.recovery-dialog-header {
+  @apply border-b px-4 py-3;
+  border-color: var(--studio-line);
+}
+.recovery-dialog-header h2 { @apply mt-0.5 text-sm font-semibold; color: var(--studio-text-strong); }
+.recovery-dialog-body {
+  @apply grid gap-2 px-4 py-4;
+  color: var(--studio-text-secondary);
+  font-size: var(--studio-font-control);
+}
+.recovery-dialog-body p { @apply m-0; line-height: 1.45; }
+.recovery-dialog-body strong { color: var(--studio-text-strong); }
+.recovery-dialog-actions {
+  @apply flex justify-end gap-2 border-t px-4 py-3;
+  border-color: var(--studio-line);
+  background: var(--studio-panel);
+}
+.recovery-dialog-actions > button:not(.primary-button) {
   @apply min-h-8 rounded px-3;
   border: var(--studio-border-width) solid var(--studio-line-strong);
   background: var(--studio-surface);

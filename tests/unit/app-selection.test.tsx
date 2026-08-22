@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { StrictMode, useEffect } from 'react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../../src/app/App';
-import type { ContentLayer } from '../../src/domain/project';
+import { createInitialProjectDocument, type ContentLayer } from '../../src/domain/project';
+import { AutosaveCorruptionError, type AutosaveRepository } from '../../src/storage/autosave';
 
 const exportMocks = vi.hoisted(() => ({
   exporter: null as null | (() => Promise<{ blob: Blob; width: number; height: number }>),
@@ -56,6 +57,251 @@ vi.mock('../../src/map/MapCanvas', () => ({
 describe('editor selection context', () => {
   beforeEach(() => {
     exportMocks.exporter = null;
+  });
+
+  it('requires an explicit choice before recovering a valid local draft', async () => {
+    const user = userEvent.setup();
+    const recovered = createInitialProjectDocument();
+    recovered.id = 'recovered-project';
+    recovered.title = 'Recovered field guide';
+    recovered.page = { preset: 'A3', widthMm: 297, heightMm: 420, orientation: 'portrait' };
+    const repository: AutosaveRepository = {
+      load: vi.fn().mockResolvedValue({
+        recordVersion: 1,
+        savedAt: '2026-08-22T10:00:00.000Z',
+        document: recovered,
+      }),
+      save: vi.fn().mockResolvedValue(undefined),
+      discard: vi.fn().mockResolvedValue(undefined),
+      close: vi.fn(),
+    };
+
+    render(<App autosaveRepository={repository} />);
+
+    const dialog = await screen.findByRole('dialog', { name: 'Recover local draft' });
+    expect(dialog).toHaveTextContent('Recovered field guide');
+    expect(screen.getByRole('button', { name: 'Recover draft' })).toHaveFocus();
+    expect(document.querySelector('.studio-shell')).toHaveAttribute('inert');
+    await user.click(screen.getByRole('button', { name: 'Recover draft' }));
+
+    expect(dialog).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Recovered field guide' })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Page preset' })).toHaveValue('A3');
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
+    expect(screen.getByRole('status', { name: 'Autosave status' })).toHaveTextContent('Recovered local draft');
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Recovered field guide' })).toHaveFocus());
+  });
+
+  it('autosaves the canonical document after an edit', async () => {
+    const user = userEvent.setup();
+    const repository: AutosaveRepository = {
+      load: vi.fn().mockResolvedValue(null),
+      save: vi.fn().mockResolvedValue(undefined),
+      discard: vi.fn().mockResolvedValue(undefined),
+      close: vi.fn(),
+    };
+    render(<App autosaveRepository={repository} />);
+    await screen.findByText('Autosave ready');
+
+    await user.click(screen.getByRole('button', { name: 'Portrait' }));
+
+    await waitFor(() => expect(repository.save).toHaveBeenCalledTimes(1));
+    expect(repository.save).toHaveBeenCalledWith(expect.objectContaining({
+      page: { preset: 'A4', widthMm: 210, heightMm: 297, orientation: 'portrait' },
+    }));
+    expect(screen.getByRole('status', { name: 'Autosave status' })).toHaveTextContent('All changes saved locally');
+  });
+
+  it('traps focus until the user explicitly discards a recovered draft', async () => {
+    const user = userEvent.setup();
+    const recovered = createInitialProjectDocument();
+    recovered.title = 'Older local work';
+    const repository: AutosaveRepository = {
+      load: vi.fn().mockResolvedValue({ recordVersion: 1, savedAt: '2026-08-22T10:00:00.000Z', document: recovered }),
+      save: vi.fn().mockResolvedValue(undefined),
+      discard: vi.fn().mockResolvedValue(undefined),
+      close: vi.fn(),
+    };
+    render(<App autosaveRepository={repository} />);
+    const dialog = await screen.findByRole('dialog', { name: 'Recover local draft' });
+    const recover = screen.getByRole('button', { name: 'Recover draft' });
+    const discard = screen.getByRole('button', { name: 'Discard draft' });
+
+    await user.keyboard('{Shift>}{Tab}{/Shift}');
+    expect(discard).toHaveFocus();
+    await user.keyboard('{Tab}');
+    expect(recover).toHaveFocus();
+    await user.keyboard('{Escape}');
+    expect(dialog).toBeInTheDocument();
+    await user.click(discard);
+
+    await waitFor(() => expect(dialog).not.toBeInTheDocument());
+    expect(repository.discard).toHaveBeenCalledTimes(1);
+    expect(repository.save).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Vienna field guide' })).toHaveFocus());
+  });
+
+  it('contains recovery actions while a draft discard is pending', async () => {
+    const user = userEvent.setup();
+    const recovered = createInitialProjectDocument();
+    recovered.title = 'Older local work';
+    let finishDiscard: (() => void) | undefined;
+    const repository: AutosaveRepository = {
+      load: vi.fn().mockResolvedValue({ recordVersion: 1, savedAt: '2026-08-22T10:00:00.000Z', document: recovered }),
+      save: vi.fn().mockResolvedValue(undefined),
+      discard: vi.fn(() => new Promise<void>((resolve) => { finishDiscard = resolve; })),
+      close: vi.fn(),
+    };
+    render(<App autosaveRepository={repository} />);
+    const dialog = await screen.findByRole('dialog', { name: 'Recover local draft' });
+
+    await user.click(screen.getByRole('button', { name: 'Discard draft' }));
+
+    expect(dialog).toHaveAttribute('aria-busy', 'true');
+    expect(dialog).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'Discard draft' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Recover draft' })).toBeDisabled();
+    finishDiscard?.();
+    await waitFor(() => expect(dialog).not.toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'Vienna field guide' })).toBeInTheDocument();
+    expect(repository.save).not.toHaveBeenCalled();
+  });
+
+  it('keeps edits usable and exposes an actionable quota failure', async () => {
+    const user = userEvent.setup();
+    const repository: AutosaveRepository = {
+      load: vi.fn().mockResolvedValue(null),
+      save: vi.fn().mockRejectedValue(new DOMException('Storage full', 'QuotaExceededError')),
+      discard: vi.fn().mockResolvedValue(undefined),
+      close: vi.fn(),
+    };
+    render(<App autosaveRepository={repository} />);
+    await screen.findByText('Autosave ready');
+
+    await user.click(screen.getByRole('button', { name: 'Portrait' }));
+
+    const alert = await screen.findByRole('alert', { name: 'Autosave status' });
+    expect(alert).toHaveClass('autosave-error-notice');
+    expect(alert).toHaveTextContent('browser storage is full');
+    expect(alert).toHaveTextContent('Use Save');
+    expect(screen.getByRole('status', { name: 'Autosave status' })).toHaveTextContent('Autosave paused');
+    expect(screen.getByRole('button', { name: 'Portrait' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeEnabled();
+  });
+
+  it('blocks unsafe recovery until a damaged local draft is explicitly discarded', async () => {
+    const user = userEvent.setup();
+    const repository: AutosaveRepository = {
+      load: vi.fn().mockRejectedValue(new AutosaveCorruptionError()),
+      save: vi.fn().mockResolvedValue(undefined),
+      discard: vi.fn().mockResolvedValue(undefined),
+      close: vi.fn(),
+    };
+    render(<App autosaveRepository={repository} />);
+
+    const dialog = await screen.findByRole('dialog', { name: 'Local draft unavailable' });
+    const discard = screen.getByRole('button', { name: 'Discard damaged draft' });
+    expect(dialog).toHaveTextContent('damaged or unsupported');
+    expect(discard).toHaveFocus();
+    expect(document.querySelector('.studio-shell')).toHaveAttribute('inert');
+    await user.keyboard('{Escape}');
+    expect(dialog).toBeInTheDocument();
+    await user.click(discard);
+
+    await waitFor(() => expect(dialog).not.toBeInTheDocument());
+    expect(repository.discard).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Vienna field guide' })).toHaveFocus());
+    expect(screen.getByRole('status', { name: 'Autosave status' })).toHaveTextContent('Autosave ready');
+  });
+
+  it('does not lose an edit made while local storage is still loading', async () => {
+    const user = userEvent.setup();
+    let finishLoad: ((draft: null) => void) | undefined;
+    const repository: AutosaveRepository = {
+      load: vi.fn(() => new Promise<null>((resolve) => { finishLoad = resolve; })),
+      save: vi.fn().mockResolvedValue(undefined),
+      discard: vi.fn().mockResolvedValue(undefined),
+      close: vi.fn(),
+    };
+    render(<App autosaveRepository={repository} />);
+
+    await user.click(screen.getByRole('button', { name: 'Portrait' }));
+    finishLoad?.(null);
+
+    await waitFor(() => expect(repository.save).toHaveBeenCalledTimes(1));
+    expect(repository.save).toHaveBeenCalledWith(expect.objectContaining({
+      page: { preset: 'A4', widthMm: 210, heightMm: 297, orientation: 'portrait' },
+    }));
+  });
+
+  it('ignores a stale autosave load from the StrictMode effect probe', async () => {
+    const staleDraft = createInitialProjectDocument();
+    staleDraft.title = 'Stale local work';
+    let finishFirstLoad: ((draft: { recordVersion: 1; savedAt: string; document: typeof staleDraft }) => void) | undefined;
+    let finishSecondLoad: ((draft: null) => void) | undefined;
+    const repository: AutosaveRepository = {
+      load: vi.fn()
+        .mockImplementationOnce(() => new Promise((resolve) => { finishFirstLoad = resolve; }))
+        .mockImplementationOnce(() => new Promise<null>((resolve) => { finishSecondLoad = resolve; })),
+      save: vi.fn().mockResolvedValue(undefined),
+      discard: vi.fn().mockResolvedValue(undefined),
+      close: vi.fn(),
+    };
+    render(<StrictMode><App autosaveRepository={repository} /></StrictMode>);
+    await waitFor(() => expect(repository.load).toHaveBeenCalledTimes(2));
+
+    await act(async () => { finishSecondLoad?.(null); });
+    await screen.findByText('Autosave ready');
+    await act(async () => {
+      finishFirstLoad?.({ recordVersion: 1, savedAt: '2026-08-22T10:00:00.000Z', document: staleDraft });
+    });
+
+    expect(screen.queryByRole('dialog', { name: 'Recover local draft' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Vienna field guide' })).toBeInTheDocument();
+  });
+
+  it('keeps a damaged-draft decision contained when discard storage fails', async () => {
+    const user = userEvent.setup();
+    const repository: AutosaveRepository = {
+      load: vi.fn().mockRejectedValue(new AutosaveCorruptionError()),
+      save: vi.fn().mockResolvedValue(undefined),
+      discard: vi.fn().mockRejectedValue(new Error('database blocked')),
+      close: vi.fn(),
+    };
+    render(<App autosaveRepository={repository} />);
+    const dialog = await screen.findByRole('dialog', { name: 'Local draft unavailable' });
+    const discard = screen.getByRole('button', { name: 'Discard damaged draft' });
+
+    await user.click(discard);
+
+    expect(dialog).toBeInTheDocument();
+    expect(discard).toHaveFocus();
+    expect(await screen.findByRole('alert', { name: 'Autosave status' })).toHaveTextContent('Save a project file');
+  });
+
+  it('does not run a queued stale save after the editor unmounts', async () => {
+    const user = userEvent.setup();
+    let finishFirstSave: (() => void) | undefined;
+    const repository: AutosaveRepository = {
+      load: vi.fn().mockResolvedValue(null),
+      save: vi.fn()
+        .mockImplementationOnce(() => new Promise<void>((resolve) => { finishFirstSave = resolve; }))
+        .mockResolvedValue(undefined),
+      discard: vi.fn().mockResolvedValue(undefined),
+      close: vi.fn(),
+    };
+    const { unmount } = render(<App autosaveRepository={repository} />);
+    await screen.findByText('Autosave ready');
+    await user.click(screen.getByRole('button', { name: 'Portrait' }));
+    await waitFor(() => expect(repository.save).toHaveBeenCalledTimes(1));
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Page preset' }), 'A3');
+    await new Promise((resolve) => window.setTimeout(resolve, 350));
+
+    unmount();
+    finishFirstSave?.();
+    await new Promise((resolve) => window.setTimeout(resolve, 20));
+
+    expect(repository.save).toHaveBeenCalledTimes(1);
   });
 
   it('synchronizes ordered content state while list hover previews and canvas clicks select', async () => {
@@ -123,7 +369,7 @@ describe('editor selection context', () => {
     expect(dialog).toHaveFocus();
 
     finishExport?.({ blob: new Blob(['png']), width: 100, height: 80 });
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Download started'));
+    await waitFor(() => expect(within(dialog).getByRole('status')).toHaveTextContent('Download started'));
   });
 
   it('clears a hovered layer preview when the layer is hidden', async () => {

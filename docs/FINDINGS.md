@@ -250,6 +250,29 @@
 - Independent fail-closed review passed with no security concerns or logic errors. Non-blocking suggestions were explicit same-file/boundary/legacy/limit coverage, serializing overlapping asynchronous opens, and exposing Open through a future mobile overflow action.
 - Scope remains bounded: IndexedDB autosave/recovery and ZIP project packaging are still unresolved. `docs/COMPLETE.md` does not exist.
 
+### 2026-08-22 — Vertical slice 9: IndexedDB autosave and explicit recovery (verification complete, pending final review)
+
+- Added a versioned IndexedDB draft repository that validates every stored document through the portable-project parser before exposing it to application state. Draft writes are debounced and serialized; teardown cancels pending work and prevents queued writes after unmount.
+- The editor now shows live autosave state, keeps editing available when storage is unavailable or full, and provides an actionable portable-Save fallback for quota and generic storage errors.
+- Startup never replaces the current project silently. A valid local draft opens a focus-trapped recovery decision; a corrupt or unsupported record remains contained until explicitly discarded. Recovering establishes a fresh history root, while successful discard restores focus and permits pending canonical edits to save.
+- Interaction coverage exercises recovery/discard, Escape refusal, forward/reverse focus containment, focus restoration, corrupt records, discard failure, quota failure, edits made while storage is loading, queued-save teardown, mobile safe-area geometry, body overflow, reload persistence, and all three browser engines.
+- Fresh serial verification on the staged integration tree:
+  - `npm test -- --run tests/unit/autosave.test.ts tests/unit/app-selection.test.tsx` — pass, 2 files / 40 tests.
+  - `npm run typecheck` — pass.
+  - `npm run lint` — pass, zero warnings.
+  - `npm run doctor` — pass, no issues; telemetry disabled.
+  - `npm test -- --run` — pass, 8 files / 108 tests.
+  - `npm run build` — pass; existing ~1.19 MB pre-gzip bundle warning remains.
+  - `npm audit --omit=dev` — 0 vulnerabilities.
+  - `npm run test:e2e` — 29 pass / 4 documented Firefox WebGL-environment skips across 33 Chromium, Firefox, and WebKit cases.
+- Browser and screenshot evidence:
+  - Stable 1440×900 editor captured by the fresh Chromium gate: `docs/screenshots/latest-desktop.png`, SHA-256 `d07ce14eb5cfcf9aa4e71cc7c0be7c03f81b4ac26e3a1c23d8049449bd9fa40e`.
+  - Recovery dialog: `docs/screenshots/autosave-recovery-desktop.png` (1440×900), SHA-256 `bdb08942bb5915ba08b9afb7da158b74f36e517a9e436ccbb43290e29bb64305`.
+  - Mobile recovery dialog: `docs/screenshots/autosave-recovery-mobile.png` (390×844), SHA-256 `850ed42fe68dfaf8a40be57936ca65a60fb089c1a6df3269967b7b5fc8f6c186`.
+  - Live preview at `127.0.0.1:4178` returned HTTP 200, changed to Portrait, reported `All changes saved locally`, presented the recovery dialog after reload, and had zero console warnings/errors or page errors.
+  - Visual review found the compact footer status and centered recovery dialog readable with no material clipping, overlap, gradient, decorative shadow, or hierarchy defect.
+- `docs/COMPLETE.md` does not exist; the mission completion gate remains open.
+
 ## Next unresolved slice
 
-Implement IndexedDB autosave/recovery as a separately tested, versioned persistence flow with corruption/quota handling and an explicit recovery decision.
+Integrate the conflict-safe Wave 1 export-preflight, print-scene, and strict GeoJSON-import foundations after their worktrees are clean, committed, reviewed, and rebased onto the latest verified main.

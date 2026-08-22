@@ -30,6 +30,13 @@ import type { ContentLayer, LayerType, PageSettings, ProjectDocument, StandardPa
 import { MAX_PROJECT_FILE_BYTES, parseProjectFileText } from '../domain/projectFile';
 import { startPreviewDownload, type PreviewPngExporter } from '../export/previewPng';
 import { MapCanvas } from '../map/MapCanvas';
+import { createIndexedDbAutosaveRepository, type AutosaveRepository } from '../storage/autosave';
+import {
+  ProjectAutosaveDialogs,
+  ProjectAutosaveErrorNotice,
+  ProjectAutosaveStatus,
+} from '../storage/ProjectAutosaveUi';
+import { useProjectAutosave } from '../storage/useProjectAutosave';
 import { createProjectStore } from './store';
 
 const layerIcons: Record<LayerType, typeof Route> = {
@@ -231,9 +238,15 @@ function useMobilePanels() {
   };
 }
 
-export function App() {
+export function App({ autosaveRepository }: { autosaveRepository?: AutosaveRepository | null } = {}) {
   const [projectStore] = useState(() => createProjectStore());
+  const [resolvedAutosaveRepository] = useState(() => (
+    autosaveRepository === undefined
+      ? (typeof indexedDB === 'undefined' ? null : createIndexedDbAutosaveRepository())
+      : autosaveRepository
+  ));
   const project = useStore(projectStore);
+  const autosave = useProjectAutosave(projectStore, resolvedAutosaveRepository);
   const [activeTool, setActiveTool] = useState('select');
   const [previewedLayerId, setPreviewedLayerId] = useState<string | null>(null);
   const [fitRequest, setFitRequest] = useState(0);
@@ -278,7 +291,7 @@ export function App() {
 
   return (
     <>
-      <main className="studio-shell" inert={exportOpen}>
+      <main className="studio-shell" inert={exportOpen || autosave.recoveryDraft !== null || autosave.corrupted}>
       <header className="topbar" inert={activeMobilePanel !== null}>
         <div className="brand-block">
           <div className="brand-mark" aria-hidden="true"><PenLine size={16} strokeWidth={2} /></div>
@@ -376,7 +389,7 @@ export function App() {
               );
           })}
         </ul>
-        <div className="sidebar-footer"><span>{layers.length} layers</span><span>Local draft</span></div>
+        <div className="sidebar-footer"><span>{layers.length} layers</span><ProjectAutosaveStatus autosave={autosave} /></div>
       </aside>
 
       <section className="canvas-region" inert={activeMobilePanel !== null}>
@@ -481,6 +494,7 @@ export function App() {
         )}
       </aside>
       </main>
+      <ProjectAutosaveErrorNotice autosave={autosave} />
       {exportOpen && (
         <ExportDialog
           exporter={mapExporter?.run ?? null}
@@ -488,6 +502,7 @@ export function App() {
           onClose={closeExport}
         />
       )}
+      <ProjectAutosaveDialogs autosave={autosave} projectTitleRef={projectTitleRef} />
     </>
   );
 }
