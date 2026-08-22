@@ -17,6 +17,7 @@ type MapCanvasControllerOptions = {
   onLayerSelect: (id: string) => void;
   previewedId: string | null;
   selectedId: string | null;
+  contentRevision?: object;
 };
 
 const PAGE_BOUNDS: [[number, number], [number, number]] = [[16.28, 48.14], [16.48, 48.26]];
@@ -29,11 +30,12 @@ export function useMapCanvasController({
   onLayerSelect,
   previewedId,
   selectedId,
+  contentRevision,
 }: MapCanvasControllerOptions) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<MapLibreMap | null>(null);
   const contentAdapter = useRef<MapContentAdapter | null>(null);
-  const contentState = useRef<MapContentState>({ layers, selectedId, previewedId });
+  const contentState = useRef<MapContentState>({ layers, selectedId, previewedId, contentRevision });
   const contentSyncDeferred = useRef(false);
   const contentReady = useRef(false);
   const layerSelect = useRef(onLayerSelect);
@@ -80,9 +82,9 @@ export function useMapCanvasController({
   }, [onExporterChange]);
 
   useEffect(() => {
-    contentState.current = { layers, selectedId, previewedId };
+    contentState.current = { layers, selectedId, previewedId, contentRevision };
     handleContentSyncResult(contentAdapter.current?.sync(contentState.current));
-  }, [handleContentSyncResult, layers, previewedId, selectedId]);
+  }, [handleContentSyncResult, layers, previewedId, selectedId, contentRevision]);
 
   useEffect(() => startMapLifecycle({
     handleContentSyncResult,

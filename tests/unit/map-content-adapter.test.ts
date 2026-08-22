@@ -190,7 +190,7 @@ describe('MapLibre content adapter', () => {
     ]));
   });
 
-  it('reuses the structural signature for selection and hover syncs with the same layer array', () => {
+  it('reuses the content snapshot for selection and hover syncs with an explicit revision', () => {
     const { map } = createMapHarness();
     const adapter = createMapLibreContentAdapter(map, document.createElement('div'));
     const layers = [contentLayer('route', 'route', {
@@ -199,10 +199,11 @@ describe('MapLibre content adapter', () => {
     })];
     const stringify = vi.spyOn(JSON, 'stringify');
 
-    adapter.sync({ layers, selectedId: null, previewedId: null });
+    const contentRevision = {};
+    adapter.sync({ layers, selectedId: null, previewedId: null, contentRevision });
     const initialStringifyCalls = stringify.mock.calls.length;
-    adapter.sync({ layers, selectedId: 'route', previewedId: null });
-    adapter.sync({ layers, selectedId: null, previewedId: 'route' });
+    adapter.sync({ layers, selectedId: 'route', previewedId: null, contentRevision });
+    adapter.sync({ layers, selectedId: null, previewedId: 'route', contentRevision });
     const finalStringifyCalls = stringify.mock.calls.length;
     stringify.mockRestore();
 

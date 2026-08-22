@@ -36,7 +36,7 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
   const geometryLayers = useMemo(() => layers.filter((layer) => layer.geometry), [layers]);
   return (
     <section className="canvas-region" inert={activePanel !== null}>
-      <MapCanvas layers={geometryLayers} selectedId={selectedId} previewedId={previewedId} onLayerSelect={onLayerSelect} onBackgroundClick={onBackgroundClick} onExporterChange={onExporterChange} fitRequest={fitRequest} orientation={page.orientation} page={page} />
+      <MapCanvas layers={geometryLayers} contentRevision={geometryLayers} selectedId={selectedId} previewedId={previewedId} onLayerSelect={onLayerSelect} onBackgroundClick={onBackgroundClick} onExporterChange={onExporterChange} fitRequest={fitRequest} orientation={page.orientation} page={page} />
       <div className="mobile-panel-actions" aria-label="Editor panels">
         <button ref={layersTriggerRef} type="button" aria-label="Open layers" aria-controls="layers-panel" aria-expanded={activePanel === 'layers'} onClick={() => openPanel('layers')}><Layers3 size={15} /><span>Layers</span></button>
         <button ref={propertiesTriggerRef} type="button" aria-label="Open properties" aria-controls="properties-panel" aria-expanded={activePanel === 'properties'} onClick={() => openPanel('properties')}><SlidersHorizontal size={15} /><span>Properties</span></button>

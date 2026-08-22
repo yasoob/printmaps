@@ -12,6 +12,10 @@ export type MapContentState = {
   layers: ContentLayer[];
   selectedId: string | null;
   previewedId: string | null;
+  /*
+   * Provide only when every layer object and nested value remains immutable for this revision.
+   */
+  contentRevision?: object;
 };
 
 export type MapContentSyncResult = 'synced' | 'deferred' | 'failed';
@@ -91,18 +95,23 @@ export function createMapLibreContentAdapter(
   container: HTMLElement,
 ): MapContentAdapter {
   const rendered: RenderedMapContent = { mapLayerIds: [], sourceIds: [], structure: '' };
-  let cachedLayers: ContentLayer[] | undefined;
+  let cachedContentRevision: object | undefined;
   let cachedVisibleLayers: ContentLayer[] = [];
   let cachedStructure = '';
   let isCleanupPending = false;
 
-  const layerSnapshot = (layers: ContentLayer[]) => {
-    if (layers !== cachedLayers) {
-      cachedLayers = layers;
-      cachedVisibleLayers = visibleContentLayers(layers);
-      cachedStructure = contentStructure(cachedVisibleLayers);
+  const layerSnapshot = (layers: ContentLayer[], contentRevision?: object) => {
+    if (contentRevision !== undefined && contentRevision === cachedContentRevision) {
+      return { structure: cachedStructure, visibleLayers: cachedVisibleLayers };
     }
-    return { structure: cachedStructure, visibleLayers: cachedVisibleLayers };
+    const visibleLayers = visibleContentLayers(layers);
+    const structure = contentStructure(visibleLayers);
+    if (contentRevision !== undefined) {
+      cachedContentRevision = contentRevision;
+      cachedVisibleLayers = visibleLayers;
+      cachedStructure = structure;
+    }
+    return { structure, visibleLayers };
   };
 
   const cleanup = () => {
@@ -111,11 +120,11 @@ export function createMapLibreContentAdapter(
     return isComplete;
   };
 
-  const sync = ({ layers, selectedId, previewedId }: MapContentState) => {
-    const state = { layers, selectedId, previewedId };
+  const sync = ({ layers, selectedId, previewedId, contentRevision }: MapContentState) => {
+    const state = { layers, selectedId, previewedId, contentRevision };
     try {
       if (!map.isStyleLoaded()) return 'deferred';
-      const { structure: nextStructure, visibleLayers } = layerSnapshot(layers);
+      const { structure: nextStructure, visibleLayers } = layerSnapshot(layers, contentRevision);
       if (!isCleanupPending && nextStructure === rendered.structure) {
         updateRenderedContent(map, visibleLayers, state);
         updateContainerState(container, state, visibleLayers);
