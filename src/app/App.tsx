@@ -161,13 +161,18 @@ function useMobilePanels() {
       && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     focusTimerRef.current = window.setTimeout(() => {
       focusTimerRef.current = null;
+      if (document.querySelector('.recovery-dialog')) return;
       callback();
     }, reducedMotion ? 0 : delay);
   };
 
-  const closePanel = (panel: MobilePanel | null = activePanel) => {
+  const closePanel = (panel: MobilePanel | null = activePanel, restoreFocus = true) => {
+    if (focusTimerRef.current !== null) {
+      window.clearTimeout(focusTimerRef.current);
+      focusTimerRef.current = null;
+    }
     setMobilePanel(null);
-    if (panel && isMobileViewport) {
+    if (restoreFocus && panel && isMobileViewport) {
       scheduleFocus(() => (panel === 'layers' ? layersTriggerRef.current : propertiesTriggerRef.current)?.focus(), 32);
     }
   };
@@ -270,6 +275,16 @@ export function App({ autosaveRepository }: { autosaveRepository?: AutosaveRepos
     propertiesPanelRef,
     propertiesTriggerRef,
   } = useMobilePanels();
+  const autosaveDecisionOpen = autosave.recoveryDraft !== null || autosave.corrupted;
+  const modalSurface = autosaveDecisionOpen
+    ? 'autosave'
+    : exportOpen
+      ? 'export'
+      : activeMobilePanel;
+  const presentedMobilePanel = modalSurface === 'layers' || modalSurface === 'properties'
+    ? modalSurface
+    : null;
+  const autosaveReturnFocusRef = useRef<HTMLElement>(null);
 
   const layers = project.document.layers;
   const mapPreviewedLayerId = previewedLayerId !== null && layers.some((layer) => (
@@ -284,15 +299,29 @@ export function App({ autosaveRepository }: { autosaveRepository?: AutosaveRepos
   const handleExporterChange = useCallback((exporter: PreviewPngExporter | null) => {
     setMapExporter(exporter ? { run: exporter } : null);
   }, []);
-  const closeExport = () => {
+  const closeExport = useCallback((restoreFocus = true) => {
     setExportOpen(false);
-    window.setTimeout(() => exportButtonRef.current?.focus(), 0);
+    if (restoreFocus) window.setTimeout(() => exportButtonRef.current?.focus(), 0);
+  }, []);
+
+  const preemptModalSurface = () => {
+    if (exportOpen) {
+      autosaveReturnFocusRef.current = exportButtonRef.current;
+      closeExport(false);
+    } else if (activeMobilePanel) {
+      autosaveReturnFocusRef.current = activeMobilePanel === 'layers'
+        ? layersTriggerRef.current
+        : propertiesTriggerRef.current;
+      closeMobilePanel(activeMobilePanel, false);
+    } else if (!autosaveReturnFocusRef.current?.isConnected) {
+      autosaveReturnFocusRef.current = projectTitleRef.current;
+    }
   };
 
   return (
     <>
-      <main className="studio-shell" inert={exportOpen || autosave.recoveryDraft !== null || autosave.corrupted}>
-      <header className="topbar" inert={activeMobilePanel !== null}>
+      <main className="studio-shell" inert={modalSurface === 'export' || modalSurface === 'autosave'}>
+      <header className="topbar" inert={presentedMobilePanel !== null}>
         <div className="brand-block">
           <div className="brand-mark" aria-hidden="true"><PenLine size={16} strokeWidth={2} /></div>
           <span className="brand-name">Print Map Studio</span>
@@ -314,11 +343,11 @@ export function App({ autosaveRepository }: { autosaveRepository?: AutosaveRepos
       <aside
         ref={layersPanelRef}
         id="layers-panel"
-        className={`left-sidebar${activeMobilePanel === 'layers' ? ' is-mobile-open' : ''}`}
+        className={`left-sidebar${presentedMobilePanel === 'layers' ? ' is-mobile-open' : ''}`}
         aria-label="Layers sidebar"
-        role={activeMobilePanel === 'layers' ? 'dialog' : undefined}
-        aria-modal={activeMobilePanel === 'layers' ? true : undefined}
-        inert={activeMobilePanel === 'properties'}
+        role={presentedMobilePanel === 'layers' ? 'dialog' : undefined}
+        aria-modal={presentedMobilePanel === 'layers' ? true : undefined}
+        inert={modalSurface === 'autosave' || presentedMobilePanel === 'properties'}
         onKeyDown={(event) => handleMobilePanelKeyDown(event, 'layers')}
       >
         <div className="panel-header">
@@ -392,7 +421,7 @@ export function App({ autosaveRepository }: { autosaveRepository?: AutosaveRepos
         <div className="sidebar-footer"><span>{layers.length} layers</span><ProjectAutosaveStatus autosave={autosave} /></div>
       </aside>
 
-      <section className="canvas-region" inert={activeMobilePanel !== null}>
+      <section className="canvas-region" inert={presentedMobilePanel !== null}>
         <MapCanvas
           layers={layers.filter((layer) => layer.geometry)}
           selectedId={project.selectedId}
@@ -405,8 +434,8 @@ export function App({ autosaveRepository }: { autosaveRepository?: AutosaveRepos
           page={project.document.page}
         />
         <div className="mobile-panel-actions" aria-label="Editor panels">
-          <button ref={layersTriggerRef} type="button" aria-label="Open layers" aria-controls="layers-panel" aria-expanded={activeMobilePanel === 'layers'} onClick={() => openMobilePanel('layers')}><Layers3 size={15} /><span>Layers</span></button>
-          <button ref={propertiesTriggerRef} type="button" aria-label="Open properties" aria-controls="properties-panel" aria-expanded={activeMobilePanel === 'properties'} onClick={() => openMobilePanel('properties')}><SlidersHorizontal size={15} /><span>Properties</span></button>
+          <button ref={layersTriggerRef} type="button" aria-label="Open layers" aria-controls="layers-panel" aria-expanded={presentedMobilePanel === 'layers'} onClick={() => openMobilePanel('layers')}><Layers3 size={15} /><span>Layers</span></button>
+          <button ref={propertiesTriggerRef} type="button" aria-label="Open properties" aria-controls="properties-panel" aria-expanded={presentedMobilePanel === 'properties'} onClick={() => openMobilePanel('properties')}><SlidersHorizontal size={15} /><span>Properties</span></button>
         </div>
         <nav className="tool-palette" aria-label="Map tools">
           {tools.map(({ id, label, shortcut, icon: Icon, command }, index) => (
@@ -436,16 +465,16 @@ export function App({ autosaveRepository }: { autosaveRepository?: AutosaveRepos
         </div>
       </section>
 
-      {activeMobilePanel && <button className="mobile-panel-backdrop" type="button" aria-label="Close open panel" onClick={() => closeMobilePanel()} />}
+      {presentedMobilePanel && <button className="mobile-panel-backdrop" type="button" aria-label="Close open panel" onClick={() => closeMobilePanel()} />}
 
       <aside
         ref={propertiesPanelRef}
         id="properties-panel"
-        className={`right-sidebar${activeMobilePanel === 'properties' ? ' is-mobile-open' : ''}`}
+        className={`right-sidebar${presentedMobilePanel === 'properties' ? ' is-mobile-open' : ''}`}
         aria-label="Properties sidebar"
-        role={activeMobilePanel === 'properties' ? 'dialog' : undefined}
-        aria-modal={activeMobilePanel === 'properties' ? true : undefined}
-        inert={activeMobilePanel === 'layers'}
+        role={presentedMobilePanel === 'properties' ? 'dialog' : undefined}
+        aria-modal={presentedMobilePanel === 'properties' ? true : undefined}
+        inert={modalSurface === 'autosave' || presentedMobilePanel === 'layers'}
         onKeyDown={(event) => handleMobilePanelKeyDown(event, 'properties')}
       >
         <button className="mobile-drawer-close" type="button" aria-label="Close properties" onClick={() => closeMobilePanel('properties')}><X size={16} /></button>
@@ -495,14 +524,19 @@ export function App({ autosaveRepository }: { autosaveRepository?: AutosaveRepos
       </aside>
       </main>
       <ProjectAutosaveErrorNotice autosave={autosave} />
-      {exportOpen && (
+      {modalSurface === 'export' && (
         <ExportDialog
           exporter={mapExporter?.run ?? null}
           filename={`${project.document.id}.png`}
           onClose={closeExport}
         />
       )}
-      <ProjectAutosaveDialogs autosave={autosave} projectTitleRef={projectTitleRef} />
+      <ProjectAutosaveDialogs
+        autosave={autosave}
+        onBeforeDecision={preemptModalSurface}
+        returnFocusRef={autosaveReturnFocusRef}
+        fallbackFocusRef={projectTitleRef}
+      />
     </>
   );
 }

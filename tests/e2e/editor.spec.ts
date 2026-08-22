@@ -217,6 +217,102 @@ test('contains a corrupt IndexedDB draft until the user discards it', async ({ p
   await expect(page.getByRole('status', { name: 'Autosave status' })).toHaveText('Autosave ready');
 });
 
+test('delayed autosave recovery preempts Export and mobile drawers without losing trigger focus', async ({ page }) => {
+  await page.goto('/');
+  const autosaveStatus = page.getByRole('status', { name: 'Autosave status' });
+  await expect(autosaveStatus).toHaveText('Autosave ready');
+  await page.getByRole('button', { name: 'Portrait' }).click();
+  await expect(autosaveStatus).toHaveText('All changes saved locally');
+
+  await page.addInitScript(() => {
+    const originalTransaction = IDBDatabase.prototype.transaction;
+    IDBDatabase.prototype.transaction = function delayedReadonlyDraftTransaction(
+      this: IDBDatabase,
+      storeNames: string | string[],
+      mode?: IDBTransactionMode,
+      options?: IDBTransactionOptions,
+    ) {
+      const transaction = originalTransaction.call(this, storeNames, mode, options);
+      const names = typeof storeNames === 'string' ? [storeNames] : storeNames;
+      if (mode !== 'readonly' || !names.includes('drafts')) return transaction;
+
+      let completeHandler: ((this: IDBTransaction, event: Event) => unknown) | null = null;
+      Object.defineProperty(transaction, 'oncomplete', {
+        configurable: true,
+        get: () => completeHandler,
+        set: (handler) => { completeHandler = handler; },
+      });
+      transaction.addEventListener('complete', (event) => {
+        (window as typeof window & { __releaseAutosaveLoad?: () => void }).__releaseAutosaveLoad = () => {
+          delete (window as typeof window & { __releaseAutosaveLoad?: () => void }).__releaseAutosaveLoad;
+          completeHandler?.call(transaction, event);
+        };
+      }, { once: true });
+      return transaction;
+    };
+  });
+
+  const scenarios = [
+    {
+      viewport: { width: 1440, height: 900 },
+      triggerName: 'Export',
+      preemptedDialogName: 'Export map',
+      decision: 'Recover draft',
+    },
+    {
+      viewport: { width: 390, height: 844 },
+      triggerName: 'Open layers',
+      preemptedDialogName: 'Layers sidebar',
+      decision: 'Recover draft',
+    },
+    {
+      viewport: { width: 390, height: 844 },
+      triggerName: 'Open properties',
+      preemptedDialogName: 'Properties sidebar',
+      decision: 'Discard draft',
+    },
+  ];
+
+  for (const scenario of scenarios) {
+    await page.setViewportSize(scenario.viewport);
+    await page.reload();
+    await page.waitForFunction(() => (
+      typeof (window as typeof window & { __releaseAutosaveLoad?: () => void }).__releaseAutosaveLoad === 'function'
+    ));
+
+    const trigger = page.getByRole('button', { name: scenario.triggerName });
+    await trigger.click();
+    const preemptedDialog = page.getByRole('dialog', { name: scenario.preemptedDialogName });
+    await expect(preemptedDialog).toBeVisible();
+    await page.evaluate(() => {
+      (window as typeof window & { __releaseAutosaveLoad?: () => void }).__releaseAutosaveLoad?.();
+    });
+
+    const recoveryDialog = page.getByRole('dialog', { name: 'Recover local draft' });
+    const recover = recoveryDialog.getByRole('button', { name: 'Recover draft' });
+    const discard = recoveryDialog.getByRole('button', { name: 'Discard draft' });
+    await expect(recoveryDialog).toBeVisible();
+    await expect(page.locator('[aria-modal="true"]:visible')).toHaveCount(1);
+    await expect(preemptedDialog).not.toBeVisible();
+    await expect(recover).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
+    await expect(discard).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(recoveryDialog).toBeVisible();
+    await expect(discard).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(recover).toBeFocused();
+
+    await recoveryDialog.getByRole('button', { name: scenario.decision }).click();
+
+    await expect(recoveryDialog).not.toBeVisible();
+    await expect(trigger).toBeFocused();
+    if (scenario.triggerName !== 'Export') {
+      await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    }
+  }
+});
+
 test('map content overlays preview on list hover and select from the canvas', async ({ page, browserName }) => {
   test.skip(browserName === 'firefox', 'Firefox fixture intentionally exercises the WebGL fallback path.');
   await page.goto('/');
