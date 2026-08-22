@@ -2,16 +2,41 @@ import type { RefObject } from 'react';
 import { AutosaveCorruptionDialog, AutosaveRecoveryDialog } from './AutosaveRecoveryDialog';
 import type { ProjectAutosaveState } from './useProjectAutosave';
 
-function restoreProjectTitleFocus(projectTitleRef: RefObject<HTMLButtonElement | null>) {
+function isInteractive(element: HTMLElement | null) {
+  const checkVisibility = element && 'checkVisibility' in element
+    ? element.checkVisibility.bind(element)
+    : null;
+  return element?.isConnected === true
+    && !element.closest('[inert]')
+    && !element.hasAttribute('disabled')
+    && (checkVisibility === null || checkVisibility());
+}
+
+function restoreInteractiveFocus(
+  returnFocusRef: RefObject<HTMLElement | null>,
+  fallbackFocusRef: RefObject<HTMLElement | null>,
+) {
   let attempts = 0;
   const focusWhenInteractive = () => {
-    const title = projectTitleRef.current;
-    if (title?.closest('[inert]') && attempts < 10) {
+    const returnTarget = returnFocusRef.current;
+    if (isInteractive(returnTarget)) {
+      returnTarget?.focus();
+      return;
+    }
+    if (returnTarget?.isConnected && attempts < 10) {
       attempts += 1;
       window.requestAnimationFrame(focusWhenInteractive);
       return;
     }
-    title?.focus();
+    const fallbackTarget = fallbackFocusRef.current;
+    if (isInteractive(fallbackTarget)) {
+      fallbackTarget?.focus();
+      return;
+    }
+    if (attempts < 10) {
+      attempts += 1;
+      window.requestAnimationFrame(focusWhenInteractive);
+    }
   };
   window.setTimeout(() => {
     if (typeof window.requestAnimationFrame === 'function') {
@@ -38,13 +63,18 @@ export function ProjectAutosaveErrorNotice({ autosave }: { autosave: ProjectAuto
 
 export function ProjectAutosaveDialogs({
   autosave,
-  projectTitleRef,
+  onBeforeDecision,
+  returnFocusRef,
+  fallbackFocusRef,
 }: {
   autosave: ProjectAutosaveState;
-  projectTitleRef: RefObject<HTMLButtonElement | null>;
+  onBeforeDecision: () => void;
+  returnFocusRef: RefObject<HTMLElement | null>;
+  fallbackFocusRef: RefObject<HTMLElement | null>;
 }) {
-  const restoreFocus = () => restoreProjectTitleFocus(projectTitleRef);
+  const restoreFocus = () => restoreInteractiveFocus(returnFocusRef, fallbackFocusRef);
   const discard = () => {
+    onBeforeDecision();
     void autosave.discard().then((discarded) => {
       if (discarded) restoreFocus();
     });
@@ -57,6 +87,7 @@ export function ProjectAutosaveDialogs({
           draft={autosave.recoveryDraft}
           busy={autosave.decisionPending}
           onRecover={() => {
+            onBeforeDecision();
             autosave.recover();
             restoreFocus();
           }}
