@@ -211,3 +211,24 @@ describe('GPX and KML import', () => {
     expect(() => parse(text)).toThrow(`${format} contains no supported features`);
   });
 });
+
+describe('GPX and KML numeric syntax', () => {
+  it.each(['0x10', '0b10', '0o10'].flatMap((value) => [
+    [`GPX coordinate ${value}`, `<gpx><wpt lat="0" lon="${value}"/></gpx>`, parseGpxText],
+    [`KML coordinate ${value}`, `<kml><Placemark><Point><coordinates>${value},0</coordinates></Point></Placemark></kml>`, parseKmlText],
+    [`KML altitude ${value}`, `<kml><Placemark><Point><coordinates>0,0,${value}</coordinates></Point></Placemark></kml>`, parseKmlText],
+  ] as const))('rejects non-decimal %s syntax', (_case, text, parse) => {
+    expect(() => parse(text)).toThrow('must be a finite number');
+  });
+
+  it('accepts complete decimal coordinate and altitude syntax', () => {
+    expect(parseGpxText('<gpx><wpt lat="-4.8e1" lon="+16.5"/></gpx>')[0].geometry).toEqual({
+      type: 'Point',
+      coordinates: [16.5, -48],
+    });
+    expect(parseKmlText('<kml><Placemark><Point><coordinates>+.5,-.25,1.2e3</coordinates></Point></Placemark></kml>')[0].geometry).toEqual({
+      type: 'Point',
+      coordinates: [0.5, -0.25],
+    });
+  });
+});

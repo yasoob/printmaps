@@ -5,6 +5,8 @@ export const MAX_GPX_KML_FEATURES = 1000;
 export const MAX_GPX_KML_COORDINATES = 200_000;
 export const MAX_GPX_KML_NAME_LENGTH = 100;
 
+const DECIMAL_NUMBER_PATTERN = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/iu;
+
 export type GpxKmlImportOptions = {
   existingLayerIds?: Iterable<string>;
 };
@@ -46,10 +48,15 @@ export function directChild(element: Element, localName: string): Element | unde
 }
 
 export function finiteNumber(value: string | null, label: string): number {
-  if (value === null || value.trim() === '' || !Number.isFinite(Number(value))) {
+  const decimalValue = value?.trim();
+  if (!decimalValue || !DECIMAL_NUMBER_PATTERN.test(decimalValue)) {
     throw new GpxKmlImportError(`${label} must be a finite number.`);
   }
-  return Number(value);
+  const number = Number(decimalValue);
+  if (!Number.isFinite(number)) {
+    throw new GpxKmlImportError(`${label} must be a finite number.`);
+  }
+  return number;
 }
 
 export function position(
