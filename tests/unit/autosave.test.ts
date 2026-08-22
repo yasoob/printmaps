@@ -3,6 +3,7 @@ import {
   AUTOSAVE_RECORD_VERSION,
   AutosaveConflictError,
   AutosaveCorruptionError,
+  AutosaveRevisionExhaustedError,
   createIndexedDbAutosaveRepository,
   getAutosaveFailureMessage,
 } from '../../src/storage/autosave';
@@ -26,11 +27,37 @@ async function replaceCurrentRecord(database: IDBDatabase, value: unknown) {
   });
 }
 
+async function readCurrentRecord(database: IDBDatabase) {
+  return new Promise<Record<string, unknown>>((resolve, reject) => {
+    const transaction = database.transaction('drafts', 'readonly');
+    const request = transaction.objectStore('drafts').get('current');
+    request.onsuccess = () => resolve(request.result as Record<string, unknown>);
+    request.onerror = () => reject(request.error);
+  });
+}
+
 async function openDatabase(name: string) {
   return new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(name, 1);
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
+  });
+}
+
+async function openDatabaseVersion(name: string, version: number) {
+  return new Promise<IDBDatabase>((resolve, reject) => {
+    const request = indexedDB.open(name, version);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function deleteDatabase(name: string) {
+  await new Promise<void>((resolve, reject) => {
+    const request = indexedDB.deleteDatabase(name);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+    request.onblocked = () => reject(new Error('Database deletion was blocked.'));
   });
 }
 
@@ -135,10 +162,217 @@ describe('IndexedDB project autosave', () => {
     verifier.close();
   });
 
+  it('discards the exact malformed-revision record after load reports corruption', async () => {
+    const name = databaseName();
+    const seed = createIndexedDbAutosaveRepository({ databaseName: name });
+    await seed.save(createInitialProjectDocument(), '2026-08-22T10:00:00.000Z');
+    seed.close();
+    const database = await openDatabase(name);
+    const seededRecord = await readCurrentRecord(database);
+    await replaceCurrentRecord(database, { ...seededRecord, revision: 'malformed' });
+    database.close();
+    const repository = createIndexedDbAutosaveRepository({ databaseName: name });
+
+    await expect(repository.load()).rejects.toBeInstanceOf(AutosaveCorruptionError);
+    await expect(repository.discard()).resolves.toBeUndefined();
+    await expect(repository.load()).resolves.toBeNull();
+
+    repository.close();
+  });
+
+  it('rejects a stale corruption discard after another instance replaces the malformed record', async () => {
+    const name = databaseName();
+    const seed = createIndexedDbAutosaveRepository({ databaseName: name });
+    await seed.save(createInitialProjectDocument(), '2026-08-22T10:00:00.000Z');
+    seed.close();
+    const database = await openDatabase(name);
+    const seededRecord = await readCurrentRecord(database);
+    await replaceCurrentRecord(database, { ...seededRecord, revision: 'malformed' });
+    database.close();
+    const stale = createIndexedDbAutosaveRepository({ databaseName: name });
+    const replacement = createIndexedDbAutosaveRepository({ databaseName: name });
+    const verifier = createIndexedDbAutosaveRepository({ databaseName: name });
+
+    await expect(stale.load()).rejects.toBeInstanceOf(AutosaveCorruptionError);
+    await expect(replacement.load()).rejects.toBeInstanceOf(AutosaveCorruptionError);
+    await replacement.discard();
+    await replacement.save(
+      { ...createInitialProjectDocument(), title: 'Replacement after corruption' },
+      '2026-08-22T10:01:00.000Z',
+    );
+
+    await expect(stale.discard()).rejects.toBeInstanceOf(AutosaveConflictError);
+    await expect(verifier.load()).resolves.toMatchObject({
+      document: { title: 'Replacement after corruption' },
+    });
+
+    stale.close();
+    replacement.close();
+    verifier.close();
+  });
+
+  it('uses record identity to reject a stale operation after a tombstone revision ABA', async () => {
+    const name = databaseName();
+    const seed = createIndexedDbAutosaveRepository({ databaseName: name });
+    await seed.save(createInitialProjectDocument(), '2026-08-22T10:00:00.000Z');
+    seed.close();
+    const stale = createIndexedDbAutosaveRepository({ databaseName: name });
+    await stale.load();
+    const database = await openDatabase(name);
+    const seededRecord = await readCurrentRecord(database);
+    await replaceCurrentRecord(database, { ...seededRecord, revision: 'malformed' });
+    database.close();
+    const replacement = createIndexedDbAutosaveRepository({ databaseName: name });
+    const verifier = createIndexedDbAutosaveRepository({ databaseName: name });
+
+    await expect(replacement.load()).rejects.toBeInstanceOf(AutosaveCorruptionError);
+    await replacement.discard();
+    await replacement.save(
+      { ...createInitialProjectDocument(), title: 'Same revision, different epoch' },
+      '2026-08-22T10:01:00.000Z',
+    );
+
+    const currentDatabase = await openDatabase(name);
+    expect((await readCurrentRecord(currentDatabase)).revision).toBe(1);
+    currentDatabase.close();
+    await expect(stale.discard()).rejects.toBeInstanceOf(AutosaveConflictError);
+    await expect(verifier.load()).resolves.toMatchObject({
+      document: { title: 'Same revision, different epoch' },
+    });
+
+    stale.close();
+    replacement.close();
+    verifier.close();
+  });
+
+  it('allows the final safe save revision and rejects exhaustion without changing the record', async () => {
+    const name = databaseName();
+    const seed = createIndexedDbAutosaveRepository({ databaseName: name });
+    await seed.save(createInitialProjectDocument(), '2026-08-22T10:00:00.000Z');
+    seed.close();
+    const database = await openDatabase(name);
+    const seededRecord = await readCurrentRecord(database);
+    await replaceCurrentRecord(database, {
+      ...seededRecord,
+      revision: Number.MAX_SAFE_INTEGER - 1,
+    });
+    database.close();
+    const repository = createIndexedDbAutosaveRepository({ databaseName: name });
+    await repository.load();
+
+    await repository.save(
+      { ...createInitialProjectDocument(), title: 'Final safe revision' },
+      '2026-08-22T10:01:00.000Z',
+    );
+    const verifier = await openDatabase(name);
+    const finalSafeRecord = await readCurrentRecord(verifier);
+    expect(finalSafeRecord.revision).toBe(Number.MAX_SAFE_INTEGER);
+
+    await expect(repository.save(
+      { ...createInitialProjectDocument(), title: 'Unsafe revision' },
+      '2026-08-22T10:02:00.000Z',
+    )).rejects.toBeInstanceOf(AutosaveRevisionExhaustedError);
+    expect(await readCurrentRecord(verifier)).toEqual(finalSafeRecord);
+
+    verifier.close();
+    repository.close();
+  });
+
+  it('allows the final safe discard revision and rejects exhaustion without changing the record', async () => {
+    const name = databaseName();
+    const seed = createIndexedDbAutosaveRepository({ databaseName: name });
+    await seed.save(createInitialProjectDocument(), '2026-08-22T10:00:00.000Z');
+    seed.close();
+    const database = await openDatabase(name);
+    const seededRecord = await readCurrentRecord(database);
+    await replaceCurrentRecord(database, {
+      ...seededRecord,
+      revision: Number.MAX_SAFE_INTEGER - 1,
+    });
+    database.close();
+    const repository = createIndexedDbAutosaveRepository({ databaseName: name });
+    await repository.load();
+
+    await repository.discard();
+    const verifier = await openDatabase(name);
+    const finalSafeRecord = await readCurrentRecord(verifier);
+    expect(finalSafeRecord).toMatchObject({
+      discarded: true,
+      revision: Number.MAX_SAFE_INTEGER,
+    });
+
+    await expect(repository.discard()).rejects.toBeInstanceOf(AutosaveRevisionExhaustedError);
+    expect(await readCurrentRecord(verifier)).toEqual(finalSafeRecord);
+
+    verifier.close();
+    repository.close();
+  });
+
+  it('clears a failed open so a later operation can retry', async () => {
+    const name = databaseName();
+    const request = {
+      result: null,
+      error: new DOMException('temporary failure', 'UnknownError'),
+      onupgradeneeded: null,
+      onsuccess: null,
+      onerror: null,
+      onblocked: null,
+    } as unknown as IDBOpenDBRequest;
+    const openSpy = vi.spyOn(indexedDB, 'open').mockReturnValueOnce(request);
+    const repository = createIndexedDbAutosaveRepository({ databaseName: name });
+
+    const loading = repository.load();
+    request.onerror?.(new Event('error'));
+    await expect(loading).rejects.toThrow('temporary failure');
+
+    openSpy.mockRestore();
+    await expect(repository.load()).resolves.toBeNull();
+    repository.close();
+  });
+
+  it('closes a late successful connection after a blocked open and retries cleanly', async () => {
+    const name = databaseName();
+    const lateDatabase = { close: vi.fn() } as unknown as IDBDatabase;
+    const request = {
+      result: lateDatabase,
+      error: null,
+      onupgradeneeded: null,
+      onsuccess: null,
+      onerror: null,
+      onblocked: null,
+    } as unknown as IDBOpenDBRequest;
+    const openSpy = vi.spyOn(indexedDB, 'open').mockReturnValueOnce(request);
+    const repository = createIndexedDbAutosaveRepository({ databaseName: name });
+
+    const loading = repository.load();
+    request.onblocked?.(new Event('blocked') as IDBVersionChangeEvent);
+    await expect(loading).rejects.toThrow('blocked by another tab');
+    request.onsuccess?.(new Event('success'));
+
+    expect(lateDatabase.close).toHaveBeenCalledTimes(1);
+    openSpy.mockRestore();
+    await expect(repository.load()).resolves.toBeNull();
+    repository.close();
+  });
+
+  it('drops a versionchanged connection so a later open cannot reuse the closed handle', async () => {
+    const name = databaseName();
+    const repository = createIndexedDbAutosaveRepository({ databaseName: name });
+    await repository.load();
+
+    const upgradedDatabase = await openDatabaseVersion(name, 2);
+    upgradedDatabase.close();
+    await deleteDatabase(name);
+
+    await expect(repository.load()).resolves.toBeNull();
+    repository.close();
+  });
+
   it('gives quota and generic storage failures actionable messages', () => {
     expect(getAutosaveFailureMessage(new DOMException('full', 'QuotaExceededError'))).toContain('storage is full');
     expect(getAutosaveFailureMessage({ name: 'QuotaExceededError' })).toContain('storage is full');
     expect(getAutosaveFailureMessage(new Error('offline'))).toContain('Save a project file');
     expect(getAutosaveFailureMessage(new AutosaveConflictError())).toContain('another tab');
+    expect(getAutosaveFailureMessage(new AutosaveRevisionExhaustedError())).toContain('change history is exhausted');
   });
 });

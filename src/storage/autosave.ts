@@ -34,6 +34,13 @@ export class AutosaveConflictError extends Error {
   }
 }
 
+export class AutosaveRevisionExhaustedError extends Error {
+  constructor(message = 'The local autosave change history is exhausted.') {
+    super(message);
+    this.name = 'AutosaveRevisionExhaustedError';
+  }
+}
+
 function requestResult<T>(request: IDBRequest<T>) {
   return new Promise<T>((resolve, reject) => {
     request.onsuccess = () => resolve(request.result);
@@ -47,6 +54,15 @@ function transactionComplete(transaction: IDBTransaction) {
     transaction.onerror = () => reject(transaction.error ?? new Error('IndexedDB transaction failed.'));
     transaction.onabort = () => reject(transaction.error ?? new Error('IndexedDB transaction was aborted.'));
   });
+}
+
+async function transactionRequest<T>(request: IDBRequest<T>, complete: Promise<void>) {
+  try {
+    return await requestResult(request);
+  } catch (reason) {
+    await complete.catch(() => undefined);
+    throw reason;
+  }
 }
 
 function validatedDraft(value: unknown): AutosaveDraft {
@@ -94,6 +110,50 @@ function isDiscardedRecord(value: unknown) {
   return true;
 }
 
+type StoredIdentity = {
+  recordId: string | null;
+  revision: number | null;
+};
+
+function newRecordId() {
+  return crypto.randomUUID();
+}
+
+function storedIdentity(value: unknown): StoredIdentity {
+  if (value === undefined) return { recordId: null, revision: 0 };
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return { recordId: null, revision: null };
+  }
+  const record = value as Record<string, unknown>;
+  const recordId = typeof record.recordId === 'string' && record.recordId.length > 0
+    ? record.recordId
+    : null;
+  let revision: number | null = null;
+  try {
+    revision = storedRevision(value);
+  } catch {
+    // A unique record ID still makes a malformed revision safe to compare and discard.
+  }
+  return { recordId, revision };
+}
+
+function sameStoredIdentity(left: StoredIdentity, right: StoredIdentity) {
+  return left.recordId === right.recordId && left.revision === right.revision;
+}
+
+function addRecordIdentity(value: unknown) {
+  const recordId = newRecordId();
+  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    return { ...(value as Record<string, unknown>), recordId };
+  }
+  return {
+    recordVersion: AUTOSAVE_RECORD_VERSION,
+    recordId,
+    revision: 'malformed',
+    corruptedValue: value,
+  };
+}
+
 export function getAutosaveFailureMessage(reason: unknown) {
   const errorName = typeof reason === 'object' && reason !== null && 'name' in reason
     ? String(reason.name)
@@ -107,6 +167,12 @@ export function getAutosaveFailureMessage(reason: unknown) {
   if (reason instanceof AutosaveConflictError || errorName === 'AutosaveConflictError') {
     return 'Autosave paused because this draft changed in another tab. Reload to review the newer draft before continuing.';
   }
+  if (
+    reason instanceof AutosaveRevisionExhaustedError
+    || errorName === 'AutosaveRevisionExhaustedError'
+  ) {
+    return 'Autosave paused because its local change history is exhausted. Use Save to download a project file, then clear this site’s local data.';
+  }
   return 'Autosave is unavailable. Save a project file to keep a portable copy of your work.';
 }
 
@@ -114,7 +180,7 @@ export function createIndexedDbAutosaveRepository({
   databaseName = DEFAULT_DATABASE_NAME,
 }: { databaseName?: string } = {}): AutosaveRepository {
   let openDatabase: Promise<IDBDatabase> | null = null;
-  let knownRevision: number | null = null;
+  let knownIdentity: StoredIdentity | undefined;
 
   const database = () => {
     if (!openDatabase) {
@@ -139,7 +205,9 @@ export function createIndexedDbAutosaveRepository({
           resolve(request.result);
         };
         request.onerror = () => {
+          if (settled) return;
           settled = true;
+          if (openDatabase === opening) openDatabase = null;
           reject(request.error ?? new Error('Could not open local project storage.'));
         };
         request.onblocked = () => {
@@ -157,10 +225,18 @@ export function createIndexedDbAutosaveRepository({
   return {
     async load() {
       const db = await database();
-      const transaction = db.transaction(AUTOSAVE_STORE, 'readonly');
-      const value = await requestResult(transaction.objectStore(AUTOSAVE_STORE).get(CURRENT_DRAFT_KEY));
-      await transactionComplete(transaction);
-      knownRevision = storedRevision(value);
+      const transaction = db.transaction(AUTOSAVE_STORE, 'readwrite');
+      const complete = transactionComplete(transaction);
+      const store = transaction.objectStore(AUTOSAVE_STORE);
+      let value = await transactionRequest(store.get(CURRENT_DRAFT_KEY), complete);
+      const identity = storedIdentity(value);
+      if (value !== undefined && identity.recordId === null) {
+        value = addRecordIdentity(value);
+        store.put(value, CURRENT_DRAFT_KEY);
+      }
+      await complete;
+      knownIdentity = storedIdentity(value);
+      storedRevision(value);
       if (value === undefined || isDiscardedRecord(value)) return null;
       return validatedDraft(value);
     },
@@ -174,40 +250,59 @@ export function createIndexedDbAutosaveRepository({
       const transaction = db.transaction(AUTOSAVE_STORE, 'readwrite');
       const complete = transactionComplete(transaction);
       const store = transaction.objectStore(AUTOSAVE_STORE);
-      const current = await requestResult(store.get(CURRENT_DRAFT_KEY));
-      const currentRevision = storedRevision(current);
-      const expectedRevision = knownRevision ?? currentRevision;
-      if (currentRevision !== expectedRevision) {
+      const current = await transactionRequest(store.get(CURRENT_DRAFT_KEY), complete);
+      const currentIdentity = storedIdentity(current);
+      if (knownIdentity !== undefined && !sameStoredIdentity(currentIdentity, knownIdentity)) {
         transaction.abort();
         await complete.catch(() => undefined);
         throw new AutosaveConflictError();
       }
+      const currentRevision = storedRevision(current);
+      if (currentRevision === Number.MAX_SAFE_INTEGER) {
+        transaction.abort();
+        await complete.catch(() => undefined);
+        throw new AutosaveRevisionExhaustedError();
+      }
       const nextRevision = currentRevision + 1;
-      store.put({ ...record, revision: nextRevision }, CURRENT_DRAFT_KEY);
+      const recordId = newRecordId();
+      store.put({ ...record, recordId, revision: nextRevision }, CURRENT_DRAFT_KEY);
       await complete;
-      knownRevision = nextRevision;
+      knownIdentity = { recordId, revision: nextRevision };
     },
     async discard() {
       const db = await database();
       const transaction = db.transaction(AUTOSAVE_STORE, 'readwrite');
       const complete = transactionComplete(transaction);
       const store = transaction.objectStore(AUTOSAVE_STORE);
-      const current = await requestResult(store.get(CURRENT_DRAFT_KEY));
-      const currentRevision = storedRevision(current);
-      const expectedRevision = knownRevision ?? currentRevision;
-      if (currentRevision !== expectedRevision) {
+      const current = await transactionRequest(store.get(CURRENT_DRAFT_KEY), complete);
+      const currentIdentity = storedIdentity(current);
+      if (knownIdentity !== undefined && !sameStoredIdentity(currentIdentity, knownIdentity)) {
         transaction.abort();
         await complete.catch(() => undefined);
         throw new AutosaveConflictError();
       }
-      const nextRevision = currentRevision + 1;
+      let nextRevision: number;
+      try {
+        const currentRevision = storedRevision(current);
+        if (currentRevision === Number.MAX_SAFE_INTEGER) {
+          transaction.abort();
+          await complete.catch(() => undefined);
+          throw new AutosaveRevisionExhaustedError();
+        }
+        nextRevision = currentRevision + 1;
+      } catch (reason) {
+        if (!(reason instanceof AutosaveCorruptionError)) throw reason;
+        nextRevision = 0;
+      }
+      const recordId = newRecordId();
       store.put({
         recordVersion: AUTOSAVE_RECORD_VERSION,
+        recordId,
         revision: nextRevision,
         discarded: true,
       }, CURRENT_DRAFT_KEY);
       await complete;
-      knownRevision = nextRevision;
+      knownIdentity = { recordId, revision: nextRevision };
     },
     close() {
       if (openDatabase) void openDatabase.then((db) => db.close(), () => undefined);
