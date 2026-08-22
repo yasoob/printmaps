@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Map as MapLibreMap } from 'maplibre-gl';
-import type { CameraSettings, ContentLayer } from '../domain/project';
+import type { CameraSettings, ContentLayer, MapStylePreset } from '../domain/project';
 import type { PreviewPngExporter } from '../export/previewPng';
 import type { MapContentAdapter, MapContentState } from './MapContentAdapter';
 import {
@@ -8,9 +8,11 @@ import {
   type ContentError,
   type MapError,
 } from './MapCanvasLifecycle';
+import { mapStyleUrl } from './mapStyles';
 
 type MapCanvasControllerOptions = {
   camera: CameraSettings;
+  stylePreset: MapStylePreset;
   fitRequest: number;
   layers: ContentLayer[];
   onBackgroundClick: () => void;
@@ -26,6 +28,7 @@ const PAGE_BOUNDS: [[number, number], [number, number]] = [[16.28, 48.14], [16.4
 
 export function useMapCanvasController({
   camera,
+  stylePreset,
   fitRequest,
   layers,
   onBackgroundClick,
@@ -93,31 +96,45 @@ export function useMapCanvasController({
     handleContentSyncResult(contentAdapter.current?.sync(contentState.current));
   }, [handleContentSyncResult, layers, previewedId, selectedId, contentRevision]);
 
-  useEffect(() => startMapLifecycle({
-    handleContentSyncResult,
-    references: {
-      availableExporter,
-      backgroundClick,
-      container,
-      contentAdapter,
-      contentReady,
-      contentState,
-      contentSyncDeferred,
-      exporterChange,
-      layerSelect,
-      mapClick,
-      map,
-    },
-    setContentError,
-    setMapError,
-  }), [handleContentSyncResult]);
+  useEffect(() => {
+    contentReady.current = false;
+    contentSyncDeferred.current = false;
+    container.current?.removeAttribute('data-map-ready');
+    container.current?.removeAttribute('data-map-bearing');
+    container.current?.removeAttribute('data-map-pitch');
+    invalidateExporter();
+    queueMicrotask(() => {
+      setMapError(null);
+      setContentError(null);
+    });
+    container.current?.setAttribute('data-style-preset', stylePreset);
+    return startMapLifecycle({
+      handleContentSyncResult,
+      references: {
+        availableExporter,
+        backgroundClick,
+        container,
+        contentAdapter,
+        contentReady,
+        contentState,
+        contentSyncDeferred,
+        exporterChange,
+        layerSelect,
+        mapClick,
+        map,
+      },
+      setContentError,
+      setMapError,
+      styleUrl: mapStyleUrl(stylePreset),
+    });
+  }, [handleContentSyncResult, invalidateExporter, stylePreset]);
 
   useEffect(() => {
     if (!map.current) return;
     map.current.jumpTo({ bearing: camera.bearing, pitch: camera.pitch });
     container.current?.setAttribute('data-map-bearing', String(camera.bearing));
     container.current?.setAttribute('data-map-pitch', String(camera.pitch));
-  }, [camera.bearing, camera.pitch]);
+  }, [camera.bearing, camera.pitch, stylePreset]);
 
   useEffect(() => {
     if (!(fitRequest > handledFitRequest.current && map.current)) return;

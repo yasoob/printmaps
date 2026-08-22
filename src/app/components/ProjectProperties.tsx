@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import type { CameraSettings, PageSettings, StandardPagePreset } from '../../domain/project';
+import type { CameraSettings, MapStylePreset, MapStyleSettings, PageSettings, StandardPagePreset } from '../../domain/project';
 import { NumberField, PropertyRow, PropertySection } from './PropertyControls';
 
 function isValidPageDimension(draft: string) {
@@ -98,21 +98,25 @@ function CameraField({ field, value, onCommit }: CameraFieldProps) {
 type ProjectPropertiesProps = {
   page: PageSettings;
   camera: CameraSettings;
+  style: MapStyleSettings;
   onBearingChange: (bearing: number) => void;
   onDimensionChange: (dimension: 'widthMm' | 'heightMm', value: number) => void;
   onOrientationChange: (orientation: PageSettings['orientation']) => void;
   onPitchChange: (pitch: number) => void;
   onPresetChange: (preset: StandardPagePreset) => void;
+  onStyleChange: (preset: MapStylePreset) => void;
 };
 
 export function ProjectProperties({
   camera,
+  style,
   onBearingChange,
   page,
   onDimensionChange,
   onOrientationChange,
   onPitchChange,
   onPresetChange,
+  onStyleChange,
 }: ProjectPropertiesProps) {
   return (
     <div className="properties-panel">
@@ -126,7 +130,7 @@ export function ProjectProperties({
         <PropertyRow label="Orientation"><div className="segmented"><button className={page.orientation === 'landscape' ? 'is-active' : undefined} type="button" aria-pressed={page.orientation === 'landscape'} onClick={() => onOrientationChange('landscape')}>Landscape</button><button className={page.orientation === 'portrait' ? 'is-active' : undefined} type="button" aria-pressed={page.orientation === 'portrait'} onClick={() => onOrientationChange('portrait')}>Portrait</button></div></PropertyRow>
       </PropertySection>
       <PropertySection title="Map">
-        <PropertyRow label="Style"><select aria-label="Map style" defaultValue="Liberty"><option>Liberty</option><option>Positron</option><option>Dark</option></select></PropertyRow>
+        <PropertyRow label="Style"><select aria-label="Map style" value={style.preset} onChange={(event) => onStyleChange(event.target.value as MapStylePreset)}><option value="liberty">Liberty</option><option value="positron">Positron</option></select></PropertyRow>
         <PropertyRow label="Bearing"><CameraField key={`bearing-${camera.bearing}`} field="bearing" value={camera.bearing} onCommit={onBearingChange} /></PropertyRow>
         <PropertyRow label="Pitch"><CameraField key={`pitch-${camera.pitch}`} field="pitch" value={camera.pitch} onCommit={onPitchChange} /></PropertyRow>
         <PropertyRow label="Text scale"><NumberField value="100" suffix="%" ariaLabel="Text scale" /></PropertyRow>

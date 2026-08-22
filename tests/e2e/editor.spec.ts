@@ -7,6 +7,8 @@ const isHeadlessWebGlDiagnostic = (message: string) => (
 
 test('desktop editor switches between project and layer properties', async ({ page, browserName }, testInfo) => {
   const consoleProblems: string[] = [];
+  let releasePositronStyle!: () => void;
+  const positronStyleGate = new Promise<void>((resolve) => { releasePositronStyle = resolve; });
   page.on('pageerror', (error) => {
     consoleProblems.push(error.message);
   });
@@ -14,6 +16,10 @@ test('desktop editor switches between project and layer properties', async ({ pa
     if ((message.type() === 'error' || message.type() === 'warning') && !isHeadlessWebGlDiagnostic(message.text())) {
       consoleProblems.push(message.text());
     }
+  });
+  await page.route('**/styles/positron.json', async (route) => {
+    await positronStyleGate;
+    await route.continue();
   });
 
   await page.goto('/');
@@ -34,6 +40,17 @@ test('desktop editor switches between project and layer properties', async ({ pa
     await page.locator('.maplibregl-canvas').click({ position: { x: 80, y: 80 } });
     await expect(page.getByRole('heading', { name: 'Project' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Select Route 01' })).not.toHaveAttribute('aria-current', 'true');
+    await page.getByRole('textbox', { name: 'Bearing' }).fill('35');
+    await page.getByRole('textbox', { name: 'Pitch' }).fill('40');
+    await page.getByRole('textbox', { name: 'Pitch' }).press('Tab');
+    await page.getByRole('combobox', { name: 'Map style' }).selectOption('positron');
+    const map = page.getByTestId('map-canvas');
+    await expect(map).toHaveAttribute('data-style-preset', 'positron');
+    await expect(map).not.toHaveAttribute('data-map-ready', 'true');
+    releasePositronStyle();
+    await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
+    await expect(map).toHaveAttribute('data-map-bearing', '35');
+    await expect(map).toHaveAttribute('data-map-pitch', '40');
   }
 
   await page.screenshot({ path: testInfo.outputPath('editor-desktop.png'), fullPage: true });
@@ -127,4 +144,23 @@ test('style loading failure shows a recoverable map status', async ({ page, brow
   const mapStatus = page.getByLabel('Map canvas').getByRole('status');
   await expect(mapStatus).toContainText('Map preview unavailable');
   await expect(mapStatus).toContainText('style');
+});
+
+test('switches open map styles and recovers after a selected style fails', async ({ page, browserName }) => {
+  test.skip(browserName === 'firefox', 'Firefox fixture intentionally exercises the WebGL fallback path.');
+  await page.route('**/styles/positron.json', (route) => route.abort());
+  await page.goto('/');
+  await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
+  const style = page.getByRole('combobox', { name: 'Map style' });
+
+  await style.selectOption('positron');
+
+  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-style-preset', 'positron');
+  await expect(page.getByLabel('Map canvas').getByRole('status')).toContainText('map style could not be loaded', { ignoreCase: true });
+
+  await style.selectOption('liberty');
+
+  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-style-preset', 'liberty');
+  await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByLabel('Map canvas').getByRole('status')).not.toBeVisible();
 });

@@ -96,6 +96,7 @@ export function App({ autosaveRepository }: AppProps = {}) {
           previewedId={mapPreviewedLayerId}
           page={project.document.page}
           camera={project.document.camera}
+          stylePreset={project.document.style.preset}
           documentEpoch={project.documentEpoch}
           activePanel={modal.mobilePanel}
           layersTriggerRef={mobile.layersTriggerRef}

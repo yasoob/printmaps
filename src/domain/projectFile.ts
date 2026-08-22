@@ -3,12 +3,14 @@ import {
   type ContentLayer,
   type LayerGeometry,
   type LayerType,
+  type MapStylePreset,
   type PageOrientation,
   type PagePreset,
   type ProjectDocument,
   type ProjectDocumentV1,
   type ProjectDocumentV2,
   type ProjectDocumentV3,
+  type ProjectDocumentV4,
   type StoredProjectDocument,
 } from './project';
 
@@ -18,6 +20,7 @@ const MAX_COORDINATES = 200_000;
 const LAYER_TYPES = new Set<LayerType>(['route', 'poi', 'shape', 'basemap']);
 const PAGE_PRESETS = new Set<PagePreset>(['A4', 'A3', 'Letter', 'Custom']);
 const PAGE_ORIENTATIONS = new Set<PageOrientation>(['landscape', 'portrait']);
+const MAP_STYLE_PRESETS = new Set<MapStylePreset>(['liberty', 'positron']);
 
 type JsonObject = Record<string, unknown>;
 
@@ -217,10 +220,18 @@ function cameraAt(value: unknown): ProjectDocument['camera'] {
   return { bearing, pitch };
 }
 
+function styleAt(value: unknown): ProjectDocument['style'] {
+  const style = objectAt(value, 'Project style');
+  if (typeof style.preset !== 'string' || !MAP_STYLE_PRESETS.has(style.preset as MapStylePreset)) {
+    throw new ProjectFileError('Map style preset must be liberty or positron.');
+  }
+  return { preset: style.preset as MapStylePreset };
+}
+
 function storedDocumentAt(value: unknown): StoredProjectDocument {
   const root = objectAt(value, 'Project file');
   const schemaVersion = root.schemaVersion;
-  if (schemaVersion !== 1 && schemaVersion !== 2 && schemaVersion !== 3 && schemaVersion !== 4) {
+  if (schemaVersion !== 1 && schemaVersion !== 2 && schemaVersion !== 3 && schemaVersion !== 4 && schemaVersion !== 5) {
     const displayed = typeof schemaVersion === 'number' || typeof schemaVersion === 'string'
       ? String(schemaVersion)
       : 'missing';
@@ -237,11 +248,14 @@ function storedDocumentAt(value: unknown): StoredProjectDocument {
   }
   const page = pageAt(root.page, true);
   if (schemaVersion === 3) return { schemaVersion, ...common, page } satisfies ProjectDocumentV3;
+  const camera = cameraAt(root.camera);
+  if (schemaVersion === 4) return { schemaVersion, ...common, page, camera } satisfies ProjectDocumentV4;
   return {
     schemaVersion,
     ...common,
     page,
-    camera: cameraAt(root.camera),
+    camera,
+    style: styleAt(root.style),
   } satisfies ProjectDocument;
 }
 

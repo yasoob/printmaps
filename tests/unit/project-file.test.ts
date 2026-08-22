@@ -13,6 +13,18 @@ describe('portable project validation', () => {
     expect(parsed.layers[0].geometry).not.toBe(source.layers[0].geometry);
   });
 
+  it('preserves a current portable project custom basemap layer name', () => {
+    const source = createInitialProjectDocument();
+    source.style = { preset: 'positron' };
+    const basemap = source.layers.find((layer) => layer.type === 'basemap');
+    if (!basemap) throw new Error('Expected fixture basemap.');
+    basemap.name = 'Client reference map';
+
+    const parsed = parseProjectFileText(JSON.stringify(source));
+
+    expect(parsed.layers.find((layer) => layer.type === 'basemap')?.name).toBe('Client reference map');
+  });
+
   it.each([
     ['malformed JSON', '{', 'not valid JSON'],
     ['a non-object root', 'null', 'must be a JSON object'],
@@ -59,6 +71,10 @@ describe('portable project validation', () => {
       ...createInitialProjectDocument(),
       camera: { bearing: 0, pitch: 61 },
     }), 'Camera pitch must be between 0 and 60'],
+    ['an unsupported map style', JSON.stringify({
+      ...createInitialProjectDocument(),
+      style: { preset: 'satellite' },
+    }), 'Map style preset must be liberty or positron'],
   ])('rejects %s without producing a project', (_name, text, message) => {
     expect(() => parseProjectFileText(text)).toThrow(message);
   });

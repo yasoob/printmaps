@@ -85,6 +85,29 @@ describe('editor page settings and tools', () => {
     expect(map).toHaveAttribute('data-page-preset', 'A4');
   });
 
+  it('applies a canonical open map style as one undoable change', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const style = screen.getByRole('combobox', { name: 'Map style' });
+    const map = screen.getByTestId('map-canvas');
+
+    await user.selectOptions(style, 'positron');
+
+    expect(style).toHaveValue('positron');
+    expect(map).toHaveAttribute('data-style-preset', 'positron');
+    expect(screen.getByRole('button', { name: 'Select Positron basemap' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeEnabled();
+
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(style).toHaveValue('liberty');
+    expect(map).toHaveAttribute('data-style-preset', 'liberty');
+    expect(screen.getByRole('button', { name: 'Select Liberty basemap' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Redo' }));
+    expect(style).toHaveValue('positron');
+    expect(map).toHaveAttribute('data-style-preset', 'positron');
+  });
+
   it('keeps the A4 preset and history unchanged when page width is blurred without editing', async () => {
     const user = userEvent.setup();
     render(<App />);

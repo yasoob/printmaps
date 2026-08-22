@@ -38,6 +38,7 @@ export type MapLifecycleOptions = {
   references: LifecycleReferences;
   setContentError: Dispatch<SetStateAction<ContentError | null>>;
   setMapError: Dispatch<SetStateAction<MapError | null>>;
+  styleUrl: string;
 };
 
 type LifecycleState = {
@@ -45,7 +46,6 @@ type LifecycleState = {
   isStyleLoaded: boolean;
 };
 
-const OPEN_STYLE = '/styles/liberty.json';
 function waitForMapRender(map: MapLibreMap, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) {
@@ -82,7 +82,7 @@ function waitForMapRender(map: MapLibreMap, signal?: AbortSignal): Promise<void>
   });
 }
 
-function createMap(container: HTMLDivElement, setMapError: MapLifecycleOptions['setMapError']) {
+function createMap(container: HTMLDivElement, styleUrl: string, setMapError: MapLifecycleOptions['setMapError']) {
   const probe = document.createElement('canvas');
   if (!probe.getContext('webgl2')) {
     queueMicrotask(() => setMapError({
@@ -95,7 +95,7 @@ function createMap(container: HTMLDivElement, setMapError: MapLifecycleOptions['
   try {
     return new Map({
       container,
-      style: OPEN_STYLE,
+      style: styleUrl,
       center: [16.3725, 48.2084],
       zoom: 11.2,
       attributionControl: false,
@@ -310,6 +310,6 @@ function installMapLifecycle(map: MapLibreMap, options: MapLifecycleOptions) {
 export function startMapLifecycle(options: MapLifecycleOptions) {
   const container = options.references.container.current;
   if (!container || options.references.map.current) return;
-  const map = createMap(container, options.setMapError);
+  const map = createMap(container, options.styleUrl, options.setMapError);
   return map ? installMapLifecycle(map, options) : undefined;
 }

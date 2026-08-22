@@ -8,6 +8,7 @@ import {
   type ProjectDocumentV1,
   type ProjectDocumentV2,
   type ProjectDocumentV3,
+  type ProjectDocumentV4,
 } from '../../src/domain/project';
 
 const layers = [
@@ -23,6 +24,7 @@ function createDocument(): ProjectDocument {
     title: 'Test project',
     page: { preset: 'A4', widthMm: 297, heightMm: 210, orientation: 'landscape' },
     camera: { bearing: 0, pitch: 0 },
+    style: { preset: 'liberty' },
     layers,
   };
 }
@@ -39,6 +41,25 @@ function lineStringGeometryAt(document: ProjectDocument, layerIndex: number): Li
 }
 
 describe('project store camera history', () => {
+  it('migrates a version-4 document with the Liberty open map style', () => {
+    const currentDocument = createDocument();
+    const versionFourDocument: ProjectDocumentV4 = {
+      schemaVersion: 4,
+      id: currentDocument.id,
+      title: currentDocument.title,
+      page: currentDocument.page,
+      camera: currentDocument.camera,
+      layers: currentDocument.layers,
+    };
+
+    const store = createProjectStore(versionFourDocument);
+
+    expect(store.getState().document).toMatchObject({
+      schemaVersion: 5,
+      style: { preset: 'liberty' },
+    });
+  });
+
   it('migrates a version-3 document with a neutral map camera', () => {
     const currentDocument = createDocument();
     const versionThreeDocument: ProjectDocumentV3 = {
@@ -52,8 +73,9 @@ describe('project store camera history', () => {
     const store = createProjectStore(versionThreeDocument);
 
     expect(store.getState().document).toMatchObject({
-      schemaVersion: 4,
+      schemaVersion: 5,
       camera: { bearing: 0, pitch: 0 },
+      style: { preset: 'liberty' },
     });
   });
 
@@ -109,8 +131,9 @@ describe('project store history', () => {
     const store = createProjectStore(versionOneDocument);
 
     expect(store.getState().document).toMatchObject({
-      schemaVersion: 4,
+      schemaVersion: 5,
       page: { preset: 'A4', widthMm: 297, heightMm: 210, orientation: 'landscape' },
+      style: { preset: 'liberty' },
     });
   });
 

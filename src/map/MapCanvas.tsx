@@ -1,10 +1,11 @@
 import type { CSSProperties } from 'react';
-import type { CameraSettings, ContentLayer, PageSettings } from '../domain/project';
+import type { CameraSettings, ContentLayer, MapStylePreset, PageSettings } from '../domain/project';
 import type { PreviewPngExporter } from '../export/previewPng';
 import { useMapCanvasController } from './useMapCanvasController';
 
 type MapCanvasProps = {
   camera?: CameraSettings;
+  stylePreset?: MapStylePreset;
   layers: ContentLayer[];
   selectedId: string | null;
   previewedId: string | null;
@@ -20,6 +21,7 @@ type MapCanvasProps = {
 
 export function MapCanvas({
   camera = { bearing: 0, pitch: 0 },
+  stylePreset = 'liberty',
   layers,
   selectedId,
   previewedId,
@@ -34,6 +36,7 @@ export function MapCanvas({
 }: MapCanvasProps) {
   const { container, visibleError } = useMapCanvasController({
     camera,
+    stylePreset,
     fitRequest,
     layers,
     onBackgroundClick,

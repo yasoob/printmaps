@@ -265,6 +265,7 @@ function resetHarness() {
   mocks.mapRemove.mockReset();
   mocks.mapJumpTo.mockReset();
   mocks.mapFitBounds.mockReset();
+
   mocks.mapHandlers = [];
   mocks.activeAdapterIds.clear();
   mocks.activeMapIds.clear();
@@ -283,10 +284,7 @@ function resetHarness() {
 }
 
 describe('MapCanvas camera synchronization', () => {
-  beforeEach(() => {
-    resetHarness();
-    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({} as RenderingContext);
-  });
+  beforeEach(() => { resetHarness(); vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({} as RenderingContext); });
 
   afterEach(() => vi.restoreAllMocks());
 
@@ -296,7 +294,11 @@ describe('MapCanvas camera synchronization', () => {
 
     rerender(<MapCanvas {...baseProps} selectedId={null} camera={{ bearing: 35, pitch: 40 }} />);
 
-    await waitFor(() => expect(mocks.mapJumpTo).toHaveBeenLastCalledWith({ bearing: 35, pitch: 40 }));
+    await waitFor(() => expect(mocks.mapJumpTo).toHaveBeenLastCalledWith({ bearing: 35, pitch: 40 })); const cameraSyncCalls = mocks.mapJumpTo.mock.calls.length;
+
+    rerender(<MapCanvas {...baseProps} selectedId={null} camera={{ bearing: 35, pitch: 40 }} stylePreset="positron" />);
+    await waitFor(() => expect(mocks.adapterSync).toHaveBeenCalledTimes(2));
+    expect(mocks.mapJumpTo).toHaveBeenCalledTimes(cameraSyncCalls + 1); expect(mocks.mapJumpTo).toHaveBeenLastCalledWith({ bearing: 35, pitch: 40 });
 
     rerender(<MapCanvas {...baseProps} selectedId={null} camera={{ bearing: 35, pitch: 40 }} fitRequest={1} />);
     expect(mocks.mapFitBounds).toHaveBeenLastCalledWith([[16.28, 48.14], [16.48, 48.26]], { bearing: 35, duration: 0, padding: 64, pitch: 40 });

@@ -1,9 +1,10 @@
-export const PROJECT_SCHEMA_VERSION = 4 as const;
+export const PROJECT_SCHEMA_VERSION = 5 as const;
 
 export type LayerType = 'route' | 'poi' | 'shape' | 'basemap';
 export type PageOrientation = 'landscape' | 'portrait';
 export type PagePreset = 'A4' | 'A3' | 'Letter' | 'Custom';
 export type StandardPagePreset = Exclude<PagePreset, 'Custom'>;
+export type MapStylePreset = 'liberty' | 'positron';
 
 export type PageSettings = {
   preset: PagePreset;
@@ -15,6 +16,10 @@ export type PageSettings = {
 export type CameraSettings = {
   bearing: number;
   pitch: number;
+};
+
+export type MapStyleSettings = {
+  preset: MapStylePreset;
 };
 
 export type LayerGeometry =
@@ -38,6 +43,7 @@ export type ProjectDocument = {
   title: string;
   page: PageSettings;
   camera: CameraSettings;
+  style: MapStyleSettings;
   layers: ContentLayer[];
 };
 
@@ -64,7 +70,16 @@ export type ProjectDocumentV3 = {
   layers: ContentLayer[];
 };
 
-export type StoredProjectDocument = ProjectDocumentV1 | ProjectDocumentV2 | ProjectDocumentV3 | ProjectDocument;
+export type ProjectDocumentV4 = {
+  schemaVersion: 4;
+  id: string;
+  title: string;
+  page: PageSettings;
+  camera: CameraSettings;
+  layers: ContentLayer[];
+};
+
+export type StoredProjectDocument = ProjectDocumentV1 | ProjectDocumentV2 | ProjectDocumentV3 | ProjectDocumentV4 | ProjectDocument;
 
 const createDefaultPageSettings = (): PageSettings => ({
   preset: 'A4',
@@ -74,6 +89,11 @@ const createDefaultPageSettings = (): PageSettings => ({
 });
 
 const createDefaultCameraSettings = (): CameraSettings => ({ bearing: 0, pitch: 0 });
+const createDefaultMapStyleSettings = (): MapStyleSettings => ({ preset: 'liberty' });
+
+export function mapStyleBasemapName(preset: MapStylePreset): string {
+  return `${preset === 'liberty' ? 'Liberty' : 'Positron'} basemap`;
+}
 
 export function migrateProjectDocument(document: StoredProjectDocument): ProjectDocument {
   if (document.schemaVersion === 1) {
@@ -82,6 +102,7 @@ export function migrateProjectDocument(document: StoredProjectDocument): Project
       schemaVersion: PROJECT_SCHEMA_VERSION,
       page: createDefaultPageSettings(),
       camera: createDefaultCameraSettings(),
+      style: createDefaultMapStyleSettings(),
     };
   }
   if (document.schemaVersion === 2) {
@@ -97,6 +118,7 @@ export function migrateProjectDocument(document: StoredProjectDocument): Project
         ),
       },
       camera: createDefaultCameraSettings(),
+      style: createDefaultMapStyleSettings(),
     };
   }
   if (document.schemaVersion === 3) {
@@ -104,6 +126,14 @@ export function migrateProjectDocument(document: StoredProjectDocument): Project
       ...document,
       schemaVersion: PROJECT_SCHEMA_VERSION,
       camera: createDefaultCameraSettings(),
+      style: createDefaultMapStyleSettings(),
+    };
+  }
+  if (document.schemaVersion === 4) {
+    return {
+      ...document,
+      schemaVersion: PROJECT_SCHEMA_VERSION,
+      style: createDefaultMapStyleSettings(),
     };
   }
   return document;
@@ -200,6 +230,7 @@ export function createInitialProjectDocument(): ProjectDocument {
     title: 'Vienna field guide',
     page: createDefaultPageSettings(),
     camera: createDefaultCameraSettings(),
+    style: createDefaultMapStyleSettings(),
     layers: initialLayers.map((layer) => cloneContentLayer(layer)),
   };
 }

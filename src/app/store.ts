@@ -3,6 +3,7 @@ import {
   createInitialProjectDocument,
   migrateProjectDocument,
   type ContentLayer,
+  type MapStylePreset,
   type PageOrientation,
   type StandardPagePreset,
   type ProjectDocument,
@@ -12,6 +13,7 @@ import { copyDocument, createDocumentActions } from './storeDocument';
 import { createCameraActions } from './storeCameraActions';
 import { createLayerPropertyActions, createLayerStructureActions } from './storeLayerActions';
 import { createPageActions } from './storePageActions';
+import { createStyleActions } from './storeStyleActions';
 
 export type ProjectState = {
   document: ProjectDocument;
@@ -37,6 +39,7 @@ export type ProjectState = {
   setPageOrientation: (orientation: PageOrientation) => void;
   setPagePreset: (preset: StandardPagePreset) => void;
   setLayerOpacity: (id: string, opacity: number) => void;
+  setMapStyle: (preset: MapStylePreset) => void;
   toggleLayerVisibility: (id: string) => void;
   toggleLayerLock: (id: string) => void;
   undo: () => void;
@@ -59,6 +62,7 @@ export function createProjectStore(
     ...createLayerStructureActions(set),
     ...createLayerPropertyActions(set),
     ...createPageActions(set),
+    ...createStyleActions(set),
     ...createDocumentActions(set),
   }));
 }
