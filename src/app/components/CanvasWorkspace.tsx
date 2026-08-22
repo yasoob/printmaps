@@ -15,6 +15,11 @@ const tools = [
   { id: 'frame', label: 'Fit page', shortcut: 'Shift+1', icon: Frame, command: true },
 ];
 const EMPTY_ROUTE_POINTS: [number, number][] = [];
+const EMPTY_SHAPE_POINTS: [number, number][] = [];
+
+function countDistinctPoints(points: readonly (readonly [number, number])[]): number {
+  return new Set(points.map(([longitude, latitude]) => `${longitude},${latitude}`)).size;
+}
 
 function createRouteDraftLayers(
   routePoints: [number, number][],
@@ -52,6 +57,71 @@ function createRouteDraftLayers(
   }];
 }
 
+function createShapeDraftLayers(
+  shapePoints: [number, number][],
+  projectLayers: ContentLayer[],
+): ContentLayer[] {
+  const usedIds = new Set(projectLayers.map((layer) => layer.id));
+  const uniqueId = (base: string) => {
+    let id = base;
+    let suffix = 2;
+    while (usedIds.has(id)) {
+      id = `${base}-${suffix}`;
+      suffix += 1;
+    }
+    usedIds.add(id);
+    return id;
+  };
+  const pointLayers: ContentLayer[] = shapePoints.map((coordinates, index) => ({
+    id: uniqueId(`shape-draft-point-${index + 1}`),
+    name: `Shape vertex ${index + 1}`,
+    type: 'poi',
+    visible: true,
+    locked: true,
+    opacity: 100,
+    geometry: { type: 'Point', coordinates },
+  }));
+  if (shapePoints.length < 2) return pointLayers;
+  if (countDistinctPoints(shapePoints) < 3) return [...pointLayers, {
+    id: uniqueId('shape-draft-outline'),
+    name: 'Shape draft outline',
+    type: 'route',
+    visible: true,
+    locked: true,
+    opacity: 100,
+    geometry: { type: 'LineString', coordinates: shapePoints },
+  }];
+  return [...pointLayers, {
+    id: uniqueId('shape-draft'),
+    name: 'Shape draft',
+    type: 'shape',
+    visible: true,
+    locked: true,
+    opacity: 28,
+    geometry: { type: 'Polygon', coordinates: [[...shapePoints, shapePoints[0]]] },
+  }];
+}
+
+type DrawingPanelProps = {
+  statusLabel: string;
+  status: string;
+  cancelLabel: string;
+  finishLabel: string;
+  finishDisabled: boolean;
+  onCancel: () => void;
+  onFinish: () => void;
+};
+
+function DrawingPanel(props: DrawingPanelProps) {
+  return (
+    <div className="map-authoring-panel">
+      <span role="status" aria-label={props.statusLabel}>{props.status}</span>
+      <button type="button" onClick={props.onCancel}>{props.cancelLabel}</button>
+      <button className="primary-button" type="button" disabled={props.finishDisabled} onClick={props.onFinish}>{props.finishLabel}</button>
+    </div>
+  );
+}
+
 type CanvasWorkspaceProps = {
   layers: ContentLayer[];
   selectedId: string | null;
@@ -64,6 +134,7 @@ type CanvasWorkspaceProps = {
   onLayerSelect: (id: string | null) => void;
   onCreatePoi: (coordinates: readonly [number, number]) => void;
   onCreateRoute: (coordinates: readonly (readonly [number, number])[]) => void;
+  onCreateShape: (coordinates: readonly (readonly [number, number])[]) => void;
   onAuthoringChange: (documentEpoch: number, isActive: boolean) => void;
   onBackgroundClick: () => void;
   onExporterChange: (exporter: PreviewPngExporter | null) => void;
@@ -73,21 +144,26 @@ type CanvasWorkspaceProps = {
 export function CanvasWorkspace(props: CanvasWorkspaceProps) {
   const [storedActiveTool, setStoredActiveTool] = useState('select');
   const [storedRoutePoints, setStoredRoutePoints] = useState<[number, number][]>([]);
+  const [storedShapePoints, setStoredShapePoints] = useState<[number, number][]>([]);
   const [toolDocumentEpoch, setToolDocumentEpoch] = useState(props.documentEpoch);
   const [fitRequest, setFitRequest] = useState(0);
   const selectToolRef = useRef<HTMLButtonElement>(null);
-  const { activePanel, documentEpoch, layers, layersTriggerRef, onAuthoringChange, onBackgroundClick, onCreatePoi, onCreateRoute, onExporterChange, onLayerSelect, openPanel, page, previewedId, propertiesTriggerRef, selectedId } = props;
+  const { activePanel, documentEpoch, layers, layersTriggerRef, onAuthoringChange, onBackgroundClick, onCreatePoi, onCreateRoute, onCreateShape, onExporterChange, onLayerSelect, openPanel, page, previewedId, propertiesTriggerRef, selectedId } = props;
   const activeTool = toolDocumentEpoch === documentEpoch ? storedActiveTool : 'select';
   const routePoints = toolDocumentEpoch === documentEpoch ? storedRoutePoints : EMPTY_ROUTE_POINTS;
+  const shapePoints = toolDocumentEpoch === documentEpoch ? storedShapePoints : EMPTY_SHAPE_POINTS;
+  const canFinishShape = countDistinctPoints(shapePoints) >= 3;
   const geometryLayers = useMemo(() => [
     ...createRouteDraftLayers(routePoints, layers),
+    ...createShapeDraftLayers(shapePoints, layers),
     ...layers.filter((layer) => layer.geometry),
-  ], [layers, routePoints]);
+  ], [layers, routePoints, shapePoints]);
   const activateTool = (id: string) => {
     setToolDocumentEpoch(documentEpoch);
     setStoredActiveTool(id);
     if (id !== 'route' || toolDocumentEpoch !== documentEpoch) setStoredRoutePoints([]);
-    onAuthoringChange(documentEpoch, id === 'route' || id === 'pin');
+    if (id !== 'shape' || toolDocumentEpoch !== documentEpoch) setStoredShapePoints([]);
+    onAuthoringChange(documentEpoch, ['route', 'pin', 'shape'].includes(id));
   };
   const finishRoute = () => {
     if (routePoints.length < 2) return;
@@ -103,6 +179,20 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
     setStoredActiveTool('select');
     onAuthoringChange(documentEpoch, false);
   };
+  const finishShape = () => {
+    if (!canFinishShape) return;
+    selectToolRef.current?.focus();
+    onCreateShape(shapePoints);
+    setStoredShapePoints([]);
+    setStoredActiveTool('select');
+    onAuthoringChange(documentEpoch, false);
+  };
+  const cancelShape = () => {
+    selectToolRef.current?.focus();
+    setStoredShapePoints([]);
+    setStoredActiveTool('select');
+    onAuthoringChange(documentEpoch, false);
+  };
   const placePoi = (coordinate: [number, number]) => {
     selectToolRef.current?.focus();
     onCreatePoi(coordinate);
@@ -115,13 +205,25 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
     onAuthoringChange(documentEpoch, false);
   };
   let handleMapClick: ((coordinate: [number, number]) => void) | undefined;
-  if (activeTool === 'route') {
-    handleMapClick = (coordinate) => {
-      setToolDocumentEpoch(documentEpoch);
-      setStoredRoutePoints((points) => toolDocumentEpoch === documentEpoch ? [...points, coordinate] : [coordinate]);
-    };
-  } else if (activeTool === 'pin') {
-    handleMapClick = placePoi;
+  switch (activeTool) {
+    case 'route': {
+      handleMapClick = (coordinate) => {
+        setToolDocumentEpoch(documentEpoch);
+        setStoredRoutePoints((points) => toolDocumentEpoch === documentEpoch ? [...points, coordinate] : [coordinate]);
+      };
+      break;
+    }
+    case 'pin': {
+      handleMapClick = placePoi;
+      break;
+    }
+    case 'shape': {
+      handleMapClick = (coordinate) => {
+        setToolDocumentEpoch(documentEpoch);
+        setStoredShapePoints((points) => toolDocumentEpoch === documentEpoch ? [...points, coordinate] : [coordinate]);
+      };
+      break;
+    }
   }
 
   return (
@@ -142,17 +244,16 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
         ))}
       </nav>
       {activeTool === 'route' && (
-        <div className="map-authoring-panel">
-          <span role="status" aria-label="Route drawing status">Straight route · {routePoints.length} {routePoints.length === 1 ? 'point' : 'points'}</span>
-          <button type="button" onClick={cancelRoute}>Cancel route</button>
-          <button className="primary-button" type="button" disabled={routePoints.length < 2} onClick={finishRoute}>Finish route</button>
-        </div>
+        <DrawingPanel statusLabel="Route drawing status" status={`Straight route · ${routePoints.length} ${routePoints.length === 1 ? 'point' : 'points'}`} cancelLabel="Cancel route" finishLabel="Finish route" finishDisabled={routePoints.length < 2} onCancel={cancelRoute} onFinish={finishRoute} />
       )}
       {activeTool === 'pin' && (
         <div className="map-authoring-panel">
           <span role="status" aria-label="POI placement status">Click the map to place a POI</span>
           <button type="button" onClick={cancelPoi}>Cancel POI</button>
         </div>
+      )}
+      {activeTool === 'shape' && (
+        <DrawingPanel statusLabel="Shape drawing status" status={`Polygon shape · ${shapePoints.length} ${shapePoints.length === 1 ? 'vertex' : 'vertices'}`} cancelLabel="Cancel shape" finishLabel="Finish shape" finishDisabled={!canFinishShape} onCancel={cancelShape} onFinish={finishShape} />
       )}
       <div className="canvas-status" aria-label="Canvas status"><button type="button">100%</button><span /> <button type="button">1:20,000</button></div>
     </section>

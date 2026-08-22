@@ -1,0 +1,96 @@
+import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { App } from '../../../src/app/App';
+import { createInitialProjectDocument } from '../../../src/domain/project';
+
+vi.mock('../../../src/map/MapCanvas', async () => import('./MapCanvasMock'));
+
+describe('polygon authoring', () => {
+  it('finishes three map clicks as one selected undoable shape', async () => {
+    const user = userEvent.setup();
+    render(<App autosaveRepository={null} />);
+
+    await user.click(screen.getByRole('button', { name: 'Shape (S)' }));
+    expect(screen.getByRole('button', { name: 'Export' })).toBeDisabled();
+    const finish = screen.getByRole('button', { name: 'Finish shape' });
+    expect(screen.getByRole('status', { name: 'Shape drawing status' })).toHaveTextContent('0 vertices');
+    expect(finish).toBeDisabled();
+
+    await user.click(screen.getByRole('button', { name: 'Map route point 1' }));
+    await user.click(screen.getByRole('button', { name: 'Map route point 2' }));
+    expect(screen.getByRole('status', { name: 'Shape drawing status' })).toHaveTextContent('2 vertices');
+    expect(finish).toBeDisabled();
+    expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-layer-state', expect.stringContaining('shape-draft'));
+
+    await user.click(screen.getByRole('button', { name: 'Map shape point 3' }));
+    expect(screen.getByRole('status', { name: 'Shape drawing status' })).toHaveTextContent('3 vertices');
+    expect(finish).toBeEnabled();
+
+    await user.click(finish);
+    expect(screen.getByRole('button', { name: 'Select Shape 01' })).toHaveAttribute('aria-current', 'true');
+    expect(screen.getByRole('heading', { name: 'Shape 01' })).toBeInTheDocument();
+    expect(screen.queryByRole('status', { name: 'Shape drawing status' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Select (V)' })).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'Export' })).toBeEnabled();
+
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(screen.queryByRole('button', { name: 'Select Shape 01' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Redo' }));
+    expect(screen.getByRole('button', { name: 'Select Shape 01' })).toBeInTheDocument();
+  });
+
+  it('cancels an unfinished shape without changing project history', async () => {
+    const user = userEvent.setup();
+    render(<App autosaveRepository={null} />);
+
+    await user.click(screen.getByRole('button', { name: 'Shape (S)' }));
+    await user.click(screen.getByRole('button', { name: 'Map route point 1' }));
+    await user.click(screen.getByRole('button', { name: 'Cancel shape' }));
+
+    expect(screen.queryByRole('status', { name: 'Shape drawing status' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Select Shape 01' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Select (V)' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Select (V)' })).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'Export' })).toBeEnabled();
+  });
+
+  it('keeps Finish disabled until three map vertices are distinct', async () => {
+    const user = userEvent.setup();
+    render(<App autosaveRepository={null} />);
+
+    await user.click(screen.getByRole('button', { name: 'Shape (S)' }));
+    const repeatedPoint = screen.getByRole('button', { name: 'Map route point 1' });
+    await user.click(repeatedPoint);
+    await user.click(repeatedPoint);
+    await user.click(repeatedPoint);
+
+    expect(screen.getByRole('status', { name: 'Shape drawing status' })).toHaveTextContent('3 vertices');
+    expect(screen.getByRole('button', { name: 'Finish shape' })).toBeDisabled();
+    expect(screen.getByTestId('map-canvas')).not.toHaveAttribute('data-layer-state', expect.stringContaining('shape-draft:true'));
+    expect(screen.getByRole('button', { name: 'Export' })).toBeDisabled();
+  });
+
+  it('does not restore an abandoned shape draft after another project opens', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<App autosaveRepository={null} />);
+    await user.click(screen.getByRole('button', { name: 'Shape (S)' }));
+    await user.click(screen.getByRole('button', { name: 'Map route point 1' }));
+    expect(screen.getByRole('status', { name: 'Shape drawing status' })).toHaveTextContent('1 vertex');
+    const opened = createInitialProjectDocument();
+    opened.id = 'opened-project';
+    opened.title = 'Opened project';
+    const input = container.querySelector<HTMLInputElement>('input[accept^=".printmap.json"]');
+    if (!input) throw new Error('Project open input unavailable');
+
+    fireEvent.change(input, {
+      target: { files: [new File([JSON.stringify(opened)], 'opened.printmap.json', { type: 'application/json' })] },
+    });
+
+    expect(await screen.findByRole('button', { name: 'Opened project' })).toBeInTheDocument();
+    expect(screen.queryByRole('status', { name: 'Shape drawing status' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Export' })).toBeEnabled();
+    await user.click(screen.getByRole('button', { name: 'Shape (S)' }));
+    expect(screen.getByRole('status', { name: 'Shape drawing status' })).toHaveTextContent('0 vertices');
+  });
+});

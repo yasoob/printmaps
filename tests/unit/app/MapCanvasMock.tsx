@@ -48,6 +48,7 @@ export function MapCanvas({
       <button type="button" onClick={() => onMapClick?.([16.31, 48.19])}>Map route point 1</button>
       <button type="button" onClick={() => onMapClick?.([16.4, 48.24])}>Map route point 2</button>
       <button type="button" onClick={() => onMapClick?.([16.37, 48.21])}>Map POI point</button>
+      <button type="button" onClick={() => onMapClick?.([16.36, 48.25])}>Map shape point 3</button>
     </div>
   );
 }

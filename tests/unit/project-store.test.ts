@@ -335,6 +335,59 @@ describe('project store layer imports', () => {
     expect(store.getState().selectedId).toBeNull();
   });
 
+  it('creates a closed shape as one selected undoable layer', () => {
+    const store = createProjectStore(createInitialProjectDocument());
+    const vertices = [[16.31, 48.19], [16.4, 48.19], [16.36, 48.24]] as const;
+
+    store.getState().createShape(vertices);
+
+    const created = layerState(store).find((layer) => layer.id === 'shape-01');
+    expect(created).toMatchObject({
+      id: 'shape-01',
+      name: 'Shape 01',
+      type: 'shape',
+      geometry: { type: 'Polygon', coordinates: [[...vertices, vertices[0]]] },
+    });
+    expect(layerState(store).at(-1)?.type).toBe('basemap');
+    expect(store.getState().selectedId).toBe('shape-01');
+    expect(store.getState().canUndo).toBe(true);
+
+    store.getState().undo();
+    expect(layerState(store).some((layer) => layer.id === 'shape-01')).toBe(false);
+    expect(store.getState().selectedId).toBeNull();
+    expect(store.getState().canRedo).toBe(true);
+
+    store.getState().redo();
+    expect(layerState(store).some((layer) => layer.id === 'shape-01')).toBe(true);
+  });
+
+  it('canonicalizes an already-closed shape ring to one terminal vertex', () => {
+    const store = createProjectStore(createInitialProjectDocument());
+    const closedVertices = [[16.31, 48.19], [16.4, 48.19], [16.36, 48.24], [16.31, 48.19]] as const;
+
+    store.getState().createShape(closedVertices);
+
+    expect(layerState(store).find((layer) => layer.id === 'shape-01')?.geometry).toEqual({
+      type: 'Polygon',
+      coordinates: [closedVertices],
+    });
+  });
+
+  it.each([
+    { label: 'two vertices', coordinates: [[16.31, 48.19], [16.4, 48.19]] },
+    { label: 'fewer than three distinct vertices', coordinates: [[16.31, 48.19], [16.4, 48.19], [16.31, 48.19]] },
+    { label: 'non-finite longitude', coordinates: [[16.31, 48.19], [NaN, 48.2], [16.36, 48.24]] },
+    { label: 'out-of-range latitude', coordinates: [[16.31, 48.19], [16.4, 91], [16.36, 48.24]] },
+  ])('rejects $label shape geometry without changing history', ({ coordinates }) => {
+    const store = createProjectStore(createInitialProjectDocument());
+
+    store.getState().createShape(coordinates as [number, number][]);
+
+    expect(layerState(store).some((layer) => layer.id === 'shape-01')).toBe(false);
+    expect(store.getState().canUndo).toBe(false);
+    expect(store.getState().selectedId).toBeNull();
+  });
+
   it('imports a layer batch before the basemap as one undoable edit', () => {
     const store = createProjectStore(createInitialProjectDocument());
     const importedLayers: ContentLayer[] = [

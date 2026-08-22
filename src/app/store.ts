@@ -22,6 +22,7 @@ export type ProjectState = {
   canRedo: boolean;
   createPoi: (coordinates: readonly [number, number]) => void;
   createRoute: (coordinates: readonly (readonly [number, number])[]) => void;
+  createShape: (coordinates: readonly (readonly [number, number])[]) => void;
   deleteLayer: (id: string) => void;
   duplicateLayer: (id: string) => void;
   importLayers: (layers: readonly ContentLayer[], documentEpoch: number) => boolean;

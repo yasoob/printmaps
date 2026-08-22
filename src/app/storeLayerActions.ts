@@ -4,7 +4,7 @@ import { commitDocument, replaceLayers, type ProjectSet } from './storeDocument'
 
 type LayerStructureActions = Pick<
   ProjectState,
-  'createPoi' | 'createRoute' | 'deleteLayer' | 'duplicateLayer' | 'importLayers' | 'moveLayer'
+  'createPoi' | 'createRoute' | 'createShape' | 'deleteLayer' | 'duplicateLayer' | 'importLayers' | 'moveLayer'
 >;
 type LayerPropertyActions = Pick<
   ProjectState,
@@ -89,10 +89,54 @@ function createRouteAction(set: ProjectSet): ProjectState['createRoute'] {
   });
 }
 
+function createShapeAction(set: ProjectSet): ProjectState['createShape'] {
+  return (coordinates) => set((state) => {
+    const distinctVertices = new Set(coordinates.map(([longitude, latitude]) => `${longitude},${latitude}`));
+    if (distinctVertices.size < 3 || coordinates.some(([longitude, latitude]) => (
+      !Number.isFinite(longitude)
+      || !Number.isFinite(latitude)
+      || longitude < -180
+      || longitude > 180
+      || latitude < -90
+      || latitude > 90
+    ))) return state;
+    const usedIds = new Set(state.document.layers.map((layer) => layer.id));
+    let shapeNumber = 0;
+    let id: string;
+    do {
+      shapeNumber += 1;
+      id = `shape-${String(shapeNumber).padStart(2, '0')}`;
+    } while (usedIds.has(id));
+    const ring = coordinates.map(([longitude, latitude]) => [longitude, latitude] as [number, number]);
+    const last = ring.at(-1);
+    if (!last || last[0] !== ring[0][0] || last[1] !== ring[0][1]) ring.push([...ring[0]]);
+    const shape = {
+      id,
+      name: `Shape ${String(shapeNumber).padStart(2, '0')}`,
+      type: 'shape' as const,
+      visible: true,
+      locked: false,
+      opacity: 28,
+      geometry: {
+        type: 'Polygon' as const,
+        coordinates: [ring],
+      },
+    };
+    const layers = [...state.document.layers];
+    const basemapIndex = layers.findIndex((layer) => layer.type === 'basemap');
+    layers.splice(basemapIndex === -1 ? layers.length : basemapIndex, 0, shape);
+    return {
+      ...commitDocument(state, replaceLayers(state.document, layers)),
+      selectedId: id,
+    };
+  });
+}
+
 export function createLayerStructureActions(set: ProjectSet): LayerStructureActions {
   return {
     createPoi: createPoiAction(set),
     createRoute: createRouteAction(set),
+    createShape: createShapeAction(set),
     deleteLayer: (id) => set((state) => {
       if (state.document.layers.every((layer) => layer.id !== id)) return state;
 

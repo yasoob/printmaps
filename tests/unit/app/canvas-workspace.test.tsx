@@ -48,6 +48,7 @@ const sharedProps = {
   onLayerSelect: vi.fn(),
   onCreatePoi: vi.fn(),
   onCreateRoute: vi.fn(),
+  onCreateShape: vi.fn(),
   onAuthoringChange: vi.fn(),
   onBackgroundClick: vi.fn(),
   onExporterChange: vi.fn(),

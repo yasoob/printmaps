@@ -102,6 +102,7 @@ export function App({ autosaveRepository }: AppProps = {}) {
           onLayerSelect={project.selectLayer}
           onCreatePoi={project.createPoi}
           onCreateRoute={project.createRoute}
+          onCreateShape={project.createShape}
           onAuthoringChange={handleAuthoringChange}
           onBackgroundClick={clearSelection}
           onExporterChange={handleExporterChange}
