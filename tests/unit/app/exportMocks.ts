@@ -1,3 +1,5 @@
+import type { PreviewPngExporter } from '../../../src/export/previewPng';
+
 export const exportMocks = {
-  exporter: null as null | (() => Promise<{ blob: Blob; width: number; height: number }>),
+  exporter: null as PreviewPngExporter | null,
 };

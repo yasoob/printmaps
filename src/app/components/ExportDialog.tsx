@@ -1,10 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { X } from 'lucide-react';
+import type { PageSettings } from '../../domain/project';
+import { planExportPreflight } from '../../export/preflight';
+import { createPrintSizePng } from '../../export/printSizePng';
 import { startPreviewDownload, type PreviewPngExporter } from '../../export/previewPng';
 
 export type ExportDialogProps = {
   exporter: PreviewPngExporter | null;
   filename: string;
+  page: PageSettings;
   onClose: () => void;
 };
 
@@ -25,17 +29,41 @@ function trapDialogFocus(event: React.KeyboardEvent<HTMLDialogElement>, dialog: 
   }
 }
 
-export function ExportDialog({ exporter, filename, onClose }: ExportDialogProps) {
+function formatBytes(bytes: number): string {
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MiB`;
+}
+
+function useExportPreflight(page: PageSettings) {
+  return useMemo(() => planExportPreflight({
+    format: 'png',
+    page: { widthMm: page.widthMm, heightMm: page.heightMm },
+    dpi: 300,
+    attributions: ['OpenFreeMap · OpenMapTiles · © OpenStreetMap contributors'],
+    basemap: 'raster',
+    vectorOverlays: true,
+    missing: {},
+    rasterLayers: [],
+    cancellationSupported: true,
+  }), [page.heightMm, page.widthMm]);
+}
+
+export function ExportDialog({ exporter, filename, page, onClose }: ExportDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const downloadButtonRef = useRef<HTMLButtonElement>(null);
+  const cancelButtonRef = useRef<HTMLButtonElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('Ready to export the current print-frame preview.');
   const [error, setError] = useState<string | null>(null);
+  const preflight = useExportPreflight(page);
 
-  useEffect(() => downloadButtonRef.current?.focus(), []);
   useEffect(() => {
-    if (busy) dialogRef.current?.focus();
+    (preflight.safe ? downloadButtonRef : cancelButtonRef).current?.focus();
+  }, [preflight.safe]);
+  useEffect(() => {
+    if (busy) cancelButtonRef.current?.focus();
   }, [busy]);
+  useEffect(() => () => abortControllerRef.current?.abort(), []);
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDialogElement>) => {
     if (event.key === 'Escape') {
@@ -52,19 +80,50 @@ export function ExportDialog({ exporter, filename, onClose }: ExportDialogProps)
       setError('The live map preview is not ready yet. Wait for the map to load and try again.');
       return;
     }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
     setBusy(true);
     setError(null);
-    setStatus('Preparing PNG…');
+    setStatus('Capturing the current browser render…');
+    let sourceSurface: HTMLCanvasElement | null = null;
     try {
-      const result = await exporter();
-      startPreviewDownload(result.blob, filename);
-      setStatus(`Download started for ${result.width} × ${result.height} PNG.`);
+      const source = await exporter();
+      sourceSurface = source.surface;
+      const result = await createPrintSizePng({
+        source,
+        preflight,
+        signal: controller.signal,
+        onProgress: ({ completedTiles, totalTiles, fraction }) => {
+          setStatus(`Composing PNG… ${completedTiles}/${totalTiles} tiles (${Math.round(fraction * 100)}%).`);
+        },
+      });
+      try {
+        startPreviewDownload(result.blob, filename);
+        setStatus(`Download started for ${result.width} × ${result.height} PNG.`);
+      } finally {
+        result.surface.width = 0;
+        result.surface.height = 0;
+      }
     } catch (error_) {
-      setError(error_ instanceof Error ? error_.message : 'PNG export failed.');
-      setStatus('Export failed.');
+      if (error_ instanceof DOMException && error_.name === 'AbortError') {
+        setStatus('Export cancelled.');
+      } else {
+        setError(error_ instanceof Error ? error_.message : 'PNG export failed.');
+        setStatus('Export failed.');
+      }
     } finally {
+      if (sourceSurface) {
+        sourceSurface.width = 0;
+        sourceSurface.height = 0;
+      }
+      if (abortControllerRef.current === controller) abortControllerRef.current = null;
       setBusy(false);
     }
+  };
+
+  const cancelExport = () => {
+    abortControllerRef.current?.abort();
+    setStatus('Cancelling export…');
   };
 
   return (
@@ -85,14 +144,26 @@ export function ExportDialog({ exporter, filename, onClose }: ExportDialogProps)
           <button className="icon-button" type="button" aria-label="Close export" disabled={busy} onClick={onClose}><X size={16} /></button>
         </div>
         <div className="export-dialog-body">
-          <strong>PNG preview</strong>
-          <p>Downloads the current print-frame preview at the browser’s rendered resolution. High-resolution tiled PNG, PDF, and layered SVG remain upcoming export stages.</p>
+          <strong>PNG export preflight</strong>
+          {preflight.dimensions && (
+            <p><strong>{preflight.dimensions.widthPx} × {preflight.dimensions.heightPx} px — 300 DPI pixel target for placement at the selected page size.</strong></p>
+          )}
+          {preflight.estimates && <p>Estimated peak memory {formatBytes(preflight.estimates.peakBytes)}.</p>}
+          <p>PNG physical-resolution metadata is not embedded.</p>
+          <p>This print-size preview resamples the current browser render; it does not create new map detail. Native high-resolution tile rendering, PDF, and layered SVG remain upcoming export stages.</p>
+          {preflight.errors.length > 0 && (
+            <div className="export-error" role="alert">
+              <strong>Export blocked</strong>
+              <ul>{preflight.errors.map((issue) => <li key={issue.code}>{issue.message}</li>)}</ul>
+              <p>Reduce the page dimensions before retrying.</p>
+            </div>
+          )}
           <p role="status">{status}</p>
           {error && <p className="export-error" role="alert">{error}</p>}
         </div>
         <div className="export-dialog-actions">
-          <button type="button" disabled={busy} onClick={onClose}>Cancel</button>
-          <button ref={downloadButtonRef} className="primary-button" type="button" disabled={busy} onClick={download}>{busy ? 'Preparing…' : 'Download PNG'}</button>
+          <button ref={cancelButtonRef} type="button" onClick={busy ? cancelExport : onClose}>{busy ? 'Cancel export' : 'Cancel'}</button>
+          <button ref={downloadButtonRef} className="primary-button" type="button" disabled={busy || !preflight.safe} onClick={download}>{busy ? 'Preparing…' : 'Download PNG'}</button>
         </div>
       </dialog>
     </div>

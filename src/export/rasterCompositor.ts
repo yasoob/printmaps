@@ -10,6 +10,12 @@ function throwIfCancelled(signal: AbortSignal | undefined): void {
   }
 }
 
+function yieldToBrowserTask(): Promise<void> {
+  return new Promise((resolve) => {
+    globalThis.setTimeout(resolve, 0);
+  });
+}
+
 async function runAndRelease(
   run: () => Awaitable<void>,
   release: () => Awaitable<void>,
@@ -134,5 +140,6 @@ export async function composeRasterTiles<Resource>(
       fraction: completedTiles / plan.tiles.length,
       tile,
     });
+    if (completedTiles < plan.tiles.length) await yieldToBrowserTask();
   }
 }

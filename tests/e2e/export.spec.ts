@@ -17,7 +17,9 @@ test('export downloads the current print frame as PNG on desktop and mobile', as
     await page.getByRole('button', { name: 'Export' }).click();
     const dialog = page.getByRole('dialog', { name: 'Export map' });
     await expect(dialog).toBeVisible();
-    await expect(dialog).toContainText('current print-frame preview');
+    await expect(dialog).toContainText('3508 × 2480 px — 300 DPI pixel target');
+    await expect(dialog).toContainText('PNG physical-resolution metadata is not embedded');
+    await expect(dialog).toContainText('resamples the current browser render');
     const dialogBox = await dialog.boundingBox();
     expect(dialogBox).not.toBeNull();
     expect(dialogBox!.y).toBeGreaterThanOrEqual(0);
@@ -25,7 +27,6 @@ test('export downloads the current print frame as PNG on desktop and mobile', as
 
     const frameBox = await page.locator('.print-frame').boundingBox();
     expect(frameBox).not.toBeNull();
-    const deviceScaleFactor = await page.evaluate(() => window.devicePixelRatio);
     const downloadPromise = page.waitForEvent('download');
     await dialog.getByRole('button', { name: 'Download PNG' }).click();
     const download = await downloadPromise;
@@ -38,8 +39,8 @@ test('export downloads the current print frame as PNG on desktop and mobile', as
     expect([...png.subarray(0, 8)]).toEqual([137, 80, 78, 71, 13, 10, 26, 10]);
     const pngWidth = png.readUInt32BE(16);
     const pngHeight = png.readUInt32BE(20);
-    expect(Math.abs(pngWidth - Math.round(frameBox!.width * deviceScaleFactor))).toBeLessThanOrEqual(1);
-    expect(Math.abs(pngHeight - Math.round(frameBox!.height * deviceScaleFactor))).toBeLessThanOrEqual(1);
+    expect(pngWidth).toBe(3508);
+    expect(pngHeight).toBe(2480);
     const pixelEvidence = await page.evaluate(async (encoded) => {
       const image = new Image();
       image.src = `data:image/png;base64,${encoded}`;
@@ -60,7 +61,13 @@ test('export downloads the current print frame as PNG on desktop and mobile', as
         darkest = Math.min(darkest, luminance);
         lightest = Math.max(lightest, luminance);
       }
-      const bottom = context.getImageData(0, Math.max(0, canvas.height - 10), canvas.width, Math.min(10, canvas.height)).data;
+      const attributionProbeHeight = Math.min(80, canvas.height);
+      const bottom = context.getImageData(
+        0,
+        canvas.height - attributionProbeHeight,
+        canvas.width,
+        attributionProbeHeight,
+      ).data;
       const colorProbe = document.createElement('canvas');
       colorProbe.width = 1;
       colorProbe.height = 1;
@@ -110,11 +117,15 @@ test('export downloads the current print frame as PNG on desktop and mobile', as
   expect(Math.abs(customFrame!.width / customFrame!.height - 1 / 3)).toBeLessThan(0.01);
   await page.getByRole('button', { name: 'Export' }).click();
   const customDialog = page.getByRole('dialog', { name: 'Export map' });
+  await expect(customDialog).toContainText('1181 × 3543 px — 300 DPI pixel target');
+  await expect(customDialog).toContainText('PNG physical-resolution metadata is not embedded');
   const customDownloadPromise = page.waitForEvent('download');
   await customDialog.getByRole('button', { name: 'Download PNG' }).click();
   const customDownload = await customDownloadPromise;
   const customPath = testInfo.outputPath('vienna-field-guide-custom-100x300.png');
   await customDownload.saveAs(customPath);
   const customPng = await readFile(customPath);
+  expect(customPng.readUInt32BE(16)).toBe(1181);
+  expect(customPng.readUInt32BE(20)).toBe(3543);
   expect(Math.abs(customPng.readUInt32BE(16) / customPng.readUInt32BE(20) - 1 / 3)).toBeLessThan(0.01);
 });

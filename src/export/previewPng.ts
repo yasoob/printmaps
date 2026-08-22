@@ -4,6 +4,7 @@ export type PreviewPng = {
   blob: Blob;
   width: number;
   height: number;
+  surface: HTMLCanvasElement;
 };
 
 export type PreviewPngExporter = () => Promise<PreviewPng>;
@@ -20,6 +21,11 @@ type PreviewCrop = {
 };
 
 const unavailableError = () => new Error('The print frame is not ready to export.');
+
+function releaseOutput(output: HTMLCanvasElement): void {
+  output.width = 0;
+  output.height = 0;
+}
 
 function hasRenderableBounds(
   mapCanvas: HTMLCanvasElement,
@@ -108,10 +114,14 @@ function encodePreview(output: HTMLCanvasElement, width: number, height: number)
   return new Promise((resolve, reject) => {
     try {
       output.toBlob((blob) => {
-        if (blob) resolve({ blob, width, height });
-        else reject(new Error('The browser could not create the PNG file.'));
+        if (blob) resolve({ blob, width, height, surface: output });
+        else {
+          releaseOutput(output);
+          reject(new Error('The browser could not create the PNG file.'));
+        }
       }, 'image/png');
     } catch {
+      releaseOutput(output);
       reject(new Error('The browser could not create the PNG file.'));
     }
   });
@@ -145,11 +155,15 @@ export function capturePrintFramePng(
   output.width = crop.width;
   output.height = crop.height;
   const context = output.getContext('2d');
-  if (!context) return Promise.reject(new Error('PNG export is unavailable in this browser.'));
+  if (!context) {
+    releaseOutput(output);
+    return Promise.reject(new Error('PNG export is unavailable in this browser.'));
+  }
 
   try {
     drawPreview(context, mapCanvas, crop, attributionText);
   } catch {
+    releaseOutput(output);
     return Promise.reject(new Error('The browser could not render the PNG. The map canvas may be unavailable or blocked by its source.'));
   }
 

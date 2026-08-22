@@ -1,0 +1,159 @@
+import { getPixelSurfaceAllocationIssue, type ExportPreflightResult } from './preflight';
+import type { PreviewPng } from './previewPng';
+import { composeRasterTiles, type RasterProgress } from './rasterCompositor';
+
+export type PrintSizePngOptions = Readonly<{
+  source: PreviewPng;
+  preflight: ExportPreflightResult;
+  signal?: AbortSignal;
+  onProgress?: (progress: RasterProgress) => void | PromiseLike<void>;
+}>;
+
+function abortError(): DOMException {
+  return new DOMException('Print-size PNG export was cancelled.', 'AbortError');
+}
+
+function throwIfCancelled(signal: AbortSignal | undefined): void {
+  if (signal?.aborted === true) throw abortError();
+}
+
+function encodePng(
+  surface: HTMLCanvasElement,
+  width: number,
+  height: number,
+  signal: AbortSignal | undefined,
+): Promise<PreviewPng> {
+  return new Promise((resolve, reject) => {
+    try {
+      surface.toBlob((blob) => {
+        if (signal?.aborted === true) {
+          reject(abortError());
+          return;
+        }
+        if (blob) resolve({ blob, width, height, surface });
+        else reject(new Error('The browser could not create the print-size PNG file.'));
+      }, 'image/png');
+    } catch {
+      reject(new Error('The browser could not create the print-size PNG file.'));
+    }
+  });
+}
+
+function requireSafePlan(preflight: ExportPreflightResult) {
+  if (preflight.format !== 'png' || !preflight.safe || !preflight.dimensions || !preflight.plan) {
+    throw new Error('Export preflight must pass before a print-size PNG surface is allocated.');
+  }
+  return { dimensions: preflight.dimensions, plan: preflight.plan };
+}
+
+function validateSource(source: PreviewPng): void {
+  if (
+    !(source.surface instanceof HTMLCanvasElement)
+    || !Number.isSafeInteger(source.width)
+    || !Number.isSafeInteger(source.height)
+    || source.width <= 0
+    || source.height <= 0
+    || source.surface.width !== source.width
+    || source.surface.height !== source.height
+  ) {
+    throw new Error('The browser preview is not a valid raster source for print-size export.');
+  }
+}
+
+function createSurface(width: number, height: number, unavailableMessage: string) {
+  const surface = document.createElement('canvas');
+  try {
+    surface.width = width;
+    surface.height = height;
+    const context = surface.getContext('2d');
+    if (!context) throw new Error(unavailableMessage);
+    return { surface, context };
+  } catch {
+    surface.width = 0;
+    surface.height = 0;
+    throw new Error(unavailableMessage);
+  }
+}
+
+export async function createPrintSizePng({
+  source,
+  preflight,
+  signal,
+  onProgress,
+}: PrintSizePngOptions): Promise<PreviewPng> {
+  throwIfCancelled(signal);
+  const { dimensions, plan } = requireSafePlan(preflight);
+  validateSource(source);
+  const allocationIssue = getPixelSurfaceAllocationIssue(dimensions.widthPx, dimensions.heightPx);
+  if (allocationIssue) {
+    throw new Error(`The print-size PNG cannot be allocated safely. ${allocationIssue.message}`);
+  }
+
+  const { surface: output, context: outputContext } = createSurface(
+    dimensions.widthPx,
+    dimensions.heightPx,
+    'PNG composition is unavailable in this browser.',
+  );
+
+  try {
+    await composeRasterTiles(plan, {
+      renderTile: ({ region }) => {
+        throwIfCancelled(signal);
+        const { surface: tileSurface, context: tileContext } = createSurface(
+          region.width,
+          region.height,
+          'PNG tile rendering is unavailable in this browser.',
+        );
+        try {
+          tileContext.drawImage(
+            source.surface,
+            region.x / dimensions.widthPx * source.width,
+            region.y / dimensions.heightPx * source.height,
+            region.width / dimensions.widthPx * source.width,
+            region.height / dimensions.heightPx * source.height,
+            0,
+            0,
+            region.width,
+            region.height,
+          );
+        } catch {
+          tileSurface.width = 0;
+          tileSurface.height = 0;
+          throw new Error('The browser could not render a print-size PNG tile.');
+        }
+        return {
+          value: tileSurface,
+          release: () => {
+            tileSurface.width = 0;
+            tileSurface.height = 0;
+          },
+        };
+      },
+      writeTile: ({ resource, source: sourceRegion, destination }) => {
+        try {
+          outputContext.drawImage(
+            resource,
+            sourceRegion.x,
+            sourceRegion.y,
+            sourceRegion.width,
+            sourceRegion.height,
+            destination.x,
+            destination.y,
+            destination.width,
+            destination.height,
+          );
+        } catch {
+          throw new Error('The browser could not compose the print-size PNG.');
+        }
+      },
+      onProgress,
+    }, { signal });
+
+    throwIfCancelled(signal);
+    return await encodePng(output, dimensions.widthPx, dimensions.heightPx, signal);
+  } catch (error) {
+    output.width = 0;
+    output.height = 0;
+    throw error;
+  }
+}

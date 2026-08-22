@@ -116,18 +116,47 @@ describe('preview PNG export', () => {
     const context = installCanvasContext();
     context.drawImage.mockImplementation(() => { throw new DOMException('Tainted canvas', 'SecurityError'); });
     const { mapCanvas, frame } = createFixture();
+    const createElement = vi.spyOn(document, 'createElement');
 
     await expect(capturePrintFramePng(mapCanvas, frame, '© OpenStreetMap contributors'))
       .rejects.toThrow('could not render the PNG');
+    const output = createElement.mock.results[0]?.value as HTMLCanvasElement;
+    expect(output).toMatchObject({ width: 0, height: 0 });
+  });
+
+  it('releases the allocated output when a canvas context is unavailable', async () => {
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
+    const { mapCanvas, frame } = createFixture();
+    const createElement = vi.spyOn(document, 'createElement');
+
+    await expect(capturePrintFramePng(mapCanvas, frame, '© OpenStreetMap contributors'))
+      .rejects.toThrow('PNG export is unavailable');
+    const output = createElement.mock.results[0]?.value as HTMLCanvasElement;
+    expect(output).toMatchObject({ width: 0, height: 0 });
   });
 
   it('reports canvas encoding failures', async () => {
     installCanvasContext();
     vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation((callback) => callback(null));
     const { mapCanvas, frame } = createFixture();
+    const createElement = vi.spyOn(document, 'createElement');
 
     await expect(capturePrintFramePng(mapCanvas, frame, '© OpenStreetMap contributors'))
       .rejects.toThrow('could not create the PNG');
+    const output = createElement.mock.results[0]?.value as HTMLCanvasElement;
+    expect(output).toMatchObject({ width: 0, height: 0 });
+  });
+
+  it('releases the allocated output when canvas encoding throws', async () => {
+    installCanvasContext();
+    vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation(() => { throw new DOMException('Encoding failed'); });
+    const { mapCanvas, frame } = createFixture();
+    const createElement = vi.spyOn(document, 'createElement');
+
+    await expect(capturePrintFramePng(mapCanvas, frame, '© OpenStreetMap contributors'))
+      .rejects.toThrow('could not create the PNG');
+    const output = createElement.mock.results[0]?.value as HTMLCanvasElement;
+    expect(output).toMatchObject({ width: 0, height: 0 });
   });
 
   it('sanitizes the suggested filename before starting a download', () => {
