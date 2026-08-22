@@ -99,7 +99,7 @@ describe('export preflight planning', () => {
   });
 
   it.each([
-    ['non-finite page dimensions', completeRequest({ page: { widthMm: Number.NaN, heightMm: 210 } }), {}, 'INVALID_PAGE_DIMENSIONS'],
+    ['non-finite page dimensions', completeRequest({ page: { widthMm: NaN, heightMm: 210 } }), {}, 'INVALID_PAGE_DIMENSIONS'],
     ['DPI outside the configured range', completeRequest({ dpi: 1200 }), {}, 'DPI_OUT_OF_RANGE'],
     ['a page side beyond the configured range', completeRequest({ page: { widthMm: 1331, heightMm: 210 } }), {}, 'PAGE_SIDE_LIMIT_EXCEEDED'],
     ['an output side beyond the configured range', completeRequest({ page: { widthMm: 100, heightMm: 100 }, dpi: 254 }), { maxOutputSidePx: 999 }, 'OUTPUT_SIDE_LIMIT_EXCEEDED'],

@@ -1,7 +1,7 @@
 import type { ContentLayer, LayerGeometry, LayerType } from '../domain/project';
 
 export const MAX_GEOJSON_FILE_BYTES = 5 * 1024 * 1024;
-export const MAX_GEOJSON_FEATURES = 1_000;
+export const MAX_GEOJSON_FEATURES = 1000;
 export const MAX_GEOJSON_COORDINATES = 200_000;
 export const MAX_GEOJSON_NAME_LENGTH = 100;
 
@@ -43,10 +43,10 @@ function positionAt(
   }
   const longitude = finiteNumber(value[0], `${label} longitude`);
   const latitude = finiteNumber(value[1], `${label} latitude`);
-  if (longitude < -180 || longitude > 180) {
+  if (Math.abs(longitude) > 180) {
     throw new GeoJsonImportError(`${label} longitude must be between -180 and 180.`);
   }
-  if (latitude < -90 || latitude > 90) {
+  if (Math.abs(latitude) > 90) {
     throw new GeoJsonImportError(`${label} latitude must be between -90 and 90.`);
   }
   coordinateCount.value += 1;
@@ -117,22 +117,70 @@ function sanitizeName(value: unknown, fallback: string): string {
   if (typeof value !== 'string') return fallback;
   const sanitized = value
     .normalize('NFKC')
-    .replace(/[\p{Cc}\p{Cf}]/gu, ' ')
-    .replace(/\s+/g, ' ')
+    .replaceAll(/[\p{Cc}\p{Cf}]/gu, ' ')
+    .replaceAll(/\s+/g, ' ')
     .trim();
-  const bounded = Array.from(sanitized).slice(0, MAX_GEOJSON_NAME_LENGTH).join('').trimEnd();
+  const bounded = [...sanitized].slice(0, MAX_GEOJSON_NAME_LENGTH).join('').trimEnd();
   return bounded || fallback;
 }
 
 function slug(value: string): string {
   return value
     .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .replaceAll(/[\u{0300}-\u{036F}]/gu, '')
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
+    .replaceAll(/[^a-z0-9]+/g, '-')
+    .replaceAll(/^-|-$/g, '')
     .slice(0, 64)
-    .replace(/-$/g, '');
+    .replaceAll(/-$/g, '');
+}
+
+function validateFeatureId(feature: JsonObject, featureLabel: string): void {
+  if (
+    feature.id !== undefined
+    && typeof feature.id !== 'string'
+    && (typeof feature.id !== 'number' || !Number.isFinite(feature.id))
+  ) {
+    throw new GeoJsonImportError(`${featureLabel} ID must be a string or finite number.`);
+  }
+}
+
+function featureAt(
+  candidate: unknown,
+  index: number,
+  coordinateCount: CoordinateCounter,
+  usedIds: Set<string>,
+): ContentLayer {
+  const featureLabel = `Feature ${index + 1}`;
+  const feature = objectAt(candidate, featureLabel);
+  if (feature.type !== 'Feature') throw new GeoJsonImportError(`${featureLabel} must have type Feature.`);
+  validateFeatureId(feature, featureLabel);
+  const properties = feature.properties === null || feature.properties === undefined
+    ? {}
+    : objectAt(feature.properties, `${featureLabel} properties`);
+  const geometry = geometryAt(feature.geometry, featureLabel, coordinateCount);
+  const fallback = `${geometry.type === 'LineString' ? 'Line' : geometry.type} ${index + 1}`;
+  const name = sanitizeName(properties.name, fallback);
+  const idSeed = typeof feature.id === 'string' || typeof feature.id === 'number'
+    ? String(feature.id)
+    : name;
+  const baseId = `geojson-${slug(idSeed) || slug(fallback)}`;
+  let id = baseId;
+  let suffix = 2;
+  while (usedIds.has(id)) {
+    id = `${baseId}-${suffix}`;
+    suffix += 1;
+  }
+  usedIds.add(id);
+  return {
+    id,
+    name,
+    type: layerTypeFor(geometry),
+    visible: true,
+    locked: false,
+    opacity: 100,
+    geometry,
+  };
 }
 
 export function parseGeoJsonText(
@@ -165,46 +213,9 @@ export function parseGeoJsonText(
     );
   }
 
-  const usedIds = new Set(options.existingLayerIds ?? []);
+  const usedIds = new Set(options.existingLayerIds);
   const coordinateCount = { value: 0 };
-  return features.map((candidate, index): ContentLayer => {
-    const featureLabel = `Feature ${index + 1}`;
-    const feature = objectAt(candidate, featureLabel);
-    if (feature.type !== 'Feature') throw new GeoJsonImportError(`${featureLabel} must have type Feature.`);
-    if (
-      feature.id !== undefined
-      && typeof feature.id !== 'string'
-      && (typeof feature.id !== 'number' || !Number.isFinite(feature.id))
-    ) {
-      throw new GeoJsonImportError(`${featureLabel} ID must be a string or finite number.`);
-    }
-    const properties = feature.properties === null || feature.properties === undefined
-      ? {}
-      : objectAt(feature.properties, `${featureLabel} properties`);
-    const geometry = geometryAt(feature.geometry, featureLabel, coordinateCount);
-    const fallback = `${geometry.type === 'LineString' ? 'Line' : geometry.type} ${index + 1}`;
-    const name = sanitizeName(properties.name, fallback);
-    const idSeed = typeof feature.id === 'string' || typeof feature.id === 'number'
-      ? String(feature.id)
-      : name;
-    const baseId = `geojson-${slug(idSeed) || slug(fallback)}`;
-    let id = baseId;
-    let suffix = 2;
-    while (usedIds.has(id)) {
-      id = `${baseId}-${suffix}`;
-      suffix += 1;
-    }
-    usedIds.add(id);
-    return {
-      id,
-      name,
-      type: layerTypeFor(geometry),
-      visible: true,
-      locked: false,
-      opacity: 100,
-      geometry,
-    };
-  });
+  return features.map((candidate, index) => featureAt(candidate, index, coordinateCount, usedIds));
 }
 
 export const importGeoJsonText = parseGeoJsonText;

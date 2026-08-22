@@ -11,25 +11,15 @@ export type CoordinateProjector = (
   }>,
 ) => PagePoint;
 
-export type RasterBasemapAsset = Readonly<{
-  dataUri: string;
-  pixelWidth: number;
-  pixelHeight: number;
-}>;
+export type RasterBasemapAsset = Readonly<{ dataUri: string; pixelWidth: number; pixelHeight: number }>;
 
 export type PrintLayerStyle = Readonly<{
-  fill?: string;
-  stroke?: string;
-  strokeWidthMm?: number;
-  pointRadiusMm?: number;
+  fill?: string; stroke?: string; strokeWidthMm?: number; pointRadiusMm?: number;
 }>;
 
 export type PrintSceneOptions = Readonly<{
-  basemap: RasterBasemapAsset;
-  attribution: string;
-  project: CoordinateProjector;
-  layerStyles?: Readonly<Record<string, PrintLayerStyle | undefined>>;
-  metadata?: string;
+  basemap: RasterBasemapAsset; attribution: string; project: CoordinateProjector;
+  layerStyles?: Readonly<Record<string, PrintLayerStyle | undefined>>; metadata?: string;
 }>;
 
 export class PrintSceneError extends Error {
@@ -54,7 +44,7 @@ const defaultStyles: Readonly<Record<Exclude<LayerType, 'basemap'>, Required<Pri
 const safePaint = /^(?:none|[a-zA-Z]+|#[0-9a-fA-F]{3,8}|(?:rgb|rgba|hsl|hsla)\([0-9.,%+\-\s]+\))$/;
 
 function escapeXml(value: string): string {
-  return value.replace(/[&<>"']/g, (character) => ({
+  return value.replaceAll(/[&<>"']/g, (character) => ({
     '&': '&amp;',
     '<': '&lt;',
     '>': '&gt;',
@@ -87,10 +77,14 @@ function opacityValue(layer: ContentLayer): string {
 }
 
 function hashIdentifier(value: string): string {
-  let hash = 0x811c9dc5;
+  let hash = 0x81_1C_9D_C5;
   for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 0x01000193);
+    const codePoint = value.codePointAt(index) as number;
+    const codeUnit = codePoint > 65_535
+      ? Math.floor((codePoint - 65_536) / 1024) + 55_296
+      : codePoint;
+    hash ^= codeUnit;
+    hash = Math.imul(hash, 0x01_00_01_93);
   }
   return (hash >>> 0).toString(36);
 }
@@ -98,10 +92,10 @@ function hashIdentifier(value: string): string {
 function stableLayerId(layerId: string): string {
   const slug = layerId
     .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .replaceAll(/[\u{0300}-\u{036F}]/gu, '')
     .toLowerCase()
-    .replace(/[^a-z0-9_-]+/g, '-')
-    .replace(/^-+|-+$/g, '')
+    .replaceAll(/[^a-z0-9_-]+/g, '-')
+    .replaceAll(/^-+|-+$/g, '')
     .slice(0, 48) || 'item';
   return `layer-${slug}-${hashIdentifier(layerId)}`;
 }
@@ -119,7 +113,25 @@ function decodeRasterDataUri(dataUri: string): { mime: 'png' | 'jpeg' | 'webp'; 
 }
 
 function hasBytes(bytes: string, offset: number, expected: readonly number[]): boolean {
-  return expected.every((value, index) => bytes.charCodeAt(offset + index) === value);
+  return expected.every((value, index) => bytes.codePointAt(offset + index) === value);
+}
+
+const isInteger = Number.isInteger.bind(Number);
+
+function hasValidRasterSignature(mime: 'png' | 'jpeg' | 'webp', bytes: string): boolean {
+  if (mime === 'png') {
+    return bytes.length >= 16
+      && hasBytes(bytes, 0, [137, 80, 78, 71, 13, 10, 26, 10])
+      && hasBytes(bytes, bytes.length - 8, [73, 69, 78, 68, 174, 66, 96, 130]);
+  }
+  if (mime === 'jpeg') {
+    return bytes.length >= 4
+      && hasBytes(bytes, 0, [255, 216, 255])
+      && hasBytes(bytes, bytes.length - 2, [255, 217]);
+  }
+  return bytes.length >= 12
+    && hasBytes(bytes, 0, [82, 73, 70, 70])
+    && hasBytes(bytes, 8, [87, 69, 66, 80]);
 }
 
 function validateBasemap(asset: RasterBasemapAsset | undefined): void {
@@ -128,23 +140,12 @@ function validateBasemap(asset: RasterBasemapAsset | undefined): void {
   }
   finitePositive(asset.pixelWidth, 'Basemap pixel width');
   finitePositive(asset.pixelHeight, 'Basemap pixel height');
-  if (!Number.isInteger(asset.pixelWidth) || !Number.isInteger(asset.pixelHeight)) {
+  if (!isInteger(asset.pixelWidth) || !isInteger(asset.pixelHeight)) {
     throw new PrintSceneError('Basemap pixel dimensions must be integers.');
   }
 
   const { mime, bytes } = decodeRasterDataUri(asset.dataUri);
-  const valid = mime === 'png'
-    ? bytes.length >= 16
-      && hasBytes(bytes, 0, [137, 80, 78, 71, 13, 10, 26, 10])
-      && hasBytes(bytes, bytes.length - 8, [73, 69, 78, 68, 174, 66, 96, 130])
-    : mime === 'jpeg'
-      ? bytes.length >= 4
-        && hasBytes(bytes, 0, [255, 216, 255])
-        && hasBytes(bytes, bytes.length - 2, [255, 217])
-      : bytes.length >= 12
-        && hasBytes(bytes, 0, [82, 73, 70, 70])
-        && hasBytes(bytes, 8, [87, 69, 66, 80]);
-  if (!valid) {
+  if (!hasValidRasterSignature(mime, bytes)) {
     throw new PrintSceneError(`The basemap data does not contain a valid ${mime.toUpperCase()} signature.`);
   }
 }
@@ -166,18 +167,17 @@ function projectCoordinate(
   coordinate: readonly [number, number],
   layer: ContentLayer,
   options: PrintSceneOptions,
-  width: number,
-  height: number,
+  page: Readonly<{ width: number; height: number }>,
 ): PagePoint {
-  if (coordinate.length !== 2 || !coordinate.every(Number.isFinite)) {
+  if (coordinate.length !== 2 || coordinate.some((value) => !Number.isFinite(value))) {
     throw new PrintSceneError(`Layer "${layer.id}" contains an invalid coordinate.`);
   }
   let point: PagePoint;
   try {
     point = options.project([coordinate[0], coordinate[1]], {
       layerId: layer.id,
-      pageWidthMm: width,
-      pageHeightMm: height,
+      pageWidthMm: page.width,
+      pageHeightMm: page.height,
     });
   } catch {
     throw new PrintSceneError(`The coordinate projector failed for layer "${layer.id}".`);
@@ -207,14 +207,16 @@ function geometryElement(
   const stroke = `stroke="${escapeXml(style.stroke)}" stroke-width="${formatNumber(style.strokeWidthMm)}"`;
 
   if (geometry.type === 'Point') {
-    const point = projectCoordinate(geometry.coordinates, layer, options, width, height);
+    const point = projectCoordinate(geometry.coordinates, layer, options, { width, height });
     return `<circle cx="${formatNumber(point.x)}" cy="${formatNumber(point.y)}" r="${formatNumber(style.pointRadiusMm)}" fill="${escapeXml(style.fill)}" ${stroke}/>`;
   }
   if (geometry.type === 'LineString') {
     if (geometry.coordinates.length < 2) {
       throw new PrintSceneError(`Layer "${layer.id}" route must contain at least two coordinates.`);
     }
-    const points = geometry.coordinates.map((coordinate) => projectCoordinate(coordinate, layer, options, width, height));
+    const points = geometry.coordinates.map((coordinate) => (
+      projectCoordinate(coordinate, layer, options, { width, height })
+    ));
     const commands = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${pointText(point)}`).join(' ');
     return `<path d="${commands}" fill="none" ${stroke} stroke-linecap="round" stroke-linejoin="round"/>`;
   }
@@ -227,12 +229,12 @@ function geometryElement(
       throw new PrintSceneError(`Layer "${layer.id}" polygon rings must contain at least four coordinates.`);
     }
     const first = ring[0];
-    const last = ring[ring.length - 1];
-    if (first[0] !== last[0] || first[1] !== last[1]) {
+    const last = ring.at(-1);
+    if (!first || !last || first[0] !== last[0] || first[1] !== last[1]) {
       throw new PrintSceneError(`Layer "${layer.id}" polygon rings must be closed.`);
     }
     return ring
-      .map((coordinate, index) => `${index === 0 ? 'M' : 'L'} ${pointText(projectCoordinate(coordinate, layer, options, width, height))}`)
+      .map((coordinate, index) => `${index === 0 ? 'M' : 'L'} ${pointText(projectCoordinate(coordinate, layer, options, { width, height }))}`)
       .join(' ') + ' Z';
   });
   return `<path d="${rings.join(' ')}" fill="${escapeXml(style.fill)}" ${stroke} fill-rule="evenodd" stroke-linejoin="round"/>`;
@@ -251,41 +253,65 @@ function layerGroupAttributes(layer: ContentLayer, role: 'raster-basemap' | 'vec
   ].join(' ');
 }
 
-/**
- * Serializes a ProjectDocument into a deterministic, dependency-free SVG print scene.
- * The basemap is always one embedded raster image; route, POI, and shape layers remain vectors.
- */
-export function serializePrintScene(document: ProjectDocument, options: PrintSceneOptions): string {
-  const width = finitePositive(document.page?.widthMm, 'Page width');
-  const height = finitePositive(document.page?.heightMm, 'Page height');
-  if (!options || typeof options.project !== 'function') {
-    throw new PrintSceneError('A coordinate-to-page-point projector is required.');
-  }
-  validateBasemap(options.basemap);
-  const attribution = options.attribution?.replace(/\s+/g, ' ').trim();
+function requiredAttribution(options: PrintSceneOptions): string {
+  const attribution = options.attribution?.replaceAll(/\s+/g, ' ').trim();
   if (!attribution) {
     throw new PrintSceneError('Map attribution is required for the print scene.');
   }
-  if (!Array.isArray(document.layers)) {
-    throw new PrintSceneError('Project layers are unavailable.');
-  }
+  return attribution;
+}
 
+function splitLayers(layers: readonly ContentLayer[]): {
+  basemapLayer: ContentLayer;
+  vectorLayers: ContentLayer[];
+} {
   const layerIds = new Set<string>();
-  for (const layer of document.layers) {
+  for (const layer of layers) {
     if (!layer.id || !layer.name || layerIds.has(layer.id)) {
       throw new PrintSceneError('Every layer must have a unique non-empty ID and name.');
     }
     layerIds.add(layer.id);
   }
-  const basemapLayers = document.layers.filter((layer) => layer.type === 'basemap');
+  const basemapLayers = layers.filter((layer) => layer.type === 'basemap');
   if (basemapLayers.length !== 1) {
     throw new PrintSceneError('The project must contain exactly one basemap layer.');
   }
-  const basemapLayer = basemapLayers[0];
-  const vectorLayers = document.layers.filter((layer) => layer.type !== 'basemap');
+  return {
+    basemapLayer: basemapLayers[0] as ContentLayer,
+    vectorLayers: layers.filter((layer) => layer.type !== 'basemap'),
+  };
+}
+
+function validatedLayers(layers: readonly ContentLayer[]): readonly ContentLayer[] {
+  if (!Array.isArray(layers)) {
+    throw new PrintSceneError('Project layers are unavailable.');
+  }
+  return layers;
+}
+
+function validateSceneInputs(document: ProjectDocument, options: PrintSceneOptions) {
+  finitePositive(document.page?.widthMm, 'Page width');
+  finitePositive(document.page?.heightMm, 'Page height');
+  if (!options || typeof options.project !== 'function') {
+    throw new PrintSceneError('A coordinate-to-page-point projector is required.');
+  }
+  const width = document.page.widthMm;
+  const height = document.page.heightMm;
+  validateBasemap(options.basemap);
+  const attribution = requiredAttribution(options);
+  const layers = validatedLayers(document.layers);
+  return { width, height, attribution, ...splitLayers(layers) };
+}
+
+/**
+ * Serializes a ProjectDocument into a deterministic, dependency-free SVG print scene.
+ * The basemap is always one embedded raster image; route, POI, and shape layers remain vectors.
+ */
+export function serializePrintScene(document: ProjectDocument, options: PrintSceneOptions): string {
+  const { width, height, attribution, basemapLayer, vectorLayers } = validateSceneInputs(document, options);
   const widthText = formatDimension(width);
   const heightText = formatDimension(height);
-  const metadata = options.metadata?.replace(/\s+/g, ' ').trim();
+  const metadata = options.metadata?.replaceAll(/\s+/g, ' ').trim();
 
   const basemapGroup = `<g ${layerGroupAttributes(basemapLayer, 'raster-basemap')}><title>${escapeXml(basemapLayer.name)}</title><image href="${escapeXml(options.basemap.dataUri)}" x="0" y="0" width="${widthText}" height="${heightText}" preserveAspectRatio="xMidYMid slice" data-pixel-width="${options.basemap.pixelWidth}" data-pixel-height="${options.basemap.pixelHeight}"/></g>`;
   const vectorGroups = vectorLayers.map((layer) => (

@@ -5,14 +5,21 @@ import { serializePrintScene } from '../../src/print/scene';
 const onePixelPng = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
 
 const projector = ([longitude, latitude]: readonly [number, number]) => ({
-  x: (longitude - 16.3) * 1_000,
-  y: (48.3 - latitude) * 1_000,
+  x: (longitude - 16.3) * 1000,
+  y: (48.3 - latitude) * 1000,
 });
 
 function parseSvg(svgText: string) {
   const document = new DOMParser().parseFromString(svgText, 'image/svg+xml');
   expect(document.querySelector('parsererror')).toBeNull();
   return document;
+}
+
+function requiredElement(root: ParentNode, selector: string): Element {
+  const element = root.querySelector(selector);
+  expect(element).not.toBeNull();
+  if (!element) throw new Error(`Missing test element: ${selector}`);
+  return element;
 }
 
 describe('layered SVG print scene', () => {
@@ -30,20 +37,20 @@ describe('layered SVG print scene', () => {
     expect(svg.getAttribute('width')).toBe('297mm');
     expect(svg.getAttribute('height')).toBe('210mm');
     expect(svg.getAttribute('viewBox')).toBe('0 0 297 210');
-    expect(svg.getAttribute('data-basemap-content')).toBe('raster');
-    expect(svg.getAttribute('data-overlay-content')).toBe('vector');
-    expect(svgDocument.querySelector('#page-clip rect')?.getAttribute('width')).toBe('297');
-    expect(svgDocument.querySelector('#page-clip rect')?.getAttribute('height')).toBe('210');
+    expect(svg.dataset.basemapContent).toBe('raster');
+    expect(svg.dataset.overlayContent).toBe('vector');
+    expect(svg.querySelector(':scope #page-clip rect')?.getAttribute('width')).toBe('297');
+    expect(svg.querySelector(':scope #page-clip rect')?.getAttribute('height')).toBe('210');
 
-    const groups = Array.from(svg.children).filter((child) => child.localName === 'g');
-    expect(groups.map((group) => group.getAttribute('data-layer-name'))).toEqual([
+    const groups = [...svg.children].filter((child) => child.localName === 'g') as SVGElement[];
+    expect(groups.map((group) => group.dataset.layerName)).toEqual([
       'Liberty basemap',
       'Route 01',
       'Coffee stop',
       'City center',
       'Attribution',
     ]);
-    expect(groups.map((group) => group.getAttribute('data-scene-role'))).toEqual([
+    expect(groups.map((group) => group.dataset.sceneRole)).toEqual([
       'raster-basemap',
       'vector-overlay',
       'vector-overlay',
@@ -99,16 +106,16 @@ describe('layered SVG print scene', () => {
       metadata,
       project: projector,
     }));
-    const routeGroup = svgDocument.querySelector('[data-scene-role="vector-overlay"]');
+    const routeGroup = svgDocument.querySelector<SVGElement>('[data-scene-role="vector-overlay"]');
 
     expect(svgDocument.querySelector('script')).toBeNull();
-    expect(svgDocument.querySelector('svg > title')?.textContent).toBe(project.title);
+    expect(svgDocument.documentElement.querySelector(':scope > title')?.textContent).toBe(project.title);
     expect(svgDocument.querySelector('metadata')?.textContent).toBe(metadata);
-    expect(svgDocument.querySelector('metadata')?.getAttribute('data-project-id')).toBe(project.id);
-    expect(routeGroup?.getAttribute('data-layer-id')).toBe(project.layers[0].id);
-    expect(routeGroup?.getAttribute('data-layer-name')).toBe(project.layers[0].name);
+    expect(svgDocument.querySelector('metadata')?.dataset.projectId).toBe(project.id);
+    expect(routeGroup?.dataset.layerId).toBe(project.layers[0].id);
+    expect(routeGroup?.dataset.layerName).toBe(project.layers[0].name);
     expect(routeGroup?.querySelector('title')?.textContent).toBe(project.layers[0].name);
-    expect(svgDocument.querySelector('#attribution text')?.textContent).toBe(attribution);
+    expect(svgDocument.documentElement.querySelector(':scope #attribution text')?.textContent).toBe(attribution);
     expect(routeGroup?.id).toMatch(/^layer-[a-z0-9_-]+-[a-z0-9]+$/);
   });
 
@@ -127,20 +134,21 @@ describe('layered SVG print scene', () => {
         'area-center': { fill: 'none', stroke: '#fedcba', strokeWidthMm: 0.75 },
       },
     }));
-    const route = svgDocument.querySelector('[data-layer-id="route-01"]');
-    const poi = svgDocument.querySelector('[data-layer-id="poi-cafe"] circle');
-    const shape = svgDocument.querySelector('[data-layer-id="area-center"] path');
+    const route = requiredElement(svgDocument, '[data-layer-id="route-01"]');
+    const poi = requiredElement(svgDocument, '[data-layer-id="poi-cafe"] circle');
+    const shape = requiredElement(svgDocument, '[data-layer-id="area-center"] path');
 
-    expect(route?.getAttribute('visibility')).toBe('hidden');
-    expect(route?.getAttribute('opacity')).toBe('0.37');
-    expect(route?.querySelector('path')?.getAttribute('stroke')).toBe('#010203');
-    expect(route?.querySelector('path')?.getAttribute('stroke-width')).toBe('2.25');
-    expect(route?.querySelector('path')?.getAttribute('d')).toBe('M 26 106 L 53 95 L 91 85 L 129 74');
-    expect(poi?.getAttribute('fill')).toBe('#abcdef');
-    expect(poi?.getAttribute('r')).toBe('3.5');
-    expect(shape?.getAttribute('fill')).toBe('none');
-    expect(shape?.getAttribute('stroke')).toBe('#fedcba');
-    expect(shape?.getAttribute('stroke-width')).toBe('0.75');
+    expect(route.getAttribute('visibility')).toBe('hidden');
+    expect(route.getAttribute('opacity')).toBe('0.37');
+    const routePath = requiredElement(route, ':scope > path');
+    expect(routePath.getAttribute('stroke')).toBe('#010203');
+    expect(routePath.getAttribute('stroke-width')).toBe('2.25');
+    expect(routePath.getAttribute('d')).toBe('M 26 106 L 53 95 L 91 85 L 129 74');
+    expect(poi.getAttribute('fill')).toBe('#abcdef');
+    expect(poi.getAttribute('r')).toBe('3.5');
+    expect(shape.getAttribute('fill')).toBe('none');
+    expect(shape.getAttribute('stroke')).toBe('#fedcba');
+    expect(shape.getAttribute('stroke-width')).toBe('0.75');
   });
 
   it('rejects missing or malformed required raster and attribution assets', () => {
@@ -151,7 +159,7 @@ describe('layered SVG print scene', () => {
       project: projector,
     };
 
-    expect(() => serializePrintScene(project, { ...validOptions, attribution: '   ' }))
+    expect(() => serializePrintScene(project, { ...validOptions, attribution: ' '.repeat(3) }))
       .toThrow('attribution is required');
     expect(() => serializePrintScene(project, {
       ...validOptions,
@@ -172,7 +180,7 @@ describe('layered SVG print scene', () => {
     const options = {
       basemap: { dataUri: onePixelPng, pixelWidth: 1, pixelHeight: 1 },
       attribution: '© OpenStreetMap contributors',
-      project: () => ({ x: Number.NaN, y: 10 }),
+      project: () => ({ x: NaN, y: 10 }),
     };
 
     expect(() => serializePrintScene(project, options)).toThrow('invalid page point');
@@ -202,7 +210,7 @@ describe('layered SVG print scene', () => {
       layerStyles: { 'route-01': { stroke: 'url(javascript:owned())' } },
     })).toThrow('unsafe SVG paint');
 
-    project.page.widthMm = Number.POSITIVE_INFINITY;
+    project.page.widthMm = Infinity;
     expect(() => serializePrintScene(project, options)).toThrow('Page width');
   });
 });

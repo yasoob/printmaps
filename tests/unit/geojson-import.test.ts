@@ -187,7 +187,7 @@ describe('GeoJSON import', () => {
   });
 
   it('normalizes, strips controls from, and bounds imported names by Unicode code point', () => {
-    const rawName = `  Café\u202e\n  stop ${'😀'.repeat(MAX_GEOJSON_NAME_LENGTH)}  `;
+    const rawName = `  Café\u{202E}\n  stop ${'😀'.repeat(MAX_GEOJSON_NAME_LENGTH)}  `;
     const text = JSON.stringify({
       type: 'Feature',
       properties: { name: rawName },
@@ -197,9 +197,9 @@ describe('GeoJSON import', () => {
     const [{ name }] = parseGeoJsonText(text);
 
     expect(name).toMatch(/^Café stop/);
-    expect(name).not.toContain('\u202e');
+    expect(name).not.toContain('\u{202E}');
     expect(name).not.toContain('\n');
-    expect(Array.from(name)).toHaveLength(MAX_GEOJSON_NAME_LENGTH);
+    expect([...name]).toHaveLength(MAX_GEOJSON_NAME_LENGTH);
   });
 
   it('rejects a non-string, non-finite feature ID', () => {
