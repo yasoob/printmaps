@@ -7,6 +7,8 @@ export type RenderedMapContent = {
   structure: string;
 };
 
+type PaintProperty = Parameters<MapLibreMap['setPaintProperty']>[1];
+
 type HighlightState = {
   selectedId: string | null;
   previewedId: string | null;
@@ -35,111 +37,91 @@ export const contentStructure = (layers: ContentLayer[]) => layers
   .map((layer) => `${encodedContentId(layer.id)}:${layer.type}:${JSON.stringify(layer.geometry)}`)
   .join('|');
 
+const routeLayerDescriptor = (layer: ContentLayer, isHighlighted: boolean) => ({
+  id: layerId(layer.id),
+  type: 'line' as const,
+  paint: {
+    'line-color': isHighlighted ? HIGHLIGHT_COLOR : ROUTE_COLOR,
+    'line-opacity': layer.opacity / 100,
+    'line-width': isHighlighted ? 6 : 4,
+  },
+  layout: { 'line-cap': 'round' as const, 'line-join': 'round' as const },
+});
+
+const poiLayerDescriptor = (layer: ContentLayer, isHighlighted: boolean) => ({
+  id: layerId(layer.id),
+  type: 'circle' as const,
+  paint: {
+    'circle-color': isHighlighted ? HIGHLIGHT_COLOR : POI_COLOR,
+    'circle-opacity': layer.opacity / 100,
+    'circle-radius': isHighlighted ? 9 : 7,
+    'circle-stroke-color': POI_STROKE,
+    'circle-stroke-width': 2,
+  },
+});
+
+const shapeLayerDescriptors = (layer: ContentLayer, isHighlighted: boolean) => [{
+  id: layerId(layer.id, 'fill'),
+  type: 'fill' as const,
+  paint: {
+    'fill-color': isHighlighted ? HIGHLIGHT_COLOR : SHAPE_COLOR,
+    'fill-opacity': layer.opacity / 100,
+  },
+}, {
+  id: layerId(layer.id, 'line'),
+  type: 'line' as const,
+  paint: {
+    'line-color': isHighlighted ? HIGHLIGHT_COLOR : SHAPE_COLOR,
+    'line-opacity': layer.opacity / 100,
+    'line-width': isHighlighted ? 3 : 2,
+  },
+}];
+
+type MapLayerDescriptor =
+  | ReturnType<typeof routeLayerDescriptor>
+  | ReturnType<typeof poiLayerDescriptor>
+  | ReturnType<typeof shapeLayerDescriptors>[number];
+
+function mapLayerDescriptors(
+  layer: ContentLayer,
+  highlight: HighlightState,
+): MapLayerDescriptor[] {
+  const isHighlighted = isLayerHighlighted(layer, highlight);
+  switch (layer.type) {
+    case 'route': {
+      return [routeLayerDescriptor(layer, isHighlighted)];
+    }
+    case 'poi': {
+      return [poiLayerDescriptor(layer, isHighlighted)];
+    }
+    case 'shape': {
+      return shapeLayerDescriptors(layer, isHighlighted);
+    }
+    default: {
+      return [];
+    }
+  }
+}
+
 export function updateLayerPaint(
   map: MapLibreMap,
   layer: ContentLayer,
   highlight: HighlightState,
 ) {
-  const isHighlighted = isLayerHighlighted(layer, highlight);
-  const opacity = layer.opacity / 100;
-  switch (layer.type) {
-    case 'route': {
-      map.setPaintProperty(layerId(layer.id), 'line-color', isHighlighted ? HIGHLIGHT_COLOR : ROUTE_COLOR);
-      map.setPaintProperty(layerId(layer.id), 'line-opacity', opacity);
-      map.setPaintProperty(layerId(layer.id), 'line-width', isHighlighted ? 6 : 4);
-      break;
+  for (const descriptor of mapLayerDescriptors(layer, highlight)) {
+    for (const [property, value] of Object.entries(descriptor.paint)) {
+      map.setPaintProperty(descriptor.id, property as PaintProperty, value);
     }
-    case 'poi': {
-      map.setPaintProperty(layerId(layer.id), 'circle-color', isHighlighted ? HIGHLIGHT_COLOR : POI_COLOR);
-      map.setPaintProperty(layerId(layer.id), 'circle-opacity', opacity);
-      map.setPaintProperty(layerId(layer.id), 'circle-radius', isHighlighted ? 9 : 7);
-      break;
-    }
-    case 'shape': {
-      map.setPaintProperty(layerId(layer.id, 'fill'), 'fill-color', isHighlighted ? HIGHLIGHT_COLOR : SHAPE_COLOR);
-      map.setPaintProperty(layerId(layer.id, 'fill'), 'fill-opacity', opacity);
-      map.setPaintProperty(layerId(layer.id, 'line'), 'line-color', isHighlighted ? HIGHLIGHT_COLOR : SHAPE_COLOR);
-      map.setPaintProperty(layerId(layer.id, 'line'), 'line-opacity', opacity);
-      map.setPaintProperty(layerId(layer.id, 'line'), 'line-width', isHighlighted ? 3 : 2);
-      break;
-    }
-    // No default
   }
 }
 
-function addRouteLayer(
+function addMapLayers(
   map: MapLibreMap,
-  layer: ContentLayer,
   source: string,
-  isHighlighted: boolean,
+  descriptors: MapLayerDescriptor[],
 ) {
-  const id = layerId(layer.id);
-  map.addLayer({
-    id,
-    source,
-    type: 'line',
-    paint: {
-      'line-color': isHighlighted ? HIGHLIGHT_COLOR : ROUTE_COLOR,
-      'line-opacity': layer.opacity / 100,
-      'line-width': isHighlighted ? 6 : 4,
-    },
-    layout: { 'line-cap': 'round', 'line-join': 'round' },
-  });
-  return [id];
-}
-
-function addPoiLayer(
-  map: MapLibreMap,
-  layer: ContentLayer,
-  source: string,
-  isHighlighted: boolean,
-) {
-  const id = layerId(layer.id);
-  map.addLayer({
-    id,
-    source,
-    type: 'circle',
-    paint: {
-      'circle-color': isHighlighted ? HIGHLIGHT_COLOR : POI_COLOR,
-      'circle-opacity': layer.opacity / 100,
-      'circle-radius': isHighlighted ? 9 : 7,
-      'circle-stroke-color': POI_STROKE,
-      'circle-stroke-width': 2,
-    },
-  });
-  return [id];
-}
-
-function addShapeLayers(
-  map: MapLibreMap,
-  layer: ContentLayer,
-  source: string,
-  state: { isHighlighted: boolean; rendered: RenderedMapContent },
-) {
-  const { isHighlighted, rendered } = state;
-  const fillId = layerId(layer.id, 'fill');
-  const lineId = layerId(layer.id, 'line');
-  map.addLayer({
-    id: fillId,
-    source,
-    type: 'fill',
-    paint: {
-      'fill-color': isHighlighted ? HIGHLIGHT_COLOR : SHAPE_COLOR,
-      'fill-opacity': layer.opacity / 100,
-    },
-  });
-  rendered.mapLayerIds.push(fillId);
-  map.addLayer({
-    id: lineId,
-    source,
-    type: 'line',
-    paint: {
-      'line-color': isHighlighted ? HIGHLIGHT_COLOR : SHAPE_COLOR,
-      'line-opacity': layer.opacity / 100,
-      'line-width': isHighlighted ? 3 : 2,
-    },
-  });
-  return [lineId];
+  for (const descriptor of descriptors) map.addLayer({ ...descriptor, source });
+  return descriptors.map(({ id }) => id);
 }
 
 export function addContentLayer(
@@ -159,22 +141,7 @@ export function addContentLayer(
   });
   rendered.sourceIds.push(source);
 
-  const isHighlighted = isLayerHighlighted(layer, highlight);
-  let addedLayerIds: string[] = [];
-  switch (layer.type) {
-    case 'route': {
-      addedLayerIds = addRouteLayer(map, layer, source, isHighlighted);
-      break;
-    }
-    case 'poi': {
-      addedLayerIds = addPoiLayer(map, layer, source, isHighlighted);
-      break;
-    }
-    case 'shape': {
-      addedLayerIds = addShapeLayers(map, layer, source, { isHighlighted, rendered });
-      break;
-    }
-    // No default
-  }
-  rendered.mapLayerIds.push(...addedLayerIds);
+  const descriptors = mapLayerDescriptors(layer, highlight);
+  rendered.mapLayerIds.push(...descriptors.map(({ id }) => id));
+  return addMapLayers(map, source, descriptors);
 }

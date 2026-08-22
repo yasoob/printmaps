@@ -1,5 +1,5 @@
 import { Frame, Hand, Layers3, MapPin, MousePointer2, Route, Shapes, SlidersHorizontal, Type } from 'lucide-react';
-import { useState, type RefObject } from 'react';
+import { useMemo, useState, type RefObject } from 'react';
 import type { ContentLayer, PageSettings } from '../../domain/project';
 import type { PreviewPngExporter } from '../../export/previewPng';
 import { MapCanvas } from '../../map/MapCanvas';
@@ -33,9 +33,10 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
   const [activeTool, setActiveTool] = useState('select');
   const [fitRequest, setFitRequest] = useState(0);
   const { activePanel, layers, layersTriggerRef, onBackgroundClick, onExporterChange, onLayerSelect, openPanel, page, previewedId, propertiesTriggerRef, selectedId } = props;
+  const geometryLayers = useMemo(() => layers.filter((layer) => layer.geometry), [layers]);
   return (
     <section className="canvas-region" inert={activePanel !== null}>
-      <MapCanvas layers={layers.filter((layer) => layer.geometry)} selectedId={selectedId} previewedId={previewedId} onLayerSelect={onLayerSelect} onBackgroundClick={onBackgroundClick} onExporterChange={onExporterChange} fitRequest={fitRequest} orientation={page.orientation} page={page} />
+      <MapCanvas layers={geometryLayers} selectedId={selectedId} previewedId={previewedId} onLayerSelect={onLayerSelect} onBackgroundClick={onBackgroundClick} onExporterChange={onExporterChange} fitRequest={fitRequest} orientation={page.orientation} page={page} />
       <div className="mobile-panel-actions" aria-label="Editor panels">
         <button ref={layersTriggerRef} type="button" aria-label="Open layers" aria-controls="layers-panel" aria-expanded={activePanel === 'layers'} onClick={() => openPanel('layers')}><Layers3 size={15} /><span>Layers</span></button>
         <button ref={propertiesTriggerRef} type="button" aria-label="Open properties" aria-controls="properties-panel" aria-expanded={activePanel === 'properties'} onClick={() => openPanel('properties')}><SlidersHorizontal size={15} /><span>Properties</span></button>
