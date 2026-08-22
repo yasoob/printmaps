@@ -47,6 +47,7 @@ export function MapCanvas({
       <button type="button" onClick={() => onLayerSelect?.('poi-cafe')}>Map Coffee stop</button>
       <button type="button" onClick={() => onMapClick?.([16.31, 48.19])}>Map route point 1</button>
       <button type="button" onClick={() => onMapClick?.([16.4, 48.24])}>Map route point 2</button>
+      <button type="button" onClick={() => onMapClick?.([16.37, 48.21])}>Map POI point</button>
     </div>
   );
 }

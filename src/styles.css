@@ -246,7 +246,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 .tool-button:hover { background: var(--studio-field); }
 .tool-button.is-active { color: var(--studio-accent-strong); background: var(--studio-accent-soft); }
-.route-draw-panel {
+.map-authoring-panel {
   @apply absolute left-1/2 flex -translate-x-1/2 items-center gap-2 px-2 py-1.5;
   bottom: 4.5rem;
   min-height: 2.5rem;
@@ -256,13 +256,13 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   color: var(--studio-text-secondary);
   font-size: var(--studio-font-control);
 }
-.route-draw-panel > span { @apply whitespace-nowrap px-1; }
-.route-draw-panel > button:not(.primary-button) {
+.map-authoring-panel > span { @apply whitespace-nowrap px-1; }
+.map-authoring-panel > button:not(.primary-button) {
   @apply h-7 px-2;
   border-radius: var(--studio-radius-md);
 }
-.route-draw-panel > button:not(.primary-button):hover { background: var(--studio-field); }
-.route-draw-panel > .primary-button { @apply h-7 px-2.5; }
+.map-authoring-panel > button:not(.primary-button):hover { background: var(--studio-field); }
+.map-authoring-panel > .primary-button { @apply h-7 px-2.5; }
 .canvas-status {
   @apply absolute bottom-2.5 right-2.5 flex items-center px-1;
   height: 1.625rem;
@@ -500,7 +500,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
     scrollbar-width: none;
   }
   .tool-palette::-webkit-scrollbar { display: none; }
-  .route-draw-panel {
+  .map-authoring-panel {
     bottom: calc(max(14px, var(--studio-safe-bottom)) + 3.5rem);
     max-width: calc(100vw - 16px - var(--studio-safe-left) - var(--studio-safe-right));
   }

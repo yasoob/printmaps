@@ -62,6 +62,7 @@ type CanvasWorkspaceProps = {
   layersTriggerRef: RefObject<HTMLButtonElement | null>;
   propertiesTriggerRef: RefObject<HTMLButtonElement | null>;
   onLayerSelect: (id: string | null) => void;
+  onCreatePoi: (coordinates: readonly [number, number]) => void;
   onCreateRoute: (coordinates: readonly (readonly [number, number])[]) => void;
   onAuthoringChange: (documentEpoch: number, isActive: boolean) => void;
   onBackgroundClick: () => void;
@@ -75,7 +76,7 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
   const [toolDocumentEpoch, setToolDocumentEpoch] = useState(props.documentEpoch);
   const [fitRequest, setFitRequest] = useState(0);
   const selectToolRef = useRef<HTMLButtonElement>(null);
-  const { activePanel, documentEpoch, layers, layersTriggerRef, onAuthoringChange, onBackgroundClick, onCreateRoute, onExporterChange, onLayerSelect, openPanel, page, previewedId, propertiesTriggerRef, selectedId } = props;
+  const { activePanel, documentEpoch, layers, layersTriggerRef, onAuthoringChange, onBackgroundClick, onCreatePoi, onCreateRoute, onExporterChange, onLayerSelect, openPanel, page, previewedId, propertiesTriggerRef, selectedId } = props;
   const activeTool = toolDocumentEpoch === documentEpoch ? storedActiveTool : 'select';
   const routePoints = toolDocumentEpoch === documentEpoch ? storedRoutePoints : EMPTY_ROUTE_POINTS;
   const geometryLayers = useMemo(() => [
@@ -86,7 +87,7 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
     setToolDocumentEpoch(documentEpoch);
     setStoredActiveTool(id);
     if (id !== 'route' || toolDocumentEpoch !== documentEpoch) setStoredRoutePoints([]);
-    onAuthoringChange(documentEpoch, id === 'route');
+    onAuthoringChange(documentEpoch, id === 'route' || id === 'pin');
   };
   const finishRoute = () => {
     if (routePoints.length < 2) return;
@@ -102,13 +103,30 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
     setStoredActiveTool('select');
     onAuthoringChange(documentEpoch, false);
   };
+  const placePoi = (coordinate: [number, number]) => {
+    selectToolRef.current?.focus();
+    onCreatePoi(coordinate);
+    setStoredActiveTool('select');
+    onAuthoringChange(documentEpoch, false);
+  };
+  const cancelPoi = () => {
+    selectToolRef.current?.focus();
+    setStoredActiveTool('select');
+    onAuthoringChange(documentEpoch, false);
+  };
+  let handleMapClick: ((coordinate: [number, number]) => void) | undefined;
+  if (activeTool === 'route') {
+    handleMapClick = (coordinate) => {
+      setToolDocumentEpoch(documentEpoch);
+      setStoredRoutePoints((points) => toolDocumentEpoch === documentEpoch ? [...points, coordinate] : [coordinate]);
+    };
+  } else if (activeTool === 'pin') {
+    handleMapClick = placePoi;
+  }
 
   return (
     <section className="canvas-region" inert={activePanel !== null}>
-      <MapCanvas layers={geometryLayers} contentRevision={geometryLayers} selectedId={selectedId} previewedId={previewedId} onLayerSelect={onLayerSelect} onMapClick={activeTool === 'route' ? (coordinate) => {
-        setToolDocumentEpoch(documentEpoch);
-        setStoredRoutePoints((points) => toolDocumentEpoch === documentEpoch ? [...points, coordinate] : [coordinate]);
-      } : undefined} onBackgroundClick={onBackgroundClick} onExporterChange={onExporterChange} fitRequest={fitRequest} orientation={page.orientation} page={page} />
+      <MapCanvas layers={geometryLayers} contentRevision={geometryLayers} selectedId={selectedId} previewedId={previewedId} onLayerSelect={onLayerSelect} onMapClick={handleMapClick} onBackgroundClick={onBackgroundClick} onExporterChange={onExporterChange} fitRequest={fitRequest} orientation={page.orientation} page={page} />
       <div className="mobile-panel-actions" aria-label="Editor panels">
         <button ref={layersTriggerRef} type="button" aria-label="Open layers" aria-controls="layers-panel" aria-expanded={activePanel === 'layers'} onClick={() => openPanel('layers')}><Layers3 size={15} /><span>Layers</span></button>
         <button ref={propertiesTriggerRef} type="button" aria-label="Open properties" aria-controls="properties-panel" aria-expanded={activePanel === 'properties'} onClick={() => openPanel('properties')}><SlidersHorizontal size={15} /><span>Properties</span></button>
@@ -124,10 +142,16 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
         ))}
       </nav>
       {activeTool === 'route' && (
-        <div className="route-draw-panel">
+        <div className="map-authoring-panel">
           <span role="status" aria-label="Route drawing status">Straight route · {routePoints.length} {routePoints.length === 1 ? 'point' : 'points'}</span>
           <button type="button" onClick={cancelRoute}>Cancel route</button>
           <button className="primary-button" type="button" disabled={routePoints.length < 2} onClick={finishRoute}>Finish route</button>
+        </div>
+      )}
+      {activeTool === 'pin' && (
+        <div className="map-authoring-panel">
+          <span role="status" aria-label="POI placement status">Click the map to place a POI</span>
+          <button type="button" onClick={cancelPoi}>Cancel POI</button>
         </div>
       )}
       <div className="canvas-status" aria-label="Canvas status"><button type="button">100%</button><span /> <button type="button">1:20,000</button></div>

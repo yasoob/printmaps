@@ -47,7 +47,7 @@ export function StudioHeader({
         />
         <ProjectSaveButton document={project.document} />
         <button className="quiet-button" type="button"><Share2 size={14} /> Share</button>
-        <button ref={exportButtonRef} className="primary-button" type="button" disabled={exportDisabled} title={exportDisabled ? 'Finish or cancel route drawing before export' : undefined} onClick={onExport}><Download size={14} /> Export</button>
+        <button ref={exportButtonRef} className="primary-button" type="button" disabled={exportDisabled} title={exportDisabled ? 'Finish or cancel map authoring before export' : undefined} onClick={onExport}><Download size={14} /> Export</button>
       </div>
     </header>
   );

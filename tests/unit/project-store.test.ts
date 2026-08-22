@@ -247,6 +247,43 @@ describe('project store history', () => {
 });
 
 describe('project store layer imports', () => {
+  it.each([
+    { label: 'non-finite longitude', coordinates: [NaN, 48.21] },
+    { label: 'out-of-range longitude', coordinates: [181, 48.21] },
+    { label: 'out-of-range latitude', coordinates: [16.37, -91] },
+  ])('rejects a $label POI without changing history', ({ coordinates }) => {
+    const store = createProjectStore(createInitialProjectDocument());
+
+    store.getState().createPoi(coordinates as [number, number]);
+
+    expect(layerState(store).some((layer) => layer.id === 'poi-01')).toBe(false);
+    expect(store.getState().canUndo).toBe(false);
+    expect(store.getState().selectedId).toBeNull();
+  });
+
+  it('uses the lowest available canonical POI number', () => {
+    const document = createInitialProjectDocument();
+    document.layers.splice(1, 0, {
+      id: 'poi-01',
+      name: 'POI 01',
+      type: 'poi',
+      visible: true,
+      locked: false,
+      opacity: 100,
+      geometry: { type: 'Point', coordinates: [16.35, 48.2] },
+    });
+    const store = createProjectStore(document);
+
+    store.getState().createPoi([16.37, 48.21]);
+
+    expect(store.getState().selectedId).toBe('poi-02');
+    expect(layerState(store).find((layer) => layer.id === 'poi-02')).toMatchObject({
+      name: 'POI 02',
+      type: 'poi',
+      geometry: { type: 'Point', coordinates: [16.37, 48.21] },
+    });
+  });
+
   it('creates a straight route as one selected undoable layer', () => {
     const store = createProjectStore(createInitialProjectDocument());
     const coordinates = [[16.31, 48.19], [16.4, 48.24]] as const;

@@ -100,6 +100,7 @@ export function App({ autosaveRepository }: AppProps = {}) {
           layersTriggerRef={mobile.layersTriggerRef}
           propertiesTriggerRef={mobile.propertiesTriggerRef}
           onLayerSelect={project.selectLayer}
+          onCreatePoi={project.createPoi}
           onCreateRoute={project.createRoute}
           onAuthoringChange={handleAuthoringChange}
           onBackgroundClick={clearSelection}
