@@ -89,15 +89,16 @@ function inferPagePreset(
   heightMm: number,
   orientation: PageOrientation,
 ): PagePreset {
-  const dimensionsMatchOrientation = orientation === 'landscape'
+  const isDimensionsMatchOrientation = orientation === 'landscape'
     ? widthMm >= heightMm
     : heightMm >= widthMm;
-  if (!dimensionsMatchOrientation) return 'Custom';
+  if (!isDimensionsMatchOrientation) return 'Custom';
 
-  const edges = [widthMm, heightMm].sort((left, right) => left - right);
-  if (edges[0] === 210 && edges[1] === 297) return 'A4';
-  if (edges[0] === 297 && edges[1] === 420) return 'A3';
-  if (edges[0] === 215.9 && edges[1] === 279.4) return 'Letter';
+  const shortEdge = Math.min(widthMm, heightMm);
+  const longEdge = Math.max(widthMm, heightMm);
+  if (shortEdge === 210 && longEdge === 297) return 'A4';
+  if (shortEdge === 297 && longEdge === 420) return 'A3';
+  if (shortEdge === 215.9 && longEdge === 279.4) return 'Letter';
   return 'Custom';
 }
 
@@ -173,6 +174,6 @@ export function createInitialProjectDocument(): ProjectDocument {
     id: 'vienna-field-guide',
     title: 'Vienna field guide',
     page: createDefaultPageSettings(),
-    layers: initialLayers.map(cloneContentLayer),
+    layers: initialLayers.map((layer) => cloneContentLayer(layer)),
   };
 }

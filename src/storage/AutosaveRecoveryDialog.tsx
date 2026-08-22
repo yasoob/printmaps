@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 import type { AutosaveDraft } from './autosave';
 
 export function AutosaveRecoveryDialog({
@@ -15,7 +15,7 @@ export function AutosaveRecoveryDialog({
   const dialogRef = useRef<HTMLDivElement>(null);
   const recoverRef = useRef<HTMLButtonElement>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (busy) dialogRef.current?.focus();
     else recoverRef.current?.focus();
   }, [busy]);
@@ -71,7 +71,7 @@ export function AutosaveCorruptionDialog({ busy, onDiscard }: { busy: boolean; o
   const dialogRef = useRef<HTMLDivElement>(null);
   const discardRef = useRef<HTMLButtonElement>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (busy) dialogRef.current?.focus();
     else discardRef.current?.focus();
   }, [busy]);
@@ -88,11 +88,13 @@ export function AutosaveCorruptionDialog({ busy, onDiscard }: { busy: boolean; o
         aria-modal="true"
         aria-labelledby="corrupt-recovery-title"
         onKeyDown={(event) => {
-          if (event.key === 'Escape' || event.key === 'Tab') {
-            event.preventDefault();
-            event.stopPropagation();
-            discardRef.current?.focus();
+          if (!(event.key === 'Escape' || event.key === 'Tab')) {
+            return;
           }
+
+          event.preventDefault();
+          event.stopPropagation();
+          discardRef.current?.focus();
         }}
       >
         <div className="recovery-dialog-header">

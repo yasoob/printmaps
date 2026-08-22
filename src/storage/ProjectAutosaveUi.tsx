@@ -48,8 +48,9 @@ function restoreInteractiveFocus(
 }
 
 export function ProjectAutosaveStatus({ autosave }: { autosave: ProjectAutosaveState }) {
+  const isEnabled = autosave.status !== 'Local draft';
   return (
-    <span role="status" aria-label="Autosave status">
+    <span role={isEnabled ? 'status' : undefined} aria-label={isEnabled ? 'Autosave status' : undefined}>
       {autosave.statusKind === 'error' ? 'Autosave paused' : autosave.status}
     </span>
   );

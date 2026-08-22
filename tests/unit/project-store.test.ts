@@ -2,6 +2,7 @@ import { createProjectStore } from '../../src/app/store';
 import {
   createInitialProjectDocument,
   PROJECT_SCHEMA_VERSION,
+  type LayerGeometry,
   type ProjectDocument,
   type ProjectDocumentV1,
   type ProjectDocumentV2,
@@ -24,6 +25,15 @@ function createDocument(): ProjectDocument {
 }
 
 const layerState = (store: ReturnType<typeof createProjectStore>) => store.getState().document.layers;
+type LineStringGeometry = Extract<LayerGeometry, { type: 'LineString' }>;
+
+function lineStringGeometryAt(document: ProjectDocument, layerIndex: number): LineStringGeometry {
+  const geometry = document.layers[layerIndex].geometry;
+  if (geometry === undefined || geometry.type !== 'LineString') {
+    throw new Error(`Expected layer ${layerIndex} to have LineString geometry.`);
+  }
+  return geometry;
+}
 
 describe('project store history', () => {
   it('migrates a version-1 document without page settings at the store boundary', () => {
@@ -96,35 +106,32 @@ describe('project store history', () => {
   it('isolates nested geometry across documents, history snapshots, and duplicates', () => {
     const first = createInitialProjectDocument();
     const second = createInitialProjectDocument();
-    const firstRoute = first.layers[0].geometry;
-    const secondRoute = second.layers[0].geometry;
-    expect(firstRoute?.type).toBe('LineString');
-    expect(secondRoute?.type).toBe('LineString');
-    if (firstRoute?.type !== 'LineString' || secondRoute?.type !== 'LineString') return;
+    const firstRoute = lineStringGeometryAt(first, 0);
+    const secondRoute = lineStringGeometryAt(second, 0);
+    expect(firstRoute.type).toBe('LineString');
+    expect(secondRoute.type).toBe('LineString');
     firstRoute.coordinates[0][0] = 0;
     expect(secondRoute.coordinates[0][0]).not.toBe(0);
 
     const store = createProjectStore(second);
     store.getState().duplicateLayer('route-01');
-    const sourceGeometry = store.getState().document.layers[0].geometry;
-    const duplicateGeometry = store.getState().document.layers[1].geometry;
-    if (sourceGeometry?.type !== 'LineString' || duplicateGeometry?.type !== 'LineString') return;
+    const sourceGeometry = lineStringGeometryAt(store.getState().document, 0);
+    const duplicateGeometry = lineStringGeometryAt(store.getState().document, 1);
     sourceGeometry.coordinates[0][0] = 1;
     expect(duplicateGeometry.coordinates[0][0]).not.toBe(1);
 
     store.getState().toggleLayerVisibility('route-01');
-    const currentGeometry = store.getState().document.layers[0].geometry;
-    if (currentGeometry?.type !== 'LineString') return;
+    const currentGeometry = lineStringGeometryAt(store.getState().document, 0);
     currentGeometry.coordinates[0][0] = 2;
     store.getState().undo();
-    const restoredGeometry = store.getState().document.layers[0].geometry;
-    expect(restoredGeometry?.type === 'LineString' ? restoredGeometry.coordinates[0][0] : null).not.toBe(2);
+    const restoredGeometry = lineStringGeometryAt(store.getState().document, 0);
+    expect(restoredGeometry.coordinates[0][0]).not.toBe(2);
   });
 
   it('rejects a non-finite reorder index without changing history', () => {
     const store = createProjectStore(createDocument());
 
-    store.getState().moveLayer('shape-1', Number.NaN);
+    store.getState().moveLayer('shape-1', NaN);
 
     expect(layerState(store).map((layer) => layer.id)).toEqual(['route-1', 'poi-1', 'shape-1']);
     expect(store.getState().canUndo).toBe(false);

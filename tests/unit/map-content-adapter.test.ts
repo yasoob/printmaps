@@ -190,6 +190,52 @@ describe('MapLibre content adapter', () => {
     ]));
   });
 
+  it('reuses the content snapshot for selection and hover syncs with an explicit revision', () => {
+    const { map } = createMapHarness();
+    const adapter = createMapLibreContentAdapter(map, document.createElement('div'));
+    const layers = [contentLayer('route', 'route', {
+      type: 'LineString',
+      coordinates: [[0, 0], [1, 1]],
+    })];
+    const stringify = vi.spyOn(JSON, 'stringify');
+
+    const contentRevision = {};
+    adapter.sync({ layers, selectedId: null, previewedId: null, contentRevision });
+    const initialStringifyCalls = stringify.mock.calls.length;
+    adapter.sync({ layers, selectedId: 'route', previewedId: null, contentRevision });
+    adapter.sync({ layers, selectedId: null, previewedId: 'route', contentRevision });
+    const finalStringifyCalls = stringify.mock.calls.length;
+    stringify.mockRestore();
+
+    expect(initialStringifyCalls).toBeGreaterThan(0);
+    expect(finalStringifyCalls).toBe(initialStringifyCalls);
+  });
+
+  it('reapplies every initial paint descriptor during an incremental update', () => {
+    const { map, layers: renderedLayers, paintUpdates } = createMapHarness();
+    const adapter = createMapLibreContentAdapter(map, document.createElement('div'));
+    const layers = [
+      contentLayer('route', 'route', { type: 'LineString', coordinates: [[0, 0], [1, 1]] }),
+      contentLayer('poi', 'poi', { type: 'Point', coordinates: [1, 1] }),
+      contentLayer('shape', 'shape', {
+        type: 'Polygon',
+        coordinates: [[[0, 0], [1, 0], [1, 1], [0, 0]]],
+      }),
+    ];
+    const state = { layers, selectedId: 'route', previewedId: 'shape' };
+
+    adapter.sync(state);
+    const initialPaint = [...renderedLayers.values()].flatMap(({ id, paint = {} }) => (
+      Object.entries(paint).map(([property, value]) => [id, property, value] as const)
+    ));
+    paintUpdates.length = 0;
+
+    adapter.sync(state);
+
+    expect(paintUpdates).toHaveLength(initialPaint.length);
+    expect(paintUpdates).toEqual(expect.arrayContaining(initialPaint));
+  });
+
   it('adds rendered MapLibre layers from bottom to top in content stacking order', () => {
     const { map, layers } = createMapHarness();
     const adapter = createMapLibreContentAdapter(map, document.createElement('div'));
@@ -215,6 +261,9 @@ describe('MapLibre content adapter', () => {
     ]);
   });
 
+});
+
+describe('MapLibre content adapter recovery', () => {
   it('rolls back a source and first shape layer when the second addLayer fails', () => {
     const { map, sources, layers } = createMapHarness({ failAddLayerAt: 2 });
     const adapter = createMapLibreContentAdapter(map, document.createElement('div'));

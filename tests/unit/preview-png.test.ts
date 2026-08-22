@@ -85,6 +85,18 @@ describe('preview PNG export', () => {
       .rejects.toThrow('print frame is not ready');
   });
 
+  it('rejects an unsafe crop before allocating an output canvas', async () => {
+    installCanvasContext();
+    const { mapCanvas, frame } = createFixture(rect(0, 0, 400, 300));
+    mapCanvas.width = 50_000;
+    mapCanvas.height = 3000;
+    const createElement = vi.spyOn(document, 'createElement');
+
+    await expect(capturePrintFramePng(mapCanvas, frame, '© OpenStreetMap contributors'))
+      .rejects.toThrow('too large to export safely');
+    expect(createElement).not.toHaveBeenCalledWith('canvas');
+  });
+
   it('rejects a crop too small to contain map content and attribution', async () => {
     installCanvasContext();
     const { mapCanvas, frame } = createFixture(rect(0, 0, 400, 1));
@@ -97,7 +109,7 @@ describe('preview PNG export', () => {
     installCanvasContext();
     const { mapCanvas, frame } = createFixture();
 
-    await expect(capturePrintFramePng(mapCanvas, frame, '   ')).rejects.toThrow('attribution is unavailable');
+    await expect(capturePrintFramePng(mapCanvas, frame, ' '.repeat(3))).rejects.toThrow('attribution is unavailable');
   });
 
   it('reports canvas rendering failures through the exporter promise', async () => {
@@ -121,7 +133,7 @@ describe('preview PNG export', () => {
   it('sanitizes the suggested filename before starting a download', () => {
     vi.useFakeTimers();
     vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:preview');
-    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
     let downloadName = '';
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function captureName(this: HTMLAnchorElement) {
       downloadName = this.download;
@@ -137,7 +149,7 @@ describe('preview PNG export', () => {
   it('revokes the object URL even when download initiation throws', () => {
     vi.useFakeTimers();
     const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:preview');
-    const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+    const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => { throw new Error('download blocked'); });
 
     expect(() => startPreviewDownload(new Blob(['png']), '../Unsafe Project?.png')).toThrow('download blocked');

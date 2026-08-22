@@ -31,7 +31,7 @@ vi.mock('../../src/map/MapContentAdapter', () => ({
       hitTest: mocks.hitTest,
       destroy: () => {
         mocks.adapterDestroy();
-        if (mocks.throwOnFirstCleanup && adapterIndex === 0 && !mocks.failedAdapterDestroyIds.has(adapterIndex)) {
+        if (adapterIndex === 0 && mocks.throwOnFirstCleanup && !mocks.failedAdapterDestroyIds.has(adapterIndex)) {
           mocks.failedAdapterDestroyIds.add(adapterIndex);
           throw new Error('destroy failure');
         }
@@ -79,7 +79,8 @@ vi.mock('maplibre-gl', () => {
       if (event === 'load' && mocks.autoLoad) {
         const load = () => {
           if (mocks.styleErrorBeforeLoad) {
-            for (const handler of this.handlers.error ?? []) handler();
+            const errorHandlers = this.handlers.error ?? [];
+            for (const handler of errorHandlers) handler();
           }
           callback();
         };
@@ -100,7 +101,11 @@ vi.mock('maplibre-gl', () => {
 
 import { MapCanvas } from '../../src/map/MapCanvas';
 
-const latestMapHandlers = () => mocks.mapHandlers[mocks.mapHandlers.length - 1] ?? {};
+const latestMapHandlers = () => mocks.mapHandlers.at(-1) ?? {};
+const emitLatestMapEvent = (event: string, payload?: unknown) => {
+  const handlers = latestMapHandlers()[event] ?? [];
+  for (const handler of handlers) handler(payload);
+};
 
 const route: ContentLayer = {
   id: 'route-01',
@@ -181,7 +186,7 @@ describe('MapCanvas content recovery', () => {
     await waitFor(() => expect(mocks.adapterSync).toHaveBeenCalledTimes(1));
 
     act(() => {
-      for (const handler of latestMapHandlers().error ?? []) handler(new Error('WebGL context lost'));
+      emitLatestMapEvent('error', new Error('WebGL context lost'));
     });
 
     const fallback = await screen.findByRole('status');
@@ -216,7 +221,7 @@ describe('MapCanvas content recovery', () => {
     await waitFor(() => expect(onExporterChange).toHaveBeenCalledWith(expect.any(Function)));
 
     act(() => {
-      for (const handler of latestMapHandlers().error ?? []) handler(new Error('WebGL context lost'));
+      emitLatestMapEvent('error', new Error('WebGL context lost'));
     });
 
     await waitFor(() => expect(onExporterChange).toHaveBeenLastCalledWith(null));
@@ -258,7 +263,7 @@ describe('MapCanvas content recovery', () => {
     await waitFor(() => expect(mocks.adapterSync).toHaveBeenCalledTimes(1));
 
     act(() => {
-      for (const handler of latestMapHandlers().click ?? []) handler({ point: [0, 0] });
+      emitLatestMapEvent('click', { point: [0, 0] });
     });
 
     expect(await screen.findByRole('status')).toHaveTextContent('map content could not be rendered');
@@ -271,12 +276,12 @@ describe('MapCanvas content recovery', () => {
     await waitFor(() => expect(mocks.adapterSync).toHaveBeenCalledTimes(1));
 
     act(() => {
-      for (const handler of latestMapHandlers().click ?? []) handler({ point: [0, 0] });
+      emitLatestMapEvent('click', { point: [0, 0] });
     });
     expect(await screen.findByRole('status')).toHaveTextContent('map content could not be rendered');
 
     act(() => {
-      for (const handler of latestMapHandlers().click ?? []) handler({ point: [1, 1] });
+      emitLatestMapEvent('click', { point: [1, 1] });
     });
 
     expect(baseProps.onLayerSelect).toHaveBeenCalledWith(route.id);
@@ -290,8 +295,8 @@ describe('MapCanvas content recovery', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('map content could not be rendered');
 
     act(() => {
-      for (const handler of latestMapHandlers().click ?? []) handler({ point: [0, 0] });
-      for (const handler of latestMapHandlers().click ?? []) handler({ point: [1, 1] });
+      emitLatestMapEvent('click', { point: [0, 0] });
+      emitLatestMapEvent('click', { point: [1, 1] });
     });
 
     expect(baseProps.onLayerSelect).toHaveBeenCalledWith(route.id);
@@ -303,7 +308,7 @@ describe('MapCanvas content recovery', () => {
     render(<MapCanvas {...baseProps} selectedId={null} />);
 
     act(() => {
-      for (const handler of latestMapHandlers().click ?? []) handler({ point: [0, 0] });
+      emitLatestMapEvent('click', { point: [0, 0] });
     });
 
     expect(baseProps.onBackgroundClick).toHaveBeenCalledOnce();

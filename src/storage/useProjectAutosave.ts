@@ -1,12 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { StoreApi } from 'zustand';
 import type { ProjectState } from '../app/store';
-import {
-  AutosaveCorruptionError,
-  getAutosaveFailureMessage,
-  type AutosaveDraft,
-  type AutosaveRepository,
-} from './autosave';
+import { getAutosaveFailureMessage, type AutosaveDraft, type AutosaveRepository } from './autosave';
+import { AutosavePersistenceSession, autosaveLoadFailureMessage } from './AutosavePersistenceSession';
 
 export type ProjectAutosaveState = {
   recoveryDraft: AutosaveDraft | null;
@@ -23,7 +19,7 @@ export function useProjectAutosave(
   repository: AutosaveRepository | null,
 ): ProjectAutosaveState {
   const [recoveryDraft, setRecoveryDraft] = useState<AutosaveDraft | null>(null);
-  const [corrupted, setCorrupted] = useState(false);
+  const [isCorrupted, setIsCorrupted] = useState(false);
   const [recoveryGeneration, setRecoveryGeneration] = useState<object | null>(null);
   const [pendingGeneration, setPendingGeneration] = useState<object | null>(null);
   const [status, setStatus] = useState(repository ? 'Checking for a local draft…' : 'Local draft');
@@ -39,160 +35,48 @@ export function useProjectAutosave(
   useEffect(() => {
     const generation = effectGeneration;
     effectGenerationRef.current = generation;
-    let active = true;
-    let closing = false;
-    let closed = false;
-    let saveTimer: number | null = null;
-    let saveRevision = 0;
-    let saveInFlight = false;
-    let debouncedDocument: ProjectState['document'] | null = null;
-    let pendingSaveIntent: {
-      document: ProjectState['document'];
-      revision: number;
-      lifecycle: boolean;
-    } | null = null;
     mountedRef.current = true;
     phaseRef.current = repository ? 'loading' : 'disabled';
     decisionPendingRef.current = false;
-    if (!repository) return () => {
-      active = false;
-      mountedRef.current = false;
-    };
+    if (!repository) return () => { mountedRef.current = false; };
 
-    const closeIfIdle = () => {
-      if (closing && !closed && !saveInFlight && pendingSaveIntent === null) {
-        closed = true;
-        repository.close();
-      }
-    };
-
-    const startNextSave = () => {
-      if (saveInFlight) return;
-      const intent = pendingSaveIntent;
-      if (!intent || (!active && !intent.lifecycle)) return;
-      pendingSaveIntent = null;
-      saveInFlight = true;
-      let saving: Promise<void>;
-      try {
-        saving = repository.save(intent.document);
-      } catch (reason) {
-        saving = Promise.reject(reason);
-      }
-      void saving.then(() => {
-        if (active && intent.revision === saveRevision) {
-          setStatusKind('status');
-          setStatus('All changes saved locally');
-        }
-      }, (reason) => {
-        if (active && intent.revision === saveRevision) {
-          setStatusKind('error');
-          setStatus(getAutosaveFailureMessage(reason));
-        }
-      }).then(() => {
-        saveInFlight = false;
-        if (active || pendingSaveIntent?.lifecycle) startNextSave();
-        else pendingSaveIntent = null;
-        closeIfIdle();
-      });
-    };
-
-    const queueSave = (
-      document: ProjectState['document'],
-      revision: number,
-      lifecycle = false,
-    ) => {
-      pendingSaveIntent = { document, revision, lifecycle };
-      startNextSave();
-    };
-
-    const scheduleSave = (document: ProjectState['document']) => {
-      pendingDocumentRef.current = null;
-      debouncedDocument = document;
-      if (saveTimer !== null) window.clearTimeout(saveTimer);
-      const revision = ++saveRevision;
-      setStatusKind('status');
-      setStatus('Saving local draft…');
-      saveTimer = window.setTimeout(() => {
-        saveTimer = null;
-        debouncedDocument = null;
-        queueSave(document, revision);
-      }, 300);
-    };
-    scheduleSaveRef.current = scheduleSave;
-
-    const flushDebouncedSave = (promotePending: boolean) => {
-      if (saveTimer !== null && debouncedDocument) {
-        const document = debouncedDocument;
-        window.clearTimeout(saveTimer);
-        saveTimer = null;
-        debouncedDocument = null;
-        queueSave(document, saveRevision, true);
-        return;
-      }
-      if (promotePending && pendingSaveIntent) {
-        pendingSaveIntent = { ...pendingSaveIntent, lifecycle: true };
-        startNextSave();
-      }
-    };
-    const handlePagehide = () => flushDebouncedSave(true);
-    window.addEventListener('pagehide', handlePagehide);
-
-    void repository.load().then((draft) => {
-      if (!active) return;
-      setRecoveryGeneration(generation);
-      setRecoveryDraft(draft);
-      setCorrupted(false);
-      phaseRef.current = draft ? 'recovery' : 'ready';
-      setStatusKind('status');
-      setStatus(draft ? 'Local draft found' : 'Autosave ready');
-      if (!draft && pendingDocumentRef.current) scheduleSave(pendingDocumentRef.current);
-    }, (reason) => {
-      if (!active) return;
-      const isCorrupted = reason instanceof AutosaveCorruptionError;
-      setRecoveryGeneration(generation);
-      setRecoveryDraft(null);
-      phaseRef.current = isCorrupted ? 'recovery' : 'disabled';
-      setCorrupted(isCorrupted);
-      setStatusKind('error');
-      setStatus(isCorrupted
-        ? 'The local autosave is damaged or unsupported. Discard it before autosave can continue.'
-        : getAutosaveFailureMessage(reason));
+    const session = new AutosavePersistenceSession({
+      repository,
+      store,
+      generation,
+      phaseRef,
+      mountedRef,
+      pendingDocumentRef,
+      scheduleSaveRef,
+      decisionPendingRef,
+      onLoaded: (loadedGeneration, draft) => {
+        setRecoveryGeneration(loadedGeneration);
+        setRecoveryDraft(draft);
+        setIsCorrupted(false);
+        setStatusKind('status');
+        setStatus(draft ? 'Local draft found' : 'Autosave ready');
+      },
+      onLoadFailed: (loadedGeneration, error, hasCorruption) => {
+        setRecoveryGeneration(loadedGeneration);
+        setRecoveryDraft(null);
+        setIsCorrupted(hasCorruption);
+        setStatusKind('error');
+        setStatus(autosaveLoadFailureMessage(error, hasCorruption));
+      },
+      onSaveStarted: () => { setStatusKind('status'); setStatus('Saving local draft…'); },
+      onSaveSucceeded: () => { setStatusKind('status'); setStatus('All changes saved locally'); },
+      onSaveFailed: (error) => { setStatusKind('error'); setStatus(getAutosaveFailureMessage(error)); },
     });
-
-    const unsubscribe = store.subscribe((state, previousState) => {
-      if (state.document === previousState.document) return;
-      if (phaseRef.current === 'loading' || phaseRef.current === 'recovery') {
-        pendingDocumentRef.current = state.document;
-        return;
-      }
-      if (phaseRef.current === 'ready') scheduleSave(state.document);
-    });
-
-    return () => {
-      active = false;
-      closing = true;
-      mountedRef.current = false;
-      unsubscribe();
-      scheduleSaveRef.current = null;
-      window.removeEventListener('pagehide', handlePagehide);
-      const handoffDocument = debouncedDocument ?? pendingSaveIntent?.document;
-      if (handoffDocument) pendingDocumentRef.current = handoffDocument;
-      flushDebouncedSave(false);
-      closeIfIdle();
-    };
+    return session.start();
   }, [effectGeneration, repository, store]);
 
   const recover = () => {
-    if (
-      recoveryGeneration !== effectGeneration
-      || !recoveryDraft
-      || decisionPendingRef.current
-    ) return;
+    if (recoveryGeneration !== effectGeneration || !recoveryDraft || decisionPendingRef.current) return;
     store.getState().openDocument(recoveryDraft.document);
     pendingDocumentRef.current = null;
     phaseRef.current = 'ready';
     setRecoveryDraft(null);
-    setCorrupted(false);
+    setIsCorrupted(false);
     setStatusKind('status');
     setStatus('Recovered local draft. Autosave ready.');
   };
@@ -209,10 +93,10 @@ export function useProjectAutosave(
     setPendingGeneration(generation);
     try {
       await repository.discard();
-    } catch (reason) {
+    } catch (error) {
       if (mountedRef.current && generation === effectGenerationRef.current) {
         setStatusKind('error');
-        setStatus(getAutosaveFailureMessage(reason));
+        setStatus(getAutosaveFailureMessage(error));
       }
       return false;
     } finally {
@@ -222,23 +106,21 @@ export function useProjectAutosave(
     const pendingDocument = pendingDocumentRef.current;
     phaseRef.current = 'ready';
     setRecoveryDraft(null);
-    setCorrupted(false);
+    setIsCorrupted(false);
     setStatusKind('status');
     setStatus('Autosave ready');
     if (pendingDocument) scheduleSaveRef.current?.(pendingDocument);
     return true;
   };
 
-  const decisionPending = repository !== null && pendingGeneration === effectGeneration;
-  const recoveryIsCurrent = recoveryGeneration === effectGeneration;
+  const isDecisionPending = repository !== null && pendingGeneration === effectGeneration;
+  const isRecoveryCurrent = recoveryGeneration === effectGeneration;
   return {
-    recoveryDraft: recoveryIsCurrent ? recoveryDraft : null,
-    corrupted: recoveryIsCurrent && corrupted,
-    decisionPending,
-    status: recoveryIsCurrent
-      ? status
-      : (repository ? 'Checking for a local draft…' : 'Local draft'),
-    statusKind: recoveryIsCurrent ? statusKind : 'status',
+    recoveryDraft: isRecoveryCurrent ? recoveryDraft : null,
+    corrupted: isRecoveryCurrent && isCorrupted,
+    decisionPending: isDecisionPending,
+    status: isRecoveryCurrent ? status : (repository ? 'Checking for a local draft…' : 'Local draft'),
+    statusKind: isRecoveryCurrent ? statusKind : 'status',
     recover,
     discard,
   };

@@ -12,7 +12,7 @@ import {
 } from './project';
 
 export const MAX_PROJECT_FILE_BYTES = 10 * 1024 * 1024;
-const MAX_LAYERS = 1_000;
+const MAX_LAYERS = 1000;
 const MAX_COORDINATES = 200_000;
 const LAYER_TYPES = new Set<LayerType>(['route', 'poi', 'shape', 'basemap']);
 const PAGE_PRESETS = new Set<PagePreset>(['A4', 'A3', 'Letter', 'Custom']);
@@ -66,10 +66,10 @@ function positionAt(value: unknown, label: string, coordinateCount: { value: num
   }
   const longitude = finiteNumber(value[0], `${label} longitude`);
   const latitude = finiteNumber(value[1], `${label} latitude`);
-  if (longitude < -180 || longitude > 180) {
+  if (Math.abs(longitude) > 180) {
     throw new ProjectFileError(`${label} longitude must be between -180 and 180.`);
   }
-  if (latitude < -90 || latitude > 90) {
+  if (Math.abs(latitude) > 90) {
     throw new ProjectFileError(`${label} latitude must be between -90 and 90.`);
   }
   coordinateCount.value += 1;
@@ -159,14 +159,17 @@ function layersAt(value: unknown) {
       visible: booleanAt(layer.visible, `Layer ${index + 1} visibility`),
       locked: booleanAt(layer.locked, `Layer ${index + 1} lock state`),
       opacity,
-      ...(geometry ? { geometry } : {}),
+      ...(geometry && { geometry }),
     };
   });
 }
 
-function pageAt(value: unknown, includePreset: false): ProjectDocumentV2['page'];
-function pageAt(value: unknown, includePreset: true): ProjectDocument['page'];
-function pageAt(value: unknown, includePreset: boolean): ProjectDocumentV2['page'] | ProjectDocument['page'] {
+function pageAt(value: unknown, shouldIncludePreset: false): ProjectDocumentV2['page'];
+function pageAt(value: unknown, shouldIncludePreset: true): ProjectDocument['page'];
+function pageAt(
+  value: unknown,
+  shouldIncludePreset: boolean,
+): ProjectDocumentV2['page'] | ProjectDocument['page'] {
   const page = objectAt(value, 'Project page');
   const orientation = page.orientation;
   if (typeof orientation !== 'string' || !PAGE_ORIENTATIONS.has(orientation as PageOrientation)) {
@@ -177,7 +180,7 @@ function pageAt(value: unknown, includePreset: boolean): ProjectDocumentV2['page
     heightMm: positiveNumber(page.heightMm, 'Page height'),
     orientation: orientation as PageOrientation,
   };
-  if (!includePreset) return base;
+  if (!shouldIncludePreset) return base;
   if (typeof page.preset !== 'string' || !PAGE_PRESETS.has(page.preset as PagePreset)) {
     throw new ProjectFileError('Page preset must be A4, A3, Letter, or Custom.');
   }

@@ -1,5 +1,7 @@
+/* eslint-disable unicorn/prefer-add-event-listener -- IndexedDB requests expose one-shot handler slots used for deterministic transaction settlement. */
 import type { ProjectDocument } from '../domain/project';
 import { parseProjectFileText } from '../domain/projectFile';
+import { IndexedDbConnection } from './IndexedDbConnection';
 
 export const AUTOSAVE_RECORD_VERSION = 1 as const;
 const AUTOSAVE_DATABASE_VERSION = 1;
@@ -52,16 +54,24 @@ function transactionComplete(transaction: IDBTransaction) {
   return new Promise<void>((resolve, reject) => {
     transaction.oncomplete = () => resolve();
     transaction.onerror = () => reject(transaction.error ?? new Error('IndexedDB transaction failed.'));
-    transaction.onabort = () => reject(transaction.error ?? new Error('IndexedDB transaction was aborted.'));
+    transaction.addEventListener('abort', () => reject(transaction.error ?? new Error('IndexedDB transaction was aborted.')));
   });
 }
 
 async function transactionRequest<T>(request: IDBRequest<T>, complete: Promise<void>) {
   try {
     return await requestResult(request);
-  } catch (reason) {
-    await complete.catch(() => undefined);
-    throw reason;
+  } catch (error) {
+    await ignoreFailure(complete);
+    throw error;
+  }
+}
+
+async function ignoreFailure(promise: Promise<unknown>) {
+  try {
+    await promise;
+  } catch {
+    // The caller is already reporting the primary request or conflict failure.
   }
 }
 
@@ -137,7 +147,7 @@ function storedIdentity(value: unknown): StoredIdentity {
   return { recordId, revision };
 }
 
-function sameStoredIdentity(left: StoredIdentity, right: StoredIdentity) {
+function isSameStoredIdentity(left: StoredIdentity, right: StoredIdentity) {
   return left.recordId === right.recordId && left.revision === right.revision;
 }
 
@@ -164,12 +174,12 @@ export function getAutosaveFailureMessage(reason: unknown) {
   ) {
     return 'Autosave paused because browser storage is full. Use Save to download a project file, then free browser storage.';
   }
-  if (reason instanceof AutosaveConflictError || errorName === 'AutosaveConflictError') {
+  if (errorName === 'AutosaveConflictError' || reason instanceof AutosaveConflictError) {
     return 'Autosave paused because this draft changed in another tab. Reload to review the newer draft before continuing.';
   }
   if (
-    reason instanceof AutosaveRevisionExhaustedError
-    || errorName === 'AutosaveRevisionExhaustedError'
+    errorName === 'AutosaveRevisionExhaustedError'
+    || reason instanceof AutosaveRevisionExhaustedError
   ) {
     return 'Autosave paused because its local change history is exhausted. Use Save to download a project file, then clear this site’s local data.';
   }
@@ -179,52 +189,12 @@ export function getAutosaveFailureMessage(reason: unknown) {
 export function createIndexedDbAutosaveRepository({
   databaseName = DEFAULT_DATABASE_NAME,
 }: { databaseName?: string } = {}): AutosaveRepository {
-  let openDatabase: Promise<IDBDatabase> | null = null;
+  const connection = new IndexedDbConnection(databaseName, AUTOSAVE_DATABASE_VERSION, AUTOSAVE_STORE);
   let knownIdentity: StoredIdentity | undefined;
-
-  const database = () => {
-    if (!openDatabase) {
-      const opening = new Promise<IDBDatabase>((resolve, reject) => {
-        const request = indexedDB.open(databaseName, AUTOSAVE_DATABASE_VERSION);
-        let settled = false;
-        request.onupgradeneeded = () => {
-          if (!request.result.objectStoreNames.contains(AUTOSAVE_STORE)) {
-            request.result.createObjectStore(AUTOSAVE_STORE);
-          }
-        };
-        request.onsuccess = () => {
-          if (settled) {
-            request.result.close();
-            return;
-          }
-          settled = true;
-          request.result.onversionchange = () => {
-            request.result.close();
-            if (openDatabase === opening) openDatabase = null;
-          };
-          resolve(request.result);
-        };
-        request.onerror = () => {
-          if (settled) return;
-          settled = true;
-          if (openDatabase === opening) openDatabase = null;
-          reject(request.error ?? new Error('Could not open local project storage.'));
-        };
-        request.onblocked = () => {
-          if (settled) return;
-          settled = true;
-          if (openDatabase === opening) openDatabase = null;
-          reject(new Error('Local project storage is blocked by another tab.'));
-        };
-      });
-      openDatabase = opening;
-    }
-    return openDatabase;
-  };
 
   return {
     async load() {
-      const db = await database();
+      const db = await connection.get();
       const transaction = db.transaction(AUTOSAVE_STORE, 'readwrite');
       const complete = transactionComplete(transaction);
       const store = transaction.objectStore(AUTOSAVE_STORE);
@@ -246,21 +216,21 @@ export function createIndexedDbAutosaveRepository({
         savedAt,
         document,
       });
-      const db = await database();
+      const db = await connection.get();
       const transaction = db.transaction(AUTOSAVE_STORE, 'readwrite');
       const complete = transactionComplete(transaction);
       const store = transaction.objectStore(AUTOSAVE_STORE);
       const current = await transactionRequest(store.get(CURRENT_DRAFT_KEY), complete);
       const currentIdentity = storedIdentity(current);
-      if (knownIdentity !== undefined && !sameStoredIdentity(currentIdentity, knownIdentity)) {
+      if (knownIdentity !== undefined && !isSameStoredIdentity(currentIdentity, knownIdentity)) {
         transaction.abort();
-        await complete.catch(() => undefined);
+        await ignoreFailure(complete);
         throw new AutosaveConflictError();
       }
       const currentRevision = storedRevision(current);
       if (currentRevision === Number.MAX_SAFE_INTEGER) {
         transaction.abort();
-        await complete.catch(() => undefined);
+        await ignoreFailure(complete);
         throw new AutosaveRevisionExhaustedError();
       }
       const nextRevision = currentRevision + 1;
@@ -270,15 +240,15 @@ export function createIndexedDbAutosaveRepository({
       knownIdentity = { recordId, revision: nextRevision };
     },
     async discard() {
-      const db = await database();
+      const db = await connection.get();
       const transaction = db.transaction(AUTOSAVE_STORE, 'readwrite');
       const complete = transactionComplete(transaction);
       const store = transaction.objectStore(AUTOSAVE_STORE);
       const current = await transactionRequest(store.get(CURRENT_DRAFT_KEY), complete);
       const currentIdentity = storedIdentity(current);
-      if (knownIdentity !== undefined && !sameStoredIdentity(currentIdentity, knownIdentity)) {
+      if (knownIdentity !== undefined && !isSameStoredIdentity(currentIdentity, knownIdentity)) {
         transaction.abort();
-        await complete.catch(() => undefined);
+        await ignoreFailure(complete);
         throw new AutosaveConflictError();
       }
       let nextRevision: number;
@@ -286,12 +256,12 @@ export function createIndexedDbAutosaveRepository({
         const currentRevision = storedRevision(current);
         if (currentRevision === Number.MAX_SAFE_INTEGER) {
           transaction.abort();
-          await complete.catch(() => undefined);
+          await ignoreFailure(complete);
           throw new AutosaveRevisionExhaustedError();
         }
         nextRevision = currentRevision + 1;
-      } catch (reason) {
-        if (!(reason instanceof AutosaveCorruptionError)) throw reason;
+      } catch (error) {
+        if (!(error instanceof AutosaveCorruptionError)) throw error;
         nextRevision = 0;
       }
       const recordId = newRecordId();
@@ -305,8 +275,7 @@ export function createIndexedDbAutosaveRepository({
       knownIdentity = { recordId, revision: nextRevision };
     },
     close() {
-      if (openDatabase) void openDatabase.then((db) => db.close(), () => undefined);
-      openDatabase = null;
+      connection.close();
     },
   };
 }

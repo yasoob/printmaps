@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import path from 'node:path';
 
-const read = (path: string) => readFileSync(resolve(process.cwd(), path), 'utf8');
+const read = (filePath: string) => readFileSync(path.resolve(process.cwd(), filePath), 'utf8');
 
 describe('design token discipline', () => {
   it('routes component styling through Tailwind and global color tokens', () => {

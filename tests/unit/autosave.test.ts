@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/prefer-add-event-listener -- These fixtures exercise IndexedDB request handler semantics directly. */
 import 'fake-indexeddb/auto';
 import {
   AUTOSAVE_RECORD_VERSION,
@@ -23,7 +24,7 @@ async function replaceCurrentRecord(database: IDBDatabase, value: unknown) {
     transaction.objectStore('drafts').put(value, 'current');
     transaction.oncomplete = () => resolve();
     transaction.onerror = () => reject(transaction.error);
-    transaction.onabort = () => reject(transaction.error);
+    transaction.addEventListener('abort', () => reject(transaction.error));
   });
 }
 
@@ -62,7 +63,9 @@ async function deleteDatabase(name: string) {
 }
 
 afterEach(async () => {
-  await Promise.all(databaseNames.splice(0).map((name) => new Promise<void>((resolve) => {
+  const names = [...databaseNames];
+  databaseNames.length = 0;
+  await Promise.all(names.map((name) => new Promise<void>((resolve) => {
     const request = indexedDB.deleteDatabase(name);
     request.onsuccess = () => resolve();
     request.onerror = () => resolve();
@@ -211,6 +214,9 @@ describe('IndexedDB project autosave', () => {
     verifier.close();
   });
 
+});
+
+describe('IndexedDB project autosave revision integrity', () => {
   it('uses record identity to reject a stale operation after a tombstone revision ABA', async () => {
     const name = databaseName();
     const seed = createIndexedDbAutosaveRepository({ databaseName: name });
@@ -233,7 +239,8 @@ describe('IndexedDB project autosave', () => {
     );
 
     const currentDatabase = await openDatabase(name);
-    expect((await readCurrentRecord(currentDatabase)).revision).toBe(1);
+    const currentRecord = await readCurrentRecord(currentDatabase);
+    expect(currentRecord.revision).toBe(1);
     currentDatabase.close();
     await expect(stale.discard()).rejects.toBeInstanceOf(AutosaveConflictError);
     await expect(verifier.load()).resolves.toMatchObject({

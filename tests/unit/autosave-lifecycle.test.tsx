@@ -59,8 +59,8 @@ describe('project autosave teardown', () => {
   it('keeps the newest pagehide edit final when an older save is queued behind an in-flight save', async () => {
     let finishFirstSave: (() => void) | undefined;
     let persistedWidth: number | undefined;
-    let closed = false;
-    let saveStartedAfterClose = false;
+    let isClosed = false;
+    let isSaveStartedAfterClose = false;
     let callCount = 0;
     const save = vi.fn((document: Parameters<AutosaveRepository['save']>[0]) => {
       callCount += 1;
@@ -72,12 +72,12 @@ describe('project autosave teardown', () => {
           };
         });
       }
-      saveStartedAfterClose = closed;
+      isSaveStartedAfterClose = isClosed;
       persistedWidth = document.page.widthMm;
       return Promise.resolve();
     });
     const repository = repositoryWith(save);
-    repository.close = vi.fn(() => { closed = true; });
+    repository.close = vi.fn(() => { isClosed = true; });
     const store = createProjectStore();
     const { unmount } = renderHook(() => useProjectAutosave(store, repository));
     await finishInitialLoad();
@@ -102,7 +102,7 @@ describe('project autosave teardown', () => {
 
     expect(save).toHaveBeenCalledTimes(2);
     expect(persistedWidth).toBe(303);
-    expect(saveStartedAfterClose).toBe(false);
+    expect(isSaveStartedAfterClose).toBe(false);
     expect(repository.close).toHaveBeenCalledTimes(1);
   });
 
@@ -167,6 +167,11 @@ describe('project autosave teardown', () => {
       page: expect.objectContaining({ widthMm: 302 }),
     }));
   });
+});
+
+describe('project autosave repository replacement', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
 
   it('waits for a replacement repository load before saving edits', async () => {
     let finishReplacementLoad: (() => void) | undefined;
@@ -199,7 +204,7 @@ describe('project autosave teardown', () => {
     const oldRepository = repositoryWith();
     oldRepository.load = vi.fn().mockRejectedValue(new AutosaveCorruptionError());
     const newRepository = repositoryWith();
-    newRepository.load = vi.fn(() => new Promise<null>(() => undefined));
+    newRepository.load = vi.fn(() => new Promise<null>(() => {}));
     const store = createProjectStore();
     const { result, rerender } = renderHook(
       ({ repository }) => useProjectAutosave(store, repository),
@@ -220,9 +225,9 @@ describe('project autosave teardown', () => {
     const firstRepository = repositoryWith();
     firstRepository.load = vi.fn()
       .mockRejectedValueOnce(new AutosaveCorruptionError())
-      .mockImplementation(() => new Promise<null>(() => undefined));
+      .mockImplementation(() => new Promise<null>(() => {}));
     const secondRepository = repositoryWith();
-    secondRepository.load = vi.fn(() => new Promise<null>(() => undefined));
+    secondRepository.load = vi.fn(() => new Promise<null>(() => {}));
     const store = createProjectStore();
     const { result, rerender } = renderHook(
       ({ repository }) => useProjectAutosave(store, repository),
@@ -276,7 +281,7 @@ describe('project autosave teardown', () => {
       finishOldDiscard = resolve;
     }));
     const newRepository = repositoryWith();
-    newRepository.load = vi.fn(() => new Promise<null>(() => undefined));
+    newRepository.load = vi.fn(() => new Promise<null>(() => {}));
     const store = createProjectStore();
     const { result, rerender } = renderHook(
       ({ repository }) => useProjectAutosave(store, repository),
