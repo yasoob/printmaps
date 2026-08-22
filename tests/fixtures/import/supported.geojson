@@ -1,0 +1,30 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "cafe",
+      "properties": { "name": "  Café\nCentral  " },
+      "geometry": { "type": "Point", "coordinates": [16.3738, 48.2082] }
+    },
+    {
+      "type": "Feature",
+      "id": "danube-path",
+      "properties": { "name": "Danube path" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [[16.35, 48.2], [16.4, 48.22]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Inner district" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [[16.36, 48.2], [16.39, 48.2], [16.39, 48.22], [16.36, 48.2]]
+        ]
+      }
+    }
+  ]
+}
