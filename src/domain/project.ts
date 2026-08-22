@@ -1,4 +1,4 @@
-export const PROJECT_SCHEMA_VERSION = 5 as const;
+export const PROJECT_SCHEMA_VERSION = 6 as const;
 
 export type LayerType = 'route' | 'poi' | 'shape' | 'basemap';
 export type PageOrientation = 'landscape' | 'portrait';
@@ -20,6 +20,7 @@ export type CameraSettings = {
 
 export type MapStyleSettings = {
   preset: MapStylePreset;
+  textScalePercent: number;
 };
 
 export type LayerGeometry =
@@ -79,7 +80,17 @@ export type ProjectDocumentV4 = {
   layers: ContentLayer[];
 };
 
-export type StoredProjectDocument = ProjectDocumentV1 | ProjectDocumentV2 | ProjectDocumentV3 | ProjectDocumentV4 | ProjectDocument;
+export type ProjectDocumentV5 = {
+  schemaVersion: 5;
+  id: string;
+  title: string;
+  page: PageSettings;
+  camera: CameraSettings;
+  style: Omit<MapStyleSettings, 'textScalePercent'>;
+  layers: ContentLayer[];
+};
+
+export type StoredProjectDocument = ProjectDocumentV1 | ProjectDocumentV2 | ProjectDocumentV3 | ProjectDocumentV4 | ProjectDocumentV5 | ProjectDocument;
 
 const createDefaultPageSettings = (): PageSettings => ({
   preset: 'A4',
@@ -89,7 +100,7 @@ const createDefaultPageSettings = (): PageSettings => ({
 });
 
 const createDefaultCameraSettings = (): CameraSettings => ({ bearing: 0, pitch: 0 });
-const createDefaultMapStyleSettings = (): MapStyleSettings => ({ preset: 'liberty' });
+const createDefaultMapStyleSettings = (): MapStyleSettings => ({ preset: 'liberty', textScalePercent: 100 });
 
 export function mapStyleBasemapName(preset: MapStylePreset): string {
   return `${preset === 'liberty' ? 'Liberty' : 'Positron'} basemap`;
@@ -134,6 +145,13 @@ export function migrateProjectDocument(document: StoredProjectDocument): Project
       ...document,
       schemaVersion: PROJECT_SCHEMA_VERSION,
       style: createDefaultMapStyleSettings(),
+    };
+  }
+  if (document.schemaVersion === 5) {
+    return {
+      ...document,
+      schemaVersion: PROJECT_SCHEMA_VERSION,
+      style: { ...document.style, textScalePercent: 100 },
     };
   }
   return document;

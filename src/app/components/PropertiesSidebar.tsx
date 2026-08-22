@@ -67,7 +67,7 @@ export function PropertiesSidebar(props: PropertiesSidebarProps) {
           onDelete={deleteSelected}
         />
       ) : (
-        <ProjectProperties camera={project.document.camera} style={project.document.style} page={project.document.page} onBearingChange={project.setCameraBearing} onDimensionChange={project.setPageDimension} onOrientationChange={project.setPageOrientation} onPitchChange={project.setCameraPitch} onPresetChange={project.setPagePreset} onStyleChange={project.setMapStyle} />
+        <ProjectProperties camera={project.document.camera} style={project.document.style} page={project.document.page} onBearingChange={project.setCameraBearing} onDimensionChange={project.setPageDimension} onOrientationChange={project.setPageOrientation} onPitchChange={project.setCameraPitch} onPresetChange={project.setPagePreset} onStyleChange={project.setMapStyle} onTextScaleChange={project.setMapTextScale} />
       )}
     </aside>
   );

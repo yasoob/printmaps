@@ -9,10 +9,12 @@ import {
   type MapError,
 } from './MapCanvasLifecycle';
 import { mapStyleUrl } from './mapStyles';
+import { useMapTextScale } from './useMapTextScale';
 
 type MapCanvasControllerOptions = {
   camera: CameraSettings;
   stylePreset: MapStylePreset;
+  textScalePercent: number;
   fitRequest: number;
   layers: ContentLayer[];
   onBackgroundClick: () => void;
@@ -29,6 +31,7 @@ const PAGE_BOUNDS: [[number, number], [number, number]] = [[16.28, 48.14], [16.4
 export function useMapCanvasController({
   camera,
   stylePreset,
+  textScalePercent,
   fitRequest,
   layers,
   onBackgroundClick,
@@ -44,7 +47,7 @@ export function useMapCanvasController({
   const contentAdapter = useRef<MapContentAdapter | null>(null);
   const contentState = useRef<MapContentState>({ layers, selectedId, previewedId, contentRevision });
   const contentSyncDeferred = useRef(false);
-  const contentReady = useRef(false);
+  const contentReady = useRef(false), mapFailed = useRef(false);
   const layerSelect = useRef(onLayerSelect);
   const backgroundClick = useRef(onBackgroundClick);
   const mapClick = useRef(onMapClick);
@@ -59,6 +62,7 @@ export function useMapCanvasController({
     availableExporter.current = null;
     exporterChange.current?.(null);
   }, []);
+  const { resetTextScale, synchronizeTextScale } = useMapTextScale({ containerRef: container, contentReadyRef: contentReady, invalidateExporter, mapFailedRef: mapFailed, mapRef: map, setMapError, textScalePercent });
 
   const handleContentSyncResult = useCallback((result: ReturnType<MapContentAdapter['sync']> | undefined) => {
     contentSyncDeferred.current = result === 'deferred';
@@ -102,6 +106,7 @@ export function useMapCanvasController({
     container.current?.removeAttribute('data-map-ready');
     container.current?.removeAttribute('data-map-bearing');
     container.current?.removeAttribute('data-map-pitch');
+    resetTextScale();
     invalidateExporter();
     queueMicrotask(() => {
       setMapError(null);
@@ -121,13 +126,14 @@ export function useMapCanvasController({
         exporterChange,
         layerSelect,
         mapClick,
-        map,
+        map, mapFailed,
+        synchronizeTextScale: { current: synchronizeTextScale },
       },
       setContentError,
       setMapError,
       styleUrl: mapStyleUrl(stylePreset),
     });
-  }, [handleContentSyncResult, invalidateExporter, stylePreset]);
+  }, [handleContentSyncResult, invalidateExporter, resetTextScale, stylePreset, synchronizeTextScale]);
 
   useEffect(() => {
     if (!map.current) return;

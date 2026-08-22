@@ -77,9 +77,9 @@ vi.mock('maplibre-gl', () => {
       }
       mocks.activeMapIds.delete(this.mapIndex);
     }
-    getCanvas() {
-      return document.createElement('canvas');
-    }
+    getCanvas() { return document.createElement('canvas'); }
+    getStyle() { return { layers: [] }; }
+    setLayoutProperty() {}
     triggerRepaint() {}
     fitBounds(...arguments_: unknown[]) { mocks.mapFitBounds(...arguments_); }
     jumpTo(options: unknown) { mocks.mapJumpTo(options); }

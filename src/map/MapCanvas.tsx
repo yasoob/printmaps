@@ -6,6 +6,7 @@ import { useMapCanvasController } from './useMapCanvasController';
 type MapCanvasProps = {
   camera?: CameraSettings;
   stylePreset?: MapStylePreset;
+  textScalePercent?: number;
   layers: ContentLayer[];
   selectedId: string | null;
   previewedId: string | null;
@@ -22,6 +23,7 @@ type MapCanvasProps = {
 export function MapCanvas({
   camera = { bearing: 0, pitch: 0 },
   stylePreset = 'liberty',
+  textScalePercent = 100,
   layers,
   selectedId,
   previewedId,
@@ -37,6 +39,7 @@ export function MapCanvas({
   const { container, visibleError } = useMapCanvasController({
     camera,
     stylePreset,
+    textScalePercent,
     fitRequest,
     layers,
     onBackgroundClick,

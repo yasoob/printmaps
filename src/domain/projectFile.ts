@@ -11,6 +11,7 @@ import {
   type ProjectDocumentV2,
   type ProjectDocumentV3,
   type ProjectDocumentV4,
+  type ProjectDocumentV5,
   type StoredProjectDocument,
 } from './project';
 
@@ -21,8 +22,13 @@ const LAYER_TYPES = new Set<LayerType>(['route', 'poi', 'shape', 'basemap']);
 const PAGE_PRESETS = new Set<PagePreset>(['A4', 'A3', 'Letter', 'Custom']);
 const PAGE_ORIENTATIONS = new Set<PageOrientation>(['landscape', 'portrait']);
 const MAP_STYLE_PRESETS = new Set<MapStylePreset>(['liberty', 'positron']);
+const SUPPORTED_SCHEMA_VERSIONS = new Set([1, 2, 3, 4, 5, 6]);
 
 type JsonObject = Record<string, unknown>;
+
+function isSupportedSchemaVersion(value: unknown): value is StoredProjectDocument['schemaVersion'] {
+  return typeof value === 'number' && SUPPORTED_SCHEMA_VERSIONS.has(value);
+}
 
 export class ProjectFileError extends Error {
   constructor(message: string) {
@@ -220,18 +226,26 @@ function cameraAt(value: unknown): ProjectDocument['camera'] {
   return { bearing, pitch };
 }
 
-function styleAt(value: unknown): ProjectDocument['style'] {
+function styleAt(value: unknown, shouldIncludeTextScale: false): ProjectDocumentV5['style'];
+function styleAt(value: unknown, shouldIncludeTextScale: true): ProjectDocument['style'];
+function styleAt(value: unknown, shouldIncludeTextScale: boolean): ProjectDocumentV5['style'] | ProjectDocument['style'] {
   const style = objectAt(value, 'Project style');
   if (typeof style.preset !== 'string' || !MAP_STYLE_PRESETS.has(style.preset as MapStylePreset)) {
     throw new ProjectFileError('Map style preset must be liberty or positron.');
   }
-  return { preset: style.preset as MapStylePreset };
+  const preset = style.preset as MapStylePreset;
+  if (!shouldIncludeTextScale) return { preset };
+  const textScalePercent = finiteNumber(style.textScalePercent, 'Map text scale');
+  if (textScalePercent < 50 || textScalePercent > 200) {
+    throw new ProjectFileError('Map text scale must be between 50 and 200 percent.');
+  }
+  return { preset, textScalePercent };
 }
 
 function storedDocumentAt(value: unknown): StoredProjectDocument {
   const root = objectAt(value, 'Project file');
   const schemaVersion = root.schemaVersion;
-  if (schemaVersion !== 1 && schemaVersion !== 2 && schemaVersion !== 3 && schemaVersion !== 4 && schemaVersion !== 5) {
+  if (!isSupportedSchemaVersion(schemaVersion)) {
     const displayed = typeof schemaVersion === 'number' || typeof schemaVersion === 'string'
       ? String(schemaVersion)
       : 'missing';
@@ -250,12 +264,15 @@ function storedDocumentAt(value: unknown): StoredProjectDocument {
   if (schemaVersion === 3) return { schemaVersion, ...common, page } satisfies ProjectDocumentV3;
   const camera = cameraAt(root.camera);
   if (schemaVersion === 4) return { schemaVersion, ...common, page, camera } satisfies ProjectDocumentV4;
+  if (schemaVersion === 5) {
+    return { schemaVersion, ...common, page, camera, style: styleAt(root.style, false) } satisfies ProjectDocumentV5;
+  }
   return {
     schemaVersion,
     ...common,
     page,
     camera,
-    style: styleAt(root.style),
+    style: styleAt(root.style, true),
   } satisfies ProjectDocument;
 }
 

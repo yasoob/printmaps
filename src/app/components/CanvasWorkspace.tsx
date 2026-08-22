@@ -126,6 +126,7 @@ type CanvasWorkspaceProps = {
   layers: ContentLayer[];
   camera: CameraSettings;
   stylePreset: MapStylePreset;
+  textScalePercent: number;
   selectedId: string | null;
   previewedId: string | null;
   page: PageSettings;
@@ -150,7 +151,7 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
   const [toolDocumentEpoch, setToolDocumentEpoch] = useState(props.documentEpoch);
   const [fitRequest, setFitRequest] = useState(0);
   const selectToolRef = useRef<HTMLButtonElement>(null);
-  const { activePanel, camera, documentEpoch, layers, layersTriggerRef, onAuthoringChange, onBackgroundClick, onCreatePoi, onCreateRoute, onCreateShape, onExporterChange, onLayerSelect, openPanel, page, previewedId, propertiesTriggerRef, selectedId, stylePreset } = props;
+  const { activePanel, camera, documentEpoch, layers, layersTriggerRef, onAuthoringChange, onBackgroundClick, onCreatePoi, onCreateRoute, onCreateShape, onExporterChange, onLayerSelect, openPanel, page, previewedId, propertiesTriggerRef, selectedId, stylePreset, textScalePercent } = props;
   const activeTool = toolDocumentEpoch === documentEpoch ? storedActiveTool : 'select';
   const routePoints = toolDocumentEpoch === documentEpoch ? storedRoutePoints : EMPTY_ROUTE_POINTS;
   const shapePoints = toolDocumentEpoch === documentEpoch ? storedShapePoints : EMPTY_SHAPE_POINTS;
@@ -230,7 +231,7 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
 
   return (
     <section className="canvas-region" inert={activePanel !== null}>
-      <MapCanvas camera={camera} stylePreset={stylePreset} layers={geometryLayers} contentRevision={geometryLayers} selectedId={selectedId} previewedId={previewedId} onLayerSelect={onLayerSelect} onMapClick={handleMapClick} onBackgroundClick={onBackgroundClick} onExporterChange={onExporterChange} fitRequest={fitRequest} orientation={page.orientation} page={page} />
+      <MapCanvas camera={camera} stylePreset={stylePreset} textScalePercent={textScalePercent} layers={geometryLayers} contentRevision={geometryLayers} selectedId={selectedId} previewedId={previewedId} onLayerSelect={onLayerSelect} onMapClick={handleMapClick} onBackgroundClick={onBackgroundClick} onExporterChange={onExporterChange} fitRequest={fitRequest} orientation={page.orientation} page={page} />
       <div className="mobile-panel-actions" aria-label="Editor panels">
         <button ref={layersTriggerRef} type="button" aria-label="Open layers" aria-controls="layers-panel" aria-expanded={activePanel === 'layers'} onClick={() => openPanel('layers')}><Layers3 size={15} /><span>Layers</span></button>
         <button ref={propertiesTriggerRef} type="button" aria-label="Open properties" aria-controls="properties-panel" aria-expanded={activePanel === 'properties'} onClick={() => openPanel('properties')}><SlidersHorizontal size={15} /><span>Properties</span></button>

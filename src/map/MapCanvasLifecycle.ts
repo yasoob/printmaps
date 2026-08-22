@@ -31,6 +31,8 @@ type LifecycleReferences = {
   layerSelect: MutableReference<(id: string) => void>;
   mapClick: MutableReference<((coordinate: [number, number]) => void) | undefined>;
   map: MutableReference<MapLibreMap | null>;
+  mapFailed: MutableReference<boolean>;
+  synchronizeTextScale: MutableReference<(map: MapLibreMap) => boolean>;
 };
 
 export type MapLifecycleOptions = {
@@ -39,11 +41,6 @@ export type MapLifecycleOptions = {
   setContentError: Dispatch<SetStateAction<ContentError | null>>;
   setMapError: Dispatch<SetStateAction<MapError | null>>;
   styleUrl: string;
-};
-
-type LifecycleState = {
-  isMapFailed: boolean;
-  isStyleLoaded: boolean;
 };
 
 function waitForMapRender(map: MapLibreMap, signal?: AbortSignal): Promise<void> {
@@ -154,7 +151,7 @@ function createAttributionController(container: HTMLDivElement) {
 
 function createMapEventHandlers(
   map: MapLibreMap,
-  state: LifecycleState,
+  state: { isStyleLoaded: boolean },
   options: MapLifecycleOptions,
   initializeAttribution: () => void,
 ) {
@@ -182,6 +179,7 @@ function createMapEventHandlers(
       (signal) => waitForMapRender(map, signal),
       {
         onRestoreFailure: () => {
+          references.mapFailed.current = true;
           references.contentReady.current = false;
           references.container.current?.removeAttribute('data-map-ready');
           references.availableExporter.current = null;
@@ -199,11 +197,12 @@ function createMapEventHandlers(
     state.isStyleLoaded = true;
     const container = references.container.current;
     if (!container) return;
+    if (!references.synchronizeTextScale.current(map)) return;
     references.contentAdapter.current = createMapLibreContentAdapter(map, container);
     handleContentSyncResult(references.contentAdapter.current.sync(references.contentState.current));
   };
   const handleIdle = () => {
-    if (state.isMapFailed) return;
+    if (references.mapFailed.current) return;
     initializeAttribution();
     if (references.contentSyncDeferred.current && references.contentAdapter.current) {
       handleContentSyncResult(references.contentAdapter.current.sync(references.contentState.current));
@@ -232,7 +231,7 @@ function createMapEventHandlers(
     if (hitLayerId) references.layerSelect.current(hitLayerId); else references.backgroundClick.current();
   };
   const handleError = () => {
-    state.isMapFailed = true;
+    references.mapFailed.current = true;
     references.container.current?.removeAttribute('data-map-ready');
     if (references.availableExporter.current === exportPreview) {
       references.availableExporter.current = null;
@@ -293,7 +292,8 @@ function cleanupMap(
 function installMapLifecycle(map: MapLibreMap, options: MapLifecycleOptions) {
   const container = options.references.container.current!;
   const attribution = createAttributionController(container);
-  const state: LifecycleState = { isMapFailed: false, isStyleLoaded: false };
+  const state = { isStyleLoaded: false };
+  options.references.mapFailed.current = false;
   const handlers = createMapEventHandlers(map, state, options, attribution.initialize);
   map.addControl(new NavigationControl({ showCompass: false }), 'bottom-right');
   map.addControl(new AttributionControl({ compact: true }), 'bottom-left');

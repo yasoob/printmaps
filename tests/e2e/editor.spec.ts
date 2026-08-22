@@ -43,7 +43,10 @@ test('desktop editor switches between project and layer properties', async ({ pa
     await page.getByRole('textbox', { name: 'Bearing' }).fill('35');
     await page.getByRole('textbox', { name: 'Pitch' }).fill('40');
     await page.getByRole('textbox', { name: 'Pitch' }).press('Tab');
-    await page.getByRole('combobox', { name: 'Map style' }).selectOption('positron');
+    await page.getByRole('textbox', { name: 'Text scale' }).fill('125');
+    const style = page.getByRole('combobox', { name: 'Map style' });
+    await style.focus();
+    await style.selectOption('positron');
     const map = page.getByTestId('map-canvas');
     await expect(map).toHaveAttribute('data-style-preset', 'positron');
     await expect(map).not.toHaveAttribute('data-map-ready', 'true');
@@ -51,6 +54,7 @@ test('desktop editor switches between project and layer properties', async ({ pa
     await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
     await expect(map).toHaveAttribute('data-map-bearing', '35');
     await expect(map).toHaveAttribute('data-map-pitch', '40');
+    await expect(map).toHaveAttribute('data-map-text-scale', '125');
   }
 
   await page.screenshot({ path: testInfo.outputPath('editor-desktop.png'), fullPage: true });

@@ -5,6 +5,7 @@ import { exportMocks } from './exportMocks';
 type MapCanvasMockProps = {
   camera?: CameraSettings;
   stylePreset?: MapStylePreset;
+  textScalePercent?: number;
   layers?: ContentLayer[];
   selectedId?: string | null;
   previewedId?: string | null;
@@ -20,6 +21,7 @@ type MapCanvasMockProps = {
 export function MapCanvas({
   camera = { bearing: 0, pitch: 0 },
   stylePreset = 'liberty',
+  textScalePercent = 100,
   layers = [],
   selectedId,
   previewedId,
@@ -42,6 +44,7 @@ export function MapCanvas({
       data-fit-request={fitRequest}
       data-camera={`${camera.bearing},${camera.pitch}`}
       data-style-preset={stylePreset}
+      data-text-scale={textScalePercent}
       data-orientation={orientation}
       data-page-preset={page?.preset}
       data-page-size={page ? `${page.widthMm}x${page.heightMm}` : ''}

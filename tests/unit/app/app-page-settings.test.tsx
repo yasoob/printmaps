@@ -108,6 +108,42 @@ describe('editor page settings and tools', () => {
     expect(map).toHaveAttribute('data-style-preset', 'positron');
   });
 
+  it('commits global text scale on blur and keeps Undo and Redo synchronized with the canvas', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const textScale = screen.getByRole('textbox', { name: 'Text scale' });
+    const undo = screen.getByRole('button', { name: 'Undo' });
+    const map = screen.getByTestId('map-canvas');
+
+    await user.clear(textScale);
+    await user.type(textScale, '125');
+    expect(undo).toBeDisabled();
+    await user.tab();
+
+    expect(textScale).toHaveValue('125');
+    expect(map).toHaveAttribute('data-text-scale', '125');
+    await user.click(undo);
+    expect(screen.getByRole('textbox', { name: 'Text scale' })).toHaveValue('100');
+    expect(map).toHaveAttribute('data-text-scale', '100');
+    await user.click(screen.getByRole('button', { name: 'Redo' }));
+    expect(screen.getByRole('textbox', { name: 'Text scale' })).toHaveValue('125');
+    expect(map).toHaveAttribute('data-text-scale', '125');
+  });
+
+  it('marks an invalid global text scale and restores the canonical value without history', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const textScale = screen.getByRole('textbox', { name: 'Text scale' });
+
+    await user.clear(textScale);
+    await user.type(textScale, '201');
+    expect(textScale).toHaveAttribute('aria-invalid', 'true');
+    await user.tab();
+
+    expect(screen.getByRole('textbox', { name: 'Text scale' })).toHaveValue('100');
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
+  });
+
   it('keeps the A4 preset and history unchanged when page width is blurred without editing', async () => {
     const user = userEvent.setup();
     render(<App />);

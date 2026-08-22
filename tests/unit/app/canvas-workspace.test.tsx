@@ -41,6 +41,7 @@ const sharedProps = {
   layers,
   camera: { bearing: 0, pitch: 0 },
   stylePreset: 'liberty' as const,
+  textScalePercent: 100,
   previewedId: null,
   documentEpoch: 0,
   page: { preset: 'A4', widthMm: 297, heightMm: 210, orientation: 'landscape' } as const,

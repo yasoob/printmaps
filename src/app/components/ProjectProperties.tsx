@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import type { CameraSettings, MapStylePreset, MapStyleSettings, PageSettings, StandardPagePreset } from '../../domain/project';
-import { NumberField, PropertyRow, PropertySection } from './PropertyControls';
+import { PropertyRow, PropertySection } from './PropertyControls';
 
 function isValidPageDimension(draft: string) {
   const value = Number(draft);
@@ -95,6 +95,40 @@ function CameraField({ field, value, onCommit }: CameraFieldProps) {
   );
 }
 
+function TextScaleField({ value, onCommit }: { value: number; onCommit: (value: number) => void }) {
+  const [draft, setDraft] = useState(String(value));
+  const dirtyRef = useRef(false);
+  const isValid = draft.trim() !== '' && Number.isFinite(Number(draft)) && Number(draft) >= 50 && Number(draft) <= 200;
+  const commit = () => {
+    if (!dirtyRef.current) return;
+    dirtyRef.current = false;
+    if (!isValid) {
+      setDraft(String(value));
+      return;
+    }
+    const nextValue = Number(draft);
+    setDraft(String(nextValue));
+    onCommit(nextValue);
+  };
+
+  return (
+    <label className="number-field">
+      <input
+        aria-label="Text scale"
+        aria-invalid={!isValid}
+        inputMode="decimal"
+        value={draft}
+        onChange={(event) => {
+          setDraft(event.target.value);
+          dirtyRef.current = true;
+        }}
+        onBlur={commit}
+      />
+      <small>%</small>
+    </label>
+  );
+}
+
 type ProjectPropertiesProps = {
   page: PageSettings;
   camera: CameraSettings;
@@ -105,6 +139,7 @@ type ProjectPropertiesProps = {
   onPitchChange: (pitch: number) => void;
   onPresetChange: (preset: StandardPagePreset) => void;
   onStyleChange: (preset: MapStylePreset) => void;
+  onTextScaleChange: (textScalePercent: number) => void;
 };
 
 export function ProjectProperties({
@@ -117,6 +152,7 @@ export function ProjectProperties({
   onPitchChange,
   onPresetChange,
   onStyleChange,
+  onTextScaleChange,
 }: ProjectPropertiesProps) {
   return (
     <div className="properties-panel">
@@ -133,7 +169,7 @@ export function ProjectProperties({
         <PropertyRow label="Style"><select aria-label="Map style" value={style.preset} onChange={(event) => onStyleChange(event.target.value as MapStylePreset)}><option value="liberty">Liberty</option><option value="positron">Positron</option></select></PropertyRow>
         <PropertyRow label="Bearing"><CameraField key={`bearing-${camera.bearing}`} field="bearing" value={camera.bearing} onCommit={onBearingChange} /></PropertyRow>
         <PropertyRow label="Pitch"><CameraField key={`pitch-${camera.pitch}`} field="pitch" value={camera.pitch} onCommit={onPitchChange} /></PropertyRow>
-        <PropertyRow label="Text scale"><NumberField value="100" suffix="%" ariaLabel="Text scale" /></PropertyRow>
+        <PropertyRow label="Text scale"><TextScaleField key={`text-scale-${style.textScalePercent}`} value={style.textScalePercent} onCommit={onTextScaleChange} /></PropertyRow>
       </PropertySection>
       <PropertySection title="Export">
         <PropertyRow label="Resolution"><select aria-label="Export resolution" value="Browser preview" disabled><option>Browser preview</option></select></PropertyRow>

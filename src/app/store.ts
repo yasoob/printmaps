@@ -40,6 +40,7 @@ export type ProjectState = {
   setPagePreset: (preset: StandardPagePreset) => void;
   setLayerOpacity: (id: string, opacity: number) => void;
   setMapStyle: (preset: MapStylePreset) => void;
+  setMapTextScale: (textScalePercent: number) => void;
   toggleLayerVisibility: (id: string) => void;
   toggleLayerLock: (id: string) => void;
   undo: () => void;

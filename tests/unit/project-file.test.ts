@@ -2,6 +2,20 @@ import { createInitialProjectDocument } from '../../src/domain/project';
 import { parseProjectFileText } from '../../src/domain/projectFile';
 
 describe('portable project validation', () => {
+  it('migrates a version-5 project to the default global text scale', () => {
+    const source = createInitialProjectDocument();
+    const versionFive = {
+      ...source,
+      schemaVersion: 5,
+      style: { preset: source.style.preset },
+    };
+
+    const parsed = parseProjectFileText(JSON.stringify(versionFive));
+
+    expect(parsed.schemaVersion).toBe(6);
+    expect(parsed.style).toEqual({ preset: 'liberty', textScalePercent: 100 });
+  });
+
   it('parses a current portable project into a detached canonical document', () => {
     const source = createInitialProjectDocument();
 
@@ -15,7 +29,7 @@ describe('portable project validation', () => {
 
   it('preserves a current portable project custom basemap layer name', () => {
     const source = createInitialProjectDocument();
-    source.style = { preset: 'positron' };
+    source.style = { preset: 'positron', textScalePercent: 100 };
     const basemap = source.layers.find((layer) => layer.type === 'basemap');
     if (!basemap) throw new Error('Expected fixture basemap.');
     basemap.name = 'Client reference map';
@@ -75,6 +89,10 @@ describe('portable project validation', () => {
       ...createInitialProjectDocument(),
       style: { preset: 'satellite' },
     }), 'Map style preset must be liberty or positron'],
+    ['an out-of-range map text scale', JSON.stringify({
+      ...createInitialProjectDocument(),
+      style: { preset: 'liberty', textScalePercent: 201 },
+    }), 'Map text scale must be between 50 and 200 percent'],
   ])('rejects %s without producing a project', (_name, text, message) => {
     expect(() => parseProjectFileText(text)).toThrow(message);
   });

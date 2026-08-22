@@ -1,7 +1,7 @@
 /* eslint-disable unicorn/prefer-add-event-listener, unicorn/no-global-object-property-assignment, unicorn/no-optional-chaining-on-undeclared-variable -- Browser-realm IndexedDB instrumentation must patch native handlers and a page-local release hook. */
 import { expect, test } from '@playwright/test';
 
-test('autosaves to IndexedDB and requires explicit recover or discard choices', async ({ page }) => {
+test('autosaves to IndexedDB and requires explicit recover or discard choices', async ({ page, browserName }) => {
   await page.goto('/');
   const autosaveStatus = page.getByRole('status', { name: 'Autosave status' });
   await expect(autosaveStatus).toHaveText('Autosave ready');
@@ -9,6 +9,8 @@ test('autosaves to IndexedDB and requires explicit recover or discard choices', 
   await page.getByRole('textbox', { name: 'Bearing' }).fill('-20');
   await page.getByRole('textbox', { name: 'Pitch' }).fill('35');
   await page.getByRole('textbox', { name: 'Pitch' }).press('Tab');
+  await page.getByRole('textbox', { name: 'Text scale' }).fill('135');
+  await page.getByRole('textbox', { name: 'Text scale' }).press('Tab');
   await page.getByRole('button', { name: 'Portrait' }).click();
   await expect(autosaveStatus).toHaveText('All changes saved locally');
 
@@ -30,7 +32,11 @@ test('autosaves to IndexedDB and requires explicit recover or discard choices', 
   await expect(page.getByRole('textbox', { name: 'Bearing' })).toHaveValue('-20');
   await expect(page.getByRole('textbox', { name: 'Pitch' })).toHaveValue('35');
   await expect(page.getByRole('combobox', { name: 'Map style' })).toHaveValue('positron');
+  await expect(page.getByRole('textbox', { name: 'Text scale' })).toHaveValue('135');
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-style-preset', 'positron');
+  if (browserName !== 'firefox') {
+    await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-text-scale', '135');
+  }
   await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
 
   await page.setViewportSize({ width: 390, height: 844 });

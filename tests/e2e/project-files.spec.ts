@@ -7,6 +7,8 @@ test('Save downloads the current project as portable versioned JSON', async ({ p
   await page.getByRole('textbox', { name: 'Bearing' }).fill('35');
   await page.getByRole('textbox', { name: 'Pitch' }).fill('40');
   await page.getByRole('textbox', { name: 'Pitch' }).press('Tab');
+  await page.getByRole('textbox', { name: 'Text scale' }).fill('125');
+  await page.getByRole('textbox', { name: 'Text scale' }).press('Tab');
   await page.getByRole('button', { name: 'Portrait' }).click();
   await page.getByRole('combobox', { name: 'Map style' }).selectOption('positron');
 
@@ -19,12 +21,12 @@ test('Save downloads the current project as portable versioned JSON', async ({ p
   await download.saveAs(outputPath);
   const savedProject = JSON.parse(await readFile(outputPath, 'utf8'));
   expect(savedProject).toMatchObject({
-    schemaVersion: 5,
+    schemaVersion: 6,
     id: 'vienna-field-guide',
     title: 'Vienna field guide',
     page: { preset: 'A4', widthMm: 210, heightMm: 297, orientation: 'portrait' },
     camera: { bearing: 35, pitch: 40 },
-    style: { preset: 'positron' },
+    style: { preset: 'positron', textScalePercent: 125 },
   });
   expect(savedProject.layers.map((layer: { id: string }) => layer.id)).toEqual([
     'route-01',
@@ -34,15 +36,15 @@ test('Save downloads the current project as portable versioned JSON', async ({ p
   ]);
 });
 
-test('opens a validated portable project as a focused fresh history root', async ({ page }) => {
+test('opens a validated portable project as a focused fresh history root', async ({ page, browserName }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Portrait' }).click();
   await page.getByRole('button', { name: 'Select Route 01' }).click();
   await expect(page.getByRole('button', { name: 'Undo' })).toBeEnabled();
   const alpineProject = JSON.parse(await readFile(path.resolve('tests/fixtures/alpine-poster.printmap.json'), 'utf8'));
-  alpineProject.schemaVersion = 5;
+  alpineProject.schemaVersion = 6;
   alpineProject.camera = { bearing: -20, pitch: 35 };
-  alpineProject.style = { preset: 'positron' };
+  alpineProject.style = { preset: 'positron', textScalePercent: 150 };
   alpineProject.layers.find((layer: { type: string }) => layer.type === 'basemap').name = 'Positron basemap';
 
   const chooserPromise = page.waitForEvent('filechooser');
@@ -64,7 +66,11 @@ test('opens a validated portable project as a focused fresh history root', async
   await expect(page.getByRole('textbox', { name: 'Bearing' })).toHaveValue('-20');
   await expect(page.getByRole('textbox', { name: 'Pitch' })).toHaveValue('35');
   await expect(page.getByRole('combobox', { name: 'Map style' })).toHaveValue('positron');
+  await expect(page.getByRole('textbox', { name: 'Text scale' })).toHaveValue('150');
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-style-preset', 'positron');
+  if (browserName !== 'firefox') {
+    await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-text-scale', '150');
+  }
   await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Redo' })).toBeDisabled();
   await expect(page.getByRole('status', { name: 'Project file status' })).toHaveText('Opened Alpine poster. Edit history was reset.');
