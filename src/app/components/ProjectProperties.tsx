@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import type { PageSettings, StandardPagePreset } from '../../domain/project';
+import type { CameraSettings, PageSettings, StandardPagePreset } from '../../domain/project';
 import { NumberField, PropertyRow, PropertySection } from './PropertyControls';
 
 function isValidPageDimension(draft: string) {
@@ -50,17 +50,68 @@ function PageDimensionField({ label, ariaLabel, dimension, value, onCommit }: Pa
   );
 }
 
+type CameraFieldProps = {
+  field: keyof CameraSettings;
+  value: number;
+  onCommit: (value: number) => void;
+};
+
+function isValidCameraDraft(field: keyof CameraSettings, draft: string) {
+  const value = Number(draft);
+  const [minimum, maximum] = field === 'bearing' ? [-180, 180] : [0, 60];
+  return draft.trim() !== '' && Number.isFinite(value) && value >= minimum && value <= maximum;
+}
+
+function CameraField({ field, value, onCommit }: CameraFieldProps) {
+  const [draft, setDraft] = useState(String(value));
+  const dirtyRef = useRef(false);
+  const commit = () => {
+    if (!dirtyRef.current) return;
+    dirtyRef.current = false;
+    if (!isValidCameraDraft(field, draft)) {
+      setDraft(String(value));
+      return;
+    }
+    const nextValue = Number(draft);
+    setDraft(String(nextValue));
+    onCommit(nextValue);
+  };
+
+  return (
+    <label className="number-field">
+      <input
+        aria-label={field === 'bearing' ? 'Bearing' : 'Pitch'}
+        aria-invalid={!isValidCameraDraft(field, draft)}
+        inputMode="decimal"
+        value={draft}
+        onChange={(event) => {
+          setDraft(event.target.value);
+          dirtyRef.current = true;
+        }}
+        onBlur={commit}
+      />
+      <small>°</small>
+    </label>
+  );
+}
+
 type ProjectPropertiesProps = {
   page: PageSettings;
+  camera: CameraSettings;
+  onBearingChange: (bearing: number) => void;
   onDimensionChange: (dimension: 'widthMm' | 'heightMm', value: number) => void;
   onOrientationChange: (orientation: PageSettings['orientation']) => void;
+  onPitchChange: (pitch: number) => void;
   onPresetChange: (preset: StandardPagePreset) => void;
 };
 
 export function ProjectProperties({
+  camera,
+  onBearingChange,
   page,
   onDimensionChange,
   onOrientationChange,
+  onPitchChange,
   onPresetChange,
 }: ProjectPropertiesProps) {
   return (
@@ -76,8 +127,8 @@ export function ProjectProperties({
       </PropertySection>
       <PropertySection title="Map">
         <PropertyRow label="Style"><select aria-label="Map style" defaultValue="Liberty"><option>Liberty</option><option>Positron</option><option>Dark</option></select></PropertyRow>
-        <PropertyRow label="Bearing"><NumberField value="0" suffix="°" ariaLabel="Bearing" /></PropertyRow>
-        <PropertyRow label="Pitch"><NumberField value="0" suffix="°" ariaLabel="Pitch" /></PropertyRow>
+        <PropertyRow label="Bearing"><CameraField key={`bearing-${camera.bearing}`} field="bearing" value={camera.bearing} onCommit={onBearingChange} /></PropertyRow>
+        <PropertyRow label="Pitch"><CameraField key={`pitch-${camera.pitch}`} field="pitch" value={camera.pitch} onCommit={onPitchChange} /></PropertyRow>
         <PropertyRow label="Text scale"><NumberField value="100" suffix="%" ariaLabel="Text scale" /></PropertyRow>
       </PropertySection>
       <PropertySection title="Export">

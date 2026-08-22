@@ -9,6 +9,7 @@ import {
   type StoredProjectDocument,
 } from '../domain/project';
 import { copyDocument, createDocumentActions } from './storeDocument';
+import { createCameraActions } from './storeCameraActions';
 import { createLayerPropertyActions, createLayerStructureActions } from './storeLayerActions';
 import { createPageActions } from './storePageActions';
 
@@ -30,6 +31,8 @@ export type ProjectState = {
   openDocument: (document: StoredProjectDocument) => void;
   renameLayer: (id: string, name: string) => void;
   selectLayer: (id: string | null) => void;
+  setCameraBearing: (bearing: number) => void;
+  setCameraPitch: (pitch: number) => void;
   setPageDimension: (dimension: 'widthMm' | 'heightMm', value: number) => void;
   setPageOrientation: (orientation: PageOrientation) => void;
   setPagePreset: (preset: StandardPagePreset) => void;
@@ -52,6 +55,7 @@ export function createProjectStore(
     future: [],
     canUndo: false,
     canRedo: false,
+    ...createCameraActions(set),
     ...createLayerStructureActions(set),
     ...createLayerPropertyActions(set),
     ...createPageActions(set),

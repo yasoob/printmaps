@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   hitTest: vi.fn(),
   mapOff: vi.fn(),
   mapRemove: vi.fn(),
+  mapJumpTo: vi.fn(), mapFitBounds: vi.fn(),
   mapHandlers: [] as Array<Record<string, Array<(event?: unknown) => void>>>,
   activeAdapterIds: new Set<number>(),
   activeMapIds: new Set<number>(),
@@ -80,7 +81,8 @@ vi.mock('maplibre-gl', () => {
       return document.createElement('canvas');
     }
     triggerRepaint() {}
-    fitBounds() {}
+    fitBounds(...arguments_: unknown[]) { mocks.mapFitBounds(...arguments_); }
+    jumpTo(options: unknown) { mocks.mapJumpTo(options); }
     once(event: string, callback: (event?: unknown) => void) {
       (this.handlers[event] ??= []).push(callback);
       if (event === 'load' && mocks.autoLoad) {
@@ -261,6 +263,8 @@ function resetHarness() {
   mocks.hitTest.mockReturnValue(null);
   mocks.mapOff.mockReset();
   mocks.mapRemove.mockReset();
+  mocks.mapJumpTo.mockReset();
+  mocks.mapFitBounds.mockReset();
   mocks.mapHandlers = [];
   mocks.activeAdapterIds.clear();
   mocks.activeMapIds.clear();
@@ -277,6 +281,31 @@ function resetHarness() {
   baseProps.onLayerSelect.mockReset();
   baseProps.onBackgroundClick.mockReset();
 }
+
+describe('MapCanvas camera synchronization', () => {
+  beforeEach(() => {
+    resetHarness();
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({} as RenderingContext);
+  });
+
+  afterEach(() => vi.restoreAllMocks());
+
+  it('applies canonical bearing and pitch updates to the live map', async () => {
+    const { rerender } = render(<MapCanvas {...baseProps} selectedId={null} camera={{ bearing: 0, pitch: 0 }} />);
+    await waitFor(() => expect(mocks.adapterSync).toHaveBeenCalledTimes(1));
+
+    rerender(<MapCanvas {...baseProps} selectedId={null} camera={{ bearing: 35, pitch: 40 }} />);
+
+    await waitFor(() => expect(mocks.mapJumpTo).toHaveBeenLastCalledWith({ bearing: 35, pitch: 40 }));
+
+    rerender(<MapCanvas {...baseProps} selectedId={null} camera={{ bearing: 35, pitch: 40 }} fitRequest={1} />);
+    expect(mocks.mapFitBounds).toHaveBeenLastCalledWith([[16.28, 48.14], [16.48, 48.26]], { bearing: 35, duration: 0, padding: 64, pitch: 40 });
+
+    rerender(<MapCanvas {...baseProps} selectedId={null} camera={{ bearing: 45, pitch: 40 }} fitRequest={1} />);
+    expect(mocks.mapJumpTo).toHaveBeenLastCalledWith({ bearing: 45, pitch: 40 });
+    expect(mocks.mapFitBounds).toHaveBeenCalledOnce();
+  });
+});
 
 describe('MapCanvas content recovery', () => {
   beforeEach(() => {

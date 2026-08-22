@@ -8,6 +8,7 @@ import {
   type ProjectDocument,
   type ProjectDocumentV1,
   type ProjectDocumentV2,
+  type ProjectDocumentV3,
   type StoredProjectDocument,
 } from './project';
 
@@ -203,10 +204,23 @@ function pageAt(
   return { preset, ...base };
 }
 
+function cameraAt(value: unknown): ProjectDocument['camera'] {
+  const camera = objectAt(value, 'Project camera');
+  const bearing = finiteNumber(camera.bearing, 'Camera bearing');
+  if (Math.abs(bearing) > 180) {
+    throw new ProjectFileError('Camera bearing must be between -180 and 180.');
+  }
+  const pitch = finiteNumber(camera.pitch, 'Camera pitch');
+  if (pitch < 0 || pitch > 60) {
+    throw new ProjectFileError('Camera pitch must be between 0 and 60.');
+  }
+  return { bearing, pitch };
+}
+
 function storedDocumentAt(value: unknown): StoredProjectDocument {
   const root = objectAt(value, 'Project file');
   const schemaVersion = root.schemaVersion;
-  if (schemaVersion !== 1 && schemaVersion !== 2 && schemaVersion !== 3) {
+  if (schemaVersion !== 1 && schemaVersion !== 2 && schemaVersion !== 3 && schemaVersion !== 4) {
     const displayed = typeof schemaVersion === 'number' || typeof schemaVersion === 'string'
       ? String(schemaVersion)
       : 'missing';
@@ -221,7 +235,14 @@ function storedDocumentAt(value: unknown): StoredProjectDocument {
   if (schemaVersion === 2) {
     return { schemaVersion, ...common, page: pageAt(root.page, false) } satisfies ProjectDocumentV2;
   }
-  return { schemaVersion, ...common, page: pageAt(root.page, true) } satisfies ProjectDocument;
+  const page = pageAt(root.page, true);
+  if (schemaVersion === 3) return { schemaVersion, ...common, page } satisfies ProjectDocumentV3;
+  return {
+    schemaVersion,
+    ...common,
+    page,
+    camera: cameraAt(root.camera),
+  } satisfies ProjectDocument;
 }
 
 export function parseProjectFileText(text: string): ProjectDocument {

@@ -1,4 +1,4 @@
-export const PROJECT_SCHEMA_VERSION = 3 as const;
+export const PROJECT_SCHEMA_VERSION = 4 as const;
 
 export type LayerType = 'route' | 'poi' | 'shape' | 'basemap';
 export type PageOrientation = 'landscape' | 'portrait';
@@ -10,6 +10,11 @@ export type PageSettings = {
   widthMm: number;
   heightMm: number;
   orientation: PageOrientation;
+};
+
+export type CameraSettings = {
+  bearing: number;
+  pitch: number;
 };
 
 export type LayerGeometry =
@@ -32,6 +37,7 @@ export type ProjectDocument = {
   id: string;
   title: string;
   page: PageSettings;
+  camera: CameraSettings;
   layers: ContentLayer[];
 };
 
@@ -50,7 +56,15 @@ export type ProjectDocumentV2 = {
   layers: ContentLayer[];
 };
 
-export type StoredProjectDocument = ProjectDocumentV1 | ProjectDocumentV2 | ProjectDocument;
+export type ProjectDocumentV3 = {
+  schemaVersion: 3;
+  id: string;
+  title: string;
+  page: PageSettings;
+  layers: ContentLayer[];
+};
+
+export type StoredProjectDocument = ProjectDocumentV1 | ProjectDocumentV2 | ProjectDocumentV3 | ProjectDocument;
 
 const createDefaultPageSettings = (): PageSettings => ({
   preset: 'A4',
@@ -59,12 +73,15 @@ const createDefaultPageSettings = (): PageSettings => ({
   orientation: 'landscape',
 });
 
+const createDefaultCameraSettings = (): CameraSettings => ({ bearing: 0, pitch: 0 });
+
 export function migrateProjectDocument(document: StoredProjectDocument): ProjectDocument {
   if (document.schemaVersion === 1) {
     return {
       ...document,
       schemaVersion: PROJECT_SCHEMA_VERSION,
       page: createDefaultPageSettings(),
+      camera: createDefaultCameraSettings(),
     };
   }
   if (document.schemaVersion === 2) {
@@ -79,6 +96,14 @@ export function migrateProjectDocument(document: StoredProjectDocument): Project
           document.page.orientation,
         ),
       },
+      camera: createDefaultCameraSettings(),
+    };
+  }
+  if (document.schemaVersion === 3) {
+    return {
+      ...document,
+      schemaVersion: PROJECT_SCHEMA_VERSION,
+      camera: createDefaultCameraSettings(),
     };
   }
   return document;
@@ -174,6 +199,7 @@ export function createInitialProjectDocument(): ProjectDocument {
     id: 'vienna-field-guide',
     title: 'Vienna field guide',
     page: createDefaultPageSettings(),
+    camera: createDefaultCameraSettings(),
     layers: initialLayers.map((layer) => cloneContentLayer(layer)),
   };
 }

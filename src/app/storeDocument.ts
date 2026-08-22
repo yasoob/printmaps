@@ -13,6 +13,7 @@ export function copyDocument(document: ProjectDocument): ProjectDocument {
   return {
     ...document,
     page: { ...document.page },
+    camera: { ...document.camera },
     layers: document.layers.map((layer) => cloneContentLayer(layer)),
   };
 }

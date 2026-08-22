@@ -419,6 +419,26 @@
 - The first fail-closed review rejected repeated-click draft loss and double-closing an already-closed ring. Both received focused RED regressions and minimal fixes. Fresh independent re-review passed with no security concerns or logic errors after inspecting every tracked/untracked change and independently running 75 focused tests, typecheck, lint and React Doctor. Its only nonblocking suggestion is normalizing multiply-closed external input in addition to the supported open and once-closed forms.
 - `docs/COMPLETE.md` does not exist because portable ZIP, geometry editing/styles, camera/style/text-scale controls, native high-resolution map detail and the Mapbox renderer/storage decision remain completion blockers.
 
+### 2026-08-22 — Canonical bearing and pitch camera controls (verified)
+
+- Re-audited the clean main integration worktree, every registered agent worktree/branch, running Hermes/test processes, existing artifacts and the enabled preview. Wave 1/2 branches remain already integrated or superseded; none is eligible for another merge, no duplicate implementation/test worker was launched, and `127.0.0.1:4178` remained the sole workspace Vite preview with HTTP 200.
+- Added schema-version 4 canonical camera settings. Versions 1–3 migrate to neutral `0°` bearing and `0°` pitch; current portable project files require finite bearing from `-180°` through `180°` and pitch from `0°` through `60°`.
+- Bearing and pitch controls now use transaction-safe drafts: typing does not create history, valid blur commits one Undo/Redo step, invalid drafts expose `aria-invalid`, and invalid blur restores the canonical value. External Undo/Redo, Open and autosave recovery remount stale edit boundaries.
+- Camera values apply immediately to MapLibre and remain active through **Fit page**. Portable Save/Open and IndexedDB autosave/recovery preserve the values; the browser flows exercise `35°/40°` and `-20°/35°` cases.
+- Strict TDD evidence: version-3 migration first returned schema 3 with no camera; camera actions were initially absent; invalid ranges initially entered history; the Project controls were read-only; pitch `61` initially remained aria-valid; the live map initially received no camera update; and Fit page initially omitted bearing/pitch. Each focused assertion passed after its minimal implementation.
+- The first final fail-closed review rejected an effect dependency that made Fit page persist after its one-shot command: later bearing/pitch edits refit center/zoom. A focused RED regression received two `fitBounds` calls instead of one; tracking the handled request now preserves current center/zoom while camera edits still apply immediately.
+- Fresh serial verification on the final code:
+  - `npm test -- --run` — pass, 32 files / 338 tests.
+  - `npm run typecheck` — pass.
+  - `npm run lint` — pass, zero warnings.
+  - `npm run doctor` — pass, no issues; telemetry disabled.
+  - `npm run build` — pass; known ~1.25 MB pre-gzip bundle warning remains.
+  - `npm audit --omit=dev` — 0 vulnerabilities.
+  - `npm run test:e2e -- --workers=1` — 57 pass / 9 documented Firefox WebGL-runtime skips across 66 Chromium, Firefox and WebKit cases.
+- Browser evidence: refreshed exact 1440×900 `docs/screenshots/latest-desktop.png`, SHA-256 `6559e34c73f7e433c72b8b2bb0a13ef7d6007f93e34f44e395f9a008cc7fa056`. Live preview inspection committed bearing `35` and pitch `40`, reported `data-map-ready=true`, zero body overflow, zero gradients/shadows and no JavaScript/page errors. Visual review found no material clipping, overlap, fallback map, decorative shadow, hierarchy or control-legibility regression.
+- Fresh independent fail-closed re-review passed with no security concerns, logic errors or suggestions after inspecting the complete staged diff and independently rerunning 338 unit tests, focused camera coverage, typecheck, lint, build and audit. A bounded schema-format correction confirmed the staged diff was unchanged and retained the passing verdict.
+- `docs/COMPLETE.md` does not exist because portable ZIP, geometry editing/styles, remaining map design controls, native high-resolution map detail and the Mapbox renderer/storage decision remain completion blockers.
+
 ## Next unresolved slice
 
-Build one bounded canonical camera slice: persist bearing and pitch in the project document, apply them to the live map, and cover valid gating, Undo/Redo, save/open/autosave and browser behavior. Portable ZIP, geometry editing/styles, broader map design controls and the Mapbox renderer/storage decision remain later blockers.
+Build one bounded canonical map-style slice: persist a real open style preset, apply it through the renderer boundary, and cover Undo/Redo, save/open/autosave, failure recovery and browser behavior. Portable ZIP, geometry editing, global text scale and the Mapbox renderer/storage decision remain later blockers.

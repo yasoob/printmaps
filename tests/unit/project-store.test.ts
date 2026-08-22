@@ -7,6 +7,7 @@ import {
   type ProjectDocument,
   type ProjectDocumentV1,
   type ProjectDocumentV2,
+  type ProjectDocumentV3,
 } from '../../src/domain/project';
 
 const layers = [
@@ -21,6 +22,7 @@ function createDocument(): ProjectDocument {
     id: 'test-project',
     title: 'Test project',
     page: { preset: 'A4', widthMm: 297, heightMm: 210, orientation: 'landscape' },
+    camera: { bearing: 0, pitch: 0 },
     layers,
   };
 }
@@ -36,7 +38,66 @@ function lineStringGeometryAt(document: ProjectDocument, layerIndex: number): Li
   return geometry;
 }
 
+describe('project store camera history', () => {
+  it('migrates a version-3 document with a neutral map camera', () => {
+    const currentDocument = createDocument();
+    const versionThreeDocument: ProjectDocumentV3 = {
+      schemaVersion: 3,
+      id: currentDocument.id,
+      title: currentDocument.title,
+      page: currentDocument.page,
+      layers: currentDocument.layers,
+    };
+
+    const store = createProjectStore(versionThreeDocument);
+
+    expect(store.getState().document).toMatchObject({
+      schemaVersion: 4,
+      camera: { bearing: 0, pitch: 0 },
+    });
+  });
+
+  it('commits a valid bearing as one undoable camera edit', () => {
+    const store = createProjectStore(createDocument());
+
+    store.getState().setCameraBearing(35);
+
+    expect(store.getState().document.camera.bearing).toBe(35);
+    store.getState().undo();
+    expect(store.getState().document.camera.bearing).toBe(0);
+    store.getState().redo();
+    expect(store.getState().document.camera.bearing).toBe(35);
+  });
+
+  it('commits a valid pitch as one undoable camera edit', () => {
+    const store = createProjectStore(createDocument());
+
+    store.getState().setCameraPitch(40);
+
+    expect(store.getState().document.camera.pitch).toBe(40);
+    store.getState().undo();
+    expect(store.getState().document.camera.pitch).toBe(0);
+  });
+
+  it.each([
+    ['setCameraBearing', -181],
+    ['setCameraBearing', 181],
+    ['setCameraBearing', NaN],
+    ['setCameraPitch', -1],
+    ['setCameraPitch', 61],
+    ['setCameraPitch', Infinity],
+  ] as const)('rejects invalid camera value %s(%s) without changing history', (action, value) => {
+    const store = createProjectStore(createDocument());
+
+    store.getState()[action](value);
+
+    expect(store.getState().document.camera).toEqual({ bearing: 0, pitch: 0 });
+    expect(store.getState().canUndo).toBe(false);
+  });
+});
+
 describe('project store history', () => {
+
   it('migrates a version-1 document without page settings at the store boundary', () => {
     const versionOneDocument: ProjectDocumentV1 = {
       schemaVersion: 1,
@@ -48,7 +109,7 @@ describe('project store history', () => {
     const store = createProjectStore(versionOneDocument);
 
     expect(store.getState().document).toMatchObject({
-      schemaVersion: 3,
+      schemaVersion: 4,
       page: { preset: 'A4', widthMm: 297, heightMm: 210, orientation: 'landscape' },
     });
   });

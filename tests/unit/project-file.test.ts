@@ -51,6 +51,14 @@ describe('portable project validation', () => {
       ...createInitialProjectDocument(),
       page: { preset: 'A4', widthMm: 300, heightMm: 210, orientation: 'landscape' },
     }), 'A4 page dimensions must be 297 × 210 mm in landscape'],
+    ['an out-of-range camera bearing', JSON.stringify({
+      ...createInitialProjectDocument(),
+      camera: { bearing: 181, pitch: 0 },
+    }), 'Camera bearing must be between -180 and 180'],
+    ['an out-of-range camera pitch', JSON.stringify({
+      ...createInitialProjectDocument(),
+      camera: { bearing: 0, pitch: 61 },
+    }), 'Camera pitch must be between 0 and 60'],
   ])('rejects %s without producing a project', (_name, text, message) => {
     expect(() => parseProjectFileText(text)).toThrow(message);
   });

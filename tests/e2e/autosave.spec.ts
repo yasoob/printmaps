@@ -5,6 +5,9 @@ test('autosaves to IndexedDB and requires explicit recover or discard choices', 
   await page.goto('/');
   const autosaveStatus = page.getByRole('status', { name: 'Autosave status' });
   await expect(autosaveStatus).toHaveText('Autosave ready');
+  await page.getByRole('textbox', { name: 'Bearing' }).fill('-20');
+  await page.getByRole('textbox', { name: 'Pitch' }).fill('35');
+  await page.getByRole('textbox', { name: 'Pitch' }).press('Tab');
   await page.getByRole('button', { name: 'Portrait' }).click();
   await expect(autosaveStatus).toHaveText('All changes saved locally');
 
@@ -23,6 +26,8 @@ test('autosaves to IndexedDB and requires explicit recover or discard choices', 
   await page.getByRole('button', { name: 'Recover draft' }).click();
   await expect(dialog).not.toBeVisible();
   await expect(page.getByRole('button', { name: 'Portrait' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('textbox', { name: 'Bearing' })).toHaveValue('-20');
+  await expect(page.getByRole('textbox', { name: 'Pitch' })).toHaveValue('35');
   await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
 
   await page.setViewportSize({ width: 390, height: 844 });

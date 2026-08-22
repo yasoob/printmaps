@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
-import type { ContentLayer } from '../../../src/domain/project';
+import type { CameraSettings, ContentLayer } from '../../../src/domain/project';
 import { exportMocks } from './exportMocks';
 
 type MapCanvasMockProps = {
+  camera?: CameraSettings;
   layers?: ContentLayer[];
   selectedId?: string | null;
   previewedId?: string | null;
@@ -16,6 +17,7 @@ type MapCanvasMockProps = {
 };
 
 export function MapCanvas({
+  camera = { bearing: 0, pitch: 0 },
   layers = [],
   selectedId,
   previewedId,
@@ -36,6 +38,7 @@ export function MapCanvas({
     <div
       data-testid="map-canvas"
       data-fit-request={fitRequest}
+      data-camera={`${camera.bearing},${camera.pitch}`}
       data-orientation={orientation}
       data-page-preset={page?.preset}
       data-page-size={page ? `${page.widthMm}x${page.heightMm}` : ''}

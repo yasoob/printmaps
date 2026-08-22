@@ -85,6 +85,16 @@ test('desktop commands, orientation, reorder, and overflow menu work in a real b
   expect(portraitBounds).not.toBeNull();
   expect(portraitBounds!.height).toBeGreaterThan(portraitBounds!.width);
 
+  await page.getByRole('textbox', { name: 'Bearing' }).fill('35');
+  await page.getByRole('textbox', { name: 'Pitch' }).fill('40');
+  await page.getByRole('textbox', { name: 'Pitch' }).press('Tab');
+  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-bearing', '35');
+  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-pitch', '40');
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(page.getByRole('textbox', { name: 'Pitch' })).toHaveValue('0');
+  await page.getByRole('button', { name: 'Redo' }).click();
+  await expect(page.getByRole('textbox', { name: 'Pitch' })).toHaveValue('40');
+
   await expect(page.locator('[data-fit-request="0"]')).toBeVisible();
   await page.getByRole('button', { name: 'Fit page (Shift+1)' }).click();
   await expect(page.locator('[data-fit-request="1"][data-camera-fit-request="1"]')).toBeVisible();

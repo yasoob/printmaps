@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Map as MapLibreMap } from 'maplibre-gl';
-import type { ContentLayer } from '../domain/project';
+import type { CameraSettings, ContentLayer } from '../domain/project';
 import type { PreviewPngExporter } from '../export/previewPng';
 import type { MapContentAdapter, MapContentState } from './MapContentAdapter';
 import {
@@ -10,6 +10,7 @@ import {
 } from './MapCanvasLifecycle';
 
 type MapCanvasControllerOptions = {
+  camera: CameraSettings;
   fitRequest: number;
   layers: ContentLayer[];
   onBackgroundClick: () => void;
@@ -24,6 +25,7 @@ type MapCanvasControllerOptions = {
 const PAGE_BOUNDS: [[number, number], [number, number]] = [[16.28, 48.14], [16.48, 48.26]];
 
 export function useMapCanvasController({
+  camera,
   fitRequest,
   layers,
   onBackgroundClick,
@@ -45,6 +47,7 @@ export function useMapCanvasController({
   const mapClick = useRef(onMapClick);
   const exporterChange = useRef(onExporterChange);
   const availableExporter = useRef<PreviewPngExporter | null>(null);
+  const handledFitRequest = useRef(0);
   const [mapError, setMapError] = useState<MapError | null>(null);
   const [contentError, setContentError] = useState<ContentError | null>(null);
 
@@ -110,10 +113,23 @@ export function useMapCanvasController({
   }), [handleContentSyncResult]);
 
   useEffect(() => {
-    if (!(fitRequest > 0 && map.current)) return;
-    map.current.fitBounds(PAGE_BOUNDS, { padding: 64, duration: 0 });
+    if (!map.current) return;
+    map.current.jumpTo({ bearing: camera.bearing, pitch: camera.pitch });
+    container.current?.setAttribute('data-map-bearing', String(camera.bearing));
+    container.current?.setAttribute('data-map-pitch', String(camera.pitch));
+  }, [camera.bearing, camera.pitch]);
+
+  useEffect(() => {
+    if (!(fitRequest > handledFitRequest.current && map.current)) return;
+    handledFitRequest.current = fitRequest;
+    map.current.fitBounds(PAGE_BOUNDS, {
+      bearing: camera.bearing,
+      duration: 0,
+      padding: 64,
+      pitch: camera.pitch,
+    });
     container.current?.setAttribute('data-camera-fit-request', String(fitRequest));
-  }, [fitRequest]);
+  }, [camera.bearing, camera.pitch, fitRequest]);
 
   return { container, visibleError: mapError ?? contentError };
 }

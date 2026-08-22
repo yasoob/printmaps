@@ -4,6 +4,9 @@ import { expect, test } from '@playwright/test';
 
 test('Save downloads the current project as portable versioned JSON', async ({ page }, testInfo) => {
   await page.goto('/');
+  await page.getByRole('textbox', { name: 'Bearing' }).fill('35');
+  await page.getByRole('textbox', { name: 'Pitch' }).fill('40');
+  await page.getByRole('textbox', { name: 'Pitch' }).press('Tab');
   await page.getByRole('button', { name: 'Portrait' }).click();
 
   const downloadPromise = page.waitForEvent('download');
@@ -15,10 +18,11 @@ test('Save downloads the current project as portable versioned JSON', async ({ p
   await download.saveAs(outputPath);
   const savedProject = JSON.parse(await readFile(outputPath, 'utf8'));
   expect(savedProject).toMatchObject({
-    schemaVersion: 3,
+    schemaVersion: 4,
     id: 'vienna-field-guide',
     title: 'Vienna field guide',
     page: { preset: 'A4', widthMm: 210, heightMm: 297, orientation: 'portrait' },
+    camera: { bearing: 35, pitch: 40 },
   });
   expect(savedProject.layers.map((layer: { id: string }) => layer.id)).toEqual([
     'route-01',
@@ -33,11 +37,18 @@ test('opens a validated portable project as a focused fresh history root', async
   await page.getByRole('button', { name: 'Portrait' }).click();
   await page.getByRole('button', { name: 'Select Route 01' }).click();
   await expect(page.getByRole('button', { name: 'Undo' })).toBeEnabled();
+  const alpineProject = JSON.parse(await readFile(path.resolve('tests/fixtures/alpine-poster.printmap.json'), 'utf8'));
+  alpineProject.schemaVersion = 4;
+  alpineProject.camera = { bearing: -20, pitch: 35 };
 
   const chooserPromise = page.waitForEvent('filechooser');
   await page.getByRole('button', { name: 'Open' }).click();
   const chooser = await chooserPromise;
-  await chooser.setFiles(path.resolve('tests/fixtures/alpine-poster.printmap.json'));
+  await chooser.setFiles({
+    name: 'alpine-poster.printmap.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(alpineProject)),
+  });
 
   await expect(page.getByRole('button', { name: 'Alpine poster' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Project' })).toBeVisible();
@@ -45,6 +56,8 @@ test('opens a validated portable project as a focused fresh history root', async
   await expect(page.getByRole('button', { name: 'Select Route 01' })).not.toBeVisible();
   await expect(page.getByRole('textbox', { name: 'Page width' })).toHaveValue('297');
   await expect(page.getByRole('textbox', { name: 'Page height' })).toHaveValue('420');
+  await expect(page.getByRole('textbox', { name: 'Bearing' })).toHaveValue('-20');
+  await expect(page.getByRole('textbox', { name: 'Pitch' })).toHaveValue('35');
   await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Redo' })).toBeDisabled();
   await expect(page.getByRole('status', { name: 'Project file status' })).toHaveText('Opened Alpine poster. Edit history was reset.');
