@@ -4,10 +4,15 @@ import type { ContentLayer } from '../../../src/domain/project';
 import { CanvasWorkspace } from '../../../src/app/components/CanvasWorkspace';
 
 const renderedLayerArrays = vi.hoisted(() => [] as ContentLayer[][]);
+const renderedContentRevisions = vi.hoisted(() => [] as Array<object | undefined>);
 
 vi.mock('../../../src/map/MapCanvas', () => ({
-  MapCanvas: ({ layers }: { layers: ContentLayer[] }) => {
+  MapCanvas: ({ layers, contentRevision }: {
+    layers: ContentLayer[];
+    contentRevision?: object;
+  }) => {
     renderedLayerArrays.push(layers);
+    renderedContentRevisions.push(contentRevision);
     return <div data-testid="map-canvas" />;
   },
 }));
@@ -48,6 +53,7 @@ const sharedProps = {
 describe('CanvasWorkspace map content', () => {
   beforeEach(() => {
     renderedLayerArrays.length = 0;
+    renderedContentRevisions.length = 0;
   });
 
   it('reuses the geometry layer array when unrelated selection state changes', () => {
@@ -57,5 +63,19 @@ describe('CanvasWorkspace map content', () => {
     rerender(<CanvasWorkspace {...sharedProps} selectedId="route" />);
 
     expect(renderedLayerArrays.at(-1)).toBe(initialLayers);
+    expect(renderedContentRevisions.at(-1)).toBe(initialLayers);
+  });
+
+  it('advances the content revision after an immutable layer update', () => {
+    const { rerender } = render(<CanvasWorkspace {...sharedProps} selectedId={null} />);
+    const initialRevision = renderedContentRevisions.at(-1);
+    const updatedLayers = layers.map((layer) => (
+      layer.id === 'route' ? { ...layer, opacity: 50 } : layer
+    ));
+
+    rerender(<CanvasWorkspace {...sharedProps} layers={updatedLayers} selectedId={null} />);
+
+    expect(renderedContentRevisions.at(-1)).not.toBe(initialRevision);
+    expect(renderedContentRevisions.at(-1)).toBe(renderedLayerArrays.at(-1));
   });
 });

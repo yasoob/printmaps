@@ -13,6 +13,7 @@ type MapCanvasProps = {
   fitRequest?: number;
   orientation?: 'landscape' | 'portrait';
   page?: PageSettings;
+  contentRevision?: object;
 };
 
 export function MapCanvas({
@@ -25,6 +26,7 @@ export function MapCanvas({
   fitRequest = 0,
   orientation = 'landscape',
   page,
+  contentRevision,
 }: MapCanvasProps) {
   const { container, visibleError } = useMapCanvasController({
     fitRequest,
@@ -34,6 +36,7 @@ export function MapCanvas({
     onLayerSelect,
     previewedId,
     selectedId,
+    contentRevision,
   });
 
   return (
