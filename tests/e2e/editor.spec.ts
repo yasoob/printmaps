@@ -226,7 +226,8 @@ test('delayed autosave recovery preempts Export and mobile drawers without losin
 
   await page.addInitScript(() => {
     const originalTransaction = IDBDatabase.prototype.transaction;
-    IDBDatabase.prototype.transaction = function delayedReadonlyDraftTransaction(
+    let delayedFirstDraftTransaction = false;
+    IDBDatabase.prototype.transaction = function delayedInitialDraftTransaction(
       this: IDBDatabase,
       storeNames: string | string[],
       mode?: IDBTransactionMode,
@@ -234,7 +235,8 @@ test('delayed autosave recovery preempts Export and mobile drawers without losin
     ) {
       const transaction = originalTransaction.call(this, storeNames, mode, options);
       const names = typeof storeNames === 'string' ? [storeNames] : storeNames;
-      if (mode !== 'readonly' || !names.includes('drafts')) return transaction;
+      if (delayedFirstDraftTransaction || !names.includes('drafts')) return transaction;
+      delayedFirstDraftTransaction = true;
 
       let completeHandler: ((this: IDBTransaction, event: Event) => unknown) | null = null;
       Object.defineProperty(transaction, 'oncomplete', {
