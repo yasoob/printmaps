@@ -215,6 +215,9 @@ describe('MapLibre content adapter', () => {
     ]);
   });
 
+});
+
+describe('MapLibre content adapter recovery', () => {
   it('rolls back a source and first shape layer when the second addLayer fails', () => {
     const { map, sources, layers } = createMapHarness({ failAddLayerAt: 2 });
     const adapter = createMapLibreContentAdapter(map, document.createElement('div'));
