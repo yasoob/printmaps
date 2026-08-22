@@ -275,4 +275,21 @@
 
 ## Next unresolved slice
 
-Integrate the conflict-safe Wave 1 export-preflight, print-scene, and strict GeoJSON-import foundations after their worktrees are clean, committed, reviewed, and rebased onto the latest verified main.
+Prepare the three conflict-safe Wave 2 foundation worktrees, then wire one additional integrated surface only after the current GeoJSON UI slice is reviewed and committed.
+
+### 2026-08-22 — Wave 1 audit and bounded GeoJSON UI integration (verified)
+
+- Audited every registered worktree, branch status, live Hermes/test process and preview artifact before acting. No duplicate implementation worker or test server was launched; the enabled preview remained the sole workspace Vite service on `127.0.0.1:4178`.
+- Confirmed Wave 1 had already been integrated through verified branch `agent/unicorn-wave1` and merge `4a9ef55`. The three original Wave 1 branches are superseded by that integrated/refactored implementation and are not eligible for a second merge; each is 30 commits behind main and its worktree contains an untracked `node_modules` artifact. Their scoped diffs did not touch integration-owner hotspots.
+- Integrated the clean roadmap documentation commit `98aec9d` as `fc229d0` before starting application edits.
+- Added a desktop **Import** chooser for `.geojson` files. A valid bounded Feature/FeatureCollection becomes editable route, POI and shape layers, is inserted above the basemap, selects the first imported layer, preserves unique IDs, and commits the entire batch as one Undo step.
+- Empty/invalid/oversized or wrongly named files remain contained, report an accessible corrective error, leave history unchanged and reset the chooser for a focused retry.
+- Strict TDD evidence:
+  - Store batch import first failed because `importLayers` did not exist, then passed after the one-transaction insertion action.
+  - The browser flow first timed out because no **Import** control existed, then passed after the chooser and parser wiring.
+  - Empty GeoJSON first produced no alert, then passed after explicit no-feature rejection.
+  - A colliding imported ID first produced duplicate `route-01` IDs, then passed after deterministic suffixing.
+  - Review remediation reproduced a slow import landing in a project opened later, stale success after Open, and an enabled second Import while reading. A document epoch now makes Open/autosave recovery win, remounts stale status, and blocks concurrent import reads. The first pending-state focus attempt then failed the existing browser focus assertion before focus was deferred until the re-enabled button rendered.
+- Fresh serial verification: focused Wave 1 tests pass (17 export-preflight, 7 print-scene, 23 GeoJSON parser); typecheck passes; ESLint passes with zero warnings; React Doctor reports no issues; Vitest passes 23 files / 196 tests; production build passes with the known bundle-size warning; audit reports 0 vulnerabilities; Playwright passes 38 with 4 runtime Firefox WebGL skips across 42 Chromium, Firefox and WebKit cases.
+- Browser evidence: fresh 1440×900 `docs/screenshots/latest-desktop.png`, SHA-256 `6559e34c73f7e433c72b8b2bb0a13ef7d6007f93e34f44e395f9a008cc7fa056`. The new Import action fits the flat top bar without clipping or overlap; the editor screenshot shows no visible error, gradient or decorative shadow. Live preview inspection reported a ready map, zero body overflow, zero computed gradients/shadows and an empty console/page-error buffer; the preview returned HTTP 200.
+- A transient OpenFreeMap glyph-origin fetch failure appeared in an earlier temporary Playwright server output while the suite continued successfully; external tile/font availability remains a tracked third-party risk. The first fail-closed review rejected asynchronous import/open races; remediation was verified and the final independent re-review passed with no security concerns or logic errors. Non-blocking follow-ups are clearing a prior status as soon as a new read starts and adding a direct stale-epoch store regression in addition to the app-level race coverage.

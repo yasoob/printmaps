@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { useStore } from 'zustand';
-import type { ProjectDocument } from '../domain/project';
+import type { ContentLayer, ProjectDocument } from '../domain/project';
 import type { PreviewPngExporter } from '../export/previewPng';
 import { createIndexedDbAutosaveRepository, type AutosaveRepository } from '../storage/autosave';
 import {
@@ -45,6 +45,7 @@ export function App({ autosaveRepository }: AppProps = {}) {
   const selectedIndex = selectedLayer ? layers.findIndex((layer) => layer.id === selectedLayer.id) : -1;
   const selectLayer = project.selectLayer;
   const openDocument = project.openDocument;
+  const importLayers = project.importLayers;
   const clearSelection = useCallback(() => selectLayer(null), [selectLayer]);
   const handleExporterChange = useCallback((exporter: PreviewPngExporter | null) => {
     setMapExporter(exporter ? { run: exporter } : null);
@@ -53,6 +54,12 @@ export function App({ autosaveRepository }: AppProps = {}) {
     openDocument(document);
     setPreviewedLayerId(null);
   }, [openDocument]);
+  const handleImportedLayers = useCallback((layers: readonly ContentLayer[], documentEpoch: number) => {
+    const imported = importLayers(layers, documentEpoch);
+    if (!imported) return false;
+    setPreviewedLayerId(null);
+    return true;
+  }, [importLayers]);
 
   return (
     <>
@@ -63,6 +70,7 @@ export function App({ autosaveRepository }: AppProps = {}) {
           exportButtonRef={exportButtonRef}
           inert={modal.mobilePanel !== null}
           onOpen={handleOpenedDocument}
+          onImport={handleImportedLayers}
           onExport={() => setExportOpen(true)}
         />
         <LayersSidebar

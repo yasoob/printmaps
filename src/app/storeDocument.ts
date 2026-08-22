@@ -35,14 +35,15 @@ export function createDocumentActions(set: ProjectSet): Pick<ProjectState, 'open
   return {
     openDocument: (storedDocument) => {
       const openedDocument = copyDocument(migrateProjectDocument(storedDocument));
-      set({
+      set((state) => ({
         document: openedDocument,
+        documentEpoch: state.documentEpoch + 1,
         selectedId: null,
         past: [],
         future: [],
         canUndo: false,
         canRedo: false,
-      });
+      }));
     },
     undo: () => set((state) => {
       const previous = state.past.at(-1);

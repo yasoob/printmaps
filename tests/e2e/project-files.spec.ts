@@ -97,3 +97,53 @@ test('rejects invalid project files without replacing work and allows a retry', 
   await expect(page.getByRole('status', { name: 'Project file status' })).toContainText('Edit history was reset');
   await expect(page.getByRole('button', { name: 'Open' })).toBeFocused();
 });
+
+test('imports supported GeoJSON as one undoable editable layer batch', async ({ page }) => {
+  await page.goto('/');
+
+  const chooserPromise = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'Import' }).click();
+  const chooser = await chooserPromise;
+  await chooser.setFiles(path.resolve('tests/fixtures/import/supported.geojson'));
+
+  await expect(page.getByRole('heading', { name: 'Café Central' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Select Café Central' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Select Danube path' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Select Inner district' })).toBeVisible();
+  await expect(page.getByRole('status', { name: 'GeoJSON import status' }))
+    .toHaveText('Imported 3 GeoJSON layers. Undo removes the whole import.');
+  await expect(page.getByRole('button', { name: 'Import' })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Undo' })).toBeEnabled();
+
+  await page.getByRole('button', { name: 'Select Danube path' }).click();
+  await expect(page.getByRole('heading', { name: 'Danube path' })).toBeVisible();
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(page.getByRole('button', { name: 'Select Café Central' })).not.toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Project' })).toBeVisible();
+});
+
+test('rejects empty GeoJSON without changing history and allows the same chooser to retry', async ({ page }) => {
+  await page.goto('/');
+
+  const emptyChooserPromise = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'Import' }).click();
+  const emptyChooser = await emptyChooserPromise;
+  await emptyChooser.setFiles({
+    name: 'empty.geojson',
+    mimeType: 'application/geo+json',
+    buffer: Buffer.from('{"type":"FeatureCollection","features":[]}'),
+  });
+
+  await expect(page.getByRole('alert', { name: 'GeoJSON import status' }))
+    .toContainText('at least one supported Point, LineString, or Polygon feature');
+  await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Import' })).toBeFocused();
+
+  const retryChooserPromise = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'Import' }).click();
+  const retryChooser = await retryChooserPromise;
+  await retryChooser.setFiles(path.resolve('tests/fixtures/import/supported.geojson'));
+  await expect(page.getByRole('status', { name: 'GeoJSON import status' })).toContainText('Imported 3');
+  await expect(page.getByRole('button', { name: 'Select Café Central' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Import' })).toBeFocused();
+});

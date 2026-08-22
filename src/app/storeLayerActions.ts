@@ -2,7 +2,10 @@ import { cloneContentLayer } from '../domain/project';
 import type { ProjectState } from './store';
 import { commitDocument, replaceLayers, type ProjectSet } from './storeDocument';
 
-type LayerStructureActions = Pick<ProjectState, 'deleteLayer' | 'duplicateLayer' | 'moveLayer'>;
+type LayerStructureActions = Pick<
+  ProjectState,
+  'deleteLayer' | 'duplicateLayer' | 'importLayers' | 'moveLayer'
+>;
 type LayerPropertyActions = Pick<
   ProjectState,
   'renameLayer' | 'selectLayer' | 'setLayerOpacity' | 'toggleLayerVisibility' | 'toggleLayerLock'
@@ -42,6 +45,34 @@ export function createLayerStructureActions(set: ProjectSet): LayerStructureActi
         selectedId: duplicateId,
       };
     }),
+    importLayers: (importedLayers, documentEpoch) => {
+      let wasImported = false;
+      set((state) => {
+        if (importedLayers.length === 0 || documentEpoch !== state.documentEpoch) return state;
+        wasImported = true;
+
+        const layers = [...state.document.layers];
+        const basemapIndex = layers.findIndex((layer) => layer.type === 'basemap');
+        const insertionIndex = basemapIndex === -1 ? layers.length : basemapIndex;
+        const usedIds = new Set(layers.map((layer) => layer.id));
+        const importedCopies = importedLayers.map((layer) => {
+          let id = layer.id;
+          let suffix = 2;
+          while (usedIds.has(id)) {
+            id = `${layer.id}-${suffix}`;
+            suffix += 1;
+          }
+          usedIds.add(id);
+          return { ...cloneContentLayer(layer), id };
+        });
+        layers.splice(insertionIndex, 0, ...importedCopies);
+        return {
+          ...commitDocument(state, replaceLayers(state.document, layers)),
+          selectedId: importedCopies[0].id,
+        };
+      });
+      return wasImported;
+    },
     moveLayer: (id, toIndex) => set((state) => {
       if (!Number.isFinite(toIndex)) return state;
       const fromIndex = state.document.layers.findIndex((layer) => layer.id === id);

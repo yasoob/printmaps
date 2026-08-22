@@ -2,6 +2,7 @@ import { createProjectStore } from '../../src/app/store';
 import {
   createInitialProjectDocument,
   PROJECT_SCHEMA_VERSION,
+  type ContentLayer,
   type LayerGeometry,
   type ProjectDocument,
   type ProjectDocumentV1,
@@ -242,5 +243,79 @@ describe('project store history', () => {
 
     store.getState().redo();
     expect(layerState(store)[0].visible).toBe(false);
+  });
+});
+
+describe('project store layer imports', () => {
+  it('imports a layer batch before the basemap as one undoable edit', () => {
+    const store = createProjectStore(createInitialProjectDocument());
+    const importedLayers: ContentLayer[] = [
+      {
+        id: 'geojson-cafe',
+        name: 'Imported café',
+        type: 'poi',
+        visible: true,
+        locked: false,
+        opacity: 100,
+        geometry: { type: 'Point', coordinates: [16.37, 48.21] },
+      },
+      {
+        id: 'geojson-walk',
+        name: 'Imported walk',
+        type: 'route',
+        visible: true,
+        locked: false,
+        opacity: 100,
+        geometry: { type: 'LineString', coordinates: [[16.36, 48.2], [16.38, 48.22]] },
+      },
+    ];
+
+    store.getState().importLayers(importedLayers, store.getState().documentEpoch);
+
+    expect(layerState(store).map((layer) => layer.id)).toEqual([
+      'route-01',
+      'poi-cafe',
+      'area-center',
+      'geojson-cafe',
+      'geojson-walk',
+      'basemap',
+    ]);
+    expect(store.getState().selectedId).toBe('geojson-cafe');
+    expect(store.getState().canUndo).toBe(true);
+
+    store.getState().undo();
+    expect(layerState(store).map((layer) => layer.id)).toEqual([
+      'route-01',
+      'poi-cafe',
+      'area-center',
+      'basemap',
+    ]);
+    expect(store.getState().selectedId).toBeNull();
+    expect(store.getState().canRedo).toBe(true);
+  });
+
+  it('keeps layer IDs unique when an imported batch collides with current state', () => {
+    const store = createProjectStore(createInitialProjectDocument());
+    const importedLayer: ContentLayer = {
+      id: 'route-01',
+      name: 'Imported route',
+      type: 'route',
+      visible: true,
+      locked: false,
+      opacity: 100,
+      geometry: { type: 'LineString', coordinates: [[16.36, 48.2], [16.38, 48.22]] },
+    };
+
+    store.getState().importLayers([importedLayer, importedLayer], store.getState().documentEpoch);
+
+    expect(layerState(store).map((layer) => layer.id)).toEqual([
+      'route-01',
+      'poi-cafe',
+      'area-center',
+      'route-01-2',
+      'route-01-3',
+      'basemap',
+    ]);
+    expect(store.getState().selectedId).toBe('route-01-2');
   });
 });

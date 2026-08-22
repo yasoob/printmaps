@@ -1,7 +1,8 @@
 import { Download, PenLine, Redo2, Share2, Undo2 } from 'lucide-react';
 import type { RefObject } from 'react';
-import type { ProjectDocument } from '../../domain/project';
+import type { ContentLayer, ProjectDocument } from '../../domain/project';
 import type { ProjectState } from '../store';
+import { GeoJsonImportButton } from './GeoJsonImportButton';
 import { ProjectFileOpenButton, ProjectSaveButton } from './ProjectFileActions';
 
 type StudioHeaderProps = {
@@ -10,10 +11,19 @@ type StudioHeaderProps = {
   exportButtonRef: RefObject<HTMLButtonElement | null>;
   inert: boolean;
   onOpen: (document: ProjectDocument) => void;
+  onImport: (layers: readonly ContentLayer[], documentEpoch: number) => boolean;
   onExport: () => void;
 };
 
-export function StudioHeader({ project, projectTitleRef, exportButtonRef, inert, onOpen, onExport }: StudioHeaderProps) {
+export function StudioHeader({
+  project,
+  projectTitleRef,
+  exportButtonRef,
+  inert,
+  onOpen,
+  onImport,
+  onExport,
+}: StudioHeaderProps) {
   return (
     <header className="topbar" inert={inert}>
       <div className="brand-block">
@@ -27,6 +37,12 @@ export function StudioHeader({ project, projectTitleRef, exportButtonRef, inert,
       </div>
       <div className="document-actions">
         <ProjectFileOpenButton onOpen={onOpen} />
+        <GeoJsonImportButton
+          key={project.documentEpoch}
+          documentEpoch={project.documentEpoch}
+          existingLayerIds={project.document.layers.map((layer) => layer.id)}
+          onImport={onImport}
+        />
         <ProjectSaveButton document={project.document} />
         <button className="quiet-button" type="button"><Share2 size={14} /> Share</button>
         <button ref={exportButtonRef} className="primary-button" type="button" onClick={onExport}><Download size={14} /> Export</button>

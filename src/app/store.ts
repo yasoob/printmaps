@@ -2,6 +2,7 @@ import { createStore } from 'zustand/vanilla';
 import {
   createInitialProjectDocument,
   migrateProjectDocument,
+  type ContentLayer,
   type PageOrientation,
   type StandardPagePreset,
   type ProjectDocument,
@@ -13,6 +14,7 @@ import { createPageActions } from './storePageActions';
 
 export type ProjectState = {
   document: ProjectDocument;
+  documentEpoch: number;
   selectedId: string | null;
   past: ProjectDocument[];
   future: ProjectDocument[];
@@ -20,6 +22,7 @@ export type ProjectState = {
   canRedo: boolean;
   deleteLayer: (id: string) => void;
   duplicateLayer: (id: string) => void;
+  importLayers: (layers: readonly ContentLayer[], documentEpoch: number) => boolean;
   moveLayer: (id: string, toIndex: number) => void;
   openDocument: (document: StoredProjectDocument) => void;
   renameLayer: (id: string, name: string) => void;
@@ -40,6 +43,7 @@ export function createProjectStore(
   const document = migrateProjectDocument(initialDocument);
   return createStore<ProjectState>((set) => ({
     document: copyDocument(document),
+    documentEpoch: 0,
     selectedId: null,
     past: [],
     future: [],
