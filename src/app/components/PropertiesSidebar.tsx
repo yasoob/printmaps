@@ -66,6 +66,8 @@ export function PropertiesSidebar(props: PropertiesSidebarProps) {
           onAppearanceChange={(appearance) => project.setLayerAppearance(selectedLayer.id, appearance)}
           onPoiCoordinatesChange={(coordinates) => project.setPoiCoordinates(selectedLayer.id, coordinates)}
           onPoiCustomMarkerChange={(asset) => project.setPoiCustomMarker(selectedLayer.id, asset)}
+          onRouteVertexInsert={(vertexIndex) => project.insertRouteVertex(selectedLayer.id, vertexIndex)}
+          onRouteVertexRemove={(vertexIndex) => project.removeRouteVertex(selectedLayer.id, vertexIndex)}
           onRouteVertexChange={(vertexIndex, coordinates) => project.setRouteVertex(selectedLayer.id, vertexIndex, coordinates)}
           onShapeVertexChange={(ringIndex, vertexIndex, coordinates) => project.setShapeVertex(selectedLayer.id, ringIndex, vertexIndex, coordinates)}
           onToggleVisibility={() => { clearSelectedPreview(); project.toggleLayerVisibility(selectedLayer.id); }}

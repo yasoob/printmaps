@@ -275,6 +275,56 @@ test('route vertex coordinates update the live map, history, portable project, a
   expect(consoleProblems).toEqual([]);
 });
 
+test('route vertices insert, remove, and drag directly on the map as one history edit', async ({ page }, testInfo) => {
+  const consoleProblems: string[] = [];
+  page.on('pageerror', (error) => { consoleProblems.push(error.message); });
+  page.on('console', (message) => {
+    if ((message.type() === 'error' || message.type() === 'warning') && !isHeadlessWebGlDiagnostic(message.text())) {
+      consoleProblems.push(message.text());
+    }
+  });
+  await page.goto('/');
+  const mapRoot = page.getByTestId('map-canvas');
+  const mapReady = page.locator('[data-map-ready="true"]');
+  const mapFallback = page.getByText('Map preview unavailable');
+  await expect(mapReady.or(mapFallback)).toBeVisible({ timeout: 20_000 });
+  test.skip(await mapFallback.isVisible(), 'This browser fixture has no WebGL 2 renderer, so direct map editing cannot be exercised.');
+
+  await page.getByRole('button', { name: 'Select Route 01' }).click();
+  const handles = page.getByRole('button', { name: /Drag route vertex/ });
+  await expect(handles).toHaveCount(4);
+  await page.getByRole('button', { name: 'Insert route vertex after selected' }).click();
+  await expect(handles).toHaveCount(5);
+  await expect(page.getByRole('combobox', { name: 'Route vertex' })).toHaveValue('1');
+  await page.getByRole('button', { name: 'Remove selected route vertex' }).click();
+  await expect(handles).toHaveCount(4);
+
+  const readGeometry = () => mapRoot.evaluate((element) => element.dataset.mapLayerGeometry ?? null);
+  const originalGeometry = await readGeometry();
+  const handleBox = await handles.nth(1).boundingBox();
+  expect(handleBox).not.toBeNull();
+  await page.mouse.move(handleBox!.x + handleBox!.width / 2, handleBox!.y + handleBox!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(handleBox!.x + handleBox!.width / 2 + 36, handleBox!.y + handleBox!.height / 2 + 24, { steps: 6 });
+  await page.mouse.up();
+  await expect.poll(readGeometry).not.toBe(originalGeometry);
+  await expect(page.getByRole('button', { name: 'Undo' })).toBeEnabled();
+
+  await page.getByRole('button', { name: 'Toggle layer lock' }).click();
+  await expect(handles).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Insert route vertex after selected' })).toBeDisabled();
+  await page.getByRole('button', { name: 'Toggle layer lock' }).click();
+  await expect(handles).toHaveCount(4);
+  await handles.first().focus();
+  await handles.first().press('ArrowRight');
+  await expect(handles.first()).toBeFocused();
+  if (testInfo.project.name === 'chromium') {
+    await page.waitForLoadState('networkidle');
+    await page.screenshot({ path: 'docs/screenshots/latest-desktop.png' });
+  }
+  expect(consoleProblems).toEqual([]);
+});
+
 test('shape vertex coordinates preserve ring closure across the live map, history, project, and layered SVG', async ({ page }, testInfo) => {
   const consoleProblems: string[] = [];
   page.on('pageerror', (error) => { consoleProblems.push(error.message); });

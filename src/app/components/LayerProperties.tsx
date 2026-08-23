@@ -1,10 +1,5 @@
 import { useRef, useState } from 'react';
-import type {
-  ContentLayer,
-  LayerAppearance,
-  RouteAppearance,
-  ShapeAppearance,
-} from '../../domain/project';
+import type { ContentLayer, LayerAppearance, RouteAppearance, ShapeAppearance } from '../../domain/project';
 import type { CustomMarkerAsset } from '../../domain/customMarkerAssets';
 import {
   ROUTE_TRAVEL_PROFILES,
@@ -27,12 +22,11 @@ type LayerPropertiesProps = {
   onAppearanceChange: (appearance: LayerAppearance) => void;
   onPoiCoordinatesChange: (coordinates: readonly [number, number]) => void;
   onPoiCustomMarkerChange: (asset: CustomMarkerAsset | null) => void;
+  onRouteVertexInsert: (vertexIndex: number) => void; onRouteVertexRemove: (vertexIndex: number) => void;
   onRouteVertexChange: (vertexIndex: number, coordinates: readonly [number, number]) => void;
   onShapeVertexChange: (ringIndex: number, vertexIndex: number, coordinates: readonly [number, number]) => void;
-  onToggleVisibility: () => void;
-  onToggleLock: () => void;
-  onDuplicate: () => void;
-  onDelete: () => void;
+  onToggleVisibility: () => void; onToggleLock: () => void;
+  onDuplicate: () => void; onDelete: () => void;
 };
 
 function LayerMenu({ onDuplicate, onDelete }: Pick<LayerPropertiesProps, 'onDuplicate' | 'onDelete'>) {
@@ -164,8 +158,10 @@ function ShapeAppearanceControls({
 function RouteLayerProperties({
   layer,
   onAppearanceChange,
+  onRouteVertexInsert,
+  onRouteVertexRemove,
   onRouteVertexChange,
-}: Pick<LayerPropertiesProps, 'layer' | 'onAppearanceChange' | 'onRouteVertexChange'>) {
+}: Pick<LayerPropertiesProps, 'layer' | 'onAppearanceChange' | 'onRouteVertexInsert' | 'onRouteVertexRemove' | 'onRouteVertexChange'>) {
   if (layer.appearance?.kind !== 'route') return null;
   return (
     <>
@@ -175,7 +171,7 @@ function RouteLayerProperties({
       {layer.geometry?.type === 'LineString' && (
         <>
           <PropertySection title="Vertices">
-            <RouteVertexControls key={layer.id} coordinates={layer.geometry.coordinates} onChange={onRouteVertexChange} />
+            <RouteVertexControls key={layer.id} coordinates={layer.geometry.coordinates} disabled={layer.locked || !layer.visible} onChange={onRouteVertexChange} onInsert={onRouteVertexInsert} onRemove={onRouteVertexRemove} />
           </PropertySection>
           <PropertySection title="Elevation">
             <ElevationProfilePanel
@@ -222,12 +218,14 @@ function LayerTypeProperties({
   onAppearanceChange,
   onPoiCoordinatesChange,
   onPoiCustomMarkerChange,
+  onRouteVertexInsert,
+  onRouteVertexRemove,
   onRouteVertexChange,
   onShapeVertexChange,
-}: Pick<LayerPropertiesProps, 'layer' | 'assets' | 'onAppearanceChange' | 'onPoiCoordinatesChange' | 'onPoiCustomMarkerChange' | 'onRouteVertexChange' | 'onShapeVertexChange'>) {
+}: Pick<LayerPropertiesProps, 'layer' | 'assets' | 'onAppearanceChange' | 'onPoiCoordinatesChange' | 'onPoiCustomMarkerChange' | 'onRouteVertexInsert' | 'onRouteVertexRemove' | 'onRouteVertexChange' | 'onShapeVertexChange'>) {
   switch (layer.type) {
     case 'route': {
-      return <RouteLayerProperties layer={layer} onAppearanceChange={onAppearanceChange} onRouteVertexChange={onRouteVertexChange} />;
+      return <RouteLayerProperties layer={layer} onAppearanceChange={onAppearanceChange} onRouteVertexInsert={onRouteVertexInsert} onRouteVertexRemove={onRouteVertexRemove} onRouteVertexChange={onRouteVertexChange} />;
     }
     case 'poi': {
       return <PoiLayerProperties layer={layer} assets={assets} onAppearanceChange={onAppearanceChange} onPoiCoordinatesChange={onPoiCoordinatesChange} onPoiCustomMarkerChange={onPoiCustomMarkerChange} />;
@@ -264,6 +262,8 @@ export function LayerProperties({
   onAppearanceChange,
   onPoiCoordinatesChange,
   onPoiCustomMarkerChange,
+  onRouteVertexInsert,
+  onRouteVertexRemove,
   onRouteVertexChange,
   onShapeVertexChange,
   onToggleVisibility,
@@ -307,7 +307,7 @@ export function LayerProperties({
         <PropertyRow label="Visible"><button aria-label="Toggle layer visibility" className={`toggle${layer.visible ? ' is-on' : ''}`} type="button" aria-pressed={layer.visible} onClick={onToggleVisibility}><span /></button></PropertyRow>
         <PropertyRow label="Locked"><button aria-label="Toggle layer lock" className={`toggle${layer.locked ? ' is-on' : ''}`} type="button" aria-pressed={layer.locked} onClick={onToggleLock}><span /></button></PropertyRow>
       </PropertySection>
-      <LayerTypeProperties layer={layer} assets={assets} onAppearanceChange={onAppearanceChange} onPoiCoordinatesChange={onPoiCoordinatesChange} onPoiCustomMarkerChange={onPoiCustomMarkerChange} onRouteVertexChange={onRouteVertexChange} onShapeVertexChange={onShapeVertexChange} />
+      <LayerTypeProperties layer={layer} assets={assets} onAppearanceChange={onAppearanceChange} onPoiCoordinatesChange={onPoiCoordinatesChange} onPoiCustomMarkerChange={onPoiCustomMarkerChange} onRouteVertexInsert={onRouteVertexInsert} onRouteVertexRemove={onRouteVertexRemove} onRouteVertexChange={onRouteVertexChange} onShapeVertexChange={onShapeVertexChange} />
     </div>
   );
 }

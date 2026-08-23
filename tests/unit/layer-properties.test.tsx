@@ -11,6 +11,8 @@ const actions = {
   onOpacityChange: vi.fn(),
   onPoiCoordinatesChange: vi.fn(),
   onPoiCustomMarkerChange: vi.fn(),
+  onRouteVertexInsert: vi.fn(),
+  onRouteVertexRemove: vi.fn(),
   onRouteVertexChange: vi.fn(),
   onShapeVertexChange: vi.fn(),
   onRename: vi.fn(),

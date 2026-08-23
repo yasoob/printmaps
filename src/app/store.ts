@@ -41,6 +41,7 @@ export type ProjectState = {
   deleteLayer: (id: string) => void;
   duplicateLayer: (id: string) => void;
   importLayers: (layers: readonly ContentLayer[], documentEpoch: number, sourceDocument: ProjectDocument) => boolean;
+  insertRouteVertex: (id: string, vertexIndex: number) => void;
   moveLayer: (id: string, toIndex: number) => void;
   openDocument: (document: ProjectDocument) => void;
   renameLayer: (id: string, name: string) => void;
@@ -66,6 +67,7 @@ export type ProjectState = {
   toggleLayerLock: (id: string) => void;
   undo: () => void;
   redo: () => void;
+  removeRouteVertex: (id: string, vertexIndex: number) => void;
 };
 
 export function createProjectStore(

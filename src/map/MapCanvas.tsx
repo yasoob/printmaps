@@ -20,6 +20,7 @@ type MapCanvasProps = {
   onLayerSelect: (id: string) => void;
   onCameraViewportChange?: (center: readonly [number, number], zoom: number, mode: CameraViewportChangeMode) => void;
   onMapClick?: (coordinate: [number, number]) => void;
+  onRouteVertexChange?: (id: string, vertexIndex: number, coordinate: readonly [number, number]) => void;
   onBackgroundClick: () => void;
   onExporterChange?: (exporter: PreviewPngExporter | null) => void;
   fitRequest?: number;
@@ -58,6 +59,7 @@ export function MapCanvas({
   onLayerSelect,
   onCameraViewportChange,
   onMapClick,
+  onRouteVertexChange,
   onBackgroundClick,
   onExporterChange,
   fitRequest = 0,
@@ -89,6 +91,7 @@ export function MapCanvas({
     onLayerSelect,
     onCameraViewportChange,
     onMapClick,
+    onRouteVertexChange,
     previewedId,
     selectedId,
     contentRevision,

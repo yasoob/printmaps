@@ -20,6 +20,7 @@ import type { MapLocationRequest } from './MapLocationRequest';
 import { useMapLocationRequest } from './useMapLocationRequest';
 import { useMapCameraSynchronization } from './useMapCameraSynchronization';
 import type { CameraViewportChangeMode } from './MapCameraViewport';
+import { useRouteVertexEditing } from './useRouteVertexEditing';
 
 type MapCanvasControllerOptions = {
   camera: CameraSettings;
@@ -40,6 +41,7 @@ type MapCanvasControllerOptions = {
   onLayerSelect: (id: string) => void;
   onCameraViewportChange?: (center: readonly [number, number], zoom: number, mode: CameraViewportChangeMode) => void;
   onMapClick?: (coordinate: [number, number]) => void;
+  onRouteVertexChange?: (id: string, vertexIndex: number, coordinate: readonly [number, number]) => void;
   previewedId: string | null;
   selectedId: string | null;
   contentRevision?: object;
@@ -70,6 +72,7 @@ export function useMapCanvasController({
   onLayerSelect,
   onCameraViewportChange,
   onMapClick,
+  onRouteVertexChange,
   previewedId,
   selectedId,
   contentRevision,
@@ -170,6 +173,8 @@ export function useMapCanvasController({
       styleUrl: mapStyleUrl(stylePreset),
     });
   }, [cameraState, handleContentSyncResult, invalidateExporter, resetFeatureVisibility, resetMapLanguage, resetTextScale, stylePreset, synchronizeFeatureVisibility, synchronizeMapLanguage, synchronizeTextScale]);
+
+  useRouteVertexEditing({ layers, map, onRouteVertexChange, selectedId, stylePreset });
 
   useMapCameraSynchronization({ camera, container, map, stylePreset });
   useMapLocationRequest({ container, locationRequest, map, stylePreset });

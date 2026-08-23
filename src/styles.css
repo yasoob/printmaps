@@ -496,6 +496,30 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 .custom-marker-control [role="status"] { color: var(--studio-text-muted); }
 .custom-marker-control [role="alert"] { color: var(--studio-danger); }
+.route-vertex-actions { @apply mt-1 grid grid-cols-2 gap-1.5; }
+.route-vertex-actions button {
+  @apply flex cursor-pointer items-center justify-center gap-1 px-1.5;
+  min-height: var(--studio-control-height);
+  border: var(--studio-border-width) solid var(--studio-line-strong);
+  border-radius: var(--studio-radius-sm);
+  background: var(--studio-surface);
+  color: var(--studio-text-secondary);
+  font-size: var(--studio-font-meta);
+}
+.route-vertex-actions button:hover:not(:disabled) { background: var(--studio-field); }
+.route-vertex-actions button:disabled { @apply cursor-default; color: var(--studio-text-subtle); }
+.route-vertex-hint { @apply mt-1 block; color: var(--studio-text-muted); line-height: 1.35; }
+.route-vertex-marker {
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 3px solid var(--studio-accent-strong);
+  border-radius: 50%;
+  background: var(--studio-surface);
+  cursor: grab;
+}
+.route-vertex-marker:active { cursor: grabbing; }
+.route-vertex-marker:focus-visible { outline: 2px solid var(--studio-focus); outline-offset: 2px; }
 .toggle { @apply cursor-pointer p-0.5; width: 1.75rem; height: 1rem; border-radius: 999px; background: var(--studio-line-strong); }
 .toggle span { @apply block h-3 w-3 rounded-full transition-transform; background: var(--studio-surface); }
 .toggle.is-on { background: var(--studio-accent); }

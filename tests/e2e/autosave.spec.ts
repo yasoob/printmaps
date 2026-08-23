@@ -39,10 +39,12 @@ test('autosaves to IndexedDB and requires explicit recover or discard choices', 
   await expect(page.getByRole('textbox', { name: 'Text scale' })).toHaveValue('135');
   await expect(page.getByRole('checkbox', { name: 'Show labels' })).not.toBeChecked();
   await expect(page.getByRole('checkbox', { name: 'Show land detail' })).not.toBeChecked();
-  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-style-preset', 'positron');
+  const mapCanvas = page.getByTestId('map-canvas');
+  await expect(mapCanvas).toHaveAttribute('data-style-preset', 'positron');
   if (browserName !== 'firefox') {
-    await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-text-scale', '135');
-    await expect(page.getByTestId('map-canvas')).toHaveAttribute(
+    await expect(mapCanvas).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
+    await expect(mapCanvas).toHaveAttribute('data-map-text-scale', '135');
+    await expect(mapCanvas).toHaveAttribute(
       'data-map-feature-visibility',
       'roads:true,buildings:true,labels:false,water:true,parks:true,landuse:false,transit:true',
     );
@@ -68,14 +70,17 @@ test('autosaves to IndexedDB and requires explicit recover or discard choices', 
   expect(await page.evaluate(() => document.body.scrollWidth)).toBeLessThanOrEqual(390);
   await page.getByRole('button', { name: 'Discard draft' }).click();
   await expect(dialog).not.toBeVisible();
-  await expect(page.getByRole('button', { name: 'Vienna field guide' })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Vienna field guide' })).toBeFocused({ timeout: 15_000 });
   await page.getByRole('button', { name: 'Open properties' }).click();
   await expect(page.getByRole('button', { name: 'Landscape' })).toHaveAttribute('aria-pressed', 'true');
   await page.keyboard.press('Escape');
 
-  await page.reload();
-  await expect(page.getByRole('dialog', { name: 'Recover local draft' })).not.toBeVisible();
-  await expect(page.locator('[aria-label="Autosave status"]')).toHaveText('Autosave ready');
+  const context = page.context();
+  await page.close();
+  const verificationPage = await context.newPage();
+  await verificationPage.goto('/');
+  await expect(verificationPage.getByRole('dialog', { name: 'Recover local draft' })).not.toBeVisible();
+  await expect(verificationPage.getByRole('status', { name: 'Autosave status' })).toHaveText('Autosave ready');
 });
 
 test('contains a corrupt IndexedDB draft until the user discards it', async ({ page }) => {

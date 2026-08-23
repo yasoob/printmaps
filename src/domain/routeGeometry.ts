@@ -34,3 +34,50 @@ export function moveRouteVertex(
   ));
   return { ...layer, geometry: { type: 'LineString', coordinates } };
 }
+
+export function insertRouteVertex(
+  layer: ContentLayer | undefined,
+  vertexIndex: number,
+): ContentLayer | null {
+  if (
+    layer?.type !== 'route'
+    || layer.geometry?.type !== 'LineString'
+    || !Number.isSafeInteger(vertexIndex)
+    || vertexIndex < 0
+    || vertexIndex >= layer.geometry.coordinates.length - 1
+  ) return null;
+
+  const start = layer.geometry.coordinates[vertexIndex];
+  const end = layer.geometry.coordinates[vertexIndex + 1];
+  const directLongitudeDelta = end[0] - start[0];
+  const midpointLongitude = Math.abs(directLongitudeDelta) <= 180
+    ? (start[0] + end[0]) / 2
+    : start[0] + (((directLongitudeDelta + 540) % 360) - 180) / 2;
+  const midpoint: [number, number] = [
+    midpointLongitude > 180 ? midpointLongitude - 360 : midpointLongitude,
+    (start[1] + end[1]) / 2,
+  ];
+  if (!isValidPosition(midpoint[0], midpoint[1])) return null;
+  const coordinates = layer.geometry.coordinates.map((coordinate) => [...coordinate] as [number, number]);
+  coordinates.splice(vertexIndex + 1, 0, midpoint);
+  return { ...layer, geometry: { type: 'LineString', coordinates } };
+}
+
+export function removeRouteVertex(
+  layer: ContentLayer | undefined,
+  vertexIndex: number,
+): ContentLayer | null {
+  if (
+    layer?.type !== 'route'
+    || layer.geometry?.type !== 'LineString'
+    || layer.geometry.coordinates.length <= 2
+    || !Number.isSafeInteger(vertexIndex)
+    || vertexIndex < 0
+    || vertexIndex >= layer.geometry.coordinates.length
+  ) return null;
+
+  const coordinates = layer.geometry.coordinates.map((coordinate) => [...coordinate] as [number, number]);
+  coordinates.splice(vertexIndex, 1);
+  if (new Set(coordinates.map(([longitude, latitude]) => `${longitude},${latitude}`)).size < 2) return null;
+  return { ...layer, geometry: { type: 'LineString', coordinates } };
+}

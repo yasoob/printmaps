@@ -1,13 +1,14 @@
 import { canonicalLayerAppearance } from '../domain/layerAppearance';
 import { cloneContentLayer, createDefaultLayerAppearance, type ContentLayer } from '../domain/project';
-import { isValidPosition, moveRouteVertex } from '../domain/routeGeometry';
+import { isValidPosition } from '../domain/routeGeometry';
 import { buildRouteCoordinates, DEFAULT_ROUTE_AUTHORING_OPTIONS, isRouteAuthoringOptions } from '../domain/routeProfiles';
 import { validateCustomMarkerAssetCollection, validateStoredCustomMarkerAsset, type CustomMarkerAsset } from '../domain/customMarkerAssets';
 import type { ProjectState } from './store';
 import { commitDocument, replaceLayers, type ProjectSet } from './storeDocument';
 import { createPoiStructureActions } from './storePoiActions';
 import { createAdministrativeAreaActions } from './storeAdministrativeAreaActions';
-type LayerPropertyActions = Pick<ProjectState, 'renameLayer' | 'selectLayer' | 'setLayerAppearance' | 'setLayerOpacity' | 'setPoiCoordinates' | 'setPoiCustomMarker' | 'setRouteVertex' | 'toggleLayerVisibility' | 'toggleLayerLock'>;
+import { createRouteGeometryActions } from './storeRouteGeometryActions';
+type LayerPropertyActions = Pick<ProjectState, 'insertRouteVertex' | 'removeRouteVertex' | 'renameLayer' | 'selectLayer' | 'setLayerAppearance' | 'setLayerOpacity' | 'setPoiCoordinates' | 'setPoiCustomMarker' | 'setRouteVertex' | 'toggleLayerVisibility' | 'toggleLayerLock'>;
 
 function isCanonicalCustomMarkerAsset(asset: CustomMarkerAsset): boolean {
   try {
@@ -191,6 +192,7 @@ export function createLayerStructureActions(set: ProjectSet): Pick<ProjectState,
 
 export function createLayerPropertyActions(set: ProjectSet): LayerPropertyActions {
   return {
+    ...createRouteGeometryActions(set),
     renameLayer: (id, name) => set((state) => {
       const layer = state.document.layers.find((candidate) => candidate.id === id);
       if (!layer || !name.trim() || layer.name === name) return state;
@@ -258,16 +260,7 @@ export function createLayerPropertyActions(set: ProjectSet): LayerPropertyAction
       }
       return commitDocument(state, { ...state.document, assets, layers });
     }),
-    setRouteVertex: (id, vertexIndex, coordinates) => set((state) => {
-      const layer = state.document.layers.find((candidate) => candidate.id === id);
-      const updatedLayer = moveRouteVertex(layer, vertexIndex, coordinates);
-      if (!updatedLayer) return state;
 
-      return commitDocument(state, replaceLayers(
-        state.document,
-        state.document.layers.map((candidate) => candidate.id === id ? updatedLayer : candidate),
-      ));
-    }),
     setLayerOpacity: (id, opacity) => set((state) => {
       const layer = state.document.layers.find((candidate) => candidate.id === id);
       const nextOpacity = Math.max(0, Math.min(100, opacity));
