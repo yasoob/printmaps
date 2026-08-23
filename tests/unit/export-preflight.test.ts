@@ -104,6 +104,7 @@ describe('export preflight planning', () => {
     ['DPI outside the configured range', completeRequest({ dpi: 1200 }), {}, 'DPI_OUT_OF_RANGE'],
     ['a page side beyond the configured range', completeRequest({ page: { widthMm: 1331, heightMm: 210 } }), {}, 'PAGE_SIDE_LIMIT_EXCEEDED'],
     ['an output side beyond the configured range', completeRequest({ page: { widthMm: 100, heightMm: 100 }, dpi: 254 }), { maxOutputSidePx: 999 }, 'OUTPUT_SIDE_LIMIT_EXCEEDED'],
+    ['an output too small for useful map content and attribution', completeRequest({ page: { widthMm: 1, heightMm: 1 } }), {}, 'RASTER_OUTPUT_TOO_SMALL'],
     ['a pixel count beyond the configured range', completeRequest({ page: { widthMm: 100, heightMm: 100 }, dpi: 254 }), { maxPixelCount: 999_999 }, 'PIXEL_COUNT_LIMIT_EXCEEDED'],
     ['an impossible overlap/GPU configuration', completeRequest(), { gpuMaxSidePx: 32, preferredTileSidePx: 32, tileOverlapPx: 16 }, 'INVALID_TILE_CONFIGURATION'],
     ['a tile count beyond the configured range', completeRequest({ page: { widthMm: 100, heightMm: 100 }, dpi: 254 }), { gpuMaxSidePx: 512, preferredTileSidePx: 512, tileOverlapPx: 16, maxTileCount: 8 }, 'TILE_COUNT_LIMIT_EXCEEDED'],

@@ -47,4 +47,29 @@ describe('map feature visibility controller', () => {
       ['road-primary', 'visibility', 'none'],
     ]);
   });
+
+  it('hides icon-only road symbols when either roads or labels are hidden', () => {
+    const setLayoutProperty = vi.fn();
+    const controller = createMapFeatureVisibilityController({
+      getStyle: () => ({
+        layers: [{
+          id: 'road-one-way-arrow',
+          type: 'symbol',
+          'source-layer': 'transportation',
+          layout: { 'icon-image': 'arrow' },
+        }],
+      }),
+      setLayoutProperty,
+    });
+
+    controller.apply({ roads: true, buildings: true, labels: false });
+    controller.apply({ roads: false, buildings: true, labels: true });
+    controller.apply({ roads: true, buildings: true, labels: true });
+
+    expect(setLayoutProperty.mock.calls).toEqual([
+      ['road-one-way-arrow', 'visibility', 'none'],
+      ['road-one-way-arrow', 'visibility', 'none'],
+      ['road-one-way-arrow', 'visibility', 'visible'],
+    ]);
+  });
 });

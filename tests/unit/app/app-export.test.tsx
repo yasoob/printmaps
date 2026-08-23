@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../../../src/app/App';
 import type { PreviewPng } from '../../../src/export/previewPng';
@@ -166,6 +166,61 @@ async function verifyPdfCancellation() {
   expect(source).toMatchObject({ width: 0, height: 0 });
 }
 
+async function verifyNativeTileProgressCancellation() {
+  const user = userEvent.setup();
+  const drawImage = vi.fn();
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+    drawImage,
+  } as unknown as CanvasRenderingContext2D);
+  const encode = vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation((callback) => {
+    callback(new Blob(['png'], { type: 'image/png' }));
+  });
+  const renderPrintTile = vi.fn(({ region }: { region: { width: number; height: number } }) => {
+    const tile = document.createElement('canvas');
+    tile.width = region.width;
+    tile.height = region.height;
+    return Promise.resolve(tile);
+  });
+  const exporter = Object.assign(vi.fn(), {
+    createPrintTileRenderer: vi.fn(() => renderPrintTile),
+  });
+  exportMocks.exporter = exporter;
+  const downloadClick = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+  render(<App />);
+
+  const width = screen.getByRole('textbox', { name: 'Page width' });
+  await user.clear(width);
+  await user.type(width, '600');
+  await user.tab();
+
+  vi.useFakeTimers();
+  fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+  const dialog = screen.getByRole('dialog', { name: 'Export map' });
+  expect(dialog).toHaveTextContent('7087 × 2480 px');
+
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: 'Download PNG' }));
+    for (let index = 0; index < 20; index += 1) await Promise.resolve();
+  });
+
+  const cancel = screen.getByRole('button', { name: 'Cancel export' });
+  expect(screen.getByRole('status')).toHaveTextContent('1/2 tiles (50%)');
+  expect(cancel).toHaveFocus();
+  fireEvent.click(cancel);
+  expect(screen.getByRole('status')).toHaveTextContent('Cancelling export');
+
+  await act(async () => {
+    await vi.runOnlyPendingTimersAsync();
+  });
+
+  expect(screen.getByRole('status')).toHaveTextContent('Export cancelled');
+  expect(renderPrintTile).toHaveBeenCalledOnce();
+  expect(exporter).not.toHaveBeenCalled();
+  expect(drawImage).toHaveBeenCalledOnce();
+  expect(encode).not.toHaveBeenCalled();
+  expect(downloadClick).not.toHaveBeenCalled();
+}
+
 describe('editor export', () => {
   beforeEach(() => {
     exportMocks.exporter = null;
@@ -188,10 +243,11 @@ describe('editor export', () => {
     expect(download).toHaveFocus();
     expect(dialog).toHaveTextContent('3508 × 2480 px — 300 DPI pixel target');
     expect(dialog).toHaveTextContent('PNG physical-resolution metadata is not embedded');
-    expect(dialog).toHaveTextContent('resamples the current browser render');
+    expect(dialog).toHaveTextContent('renders each map tile at its target pixel dimensions');
+    expect(dialog).not.toHaveTextContent('resamples the current browser render');
 
     await user.click(download);
-    expect(screen.getByRole('alert')).toHaveTextContent('live map preview is not ready');
+    expect(within(dialog).getByRole('alert')).toHaveTextContent('live map preview is not ready');
     await user.keyboard('{Escape}');
     expect(dialog).not.toBeInTheDocument();
     expect(trigger).toHaveFocus();
@@ -219,8 +275,9 @@ describe('editor export', () => {
     await user.tab();
     await user.click(screen.getByRole('button', { name: 'Export' }));
 
-    expect(screen.getByRole('alert')).toHaveTextContent('Estimated peak memory');
-    expect(screen.getByRole('alert')).toHaveTextContent('Reduce the page dimensions before retrying');
+    const dialog = screen.getByRole('dialog', { name: 'Export map' });
+    expect(within(dialog).getByRole('alert')).toHaveTextContent('Estimated peak memory');
+    expect(within(dialog).getByRole('alert')).toHaveTextContent('Reduce the page dimensions before retrying');
     expect(screen.getByRole('button', { name: 'Download PNG' })).toBeDisabled();
   });
 
@@ -246,8 +303,14 @@ describe('editor export', () => {
 
   it('keeps focus contained and cancels an in-progress print-size export', async () => {
     const user = userEvent.setup();
-    let finishExport: ((result: PreviewPng) => void) | undefined;
-    exportMocks.exporter = vi.fn(() => new Promise<PreviewPng>((resolve) => { finishExport = resolve; }));
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+      drawImage: vi.fn(),
+    } as unknown as CanvasRenderingContext2D);
+    let finishExport: ((result: HTMLCanvasElement) => void) | undefined;
+    const renderPrintTile = vi.fn(() => new Promise<HTMLCanvasElement>((resolve) => { finishExport = resolve; }));
+    exportMocks.exporter = Object.assign(vi.fn(), {
+      createPrintTileRenderer: vi.fn(() => renderPrintTile),
+    });
     vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:preview');
     vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
     const downloadClick = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
@@ -271,9 +334,9 @@ describe('editor export', () => {
     await user.click(cancel);
     expect(screen.getByRole('status')).toHaveTextContent('Cancelling export');
     const surface = document.createElement('canvas');
-    surface.width = 100;
-    surface.height = 80;
-    finishExport?.({ blob: new Blob(['png']), width: 100, height: 80, surface });
+    surface.width = 3508;
+    surface.height = 2480;
+    finishExport?.(surface);
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Export cancelled'));
     expect(downloadClick).not.toHaveBeenCalled();
   });
@@ -282,6 +345,9 @@ describe('editor export', () => {
     const user = userEvent.setup();
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
       drawImage: vi.fn(),
+      fillRect: vi.fn(),
+      fillText: vi.fn(),
+      measureText: vi.fn(() => ({ width: 80 })),
     } as unknown as CanvasRenderingContext2D);
     vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation((callback) => {
       callback(new Blob(['png'], { type: 'image/png' }));
@@ -291,15 +357,6 @@ describe('editor export', () => {
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {
       throw new Error('Download initiation failed.');
     });
-    const source = document.createElement('canvas');
-    source.width = 100;
-    source.height = 80;
-    exportMocks.exporter = vi.fn().mockResolvedValue({
-      blob: new Blob(['source'], { type: 'image/png' }),
-      width: 100,
-      height: 80,
-      surface: source,
-    });
     const created: HTMLCanvasElement[] = [];
     const originalCreateElement = document.createElement.bind(document);
     vi.spyOn(document, 'createElement').mockImplementation((tagName: string, options?: ElementCreationOptions) => {
@@ -307,67 +364,26 @@ describe('editor export', () => {
       if (element instanceof HTMLCanvasElement) created.push(element);
       return element;
     });
+    const renderPrintTile = vi.fn(({ region }: { region: { width: number; height: number } }) => {
+      const tile = document.createElement('canvas');
+      tile.width = region.width;
+      tile.height = region.height;
+      return Promise.resolve(tile);
+    });
+    exportMocks.exporter = Object.assign(vi.fn(), {
+      createPrintTileRenderer: vi.fn(() => renderPrintTile),
+    });
     render(<App />);
 
     await user.click(screen.getByRole('button', { name: 'Export' }));
+    const dialog = screen.getByRole('dialog', { name: 'Export map' });
     await user.click(screen.getByRole('button', { name: 'Download PNG' }));
 
-    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Download initiation failed'));
+    await waitFor(() => expect(within(dialog).getByRole('alert')).toHaveTextContent('Download initiation failed'));
     expect(screen.getByRole('status')).toHaveTextContent('Export failed');
     expect(created.length).toBeGreaterThan(0);
     expect(created.every(({ width, height }) => width === 0 && height === 0)).toBe(true);
-    expect(source).toMatchObject({ width: 0, height: 0 });
   });
 
-  it('paints tile progress and accepts Cancel between tile tasks', async () => {
-    const user = userEvent.setup();
-    const drawImage = vi.fn();
-    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
-      drawImage,
-    } as unknown as CanvasRenderingContext2D);
-    const encode = vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation((callback) => {
-      callback(new Blob(['png'], { type: 'image/png' }));
-    });
-    const source = document.createElement('canvas');
-    source.width = 100;
-    source.height = 80;
-    exportMocks.exporter = vi.fn().mockResolvedValue({
-      blob: new Blob(['source'], { type: 'image/png' }),
-      width: 100,
-      height: 80,
-      surface: source,
-    });
-    const downloadClick = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
-    render(<App />);
-
-    const width = screen.getByRole('textbox', { name: 'Page width' });
-    await user.clear(width);
-    await user.type(width, '600');
-    await user.tab();
-
-    vi.useFakeTimers();
-    fireEvent.click(screen.getByRole('button', { name: 'Export' }));
-    const dialog = screen.getByRole('dialog', { name: 'Export map' });
-    expect(dialog).toHaveTextContent('7087 × 2480 px');
-
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Download PNG' }));
-      for (let index = 0; index < 20; index += 1) await Promise.resolve();
-    });
-
-    const cancel = screen.getByRole('button', { name: 'Cancel export' });
-    expect(screen.getByRole('status')).toHaveTextContent('1/2 tiles (50%)');
-    expect(cancel).toHaveFocus();
-    fireEvent.click(cancel);
-    expect(screen.getByRole('status')).toHaveTextContent('Cancelling export');
-
-    await act(async () => {
-      await vi.runOnlyPendingTimersAsync();
-    });
-
-    expect(screen.getByRole('status')).toHaveTextContent('Export cancelled');
-    expect(drawImage).toHaveBeenCalledTimes(2);
-    expect(encode).not.toHaveBeenCalled();
-    expect(downloadClick).not.toHaveBeenCalled();
-  });
+  it('paints tile progress and accepts Cancel between tile tasks', verifyNativeTileProgressCancellation);
 });

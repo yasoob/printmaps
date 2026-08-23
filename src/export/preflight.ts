@@ -207,6 +207,12 @@ export function planExportPreflight(
     });
     return finishResult(request, state, null);
   }
+  if (request.format === 'png' && (widthPx < 48 || heightPx < 24)) {
+    errors.push({
+      code: 'RASTER_OUTPUT_TOO_SMALL',
+      message: 'The PNG output is too small for useful map content and legible attribution.',
+    });
+  }
 
   appendDimensionIssues(dimensions, limits, errors);
   const grid = createExportGrid(widthPx, heightPx, limits);

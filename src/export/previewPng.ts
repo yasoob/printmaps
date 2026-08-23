@@ -8,12 +8,30 @@ export type PreviewPng = {
   projectToFrame?: (coordinate: readonly [number, number]) => Readonly<{ x: number; y: number }>;
 };
 
-export type PreviewPngExporter = (
+export type PrintTileRenderRequest = Readonly<{
+  output: Readonly<{ width: number; height: number }>;
+  region: Readonly<{ x: number; y: number; width: number; height: number }>;
+  signal?: AbortSignal;
+}>;
+
+export type PrintTileRenderer = (request: PrintTileRenderRequest) => Promise<HTMLCanvasElement>;
+
+export type PrintTileExportPlan = Readonly<{
+  output: PrintTileRenderRequest['output'];
+  pixelsPerMillimetre: number;
+  regions: readonly PrintTileRenderRequest['region'][];
+  signal?: AbortSignal;
+  symbolsVisible: boolean;
+}>;
+
+export type PreviewPngExporter = ((
   options?: Readonly<{
     content?: 'composite' | 'basemap';
     signal?: AbortSignal;
   }>,
-) => Promise<PreviewPng>;
+) => Promise<PreviewPng>) & {
+  createPrintTileRenderer?: (plan: PrintTileExportPlan) => PrintTileRenderer;
+};
 
 type PreviewCaptureOptions = Readonly<{
   projectToCanvas?: (coordinate: readonly [number, number]) => Readonly<{ x: number; y: number }>;

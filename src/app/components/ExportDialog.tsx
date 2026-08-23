@@ -4,8 +4,12 @@ import type { ProjectDocument } from '../../domain/project';
 import { createLayeredSvg, startLayeredSvgDownload } from '../../export/layeredSvg';
 import { planExportPreflight } from '../../export/preflight';
 import { createPrintPdf, startPrintPdfDownload } from '../../export/printPdf';
-import { createPrintSizePng } from '../../export/printSizePng';
-import { startPreviewDownload, type PreviewPngExporter } from '../../export/previewPng';
+import { createPrintSizePng, type PrintSizePngStage } from '../../export/printSizePng';
+import {
+  startPreviewDownload,
+  type PreviewPngExporter,
+  type PrintTileExportPlan,
+} from '../../export/previewPng';
 
 export type ExportDialogProps = {
   exporter: PreviewPngExporter | null;
@@ -49,6 +53,47 @@ function useExportPreflight(page: ProjectDocument['page']) {
   }), [page.heightMm, page.widthMm]);
 }
 
+function printPixelDensity(
+  output: Readonly<{ width: number; height: number }>,
+  page: ProjectDocument['page'],
+): number {
+  return (output.width / page.widthMm + output.height / page.heightMm) / 2;
+}
+
+function createPrintTileExportPlan(
+  output: PrintTileExportPlan['output'],
+  document: ProjectDocument,
+  tiles: NonNullable<ReturnType<typeof planExportPreflight>['plan']>['tiles'],
+  signal: AbortSignal,
+): PrintTileExportPlan {
+  return {
+    output,
+    pixelsPerMillimetre: printPixelDensity(output, document.page),
+    regions: tiles.map((tile) => ({
+      x: tile.renderX,
+      y: tile.renderY,
+      width: tile.renderWidth,
+      height: tile.renderHeight,
+    })),
+    signal,
+    symbolsVisible: document.style.visibility.labels,
+  };
+}
+
+const PNG_STAGE_STATUS: Record<PrintSizePngStage, string> = {
+  rendering: 'Rendering native-detail map tiles…',
+  composing: 'Composing native-detail map tiles…',
+  encoding: 'Encoding PNG…',
+};
+
+function reportPngStage(
+  stage: PrintSizePngStage | 'downloading',
+  setStatus: React.Dispatch<React.SetStateAction<string>>,
+): void {
+  if (stage !== 'downloading') setStatus(PNG_STAGE_STATUS[stage]);
+  window.dispatchEvent(new CustomEvent('printmap:png-export-stage', { detail: { stage } }));
+}
+
 type ExportDialogViewProps = {
   busy: boolean;
   cancelButtonRef: React.RefObject<HTMLButtonElement | null>;
@@ -82,7 +127,7 @@ function ExportDialogView(props: ExportDialogViewProps) {
           )}
           {preflight.estimates && <p>Estimated peak memory {formatBytes(preflight.estimates.peakBytes)}.</p>}
           <p>PNG physical-resolution metadata is not embedded.</p>
-          <p>This print-size preview resamples the current browser render; it does not create new map detail. Layered SVG and exact-page PDF embed a raster basemap while route, POI, and shape remain named vector overlays. Native high-resolution tile rendering remains an upcoming export stage.</p>
+          <p>The PNG renderer renders each map tile at its target pixel dimensions from the live vector map style instead of enlarging the browser preview. Layered SVG and exact-page PDF still embed a raster basemap while route, POI, and shape remain named vector overlays.</p>
           {preflight.errors.length > 0 && (
             <div className="export-error" role="alert">
               <strong>Export blocked</strong>
@@ -177,7 +222,7 @@ export function ExportDialog({ exporter, filename, document, onClose }: ExportDi
   };
 
   const download = async () => {
-    if (!exporter) {
+    if (!exporter?.createPrintTileRenderer) {
       setError('The live map preview is not ready yet. Wait for the map to load and try again.');
       return;
     }
@@ -185,20 +230,28 @@ export function ExportDialog({ exporter, filename, document, onClose }: ExportDi
     abortControllerRef.current = controller;
     setBusy(true);
     setError(null);
-    setStatus('Capturing the current browser render…');
-    let sourceSurface: HTMLCanvasElement | null = null;
+    setStatus('Rendering native-detail map tiles…');
     try {
-      const source = await exporter({ signal: controller.signal });
-      sourceSurface = source.surface;
+      if (!preflight.dimensions || !preflight.plan) throw new Error('Export preflight did not produce a target tile plan.');
+      const output = {
+        width: preflight.dimensions.widthPx,
+        height: preflight.dimensions.heightPx,
+      };
+      const exportPlan = createPrintTileExportPlan(
+        output, document, preflight.plan.tiles, controller.signal,
+      );
+      const renderTile = exporter.createPrintTileRenderer(exportPlan);
       const result = await createPrintSizePng({
-        source,
         preflight,
+        renderTile: ({ region, signal }) => renderTile({ output, region, signal }),
         signal: controller.signal,
+        onStage: (stage) => { reportPngStage(stage, setStatus); },
         onProgress: ({ completedTiles, totalTiles, fraction }) => {
           setStatus(`Composing PNG… ${completedTiles}/${totalTiles} tiles (${Math.round(fraction * 100)}%).`);
         },
       });
       try {
+        reportPngStage('downloading', setStatus);
         startPreviewDownload(result.blob, filename);
         setStatus(`Download started for ${result.width} × ${result.height} PNG.`);
       } finally {
@@ -213,10 +266,6 @@ export function ExportDialog({ exporter, filename, document, onClose }: ExportDi
         setStatus('Export failed.');
       }
     } finally {
-      if (sourceSurface) {
-        sourceSurface.width = 0;
-        sourceSurface.height = 0;
-      }
       if (abortControllerRef.current === controller) abortControllerRef.current = null;
       setBusy(false);
     }

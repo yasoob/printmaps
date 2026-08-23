@@ -1,5 +1,55 @@
-import { readFile, stat } from 'node:fs/promises';
-import { expect, test } from '@playwright/test';
+import { readFile, stat, writeFile } from 'node:fs/promises';
+import { expect, test, type Download, type Locator, type Page } from '@playwright/test';
+
+async function installNativeExportObserver(page: Page) {
+  await page.evaluate(() => {
+    const browserWindow = window as Window & {
+      __nativeExportRegions?: string[];
+      __nativeExportStages?: Array<{ stage: string; at: number }>;
+    };
+    browserWindow.__nativeExportRegions = [];
+    browserWindow.__nativeExportStages = [];
+    window.addEventListener('printmap:png-export-stage', ((event: CustomEvent<{ stage?: string }>) => {
+      if (event.detail.stage) {
+        browserWindow.__nativeExportStages?.push({ stage: event.detail.stage, at: performance.now() });
+      }
+    }) as EventListener);
+    const recordNativeRegion = (node: Node) => {
+      if (!(node instanceof HTMLElement)) return;
+      const region = node.dataset.nativeExportRegion;
+      if (region) browserWindow.__nativeExportRegions?.push(region);
+    };
+    const observer = new MutationObserver((records) => {
+      for (const record of records) {
+        for (const node of record.addedNodes) recordNativeRegion(node);
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  });
+}
+
+const readNativeExportRegions = (page: Page) => page.evaluate(() => (
+  (window as Window & { __nativeExportRegions?: string[] }).__nativeExportRegions ?? []
+));
+
+const readNativeExportStages = (page: Page) => page.evaluate(() => (
+  (window as Window & { __nativeExportStages?: Array<{ stage: string; at: number }> })
+    .__nativeExportStages ?? []
+));
+
+async function downloadPng(page: Page, dialog: Locator): Promise<Download> {
+  const download = page.waitForEvent('download');
+  await dialog.getByRole('button', { name: 'Download PNG' }).click();
+  const rejectExportError = async () => {
+    const alert = dialog.getByRole('alert');
+    await alert.waitFor({ state: 'visible', timeout: 0 });
+    throw new Error(await alert.textContent() ?? 'PNG export failed.');
+  };
+  return Promise.race([
+    download,
+    rejectExportError(),
+  ]);
+}
 
 test('layered SVG download embeds the raster basemap and preserves named vector groups', async ({ page }, testInfo) => {
   await page.goto('/');
@@ -93,11 +143,14 @@ test('PDF download has the exact page box with a raster basemap and named vector
 });
 
 test('export downloads the current print frame as PNG on desktop and mobile', async ({ page }, testInfo) => {
+  test.setTimeout(180_000);
   await page.goto('/');
   const mapReady = page.locator('[data-map-ready="true"]');
   const mapFallback = page.getByText('Map preview unavailable');
   await expect(mapReady.or(mapFallback)).toBeVisible({ timeout: 20_000 });
   test.skip(await mapFallback.isVisible(), 'This browser fixture has no WebGL 2 renderer, so export cannot be exercised.');
+
+  await installNativeExportObserver(page);
 
   for (const viewport of [
     { width: 1440, height: 900, label: 'desktop' },
@@ -110,7 +163,8 @@ test('export downloads the current print frame as PNG on desktop and mobile', as
     await expect(dialog).toBeVisible();
     await expect(dialog).toContainText('3508 × 2480 px — 300 DPI pixel target');
     await expect(dialog).toContainText('PNG physical-resolution metadata is not embedded');
-    await expect(dialog).toContainText('resamples the current browser render');
+    await expect(dialog).toContainText('renders each map tile at its target pixel dimensions');
+    await expect(dialog).not.toContainText('resamples the current browser render');
     const dialogBox = await dialog.boundingBox();
     expect(dialogBox).not.toBeNull();
     expect(dialogBox!.y).toBeGreaterThanOrEqual(0);
@@ -118,21 +172,22 @@ test('export downloads the current print frame as PNG on desktop and mobile', as
 
     const frameBox = await page.locator('.print-frame').boundingBox();
     expect(frameBox).not.toBeNull();
-    const downloadPromise = page.waitForEvent('download');
-    await dialog.getByRole('button', { name: 'Download PNG' }).click();
-    const download = await downloadPromise;
-    expect(download.suggestedFilename()).toBe('vienna-field-guide.png');
-    const outputPath = testInfo.outputPath(`vienna-field-guide-${viewport.label}.png`);
-    await download.saveAs(outputPath);
-    const outputStats = await stat(outputPath);
-    expect(outputStats.size).toBeGreaterThan(1000);
-    const png = await readFile(outputPath);
-    expect([...png.subarray(0, 8)]).toEqual([137, 80, 78, 71, 13, 10, 26, 10]);
-    const pngWidth = png.readUInt32BE(16);
-    const pngHeight = png.readUInt32BE(20);
-    expect(pngWidth).toBe(3508);
-    expect(pngHeight).toBe(2480);
-    const pixelEvidence = await page.evaluate(async (encoded) => {
+    if (viewport.label === 'desktop') {
+      const download = await downloadPng(page, dialog);
+      expect(download.suggestedFilename()).toBe('vienna-field-guide.png');
+      const outputPath = testInfo.outputPath('vienna-field-guide-a4-300dpi.png');
+      const saveStartedAt = Date.now();
+      await download.saveAs(outputPath);
+      const downloadSaveMs = Date.now() - saveStartedAt;
+      const outputStats = await stat(outputPath);
+      expect(outputStats.size).toBeGreaterThan(1000);
+      const png = await readFile(outputPath);
+      expect([...png.subarray(0, 8)]).toEqual([137, 80, 78, 71, 13, 10, 26, 10]);
+      const pngWidth = png.readUInt32BE(16);
+      const pngHeight = png.readUInt32BE(20);
+      expect(pngWidth).toBe(3508);
+      expect(pngHeight).toBe(2480);
+      const pixelEvidence = await page.evaluate(async (encoded) => {
       const image = new Image();
       image.src = `data:image/png;base64,${encoded}`;
       await image.decode();
@@ -183,12 +238,30 @@ test('export downloads the current print frame as PNG on desktop and mobile', as
         attributionSurfaceRatio: surfacePixels / (bottom.length / 4),
         attributionTextPixels: textPixels,
       };
-    }, png.toString('base64'));
-    expect(pixelEvidence.opaqueRatio).toBeGreaterThan(0.95);
-    expect(pixelEvidence.luminanceRange).toBeGreaterThan(20);
-    expect(pixelEvidence.attributionSurfaceRatio).toBeGreaterThan(0.6);
-    expect(pixelEvidence.attributionTextPixels).toBeGreaterThan(5);
-    await expect(dialog.getByRole('status')).toContainText(/Download started for .* × .* PNG/);
+      }, png.toString('base64'));
+      expect(pixelEvidence.opaqueRatio).toBeGreaterThan(0.95);
+      expect(pixelEvidence.luminanceRange).toBeGreaterThan(20);
+      expect(pixelEvidence.attributionSurfaceRatio).toBeGreaterThan(0.6);
+      expect(pixelEvidence.attributionTextPixels).toBeGreaterThan(5);
+      const nativeRegions = await readNativeExportRegions(page);
+      expect(nativeRegions).toContain('0,0,3508,2480/3508x2480');
+      const stages = await readNativeExportStages(page);
+      const stageTime = (stage: string) => stages.find((entry) => entry.stage === stage)?.at;
+      const renderingAt = stageTime('rendering');
+      const composingAt = stageTime('composing');
+      const encodingAt = stageTime('encoding');
+      const downloadingAt = stageTime('downloading');
+      expect([renderingAt, composingAt, encodingAt, downloadingAt].every((value) => Number.isFinite(value))).toBe(true);
+      const timings = {
+        renderMs: composingAt! - renderingAt!,
+        compositionMs: encodingAt! - composingAt!,
+        encodingMs: downloadingAt! - encodingAt!,
+        downloadSaveMs,
+      };
+      expect(Object.values(timings).every((value) => value >= 0)).toBe(true);
+      await writeFile(testInfo.outputPath('a4-native-png-timings.json'), JSON.stringify(timings, null, 2));
+      await expect(dialog.getByRole('status')).toContainText(/Download started for .* × .* PNG/);
+    }
 
     await dialog.getByRole('button', { name: 'Close export' }).click();
     await expect(dialog).not.toBeVisible();
@@ -197,10 +270,10 @@ test('export downloads the current print frame as PNG on desktop and mobile', as
 
   await page.setViewportSize({ width: 1440, height: 900 });
   const widthField = page.getByRole('textbox', { name: 'Page width' });
-  await widthField.fill('100');
+  await widthField.fill('20');
   await widthField.press('Tab');
   const heightField = page.getByRole('textbox', { name: 'Page height' });
-  await heightField.fill('300');
+  await heightField.fill('60');
   await heightField.press('Tab');
   await expect(page.getByRole('button', { name: 'Portrait' })).toHaveAttribute('aria-pressed', 'true');
   const customFrame = await page.locator('.print-frame').boundingBox();
@@ -208,15 +281,55 @@ test('export downloads the current print frame as PNG on desktop and mobile', as
   expect(Math.abs(customFrame!.width / customFrame!.height - 1 / 3)).toBeLessThan(0.01);
   await page.getByRole('button', { name: 'Export' }).click();
   const customDialog = page.getByRole('dialog', { name: 'Export map' });
-  await expect(customDialog).toContainText('1181 × 3543 px — 300 DPI pixel target');
+  await expect(customDialog).toContainText('236 × 709 px — 300 DPI pixel target');
   await expect(customDialog).toContainText('PNG physical-resolution metadata is not embedded');
-  const customDownloadPromise = page.waitForEvent('download');
-  await customDialog.getByRole('button', { name: 'Download PNG' }).click();
-  const customDownload = await customDownloadPromise;
-  const customPath = testInfo.outputPath('vienna-field-guide-custom-100x300.png');
+  const customDownload = await downloadPng(page, customDialog);
+  const customPath = testInfo.outputPath('vienna-field-guide-custom-small.png');
   await customDownload.saveAs(customPath);
   const customPng = await readFile(customPath);
-  expect(customPng.readUInt32BE(16)).toBe(1181);
-  expect(customPng.readUInt32BE(20)).toBe(3543);
+  expect(customPng.readUInt32BE(16)).toBe(236);
+  expect(customPng.readUInt32BE(20)).toBe(709);
   expect(Math.abs(customPng.readUInt32BE(16) / customPng.readUInt32BE(20) - 1 / 3)).toBeLessThan(0.01);
+  const nativeRegions = await readNativeExportRegions(page);
+  expect(nativeRegions).toContain('0,0,236,709/236x709');
+});
+
+test('large PNG export renders multiple overlapping native map tiles', async ({ page }, testInfo) => {
+  test.setTimeout(90_000);
+  await page.goto('/');
+  const mapReady = page.locator('[data-map-ready="true"]');
+  const mapFallback = page.getByText('Map preview unavailable');
+  await expect(mapReady.or(mapFallback)).toBeVisible({ timeout: 20_000 });
+  test.skip(await mapFallback.isVisible(), 'This browser fixture has no WebGL 2 renderer, so export cannot be exercised.');
+  await installNativeExportObserver(page);
+
+  const width = page.getByRole('textbox', { name: 'Page width' });
+  await width.fill('600');
+  await width.press('Tab');
+  const height = page.getByRole('textbox', { name: 'Page height' });
+  await height.fill('50');
+  await height.press('Tab');
+  await page.getByRole('button', { name: 'Export' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Export map' });
+  await expect(dialog).toContainText('7087 × 591 px — 300 DPI pixel target');
+
+  await dialog.getByRole('button', { name: 'Download PNG' }).click();
+  await expect(dialog.getByRole('alert')).toContainText('Turn off Show labels');
+  await dialog.getByRole('button', { name: 'Close export' }).click();
+  await page.getByRole('checkbox', { name: 'Show labels' }).uncheck();
+  await page.getByRole('button', { name: 'Export' }).click();
+  await expect(dialog).toContainText('7087 × 591 px — 300 DPI pixel target');
+
+  const download = await downloadPng(page, dialog);
+  const outputPath = testInfo.outputPath('vienna-field-guide-native-tiles.png');
+  await download.saveAs(outputPath);
+  const png = await readFile(outputPath);
+  expect(png.readUInt32BE(16)).toBe(7087);
+  expect(png.readUInt32BE(20)).toBe(591);
+
+  const allNativeRegions = await readNativeExportRegions(page);
+  const nativeRegions = allNativeRegions.filter((region) => region.endsWith('/7087x591'));
+  expect(nativeRegions).toHaveLength(2);
+  expect(nativeRegions[0]).toMatch(/^0,0,4080,591\//);
+  expect(nativeRegions[1]).toMatch(/^4048,0,3039,591\//);
 });

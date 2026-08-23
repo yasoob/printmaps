@@ -1,12 +1,9 @@
 import type { Dispatch, SetStateAction } from 'react';
 import { AttributionControl, Map, NavigationControl, type Map as MapLibreMap } from 'maplibre-gl';
 import { capturePrintFramePng, type PreviewPngExporter } from '../export/previewPng';
-import {
-  createMapLibreContentAdapter,
-  type MapContentAdapter,
-  type MapContentState,
-} from './MapContentAdapter';
+import { createMapLibreContentAdapter, type MapContentAdapter, type MapContentState } from './MapContentAdapter';
 import { captureBasemapOnly } from './MapExportCapture';
+import { createNativePrintTileRenderer } from './NativeMapExport';
 
 export type MapError = {
   kind: 'content' | 'renderer' | 'style';
@@ -193,6 +190,10 @@ function createMapEventHandlers(
       },
     );
   };
+  exportPreview.createPrintTileRenderer = createNativePrintTileRenderer(map, () => references.container.current
+    ?.parentElement?.querySelector<HTMLElement>('.print-frame'), () => references.contentState.current.layers, () => !references.mapFailed.current
+    && references.contentReady.current && references.map.current === map
+    && references.availableExporter.current === exportPreview);
   const handleLoad = () => {
     state.isStyleLoaded = true;
     const container = references.container.current;

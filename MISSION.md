@@ -24,6 +24,8 @@ The mission is complete only when all of the following are true:
 
 ## Current scope order
 
+**Feature-breadth priority:** deliver all important user-visible Printmaps parity workflows before prolonged optimization or polish of any one completed workflow. Once a slice is correct, safe, and passes its targeted acceptance gate, commit it and move to the next parity gap. Defer micro-optimization unless it blocks practical use.
+
 1. Vertical shell: editor layout, map, project/layer selection, tests.
 2. Project document, layers, undo/redo and persistence.
 3. Route/POI/shape tools and Mapbox provider adapter.
@@ -49,7 +51,8 @@ This product is not deployed and has no compatibility obligation to earlier deve
 3. Select one highest-value unresolved vertical slice.
 4. Follow strict RED → GREEN → REFACTOR: write one falsifiable test first and run it to observe the expected failure.
 5. Implement the smallest complete slice. Add or update tests for **every UI interaction introduced or changed** in that slice, including pointer, keyboard, selection/focus, disabled/error, and responsive behavior where applicable.
-6. Use tiered verification. During implementation run focused tests, lint, typecheck, React Doctor, and impacted Chromium interaction coverage. Run the full unit suite, build, audit and all-browser Playwright suite for cross-cutting map/export/persistence changes, after every three verified feature slices, and for the final completion gate.
+6. Use strict targeted verification for every feature slice: run only the exact RED/GREEN unit or component tests for changed behavior, lint, typecheck, React Doctor, and the single impacted Chromium interaction flow. Do not run the full unit suite, full Chromium suite, Firefox, or WebKit as a per-feature gate. Batch the full unit suite, build, audit, and full Chromium suite after five verified slices or at a major milestone. Run Firefox and WebKit only at the final completion/release gate or for a specifically browser-dependent defect.
+   - Export tests must not perform the same full-resolution download at multiple responsive viewports. Use lightweight/small raster fixtures for layout and interaction checks, keep one real A4 300-DPI acceptance export, and keep the large multi-region export for milestone gates. Measure one-save render, composition, encoding, and download timings separately; do not report a multi-export suite duration as one-save latency.
 7. Capture the UI at 1440×900 when visible behavior or layout changes, and at 390×844 when responsive behavior changes. For nonvisual slices, retain the last verified screenshots rather than recapturing identical UI.
 8. Update `docs/FINDINGS.md` with evidence, screenshot path when changed, and unresolved risks.
 9. Run one independent fail-closed review for multi-file/high-risk changes. If blockers are found, fix them and perform one bounded recheck of those findings instead of recursively restarting complete reviews.

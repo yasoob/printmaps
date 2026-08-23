@@ -30,7 +30,11 @@ test('Mapbox public-token origin check fails actionably and succeeds on retry', 
   });
 
   await page.goto('/');
-  await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
+  const mapReady = page.locator('[data-map-ready="true"]');
+  const mapFallback = page.getByText('Map preview unavailable');
+  await expect(mapReady.or(mapFallback)).toBeVisible({ timeout: 20_000 });
+  test.skip(await mapFallback.isVisible(), 'This browser runtime has no WebGL 2 renderer, so the live-map configuration flow cannot be verified.');
+  await expect(mapReady).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Mapbox services' })).toBeVisible();
   await expect(page.getByText(PUBLIC_TEST_TOKEN)).toHaveCount(0);
 
@@ -44,7 +48,7 @@ test('Mapbox public-token origin check fails actionably and succeeds on retry', 
     'Mapbox accepted this public token from http://127.0.0.1:4175',
   );
   await expect(page.getByText(PUBLIC_TEST_TOKEN)).toHaveCount(0);
-  await expect(page.locator('[data-map-ready="true"]')).toBeVisible();
+  await expect(mapReady).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('mapbox-configuration.png'), fullPage: true });
   expect(attempts).toBe(2);
   expect(consoleProblems).toEqual([]);

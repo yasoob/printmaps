@@ -13,7 +13,7 @@ type FeatureVisibilityMap = {
 };
 
 type ControlledLayer = {
-  category: MapFeatureVisibilityCategory;
+  categories: MapFeatureVisibilityCategory[];
   id: string;
   originalVisibility: 'none' | 'visible';
 };
@@ -24,11 +24,21 @@ function isRailTransportationLayer(layerId: string) {
   return layerId.split(/[-_]/).some((token) => RAIL_LAYER_TOKENS.has(token));
 }
 
-function categoryForLayer(layer: StyleLayer): MapFeatureVisibilityCategory | null {
-  if (layer.type === 'symbol' && layer.layout?.['text-field'] !== undefined) return 'labels';
-  if (layer['source-layer'] === 'transportation' && !isRailTransportationLayer(layer.id)) return 'roads';
-  if (layer['source-layer'] === 'building') return 'buildings';
-  return null;
+function categoriesForLayer(layer: StyleLayer): MapFeatureVisibilityCategory[] {
+  if (layer.type === 'symbol') {
+    const categories: MapFeatureVisibilityCategory[] = ['labels'];
+    if (
+      layer.layout?.['text-field'] === undefined
+      && layer['source-layer'] === 'transportation'
+      && !isRailTransportationLayer(layer.id)
+    ) {
+      categories.push('roads');
+    }
+    return categories;
+  }
+  if (layer['source-layer'] === 'transportation' && !isRailTransportationLayer(layer.id)) return ['roads'];
+  if (layer['source-layer'] === 'building') return ['buildings'];
+  return [];
 }
 
 function isCategoryVisible(visibility: MapFeatureVisibility, category: MapFeatureVisibilityCategory) {
@@ -43,10 +53,10 @@ export function createMapFeatureVisibilityController(map: FeatureVisibilityMap) 
   const controlledLayers: ControlledLayer[] = [];
   const styleLayers = map.getStyle().layers ?? [];
   for (const layer of styleLayers) {
-    const category = categoryForLayer(layer);
-    if (!category) continue;
+    const categories = categoriesForLayer(layer);
+    if (categories.length === 0) continue;
     controlledLayers.push({
-      category,
+      categories,
       id: layer.id,
       originalVisibility: layer.layout?.visibility === 'none' ? 'none' : 'visible',
     });
@@ -58,7 +68,9 @@ export function createMapFeatureVisibilityController(map: FeatureVisibilityMap) 
         map.setLayoutProperty(
           layer.id,
           'visibility',
-          isCategoryVisible(visibility, layer.category) ? layer.originalVisibility : 'none',
+          layer.categories.every((category) => isCategoryVisible(visibility, category))
+            ? layer.originalVisibility
+            : 'none',
         );
       }
     },
