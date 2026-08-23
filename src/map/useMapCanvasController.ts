@@ -15,9 +15,11 @@ import { useMapLanguage } from './useMapLanguage';
 import { useMapTextScale } from './useMapTextScale';
 import { useMapFitRequests } from './useMapFitRequests';
 import type { MapBounds } from './MapLayerBounds';
-import { setMapInteractionLock } from './MapInteractionLock';
+
 import type { MapLocationRequest } from './MapLocationRequest';
 import { useMapLocationRequest } from './useMapLocationRequest';
+import { useMapCameraSynchronization } from './useMapCameraSynchronization';
+import type { CameraViewportChangeMode } from './MapCameraViewport';
 
 type MapCanvasControllerOptions = {
   camera: CameraSettings;
@@ -36,6 +38,7 @@ type MapCanvasControllerOptions = {
   onBackgroundClick: () => void;
   onExporterChange?: (exporter: PreviewPngExporter | null) => void;
   onLayerSelect: (id: string) => void;
+  onCameraViewportChange?: (center: readonly [number, number], zoom: number, mode: CameraViewportChangeMode) => void;
   onMapClick?: (coordinate: [number, number]) => void;
   previewedId: string | null;
   selectedId: string | null;
@@ -65,6 +68,7 @@ export function useMapCanvasController({
   onBackgroundClick,
   onExporterChange,
   onLayerSelect,
+  onCameraViewportChange,
   onMapClick,
   previewedId,
   selectedId,
@@ -75,6 +79,9 @@ export function useMapCanvasController({
   const contentState = useRef<MapContentState>({ layers, assets, selectedId, previewedId, contentRevision });
   const contentSyncDeferred = useRef(false), contentReady = useRef(false), mapFailed = useRef(false);
   const layerSelect = useRef(onLayerSelect), backgroundClick = useRef(onBackgroundClick), mapClick = useRef(onMapClick);
+  const cameraViewportChange = useRef(onCameraViewportChange);
+  const cameraViewportChangeMode = useRef<CameraViewportChangeMode>('history');
+  const cameraState = useRef(camera);
   const exporterChange = useRef(onExporterChange);
   const availableExporter = useRef<PreviewPngExporter | null>(null);
   const [mapError, setMapError] = useState<MapError | null>(null), [contentError, setContentError] = useState<ContentError | null>(null);
@@ -108,10 +115,12 @@ export function useMapCanvasController({
   }, [invalidateExporter]);
 
   useLayoutEffect(() => {
+    cameraState.current = camera;
     backgroundClick.current = onBackgroundClick;
+    cameraViewportChange.current = onCameraViewportChange;
     layerSelect.current = onLayerSelect;
     mapClick.current = onMapClick;
-  }, [onBackgroundClick, onLayerSelect, onMapClick]);
+  }, [camera, onBackgroundClick, onCameraViewportChange, onLayerSelect, onMapClick]);
 
   useEffect(() => {
     exporterChange.current = onExporterChange;
@@ -137,9 +146,12 @@ export function useMapCanvasController({
     container.current?.setAttribute('data-style-preset', stylePreset);
     return startMapLifecycle({
       handleContentSyncResult,
+      initialCamera: cameraState.current,
       references: {
         availableExporter,
         backgroundClick,
+        cameraViewportChange,
+        cameraViewportChangeMode,
         container,
         contentAdapter,
         contentReady,
@@ -157,20 +169,11 @@ export function useMapCanvasController({
       setMapError,
       styleUrl: mapStyleUrl(stylePreset),
     });
-  }, [handleContentSyncResult, invalidateExporter, resetFeatureVisibility, resetMapLanguage, resetTextScale, stylePreset, synchronizeFeatureVisibility, synchronizeMapLanguage, synchronizeTextScale]);
+  }, [cameraState, handleContentSyncResult, invalidateExporter, resetFeatureVisibility, resetMapLanguage, resetTextScale, stylePreset, synchronizeFeatureVisibility, synchronizeMapLanguage, synchronizeTextScale]);
 
-  useEffect(() => {
-    if (!map.current) return;
-    map.current.jumpTo({ bearing: camera.bearing, pitch: camera.pitch });
-    container.current?.setAttribute('data-map-bearing', String(camera.bearing));
-    container.current?.setAttribute('data-map-pitch', String(camera.pitch));
-  }, [camera.bearing, camera.pitch, stylePreset]);
-  useEffect(() => {
-    if (!map.current) return;
-    setMapInteractionLock(map.current, camera.locked);
-  }, [camera.locked, stylePreset]);
+  useMapCameraSynchronization({ camera, container, map, stylePreset });
   useMapLocationRequest({ container, locationRequest, map, stylePreset });
-  useMapFitRequests({ camera, container, fitImportBounds, fitImportRequest, fitLayerId, fitLayerRequest, fitRequest, layers, map });
+  useMapFitRequests({ camera, cameraViewportChangeMode, container, fitImportBounds, fitImportRequest, fitLayerId, fitLayerRequest, fitRequest, layers, map });
 
 
   return { container, visibleError: mapError ?? contentError };

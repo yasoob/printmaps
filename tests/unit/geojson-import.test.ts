@@ -108,8 +108,8 @@ describe('GeoJSON import', () => {
       type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [181, 0] },
     }), 'longitude must be between -180 and 180'],
     ['an out-of-range latitude', JSON.stringify({
-      type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [0, -91] },
-    }), 'latitude must be between -90 and 90'],
+      type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [0, 86] },
+    }), 'latitude must be between -85.051129 and 85.051129'],
   ])('rejects %s without returning a partial import', (_name, text, message) => {
     expect(() => parseGeoJsonText(text)).toThrow(message);
   });

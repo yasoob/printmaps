@@ -1,5 +1,6 @@
 import {
   createDefaultLayerAppearance,
+  MAX_MERCATOR_LATITUDE,
   type ContentLayer,
   type LayerGeometry,
   type LayerType,
@@ -51,8 +52,8 @@ function positionAt(
   if (Math.abs(longitude) > 180) {
     throw new GeoJsonImportError(`${label} longitude must be between -180 and 180.`);
   }
-  if (Math.abs(latitude) > 90) {
-    throw new GeoJsonImportError(`${label} latitude must be between -90 and 90.`);
+  if (Math.abs(latitude) > MAX_MERCATOR_LATITUDE) {
+    throw new GeoJsonImportError(`${label} latitude must be between -${MAX_MERCATOR_LATITUDE} and ${MAX_MERCATOR_LATITUDE}.`);
   }
   coordinateCount.value += 1;
   if (coordinateCount.value > MAX_GEOJSON_COORDINATES) {

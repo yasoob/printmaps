@@ -155,7 +155,7 @@ describe('GPX and KML import', () => {
     ['a KML point with two positions', '<kml><Placemark><Point><coordinates>0,0 1,1</coordinates></Point></Placemark></kml>', parseKmlText, 'exactly one position'],
     ['a short KML line', '<kml><Placemark><LineString><coordinates>0,0</coordinates></LineString></Placemark></kml>', parseKmlText, 'needs at least two positions'],
     ['an open KML polygon', '<kml><Placemark><Polygon><outerBoundaryIs><LinearRing><coordinates>0,0 1,0 1,1 0,1</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark></kml>', parseKmlText, 'must end at its starting position'],
-    ['an out-of-range KML latitude', '<kml><Placemark><Point><coordinates>0,-91</coordinates></Point></Placemark></kml>', parseKmlText, 'latitude must be between -90 and 90'],
+    ['an out-of-range KML latitude', '<kml><Placemark><Point><coordinates>0,86</coordinates></Point></Placemark></kml>', parseKmlText, 'latitude must be between -85.051129 and 85.051129'],
   ])('rejects %s without returning a partial import', (_case, text, parse, message) => {
     expect(() => parse(text)).toThrow(message);
   });

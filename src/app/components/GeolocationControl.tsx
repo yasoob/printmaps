@@ -1,5 +1,6 @@
 import { LocateFixed } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { MAX_MERCATOR_LATITUDE } from '../../domain/project';
 
 type GeolocationControlProps = {
   locked: boolean;
@@ -51,7 +52,7 @@ export function GeolocationControl({ locked, onLocate, requestScope = 0 }: Geolo
       if (requestId.current !== currentRequest) return;
       const { latitude, longitude } = position.coords;
       if (!Number.isFinite(longitude) || !Number.isFinite(latitude)
-        || Math.abs(longitude) > 180 || Math.abs(latitude) > 90) {
+        || Math.abs(longitude) > 180 || Math.abs(latitude) > MAX_MERCATOR_LATITUDE) {
         setStatus({ kind: 'error', message: 'Your browser returned an invalid location. Try again.' });
         return;
       }

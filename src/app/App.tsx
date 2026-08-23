@@ -114,7 +114,7 @@ export function App({ autosaveRepository }: AppProps = {}) {
           activePanel={modal.mobilePanel}
           layersTriggerRef={mobile.layersTriggerRef}
           propertiesTriggerRef={mobile.propertiesTriggerRef}
-          onLayerSelect={project.selectLayer}
+          onLayerSelect={project.selectLayer} onCameraViewportChange={project.setCameraViewport}
           onCreateAdministrativeArea={project.createAdministrativeArea}
           onCreateAdministrativeAreas={project.createAdministrativeAreas}
           onCreatePoi={project.createPoi}

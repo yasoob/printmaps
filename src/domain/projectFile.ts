@@ -1,4 +1,5 @@
 import {
+  MAX_MERCATOR_LATITUDE,
   PROJECT_SCHEMA_VERSION,
   type ContentLayer,
   type LayerGeometry,
@@ -9,6 +10,7 @@ import {
   type PagePreset,
   type ProjectDocument,
 } from './project';
+import { parseProjectCamera } from './projectCamera';
 import { parseLayerAppearance, type LayerAppearance } from './layerAppearance';
 import type { CustomMarkerAsset } from './customMarkerAssets';
 import { parseProjectAssets } from './projectAssets';
@@ -76,8 +78,8 @@ function positionAt(value: unknown, label: string, coordinateCount: { value: num
   if (Math.abs(longitude) > 180) {
     throw new ProjectFileError(`${label} longitude must be between -180 and 180.`);
   }
-  if (Math.abs(latitude) > 90) {
-    throw new ProjectFileError(`${label} latitude must be between -90 and 90.`);
+  if (Math.abs(latitude) > MAX_MERCATOR_LATITUDE) {
+    throw new ProjectFileError(`${label} latitude must be between -${MAX_MERCATOR_LATITUDE} and ${MAX_MERCATOR_LATITUDE}.`);
   }
   coordinateCount.value += 1;
   if (coordinateCount.value > MAX_PROJECT_COORDINATES) {
@@ -228,19 +230,6 @@ function pageAt(value: unknown): ProjectDocument['page'] {
   return { preset, ...base };
 }
 
-function cameraAt(value: unknown): ProjectDocument['camera'] {
-  const camera = objectAt(value, 'Project camera');
-  const bearing = finiteNumber(camera.bearing, 'Camera bearing');
-  if (Math.abs(bearing) > 180) {
-    throw new ProjectFileError('Camera bearing must be between -180 and 180.');
-  }
-  const pitch = finiteNumber(camera.pitch, 'Camera pitch');
-  if (pitch < 0 || pitch > 60) {
-    throw new ProjectFileError('Camera pitch must be between 0 and 60.');
-  }
-  return { bearing, locked: booleanAt(camera.locked, 'Map area lock state'), pitch };
-}
-
 function styleAt(value: unknown): ProjectDocument['style'] {
   const style = objectAt(value, 'Project style');
   if (typeof style.preset !== 'string' || !MAP_STYLE_PRESETS.has(style.preset as MapStylePreset)) {
@@ -272,7 +261,7 @@ function currentDocumentAt(value: unknown): ProjectDocument {
   const root = objectAt(value, 'Project file');
   const schemaVersion = root.schemaVersion;
   if (!isCurrentSchemaVersion(schemaVersion)) {
-    if (typeof schemaVersion === 'number' && schemaVersion >= 1 && schemaVersion <= 13) {
+    if (typeof schemaVersion === 'number' && schemaVersion >= 1 && schemaVersion <= 14) {
       throw new ProjectFileError(
         `Schema version ${schemaVersion} is obsolete. Start a new project or reopen a current Print Map Studio file.`,
       );
@@ -302,7 +291,7 @@ function currentDocumentAt(value: unknown): ProjectDocument {
     schemaVersion,
     ...common,
     page: pageAt(root.page),
-    camera: cameraAt(root.camera),
+    camera: parseProjectCamera(root.camera, (message) => { throw new ProjectFileError(message); }),
     style: styleAt(root.style),
   } satisfies ProjectDocument;
 }

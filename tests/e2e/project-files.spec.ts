@@ -3,8 +3,13 @@ import path from 'node:path';
 import { expect, test } from '@playwright/test';
 import { strFromU8, unzipSync } from 'fflate';
 
-test('Save downloads the current project as portable versioned JSON', async ({ page }, testInfo) => {
+test('Save downloads the current project as portable versioned JSON', async ({ context, page }, testInfo) => {
+  await context.grantPermissions(['geolocation'], { origin: 'http://127.0.0.1:4175' });
+  await context.setGeolocation({ longitude: 16.41, latitude: 48.23 });
   await page.goto('/');
+  await page.getByRole('button', { name: 'Use my location' }).click();
+  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-center', '16.41,48.23');
+  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-zoom', '14');
   await page.getByRole('textbox', { name: 'Bearing' }).fill('35');
   await page.getByRole('textbox', { name: 'Pitch' }).fill('40');
   await page.getByRole('textbox', { name: 'Pitch' }).press('Tab');
@@ -25,11 +30,11 @@ test('Save downloads the current project as portable versioned JSON', async ({ p
   await download.saveAs(outputPath);
   const savedProject = JSON.parse(await readFile(outputPath, 'utf8'));
   expect(savedProject).toMatchObject({
-    schemaVersion: 14,
+    schemaVersion: 15,
     id: 'vienna-field-guide',
     title: 'Vienna field guide',
     page: { preset: 'A4', widthMm: 210, heightMm: 297, orientation: 'portrait' },
-    camera: { bearing: 35, locked: false, pitch: 40 },
+    camera: { bearing: 35, center: [16.41, 48.23], locked: false, pitch: 40, zoom: 14 },
     style: {
       preset: 'positron',
       language: 'de',
@@ -77,8 +82,8 @@ test('Save ZIP downloads a deterministic archive that Open restores as a fresh p
     assets: [],
   });
   expect(JSON.parse(strFromU8(entries['project.printmap.json']))).toMatchObject({
-    schemaVersion: 14,
-    camera: { bearing: 35, locked: false, pitch: 0 },
+    schemaVersion: 15,
+    camera: { bearing: 35, center: [16.3725, 48.2084], locked: false, pitch: 0, zoom: 11.2 },
     style: {
       language: 'local',
       visibility: { roads: false, buildings: true, labels: true, water: true, parks: true, landuse: true, transit: true },
@@ -105,7 +110,7 @@ test('opens a validated portable project as a focused fresh history root', async
   await page.getByRole('button', { name: 'Select Route 01' }).click();
   await expect(page.getByRole('button', { name: 'Undo' })).toBeEnabled();
   const alpineProject = JSON.parse(await readFile(path.resolve('tests/fixtures/alpine-poster.printmap.json'), 'utf8'));
-  alpineProject.camera = { bearing: -20, locked: true, pitch: 35 };
+  alpineProject.camera = { bearing: -20, center: [11.34, 47.31], locked: true, pitch: 35, zoom: 13.5 };
   alpineProject.style = {
     preset: 'positron',
     language: 'de',
@@ -141,6 +146,8 @@ test('opens a validated portable project as a focused fresh history root', async
   await expect(page.getByRole('checkbox', { name: 'Show labels' })).not.toBeChecked();
   await expect(page.getByRole('checkbox', { name: 'Show water' })).not.toBeChecked();
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-style-preset', 'positron');
+  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-center', '11.34,47.31');
+  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-zoom', '13.5');
   if (browserName !== 'firefox') {
     await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-text-scale', '150');
     await expect(page.getByTestId('map-canvas')).toHaveAttribute(

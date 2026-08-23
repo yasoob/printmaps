@@ -12,6 +12,7 @@ export function useMapLocationCommand(documentEpoch: number) {
         coordinate,
         onApplied,
         request: current.documentEpoch === documentEpoch ? current.request.request + 1 : 1,
+        scope: documentEpoch,
       },
     }));
   }, [documentEpoch]);

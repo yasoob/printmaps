@@ -20,10 +20,13 @@ vi.mock('maplibre-gl', () => {
   class MockMap {
     private readonly mapIndex = mocks.mapCount++;
     private readonly handlers: Record<string, Array<(event?: unknown) => void>> = {};
+    boxZoom = { disable: vi.fn(), enable: vi.fn() }; doubleClickZoom = { disable: vi.fn(), enable: vi.fn() }; dragPan = { disable: vi.fn(), enable: vi.fn() }; dragRotate = { disable: vi.fn(), enable: vi.fn() };
+    keyboard = { disable: vi.fn(), enable: vi.fn() }; scrollZoom = { disable: vi.fn(), enable: vi.fn() }; touchPitch = { disable: vi.fn(), enable: vi.fn() }; touchZoomRotate = { disable: vi.fn(), enable: vi.fn() };
     constructor() { mocks.mapHandlers.push(this.handlers); }
     addControl() {}
     fitBounds() {}
     getCanvas() { return document.createElement('canvas'); }
+    getContainer() { return document.createElement('div'); }
     getStyle() {
       return {
         layers: [

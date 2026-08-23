@@ -243,6 +243,19 @@ describe('editor map detail and page commands', () => {
     expect(screen.getByText('Unlock the map area to use your location.')).toBeInTheDocument();
   });
 
+  it('stores a finished map movement and restores the prior viewport with Undo', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const map = screen.getByTestId('map-canvas');
+    expect(map).toHaveAttribute('data-camera', '16.3725,48.2084,11.2,0,0');
+
+    await user.click(screen.getByRole('button', { name: 'Finish map movement' }));
+
+    expect(map).toHaveAttribute('data-camera', '16.41,48.23,13.5,0,0');
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(map).toHaveAttribute('data-camera', '16.3725,48.2084,11.2,0,0');
+  });
+
   it('toggles a map feature category as one undoable change', async () => {
     const user = userEvent.setup();
     render(<App />);

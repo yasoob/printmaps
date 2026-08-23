@@ -685,6 +685,26 @@
 - Browser evidence: refreshed exact 1440×900 `docs/screenshots/latest-desktop.png`, SHA-256 `8cdf0a35881bc512cdac655445922ccaad976d87087b57bb149d2e113f4a258d`. Live inspection reported a ready map, zero body overflow, gradients, shadows, console errors and page errors. Downscaled visual review found the new controls legible with no material clipping, overlap, blank map, toolbar collision or hierarchy defect.
 - This is the fourth slice after the administrative-area full milestone, so the prior full unit/build/audit/full-Chromium evidence remains retained under the five-slice policy. `docs/COMPLETE.md` remains absent.
 
+### 2026-08-23 — Canonical viewport framing persistence (verified)
+
+- Added schema-15 canonical map center and zoom alongside bearing, pitch and lock state. Finished manual map movement now commits one normalized six-decimal viewport transaction; Undo/Redo, JSON/ZIP, IndexedDB autosave/recovery and native print snapshots all consume the same document state.
+- MapLibre starts every style lifecycle at the canonical camera. Style changes no longer replay an earlier browser-location request, while a fresh request with the same sequence number remains valid after project Open because request identity is scoped to the document epoch.
+- Fit page remains a standalone undoable camera action. Administrative-area and imported-content fits amend their initiating layer transaction, so one Undo still removes the created/imported content and restores the previous framing instead of consuming a camera-only history step.
+- All map-owned coordinates now fail closed at the Web Mercator latitude limit (`±85.051129`) before reaching MapLibre: browser geolocation, direct map requests, portable projects, GeoJSON, GPX/KML, POI spreadsheet rows, route/shape/POI store authoring and fit bounds share the same boundary. Wrapped world longitudes normalize into the canonical range.
+- Applied the pre-release schema policy directly: schema 15 is current and schema 14 is rejected as obsolete; the Alpine fixture and every explicit browser schema assertion were updated atomically without a migration chain.
+- Strict RED/GREEN evidence included the missing viewport store action, absent moveend publication, missing App wiring, schema-14 acceptance, non-Mercator camera/fit acceptance, wrapped longitude, renderer precision feedback, style-lifecycle initialization, location replay after style changes, direct invalid-location acknowledgement, document-scope request reuse and import-fit Undo being consumed by a separate camera transaction. Each focused failure passed after its minimal correction.
+- The initial independent fail-closed review found two blocker classes: stale geolocation replay on style recreation and inconsistent non-Mercator validation. The one bounded recheck confirmed the broad remediation but caught one remaining direct invalid request being acknowledged without map movement; a final RED regression reproduced it and the boolean application boundary now withholds both applied state and success. Both reviews reported no security concern.
+- Fresh final milestone verification on the current tree:
+  - `npm test -- --run` — pass, 71 files / 565 tests.
+  - `npm run typecheck` — pass.
+  - `npm run lint` — pass, zero warnings.
+  - `npm run doctor` — pass, no issues; telemetry disabled.
+  - `npm run build` — pass; the known ~1.39 MB pre-gzip bundle warning remains.
+  - `npm audit --omit=dev` — 0 vulnerabilities.
+  - `npm run test:e2e -- --project=chromium --workers=1` — 40/40 pass serially, including geolocation → style → Save, schema-15 Open/style recreation and multi-file import Fit → one-step Undo.
+- Browser evidence: `docs/screenshots/latest-desktop.png` remains a current exact 1440×900 capture, SHA-256 `8cdf0a35881bc512cdac655445922ccaad976d87087b57bb149d2e113f4a258d`. The rendered default viewport reports center `16.3725,48.2084`, zoom `11.2`, map-ready state, zero body overflow and an empty application console/page-error buffer. Downscaled visual review found no clipping, overlap, blank map, gradient, decorative shadow or hierarchy defect.
+- `docs/FEATURE_PARITY.md` now records framing persistence as implemented and keeps provider-backed address search/road snapping explicitly gated by the accepted Mapbox display/storage decision. `docs/COMPLETE.md` remains absent because the final three-engine completion gate and remaining parity breadth are still open.
+
 ## Next unresolved slice
 
-Make viewport center/zoom canonical and transaction-safe so manual framing, fit commands and geolocation survive save/open, autosave recovery and style recreation exactly.
+Expand the integrated elevation-profile workflow with metric/imperial units and coherent route/profile styling controls, preserving attributed SVG/PNG/PDF output and the existing external-service disclosure.

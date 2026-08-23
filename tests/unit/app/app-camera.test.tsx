@@ -15,16 +15,16 @@ describe('project camera properties', () => {
     await user.clear(bearing);
     await user.type(bearing, '35');
     expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
-    expect(map).toHaveAttribute('data-camera', '0,0');
+    expect(map).toHaveAttribute('data-camera', '16.3725,48.2084,11.2,0,0');
     await user.tab();
 
-    expect(map).toHaveAttribute('data-camera', '35,0');
+    expect(map).toHaveAttribute('data-camera', '16.3725,48.2084,11.2,35,0');
     expect(screen.getByRole('button', { name: 'Undo' })).toBeEnabled();
 
     await user.clear(pitch);
     await user.type(pitch, '40');
     await user.tab();
-    expect(map).toHaveAttribute('data-camera', '35,40');
+    expect(map).toHaveAttribute('data-camera', '16.3725,48.2084,11.2,35,40');
   });
 
   it('marks an out-of-range camera draft invalid and restores the canonical value on blur', async () => {
@@ -39,6 +39,6 @@ describe('project camera properties', () => {
     expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
     await user.tab();
     expect(pitch).toHaveValue('0');
-    expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-camera', '0,0');
+    expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-camera', '16.3725,48.2084,11.2,0,0');
   });
 });

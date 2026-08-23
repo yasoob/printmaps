@@ -1,3 +1,4 @@
+import { MAX_MERCATOR_LATITUDE } from './project';
 import { isPoiLabelValid, MAX_POI_LABEL_CHARACTERS } from './poiMarkers';
 
 export type PoiSpreadsheetEntry = {
@@ -46,7 +47,7 @@ export function parsePoiSpreadsheet(value: string): PoiSpreadsheetEntry[] {
       name,
       coordinates: [
         coordinateValue(longitude, [-180, 180], 'longitude', rowNumber),
-        coordinateValue(latitude, [-90, 90], 'latitude', rowNumber),
+        coordinateValue(latitude, [-MAX_MERCATOR_LATITUDE, MAX_MERCATOR_LATITUDE], 'latitude', rowNumber),
       ],
     };
   });

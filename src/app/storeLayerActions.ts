@@ -27,14 +27,8 @@ function assetsReferencedBy(layers: ProjectState['document']['layers']): Set<str
 function createRouteAction(set: ProjectSet): ProjectState['createRoute'] {
   return (coordinates, options = DEFAULT_ROUTE_AUTHORING_OPTIONS) => set((state) => {
     const distinctCoordinates = new Set(coordinates.map(([longitude, latitude]) => `${longitude},${latitude}`));
-    if (!isRouteAuthoringOptions(options) || distinctCoordinates.size < 2 || coordinates.some(([longitude, latitude]) => (
-      !Number.isFinite(longitude)
-      || !Number.isFinite(latitude)
-      || longitude < -180
-      || longitude > 180
-      || latitude < -90
-      || latitude > 90
-    ))) return state;
+    if (!isRouteAuthoringOptions(options) || distinctCoordinates.size < 2
+      || coordinates.some(([longitude, latitude]) => !isValidPosition(longitude, latitude))) return state;
     const usedIds = new Set(state.document.layers.map((layer) => layer.id));
     let routeNumber = 0;
     let id: string;
@@ -43,7 +37,8 @@ function createRouteAction(set: ProjectSet): ProjectState['createRoute'] {
       id = `route-${String(routeNumber).padStart(2, '0')}`;
     } while (usedIds.has(id));
     const routeCoordinates = buildRouteCoordinates(coordinates, options.lineShape);
-    if (routeCoordinates.length < 2) return state;
+    if (routeCoordinates.length < 2
+      || routeCoordinates.some(([longitude, latitude]) => !isValidPosition(longitude, latitude))) return state;
     const defaultAppearance = createDefaultLayerAppearance('route');
     if (defaultAppearance?.kind !== 'route') return state;
     const route = {
@@ -76,14 +71,8 @@ function createRouteAction(set: ProjectSet): ProjectState['createRoute'] {
 function createShapeAction(set: ProjectSet): ProjectState['createShape'] {
   return (coordinates) => set((state) => {
     const distinctVertices = new Set(coordinates.map(([longitude, latitude]) => `${longitude},${latitude}`));
-    if (distinctVertices.size < 3 || coordinates.some(([longitude, latitude]) => (
-      !Number.isFinite(longitude)
-      || !Number.isFinite(latitude)
-      || longitude < -180
-      || longitude > 180
-      || latitude < -90
-      || latitude > 90
-    ))) return state;
+    if (distinctVertices.size < 3
+      || coordinates.some(([longitude, latitude]) => !isValidPosition(longitude, latitude))) return state;
     const usedIds = new Set(state.document.layers.map((layer) => layer.id));
     let shapeNumber = 0;
     let id: string;

@@ -19,7 +19,7 @@ function createDocument(): ProjectDocument {
     id: 'test-project',
     title: 'Test project',
     page: { preset: 'A4', widthMm: 297, heightMm: 210, orientation: 'landscape' },
-    camera: { bearing: 0, locked: false, pitch: 0 },
+    camera: { bearing: 0, center: [16.3725, 48.2084], locked: false, pitch: 0, zoom: 11.2 },
     style: { preset: 'liberty', language: 'local', textScalePercent: 100, visibility: { roads: true, buildings: true, labels: true, water: true, parks: true, landuse: true, transit: true } },
     assets: {},
     layers,
@@ -60,6 +60,45 @@ describe('project store camera history', () => {
     expect(store.getState().document.camera.pitch).toBe(0);
   });
 
+  it('commits a finished viewport movement as one undoable camera edit', () => {
+    const store = createProjectStore(createDocument());
+
+    store.getState().setCameraViewport([16.41, 48.23], 13.5);
+
+    expect(store.getState().document.camera).toMatchObject({ center: [16.41, 48.23], zoom: 13.5 });
+    store.getState().undo();
+    expect(store.getState().document.camera).toMatchObject({ center: [16.3725, 48.2084], zoom: 11.2 });
+  });
+
+  it.each([
+    ['a non-Mercator latitude', [16.4, 86], 12],
+    ['a zoom above the renderer maximum', [16.4, 48.2], 22.1],
+  ] as const)('rejects %s without changing viewport history', (_label, center, zoom) => {
+    const store = createProjectStore(createDocument());
+
+    store.getState().setCameraViewport(center, zoom);
+
+    expect(store.getState().document.camera).toMatchObject({ center: [16.3725, 48.2084], zoom: 11.2 });
+    expect(store.getState().canUndo).toBe(false);
+  });
+
+  it('normalizes renderer precision and does not create duplicate viewport history', () => {
+    const store = createProjectStore(createDocument()); store.getState().setCameraViewport([16.41000000001, 48.23000000001], 13.50000000001);
+    store.getState().setCameraViewport([16.41, 48.23], 13.5);
+    expect(store.getState().document.camera).toMatchObject({ center: [16.41, 48.23], zoom: 13.5 }); store.getState().undo();
+    expect(store.getState().document.camera).toMatchObject({ center: [16.3725, 48.2084], zoom: 11.2 });
+    expect(store.getState().canUndo).toBe(false);
+  });
+
+  it('amends a programmatic fit into the current transaction', () => {
+    const store = createProjectStore(createDocument()); store.getState().toggleLayerVisibility('route-1');
+    store.getState().setCameraViewport([16.41, 48.23], 13.5, 'amend');
+    expect(store.getState().document.camera).toMatchObject({ center: [16.41, 48.23], zoom: 13.5 }); store.getState().undo();
+    expect(store.getState().document.layers[0].visible).toBe(true);
+    expect(store.getState().document.camera).toMatchObject({ center: [16.3725, 48.2084], zoom: 11.2 });
+    expect(store.getState().canUndo).toBe(false);
+  });
+
   it.each([
     ['setCameraBearing', -181],
     ['setCameraBearing', 181],
@@ -72,7 +111,7 @@ describe('project store camera history', () => {
 
     store.getState()[action](value);
 
-    expect(store.getState().document.camera).toEqual({ bearing: 0, locked: false, pitch: 0 });
+    expect(store.getState().document.camera).toEqual({ bearing: 0, center: [16.3725, 48.2084], locked: false, pitch: 0, zoom: 11.2 });
     expect(store.getState().canUndo).toBe(false);
   });
 });

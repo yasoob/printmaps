@@ -99,14 +99,17 @@ describe('browser geolocation control', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Location is unavailable in this browser');
   });
 
-  it('rejects an invalid browser coordinate without moving the map', async () => {
+  it.each([
+    [181, 48.2084],
+    [16.3725, 86],
+  ])('rejects invalid browser coordinate %s,%s without moving the map', async (longitude, latitude) => {
     const geolocation = installGeolocationMock();
     const user = userEvent.setup();
     const onLocate = vi.fn();
     render(<GeolocationControl locked={false} onLocate={onLocate} />);
 
     await user.click(screen.getByRole('button', { name: 'Use my location' }));
-    act(() => geolocation.succeed(181, 48.2084));
+    act(() => geolocation.succeed(longitude, latitude));
 
     expect(screen.getByRole('alert')).toHaveTextContent('invalid location');
     expect(onLocate).not.toHaveBeenCalled();

@@ -53,12 +53,12 @@ function PageDimensionField({ label, ariaLabel, dimension, value, onCommit }: Pa
 }
 
 type CameraFieldProps = {
-  field: keyof CameraSettings;
+  field: 'bearing' | 'pitch';
   value: number;
   onCommit: (value: number) => void;
 };
 
-function isValidCameraDraft(field: keyof CameraSettings, draft: string) {
+function isValidCameraDraft(field: CameraFieldProps['field'], draft: string) {
   const value = Number(draft);
   const [minimum, maximum] = field === 'bearing' ? [-180, 180] : [0, 60];
   return draft.trim() !== '' && Number.isFinite(value) && value >= minimum && value <= maximum;

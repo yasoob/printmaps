@@ -37,4 +37,13 @@ describe('map layer bounds', () => {
 
     expect(combinedLayerBounds(layers)).toEqual([[9, 46], [18, 50]]);
   });
+
+  it('refuses bounds outside the Web Mercator latitude range', () => {
+    const layer: ContentLayer = {
+      id: 'polar', name: 'Polar', type: 'poi', visible: true, locked: false, opacity: 100,
+      geometry: { type: 'Point', coordinates: [16, 86] },
+    };
+
+    expect(combinedLayerBounds([layer])).toBeUndefined();
+  });
 });

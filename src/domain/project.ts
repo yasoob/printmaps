@@ -9,7 +9,13 @@ export type {
   ShapeAppearance,
 } from './layerAppearance';
 
-export const PROJECT_SCHEMA_VERSION = 14 as const;
+export const PROJECT_SCHEMA_VERSION = 15 as const;
+export const MAX_MERCATOR_LATITUDE = 85.051129;
+export const MAX_MAP_ZOOM = 22;
+
+export function normalizeCameraPrecision(value: number): number {
+  return Number(value.toFixed(6));
+}
 
 export type LayerType = 'route' | 'poi' | 'shape' | 'basemap';
 export type PageOrientation = 'landscape' | 'portrait';
@@ -29,8 +35,10 @@ export type PageSettings = {
 
 export type CameraSettings = {
   bearing: number;
+  center: [number, number];
   locked: boolean;
   pitch: number;
+  zoom: number;
 };
 
 export type MapStyleSettings = {
@@ -74,7 +82,13 @@ const createDefaultPageSettings = (): PageSettings => ({
   orientation: 'landscape',
 });
 
-const createDefaultCameraSettings = (): CameraSettings => ({ bearing: 0, locked: false, pitch: 0 });
+const createDefaultCameraSettings = (): CameraSettings => ({
+  bearing: 0,
+  center: [16.3725, 48.2084],
+  locked: false,
+  pitch: 0,
+  zoom: 11.2,
+});
 const createDefaultMapFeatureVisibility = (): MapFeatureVisibility => ({
   roads: true,
   buildings: true,

@@ -23,8 +23,10 @@ type HarnessProps = {
 function Harness({ isLocked, request }: HarnessProps) {
   const container = useRef<HTMLDivElement>(null);
   const mapReference = useRef(map);
+  const cameraViewportChangeMode = useRef<'amend' | 'history'>('history');
   useMapFitRequests({
-    camera: { bearing: 0, locked: isLocked, pitch: 0 },
+    camera: { bearing: 0, center: [16.3725, 48.2084], locked: isLocked, pitch: 0, zoom: 11.2 },
+    cameraViewportChangeMode,
     container,
     fitImportBounds: [[16.2, 48.1], [16.5, 48.4]],
     fitImportRequest: request,

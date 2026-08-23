@@ -1,5 +1,6 @@
 import {
   createDefaultLayerAppearance,
+  MAX_MERCATOR_LATITUDE,
   type ContentLayer,
   type LayerGeometry,
   type LayerType,
@@ -75,8 +76,8 @@ export function position(
   if (Math.abs(longitude) > 180) {
     throw new GpxKmlImportError(`${label} longitude must be between -180 and 180.`);
   }
-  if (Math.abs(latitude) > 90) {
-    throw new GpxKmlImportError(`${label} latitude must be between -90 and 90.`);
+  if (Math.abs(latitude) > MAX_MERCATOR_LATITUDE) {
+    throw new GpxKmlImportError(`${label} latitude must be between -${MAX_MERCATOR_LATITUDE} and ${MAX_MERCATOR_LATITUDE}.`);
   }
   counter.value += 1;
   if (counter.value > MAX_GPX_KML_COORDINATES) {

@@ -1,4 +1,4 @@
-import type { ContentLayer } from '../domain/project';
+import { MAX_MERCATOR_LATITUDE, type ContentLayer } from '../domain/project';
 
 export type MapBounds = [[number, number], [number, number]];
 
@@ -15,7 +15,8 @@ function geometryCoordinates(layer: ContentLayer): readonly (readonly [number, n
 export function combinedLayerBounds(layers: readonly ContentLayer[]): MapBounds | undefined {
   const coordinates = layers.flatMap((layer) => geometryCoordinates(layer));
   if (coordinates.length === 0 || coordinates.some(([longitude, latitude]) => (
-    !Number.isFinite(longitude) || !Number.isFinite(latitude)
+    !Number.isFinite(longitude) || Math.abs(longitude) > 180
+    || !Number.isFinite(latitude) || Math.abs(latitude) > MAX_MERCATOR_LATITUDE
   ))) return;
 
   let minimumLongitude = Infinity;

@@ -1,12 +1,12 @@
-import type { ContentLayer } from './project';
+import { MAX_MERCATOR_LATITUDE, type ContentLayer } from './project';
 
 export function isValidPosition(longitude: number, latitude: number) {
   return Number.isFinite(longitude)
     && Number.isFinite(latitude)
     && longitude >= -180
     && longitude <= 180
-    && latitude >= -90
-    && latitude <= 90;
+    && latitude >= -MAX_MERCATOR_LATITUDE
+    && latitude <= MAX_MERCATOR_LATITUDE;
 }
 
 export function moveRouteVertex(

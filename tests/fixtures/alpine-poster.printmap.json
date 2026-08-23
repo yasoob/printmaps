@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 14,
+  "schemaVersion": 15,
   "id": "alpine-poster",
   "title": "Alpine poster",
   "page": {
@@ -10,8 +10,10 @@
   },
   "camera": {
     "bearing": 0,
+    "center": [11.34, 47.31],
     "locked": false,
-    "pitch": 0
+    "pitch": 0,
+    "zoom": 11.2
   },
   "style": {
     "preset": "liberty",

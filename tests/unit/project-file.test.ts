@@ -2,11 +2,11 @@ import { createInitialProjectDocument } from '../../src/domain/project';
 import { parseProjectFileText } from '../../src/domain/projectFile';
 
 describe('portable project validation', () => {
-  it('rejects the obsolete schema-13 format with a reset-oriented message', () => {
-    const obsolete = { ...createInitialProjectDocument(), schemaVersion: 13 };
+  it('rejects the obsolete schema-14 format with a reset-oriented message', () => {
+    const obsolete = { ...createInitialProjectDocument(), schemaVersion: 14 };
 
     expect(() => parseProjectFileText(JSON.stringify(obsolete))).toThrow(
-      'Schema version 13 is obsolete. Start a new project or reopen a current Print Map Studio file.',
+      'Schema version 14 is obsolete. Start a new project or reopen a current Print Map Studio file.',
     );
   });
 
@@ -45,6 +45,16 @@ describe('portable project validation', () => {
     expect(parsed.layers.find((layer) => layer.type === 'basemap')?.name).toBe('Client reference map');
   });
 
+  it('normalizes portable viewport precision at the validation boundary', () => {
+    const source = createInitialProjectDocument();
+    source.camera.center = [16.41000000001, 48.23000000001];
+    source.camera.zoom = 13.50000000001;
+
+    const parsed = parseProjectFileText(JSON.stringify(source));
+
+    expect(parsed.camera).toMatchObject({ center: [16.41, 48.23], zoom: 13.5 });
+  });
+
   it('rejects control characters in a portable POI label', () => {
     const source = createInitialProjectDocument();
     const poi = source.layers.find(({ type }) => type === 'poi');
@@ -80,9 +90,9 @@ describe('portable project validation', () => {
       ...createInitialProjectDocument(),
       layers: [{
         ...createInitialProjectDocument().layers[1],
-        geometry: { type: 'Point', coordinates: [181, 48.2] },
+        geometry: { type: 'Point', coordinates: [16, 86] },
       }],
-    }), 'longitude must be between -180 and 180'],
+    }), 'latitude must be between -85.051129 and 85.051129'],
     ['geometry that contradicts its layer type', JSON.stringify({
       ...createInitialProjectDocument(),
       layers: [{
@@ -104,7 +114,7 @@ describe('portable project validation', () => {
     }), 'Camera pitch must be between 0 and 60'],
     ['a missing map-area lock state', JSON.stringify({
       ...createInitialProjectDocument(),
-      camera: { bearing: 0, pitch: 0 },
+      camera: { bearing: 0, center: [16.3725, 48.2084], pitch: 0, zoom: 11.2 },
     }), 'Map area lock state must be true or false'],
     ['an unsupported map style', JSON.stringify({
       ...createInitialProjectDocument(),

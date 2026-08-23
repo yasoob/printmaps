@@ -3,6 +3,7 @@ import type { CustomMarkerAsset } from '../domain/customMarkerAssets';
 import type { CameraSettings, ContentLayer, MapFeatureVisibility, MapLanguage, MapStylePreset, PageSettings } from '../domain/project';
 import type { PreviewPngExporter } from '../export/previewPng';
 import type { MapBounds } from './MapLayerBounds';
+import type { CameraViewportChangeMode } from './MapCameraViewport';
 import { mapLocationRequestDiagnostic, resolveMapLocationRequest, type MapLocationRequest } from './MapLocationRequest';
 import { useMapCanvasController } from './useMapCanvasController';
 
@@ -17,6 +18,7 @@ type MapCanvasProps = {
   selectedId: string | null;
   previewedId: string | null;
   onLayerSelect: (id: string) => void;
+  onCameraViewportChange?: (center: readonly [number, number], zoom: number, mode: CameraViewportChangeMode) => void;
   onMapClick?: (coordinate: [number, number]) => void;
   onBackgroundClick: () => void;
   onExporterChange?: (exporter: PreviewPngExporter | null) => void;
@@ -44,7 +46,7 @@ const resolveFeatureVisibility = (visibility?: MapFeatureVisibility) => visibili
 const resolveMapLanguage = (language?: MapLanguage) => language ?? 'local';
 
 export function MapCanvas({
-  camera = { bearing: 0, locked: false, pitch: 0 },
+  camera = { bearing: 0, center: [16.3725, 48.2084], locked: false, pitch: 0, zoom: 11.2 },
   stylePreset = 'liberty',
   language,
   textScalePercent = 100,
@@ -54,6 +56,7 @@ export function MapCanvas({
   selectedId,
   previewedId,
   onLayerSelect,
+  onCameraViewportChange,
   onMapClick,
   onBackgroundClick,
   onExporterChange,
@@ -84,6 +87,7 @@ export function MapCanvas({
     onBackgroundClick,
     onExporterChange,
     onLayerSelect,
+    onCameraViewportChange,
     onMapClick,
     previewedId,
     selectedId,

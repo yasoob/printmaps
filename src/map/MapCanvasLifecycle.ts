@@ -1,9 +1,12 @@
 import type { Dispatch, SetStateAction } from 'react';
-import { AttributionControl, Map, NavigationControl, type Map as MapLibreMap } from 'maplibre-gl';
+import { AttributionControl, NavigationControl, type Map as MapLibreMap } from 'maplibre-gl';
 import { capturePrintFramePng, type PreviewPngExporter } from '../export/previewPng';
 import { createMapLibreContentAdapter, type MapContentAdapter, type MapContentState } from './MapContentAdapter';
 import { captureBasemapOnly } from './MapExportCapture';
 import { createNativePrintTileRenderer } from './NativePrintTileRenderer';
+import type { CameraSettings } from '../domain/project';
+import { createInteractiveMap } from './MapCanvasFactory';
+import type { CameraViewportChangeMode } from './MapCameraViewport';
 
 export type MapError = {
   kind: 'content' | 'renderer' | 'style';
@@ -19,6 +22,8 @@ type MutableReference<T> = { current: T };
 type LifecycleReferences = {
   availableExporter: MutableReference<PreviewPngExporter | null>;
   backgroundClick: MutableReference<() => void>;
+  cameraViewportChange: MutableReference<((center: readonly [number, number], zoom: number, mode: CameraViewportChangeMode) => void) | undefined>;
+  cameraViewportChangeMode: MutableReference<CameraViewportChangeMode>;
   container: MutableReference<HTMLDivElement | null>;
   contentAdapter: MutableReference<MapContentAdapter | null>;
   contentReady: MutableReference<boolean>;
@@ -33,6 +38,7 @@ type LifecycleReferences = {
 
 export type MapLifecycleOptions = {
   handleContentSyncResult: (result: ReturnType<MapContentAdapter['sync']> | undefined) => void;
+  initialCamera: CameraSettings;
   references: LifecycleReferences;
   setContentError: Dispatch<SetStateAction<ContentError | null>>;
   setMapError: Dispatch<SetStateAction<MapError | null>>;
@@ -73,34 +79,6 @@ function waitForMapRender(map: MapLibreMap, signal?: AbortSignal): Promise<void>
       finish(error);
     }
   });
-}
-
-function createMap(container: HTMLDivElement, styleUrl: string, setMapError: MapLifecycleOptions['setMapError']) {
-  const probe = document.createElement('canvas');
-  if (!probe.getContext('webgl2')) {
-    queueMicrotask(() => setMapError({
-      kind: 'renderer',
-      message: 'WebGL 2 is unavailable in this browser. Your project can still be edited.',
-    }));
-    return null;
-  }
-
-  try {
-    return new Map({
-      container,
-      style: styleUrl,
-      center: [16.3725, 48.2084],
-      zoom: 11.2,
-      attributionControl: false,
-      canvasContextAttributes: { preserveDrawingBuffer: true },
-    });
-  } catch {
-    queueMicrotask(() => setMapError({
-      kind: 'renderer',
-      message: 'The map renderer is unavailable in this browser. Your project can still be edited.',
-    }));
-    return null;
-  }
 }
 
 function createAttributionController(container: HTMLDivElement) {
@@ -218,6 +196,15 @@ function createMapEventHandlers(
     }
     references.container.current?.setAttribute('data-map-ready', 'true');
   };
+  const handleMoveEnd = () => {
+    const center = map.getCenter();
+    const longitude = Math.abs(center.lng) <= 180
+      ? center.lng
+      : ((center.lng + 180) % 360 + 360) % 360 - 180;
+    const mode = references.cameraViewportChangeMode.current;
+    references.cameraViewportChangeMode.current = 'history';
+    references.cameraViewportChange.current?.([longitude, center.lat], map.getZoom(), mode);
+  };
   const handleClick = (event: { point: Parameters<MapContentAdapter['hitTest']>[0]; lngLat: { lng: number; lat: number } }) => {
     if (references.mapClick.current) return references.mapClick.current([event.lngLat.lng, event.lngLat.lat]);
     const adapter = references.contentAdapter.current;
@@ -253,7 +240,7 @@ function createMapEventHandlers(
       });
     }
   };
-  return { exportPreview, handleClick, handleError, handleIdle, handleLoad };
+  return { exportPreview, handleClick, handleError, handleIdle, handleLoad, handleMoveEnd };
 }
 
 function retryCleanup(action: () => void) {
@@ -283,6 +270,7 @@ function cleanupMap(
   retryCleanup(() => map.off('idle', handlers.handleIdle));
   retryCleanup(() => map.off('drag', attribution.handleDrag));
   retryCleanup(() => map.off('error', handlers.handleError));
+  retryCleanup(() => map.off('moveend', handlers.handleMoveEnd));
   retryCleanup(() => map.off('click', handlers.handleClick));
   const adapter = references.contentAdapter.current;
   references.contentAdapter.current = null;
@@ -303,6 +291,7 @@ function installMapLifecycle(map: MapLibreMap, options: MapLifecycleOptions) {
   map.on('idle', handlers.handleIdle);
   map.on('drag', attribution.handleDrag);
   map.on('error', handlers.handleError);
+  map.on('moveend', handlers.handleMoveEnd);
   map.on('click', handlers.handleClick);
   options.references.map.current = map;
   return () => cleanupMap(map, handlers, attribution, options.references);
@@ -311,6 +300,11 @@ function installMapLifecycle(map: MapLibreMap, options: MapLifecycleOptions) {
 export function startMapLifecycle(options: MapLifecycleOptions) {
   const container = options.references.container.current;
   if (!container || options.references.map.current) return;
-  const map = createMap(container, options.styleUrl, options.setMapError);
+  const map = createInteractiveMap({
+    camera: options.initialCamera,
+    container,
+    onError: (message) => options.setMapError({ kind: 'renderer', message }),
+    styleUrl: options.styleUrl,
+  });
   return map ? installMapLifecycle(map, options) : undefined;
 }

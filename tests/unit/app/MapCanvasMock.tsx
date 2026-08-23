@@ -3,6 +3,7 @@ import type { CameraSettings, ContentLayer, MapFeatureVisibility, MapLanguage, M
 import type { MapBounds } from '../../../src/map/MapLayerBounds';
 import { mapLocationRequestDiagnostic, type MapLocationRequest } from '../../../src/map/MapLocationRequest';
 import { exportMocks } from './exportMocks';
+import type { CameraViewportChangeMode } from '../../../src/map/MapCameraViewport';
 
 type MapCanvasMockProps = {
   camera?: CameraSettings;
@@ -14,6 +15,7 @@ type MapCanvasMockProps = {
   selectedId?: string | null;
   previewedId?: string | null;
   onLayerSelect?: (id: string) => void;
+  onCameraViewportChange?: (center: readonly [number, number], zoom: number, mode: CameraViewportChangeMode) => void;
   onMapClick?: (coordinate: [number, number]) => void;
   onBackgroundClick: () => void;
   onExporterChange?: (exporter: typeof exportMocks.exporter) => void;
@@ -27,7 +29,7 @@ type MapCanvasMockProps = {
 };
 
 export function MapCanvas({
-  camera = { bearing: 0, locked: false, pitch: 0 },
+  camera = { bearing: 0, center: [16.3725, 48.2084], locked: false, pitch: 0, zoom: 11.2 },
   stylePreset = 'liberty',
   language = 'local',
   textScalePercent = 100,
@@ -36,6 +38,7 @@ export function MapCanvas({
   selectedId,
   previewedId,
   onLayerSelect,
+  onCameraViewportChange,
   onMapClick,
   onBackgroundClick,
   onExporterChange,
@@ -60,7 +63,7 @@ export function MapCanvas({
       data-fit-request={fitRequest}
       data-fit-layer-id={fitLayerId ?? ''}
       data-camera-fit-import={fitImportRequest}
-      data-camera={`${camera.bearing},${camera.pitch}`}
+      data-camera={`${camera.center.join(',')},${camera.zoom},${camera.bearing},${camera.pitch}`}
       data-map-area-locked={camera.locked}
       data-map-location-request={mapLocationRequestDiagnostic(locationRequest)}
       data-style-preset={stylePreset}
@@ -78,6 +81,7 @@ export function MapCanvas({
       data-previewed-layer={previewedId ?? ''}
     >
       <button type="button" onClick={onBackgroundClick}>Map background</button>
+      <button type="button" onClick={() => onCameraViewportChange?.([16.41, 48.23], 13.5, 'history')}>Finish map movement</button>
       <button type="button" onClick={() => onLayerSelect?.('poi-cafe')}>Map Coffee stop</button>
       <button type="button" onClick={() => onMapClick?.([16.31, 48.19])}>Map route point 1</button>
       <button type="button" onClick={() => onMapClick?.([16.4, 48.24])}>Map route point 2</button>

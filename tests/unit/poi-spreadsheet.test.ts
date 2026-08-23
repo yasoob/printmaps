@@ -17,7 +17,7 @@ describe('POI spreadsheet parsing', () => {
     ['an empty name', '\t16.3599\t48.2034'],
     ['a non-decimal longitude', 'Museum Quarter\t0x10\t48.2034'],
     ['an out-of-range longitude', 'Museum Quarter\t181\t48.2034'],
-    ['an out-of-range latitude', 'Museum Quarter\t16.3599\t91'],
+    ['an out-of-range latitude', 'Museum Quarter\t16.3599\t86'],
   ])('rejects a row with %s', (_label, row) => {
     expect(() => parsePoiSpreadsheet(row)).toThrow(/row 1/iu);
   });

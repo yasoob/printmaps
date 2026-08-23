@@ -40,7 +40,7 @@ const layers: ContentLayer[] = [
 const sharedProps = {
   layers,
   assets: {},
-  camera: { bearing: 0, locked: false, pitch: 0 },
+  camera: { bearing: 0, center: [16.3725, 48.2084] as [number, number], locked: false, pitch: 0, zoom: 11.2 },
   stylePreset: 'liberty' as const,
   language: 'local' as const,
   textScalePercent: 100,
@@ -53,6 +53,7 @@ const sharedProps = {
   layersTriggerRef: createRef<HTMLButtonElement>(),
   propertiesTriggerRef: createRef<HTMLButtonElement>(),
   onLayerSelect: vi.fn(),
+  onCameraViewportChange: vi.fn(),
   onCreateAdministrativeArea: vi.fn(),
   onCreateAdministrativeAreas: vi.fn(),
   onCreatePoi: vi.fn(),

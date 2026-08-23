@@ -46,6 +46,7 @@ export type ProjectState = {
   renameLayer: (id: string, name: string) => void;
   selectLayer: (id: string | null) => void;
   setCameraBearing: (bearing: number) => void;
+  setCameraViewport: (center: readonly [number, number], zoom: number, mode?: 'amend' | 'history') => void;
   setMapAreaLocked: (isLocked: boolean) => void;
   setCameraPitch: (pitch: number) => void;
   setPageDimension: (dimension: 'widthMm' | 'heightMm', value: number) => void;
