@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react';
-import { FolderOpen, Save } from 'lucide-react';
+import { Archive, FolderOpen, Save } from 'lucide-react';
 import type { ProjectDocument } from '../../domain/project';
+import { parseProjectArchive } from '../../domain/projectArchive';
 import { MAX_PROJECT_FILE_BYTES, parseProjectFileText } from '../../domain/projectFile';
-import { downloadProjectDocument } from './projectDownload';
+import { downloadProjectArchive, downloadProjectDocument } from './projectDownload';
 
 type ProjectFileStatus = {
   kind: 'success' | 'error';
@@ -23,13 +24,18 @@ export function ProjectFileOpenButton({ onOpen }: ProjectFileOpenButtonProps) {
     if (!file) return;
 
     try {
-      if (!file.name.toLowerCase().endsWith('.printmap.json')) {
-        throw new Error('Choose a portable project with the .printmap.json filename suffix.');
+      const lowerName = file.name.toLowerCase();
+      const isJson = lowerName.endsWith('.printmap.json');
+      const isZip = lowerName.endsWith('.printmap.zip');
+      if (!isJson && !isZip) {
+        throw new Error('Choose a portable project ending in .printmap.json or .printmap.zip.');
       }
       if (file.size > MAX_PROJECT_FILE_BYTES) {
         throw new Error('Project files must be 10 MB or smaller.');
       }
-      const openedDocument = parseProjectFileText(await file.text());
+      const openedDocument = isZip
+        ? parseProjectArchive(new Uint8Array(await file.arrayBuffer()))
+        : parseProjectFileText(await file.text());
       onOpen(openedDocument);
       setStatus({ kind: 'success', message: `Opened ${openedDocument.title}. Edit history was reset.` });
     } catch (error) {
@@ -49,7 +55,7 @@ export function ProjectFileOpenButton({ onOpen }: ProjectFileOpenButtonProps) {
         ref={inputRef}
         hidden
         type="file"
-        accept=".printmap.json,application/json"
+        accept=".printmap.json,.printmap.zip,application/json,application/zip"
         onChange={handleChange}
       />
       <button ref={buttonRef} className="quiet-button" type="button" onClick={() => inputRef.current?.click()}>
@@ -69,9 +75,28 @@ export function ProjectFileOpenButton({ onOpen }: ProjectFileOpenButtonProps) {
 }
 
 export function ProjectSaveButton({ document }: { document: ProjectDocument }) {
+  const [error, setError] = useState<string | null>(null);
+  const runDownload = (download: (value: ProjectDocument) => void) => {
+    try {
+      download(document);
+      setError(null);
+    } catch (downloadError) {
+      setError(downloadError instanceof Error ? downloadError.message : 'This project could not be downloaded.');
+    }
+  };
   return (
-    <button className="quiet-button" type="button" onClick={() => downloadProjectDocument(document)}>
-      <Save size={14} /> Save
-    </button>
+    <>
+      <button className="quiet-button" type="button" onClick={() => runDownload(downloadProjectDocument)}>
+        <Save size={14} /> Save
+      </button>
+      <button className="quiet-button" type="button" onClick={() => runDownload(downloadProjectArchive)}>
+        <Archive size={14} /> Save ZIP
+      </button>
+      {error && (
+        <div className="project-file-status is-error" role="alert" aria-label="Project save status">
+          {error}
+        </div>
+      )}
+    </>
   );
 }

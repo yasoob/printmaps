@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
+import { strFromU8, unzipSync } from 'fflate';
 
 test('Save downloads the current project as portable versioned JSON', async ({ page }, testInfo) => {
   await page.goto('/');
@@ -14,7 +15,7 @@ test('Save downloads the current project as portable versioned JSON', async ({ p
   await page.getByRole('combobox', { name: 'Map style' }).selectOption('positron');
 
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Save' }).click();
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe('vienna-field-guide.printmap.json');
 
@@ -39,6 +40,57 @@ test('Save downloads the current project as portable versioned JSON', async ({ p
     'area-center',
     'basemap',
   ]);
+});
+
+test('Save ZIP downloads a deterministic archive that Open restores as a fresh project', async ({ page }, testInfo) => {
+  await page.goto('/');
+  await page.getByRole('textbox', { name: 'Bearing' }).fill('35');
+  await page.getByRole('textbox', { name: 'Bearing' }).press('Tab');
+  await page.getByRole('checkbox', { name: 'Show roads' }).uncheck();
+
+  const downloadArchive = async (filename: string) => {
+    const downloadPromise = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Save ZIP' }).click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toBe('vienna-field-guide.printmap.zip');
+    const outputPath = testInfo.outputPath(filename);
+    await download.saveAs(outputPath);
+    return outputPath;
+  };
+
+  const firstPath = await downloadArchive('project-first.printmap.zip');
+  const secondPath = await downloadArchive('project-second.printmap.zip');
+  const firstBytes = await readFile(firstPath);
+  expect(await readFile(secondPath)).toEqual(firstBytes);
+
+  const entries = unzipSync(firstBytes);
+  expect(Object.keys(entries)).toHaveLength(2);
+  expect(Object.hasOwn(entries, 'manifest.json')).toBe(true);
+  expect(Object.hasOwn(entries, 'project.printmap.json')).toBe(true);
+  expect(JSON.parse(strFromU8(entries['manifest.json']))).toEqual({
+    format: 'print-map-studio-project',
+    archiveVersion: 1,
+    project: 'project.printmap.json',
+    assets: [],
+  });
+  expect(JSON.parse(strFromU8(entries['project.printmap.json']))).toMatchObject({
+    schemaVersion: 7,
+    camera: { bearing: 35, pitch: 0 },
+    style: { visibility: { roads: false, buildings: true, labels: true } },
+  });
+
+  await page.getByRole('button', { name: 'Portrait' }).click();
+  const chooserPromise = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'Open' }).click();
+  const chooser = await chooserPromise;
+  await chooser.setFiles(firstPath);
+
+  await expect(page.getByRole('textbox', { name: 'Bearing' })).toHaveValue('35');
+  await expect(page.getByRole('checkbox', { name: 'Show roads' })).not.toBeChecked();
+  await expect(page.getByRole('button', { name: 'Landscape' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
+  await expect(page.getByRole('status', { name: 'Project file status' })).toContainText('Opened Vienna field guide');
+  await expect(page.getByRole('button', { name: 'Open' })).toBeFocused();
 });
 
 test('opens a validated portable project as a focused fresh history root', async ({ page, browserName }) => {
@@ -117,6 +169,10 @@ test('rejects invalid project files without replacing work and allows a retry', 
         buffer: Buffer.alloc(10 * 1024 * 1024 + 1, 0x20),
       },
       error: '10 MB',
+    },
+    {
+      file: { name: 'broken.printmap.zip', mimeType: 'application/zip', buffer: Buffer.from('not a zip') },
+      error: 'not a valid project ZIP archive',
     },
   ]) {
     const chooserPromise = page.waitForEvent('filechooser');
