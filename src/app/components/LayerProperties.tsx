@@ -9,6 +9,7 @@ import type {
 import { CoordinateField } from './CoordinateField';
 import { PropertyRow, PropertySection } from './PropertyControls';
 import { RouteVertexControls } from './RouteVertexControls';
+import { ShapeVertexControls } from './ShapeVertexControls';
 
 type LayerPropertiesProps = {
   layer: ContentLayer;
@@ -17,6 +18,7 @@ type LayerPropertiesProps = {
   onAppearanceChange: (appearance: LayerAppearance) => void;
   onPoiCoordinatesChange: (coordinates: readonly [number, number]) => void;
   onRouteVertexChange: (vertexIndex: number, coordinates: readonly [number, number]) => void;
+  onShapeVertexChange: (ringIndex: number, vertexIndex: number, coordinates: readonly [number, number]) => void;
   onToggleVisibility: () => void;
   onToggleLock: () => void;
   onDuplicate: () => void;
@@ -206,7 +208,8 @@ function LayerTypeProperties({
   onAppearanceChange,
   onPoiCoordinatesChange,
   onRouteVertexChange,
-}: Pick<LayerPropertiesProps, 'layer' | 'onAppearanceChange' | 'onPoiCoordinatesChange' | 'onRouteVertexChange'>) {
+  onShapeVertexChange,
+}: Pick<LayerPropertiesProps, 'layer' | 'onAppearanceChange' | 'onPoiCoordinatesChange' | 'onRouteVertexChange' | 'onShapeVertexChange'>) {
   switch (layer.type) {
     case 'route': {
       return <RouteLayerProperties layer={layer} onAppearanceChange={onAppearanceChange} onRouteVertexChange={onRouteVertexChange} />;
@@ -230,9 +233,16 @@ function LayerTypeProperties({
     case 'shape': {
       if (layer.appearance?.kind !== 'shape') return null;
       return (
-        <PropertySection title="Appearance">
-          <ShapeAppearanceControls key={`${layer.id}-${layer.appearance.strokeWidth}`} appearance={layer.appearance} onChange={onAppearanceChange} />
-        </PropertySection>
+        <>
+          <PropertySection title="Appearance">
+            <ShapeAppearanceControls key={`${layer.id}-${layer.appearance.strokeWidth}`} appearance={layer.appearance} onChange={onAppearanceChange} />
+          </PropertySection>
+          {layer.geometry?.type === 'Polygon' && (
+            <PropertySection title="Vertices">
+              <ShapeVertexControls key={layer.id} coordinates={layer.geometry.coordinates} onChange={onShapeVertexChange} />
+            </PropertySection>
+          )}
+        </>
       );
     }
     default: {
@@ -248,6 +258,7 @@ export function LayerProperties({
   onAppearanceChange,
   onPoiCoordinatesChange,
   onRouteVertexChange,
+  onShapeVertexChange,
   onToggleVisibility,
   onToggleLock,
   onDuplicate,
@@ -289,7 +300,7 @@ export function LayerProperties({
         <PropertyRow label="Visible"><button aria-label="Toggle layer visibility" className={`toggle${layer.visible ? ' is-on' : ''}`} type="button" aria-pressed={layer.visible} onClick={onToggleVisibility}><span /></button></PropertyRow>
         <PropertyRow label="Locked"><button aria-label="Toggle layer lock" className={`toggle${layer.locked ? ' is-on' : ''}`} type="button" aria-pressed={layer.locked} onClick={onToggleLock}><span /></button></PropertyRow>
       </PropertySection>
-      <LayerTypeProperties layer={layer} onAppearanceChange={onAppearanceChange} onPoiCoordinatesChange={onPoiCoordinatesChange} onRouteVertexChange={onRouteVertexChange} />
+      <LayerTypeProperties layer={layer} onAppearanceChange={onAppearanceChange} onPoiCoordinatesChange={onPoiCoordinatesChange} onRouteVertexChange={onRouteVertexChange} onShapeVertexChange={onShapeVertexChange} />
     </div>
   );
 }

@@ -158,6 +158,57 @@ describe('editor content appearance and POI geometry fields', () => {
     expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
   });
 
+  it('moves a shape vertex with live ring closure and history feedback', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: 'Select City center' }));
+    const ring = screen.getByRole('combobox', { name: 'Shape ring' });
+    const vertex = screen.getByRole('combobox', { name: 'Shape vertex' });
+    const longitude = screen.getByRole('textbox', { name: 'Shape vertex longitude' });
+    const map = screen.getByTestId('map-canvas');
+    expect(ring).toHaveValue('0');
+    expect(vertex).toHaveValue('0');
+    expect(longitude).toHaveValue('16.354');
+
+    await user.clear(longitude);
+    await user.type(longitude, '16.35');
+    await user.tab();
+
+    expect(screen.getByRole('textbox', { name: 'Shape vertex latitude' })).toHaveFocus();
+    expect(map).toHaveAttribute('data-layer-geometry', expect.stringContaining(
+      'area-center:[[[16.35,48.198],[16.395,48.198],[16.395,48.22],[16.354,48.22],[16.35,48.198]]]',
+    ));
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(screen.getByRole('textbox', { name: 'Shape vertex longitude' })).toHaveValue('16.354');
+  });
+
+  it('marks and rejects a shape edit that would collapse the ring below three distinct vertices', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: 'Select City center' }));
+    const vertex = screen.getByRole('combobox', { name: 'Shape vertex' });
+    await user.selectOptions(vertex, '1');
+    const secondLongitude = screen.getByRole('textbox', { name: 'Shape vertex longitude' });
+    await user.clear(secondLongitude);
+    await user.type(secondLongitude, '16.354');
+    await user.tab();
+
+    await user.selectOptions(vertex, '2');
+    const thirdLongitude = screen.getByRole('textbox', { name: 'Shape vertex longitude' });
+    await user.clear(thirdLongitude);
+    await user.type(thirdLongitude, '16.354');
+
+    expect(thirdLongitude).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByText('Keep at least three distinct vertices in this ring.')).toBeInTheDocument();
+    await user.tab();
+    expect(screen.getByRole('textbox', { name: 'Shape vertex longitude' })).toHaveValue('16.395');
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(screen.getByRole('textbox', { name: 'Shape vertex longitude' })).toHaveValue('16.395');
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
+  });
+
   it('commits POI color and marker size as undoable appearance edits', async () => {
     const user = userEvent.setup();
     render(<App />);

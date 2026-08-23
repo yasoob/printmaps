@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { PropertyRow } from './PropertyControls';
 
 type CoordinateFieldProps = {
@@ -7,6 +7,8 @@ type CoordinateFieldProps = {
   maximum: number;
   minimum: number;
   onCommit: (value: number) => void;
+  validationMessage?: string;
+  validate?: (value: number) => boolean;
   value: number;
 };
 
@@ -16,14 +18,18 @@ export function CoordinateField({
   maximum,
   minimum,
   onCommit,
+  validationMessage,
+  validate,
   value,
 }: CoordinateFieldProps) {
+  const validationId = useId();
   const [draft, setDraft] = useState(String(value));
   const parsedValue = Number(draft);
   const isInvalid = draft.trim() === ''
     || !Number.isFinite(parsedValue)
     || parsedValue < minimum
-    || parsedValue > maximum;
+    || parsedValue > maximum
+    || (validate !== undefined && !validate(parsedValue));
   const commit = () => {
     if (isInvalid) {
       setDraft(String(value));
@@ -35,10 +41,13 @@ export function CoordinateField({
 
   return (
     <PropertyRow label={label}>
-      <label className="number-field">
-        <input aria-label={ariaLabel} aria-invalid={isInvalid || undefined} value={draft} onChange={(event) => setDraft(event.target.value)} onBlur={commit} />
-        <small>°</small>
-      </label>
+      <div className="coordinate-field">
+        <label className="number-field">
+          <input aria-label={ariaLabel} aria-describedby={isInvalid && validationMessage ? validationId : undefined} aria-invalid={isInvalid || undefined} value={draft} onChange={(event) => setDraft(event.target.value)} onBlur={commit} />
+          <small>°</small>
+        </label>
+        {isInvalid && validationMessage && <small id={validationId} className="coordinate-validation">{validationMessage}</small>}
+      </div>
     </PropertyRow>
   );
 }

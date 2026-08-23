@@ -13,6 +13,7 @@ import { copyDocument, createDocumentActions } from './storeDocument';
 import { createCameraActions } from './storeCameraActions';
 import { createLayerPropertyActions, createLayerStructureActions } from './storeLayerActions';
 import { createPageActions } from './storePageActions';
+import { createShapeGeometryActions } from './storeShapeActions';
 import { createStyleActions } from './storeStyleActions';
 
 export type ProjectState = {
@@ -41,6 +42,7 @@ export type ProjectState = {
   setLayerAppearance: (id: string, appearance: LayerAppearance) => void;
   setPoiCoordinates: (id: string, coordinates: readonly [number, number]) => void;
   setRouteVertex: (id: string, vertexIndex: number, coordinates: readonly [number, number]) => void;
+  setShapeVertex: (id: string, ringIndex: number, vertexIndex: number, coordinates: readonly [number, number]) => void;
   setLayerOpacity: (id: string, opacity: number) => void;
   setMapStyle: (preset: MapStylePreset) => void;
   setMapTextScale: (textScalePercent: number) => void;
@@ -65,6 +67,7 @@ export function createProjectStore(
     ...createCameraActions(set),
     ...createLayerStructureActions(set),
     ...createLayerPropertyActions(set),
+    ...createShapeGeometryActions(set),
     ...createPageActions(set),
     ...createStyleActions(set),
     ...createDocumentActions(set),

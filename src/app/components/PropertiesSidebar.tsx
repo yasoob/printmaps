@@ -64,6 +64,7 @@ export function PropertiesSidebar(props: PropertiesSidebarProps) {
           onAppearanceChange={(appearance) => project.setLayerAppearance(selectedLayer.id, appearance)}
           onPoiCoordinatesChange={(coordinates) => project.setPoiCoordinates(selectedLayer.id, coordinates)}
           onRouteVertexChange={(vertexIndex, coordinates) => project.setRouteVertex(selectedLayer.id, vertexIndex, coordinates)}
+          onShapeVertexChange={(ringIndex, vertexIndex, coordinates) => project.setShapeVertex(selectedLayer.id, ringIndex, vertexIndex, coordinates)}
           onToggleVisibility={() => { clearSelectedPreview(); project.toggleLayerVisibility(selectedLayer.id); }}
           onToggleLock={() => project.toggleLayerLock(selectedLayer.id)}
           onDuplicate={duplicateSelected}

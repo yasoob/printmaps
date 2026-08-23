@@ -309,6 +309,8 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 .number-field small { @apply pr-2; color: var(--studio-text-subtle); font-size: var(--studio-font-meta); }
+.coordinate-field { @apply min-w-0; }
+.coordinate-validation { @apply block pt-1; color: var(--studio-danger); font-size: var(--studio-font-meta); line-height: 1.25; }
 .color-field span {
   @apply ml-2 h-3.5 w-3.5;
   border: var(--studio-border-width) solid var(--studio-marker-border);

@@ -1,6 +1,11 @@
 import { readFile } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
 
+const isHeadlessWebGlDiagnostic = (message: string) => (
+  message.includes('GPU stall due to ReadPixels')
+  || message.includes('AllowWebgl2:false restricts context creation on this system')
+);
+
 async function downloadPoiSvgPoint(
   page: import('@playwright/test').Page,
   outputPath: string,
@@ -35,6 +40,25 @@ async function downloadRouteSvgPath(
   const path = await page.evaluate((text) => {
     const svg = new DOMParser().parseFromString(text, 'image/svg+xml');
     return svg.documentElement.querySelector(':scope [data-layer-id="route-01"] path')?.getAttribute('d');
+  }, svgText);
+  await dialog.getByRole('button', { name: 'Close export' }).click();
+  return path;
+}
+
+async function downloadShapeSvgPath(
+  page: import('@playwright/test').Page,
+  outputPath: string,
+) {
+  await page.getByRole('button', { name: 'Export' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Export map' });
+  const downloadPromise = page.waitForEvent('download');
+  await dialog.getByRole('button', { name: 'Download layered SVG' }).click();
+  const download = await downloadPromise;
+  await download.saveAs(outputPath);
+  const svgText = await readFile(outputPath, 'utf8');
+  const path = await page.evaluate((text) => {
+    const svg = new DOMParser().parseFromString(text, 'image/svg+xml');
+    return svg.documentElement.querySelector(':scope [data-layer-id="area-center"] path')?.getAttribute('d');
   }, svgText);
   await dialog.getByRole('button', { name: 'Close export' }).click();
   return path;
@@ -192,5 +216,56 @@ test('route vertex coordinates update the live map, history, portable project, a
   expect(project.layers.find((layer) => layer.id === 'route-01')?.geometry?.coordinates).toEqual([
     [16.326, 48.194], [16.4, 48.25], [16.391, 48.215], [16.429, 48.226],
   ]);
+  expect(consoleProblems).toEqual([]);
+});
+
+test('shape vertex coordinates preserve ring closure across the live map, history, project, and layered SVG', async ({ page }, testInfo) => {
+  const consoleProblems: string[] = [];
+  page.on('pageerror', (error) => { consoleProblems.push(error.message); });
+  page.on('console', (message) => {
+    if ((message.type() === 'error' || message.type() === 'warning') && !isHeadlessWebGlDiagnostic(message.text())) {
+      consoleProblems.push(message.text());
+    }
+  });
+  await page.goto('/');
+  const mapRoot = page.getByTestId('map-canvas');
+  const mapReady = page.locator('[data-map-ready="true"]');
+  const mapFallback = page.getByText('Map preview unavailable');
+  await expect(mapReady.or(mapFallback)).toBeVisible({ timeout: 20_000 });
+  test.skip(await mapFallback.isVisible(), 'This browser fixture has no WebGL 2 renderer, so live geometry/export cannot be exercised.');
+
+  await page.getByRole('button', { name: 'Select City center' }).click();
+  const initialPath = await downloadShapeSvgPath(page, testInfo.outputPath('shape-before.layered.svg'));
+  const longitude = page.getByRole('textbox', { name: 'Shape vertex longitude' });
+  const latitude = page.getByRole('textbox', { name: 'Shape vertex latitude' });
+  await longitude.fill('16.35');
+  await longitude.press('Tab');
+  await expect(latitude).toBeFocused();
+  await latitude.fill('48.19');
+  await latitude.press('Tab');
+  await expect(mapRoot).toHaveAttribute(
+    'data-map-layer-geometry',
+    /area-center:\[\[\[16\.35,48\.19\].*\[16\.35,48\.19\]\]\]/,
+  );
+
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(page.getByRole('textbox', { name: 'Shape vertex latitude' })).toHaveValue('48.198');
+  await page.getByRole('button', { name: 'Redo' }).click();
+  await expect(page.getByRole('textbox', { name: 'Shape vertex latitude' })).toHaveValue('48.19');
+
+  const movedPath = await downloadShapeSvgPath(page, testInfo.outputPath('shape-after.layered.svg'));
+  expect(movedPath).toBeTruthy();
+  expect(movedPath).not.toEqual(initialPath);
+  const savePromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  const projectDownload = await savePromise;
+  const projectPath = testInfo.outputPath('shape-edited.printmap.json');
+  await projectDownload.saveAs(projectPath);
+  const project = JSON.parse(await readFile(projectPath, 'utf8')) as {
+    layers: Array<{ id: string; geometry?: { coordinates: unknown } }>;
+  };
+  expect(project.layers.find((layer) => layer.id === 'area-center')?.geometry?.coordinates).toEqual([[
+    [16.35, 48.19], [16.395, 48.198], [16.395, 48.22], [16.354, 48.22], [16.35, 48.19],
+  ]]);
   expect(consoleProblems).toEqual([]);
 });
