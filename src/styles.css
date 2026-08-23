@@ -377,6 +377,37 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .mapbox-service-status.is-ready strong { color: var(--studio-success); }
 .mapbox-service-status .quiet-button { @apply justify-center justify-self-start px-2; border: var(--studio-border-width) solid var(--studio-line-strong); }
 .mapbox-service-status .quiet-button:disabled { @apply cursor-default; color: var(--studio-text-subtle); }
+.elevation-profile-panel { @apply grid gap-2; color: var(--studio-text-secondary); font-size: var(--studio-font-meta); }
+.elevation-profile-panel > .quiet-button {
+  @apply inline-flex justify-center px-2;
+  border: var(--studio-border-width) solid var(--studio-line-strong);
+  background: var(--studio-surface);
+}
+.elevation-profile-panel > [role="status"] { line-height: 1.35; }
+.elevation-profile-panel > [role="alert"] { @apply m-0; color: var(--studio-danger); line-height: 1.35; }
+.elevation-profile-panel > a { color: var(--studio-accent-strong); line-height: 1.35; }
+.elevation-chart {
+  @apply block w-full;
+  border: var(--studio-border-width) solid var(--studio-line);
+  border-radius: var(--studio-radius-sm);
+  background: var(--studio-surface);
+}
+.elevation-chart > rect { fill: var(--studio-surface); }
+.elevation-grid { stroke: var(--studio-line); stroke-width: 1; }
+.elevation-area { fill: var(--studio-accent-soft); }
+.elevation-line { fill: none; stroke: var(--studio-accent-strong); stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }
+.elevation-metrics { @apply grid grid-cols-2 gap-x-2 gap-y-1; font-variant-numeric: tabular-nums; }
+.elevation-metrics strong { color: var(--studio-text-strong); }
+.elevation-downloads { @apply grid grid-cols-3 gap-1; }
+.elevation-downloads button {
+  min-height: var(--studio-control-height);
+  border: var(--studio-border-width) solid var(--studio-line-strong);
+  border-radius: var(--studio-radius-sm);
+  background: var(--studio-surface);
+  color: var(--studio-text-secondary);
+}
+.elevation-downloads button:hover { background: var(--studio-field); }
+.elevation-downloads button:disabled { @apply cursor-default; color: var(--studio-text-subtle); }
 .custom-marker-control { @apply mt-2 grid grid-cols-2 gap-1.5; }
 .custom-marker-control .secondary-action {
   @apply flex cursor-pointer items-center justify-center gap-1.5 px-2;

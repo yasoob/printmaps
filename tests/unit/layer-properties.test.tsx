@@ -57,6 +57,13 @@ describe('layer appearance draft boundaries', () => {
     vi.clearAllMocks();
   });
 
+  it('offers an elevation-profile workflow for a route layer', () => {
+    render(<LayerProperties layer={route(4)} {...actions} />);
+
+    expect(screen.getByRole('button', { name: 'Generate elevation profile' })).toBeInTheDocument();
+    expect(screen.getByText('Copernicus DEM GLO-90 via Open-Meteo')).toBeInTheDocument();
+  });
+
   it('toggles inverted fill as one canonical appearance edit', async () => {
     const user = userEvent.setup();
     render(<LayerProperties layer={shapeWithHole()} {...actions} />);

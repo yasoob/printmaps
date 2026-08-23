@@ -12,6 +12,7 @@ import {
   type RouteTravelProfile,
 } from '../../domain/routeProfiles';
 import { CoordinateField } from './CoordinateField';
+import { ElevationProfilePanel } from './ElevationProfilePanel';
 import { PoiAppearanceControls } from './PoiAppearanceControls';
 import { PropertyRow, PropertySection } from './PropertyControls';
 import { RouteVertexControls } from './RouteVertexControls';
@@ -171,9 +172,18 @@ function RouteLayerProperties({
         <RouteAppearanceControls key={`${layer.id}-${layer.appearance.width}`} appearance={layer.appearance} onChange={onAppearanceChange} />
       </PropertySection>
       {layer.geometry?.type === 'LineString' && (
-        <PropertySection title="Vertices">
-          <RouteVertexControls key={layer.id} coordinates={layer.geometry.coordinates} onChange={onRouteVertexChange} />
-        </PropertySection>
+        <>
+          <PropertySection title="Vertices">
+            <RouteVertexControls key={layer.id} coordinates={layer.geometry.coordinates} onChange={onRouteVertexChange} />
+          </PropertySection>
+          <PropertySection title="Elevation">
+            <ElevationProfilePanel
+              key={`${layer.id}-${JSON.stringify(layer.geometry.coordinates)}`}
+              coordinates={layer.geometry.coordinates}
+              routeName={layer.name}
+            />
+          </PropertySection>
+        </>
       )}
     </>
   );
