@@ -5,6 +5,7 @@ import type {
   RouteAppearance,
   ShapeAppearance,
 } from '../../domain/project';
+import type { CustomMarkerAsset } from '../../domain/customMarkerAssets';
 import {
   ROUTE_TRAVEL_PROFILES,
   ROUTE_TRAVEL_PROFILE_LABELS,
@@ -18,10 +19,12 @@ import { ShapeVertexControls } from './ShapeVertexControls';
 
 type LayerPropertiesProps = {
   layer: ContentLayer;
+  assets: Record<string, CustomMarkerAsset>;
   onRename: (name: string) => void;
   onOpacityChange: (opacity: number) => void;
   onAppearanceChange: (appearance: LayerAppearance) => void;
   onPoiCoordinatesChange: (coordinates: readonly [number, number]) => void;
+  onPoiCustomMarkerChange: (asset: CustomMarkerAsset | null) => void;
   onRouteVertexChange: (vertexIndex: number, coordinates: readonly [number, number]) => void;
   onShapeVertexChange: (ringIndex: number, vertexIndex: number, coordinates: readonly [number, number]) => void;
   onToggleVisibility: () => void;
@@ -175,32 +178,46 @@ function RouteLayerProperties({
   );
 }
 
-function LayerTypeProperties({
+function PoiLayerProperties({
   layer,
+  assets,
   onAppearanceChange,
   onPoiCoordinatesChange,
+  onPoiCustomMarkerChange,
+}: Pick<LayerPropertiesProps, 'layer' | 'assets' | 'onAppearanceChange' | 'onPoiCoordinatesChange' | 'onPoiCustomMarkerChange'>) {
+  const appearance = layer.appearance?.kind === 'poi' ? layer.appearance : undefined;
+  const customAsset = appearance?.customAssetId ? assets[appearance.customAssetId] : undefined;
+  return (
+    <>
+      {appearance && (
+        <PropertySection title="Appearance">
+          <PoiAppearanceControls key={`${layer.id}-${appearance.size}-${appearance.label}`} appearance={appearance} customAsset={customAsset} onChange={onAppearanceChange} onCustomMarkerChange={onPoiCustomMarkerChange} />
+        </PropertySection>
+      )}
+      {layer.geometry?.type === 'Point' && (
+        <PropertySection title="Location">
+          <PoiCoordinateControls coordinates={layer.geometry.coordinates} onChange={onPoiCoordinatesChange} />
+        </PropertySection>
+      )}
+    </>
+  );
+}
+
+function LayerTypeProperties({
+  layer,
+  assets,
+  onAppearanceChange,
+  onPoiCoordinatesChange,
+  onPoiCustomMarkerChange,
   onRouteVertexChange,
   onShapeVertexChange,
-}: Pick<LayerPropertiesProps, 'layer' | 'onAppearanceChange' | 'onPoiCoordinatesChange' | 'onRouteVertexChange' | 'onShapeVertexChange'>) {
+}: Pick<LayerPropertiesProps, 'layer' | 'assets' | 'onAppearanceChange' | 'onPoiCoordinatesChange' | 'onPoiCustomMarkerChange' | 'onRouteVertexChange' | 'onShapeVertexChange'>) {
   switch (layer.type) {
     case 'route': {
       return <RouteLayerProperties layer={layer} onAppearanceChange={onAppearanceChange} onRouteVertexChange={onRouteVertexChange} />;
     }
     case 'poi': {
-      return (
-        <>
-          {layer.appearance?.kind === 'poi' && (
-            <PropertySection title="Appearance">
-              <PoiAppearanceControls key={`${layer.id}-${layer.appearance.size}-${layer.appearance.label}`} appearance={layer.appearance} onChange={onAppearanceChange} />
-            </PropertySection>
-          )}
-          {layer.geometry?.type === 'Point' && (
-            <PropertySection title="Location">
-              <PoiCoordinateControls coordinates={layer.geometry.coordinates} onChange={onPoiCoordinatesChange} />
-            </PropertySection>
-          )}
-        </>
-      );
+      return <PoiLayerProperties layer={layer} assets={assets} onAppearanceChange={onAppearanceChange} onPoiCoordinatesChange={onPoiCoordinatesChange} onPoiCustomMarkerChange={onPoiCustomMarkerChange} />;
     }
     case 'shape': {
       if (layer.appearance?.kind !== 'shape') return null;
@@ -225,10 +242,12 @@ function LayerTypeProperties({
 
 export function LayerProperties({
   layer,
+  assets,
   onRename,
   onOpacityChange,
   onAppearanceChange,
   onPoiCoordinatesChange,
+  onPoiCustomMarkerChange,
   onRouteVertexChange,
   onShapeVertexChange,
   onToggleVisibility,
@@ -272,7 +291,7 @@ export function LayerProperties({
         <PropertyRow label="Visible"><button aria-label="Toggle layer visibility" className={`toggle${layer.visible ? ' is-on' : ''}`} type="button" aria-pressed={layer.visible} onClick={onToggleVisibility}><span /></button></PropertyRow>
         <PropertyRow label="Locked"><button aria-label="Toggle layer lock" className={`toggle${layer.locked ? ' is-on' : ''}`} type="button" aria-pressed={layer.locked} onClick={onToggleLock}><span /></button></PropertyRow>
       </PropertySection>
-      <LayerTypeProperties layer={layer} onAppearanceChange={onAppearanceChange} onPoiCoordinatesChange={onPoiCoordinatesChange} onRouteVertexChange={onRouteVertexChange} onShapeVertexChange={onShapeVertexChange} />
+      <LayerTypeProperties layer={layer} assets={assets} onAppearanceChange={onAppearanceChange} onPoiCoordinatesChange={onPoiCoordinatesChange} onPoiCustomMarkerChange={onPoiCustomMarkerChange} onRouteVertexChange={onRouteVertexChange} onShapeVertexChange={onShapeVertexChange} />
     </div>
   );
 }

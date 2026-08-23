@@ -51,7 +51,7 @@ export function MapCanvas({
       data-orientation={orientation}
       data-page-preset={page?.preset}
       data-page-size={page ? `${page.widthMm}x${page.heightMm}` : ''}
-      data-layer-state={layers.map(({ id, visible }) => `${id}:${visible}`).join(',')}
+      data-layer-state={layers.map(({ appearance, id, visible }) => `${id}:${visible}${appearance?.kind === 'poi' && appearance.customAssetId ? `:custom:${appearance.customAssetId}` : ''}`).join(',')}
       data-layer-geometry={layers.map(({ geometry, id }) => (
         geometry ? `${id}:${JSON.stringify(geometry.coordinates)}` : `${id}:none`
       )).join('|')}

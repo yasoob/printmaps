@@ -1,5 +1,6 @@
 import type { Map as MapLibreMap, PointLike } from 'maplibre-gl';
 import type { ContentLayer } from '../domain/project';
+import { decodeCustomMarkerImage, type CustomMarkerAsset, type DecodedCustomMarkerImage } from '../domain/customMarkerAssets';
 import {
   addContentLayer,
   contentStructure,
@@ -10,6 +11,7 @@ import {
 
 export type MapContentState = {
   layers: ContentLayer[];
+  assets?: Record<string, CustomMarkerAsset>;
   selectedId: string | null;
   previewedId: string | null;
   /*
@@ -41,7 +43,7 @@ function updateContainerState(
     }
     if (appearance?.kind === 'poi') {
       return [
-        `${layer.id}:${appearance.color}:${appearance.size}:${appearance.markerShape}:${appearance.markerSymbol}:${appearance.label}`,
+        `${layer.id}:${appearance.color}:${appearance.size}:${appearance.markerShape}:${appearance.markerSymbol}:${appearance.label}${appearance.customAssetId ? `:custom:${appearance.customAssetId}` : ''}`,
       ];
     }
     if (appearance?.kind === 'shape') {
@@ -55,15 +57,17 @@ function updateContainerState(
   container.dataset.selectedLayer = state.selectedId ?? '';
   container.dataset.previewedLayer = state.previewedId ?? '';
   delete container.dataset.mapContentError;
+  delete container.dataset.mapContentErrorReason;
 }
 
-function markContainerFailure(container: HTMLElement) {
+function markContainerFailure(container: HTMLElement, error?: unknown) {
   container.dataset.mapLayerOrder = '';
   container.dataset.mapLayerAppearance = '';
   container.dataset.mapLayerGeometry = '';
   container.dataset.selectedLayer = '';
   container.dataset.previewedLayer = '';
   container.dataset.mapContentError = 'true';
+  container.dataset.mapContentErrorReason = error instanceof Error ? error.message : 'Unknown content synchronization failure.';
 }
 
 function removeRenderedContent(map: MapLibreMap, rendered: RenderedMapContent) {
@@ -94,7 +98,7 @@ function updateRenderedContent(
   state: MapContentState,
 ) {
   const highlight = { selectedId: state.selectedId, previewedId: state.previewedId };
-  for (const layer of visibleLayers) updateLayerPaint(map, layer, highlight);
+  for (const layer of visibleLayers) updateLayerPaint(map, layer, highlight, state.assets ?? {});
 }
 
 function addRenderedContent(
@@ -108,13 +112,89 @@ function addRenderedContent(
   while (index > 0) {
     index -= 1;
     const layer = visibleLayers[index];
-    addContentLayer(map, layer, highlight, rendered);
+    addContentLayer(map, layer, { assets: state.assets ?? {}, highlight, rendered });
   }
+}
+
+type MapContentAdapterOptions = Readonly<{
+  decodeImage?: (asset: CustomMarkerAsset) => Promise<DecodedCustomMarkerImage>;
+}>;
+
+function createMarkerImageRegistry(map: MapLibreMap, decodeImage: NonNullable<MapContentAdapterOptions['decodeImage']>) {
+  let isDestroyed = false;
+  const pending = new Map<string, Promise<void>>();
+  const failed = new Set<string>();
+  const registered = new Set<string>();
+  let desiredAssetIds = new Set<string>();
+  const load = (asset: CustomMarkerAsset, imageId: string) => {
+    const task = (async () => {
+      try {
+        const image = await decodeImage(asset);
+        try {
+          if (isDestroyed || !desiredAssetIds.has(asset.id)) return;
+          map.addImage(imageId, image);
+          registered.add(imageId);
+        } finally {
+          if ('close' in image && typeof image.close === 'function') image.close();
+        }
+      } catch {
+        failed.add(asset.id);
+      } finally {
+        pending.delete(asset.id);
+        if (!isDestroyed) map.triggerRepaint();
+      }
+    })();
+    pending.set(asset.id, task);
+  };
+  return {
+    destroy: () => {
+      isDestroyed = true;
+      for (const imageId of registered) {
+        try {
+          if (map.hasImage(imageId)) map.removeImage(imageId);
+        } catch {
+          // Map teardown owns any image that cannot be removed here.
+        }
+      }
+      registered.clear();
+    },
+    ensure: (state: MapContentState, layers: ContentLayer[]) => {
+      const assetIds = new Set(layers.flatMap(({ appearance }) => (
+        appearance?.kind === 'poi' && appearance.customAssetId ? [appearance.customAssetId] : []
+      )));
+      desiredAssetIds = assetIds;
+      for (const assetId of assetIds) {
+        const imageId = `studio-marker-${assetId}`;
+        if (map.hasImage(imageId)) continue;
+        if (failed.has(assetId)) throw new Error('A custom marker image could not be decoded.');
+        if (pending.has(assetId)) return false;
+        const asset = state.assets?.[assetId];
+        if (!asset) throw new Error('A custom marker asset is missing.');
+        load(asset, imageId);
+        return false;
+      }
+      return true;
+    },
+    prune: (layers: ContentLayer[]) => {
+      const referenced = new Set(layers.flatMap(({ appearance }) => (
+        appearance?.kind === 'poi' && appearance.customAssetId ? [`studio-marker-${appearance.customAssetId}`] : []
+      )));
+      for (const imageId of registered) {
+        if (referenced.has(imageId)) continue;
+        try {
+          if (map.hasImage(imageId)) map.removeImage(imageId);
+        } finally {
+          registered.delete(imageId);
+        }
+      }
+    },
+  };
 }
 
 export function createMapLibreContentAdapter(
   map: MapLibreMap,
   container: HTMLElement,
+  options: MapContentAdapterOptions = {},
 ): MapContentAdapter {
   const rendered: RenderedMapContent = { mapLayerIds: [], sourceIds: [], structure: '' };
   let cachedContentRevision: object | undefined;
@@ -122,6 +202,7 @@ export function createMapLibreContentAdapter(
   let cachedStructure = '';
   let cachedGeometry = '';
   let isCleanupPending = false;
+  const markerImages = createMarkerImageRegistry(map, options.decodeImage ?? decodeCustomMarkerImage);
 
   const layerSnapshot = (layers: ContentLayer[], contentRevision?: object) => {
     if (contentRevision !== undefined && contentRevision === cachedContentRevision) {
@@ -147,25 +228,28 @@ export function createMapLibreContentAdapter(
     return isComplete;
   };
 
-  const sync = ({ layers, selectedId, previewedId, contentRevision }: MapContentState) => {
-    const state = { layers, selectedId, previewedId, contentRevision };
+  const sync = ({ layers, assets, selectedId, previewedId, contentRevision }: MapContentState) => {
+    const state = { layers, assets, selectedId, previewedId, contentRevision };
     try {
       if (!map.isStyleLoaded()) return 'deferred';
       const { geometry, structure: nextStructure, visibleLayers } = layerSnapshot(layers, contentRevision);
+      if (!markerImages.ensure(state, visibleLayers)) return 'deferred';
       if (!isCleanupPending && nextStructure === rendered.structure) {
+        markerImages.prune(visibleLayers);
         updateRenderedContent(map, visibleLayers, state);
         updateContainerState(container, state, visibleLayers, geometry);
         return 'synced';
       }
 
       if (!cleanup()) throw new Error('Map content cleanup incomplete');
+      markerImages.prune(visibleLayers);
       addRenderedContent(map, visibleLayers, state, rendered);
       rendered.structure = nextStructure;
       updateContainerState(container, state, visibleLayers, geometry);
       return 'synced';
-    } catch {
+    } catch (error) {
       cleanup();
-      markContainerFailure(container);
+      markContainerFailure(container, error);
       return 'failed';
     }
   };
@@ -205,6 +289,10 @@ export function createMapLibreContentAdapter(
         return false;
       }
     },
-    destroy: cleanup,
+    destroy: () => {
+      const cleaned = cleanup();
+      markerImages.destroy();
+      return cleaned;
+    },
   };
 }

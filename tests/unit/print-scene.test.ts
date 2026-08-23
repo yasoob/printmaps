@@ -270,4 +270,40 @@ describe('POI SVG markers and labels', () => {
     expect(poi.querySelector(':scope [data-poi-marker-symbol="coffee"]')?.textContent).toBe('C');
     expect(poi.querySelector(':scope [data-poi-label]')?.textContent).toBe('Café Central');
   });
+
+  it('embeds a hash-owned custom marker image in the POI vector layer', () => {
+    const project = createInitialProjectDocument();
+    const assetId = `sha256-${'a'.repeat(64)}`;
+    const dataUri = 'data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMTAwIDEyMCI+PHBhdGggZD0iTTAgMEgxMDBWMTIwSDBaIi8+PC9zdmc+';
+    project.assets[assetId] = {
+      id: assetId,
+      mimeType: 'image/svg+xml',
+      width: 100,
+      height: 2048,
+      dataUri,
+    };
+    project.layers[1].appearance = {
+      kind: 'poi',
+      color: '#0d78b5',
+      size: 28,
+      markerShape: 'circle',
+      markerSymbol: 'coffee',
+      label: 'Custom café',
+      customAssetId: assetId,
+    };
+
+    const svgDocument = parseSvg(serializePrintScene(project, {
+      basemap: { dataUri: onePixelPng, pixelWidth: 1, pixelHeight: 1 },
+      attribution: '© OpenStreetMap contributors',
+      project: projector,
+    }));
+    const poi = requiredElement(svgDocument, '[data-layer-id="poi-cafe"]');
+    const image = requiredElement(poi, ':scope image[data-poi-custom-marker]');
+
+    expect(image.getAttribute('href')).toBe(dataUri);
+    expect(image.getAttribute('width')).toBe('0.390625');
+    expect(image.getAttribute('height')).toBe('8');
+    expect(poi.querySelector('[data-poi-marker-shape]')).toBeNull();
+    expect(poi.querySelector('[data-poi-label]')?.textContent).toBe('Custom café');
+  });
 });

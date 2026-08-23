@@ -2,6 +2,7 @@ import type { ContentLayer, LayerGeometry, LayerType, ProjectDocument } from '..
 import { ROUTE_TRAVEL_PROFILE_MARKERS } from '../domain/routeProfiles';
 import { resolvePrintLayerStyle } from './layerStyle';
 import { serializePoiMarker } from './poiMarker';
+import type { CustomMarkerAsset } from '../domain/customMarkerAssets';
 
 export type PagePoint = Readonly<{ x: number; y: number }>;
 
@@ -185,9 +186,9 @@ function routeTravelModeMarker(
 function geometryElement(
   layer: ContentLayer,
   options: PrintSceneOptions,
-  width: number,
-  height: number,
+  context: Readonly<{ assets: Record<string, CustomMarkerAsset>; width: number; height: number }>,
 ): string {
+  const { assets, width, height } = context;
   if (layer.type === 'basemap') throw new PrintSceneError('Unexpected basemap geometry request.');
   const geometry = layer.geometry;
   if (!geometry || geometry.type !== expectedGeometry[layer.type]) {
@@ -200,6 +201,7 @@ function geometryElement(
     const point = projectCoordinate(geometry.coordinates, layer, options, { width, height });
     return serializePoiMarker({
       appearance: layer.appearance?.kind === 'poi' ? layer.appearance : undefined,
+      assets,
       point,
       style,
     });
@@ -309,7 +311,7 @@ export function serializePrintScene(document: ProjectDocument, options: PrintSce
 
   const basemapGroup = `<g ${layerGroupAttributes(basemapLayer, 'raster-basemap')}><title>${escapeXml(basemapLayer.name)}</title><image href="${escapeXml(options.basemap.dataUri)}" x="0" y="0" width="${widthText}" height="${heightText}" preserveAspectRatio="xMidYMid slice" data-pixel-width="${options.basemap.pixelWidth}" data-pixel-height="${options.basemap.pixelHeight}"/></g>`;
   const vectorGroups = vectorLayers.map((layer) => (
-    `<g ${layerGroupAttributes(layer, 'vector-overlay')}><title>${escapeXml(layer.name)}</title>${geometryElement(layer, options, width, height)}</g>`
+    `<g ${layerGroupAttributes(layer, 'vector-overlay')}><title>${escapeXml(layer.name)}</title>${geometryElement(layer, options, { assets: document.assets, width, height })}</g>`
   ));
   const attributionHeight = Math.min(5, height);
   const attributionY = height - attributionHeight;

@@ -138,6 +138,52 @@ test('content appearance edits update the live map, history, and layered SVG', a
   });
 });
 
+test('a validated custom POI marker survives the live map, portable project, and layered SVG', async ({ page }, testInfo) => {
+  const consoleProblems: string[] = [];
+  page.on('pageerror', (error) => { consoleProblems.push(error.message); });
+  page.on('console', (message) => {
+    if ((message.type() === 'error' || message.type() === 'warning') && !isHeadlessWebGlDiagnostic(message.text())) {
+      consoleProblems.push(message.text());
+    }
+  });
+  await page.goto('/');
+  const mapReady = page.locator('[data-map-ready="true"]');
+  const mapFallback = page.getByText('Map preview unavailable');
+  await expect(mapReady.or(mapFallback)).toBeVisible({ timeout: 20_000 });
+  test.skip(await mapFallback.isVisible(), 'This browser fixture has no WebGL 2 renderer, so custom markers cannot be exercised.');
+
+  await page.getByRole('button', { name: 'Select Coffee stop' }).click();
+  await page.getByLabel('Custom marker file').setInputFiles('tests/fixtures/custom-marker.svg');
+  await expect(page.getByRole('status', { name: 'Custom marker status' })).toContainText('100 × 120');
+  await expect(mapReady).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-appearance', /poi-cafe:.*:custom:sha256-/);
+  await page.screenshot({ path: testInfo.outputPath('custom-marker-desktop.png'), fullPage: true });
+
+  const savePromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  const projectDownload = await savePromise;
+  const projectPath = testInfo.outputPath('custom-marker.printmap.json');
+  await projectDownload.saveAs(projectPath);
+  const project = JSON.parse(await readFile(projectPath, 'utf8')) as {
+    assets: Record<string, { mimeType: string; width: number; height: number }>;
+    layers: Array<{ id: string; appearance?: { customAssetId?: string | null } }>;
+  };
+  const customAssetId = project.layers.find(({ id }) => id === 'poi-cafe')?.appearance?.customAssetId;
+  expect(customAssetId).toMatch(/^sha256-[0-9a-f]{64}$/);
+  expect(project.assets[customAssetId!]).toMatchObject({ mimeType: 'image/svg+xml', width: 100, height: 120 });
+
+  await page.getByRole('button', { name: 'Export' }).click();
+  const svgPromise = page.waitForEvent('download');
+  await page.getByRole('dialog', { name: 'Export map' }).getByRole('button', { name: 'Download layered SVG' }).click();
+  const svgDownload = await svgPromise;
+  const svgPath = testInfo.outputPath('custom-marker.layered.svg');
+  await svgDownload.saveAs(svgPath);
+  const svgText = await readFile(svgPath, 'utf8');
+  expect(svgText).toContain(`data-poi-custom-marker="${customAssetId}"`);
+  expect(svgText).toContain('data:image/svg+xml;base64,');
+  expect(consoleProblems).toEqual([]);
+});
+
 test('POI coordinates update the live map, history, portable project, and layered SVG', async ({ page }, testInfo) => {
   const consoleProblems: string[] = [];
   page.on('pageerror', (error) => { consoleProblems.push(error.message); });

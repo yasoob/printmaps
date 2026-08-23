@@ -4,11 +4,13 @@ import type { ContentLayer } from '../../src/domain/project';
 import { LayerProperties } from '../../src/app/components/LayerProperties';
 
 const actions = {
+  assets: {},
   onAppearanceChange: vi.fn(),
   onDelete: vi.fn(),
   onDuplicate: vi.fn(),
   onOpacityChange: vi.fn(),
   onPoiCoordinatesChange: vi.fn(),
+  onPoiCustomMarkerChange: vi.fn(),
   onRouteVertexChange: vi.fn(),
   onShapeVertexChange: vi.fn(),
   onRename: vi.fn(),

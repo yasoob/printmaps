@@ -23,6 +23,7 @@ export type PoiAppearance = {
   markerShape: PoiMarkerShape;
   markerSymbol: PoiMarkerSymbol;
   label: string;
+  customAssetId?: string | null;
 };
 export type ShapeAppearance = {
   kind: 'shape';
@@ -56,6 +57,7 @@ export function createDefaultLayerAppearance(type: AppearanceLayerType): LayerAp
       markerShape: 'circle',
       markerSymbol: 'none',
       label: '',
+      customAssetId: null,
     };
   }
   if (type === 'shape') {
@@ -71,6 +73,9 @@ function normalizedAppearance(appearance: LayerAppearance): LayerAppearance {
       fillColor: appearance.fillColor.toLowerCase(),
       strokeColor: appearance.strokeColor.toLowerCase(),
     };
+  }
+  if (appearance.kind === 'poi') {
+    return { ...appearance, color: appearance.color.toLowerCase(), customAssetId: appearance.customAssetId ?? null };
   }
   return { ...appearance, color: appearance.color.toLowerCase() };
 }
@@ -91,7 +96,8 @@ function isPoiAppearanceValid(appearance: PoiAppearance): boolean {
     && appearance.size <= 48
     && POI_MARKER_SHAPES.includes(appearance.markerShape)
     && POI_MARKER_SYMBOLS.includes(appearance.markerSymbol)
-    && isPoiLabelValid(appearance.label);
+    && isPoiLabelValid(appearance.label)
+    && (appearance.customAssetId == null || /^sha256-[0-9a-f]{64}$/.test(appearance.customAssetId));
 }
 
 function isShapeAppearanceValid(appearance: ShapeAppearance): boolean {
@@ -172,6 +178,10 @@ function poiAppearanceAt(appearance: JsonObject, label: string, fail: Fail): Poi
   if ([...appearance.label].length > MAX_POI_LABEL_CHARACTERS) {
     fail(`${label} POI label must be ${MAX_POI_LABEL_CHARACTERS} characters or fewer.`);
   }
+  if (appearance.customAssetId !== null
+    && (typeof appearance.customAssetId !== 'string' || !/^sha256-[0-9a-f]{64}$/.test(appearance.customAssetId))) {
+    fail(`${label} custom marker asset ID is invalid.`);
+  }
   return {
     kind: 'poi',
     color: colorValue(appearance.color, `${label} POI color`, fail),
@@ -179,6 +189,7 @@ function poiAppearanceAt(appearance: JsonObject, label: string, fail: Fail): Poi
     markerShape: appearance.markerShape as PoiMarkerShape,
     markerSymbol: appearance.markerSymbol as PoiMarkerSymbol,
     label: appearance.label,
+    customAssetId: appearance.customAssetId,
   };
 }
 

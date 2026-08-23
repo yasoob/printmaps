@@ -88,6 +88,7 @@ it('keeps readiness invalid after a live label resize fails', async () => {
   const onExporterChange = vi.fn();
   const props = {
     layers: [route],
+    assets: {},
     previewedId: null,
     onLayerSelect: vi.fn(),
     onBackgroundClick: vi.fn(),
@@ -129,6 +130,7 @@ it('keeps readiness invalid after overlay restoration fails', async () => {
   const onExporterChange = vi.fn();
   const props = {
     layers: [route],
+    assets: {},
     previewedId: null,
     onLayerSelect: vi.fn(),
     onBackgroundClick: vi.fn(),

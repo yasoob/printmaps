@@ -91,6 +91,7 @@ const emitLatestMapEvent = (event: string) => {
 it('applies canonical feature visibility live and again after a style switch', async () => {
   const props = {
     layers: [route],
+    assets: {},
     previewedId: null,
     selectedId: null,
     onLayerSelect: vi.fn(),
@@ -114,6 +115,7 @@ it('withdraws readiness and export until a live visibility change reaches idle',
   const onExporterChange = vi.fn();
   const props = {
     layers: [route],
+    assets: {},
     previewedId: null,
     selectedId: null,
     onLayerSelect: vi.fn(),

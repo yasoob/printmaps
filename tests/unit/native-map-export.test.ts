@@ -1,4 +1,6 @@
 import type { Map as MapLibreMap } from 'maplibre-gl';
+import type { ContentLayer } from '../../src/domain/project';
+import type { CustomMarkerAsset } from '../../src/domain/customMarkerAssets';
 import {
   calculateNativeTileCamera,
   createNativePrintTileExport,
@@ -22,6 +24,19 @@ const rect = (left: number, top: number, width: number, height: number): DOMRect
   height,
   toJSON: () => ({}),
 });
+
+const hiddenCustomAsset: CustomMarkerAsset = {
+  id: `sha256-${'a'.repeat(64)}`,
+  mimeType: 'image/svg+xml', width: 100, height: 100,
+  dataUri: 'data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHBhdGggZD0iTTAgMCIvPjwvc3ZnPg==',
+};
+const hiddenCustomPoi: ContentLayer = {
+  id: 'hidden-custom-poi', name: 'Hidden custom POI', type: 'poi', visible: false, locked: false, opacity: 100,
+  appearance: {
+    kind: 'poi', color: '#0d78b5', size: 20, markerShape: 'circle', markerSymbol: 'none', label: '', customAssetId: hiddenCustomAsset.id,
+  },
+  geometry: { type: 'Point', coordinates: [16.4, 48.2] },
+};
 
 describe('native map export camera', () => {
   it('uses HiDPI rendering only when it preserves exact odd target dimensions', () => {
@@ -137,7 +152,8 @@ describe('native map export camera', () => {
           kind: 'route', color: '#d9363e', width: 4, travelProfile: 'air', showTravelModeIcon: true,
         },
         geometry: { type: 'LineString', coordinates: [[16.3, 48.2], [16.4, 48.3]] },
-      }],
+      }, hiddenCustomPoi],
+      assets: { [hiddenCustomAsset.id]: hiddenCustomAsset },
       pixelsPerMillimetre: 10,
     } as Parameters<typeof renderNativeMapTile>[3]);
 
@@ -286,6 +302,7 @@ describe('native map export job', () => {
     expect(() => createNativePrintTileExport({
       isReady: () => true,
       map: sourceMap,
+      resolveAssets: () => ({}),
       resolveLayers: () => [],
       resolvePrintFrame: () => frame,
     }, {
@@ -320,6 +337,7 @@ describe('native map export job', () => {
     expect(() => createNativePrintTileExport({
       isReady: () => true,
       map: sourceMap,
+      resolveAssets: () => ({}),
       resolveLayers: () => [],
       resolvePrintFrame: () => frame,
     }, {
@@ -353,6 +371,7 @@ describe('native map export job', () => {
     const renderer = createNativePrintTileExport({
       isReady: () => isReady,
       map: sourceMap,
+      resolveAssets: () => ({}),
       resolveLayers: () => layers,
       resolvePrintFrame: () => frame,
     }, {

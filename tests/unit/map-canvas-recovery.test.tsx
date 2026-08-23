@@ -130,7 +130,7 @@ const route: ContentLayer = {
 };
 
 const baseProps = {
-  layers: [route],
+  layers: [route], assets: {},
   previewedId: null,
   onLayerSelect: vi.fn(),
   onBackgroundClick: vi.fn(),

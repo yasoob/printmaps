@@ -1,5 +1,6 @@
 import type { ProjectDocument } from '../../domain/project';
 import { createProjectArchive } from '../../domain/projectArchive';
+import { MAX_PROJECT_FILE_BYTES } from '../../domain/projectFile';
 
 function safeFilenameId(document: ProjectDocument) {
   return document.id.replaceAll(/[^a-z0-9._-]+/gi, '-').replaceAll(/^[-.]+|[-.]+$/g, '') || 'project';
@@ -19,6 +20,9 @@ function downloadBlob(blob: Blob, filename: string) {
 
 export function downloadProjectDocument(document: ProjectDocument) {
   const blob = new Blob([`${JSON.stringify(document, null, 2)}\n`], { type: 'application/json' });
+  if (blob.size > MAX_PROJECT_FILE_BYTES) {
+    throw new Error('The portable project JSON must be 10 MB or smaller. Remove project content before saving.');
+  }
   downloadBlob(blob, `${safeFilenameId(document)}.printmap.json`);
 }
 

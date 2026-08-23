@@ -377,6 +377,26 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .mapbox-service-status.is-ready strong { color: var(--studio-success); }
 .mapbox-service-status .quiet-button { @apply justify-center justify-self-start px-2; border: var(--studio-border-width) solid var(--studio-line-strong); }
 .mapbox-service-status .quiet-button:disabled { @apply cursor-default; color: var(--studio-text-subtle); }
+.custom-marker-control { @apply mt-2 grid grid-cols-2 gap-1.5; }
+.custom-marker-control .secondary-action {
+  @apply flex cursor-pointer items-center justify-center gap-1.5 px-2;
+  min-height: var(--studio-control-height);
+  border: var(--studio-border-width) solid var(--studio-line-strong);
+  border-radius: var(--studio-radius-sm);
+  color: var(--studio-text-secondary);
+  background: var(--studio-surface);
+  font-size: var(--studio-font-label);
+}
+.custom-marker-control .secondary-action:hover { background: var(--studio-field); }
+.custom-marker-control .secondary-action.is-disabled { @apply cursor-default; color: var(--studio-text-subtle); }
+.custom-marker-control input[type="file"] { display: none; }
+.custom-marker-control [role="status"], .custom-marker-control [role="alert"] {
+  @apply col-span-2;
+  font-size: var(--studio-font-meta);
+  line-height: 1.35;
+}
+.custom-marker-control [role="status"] { color: var(--studio-text-muted); }
+.custom-marker-control [role="alert"] { color: var(--studio-danger); }
 .toggle { @apply cursor-pointer p-0.5; width: 1.75rem; height: 1rem; border-radius: 999px; background: var(--studio-line-strong); }
 .toggle span { @apply block h-3 w-3 rounded-full transition-transform; background: var(--studio-surface); }
 .toggle.is-on { background: var(--studio-accent); }

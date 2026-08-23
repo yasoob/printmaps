@@ -166,6 +166,9 @@ export async function createPrintPdf(
     || !Number.isFinite(document.page.heightMm) || document.page.heightMm <= 0) {
     throw new Error('The PDF page dimensions must be finite positive values.');
   }
+  if (document.layers.some(({ appearance }) => appearance?.kind === 'poi' && appearance.customAssetId)) {
+    throw new Error('PDF export does not yet support custom marker images. Use layered SVG or PNG for this project.');
+  }
   const basemapLayers = document.layers.filter(({ type }) => type === 'basemap');
   if (basemapLayers.length !== 1) throw new Error('The project must contain exactly one basemap for PDF export.');
   const imageBytes = await jpegBytes(capture, signal);

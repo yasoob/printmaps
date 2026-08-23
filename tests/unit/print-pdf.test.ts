@@ -21,6 +21,17 @@ async function pdfText(document = createInitialProjectDocument()): Promise<strin
 }
 
 describe('print PDF', () => {
+  it('fails closed rather than substituting a standard symbol for a custom marker', async () => {
+    const document = createInitialProjectDocument();
+    const poi = document.layers.find(({ id }) => id === 'poi-cafe');
+    if (poi?.appearance?.kind !== 'poi') throw new Error('POI fixture is unavailable');
+    poi.appearance.customAssetId = `sha256-${'a'.repeat(64)}`;
+
+    await expect(createPrintPdf(document, jpegCapture())).rejects.toThrow(
+      'PDF export does not yet support custom marker images',
+    );
+  });
+
   it('embeds hidden vector content while listing its optional layer as initially off', async () => {
     const document = createInitialProjectDocument();
     const route = document.layers.find(({ id }) => id === 'route-01');

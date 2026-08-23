@@ -92,6 +92,7 @@ export function App({ autosaveRepository }: AppProps = {}) {
         />
         <CanvasWorkspace
           layers={layers}
+          assets={project.document.assets}
           selectedId={project.selectedId}
           previewedId={mapPreviewedLayerId}
           page={project.document.page}

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 10,
+  "schemaVersion": 11,
   "id": "alpine-poster",
   "title": "Alpine poster",
   "page": {
@@ -21,6 +21,7 @@
       "labels": true
     }
   },
+  "assets": {},
   "layers": [
     {
       "id": "summit-route",
@@ -58,7 +59,8 @@
         "size": 14,
         "markerShape": "circle",
         "markerSymbol": "none",
-        "label": ""
+        "label": "",
+        "customAssetId": null
       },
       "geometry": {
         "type": "Point",

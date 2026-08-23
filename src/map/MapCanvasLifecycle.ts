@@ -3,7 +3,7 @@ import { AttributionControl, Map, NavigationControl, type Map as MapLibreMap } f
 import { capturePrintFramePng, type PreviewPngExporter } from '../export/previewPng';
 import { createMapLibreContentAdapter, type MapContentAdapter, type MapContentState } from './MapContentAdapter';
 import { captureBasemapOnly } from './MapExportCapture';
-import { createNativePrintTileRenderer } from './NativeMapExport';
+import { createNativePrintTileRenderer } from './NativePrintTileRenderer';
 
 export type MapError = {
   kind: 'content' | 'renderer' | 'style';
@@ -190,10 +190,13 @@ function createMapEventHandlers(
       },
     );
   };
-  exportPreview.createPrintTileRenderer = createNativePrintTileRenderer(map, () => references.container.current
-    ?.parentElement?.querySelector<HTMLElement>('.print-frame'), () => references.contentState.current.layers, () => !references.mapFailed.current
-    && references.contentReady.current && references.map.current === map
-    && references.availableExporter.current === exportPreview);
+  exportPreview.createPrintTileRenderer = createNativePrintTileRenderer(map, {
+    resolvePrintFrame: () => references.container.current?.parentElement?.querySelector<HTMLElement>('.print-frame'),
+    resolveLayers: () => references.contentState.current.layers,
+    resolveAssets: () => references.contentState.current.assets ?? {},
+    isSourceReady: () => !references.mapFailed.current && references.contentReady.current
+      && references.map.current === map && references.availableExporter.current === exportPreview,
+  });
   const handleLoad = () => {
     state.isStyleLoaded = true;
     const container = references.container.current;
@@ -291,13 +294,10 @@ function cleanupMap(
 }
 
 function installMapLifecycle(map: MapLibreMap, options: MapLifecycleOptions) {
-  const container = options.references.container.current!;
-  const attribution = createAttributionController(container);
-  const state = { isStyleLoaded: false };
+  const container = options.references.container.current!, attribution = createAttributionController(container), state = { isStyleLoaded: false };
   options.references.mapFailed.current = false;
   const handlers = createMapEventHandlers(map, state, options, attribution.initialize);
-  map.addControl(new NavigationControl({ showCompass: false }), 'bottom-right');
-  map.addControl(new AttributionControl({ compact: true }), 'bottom-left');
+  map.addControl(new NavigationControl({ showCompass: false }), 'bottom-right'); map.addControl(new AttributionControl({ compact: true }), 'bottom-left');
   attribution.listen();
   map.once('load', handlers.handleLoad);
   map.on('idle', handlers.handleIdle);

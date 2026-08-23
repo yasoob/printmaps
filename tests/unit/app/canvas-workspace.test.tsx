@@ -39,6 +39,7 @@ const layers: ContentLayer[] = [
 
 const sharedProps = {
   layers,
+  assets: {},
   camera: { bearing: 0, pitch: 0 },
   stylePreset: 'liberty' as const,
   textScalePercent: 100,

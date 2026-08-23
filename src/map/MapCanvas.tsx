@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react';
+import type { CustomMarkerAsset } from '../domain/customMarkerAssets';
 import type { CameraSettings, ContentLayer, MapFeatureVisibility, MapStylePreset, PageSettings } from '../domain/project';
 import type { PreviewPngExporter } from '../export/previewPng';
 import { useMapCanvasController } from './useMapCanvasController';
@@ -9,6 +10,7 @@ type MapCanvasProps = {
   textScalePercent?: number;
   featureVisibility?: MapFeatureVisibility;
   layers: ContentLayer[];
+  assets: Record<string, CustomMarkerAsset>;
   selectedId: string | null;
   previewedId: string | null;
   onLayerSelect: (id: string) => void;
@@ -30,6 +32,7 @@ export function MapCanvas({
   textScalePercent = 100,
   featureVisibility,
   layers,
+  assets,
   selectedId,
   previewedId,
   onLayerSelect,
@@ -48,6 +51,7 @@ export function MapCanvas({
     featureVisibility: resolveFeatureVisibility(featureVisibility),
     fitRequest,
     layers,
+    assets,
     onBackgroundClick,
     onExporterChange,
     onLayerSelect,

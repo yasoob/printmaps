@@ -9,6 +9,8 @@ import {
   type ProjectDocument,
 } from './project';
 import { parseLayerAppearance, type LayerAppearance } from './layerAppearance';
+import type { CustomMarkerAsset } from './customMarkerAssets';
+import { parseProjectAssets } from './projectAssets';
 
 export const MAX_PROJECT_FILE_BYTES = 10 * 1024 * 1024;
 const MAX_LAYERS = 1000;
@@ -129,7 +131,25 @@ function optionalAppearance(appearance: LayerAppearance | undefined) {
   return appearance ? { appearance } : {};
 }
 
-function layersAt(value: unknown) {
+function layerAppearanceAt(
+  layer: JsonObject,
+  type: LayerType,
+  index: number,
+  assets: Record<string, CustomMarkerAsset>,
+): LayerAppearance | undefined {
+  const appearance = parseLayerAppearance(
+    layer.appearance,
+    type,
+    `Layer ${index + 1}`,
+    (message) => { throw new ProjectFileError(message); },
+  );
+  if (appearance?.kind === 'poi' && appearance.customAssetId && !Object.hasOwn(assets, appearance.customAssetId)) {
+    throw new ProjectFileError(`Layer ${index + 1} references a missing custom marker asset.`);
+  }
+  return appearance;
+}
+
+function layersAt(value: unknown, assets: Record<string, CustomMarkerAsset>) {
   if (!Array.isArray(value)) throw new ProjectFileError('Project layers must be an array.');
   if (value.length > MAX_LAYERS) throw new ProjectFileError(`Projects may contain at most ${MAX_LAYERS} layers.`);
   const ids = new Set<string>();
@@ -147,12 +167,7 @@ function layersAt(value: unknown) {
       throw new ProjectFileError(`Layer ${index + 1} opacity must be between 0 and 100.`);
     }
     const type = layer.type as LayerType;
-    const appearance = parseLayerAppearance(
-      layer.appearance,
-      type,
-      `Layer ${index + 1}`,
-      (message) => { throw new ProjectFileError(message); },
-    );
+    const appearance = layerAppearanceAt(layer, type, index, assets);
     const geometry = layer.geometry === undefined
       ? undefined
       : geometryAt(layer.geometry, `Layer ${index + 1}`, coordinateCount);
@@ -252,7 +267,7 @@ function currentDocumentAt(value: unknown): ProjectDocument {
   const root = objectAt(value, 'Project file');
   const schemaVersion = root.schemaVersion;
   if (!isCurrentSchemaVersion(schemaVersion)) {
-    if (typeof schemaVersion === 'number' && schemaVersion >= 1 && schemaVersion <= 9) {
+    if (typeof schemaVersion === 'number' && schemaVersion >= 1 && schemaVersion <= 10) {
       throw new ProjectFileError(
         `Schema version ${schemaVersion} is obsolete. Start a new project or reopen a current Print Map Studio file.`,
       );
@@ -262,10 +277,21 @@ function currentDocumentAt(value: unknown): ProjectDocument {
       : 'missing';
     throw new ProjectFileError(`Schema version ${displayed} is not supported.`);
   }
+  const assets = parseProjectAssets(root.assets, (message) => { throw new ProjectFileError(message); });
+  const layers = layersAt(root.layers, assets);
+  const referencedAssets = new Set(layers.flatMap(({ appearance }) => (
+    appearance?.kind === 'poi' && appearance.customAssetId ? [appearance.customAssetId] : []
+  )));
+  for (const assetId of Object.keys(assets)) {
+    if (!referencedAssets.has(assetId)) {
+      throw new ProjectFileError(`Custom marker asset ${assetId} is not referenced by a POI layer.`);
+    }
+  }
   const common = {
     id: nonEmptyString(root.id, 'Project ID'),
     title: nonEmptyString(root.title, 'Project title'),
-    layers: layersAt(root.layers),
+    assets,
+    layers,
   };
   return {
     schemaVersion,

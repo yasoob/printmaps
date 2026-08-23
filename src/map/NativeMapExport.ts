@@ -1,5 +1,6 @@
 import { Map, type Map as MapLibreMap } from 'maplibre-gl';
 import type { ContentLayer } from '../domain/project';
+import type { CustomMarkerAsset } from '../domain/customMarkerAssets';
 import type { PrintTileExportPlan, PrintTileRenderer } from '../export/previewPng';
 import {
   calculateNativeTileCamera,
@@ -8,6 +9,7 @@ import {
   type NativeTileRequest,
 } from './NativeMapCamera';
 import { visibleContentLayers } from './MapContentLayerRendering';
+import { registerCustomMarkerImages } from './CustomMarkerMapImages';
 import {
   hasVisibleBasemapSymbolLayers,
   scaleNativeMapStyle,
@@ -30,6 +32,7 @@ export function selectNativeExportPixelRatio(
 type NativeMapRenderOptions = Readonly<{
   createMap?: NativeMapFactory;
   layers: ContentLayer[];
+  assets?: Record<string, CustomMarkerAsset>;
   pixelsPerMillimetre?: number;
   signal?: AbortSignal;
   style?: ReturnType<MapLibreMap['getStyle']>;
@@ -37,6 +40,7 @@ type NativeMapRenderOptions = Readonly<{
 }>;
 
 type NativeMapWaitOptions = Readonly<{
+  assets: Record<string, CustomMarkerAsset>;
   pixelsPerMillimetre: number;
   signal?: AbortSignal;
   timeoutMs: number;
@@ -76,15 +80,19 @@ function waitForNativeMap(
     );
     const handleAbort = () => finish(abortError());
     const handleLoad = () => {
-      try {
-        for (const layer of visibleContentLayers(layers)) {
-          updatePrintLayerPaint(map, layer, options.pixelsPerMillimetre);
+      void (async () => {
+        try {
+          const visibleLayers = visibleContentLayers(layers);
+          await registerCustomMarkerImages(map, visibleLayers, options.assets);
+          for (const layer of visibleLayers) {
+            updatePrintLayerPaint(map, layer, options.pixelsPerMillimetre, options.assets);
+          }
+          map.once('idle', handleIdle);
+          map.triggerRepaint();
+        } catch (error) {
+          finish(error);
         }
-        map.once('idle', handleIdle);
-        map.triggerRepaint();
-      } catch (error) {
-        finish(error);
-      }
+      })();
     };
     const timeout = setTimeout(() => finish(
       new Error('The native map renderer timed out while loading print tiles.'),
@@ -134,6 +142,7 @@ const regionKey = (region: NativeMapRegion) => (
 );
 
 type NativeMapTileSnapshot = Readonly<{
+  assets: Record<string, CustomMarkerAsset>;
   camera: NativeTileCamera;
   layers: ContentLayer[];
   pixelsPerMillimetre: number;
@@ -192,6 +201,7 @@ async function renderNativeMapTileSnapshot(
       map,
       snapshot.layers,
       {
+        assets: snapshot.assets,
         pixelsPerMillimetre: snapshot.pixelsPerMillimetre / pixelRatio,
         signal: options.signal,
         timeoutMs: options.timeoutMs ?? 20_000,
@@ -230,6 +240,7 @@ export function createNativePrintTileExport(
   source: Readonly<{
     isReady: () => boolean;
     map: MapLibreMap;
+    resolveAssets: () => Record<string, CustomMarkerAsset>;
     resolveLayers: () => ContentLayer[];
     resolvePrintFrame: () => HTMLElement | null | undefined;
   }>,
@@ -257,8 +268,10 @@ export function createNativePrintTileExport(
     plan.pixelsPerMillimetre * 0.3 / pixelRatio,
   );
   const layers = structuredClone(source.resolveLayers());
+  const assets = structuredClone(source.resolveAssets());
   for (const region of plan.regions) {
     snapshots.set(regionKey(region), {
+      assets,
       camera: calculateNativeTileCamera(source.map, printFrame, { output: plan.output, region }),
       layers,
       pixelsPerMillimetre: plan.pixelsPerMillimetre,
@@ -282,20 +295,6 @@ export function createNativePrintTileExport(
   };
 }
 
-export function createNativePrintTileRenderer(
-  sourceMap: MapLibreMap,
-  resolvePrintFrame: () => HTMLElement | null | undefined,
-  resolveLayers: () => ContentLayer[],
-  isSourceReady: () => boolean,
-): (plan: PrintTileExportPlan) => PrintTileRenderer {
-  return (plan) => createNativePrintTileExport({
-    isReady: isSourceReady,
-    map: sourceMap,
-    resolveLayers,
-    resolvePrintFrame,
-  }, plan);
-}
-
 export async function renderNativeMapTile(
   sourceMap: MapLibreMap,
   printFrame: HTMLElement,
@@ -306,6 +305,7 @@ export async function renderNativeMapTile(
   const pixelsPerMillimetre = options.pixelsPerMillimetre ?? 1 / 0.3;
   const pixelRatio = selectNativeExportPixelRatio(request.output);
   return renderNativeMapTileSnapshot(request, {
+    assets: structuredClone(options.assets ?? {}),
     camera,
     layers: structuredClone(options.layers),
     pixelsPerMillimetre,

@@ -1,13 +1,29 @@
 import { canonicalLayerAppearance } from '../domain/layerAppearance';
-import { cloneContentLayer, createDefaultLayerAppearance } from '../domain/project';
+import { cloneContentLayer, createDefaultLayerAppearance, type ContentLayer } from '../domain/project';
 import { isValidPosition, moveRouteVertex } from '../domain/routeGeometry';
 import { buildRouteCoordinates, DEFAULT_ROUTE_AUTHORING_OPTIONS, isRouteAuthoringOptions } from '../domain/routeProfiles';
+import { validateCustomMarkerAssetCollection, validateStoredCustomMarkerAsset, type CustomMarkerAsset } from '../domain/customMarkerAssets';
 import type { ProjectState } from './store';
 import { commitDocument, replaceLayers, type ProjectSet } from './storeDocument';
 import { createPoiStructureActions } from './storePoiActions';
 
 type LayerStructureActions = Pick<ProjectState, 'createPoi' | 'createPoiBatch' | 'createRoute' | 'createShape' | 'deleteLayer' | 'duplicateLayer' | 'importLayers' | 'moveLayer'>;
-type LayerPropertyActions = Pick<ProjectState, 'renameLayer' | 'selectLayer' | 'setLayerAppearance' | 'setLayerOpacity' | 'setPoiCoordinates' | 'setRouteVertex' | 'toggleLayerVisibility' | 'toggleLayerLock'>;
+type LayerPropertyActions = Pick<ProjectState, 'renameLayer' | 'selectLayer' | 'setLayerAppearance' | 'setLayerOpacity' | 'setPoiCoordinates' | 'setPoiCustomMarker' | 'setRouteVertex' | 'toggleLayerVisibility' | 'toggleLayerLock'>;
+
+function isCanonicalCustomMarkerAsset(asset: CustomMarkerAsset): boolean {
+  try {
+    validateStoredCustomMarkerAsset(asset);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function assetsReferencedBy(layers: ProjectState['document']['layers']): Set<string> {
+  return new Set(layers.flatMap(({ appearance }) => (
+    appearance?.kind === 'poi' && appearance.customAssetId ? [appearance.customAssetId] : []
+  )));
+}
 
 function createRouteAction(set: ProjectSet): ProjectState['createRoute'] {
   return (coordinates, options = DEFAULT_ROUTE_AUTHORING_OPTIONS) => set((state) => {
@@ -109,11 +125,14 @@ export function createLayerStructureActions(set: ProjectSet): LayerStructureActi
     createShape: createShapeAction(set),
     deleteLayer: (id) => set((state) => {
       if (state.document.layers.every((layer) => layer.id !== id)) return state;
-
+      const layers = state.document.layers.filter((layer) => layer.id !== id);
+      const referencedAssets = assetsReferencedBy(layers);
+      const assets = Object.fromEntries(Object.entries(state.document.assets)
+        .filter(([assetId]) => referencedAssets.has(assetId)));
       return {
         ...commitDocument(
           state,
-          replaceLayers(state.document, state.document.layers.filter((layer) => layer.id !== id)),
+          { ...state.document, assets, layers },
         ),
         selectedId: state.selectedId === id ? null : state.selectedId,
       };
@@ -201,13 +220,12 @@ export function createLayerPropertyActions(set: ProjectSet): LayerPropertyAction
     })),
     setLayerAppearance: (id, appearance) => set((state) => {
       const layer = state.document.layers.find((candidate) => candidate.id === id);
-      const nextAppearance = canonicalLayerAppearance(layer?.type ?? 'basemap', appearance);
-      if (!layer || !nextAppearance) return state;
+      const canonicalAppearance = canonicalLayerAppearance(layer?.type ?? 'basemap', appearance);
+      if (!layer || !canonicalAppearance) return state;
+      const nextAppearance = canonicalAppearance.kind === 'poi' ? { ...canonicalAppearance, customAssetId: layer.appearance?.kind === 'poi' ? layer.appearance.customAssetId ?? null : null } : canonicalAppearance;
       if (JSON.stringify(layer.appearance) === JSON.stringify(nextAppearance)) return state;
 
-      return commitDocument(state, replaceLayers(
-        state.document,
-        state.document.layers.map((candidate) => (
+      return commitDocument(state, replaceLayers(state.document, state.document.layers.map((candidate) => (
           candidate.id === id ? { ...candidate, appearance: nextAppearance } : candidate
         )),
       ));
@@ -229,6 +247,27 @@ export function createLayerPropertyActions(set: ProjectSet): LayerPropertyAction
             : candidate
         )),
       ));
+    }),
+    setPoiCustomMarker: (id, asset) => set((state) => {
+      const layer = state.document.layers.find((candidate) => candidate.id === id);
+      if (layer?.type !== 'poi' || layer.appearance?.kind !== 'poi') return state;
+      if (asset && !isCanonicalCustomMarkerAsset(asset)) return state;
+      const appearance = layer.appearance;
+      const customAssetId = asset?.id ?? null;
+      if (appearance.customAssetId === customAssetId) return state;
+      const layers: ContentLayer[] = state.document.layers.map((candidate) => candidate.id === id
+        ? { ...candidate, appearance: { ...appearance, customAssetId } }
+        : candidate);
+      const referenced = assetsReferencedBy(layers);
+      const assets = Object.fromEntries(Object.entries(state.document.assets)
+        .filter(([assetId]) => referenced.has(assetId)));
+      if (asset) assets[asset.id] = { ...asset };
+      try {
+        validateCustomMarkerAssetCollection(assets);
+      } catch {
+        return state;
+      }
+      return commitDocument(state, { ...state.document, assets, layers });
     }),
     setRouteVertex: (id, vertexIndex, coordinates) => set((state) => {
       const layer = state.document.layers.find((candidate) => candidate.id === id);

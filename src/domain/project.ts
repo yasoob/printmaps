@@ -1,4 +1,5 @@
 import { createDefaultLayerAppearance, type LayerAppearance } from './layerAppearance';
+import type { CustomMarkerAsset } from './customMarkerAssets';
 
 export { createDefaultLayerAppearance } from './layerAppearance';
 export type {
@@ -8,7 +9,7 @@ export type {
   ShapeAppearance,
 } from './layerAppearance';
 
-export const PROJECT_SCHEMA_VERSION = 10 as const;
+export const PROJECT_SCHEMA_VERSION = 11 as const;
 
 export type LayerType = 'route' | 'poi' | 'shape' | 'basemap';
 export type PageOrientation = 'landscape' | 'portrait';
@@ -59,6 +60,7 @@ export type ProjectDocument = {
   page: PageSettings;
   camera: CameraSettings;
   style: MapStyleSettings;
+  assets: Record<string, CustomMarkerAsset>;
   layers: ContentLayer[];
 };
 
@@ -166,6 +168,7 @@ export function createInitialProjectDocument(): ProjectDocument {
     page: createDefaultPageSettings(),
     camera: createDefaultCameraSettings(),
     style: createDefaultMapStyleSettings(),
+    assets: {},
     layers: initialLayers.map((layer) => cloneContentLayer(layer)),
   };
 }

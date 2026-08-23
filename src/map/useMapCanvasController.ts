@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Map as MapLibreMap } from 'maplibre-gl';
+import type { CustomMarkerAsset } from '../domain/customMarkerAssets';
 import type { CameraSettings, ContentLayer, MapFeatureVisibility, MapStylePreset } from '../domain/project';
 import type { PreviewPngExporter } from '../export/previewPng';
 import type { MapContentAdapter, MapContentState } from './MapContentAdapter';
@@ -19,6 +20,7 @@ type MapCanvasControllerOptions = {
   featureVisibility: MapFeatureVisibility;
   fitRequest: number;
   layers: ContentLayer[];
+  assets: Record<string, CustomMarkerAsset>;
   onBackgroundClick: () => void;
   onExporterChange?: (exporter: PreviewPngExporter | null) => void;
   onLayerSelect: (id: string) => void;
@@ -43,6 +45,7 @@ export function useMapCanvasController({
   featureVisibility,
   fitRequest,
   layers,
+  assets,
   onBackgroundClick,
   onExporterChange,
   onLayerSelect,
@@ -52,9 +55,8 @@ export function useMapCanvasController({
   contentRevision,
 }: MapCanvasControllerOptions) {
   const container = useRef<HTMLDivElement>(null);
-  const map = useRef<MapLibreMap | null>(null);
-  const contentAdapter = useRef<MapContentAdapter | null>(null);
-  const contentState = useRef<MapContentState>({ layers, selectedId, previewedId, contentRevision });
+  const map = useRef<MapLibreMap | null>(null), contentAdapter = useRef<MapContentAdapter | null>(null);
+  const contentState = useRef<MapContentState>({ layers, assets, selectedId, previewedId, contentRevision });
   const contentSyncDeferred = useRef(false);
   const contentReady = useRef(false), mapFailed = useRef(false);
   const layerSelect = useRef(onLayerSelect);
@@ -105,9 +107,9 @@ export function useMapCanvasController({
   }, [onExporterChange]);
 
   useEffect(() => {
-    contentState.current = { layers, selectedId, previewedId, contentRevision };
+    contentState.current = { layers, assets, selectedId, previewedId, contentRevision };
     handleContentSyncResult(contentAdapter.current?.sync(contentState.current));
-  }, [handleContentSyncResult, layers, previewedId, selectedId, contentRevision]);
+  }, [assets, handleContentSyncResult, layers, previewedId, selectedId, contentRevision]);
 
   useEffect(() => {
     contentReady.current = false;

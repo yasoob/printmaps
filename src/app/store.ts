@@ -11,6 +11,7 @@ import {
 } from '../domain/project';
 import type { RouteAuthoringOptions } from '../domain/routeProfiles';
 import type { PoiSpreadsheetEntry } from '../domain/poiSpreadsheet';
+import type { CustomMarkerAsset } from '../domain/customMarkerAssets';
 import { copyDocument, createDocumentActions } from './storeDocument';
 import { createCameraActions } from './storeCameraActions';
 import { createLayerPropertyActions, createLayerStructureActions } from './storeLayerActions';
@@ -47,6 +48,7 @@ export type ProjectState = {
   setPagePreset: (preset: StandardPagePreset) => void;
   setLayerAppearance: (id: string, appearance: LayerAppearance) => void;
   setPoiCoordinates: (id: string, coordinates: readonly [number, number]) => void;
+  setPoiCustomMarker: (id: string, asset: CustomMarkerAsset | null) => void;
   setRouteVertex: (id: string, vertexIndex: number, coordinates: readonly [number, number]) => void;
   setShapeVertex: (id: string, ringIndex: number, vertexIndex: number, coordinates: readonly [number, number]) => void;
   setLayerOpacity: (id: string, opacity: number) => void;

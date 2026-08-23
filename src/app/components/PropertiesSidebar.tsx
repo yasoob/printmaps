@@ -59,10 +59,12 @@ export function PropertiesSidebar(props: PropertiesSidebarProps) {
       {selectedLayer ? (
         <LayerProperties
           layer={selectedLayer}
+          assets={project.document.assets}
           onRename={(name) => project.renameLayer(selectedLayer.id, name)}
           onOpacityChange={(opacity) => project.setLayerOpacity(selectedLayer.id, opacity)}
           onAppearanceChange={(appearance) => project.setLayerAppearance(selectedLayer.id, appearance)}
           onPoiCoordinatesChange={(coordinates) => project.setPoiCoordinates(selectedLayer.id, coordinates)}
+          onPoiCustomMarkerChange={(asset) => project.setPoiCustomMarker(selectedLayer.id, asset)}
           onRouteVertexChange={(vertexIndex, coordinates) => project.setRouteVertex(selectedLayer.id, vertexIndex, coordinates)}
           onShapeVertexChange={(ringIndex, vertexIndex, coordinates) => project.setShapeVertex(selectedLayer.id, ringIndex, vertexIndex, coordinates)}
           onToggleVisibility={() => { clearSelectedPreview(); project.toggleLayerVisibility(selectedLayer.id); }}

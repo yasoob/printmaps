@@ -1,5 +1,6 @@
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { ContentLayer } from '../domain/project';
+import type { CustomMarkerAsset } from '../domain/customMarkerAssets';
 import { mapLayerDescriptors } from './MapContentLayerRendering';
 
 type MutableStyleLayer = {
@@ -116,8 +117,9 @@ export function updatePrintLayerPaint(
   map: MapLibreMap,
   layer: ContentLayer,
   pixelsPerMillimetre: number,
+  assets: Record<string, CustomMarkerAsset> = {},
 ): void {
-  const descriptors = mapLayerDescriptors(layer, { selectedId: null, previewedId: null });
+  const descriptors = mapLayerDescriptors(layer, { selectedId: null, previewedId: null }, assets);
   for (const descriptor of descriptors) {
     const paintEntries = Object.entries(descriptor.paint);
     for (const [property, value] of paintEntries) {
