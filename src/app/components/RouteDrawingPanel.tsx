@@ -5,6 +5,7 @@ import {
   type RouteLineShape,
   type RouteTravelProfile,
 } from '../../domain/routeProfiles';
+import { Checkbox } from './UiControls';
 
 type DrawingPanelProps = {
   children?: ReactNode;
@@ -48,7 +49,7 @@ export function RouteDrawingPanel(props: RouteDrawingPanelProps) {
     <DrawingPanel statusLabel="Route drawing status" status={`${shapeLabel} route · ${ROUTE_TRAVEL_PROFILE_LABELS[props.travelProfile]} · ${props.pointCount} ${pointLabel}`} cancelLabel="Cancel route" finishLabel="Finish route" finishDisabled={!props.canFinish} onCancel={props.onCancel} onFinish={props.onFinish}>
       <label>Line <select aria-label="Route line shape" value={props.lineShape} onChange={(event) => props.onLineShapeChange(event.target.value as RouteLineShape)}><option value="straight">Straight</option><option value="arc">Arc</option></select></label>
       <label>Profile <select aria-label="Route travel profile" value={props.travelProfile} onChange={(event) => props.onTravelProfileChange(event.target.value as RouteTravelProfile)}>{ROUTE_TRAVEL_PROFILES.map((profile) => <option key={profile} value={profile}>{ROUTE_TRAVEL_PROFILE_LABELS[profile]}</option>)}</select></label>
-      <label className="check-row"><input type="checkbox" aria-label="Show travel-mode marker" checked={props.showTravelModeIcon} onChange={(event) => props.onShowTravelModeIconChange(event.target.checked)} /> Marker</label>
+      <Checkbox aria-label="Show travel-mode marker" isChecked={props.showTravelModeIcon} label="Marker" onCheckedChange={props.onShowTravelModeIconChange} />
     </DrawingPanel>
   );
 }

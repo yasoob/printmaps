@@ -1,3 +1,4 @@
+import { Ellipsis } from 'lucide-react';
 import { useRef, useState } from 'react';
 
 type LayerMenuProps = {
@@ -31,7 +32,7 @@ export function LayerMenu({ onReplace, onDuplicate, onDelete, replaceDisabled }:
 
   return (
     <>
-      <button ref={buttonRef} className="icon-button" type="button" aria-label="Layer menu" aria-haspopup="menu" aria-expanded={open} onClick={toggleMenu}>•••</button>
+      <button ref={buttonRef} className="icon-button" type="button" aria-label="Layer menu" aria-haspopup="menu" aria-expanded={open} onClick={toggleMenu}><Ellipsis aria-hidden="true" size={16} strokeWidth={1.75} /></button>
       {open && (
         <div ref={menuRef} className="layer-menu" role="menu" onKeyDown={handleKeyDown}>
           <button type="button" role="menuitem" disabled={replaceDisabled} onClick={() => { setOpen(false); onReplace(buttonRef.current); }}>Replace layer data</button>

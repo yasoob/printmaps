@@ -3,6 +3,7 @@ import type { CameraSettings, MapFeatureVisibilityCategory, MapLanguage, MapStyl
 import { MapboxServiceStatus } from './MapboxServiceStatus';
 import { InspectorAccordion, PropertyRow } from './PropertyControls';
 import { GeolocationControl } from './GeolocationControl';
+import { Checkbox, Switch } from './UiControls';
 
 function isValidPageDimension(draft: string) {
   const value = Number(draft);
@@ -187,7 +188,7 @@ export function ProjectProperties({
   const visibleMapDetailCount = Object.values(style.visibility).filter(Boolean).length;
   return (
     <div className="properties-panel">
-      <div className="properties-title"><h2 data-project-heading tabIndex={-1}>Project</h2><button className="icon-button" type="button" aria-label="Project menu">•••</button></div>
+      <div className="properties-title"><h2 data-project-heading tabIndex={-1}>Project</h2></div>
       <InspectorAccordion isDefaultExpanded storageKey={`${PROJECT_DISCLOSURE_PREFIX}:page`} summary={`${page.preset} ${page.orientation} · ${page.widthMm} × ${page.heightMm} mm`} title="Page">
         <PropertyRow label="Preset"><select aria-label="Page preset" value={page.preset} onChange={(event) => onPresetChange(event.target.value as StandardPagePreset)}><option>A4</option><option>A3</option><option>Letter</option><option disabled>Custom</option></select></PropertyRow>
         <div className="paired-fields">
@@ -204,24 +205,24 @@ export function ProjectProperties({
       <InspectorAccordion isDefaultExpanded={false} storageKey={`${PROJECT_DISCLOSURE_PREFIX}:camera-location`} summary={`${camera.bearing}° bearing · ${camera.pitch}° pitch · ${camera.locked ? 'Locked' : 'Unlocked'}`} title="Camera & location">
         <PropertyRow label="Bearing"><CameraField key={`bearing-${camera.bearing}`} field="bearing" value={camera.bearing} onCommit={onBearingChange} /></PropertyRow>
         <PropertyRow label="Pitch"><CameraField key={`pitch-${camera.pitch}`} field="pitch" value={camera.pitch} onCommit={onPitchChange} /></PropertyRow>
-        <label className="check-row"><input type="checkbox" checked={camera.locked} onChange={(event) => onMapAreaLockChange(event.target.checked)} /> Lock map area</label>
+        <Switch isChecked={camera.locked} label="Lock map area" onCheckedChange={onMapAreaLockChange} />
         <GeolocationControl key={`${documentEpoch}-${String(camera.locked)}`} locked={camera.locked} requestScope={documentEpoch} onLocate={onLocate} />
       </InspectorAccordion>
       <InspectorAccordion isDefaultExpanded={false} storageKey={`${PROJECT_DISCLOSURE_PREFIX}:map-details`} summary={`${visibleMapDetailCount} of 7 visible`} title="Map details">
-        <label className="check-row"><input type="checkbox" checked={style.visibility.roads} onChange={(event) => onFeatureVisibilityChange('roads', event.target.checked)} /> Show roads</label>
-        <label className="check-row"><input type="checkbox" checked={style.visibility.buildings} onChange={(event) => onFeatureVisibilityChange('buildings', event.target.checked)} /> Show buildings</label>
-        <label className="check-row"><input type="checkbox" checked={style.visibility.labels} onChange={(event) => onFeatureVisibilityChange('labels', event.target.checked)} /> Show labels</label>
-        <label className="check-row"><input type="checkbox" checked={style.visibility.water} onChange={(event) => onFeatureVisibilityChange('water', event.target.checked)} /> Show water</label>
-        <label className="check-row"><input type="checkbox" checked={style.visibility.parks} onChange={(event) => onFeatureVisibilityChange('parks', event.target.checked)} /> Show parks</label>
-        <label className="check-row"><input type="checkbox" checked={style.visibility.landuse} onChange={(event) => onFeatureVisibilityChange('landuse', event.target.checked)} /> Show land detail</label>
-        <label className="check-row"><input type="checkbox" checked={style.visibility.transit} onChange={(event) => onFeatureVisibilityChange('transit', event.target.checked)} /> Show transit</label>
+        <Checkbox isChecked={style.visibility.roads} label="Show roads" onCheckedChange={(isChecked) => onFeatureVisibilityChange('roads', isChecked)} />
+        <Checkbox isChecked={style.visibility.buildings} label="Show buildings" onCheckedChange={(isChecked) => onFeatureVisibilityChange('buildings', isChecked)} />
+        <Checkbox isChecked={style.visibility.labels} label="Show labels" onCheckedChange={(isChecked) => onFeatureVisibilityChange('labels', isChecked)} />
+        <Checkbox isChecked={style.visibility.water} label="Show water" onCheckedChange={(isChecked) => onFeatureVisibilityChange('water', isChecked)} />
+        <Checkbox isChecked={style.visibility.parks} label="Show parks" onCheckedChange={(isChecked) => onFeatureVisibilityChange('parks', isChecked)} />
+        <Checkbox isChecked={style.visibility.landuse} label="Show land detail" onCheckedChange={(isChecked) => onFeatureVisibilityChange('landuse', isChecked)} />
+        <Checkbox isChecked={style.visibility.transit} label="Show transit" onCheckedChange={(isChecked) => onFeatureVisibilityChange('transit', isChecked)} />
       </InspectorAccordion>
       <InspectorAccordion isDefaultExpanded={false} storageKey={`${PROJECT_DISCLOSURE_PREFIX}:provider-services`} summary="Public-token status and compliance" title="Provider services">
         <MapboxServiceStatus />
       </InspectorAccordion>
       <InspectorAccordion isDefaultExpanded={false} storageKey={`${PROJECT_DISCLOSURE_PREFIX}:technical-export`} summary="Format-specific · Attribution included" title="Output settings">
         <PropertyRow label="Resolution"><select aria-label="Export resolution" value="Format-specific" disabled><option>Format-specific</option></select></PropertyRow>
-        <label className="check-row"><input type="checkbox" checked disabled readOnly /> Include map attribution</label>
+        <Checkbox isChecked disabled readOnly label="Include map attribution" />
       </InspectorAccordion>
     </div>
   );

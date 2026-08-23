@@ -34,7 +34,7 @@ describe('ElevationProfilePanel', () => {
     expect(screen.getByRole('group', { name: 'Elevation summary' })).toBeInTheDocument();
     expect(screen.getByText('20.0 km')).toBeInTheDocument();
     expect(screen.getByText('120–260 m')).toBeInTheDocument();
-    expect(screen.getByText('↑ 140 m')).toBeInTheDocument();
+    expect(screen.getByLabelText('Total ascent 140 m')).toHaveTextContent('140 m');
     expect(screen.getByText('Up to 100 sampled route coordinates are sent to Open-Meteo only when you generate a profile.')).toBeInTheDocument();
     expect(screen.getByText('Copernicus DEM GLO-90 via Open-Meteo')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Download elevation SVG' })).toBeEnabled();
@@ -57,7 +57,7 @@ describe('ElevationProfilePanel', () => {
 
     expect(screen.getByText('12.4 mi')).toBeInTheDocument();
     expect(screen.getByText('394–853 ft')).toBeInTheDocument();
-    expect(screen.getByText('↑ 459 ft')).toBeInTheDocument();
+    expect(screen.getByLabelText('Total ascent 459 ft')).toHaveTextContent('459 ft');
     expect(screen.getByRole('radio', { name: 'Metric' })).not.toBeChecked();
   });
 

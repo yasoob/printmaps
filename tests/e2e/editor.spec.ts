@@ -164,7 +164,7 @@ test('browser location centers the map and map-area lock gates movement commands
   await expect(page.locator('.map-location-status')).toContainText('Map centered on your current location');
   await expect(map).toHaveAttribute('data-map-location-applied', '1');
 
-  const lock = page.getByRole('checkbox', { name: 'Lock map area' });
+  const lock = page.getByRole('switch', { name: 'Lock map area' });
   await lock.check();
   await expect(map).toHaveAttribute('data-map-area-locked', 'true');
   await expect(page.getByRole('button', { name: 'Pan (H)' })).toBeDisabled();

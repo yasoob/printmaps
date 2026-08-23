@@ -315,10 +315,10 @@ test('route vertices insert, remove, and drag directly on the map as one history
   await expect.poll(readGeometry).not.toBe(originalGeometry);
   await expect(page.getByRole('button', { name: 'Undo' })).toBeEnabled();
 
-  await page.getByRole('button', { name: 'Toggle layer lock' }).click();
+  await page.getByRole('switch', { name: 'Toggle layer lock' }).click();
   await expect(handles).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Insert route vertex after selected' })).toBeDisabled();
-  await page.getByRole('button', { name: 'Toggle layer lock' }).click();
+  await page.getByRole('switch', { name: 'Toggle layer lock' }).click();
   await expect(handles).toHaveCount(4);
   await handles.first().focus();
   await handles.first().press('ArrowRight');

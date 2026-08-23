@@ -2,10 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 
 export type MobilePanel = 'layers' | 'properties';
 
+const MOBILE_VIEWPORT_QUERY = '(max-width: 899px)';
+
 export function useMobilePanels() {
   const [mobilePanel, setMobilePanel] = useState<MobilePanel | null>(null);
   const [isMobileViewport, setIsMobileViewport] = useState(() => (
-    typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 760px)').matches
+    typeof window.matchMedia === 'function' && window.matchMedia(MOBILE_VIEWPORT_QUERY).matches
   ));
   const layersTriggerRef = useRef<HTMLButtonElement>(null);
   const propertiesTriggerRef = useRef<HTMLButtonElement>(null);
@@ -77,7 +79,7 @@ export function useMobilePanels() {
 
   useEffect(() => {
     if (typeof window.matchMedia !== 'function') return;
-    const mediaQuery = window.matchMedia('(max-width: 760px)');
+    const mediaQuery = window.matchMedia(MOBILE_VIEWPORT_QUERY);
     const handleChange = (event: MediaQueryListEvent) => {
       const isHadOpenDialog = document.querySelector('[aria-modal="true"]') !== null;
       setIsMobileViewport(event.matches);

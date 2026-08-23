@@ -137,7 +137,7 @@ test('opens a validated portable project as a focused fresh history root', async
   await expect(page.getByRole('textbox', { name: 'Page height' })).toHaveValue('420');
   await expect(page.getByRole('textbox', { name: 'Bearing' })).toHaveValue('-20');
   await expect(page.getByRole('textbox', { name: 'Pitch' })).toHaveValue('35');
-  await expect(page.getByRole('checkbox', { name: 'Lock map area' })).toBeChecked();
+  await expect(page.getByRole('switch', { name: 'Lock map area' })).toBeChecked();
   await expect(page.getByRole('combobox', { name: 'Map style' })).toHaveValue('positron');
   await expect(page.getByRole('combobox', { name: 'Map language' })).toHaveValue('de');
   await expect(page.getByRole('textbox', { name: 'Text scale' })).toHaveValue('150');

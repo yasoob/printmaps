@@ -83,7 +83,7 @@ describe('layer appearance draft boundaries', () => {
     const user = userEvent.setup();
     render(<LayerProperties layer={shapeWithHole()} {...actions} />);
 
-    await user.click(screen.getByRole('checkbox', { name: 'Invert shape fill' }));
+    await user.click(screen.getByRole('switch', { name: 'Invert shape fill' }));
 
     expect(actions.onAppearanceChange).toHaveBeenLastCalledWith({
       kind: 'shape',

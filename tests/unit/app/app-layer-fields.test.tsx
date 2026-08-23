@@ -18,10 +18,10 @@ describe('editor layer fields', () => {
     const name = screen.getByRole('textbox', { name: 'Layer name' });
     await user.clear(name);
     await user.type(name, 'Danube route');
-    await user.click(screen.getByRole('button', { name: 'Toggle layer visibility' }));
+    await user.click(screen.getByRole('switch', { name: 'Toggle layer visibility' }));
 
     expect(screen.getByRole('heading', { name: 'Danube route' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Toggle layer visibility' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('switch', { name: 'Toggle layer visibility' })).not.toBeChecked();
   });
 
   it('moves focus to Project properties after deleting the final layer', async () => {
@@ -183,7 +183,7 @@ describe('editor content appearance and POI geometry fields', () => {
       expect.stringContaining('route-01:[[16.326,48.194],[16.353,48.205],[16.391,48.215]'),
     );
 
-    await user.click(screen.getByRole('button', { name: 'Toggle layer visibility' }));
+    await user.click(screen.getByRole('switch', { name: 'Toggle layer visibility' }));
     expect(vertex).toBeDisabled();
     expect(screen.getByRole('textbox', { name: 'Route vertex longitude' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Insert route vertex after selected' })).toBeDisabled();
@@ -413,7 +413,7 @@ describe('editor layer appearance validation and actions', () => {
     const fill = screen.getByLabelText('Shape fill color');
     const stroke = screen.getByLabelText('Shape outline color');
     const width = screen.getByRole('textbox', { name: 'Shape outline width' });
-    const invert = screen.getByRole('checkbox', { name: 'Invert shape fill' });
+    const invert = screen.getByRole('switch', { name: 'Invert shape fill' });
 
     fireEvent.change(fill, { target: { value: '#abcdef' } });
     fireEvent.change(stroke, { target: { value: '#123456' } });
@@ -427,7 +427,7 @@ describe('editor layer appearance validation and actions', () => {
     expect(width).toHaveValue('5');
     expect(invert).toBeChecked();
     await user.click(screen.getByRole('button', { name: 'Undo' }));
-    expect(screen.getByRole('checkbox', { name: 'Invert shape fill' })).not.toBeChecked();
+    expect(screen.getByRole('switch', { name: 'Invert shape fill' })).not.toBeChecked();
     await user.click(screen.getByRole('button', { name: 'Undo' }));
     expect(screen.getByRole('textbox', { name: 'Shape outline width' })).toHaveValue('2');
   });

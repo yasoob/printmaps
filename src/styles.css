@@ -266,7 +266,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   overflow-y: auto;
 }
 .administrative-region-options legend { @apply sr-only; }
-.administrative-region-options label { @apply flex items-center gap-1 whitespace-nowrap; }
+.administrative-region-options .studio-checkbox { @apply whitespace-nowrap; }
 .administrative-region-error { color: var(--studio-danger); font-size: var(--studio-font-meta); }
 .map-authoring-panel > span { @apply whitespace-nowrap px-1; }
 .map-authoring-panel > button:not(.primary-button) {
@@ -318,22 +318,15 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .canvas-status button { @apply h-[22px] px-1.5; color: var(--studio-text-secondary); }
 .canvas-status span { @apply h-3 w-px; background: var(--studio-line); }
 
-.properties-title { @apply relative flex items-center justify-between px-3 py-2 pr-2; min-height: 3.5rem; }
-.eyebrow {
-  @apply mb-1 block font-semibold uppercase;
-  color: var(--studio-text-subtle);
-  font-size: 0.5625rem;
-  letter-spacing: 0.028rem;
-}
+.properties-title { @apply relative flex items-center justify-between py-2 pl-4 pr-3; min-height: 3.75rem; }
 .properties-title h2 { @apply m-0 text-sm font-semibold; }
-.inspector-accordion {
-  border-top: var(--studio-border-width) solid var(--studio-line);
-}
+.inspector-accordion { border-top: 0; }
+.inspector-accordion + .inspector-accordion { margin-top: 0.125rem; }
 .inspector-accordion h3 { @apply m-0; }
 .inspector-accordion h3 > button {
-  @apply grid w-full cursor-pointer items-center gap-x-2 px-3 py-2 text-left;
+  @apply grid w-full cursor-pointer items-center gap-x-2 px-4 py-2 text-left;
   grid-template-columns: 1rem minmax(0, 1fr);
-  min-height: 3.5rem;
+  min-height: 3.75rem;
 }
 .inspector-accordion h3 > button:hover { background: var(--studio-hover); }
 .inspector-chevron {
@@ -355,13 +348,14 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   font-weight: 400;
   line-height: 1.3;
 }
-.inspector-accordion-content { @apply px-3 pb-3; }
-.property-section { @apply px-3 pb-3 pt-2.5; border-top: var(--studio-border-width) solid var(--studio-line); }
+.inspector-accordion-content { @apply px-4 pb-3; }
+.property-section { @apply px-4 pb-3 pt-3; border-top: 0; }
+.property-section + .property-section { padding-top: 0.875rem; }
 .property-section h3 { @apply mb-2 mt-0 font-semibold; font-size: var(--studio-font-label); }
 .property-row {
   @apply grid items-center;
-  grid-template-columns: 4.5rem minmax(0, 1fr);
-  min-height: 2rem;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+  min-height: 2.5rem;
   color: var(--studio-text-secondary);
   font-size: var(--studio-font-label);
 }
@@ -412,8 +406,51 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .segmented { @apply grid grid-cols-2 p-0.5; height: var(--studio-control-height); border-radius: var(--studio-radius-md); background: var(--studio-field); }
 .segmented button { border-radius: var(--studio-radius-xs); color: var(--studio-text-muted); font-size: var(--studio-font-meta); }
 .segmented button.is-active { border: var(--studio-border-width) solid var(--studio-line-hover); color: var(--studio-text); background: var(--studio-surface); }
-.check-row { @apply flex min-h-[30px] items-center gap-2; color: var(--studio-text-secondary); font-size: var(--studio-font-label); }
-.check-row input { accent-color: var(--studio-accent); }
+.studio-checkbox, .studio-switch {
+  @apply relative flex cursor-pointer items-center gap-2;
+  min-height: 2.25rem;
+  color: var(--studio-text-secondary);
+  font-size: var(--studio-font-label);
+}
+.studio-checkbox-native, .studio-switch-native {
+  @apply absolute m-0 opacity-0;
+  width: 1rem;
+  height: 1rem;
+}
+.studio-checkbox-box {
+  @apply grid h-4 w-4 shrink-0 place-items-center;
+  border: var(--studio-border-width) solid var(--studio-line-strong);
+  border-radius: var(--studio-radius-sm);
+  color: var(--studio-on-dark);
+  background: var(--studio-surface);
+}
+.studio-checkbox-box svg { opacity: 0; }
+.studio-checkbox-native:checked + .studio-checkbox-box {
+  border-color: var(--studio-text-strong);
+  background: var(--studio-text-strong);
+}
+.studio-checkbox-native:checked + .studio-checkbox-box svg { opacity: 1; }
+.studio-checkbox-native:focus-visible + .studio-checkbox-box,
+.studio-switch-native:focus-visible + .studio-switch-track {
+  outline: var(--studio-focus-width) solid var(--studio-focus);
+  outline-offset: 2px;
+}
+.studio-checkbox-native:disabled ~ *, .studio-switch-native:disabled ~ * { opacity: .48; }
+.studio-checkbox:has(input:disabled), .studio-switch:has(input:disabled) { @apply cursor-default; }
+.studio-switch-track {
+  @apply block shrink-0 p-0.5;
+  width: 2rem;
+  height: 1.125rem;
+  border-radius: 999px;
+  background: var(--studio-line-strong);
+}
+.studio-switch-track > span {
+  @apply block h-3.5 w-3.5 rounded-full transition-transform;
+  background: var(--studio-surface);
+}
+.studio-switch-native:checked + .studio-switch-track { background: var(--studio-text-strong); }
+.studio-switch-native:checked + .studio-switch-track > span { transform: translateX(0.875rem); }
+.property-control > .studio-switch { min-height: var(--studio-control-height); }
 .map-location-control { @apply grid gap-1.5 py-1; }
 .map-location-control .quiet-button {
   @apply justify-center px-2;
@@ -452,7 +489,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .elevation-settings legend { @apply px-1 font-semibold; color: var(--studio-text-strong); font-size: var(--studio-font-label); }
 .elevation-setting-row { @apply grid grid-cols-[1fr_auto_auto] items-center gap-2; }
 .elevation-setting-row label, .elevation-option-grid label { @apply flex min-h-7 items-center gap-1; }
-.elevation-setting-row input, .elevation-option-grid input { accent-color: var(--studio-accent); }
+.elevation-setting-row input { accent-color: var(--studio-accent); }
 .elevation-color-row { @apply flex min-h-7 items-center justify-between gap-2; }
 .elevation-color-row input {
   width: 2rem;
@@ -496,6 +533,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 .elevation-metrics { @apply grid grid-cols-2 gap-x-2 gap-y-1; font-variant-numeric: tabular-nums; }
 .elevation-metrics strong { color: var(--studio-text-strong); }
+.elevation-metrics > span[aria-label] { @apply flex items-center gap-1; }
 .elevation-downloads { @apply grid grid-cols-3 gap-1; }
 .elevation-downloads button {
   min-height: var(--studio-control-height);
@@ -550,10 +588,6 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 .route-vertex-marker:active { cursor: grabbing; }
 .route-vertex-marker:focus-visible { outline: 2px solid var(--studio-focus); outline-offset: 2px; }
-.toggle { @apply cursor-pointer p-0.5; width: 1.75rem; height: 1rem; border-radius: 999px; background: var(--studio-line-strong); }
-.toggle span { @apply block h-3 w-3 rounded-full transition-transform; background: var(--studio-surface); }
-.toggle.is-on { background: var(--studio-accent); }
-.toggle.is-on span { transform: translateX(12px); }
 .layer-menu {
   @apply absolute right-2 top-11 z-50 grid min-w-36 p-1;
   border: var(--studio-border-width) solid var(--studio-line-hover);
@@ -790,11 +824,11 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 
 @media (max-width: 980px) {
-  .studio-shell { grid-template-columns: 13rem minmax(360px, 1fr) 15rem; }
+  .studio-shell { grid-template-columns: 13rem minmax(360px, 1fr) var(--studio-right-panel-width); }
   .brand-name { @apply hidden; }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 899px) {
   .studio-shell { grid-template: calc(var(--studio-topbar-height) + var(--studio-safe-top)) minmax(0, 1fr) / minmax(0, 1fr); }
   .history-actions, .quiet-button, .canvas-status { @apply hidden; }
   .topbar {
@@ -854,6 +888,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
     color: var(--studio-text-secondary);
   }
   .mobile-drawer-close:hover { background: var(--studio-field); }
+  .studio-checkbox, .studio-switch { min-height: 2.75rem; }
 
   .tool-palette {
     bottom: max(14px, var(--studio-safe-bottom));
@@ -904,6 +939,13 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   .print-frame {
     width: min(86cqw, calc(64cqh * var(--studio-page-ratio, 1.4142857)));
   }
+}
+
+@media (forced-colors: active) {
+  .studio-checkbox-box, .studio-switch-track { forced-color-adjust: none; border-color: CanvasText; }
+  .studio-checkbox-native:checked + .studio-checkbox-box,
+  .studio-switch-native:checked + .studio-switch-track { background: Highlight; color: HighlightText; }
+  .studio-switch-track > span { background: Canvas; }
 }
 
 @media (prefers-reduced-motion: reduce) {

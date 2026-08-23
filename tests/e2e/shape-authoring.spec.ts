@@ -95,7 +95,7 @@ test('bundled administrative regions merge without an internal border and retain
   await page.getByRole('checkbox', { name: 'Vienna' }).check();
   await page.getByRole('button', { name: 'Merge 2 selected areas' }).click();
   await expect(page.getByRole('button', { name: 'Select Lower Austria + Vienna' })).toHaveAttribute('aria-current', 'true');
-  await page.getByRole('checkbox', { name: 'Invert shape fill' }).check();
+  await page.getByRole('switch', { name: 'Invert shape fill' }).check();
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-appearance', /admin-at-3-at-9:[^|]*:true/);
 
   const savePromise = page.waitForEvent('download');
@@ -167,7 +167,7 @@ test('Tyrol keeps both disconnected parts through live map, save, and layered SV
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-geometry', /admin-at-7:\[\[\[\[/);
   await expect(page.getByRole('status', { name: 'Multi-part geometry status' })).toContainText('2 disconnected parts');
   await expect(page.getByRole('heading', { name: 'Vertices' })).toHaveCount(0);
-  await page.getByRole('checkbox', { name: 'Invert shape fill' }).check();
+  await page.getByRole('switch', { name: 'Invert shape fill' }).check();
   if (testInfo.project.name === 'chromium') {
     await page.waitForLoadState('networkidle');
     await page.screenshot({ path: 'docs/screenshots/latest-desktop.png' });

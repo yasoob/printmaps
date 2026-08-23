@@ -1,3 +1,4 @@
+import { ArrowDown, ArrowUp } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import {
   ELEVATION_SOURCE_LABEL,
@@ -14,6 +15,7 @@ import {
   type ElevationProfileUnits,
 } from '../../export/elevationProfile';
 import { createElevationProfilePdf } from '../../export/elevationProfilePdf';
+import { Checkbox } from './UiControls';
 
 type Position = readonly [number, number];
 type ProfileLoader = (
@@ -184,19 +186,19 @@ function ElevationProfileReady({
           if (isBoundedInteger(parsed, 20, 70)) setFontSize(parsed);
         }} /><small id="profile-font-size-range">20–70</small></label>
         <div className="elevation-option-grid">
-          <label><input type="checkbox" checked={showFill} onChange={(event) => setShowFill(event.currentTarget.checked)} /> Fill below curve</label>
-          <label><input type="checkbox" checked={showGradient} onChange={(event) => setShowGradient(event.currentTarget.checked)} /> Gradient fill</label>
-          <label><input type="checkbox" checked={showElevationMarkers} onChange={(event) => setShowElevationMarkers(event.currentTarget.checked)} /> Elevation markers</label>
-          <label><input type="checkbox" checked={showHorizontalGrid} onChange={(event) => setShowHorizontalGrid(event.currentTarget.checked)} /> Horizontal grid</label>
-          <label><input type="checkbox" checked={showVerticalGrid} onChange={(event) => setShowVerticalGrid(event.currentTarget.checked)} /> Vertical grid</label>
+          <Checkbox isChecked={showFill} label="Fill below curve" onCheckedChange={setShowFill} />
+          <Checkbox isChecked={showGradient} label="Gradient fill" onCheckedChange={setShowGradient} />
+          <Checkbox isChecked={showElevationMarkers} label="Elevation markers" onCheckedChange={setShowElevationMarkers} />
+          <Checkbox isChecked={showHorizontalGrid} label="Horizontal grid" onCheckedChange={setShowHorizontalGrid} />
+          <Checkbox isChecked={showVerticalGrid} label="Vertical grid" onCheckedChange={setShowVerticalGrid} />
         </div>
       </fieldset>
       <ProfileChart profile={profile} routeName={routeName} options={renderOptions} />
       <div className="elevation-metrics" role="group" aria-label="Elevation summary">
         <strong>{summary.distance}</strong>
         <span>{summary.elevationRange}</span>
-        <span aria-label={`Total ascent ${summary.ascent}`}>↑ {summary.ascent}</span>
-        <span aria-label={`Total descent ${summary.descent}`}>↓ {summary.descent}</span>
+        <span aria-label={`Total ascent ${summary.ascent}`}><ArrowUp aria-hidden="true" size={16} strokeWidth={1.75} />{summary.ascent}</span>
+        <span aria-label={`Total descent ${summary.descent}`}><ArrowDown aria-hidden="true" size={16} strokeWidth={1.75} />{summary.descent}</span>
       </div>
       <div className="elevation-downloads">
         <button type="button" disabled={exporting || isFontSizeInvalid || isPrintWidthInvalid} aria-label="Download elevation SVG" onClick={() => void runExport('svg')}>SVG</button>

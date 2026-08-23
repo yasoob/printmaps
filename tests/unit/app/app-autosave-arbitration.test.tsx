@@ -9,7 +9,7 @@ vi.mock('../../../src/map/MapCanvas', async () => import('./MapCanvasMock'));
 
 function stubMobileViewport() {
   vi.stubGlobal('matchMedia', vi.fn((query: string) => ({
-    matches: query === '(max-width: 760px)',
+    matches: query === '(max-width: 899px)',
     media: query,
     onchange: null,
     addEventListener: vi.fn(),

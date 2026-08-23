@@ -197,7 +197,7 @@ describe('editor map detail and page commands', () => {
   it('locks map movement as one undoable project change', async () => {
     const user = userEvent.setup();
     render(<App />);
-    const lock = screen.getByRole('checkbox', { name: 'Lock map area' });
+    const lock = screen.getByRole('switch', { name: 'Lock map area' });
     const fit = screen.getByRole('button', { name: 'Fit page (Shift+1)' });
     const pan = screen.getByRole('button', { name: 'Pan (H)' });
     const map = screen.getByTestId('map-canvas');
@@ -238,7 +238,7 @@ describe('editor map detail and page commands', () => {
     expect(map).toHaveAttribute('data-map-location-request', '1:16.37,48.21');
     expect(screen.getByRole('status')).toHaveTextContent('Map centered');
 
-    await user.click(screen.getByRole('checkbox', { name: 'Lock map area' }));
+    await user.click(screen.getByRole('switch', { name: 'Lock map area' }));
     expect(screen.getByRole('button', { name: 'Use my location' })).toBeDisabled();
     expect(screen.getByText('Unlock the map area to use your location.')).toBeInTheDocument();
   });

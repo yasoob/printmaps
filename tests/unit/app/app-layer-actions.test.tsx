@@ -28,14 +28,14 @@ describe('editor layer actions', () => {
     expect(redo).toBeDisabled();
 
     await user.click(screen.getByRole('button', { name: 'Select Coffee stop' }));
-    const visibleToggle = screen.getByRole('button', { name: 'Toggle layer visibility' });
-    const lockToggle = screen.getByRole('button', { name: 'Toggle layer lock' });
-    expect(visibleToggle).toHaveAttribute('aria-pressed', 'true');
-    expect(lockToggle).toHaveAttribute('aria-pressed', 'true');
+    const visibleToggle = screen.getByRole('switch', { name: 'Toggle layer visibility' });
+    const lockToggle = screen.getByRole('switch', { name: 'Toggle layer lock' });
+    expect(visibleToggle).toBeChecked();
+    expect(lockToggle).toBeChecked();
     await user.click(visibleToggle);
-    expect(visibleToggle).toHaveAttribute('aria-pressed', 'false');
+    expect(visibleToggle).not.toBeChecked();
     await user.click(lockToggle);
-    expect(lockToggle).toHaveAttribute('aria-pressed', 'false');
+    expect(lockToggle).not.toBeChecked();
 
     await user.click(screen.getByRole('button', { name: 'Layer menu' }));
     await user.click(screen.getByRole('menuitem', { name: 'Duplicate layer' }));

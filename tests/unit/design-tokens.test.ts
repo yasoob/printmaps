@@ -8,6 +8,10 @@ describe('design token discipline', () => {
     const theme = read('src/theme.css');
     const styles = read('src/styles.css');
     const components = [read('src/app/App.tsx'), read('src/map/MapCanvas.tsx')].join('\n');
+    const iconComponents = [
+      read('src/app/components/ElevationProfilePanel.tsx'),
+      read('src/app/components/LayerMenu.tsx'),
+    ].join('\n');
 
     expect(theme).toContain('@theme inline');
     expect(theme).toContain('--color-surface: var(--studio-surface)');
@@ -26,5 +30,6 @@ describe('design token discipline', () => {
     expect(styles).toMatch(/\.maplibregl-ctrl-attrib[^}]*font-size:\s*var\(--studio-font-micro\)/s);
     expect(styles).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(/);
     expect(components).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(/);
+    expect(iconComponents).not.toMatch(/[↑↓←→▲▼▶◀‹›]|•••/);
   });
 });

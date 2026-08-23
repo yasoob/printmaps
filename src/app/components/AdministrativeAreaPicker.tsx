@@ -4,6 +4,7 @@ import {
   administrativeAreaById,
   type AdministrativeAreaId,
 } from '../../domain/administrativeAreas';
+import { Checkbox } from './UiControls';
 
 type AdministrativeAreaPickerProps = Readonly<{
   onAdd: (id: AdministrativeAreaId) => void;
@@ -41,7 +42,7 @@ export function AdministrativeAreaPicker({ onAdd, onMerge }: AdministrativeAreaP
           <fieldset className="administrative-region-options">
             <legend>Regions</legend>
             {regionAreas.map((area) => (
-              <label key={area.id}><input type="checkbox" checked={selectedRegionIdSet.has(area.id as AdministrativeAreaId)} onChange={(event) => toggleRegion(area.id as AdministrativeAreaId, event.target.checked)} />{area.name}</label>
+              <Checkbox key={area.id} isChecked={selectedRegionIdSet.has(area.id as AdministrativeAreaId)} label={area.name} onCheckedChange={(isChecked) => toggleRegion(area.id as AdministrativeAreaId, isChecked)} />
             ))}
           </fieldset>
           <span className="authoring-source">Austria · Natural Earth</span>
