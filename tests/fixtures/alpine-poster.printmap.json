@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 11,
+  "schemaVersion": 12,
   "id": "alpine-poster",
   "title": "Alpine poster",
   "page": {
@@ -14,11 +14,16 @@
   },
   "style": {
     "preset": "liberty",
+    "language": "local",
     "textScalePercent": 100,
     "visibility": {
       "roads": true,
       "buildings": true,
-      "labels": true
+      "labels": true,
+      "water": true,
+      "parks": true,
+      "landuse": true,
+      "transit": true
     }
   },
   "assets": {},

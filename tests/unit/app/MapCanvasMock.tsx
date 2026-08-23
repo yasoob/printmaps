@@ -1,10 +1,11 @@
 import { useEffect } from 'react';
-import type { CameraSettings, ContentLayer, MapFeatureVisibility, MapStylePreset } from '../../../src/domain/project';
+import type { CameraSettings, ContentLayer, MapFeatureVisibility, MapLanguage, MapStylePreset } from '../../../src/domain/project';
 import { exportMocks } from './exportMocks';
 
 type MapCanvasMockProps = {
   camera?: CameraSettings;
   stylePreset?: MapStylePreset;
+  language?: MapLanguage;
   textScalePercent?: number;
   featureVisibility?: MapFeatureVisibility;
   layers?: ContentLayer[];
@@ -22,8 +23,9 @@ type MapCanvasMockProps = {
 export function MapCanvas({
   camera = { bearing: 0, pitch: 0 },
   stylePreset = 'liberty',
+  language = 'local',
   textScalePercent = 100,
-  featureVisibility = { roads: true, buildings: true, labels: true },
+  featureVisibility = { roads: true, buildings: true, labels: true, water: true, parks: true, landuse: true, transit: true },
   layers = [],
   selectedId,
   previewedId,
@@ -46,8 +48,9 @@ export function MapCanvas({
       data-fit-request={fitRequest}
       data-camera={`${camera.bearing},${camera.pitch}`}
       data-style-preset={stylePreset}
+      data-map-language={language}
       data-text-scale={textScalePercent}
-      data-map-feature-visibility={`roads:${featureVisibility.roads},buildings:${featureVisibility.buildings},labels:${featureVisibility.labels}`}
+      data-map-feature-visibility={`roads:${featureVisibility.roads},buildings:${featureVisibility.buildings},labels:${featureVisibility.labels},water:${featureVisibility.water},parks:${featureVisibility.parks},landuse:${featureVisibility.landuse},transit:${featureVisibility.transit}`}
       data-orientation={orientation}
       data-page-preset={page?.preset}
       data-page-size={page ? `${page.widthMm}x${page.heightMm}` : ''}

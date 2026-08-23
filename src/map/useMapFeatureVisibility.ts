@@ -17,7 +17,7 @@ type FeatureVisibilityOptions = {
 };
 
 function serializeVisibility(visibility: MapFeatureVisibility) {
-  return `roads:${visibility.roads},buildings:${visibility.buildings},labels:${visibility.labels}`;
+  return `roads:${visibility.roads},buildings:${visibility.buildings},labels:${visibility.labels},water:${visibility.water},parks:${visibility.parks},landuse:${visibility.landuse},transit:${visibility.transit}`;
 }
 
 export function useMapFeatureVisibility(options: FeatureVisibilityOptions) {

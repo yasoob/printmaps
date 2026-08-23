@@ -24,21 +24,34 @@ function isRailTransportationLayer(layerId: string) {
   return layerId.split(/[-_]/).some((token) => RAIL_LAYER_TOKENS.has(token));
 }
 
+function hasLayerToken(layerId: string, tokens: ReadonlySet<string>) {
+  return layerId.split(/[-_]/).some((token) => tokens.has(token));
+}
+
+const WATER_LAYER_TOKENS = new Set(['water', 'waterway']);
+const PARK_LAYER_TOKENS = new Set(['park', 'parks']);
+
 function categoriesForLayer(layer: StyleLayer): MapFeatureVisibilityCategory[] {
-  if (layer.type === 'symbol') {
-    const categories: MapFeatureVisibilityCategory[] = ['labels'];
-    if (
-      layer.layout?.['text-field'] === undefined
-      && layer['source-layer'] === 'transportation'
-      && !isRailTransportationLayer(layer.id)
-    ) {
-      categories.push('roads');
-    }
-    return categories;
-  }
-  if (layer['source-layer'] === 'transportation' && !isRailTransportationLayer(layer.id)) return ['roads'];
-  if (layer['source-layer'] === 'building') return ['buildings'];
-  return [];
+  const categories = [
+    layer.type === 'symbol' ? 'labels' : null,
+    detailCategoryForLayer(layer),
+    transportCategoryForLayer(layer),
+    layer['source-layer'] === 'building' ? 'buildings' : null,
+  ];
+  return categories.filter((category): category is MapFeatureVisibilityCategory => category !== null);
+}
+
+function detailCategoryForLayer(layer: StyleLayer): MapFeatureVisibilityCategory | null {
+  const sourceLayer = layer['source-layer'];
+  if (sourceLayer === 'water' || sourceLayer === 'waterway' || hasLayerToken(layer.id, WATER_LAYER_TOKENS)) return 'water';
+  if (sourceLayer === 'park' || hasLayerToken(layer.id, PARK_LAYER_TOKENS)) return 'parks';
+  if (sourceLayer === 'landuse' || sourceLayer === 'landcover') return 'landuse';
+  return null;
+}
+
+function transportCategoryForLayer(layer: StyleLayer): MapFeatureVisibilityCategory | null {
+  if (layer['source-layer'] === 'transportation') return isRailTransportationLayer(layer.id) ? 'transit' : 'roads';
+  return isRailTransportationLayer(layer.id) ? 'transit' : null;
 }
 
 function isCategoryVisible(visibility: MapFeatureVisibility, category: MapFeatureVisibilityCategory) {
@@ -46,6 +59,10 @@ function isCategoryVisible(visibility: MapFeatureVisibility, category: MapFeatur
     case 'roads': { return visibility.roads; }
     case 'buildings': { return visibility.buildings; }
     case 'labels': { return visibility.labels; }
+    case 'water': { return visibility.water; }
+    case 'parks': { return visibility.parks; }
+    case 'landuse': { return visibility.landuse; }
+    case 'transit': { return visibility.transit; }
   }
 }
 

@@ -56,7 +56,7 @@ test('desktop editor switches between project and layer properties', async ({ pa
     await expect(map).toHaveAttribute('data-map-bearing', '35');
     await expect(map).toHaveAttribute('data-map-pitch', '40');
     await expect(map).toHaveAttribute('data-map-text-scale', '125');
-    await expect(map).toHaveAttribute('data-map-feature-visibility', 'roads:false,buildings:true,labels:true');
+    await expect(map).toHaveAttribute('data-map-feature-visibility', 'roads:false,buildings:true,labels:true,water:true,parks:true,landuse:true,transit:true');
   }
 
   await page.screenshot({ path: testInfo.outputPath('editor-desktop.png'), fullPage: true });
@@ -169,4 +169,33 @@ test('switches open map styles and recovers after a selected style fails', async
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-style-preset', 'liberty');
   await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
   await expect(page.getByLabel('Map canvas').getByRole('status')).not.toBeVisible();
+});
+
+test('applies Bright, translated labels, and expanded map detail controls', async ({ page, browserName }) => {
+  test.skip(browserName === 'firefox', 'Firefox fixture intentionally exercises the WebGL fallback path.');
+  const consoleProblems: string[] = [];
+  page.on('pageerror', (error) => { consoleProblems.push(error.message); });
+  page.on('console', (message) => {
+    if ((message.type() === 'error' || message.type() === 'warning') && !isHeadlessWebGlDiagnostic(message.text())) {
+      consoleProblems.push(message.text());
+    }
+  });
+  await page.goto('/');
+  const map = page.getByTestId('map-canvas');
+  await expect(map).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
+
+  await page.getByRole('combobox', { name: 'Map style' }).selectOption('bright');
+  await expect(map).toHaveAttribute('data-style-preset', 'bright');
+  await expect(map).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
+  await page.getByRole('combobox', { name: 'Map language' }).selectOption('de');
+  await page.getByRole('checkbox', { name: 'Show water' }).uncheck();
+  await page.getByRole('checkbox', { name: 'Show parks' }).uncheck();
+  await page.getByRole('checkbox', { name: 'Show land detail' }).uncheck();
+  await page.getByRole('checkbox', { name: 'Show transit' }).uncheck();
+
+  await expect(map).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
+  await expect(map).toHaveAttribute('data-map-language', 'de');
+  await expect(map).toHaveAttribute('data-map-feature-visibility', 'roads:true,buildings:true,labels:true,water:false,parks:false,landuse:false,transit:false');
+  await expect(page.getByRole('button', { name: 'Select Bright basemap' })).toBeVisible();
+  expect(consoleProblems).toEqual([]);
 });

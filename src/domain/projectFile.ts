@@ -3,6 +3,7 @@ import {
   type ContentLayer,
   type LayerGeometry,
   type LayerType,
+  type MapLanguage,
   type MapStylePreset,
   type PageOrientation,
   type PagePreset,
@@ -18,9 +19,8 @@ const MAX_COORDINATES = 200_000;
 const LAYER_TYPES = new Set<LayerType>(['route', 'poi', 'shape', 'basemap']);
 const PAGE_PRESETS = new Set<PagePreset>(['A4', 'A3', 'Letter', 'Custom']);
 const PAGE_ORIENTATIONS = new Set<PageOrientation>(['landscape', 'portrait']);
-const MAP_STYLE_PRESETS = new Set<MapStylePreset>(['liberty', 'positron']);
-
-
+const MAP_STYLE_PRESETS = new Set<MapStylePreset>(['liberty', 'positron', 'bright']);
+const MAP_LANGUAGES = new Set<MapLanguage>(['local', 'en', 'de', 'fr', 'it', 'es', 'zh']);
 type JsonObject = Record<string, unknown>;
 
 function isCurrentSchemaVersion(value: unknown): value is ProjectDocument['schemaVersion'] {
@@ -244,9 +244,12 @@ function cameraAt(value: unknown): ProjectDocument['camera'] {
 function styleAt(value: unknown): ProjectDocument['style'] {
   const style = objectAt(value, 'Project style');
   if (typeof style.preset !== 'string' || !MAP_STYLE_PRESETS.has(style.preset as MapStylePreset)) {
-    throw new ProjectFileError('Map style preset must be liberty or positron.');
+    throw new ProjectFileError('Map style preset must be liberty, positron, or bright.');
   }
   const preset = style.preset as MapStylePreset;
+  if (typeof style.language !== 'string' || !MAP_LANGUAGES.has(style.language as MapLanguage)) {
+    throw new ProjectFileError('Map language must be local, en, de, fr, it, es, or zh.');
+  }
   const textScalePercent = finiteNumber(style.textScalePercent, 'Map text scale');
   if (textScalePercent < 50 || textScalePercent > 200) {
     throw new ProjectFileError('Map text scale must be between 50 and 200 percent.');
@@ -254,11 +257,13 @@ function styleAt(value: unknown): ProjectDocument['style'] {
   const visibility = objectAt(style.visibility, 'Map feature visibility');
   return {
     preset,
+    language: style.language as MapLanguage,
     textScalePercent,
     visibility: {
       roads: booleanAt(visibility.roads, 'Map road visibility'),
-      buildings: booleanAt(visibility.buildings, 'Map building visibility'),
-      labels: booleanAt(visibility.labels, 'Map label visibility'),
+      buildings: booleanAt(visibility.buildings, 'Map building visibility'), labels: booleanAt(visibility.labels, 'Map label visibility'),
+      water: booleanAt(visibility.water, 'Map water visibility'), parks: booleanAt(visibility.parks, 'Map park visibility'),
+      landuse: booleanAt(visibility.landuse, 'Map land-detail visibility'), transit: booleanAt(visibility.transit, 'Map transit visibility'),
     },
   };
 }
@@ -267,7 +272,7 @@ function currentDocumentAt(value: unknown): ProjectDocument {
   const root = objectAt(value, 'Project file');
   const schemaVersion = root.schemaVersion;
   if (!isCurrentSchemaVersion(schemaVersion)) {
-    if (typeof schemaVersion === 'number' && schemaVersion >= 1 && schemaVersion <= 10) {
+    if (typeof schemaVersion === 'number' && schemaVersion >= 1 && schemaVersion <= 11) {
       throw new ProjectFileError(
         `Schema version ${schemaVersion} is obsolete. Start a new project or reopen a current Print Map Studio file.`,
       );

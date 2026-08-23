@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import type { CameraSettings, MapFeatureVisibilityCategory, MapStylePreset, MapStyleSettings, PageSettings, StandardPagePreset } from '../../domain/project';
+import type { CameraSettings, MapFeatureVisibilityCategory, MapLanguage, MapStylePreset, MapStyleSettings, PageSettings, StandardPagePreset } from '../../domain/project';
 import { MapboxServiceStatus } from './MapboxServiceStatus';
 import { PropertyRow, PropertySection } from './PropertyControls';
 
@@ -137,6 +137,7 @@ type ProjectPropertiesProps = {
   onBearingChange: (bearing: number) => void;
   onDimensionChange: (dimension: 'widthMm' | 'heightMm', value: number) => void;
   onFeatureVisibilityChange: (category: MapFeatureVisibilityCategory, isVisible: boolean) => void;
+  onLanguageChange: (language: MapLanguage) => void;
   onOrientationChange: (orientation: PageSettings['orientation']) => void;
   onPitchChange: (pitch: number) => void;
   onPresetChange: (preset: StandardPagePreset) => void;
@@ -151,6 +152,7 @@ export function ProjectProperties({
   page,
   onDimensionChange,
   onFeatureVisibilityChange,
+  onLanguageChange,
   onOrientationChange,
   onPitchChange,
   onPresetChange,
@@ -169,13 +171,18 @@ export function ProjectProperties({
         <PropertyRow label="Orientation"><div className="segmented"><button className={page.orientation === 'landscape' ? 'is-active' : undefined} type="button" aria-pressed={page.orientation === 'landscape'} onClick={() => onOrientationChange('landscape')}>Landscape</button><button className={page.orientation === 'portrait' ? 'is-active' : undefined} type="button" aria-pressed={page.orientation === 'portrait'} onClick={() => onOrientationChange('portrait')}>Portrait</button></div></PropertyRow>
       </PropertySection>
       <PropertySection title="Map">
-        <PropertyRow label="Style"><select aria-label="Map style" value={style.preset} onChange={(event) => onStyleChange(event.target.value as MapStylePreset)}><option value="liberty">Liberty</option><option value="positron">Positron</option></select></PropertyRow>
+        <PropertyRow label="Style"><select aria-label="Map style" value={style.preset} onChange={(event) => onStyleChange(event.target.value as MapStylePreset)}><option value="liberty">Liberty</option><option value="positron">Positron</option><option value="bright">Bright</option></select></PropertyRow>
+        <PropertyRow label="Language"><select aria-label="Map language" value={style.language} onChange={(event) => onLanguageChange(event.target.value as MapLanguage)}><option value="local">Local names</option><option value="en">English</option><option value="de">German</option><option value="fr">French</option><option value="it">Italian</option><option value="es">Spanish</option><option value="zh">Chinese</option></select></PropertyRow>
         <PropertyRow label="Bearing"><CameraField key={`bearing-${camera.bearing}`} field="bearing" value={camera.bearing} onCommit={onBearingChange} /></PropertyRow>
         <PropertyRow label="Pitch"><CameraField key={`pitch-${camera.pitch}`} field="pitch" value={camera.pitch} onCommit={onPitchChange} /></PropertyRow>
         <PropertyRow label="Text scale"><TextScaleField key={`text-scale-${style.textScalePercent}`} value={style.textScalePercent} onCommit={onTextScaleChange} /></PropertyRow>
         <label className="check-row"><input type="checkbox" checked={style.visibility.roads} onChange={(event) => onFeatureVisibilityChange('roads', event.target.checked)} /> Show roads</label>
         <label className="check-row"><input type="checkbox" checked={style.visibility.buildings} onChange={(event) => onFeatureVisibilityChange('buildings', event.target.checked)} /> Show buildings</label>
         <label className="check-row"><input type="checkbox" checked={style.visibility.labels} onChange={(event) => onFeatureVisibilityChange('labels', event.target.checked)} /> Show labels</label>
+        <label className="check-row"><input type="checkbox" checked={style.visibility.water} onChange={(event) => onFeatureVisibilityChange('water', event.target.checked)} /> Show water</label>
+        <label className="check-row"><input type="checkbox" checked={style.visibility.parks} onChange={(event) => onFeatureVisibilityChange('parks', event.target.checked)} /> Show parks</label>
+        <label className="check-row"><input type="checkbox" checked={style.visibility.landuse} onChange={(event) => onFeatureVisibilityChange('landuse', event.target.checked)} /> Show land detail</label>
+        <label className="check-row"><input type="checkbox" checked={style.visibility.transit} onChange={(event) => onFeatureVisibilityChange('transit', event.target.checked)} /> Show transit</label>
       </PropertySection>
       <PropertySection title="Mapbox services">
         <MapboxServiceStatus />

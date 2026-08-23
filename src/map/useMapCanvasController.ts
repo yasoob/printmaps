@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { CustomMarkerAsset } from '../domain/customMarkerAssets';
-import type { CameraSettings, ContentLayer, MapFeatureVisibility, MapStylePreset } from '../domain/project';
+import type { CameraSettings, ContentLayer, MapFeatureVisibility, MapLanguage, MapStylePreset } from '../domain/project';
 import type { PreviewPngExporter } from '../export/previewPng';
 import type { MapContentAdapter, MapContentState } from './MapContentAdapter';
 import {
@@ -11,11 +11,13 @@ import {
 } from './MapCanvasLifecycle';
 import { mapStyleUrl } from './mapStyles';
 import { useMapFeatureVisibility } from './useMapFeatureVisibility';
+import { useMapLanguage } from './useMapLanguage';
 import { useMapTextScale } from './useMapTextScale';
 
 type MapCanvasControllerOptions = {
   camera: CameraSettings;
   stylePreset: MapStylePreset;
+  language: MapLanguage;
   textScalePercent: number;
   featureVisibility: MapFeatureVisibility;
   fitRequest: number;
@@ -41,6 +43,7 @@ function clearMapStateAttributes(container: HTMLDivElement | null) {
 export function useMapCanvasController({
   camera,
   stylePreset,
+  language,
   textScalePercent,
   featureVisibility,
   fitRequest,
@@ -57,11 +60,8 @@ export function useMapCanvasController({
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<MapLibreMap | null>(null), contentAdapter = useRef<MapContentAdapter | null>(null);
   const contentState = useRef<MapContentState>({ layers, assets, selectedId, previewedId, contentRevision });
-  const contentSyncDeferred = useRef(false);
-  const contentReady = useRef(false), mapFailed = useRef(false);
-  const layerSelect = useRef(onLayerSelect);
-  const backgroundClick = useRef(onBackgroundClick);
-  const mapClick = useRef(onMapClick);
+  const contentSyncDeferred = useRef(false), contentReady = useRef(false), mapFailed = useRef(false);
+  const layerSelect = useRef(onLayerSelect), backgroundClick = useRef(onBackgroundClick), mapClick = useRef(onMapClick);
   const exporterChange = useRef(onExporterChange);
   const availableExporter = useRef<PreviewPngExporter | null>(null);
   const handledFitRequest = useRef(0);
@@ -74,6 +74,7 @@ export function useMapCanvasController({
   }, []);
   const { resetTextScale, synchronizeTextScale } = useMapTextScale({ containerRef: container, contentReadyRef: contentReady, invalidateExporter, mapFailedRef: mapFailed, mapRef: map, setMapError, textScalePercent });
   const { resetFeatureVisibility, synchronizeFeatureVisibility } = useMapFeatureVisibility({ containerRef: container, contentReadyRef: contentReady, featureVisibility, invalidateExporter, mapFailedRef: mapFailed, mapRef: map, setMapError });
+  const { resetMapLanguage, synchronizeMapLanguage } = useMapLanguage({ containerRef: container, contentReadyRef: contentReady, invalidateExporter, language, mapFailedRef: mapFailed, mapRef: map, setMapError });
 
   const handleContentSyncResult = useCallback((result: ReturnType<MapContentAdapter['sync']> | undefined) => {
     contentSyncDeferred.current = result === 'deferred';
@@ -115,8 +116,7 @@ export function useMapCanvasController({
     contentReady.current = false;
     contentSyncDeferred.current = false;
     clearMapStateAttributes(container.current);
-    resetFeatureVisibility();
-    resetTextScale();
+    resetFeatureVisibility(); resetMapLanguage(); resetTextScale();
     invalidateExporter();
     queueMicrotask(() => {
       setMapError(null);
@@ -138,13 +138,14 @@ export function useMapCanvasController({
         mapClick,
         map, mapFailed,
         synchronizeFeatureVisibility: { current: synchronizeFeatureVisibility },
+        synchronizeMapLanguage: { current: synchronizeMapLanguage },
         synchronizeTextScale: { current: synchronizeTextScale },
       },
       setContentError,
       setMapError,
       styleUrl: mapStyleUrl(stylePreset),
     });
-  }, [handleContentSyncResult, invalidateExporter, resetFeatureVisibility, resetTextScale, stylePreset, synchronizeFeatureVisibility, synchronizeTextScale]);
+  }, [handleContentSyncResult, invalidateExporter, resetFeatureVisibility, resetMapLanguage, resetTextScale, stylePreset, synchronizeFeatureVisibility, synchronizeMapLanguage, synchronizeTextScale]);
 
   useEffect(() => {
     if (!map.current) return;

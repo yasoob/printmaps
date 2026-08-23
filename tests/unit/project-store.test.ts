@@ -20,7 +20,7 @@ function createDocument(): ProjectDocument {
     title: 'Test project',
     page: { preset: 'A4', widthMm: 297, heightMm: 210, orientation: 'landscape' },
     camera: { bearing: 0, pitch: 0 },
-    style: { preset: 'liberty', textScalePercent: 100, visibility: { roads: true, buildings: true, labels: true } },
+    style: { preset: 'liberty', language: 'local', textScalePercent: 100, visibility: { roads: true, buildings: true, labels: true, water: true, parks: true, landuse: true, transit: true } },
     assets: {},
     layers,
   };

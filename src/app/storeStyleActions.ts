@@ -2,14 +2,22 @@ import type { ProjectState } from './store';
 import { mapStyleBasemapName } from '../domain/project';
 import { commitDocument, type ProjectSet } from './storeDocument';
 
-type StyleActions = Pick<ProjectState, 'setMapFeatureVisibility' | 'setMapStyle' | 'setMapTextScale'>;
+type StyleActions = Pick<ProjectState, 'setMapFeatureVisibility' | 'setMapLanguage' | 'setMapStyle' | 'setMapTextScale'>;
 const GENERATED_BASEMAP_NAMES = new Set([
   mapStyleBasemapName('liberty'),
   mapStyleBasemapName('positron'),
+  mapStyleBasemapName('bright'),
 ]);
 
 export function createStyleActions(set: ProjectSet): StyleActions {
   return {
+    setMapLanguage: (language) => set((state) => {
+      if (state.document.style.language === language) return state;
+      return commitDocument(state, {
+        ...state.document,
+        style: { ...state.document.style, language },
+      });
+    }),
     setMapFeatureVisibility: (category, isVisible) => set((state) => {
       if (state.document.style.visibility[category] === isVisible) return state;
       return commitDocument(state, {

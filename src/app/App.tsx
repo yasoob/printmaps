@@ -98,6 +98,7 @@ export function App({ autosaveRepository }: AppProps = {}) {
           page={project.document.page}
           camera={project.document.camera}
           stylePreset={project.document.style.preset}
+          language={project.document.style.language}
           textScalePercent={project.document.style.textScalePercent}
           featureVisibility={project.document.style.visibility}
           documentEpoch={project.documentEpoch}

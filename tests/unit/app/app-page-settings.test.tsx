@@ -90,6 +90,12 @@ describe('editor page settings and tools', () => {
     expect(screen.getByRole('textbox', { name: 'Page width' })).toHaveValue('297');
     expect(map).toHaveAttribute('data-page-preset', 'A4');
   });
+});
+
+describe('editor map style controls', () => {
+  beforeEach(() => {
+    exportMocks.exporter = null;
+  });
 
   it('applies a canonical open map style as one undoable change', async () => {
     const user = userEvent.setup();
@@ -112,6 +118,38 @@ describe('editor page settings and tools', () => {
     await user.click(screen.getByRole('button', { name: 'Redo' }));
     expect(style).toHaveValue('positron');
     expect(map).toHaveAttribute('data-style-preset', 'positron');
+  });
+
+  it('offers the Bright open style as a canonical undoable preset', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const style = screen.getByRole('combobox', { name: 'Map style' });
+    const map = screen.getByTestId('map-canvas');
+
+    await user.selectOptions(style, 'bright');
+
+    expect(style).toHaveValue('bright');
+    expect(map).toHaveAttribute('data-style-preset', 'bright');
+    expect(screen.getByRole('button', { name: 'Select Bright basemap' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(style).toHaveValue('liberty');
+    expect(map).toHaveAttribute('data-style-preset', 'liberty');
+  });
+
+  it('changes the canonical map language as one undoable edit', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const language = screen.getByRole('combobox', { name: 'Map language' });
+    const map = screen.getByTestId('map-canvas');
+
+    expect(language).toHaveValue('local');
+    await user.selectOptions(language, 'de');
+
+    expect(language).toHaveValue('de');
+    expect(map).toHaveAttribute('data-map-language', 'de');
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(language).toHaveValue('local');
+    expect(map).toHaveAttribute('data-map-language', 'local');
   });
 
   it('commits global text scale on blur and keeps Undo and Redo synchronized with the canvas', async () => {
@@ -149,6 +187,12 @@ describe('editor page settings and tools', () => {
     expect(screen.getByRole('textbox', { name: 'Text scale' })).toHaveValue('100');
     expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
   });
+});
+
+describe('editor map detail and page commands', () => {
+  beforeEach(() => {
+    exportMocks.exporter = null;
+  });
 
   it('toggles a map feature category as one undoable change', async () => {
     const user = userEvent.setup();
@@ -159,12 +203,65 @@ describe('editor page settings and tools', () => {
     await user.click(roads);
 
     expect(roads).not.toBeChecked();
-    expect(map).toHaveAttribute('data-map-feature-visibility', 'roads:false,buildings:true,labels:true');
+    expect(map).toHaveAttribute('data-map-feature-visibility', 'roads:false,buildings:true,labels:true,water:true,parks:true,landuse:true,transit:true');
     await user.click(screen.getByRole('button', { name: 'Undo' }));
     expect(roads).toBeChecked();
-    expect(map).toHaveAttribute('data-map-feature-visibility', 'roads:true,buildings:true,labels:true');
+    expect(map).toHaveAttribute('data-map-feature-visibility', 'roads:true,buildings:true,labels:true,water:true,parks:true,landuse:true,transit:true');
     await user.click(screen.getByRole('button', { name: 'Redo' }));
     expect(roads).not.toBeChecked();
+  });
+
+  it('toggles water detail as one undoable map change', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const water = screen.getByRole('checkbox', { name: 'Show water' });
+    const map = screen.getByTestId('map-canvas');
+
+    await user.click(water);
+
+    expect(water).not.toBeChecked();
+    expect(map).toHaveAttribute('data-map-feature-visibility', 'roads:true,buildings:true,labels:true,water:false,parks:true,landuse:true,transit:true');
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(water).toBeChecked();
+  });
+
+  it('toggles park detail as one undoable map change', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const parks = screen.getByRole('checkbox', { name: 'Show parks' });
+
+    await user.click(parks);
+
+    expect(parks).not.toBeChecked();
+    expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-map-feature-visibility', 'roads:true,buildings:true,labels:true,water:true,parks:false,landuse:true,transit:true');
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(parks).toBeChecked();
+  });
+
+  it('toggles land detail as one undoable map change', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const land = screen.getByRole('checkbox', { name: 'Show land detail' });
+
+    await user.click(land);
+
+    expect(land).not.toBeChecked();
+    expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-map-feature-visibility', 'roads:true,buildings:true,labels:true,water:true,parks:true,landuse:false,transit:true');
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(land).toBeChecked();
+  });
+
+  it('toggles transit detail as one undoable map change', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const transit = screen.getByRole('checkbox', { name: 'Show transit' });
+
+    await user.click(transit);
+
+    expect(transit).not.toBeChecked();
+    expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-map-feature-visibility', 'roads:true,buildings:true,labels:true,water:true,parks:true,landuse:true,transit:false');
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(transit).toBeChecked();
   });
 
   it('keeps the A4 preset and history unchanged when page width is blurred without editing', async () => {

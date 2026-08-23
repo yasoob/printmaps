@@ -71,7 +71,7 @@ const route: ContentLayer = {
   geometry: { type: 'LineString', coordinates: [[16.32, 48.2], [16.4, 48.22]] },
 };
 
-const allVisible: MapFeatureVisibility = { roads: true, buildings: true, labels: true };
+const allVisible: MapFeatureVisibility = { roads: true, buildings: true, labels: true, water: true, parks: true, landuse: true, transit: true };
 const roadsHidden: MapFeatureVisibility = { ...allVisible, roads: false };
 
 beforeEach(() => {
@@ -104,7 +104,7 @@ it('applies canonical feature visibility live and again after a style switch', a
   await waitFor(() => expect(mocks.visibilityUpdates).toContainEqual([0, 'road-primary', 'none']));
   expect(screen.getByTestId('map-canvas')).toHaveAttribute(
     'data-map-feature-visibility',
-    'roads:false,buildings:true,labels:true',
+    'roads:false,buildings:true,labels:true,water:true,parks:true,landuse:true,transit:true',
   );
 
   rerender(<MapCanvas {...props} featureVisibility={roadsHidden} stylePreset="positron" />);

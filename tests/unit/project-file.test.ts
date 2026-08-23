@@ -2,11 +2,11 @@ import { createInitialProjectDocument } from '../../src/domain/project';
 import { parseProjectFileText } from '../../src/domain/projectFile';
 
 describe('portable project validation', () => {
-  it('rejects the obsolete schema-10 format with a reset-oriented message', () => {
-    const obsolete = { ...createInitialProjectDocument(), schemaVersion: 10 };
+  it('rejects the obsolete schema-11 format with a reset-oriented message', () => {
+    const obsolete = { ...createInitialProjectDocument(), schemaVersion: 11 };
 
     expect(() => parseProjectFileText(JSON.stringify(obsolete))).toThrow(
-      'Schema version 10 is obsolete. Start a new project or reopen a current Print Map Studio file.',
+      'Schema version 11 is obsolete. Start a new project or reopen a current Print Map Studio file.',
     );
   });
 
@@ -93,7 +93,11 @@ describe('portable project validation', () => {
     ['an unsupported map style', JSON.stringify({
       ...createInitialProjectDocument(),
       style: { preset: 'satellite' },
-    }), 'Map style preset must be liberty or positron'],
+    }), 'Map style preset must be liberty, positron, or bright'],
+    ['an unsupported map language', JSON.stringify({
+      ...createInitialProjectDocument(),
+      style: { ...createInitialProjectDocument().style, language: 'klingon' },
+    }), 'Map language must be local, en, de, fr, it, es, or zh'],
     ['an out-of-range map text scale', JSON.stringify({
       ...createInitialProjectDocument(),
       style: { ...createInitialProjectDocument().style, textScalePercent: 201 },

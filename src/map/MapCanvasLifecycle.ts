@@ -27,9 +27,8 @@ type LifecycleReferences = {
   exporterChange: MutableReference<((exporter: PreviewPngExporter | null) => void) | undefined>;
   layerSelect: MutableReference<(id: string) => void>;
   mapClick: MutableReference<((coordinate: [number, number]) => void) | undefined>;
-  map: MutableReference<MapLibreMap | null>;
-  mapFailed: MutableReference<boolean>;
-  synchronizeFeatureVisibility: MutableReference<(map: MapLibreMap) => boolean>; synchronizeTextScale: MutableReference<(map: MapLibreMap) => boolean>;
+  map: MutableReference<MapLibreMap | null>; mapFailed: MutableReference<boolean>;
+  synchronizeFeatureVisibility: MutableReference<(map: MapLibreMap) => boolean>; synchronizeMapLanguage: MutableReference<(map: MapLibreMap) => boolean>; synchronizeTextScale: MutableReference<(map: MapLibreMap) => boolean>;
 };
 
 export type MapLifecycleOptions = {
@@ -201,7 +200,8 @@ function createMapEventHandlers(
     state.isStyleLoaded = true;
     const container = references.container.current;
     if (!container) return;
-    if (!references.synchronizeTextScale.current(map) || !references.synchronizeFeatureVisibility.current(map)) return;
+    const isStyleSynchronized = references.synchronizeMapLanguage.current(map) && references.synchronizeTextScale.current(map) && references.synchronizeFeatureVisibility.current(map);
+    if (!isStyleSynchronized) return;
     references.contentAdapter.current = createMapLibreContentAdapter(map, container);
     handleContentSyncResult(references.contentAdapter.current.sync(references.contentState.current));
   };

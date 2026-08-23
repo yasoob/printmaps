@@ -3,6 +3,7 @@ import {
   createInitialProjectDocument,
   type ContentLayer,
   type LayerAppearance,
+  type MapLanguage,
   type MapFeatureVisibilityCategory,
   type MapStylePreset,
   type PageOrientation,
@@ -53,6 +54,7 @@ export type ProjectState = {
   setShapeVertex: (id: string, ringIndex: number, vertexIndex: number, coordinates: readonly [number, number]) => void;
   setLayerOpacity: (id: string, opacity: number) => void;
   setMapStyle: (preset: MapStylePreset) => void;
+  setMapLanguage: (language: MapLanguage) => void;
   setMapTextScale: (textScalePercent: number) => void;
   setMapFeatureVisibility: (category: MapFeatureVisibilityCategory, isVisible: boolean) => void;
   toggleLayerVisibility: (id: string) => void;

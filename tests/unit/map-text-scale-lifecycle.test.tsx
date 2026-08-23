@@ -159,3 +159,34 @@ it('keeps readiness invalid after overlay restoration fails', async () => {
   expect(onExporterChange.mock.calls.filter(([value]) => typeof value === 'function')).toHaveLength(1);
   expect(screen.getByRole('status')).toHaveTextContent('Reload the page and retry');
 });
+
+it('applies a language change live and republishes export readiness after the next idle frame', async () => {
+  const onExporterChange = vi.fn();
+  const props = {
+    layers: [route],
+    assets: {},
+    previewedId: null,
+    selectedId: null,
+    onLayerSelect: vi.fn(),
+    onBackgroundClick: vi.fn(),
+    onExporterChange,
+  };
+  const { rerender } = render(<MapCanvas {...props} language="local" />);
+  const canvas = screen.getByTestId('map-canvas');
+  await waitFor(() => expect(mocks.adapterSync).toHaveBeenCalledOnce());
+  act(() => emitMapEvent('idle'));
+  expect(canvas).toHaveAttribute('data-map-ready', 'true');
+  mocks.setLayoutProperty.mockClear();
+
+  rerender(<MapCanvas {...props} language="de" />);
+
+  await waitFor(() => expect(mocks.setLayoutProperty).toHaveBeenCalledWith(
+    'place-label',
+    'text-field',
+    ['coalesce', ['get', 'name:de'], ['get', 'name_de'], ['get', 'name']],
+  ));
+  expect(canvas).toHaveAttribute('data-map-language', 'de');
+  expect(canvas).not.toHaveAttribute('data-map-ready');
+  act(() => emitMapEvent('idle'));
+  expect(canvas).toHaveAttribute('data-map-ready', 'true');
+});

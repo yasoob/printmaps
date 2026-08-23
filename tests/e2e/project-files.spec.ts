@@ -11,8 +11,10 @@ test('Save downloads the current project as portable versioned JSON', async ({ p
   await page.getByRole('textbox', { name: 'Text scale' }).fill('125');
   await page.getByRole('textbox', { name: 'Text scale' }).press('Tab');
   await page.getByRole('checkbox', { name: 'Show roads' }).uncheck();
+  await page.getByRole('checkbox', { name: 'Show water' }).uncheck();
   await page.getByRole('button', { name: 'Portrait' }).click();
   await page.getByRole('combobox', { name: 'Map style' }).selectOption('positron');
+  await page.getByRole('combobox', { name: 'Map language' }).selectOption('de');
 
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Save', exact: true }).click();
@@ -23,15 +25,16 @@ test('Save downloads the current project as portable versioned JSON', async ({ p
   await download.saveAs(outputPath);
   const savedProject = JSON.parse(await readFile(outputPath, 'utf8'));
   expect(savedProject).toMatchObject({
-    schemaVersion: 10,
+    schemaVersion: 12,
     id: 'vienna-field-guide',
     title: 'Vienna field guide',
     page: { preset: 'A4', widthMm: 210, heightMm: 297, orientation: 'portrait' },
     camera: { bearing: 35, pitch: 40 },
     style: {
       preset: 'positron',
+      language: 'de',
       textScalePercent: 125,
-      visibility: { roads: false, buildings: true, labels: true },
+      visibility: { roads: false, buildings: true, labels: true, water: false, parks: true, landuse: true, transit: true },
     },
   });
   expect(savedProject.layers.map((layer: { id: string }) => layer.id)).toEqual([
@@ -74,9 +77,12 @@ test('Save ZIP downloads a deterministic archive that Open restores as a fresh p
     assets: [],
   });
   expect(JSON.parse(strFromU8(entries['project.printmap.json']))).toMatchObject({
-    schemaVersion: 10,
+    schemaVersion: 12,
     camera: { bearing: 35, pitch: 0 },
-    style: { visibility: { roads: false, buildings: true, labels: true } },
+    style: {
+      language: 'local',
+      visibility: { roads: false, buildings: true, labels: true, water: true, parks: true, landuse: true, transit: true },
+    },
   });
 
   await page.getByRole('button', { name: 'Portrait' }).click();
@@ -102,8 +108,9 @@ test('opens a validated portable project as a focused fresh history root', async
   alpineProject.camera = { bearing: -20, pitch: 35 };
   alpineProject.style = {
     preset: 'positron',
+    language: 'de',
     textScalePercent: 150,
-    visibility: { roads: false, buildings: true, labels: false },
+    visibility: { roads: false, buildings: true, labels: false, water: false, parks: true, landuse: true, transit: true },
   };
   alpineProject.layers.find((layer: { type: string }) => layer.type === 'basemap').name = 'Positron basemap';
 
@@ -126,16 +133,18 @@ test('opens a validated portable project as a focused fresh history root', async
   await expect(page.getByRole('textbox', { name: 'Bearing' })).toHaveValue('-20');
   await expect(page.getByRole('textbox', { name: 'Pitch' })).toHaveValue('35');
   await expect(page.getByRole('combobox', { name: 'Map style' })).toHaveValue('positron');
+  await expect(page.getByRole('combobox', { name: 'Map language' })).toHaveValue('de');
   await expect(page.getByRole('textbox', { name: 'Text scale' })).toHaveValue('150');
   await expect(page.getByRole('checkbox', { name: 'Show roads' })).not.toBeChecked();
   await expect(page.getByRole('checkbox', { name: 'Show buildings' })).toBeChecked();
   await expect(page.getByRole('checkbox', { name: 'Show labels' })).not.toBeChecked();
+  await expect(page.getByRole('checkbox', { name: 'Show water' })).not.toBeChecked();
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-style-preset', 'positron');
   if (browserName !== 'firefox') {
     await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-text-scale', '150');
     await expect(page.getByTestId('map-canvas')).toHaveAttribute(
       'data-map-feature-visibility',
-      'roads:false,buildings:true,labels:false',
+      'roads:false,buildings:true,labels:false,water:false,parks:true,landuse:true,transit:true',
     );
   }
   await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();

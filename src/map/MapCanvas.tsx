@@ -1,12 +1,13 @@
 import type { CSSProperties } from 'react';
 import type { CustomMarkerAsset } from '../domain/customMarkerAssets';
-import type { CameraSettings, ContentLayer, MapFeatureVisibility, MapStylePreset, PageSettings } from '../domain/project';
+import type { CameraSettings, ContentLayer, MapFeatureVisibility, MapLanguage, MapStylePreset, PageSettings } from '../domain/project';
 import type { PreviewPngExporter } from '../export/previewPng';
 import { useMapCanvasController } from './useMapCanvasController';
 
 type MapCanvasProps = {
   camera?: CameraSettings;
   stylePreset?: MapStylePreset;
+  language?: MapLanguage;
   textScalePercent?: number;
   featureVisibility?: MapFeatureVisibility;
   layers: ContentLayer[];
@@ -23,12 +24,22 @@ type MapCanvasProps = {
   contentRevision?: object;
 };
 
-const DEFAULT_FEATURE_VISIBILITY: MapFeatureVisibility = { roads: true, buildings: true, labels: true };
+const DEFAULT_FEATURE_VISIBILITY: MapFeatureVisibility = {
+  roads: true,
+  buildings: true,
+  labels: true,
+  water: true,
+  parks: true,
+  landuse: true,
+  transit: true,
+};
 const resolveFeatureVisibility = (visibility?: MapFeatureVisibility) => visibility ?? DEFAULT_FEATURE_VISIBILITY;
+const resolveMapLanguage = (language?: MapLanguage) => language ?? 'local';
 
 export function MapCanvas({
   camera = { bearing: 0, pitch: 0 },
   stylePreset = 'liberty',
+  language,
   textScalePercent = 100,
   featureVisibility,
   layers,
@@ -47,6 +58,7 @@ export function MapCanvas({
   const { container, visibleError } = useMapCanvasController({
     camera,
     stylePreset,
+    language: resolveMapLanguage(language),
     textScalePercent,
     featureVisibility: resolveFeatureVisibility(featureVisibility),
     fitRequest,

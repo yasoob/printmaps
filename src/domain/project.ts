@@ -9,14 +9,15 @@ export type {
   ShapeAppearance,
 } from './layerAppearance';
 
-export const PROJECT_SCHEMA_VERSION = 11 as const;
+export const PROJECT_SCHEMA_VERSION = 12 as const;
 
 export type LayerType = 'route' | 'poi' | 'shape' | 'basemap';
 export type PageOrientation = 'landscape' | 'portrait';
 export type PagePreset = 'A4' | 'A3' | 'Letter' | 'Custom';
 export type StandardPagePreset = Exclude<PagePreset, 'Custom'>;
-export type MapStylePreset = 'liberty' | 'positron';
-export type MapFeatureVisibilityCategory = 'roads' | 'buildings' | 'labels';
+export type MapStylePreset = 'liberty' | 'positron' | 'bright';
+export type MapLanguage = 'local' | 'en' | 'de' | 'fr' | 'it' | 'es' | 'zh';
+export type MapFeatureVisibilityCategory = 'roads' | 'buildings' | 'labels' | 'water' | 'parks' | 'landuse' | 'transit';
 export type MapFeatureVisibility = Record<MapFeatureVisibilityCategory, boolean>;
 
 export type PageSettings = {
@@ -33,6 +34,7 @@ export type CameraSettings = {
 
 export type MapStyleSettings = {
   preset: MapStylePreset;
+  language: MapLanguage;
   textScalePercent: number;
   visibility: MapFeatureVisibility;
 };
@@ -76,15 +78,25 @@ const createDefaultMapFeatureVisibility = (): MapFeatureVisibility => ({
   roads: true,
   buildings: true,
   labels: true,
+  water: true,
+  parks: true,
+  landuse: true,
+  transit: true,
 });
 const createDefaultMapStyleSettings = (): MapStyleSettings => ({
   preset: 'liberty',
+  language: 'local',
   textScalePercent: 100,
   visibility: createDefaultMapFeatureVisibility(),
 });
 
 export function mapStyleBasemapName(preset: MapStylePreset): string {
-  return `${preset === 'liberty' ? 'Liberty' : 'Positron'} basemap`;
+  const names: Record<MapStylePreset, string> = {
+    bright: 'Bright',
+    liberty: 'Liberty',
+    positron: 'Positron',
+  };
+  return `${names[preset]} basemap`;
 }
 
 export function cloneContentLayer(layer: ContentLayer): ContentLayer {
