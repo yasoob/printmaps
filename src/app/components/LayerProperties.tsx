@@ -6,7 +6,9 @@ import type {
   RouteAppearance,
   ShapeAppearance,
 } from '../../domain/project';
+import { CoordinateField } from './CoordinateField';
 import { PropertyRow, PropertySection } from './PropertyControls';
+import { RouteVertexControls } from './RouteVertexControls';
 
 type LayerPropertiesProps = {
   layer: ContentLayer;
@@ -14,6 +16,7 @@ type LayerPropertiesProps = {
   onOpacityChange: (opacity: number) => void;
   onAppearanceChange: (appearance: LayerAppearance) => void;
   onPoiCoordinatesChange: (coordinates: readonly [number, number]) => void;
+  onRouteVertexChange: (vertexIndex: number, coordinates: readonly [number, number]) => void;
   onToggleVisibility: () => void;
   onToggleLock: () => void;
   onDuplicate: () => void;
@@ -125,44 +128,6 @@ function PoiAppearanceControls({
   );
 }
 
-function PoiCoordinateField({
-  label,
-  maximum,
-  minimum,
-  onCommit,
-  value,
-}: {
-  label: 'Latitude' | 'Longitude';
-  maximum: number;
-  minimum: number;
-  onCommit: (value: number) => void;
-  value: number;
-}) {
-  const [draft, setDraft] = useState(String(value));
-  const parsedValue = Number(draft);
-  const isInvalid = draft.trim() === ''
-    || !Number.isFinite(parsedValue)
-    || parsedValue < minimum
-    || parsedValue > maximum;
-  const commit = () => {
-    if (isInvalid) {
-      setDraft(String(value));
-      return;
-    }
-    setDraft(String(parsedValue));
-    onCommit(parsedValue);
-  };
-
-  return (
-    <PropertyRow label={label}>
-      <label className="number-field">
-        <input aria-label={`POI ${label.toLowerCase()}`} aria-invalid={isInvalid || undefined} value={draft} onChange={(event) => setDraft(event.target.value)} onBlur={commit} />
-        <small>°</small>
-      </label>
-    </PropertyRow>
-  );
-}
-
 function PoiCoordinateControls({
   coordinates,
   onChange,
@@ -172,8 +137,8 @@ function PoiCoordinateControls({
 }) {
   return (
     <>
-      <PoiCoordinateField key={`longitude-${coordinates[0]}`} label="Longitude" minimum={-180} maximum={180} value={coordinates[0]} onCommit={(longitude) => onChange([longitude, coordinates[1]])} />
-      <PoiCoordinateField key={`latitude-${coordinates[1]}`} label="Latitude" minimum={-90} maximum={90} value={coordinates[1]} onCommit={(latitude) => onChange([coordinates[0], latitude])} />
+      <CoordinateField key={`longitude-${coordinates[0]}`} ariaLabel="POI longitude" label="Longitude" minimum={-180} maximum={180} value={coordinates[0]} onCommit={(longitude) => onChange([longitude, coordinates[1]])} />
+      <CoordinateField key={`latitude-${coordinates[1]}`} ariaLabel="POI latitude" label="Latitude" minimum={-90} maximum={90} value={coordinates[1]} onCommit={(latitude) => onChange([coordinates[0], latitude])} />
     </>
   );
 }
@@ -216,19 +181,35 @@ function ShapeAppearanceControls({
   );
 }
 
+function RouteLayerProperties({
+  layer,
+  onAppearanceChange,
+  onRouteVertexChange,
+}: Pick<LayerPropertiesProps, 'layer' | 'onAppearanceChange' | 'onRouteVertexChange'>) {
+  if (layer.appearance?.kind !== 'route') return null;
+  return (
+    <>
+      <PropertySection title="Appearance">
+        <RouteAppearanceControls key={`${layer.id}-${layer.appearance.width}`} appearance={layer.appearance} onChange={onAppearanceChange} />
+      </PropertySection>
+      {layer.geometry?.type === 'LineString' && (
+        <PropertySection title="Vertices">
+          <RouteVertexControls key={layer.id} coordinates={layer.geometry.coordinates} onChange={onRouteVertexChange} />
+        </PropertySection>
+      )}
+    </>
+  );
+}
+
 function LayerTypeProperties({
   layer,
   onAppearanceChange,
   onPoiCoordinatesChange,
-}: Pick<LayerPropertiesProps, 'layer' | 'onAppearanceChange' | 'onPoiCoordinatesChange'>) {
+  onRouteVertexChange,
+}: Pick<LayerPropertiesProps, 'layer' | 'onAppearanceChange' | 'onPoiCoordinatesChange' | 'onRouteVertexChange'>) {
   switch (layer.type) {
     case 'route': {
-      if (layer.appearance?.kind !== 'route') return null;
-      return (
-        <PropertySection title="Appearance">
-          <RouteAppearanceControls key={`${layer.id}-${layer.appearance.width}`} appearance={layer.appearance} onChange={onAppearanceChange} />
-        </PropertySection>
-      );
+      return <RouteLayerProperties layer={layer} onAppearanceChange={onAppearanceChange} onRouteVertexChange={onRouteVertexChange} />;
     }
     case 'poi': {
       return (
@@ -266,6 +247,7 @@ export function LayerProperties({
   onOpacityChange,
   onAppearanceChange,
   onPoiCoordinatesChange,
+  onRouteVertexChange,
   onToggleVisibility,
   onToggleLock,
   onDuplicate,
@@ -307,7 +289,7 @@ export function LayerProperties({
         <PropertyRow label="Visible"><button aria-label="Toggle layer visibility" className={`toggle${layer.visible ? ' is-on' : ''}`} type="button" aria-pressed={layer.visible} onClick={onToggleVisibility}><span /></button></PropertyRow>
         <PropertyRow label="Locked"><button aria-label="Toggle layer lock" className={`toggle${layer.locked ? ' is-on' : ''}`} type="button" aria-pressed={layer.locked} onClick={onToggleLock}><span /></button></PropertyRow>
       </PropertySection>
-      <LayerTypeProperties layer={layer} onAppearanceChange={onAppearanceChange} onPoiCoordinatesChange={onPoiCoordinatesChange} />
+      <LayerTypeProperties layer={layer} onAppearanceChange={onAppearanceChange} onPoiCoordinatesChange={onPoiCoordinatesChange} onRouteVertexChange={onRouteVertexChange} />
     </div>
   );
 }

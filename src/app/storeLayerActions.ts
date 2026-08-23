@@ -1,5 +1,6 @@
 import { canonicalLayerAppearance } from '../domain/layerAppearance';
 import { cloneContentLayer, createDefaultLayerAppearance } from '../domain/project';
+import { isValidPosition, moveRouteVertex } from '../domain/routeGeometry';
 import type { ProjectState } from './store';
 import { commitDocument, replaceLayers, type ProjectSet } from './storeDocument';
 
@@ -9,7 +10,7 @@ type LayerStructureActions = Pick<
 >;
 type LayerPropertyActions = Pick<
   ProjectState,
-  'renameLayer' | 'selectLayer' | 'setLayerAppearance' | 'setLayerOpacity' | 'setPoiCoordinates' | 'toggleLayerVisibility' | 'toggleLayerLock'
+  'renameLayer' | 'selectLayer' | 'setLayerAppearance' | 'setLayerOpacity' | 'setPoiCoordinates' | 'setRouteVertex' | 'toggleLayerVisibility' | 'toggleLayerLock'
 >;
 
 function createPoiAction(set: ProjectSet): ProjectState['createPoi'] {
@@ -215,15 +216,6 @@ export function createLayerStructureActions(set: ProjectSet): LayerStructureActi
   };
 }
 
-function areValidPoiCoordinates(longitude: number, latitude: number) {
-  return Number.isFinite(longitude)
-    && Number.isFinite(latitude)
-    && longitude >= -180
-    && longitude <= 180
-    && latitude >= -90
-    && latitude <= 90;
-}
-
 export function createLayerPropertyActions(set: ProjectSet): LayerPropertyActions {
   return {
     renameLayer: (id, name) => set((state) => {
@@ -260,7 +252,7 @@ export function createLayerPropertyActions(set: ProjectSet): LayerPropertyAction
       if (
         layer?.type !== 'poi'
         || layer.geometry?.type !== 'Point'
-        || !areValidPoiCoordinates(longitude, latitude)
+        || !isValidPosition(longitude, latitude)
         || (layer.geometry.coordinates[0] === longitude && layer.geometry.coordinates[1] === latitude)
       ) return state;
 
@@ -271,6 +263,16 @@ export function createLayerPropertyActions(set: ProjectSet): LayerPropertyAction
             ? { ...candidate, geometry: { type: 'Point' as const, coordinates: [longitude, latitude] as [number, number] } }
             : candidate
         )),
+      ));
+    }),
+    setRouteVertex: (id, vertexIndex, coordinates) => set((state) => {
+      const layer = state.document.layers.find((candidate) => candidate.id === id);
+      const updatedLayer = moveRouteVertex(layer, vertexIndex, coordinates);
+      if (!updatedLayer) return state;
+
+      return commitDocument(state, replaceLayers(
+        state.document,
+        state.document.layers.map((candidate) => candidate.id === id ? updatedLayer : candidate),
       ));
     }),
     setLayerOpacity: (id, opacity) => set((state) => {

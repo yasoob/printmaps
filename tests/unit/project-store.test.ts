@@ -77,6 +77,53 @@ describe('project store camera history', () => {
 });
 
 describe('project store history', () => {
+  it('moves one route vertex as a single undoable geometry edit', () => {
+    const store = createProjectStore(createInitialProjectDocument());
+
+    store.getState().setRouteVertex('route-01', 1, [16.4, 48.25]);
+
+    expect(layerState(store).find((layer) => layer.id === 'route-01')?.geometry).toEqual({
+      type: 'LineString',
+      coordinates: [[16.326, 48.194], [16.4, 48.25], [16.391, 48.215], [16.429, 48.226]],
+    });
+    store.getState().undo();
+    expect(layerState(store).find((layer) => layer.id === 'route-01')?.geometry).toEqual({
+      type: 'LineString',
+      coordinates: [[16.326, 48.194], [16.353, 48.205], [16.391, 48.215], [16.429, 48.226]],
+    });
+    store.getState().redo();
+    expect(layerState(store).find((layer) => layer.id === 'route-01')?.geometry).toEqual({
+      type: 'LineString',
+      coordinates: [[16.326, 48.194], [16.4, 48.25], [16.391, 48.215], [16.429, 48.226]],
+    });
+  });
+
+  it.each([
+    ['non-finite coordinate', 1, [NaN, 48.25]],
+    ['out-of-range longitude', 1, [181, 48.25]],
+    ['out-of-range latitude', 1, [16.4, 91]],
+    ['negative vertex index', -1, [16.4, 48.25]],
+    ['missing vertex index', 4, [16.4, 48.25]],
+  ] as const)('rejects a route edit with a %s', (_label, vertexIndex, coordinates) => {
+    const store = createProjectStore(createInitialProjectDocument());
+
+    store.getState().setRouteVertex('route-01', vertexIndex, coordinates);
+
+    expect(layerState(store).find((layer) => layer.id === 'route-01')?.geometry).toEqual({
+      type: 'LineString',
+      coordinates: [[16.326, 48.194], [16.353, 48.205], [16.391, 48.215], [16.429, 48.226]],
+    });
+    expect(store.getState().canUndo).toBe(false);
+  });
+
+  it('does not create history when a route vertex stays at the same coordinate', () => {
+    const store = createProjectStore(createInitialProjectDocument());
+
+    store.getState().setRouteVertex('route-01', 1, [16.353, 48.205]);
+
+    expect(store.getState().canUndo).toBe(false);
+  });
+
   it('rejects invalid POI coordinate edits without changing history', () => {
     const store = createProjectStore(createInitialProjectDocument());
 

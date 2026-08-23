@@ -9,6 +9,7 @@ const actions = {
   onDuplicate: vi.fn(),
   onOpacityChange: vi.fn(),
   onPoiCoordinatesChange: vi.fn(),
+  onRouteVertexChange: vi.fn(),
   onRename: vi.fn(),
   onToggleLock: vi.fn(),
   onToggleVisibility: vi.fn(),

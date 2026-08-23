@@ -21,6 +21,25 @@ async function downloadPoiSvgPoint(
   return point;
 }
 
+async function downloadRouteSvgPath(
+  page: import('@playwright/test').Page,
+  outputPath: string,
+) {
+  await page.getByRole('button', { name: 'Export' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Export map' });
+  const downloadPromise = page.waitForEvent('download');
+  await dialog.getByRole('button', { name: 'Download layered SVG' }).click();
+  const download = await downloadPromise;
+  await download.saveAs(outputPath);
+  const svgText = await readFile(outputPath, 'utf8');
+  const path = await page.evaluate((text) => {
+    const svg = new DOMParser().parseFromString(text, 'image/svg+xml');
+    return svg.documentElement.querySelector(':scope [data-layer-id="route-01"] path')?.getAttribute('d');
+  }, svgText);
+  await dialog.getByRole('button', { name: 'Close export' }).click();
+  return path;
+}
+
 test('content appearance edits update the live map, history, and layered SVG', async ({ page }, testInfo) => {
   await page.goto('/');
   const mapRoot = page.getByTestId('map-canvas');
@@ -126,5 +145,52 @@ test('POI coordinates update the live map, history, portable project, and layere
     layers: Array<{ id: string; geometry?: { coordinates: unknown } }>;
   };
   expect(project.layers.find((layer) => layer.id === 'poi-cafe')?.geometry?.coordinates).toEqual([16.4, 48.25]);
+  expect(consoleProblems).toEqual([]);
+});
+
+test('route vertex coordinates update the live map, history, portable project, and layered SVG', async ({ page }, testInfo) => {
+  const consoleProblems: string[] = [];
+  page.on('pageerror', (error) => { consoleProblems.push(error.message); });
+  page.on('console', (message) => {
+    if (message.type() === 'error' || message.type() === 'warning') consoleProblems.push(message.text());
+  });
+  await page.goto('/');
+  const mapRoot = page.getByTestId('map-canvas');
+  const mapReady = page.locator('[data-map-ready="true"]');
+  const mapFallback = page.getByText('Map preview unavailable');
+  await expect(mapReady.or(mapFallback)).toBeVisible({ timeout: 20_000 });
+  test.skip(await mapFallback.isVisible(), 'This browser fixture has no WebGL 2 renderer, so live geometry/export cannot be exercised.');
+
+  await page.getByRole('button', { name: 'Select Route 01' }).click();
+  const initialPath = await downloadRouteSvgPath(page, testInfo.outputPath('route-before.layered.svg'));
+  await page.getByRole('combobox', { name: 'Route vertex' }).selectOption('1');
+  const longitude = page.getByRole('textbox', { name: 'Route vertex longitude' });
+  const latitude = page.getByRole('textbox', { name: 'Route vertex latitude' });
+  await longitude.fill('16.4');
+  await longitude.press('Tab');
+  await expect(latitude).toBeFocused();
+  await latitude.fill('48.25');
+  await latitude.press('Tab');
+  await expect(mapRoot).toHaveAttribute('data-map-layer-geometry', /route-01:\[\[16\.326,48\.194\],\[16\.4,48\.25\]/);
+
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(page.getByRole('textbox', { name: 'Route vertex latitude' })).toHaveValue('48.205');
+  await page.getByRole('button', { name: 'Redo' }).click();
+  await expect(page.getByRole('textbox', { name: 'Route vertex latitude' })).toHaveValue('48.25');
+
+  const movedPath = await downloadRouteSvgPath(page, testInfo.outputPath('route-after.layered.svg'));
+  expect(movedPath).toBeTruthy();
+  expect(movedPath).not.toEqual(initialPath);
+  const savePromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  const projectDownload = await savePromise;
+  const projectPath = testInfo.outputPath('route-edited.printmap.json');
+  await projectDownload.saveAs(projectPath);
+  const project = JSON.parse(await readFile(projectPath, 'utf8')) as {
+    layers: Array<{ id: string; geometry?: { coordinates: unknown } }>;
+  };
+  expect(project.layers.find((layer) => layer.id === 'route-01')?.geometry?.coordinates).toEqual([
+    [16.326, 48.194], [16.4, 48.25], [16.391, 48.215], [16.429, 48.226],
+  ]);
   expect(consoleProblems).toEqual([]);
 });

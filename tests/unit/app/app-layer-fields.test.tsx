@@ -116,6 +116,48 @@ describe('editor content appearance and POI geometry fields', () => {
     expect(screen.getByLabelText('Route color')).toHaveValue('#d9363e');
   });
 
+  it('selects and moves one route vertex with live map feedback and history', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: 'Select Route 01' }));
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Route vertex' }), '1');
+    const longitude = screen.getByRole('textbox', { name: 'Route vertex longitude' });
+    const latitude = screen.getByRole('textbox', { name: 'Route vertex latitude' });
+    const map = screen.getByTestId('map-canvas');
+    expect(longitude).toHaveValue('16.353');
+    expect(latitude).toHaveValue('48.205');
+
+    await user.clear(longitude);
+    await user.type(longitude, '16.4');
+    expect(map).toHaveAttribute('data-layer-geometry', expect.stringContaining('route-01:[[16.326,48.194],[16.353,48.205]'));
+    await user.tab();
+
+    expect(latitude).toHaveFocus();
+    expect(map).toHaveAttribute('data-layer-geometry', expect.stringContaining('route-01:[[16.326,48.194],[16.4,48.205]'));
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(screen.getByRole('textbox', { name: 'Route vertex longitude' })).toHaveValue('16.353');
+    expect(map).toHaveAttribute('data-layer-geometry', expect.stringContaining('route-01:[[16.326,48.194],[16.353,48.205]'));
+  });
+
+  it('rejects an invalid route vertex coordinate without changing geometry or history', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: 'Select Route 01' }));
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Route vertex' }), '1');
+    const longitude = screen.getByRole('textbox', { name: 'Route vertex longitude' });
+    const map = screen.getByTestId('map-canvas');
+    await user.clear(longitude);
+    await user.type(longitude, '181');
+
+    expect(longitude).toHaveAttribute('aria-invalid', 'true');
+    expect(map).toHaveAttribute('data-layer-geometry', expect.stringContaining('route-01:[[16.326,48.194],[16.353,48.205]'));
+    await user.tab();
+    expect(screen.getByRole('textbox', { name: 'Route vertex longitude' })).toHaveValue('16.353');
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
+  });
+
   it('commits POI color and marker size as undoable appearance edits', async () => {
     const user = userEvent.setup();
     render(<App />);
