@@ -126,7 +126,7 @@ describe('layered SVG print scene', () => {
     project.layers[0].appearance = {
       kind: 'route', color: '#010203', width: 8, travelProfile: 'car', showTravelModeIcon: false,
     };
-    project.layers[1].appearance = { kind: 'poi', color: '#abcdef', size: 21 };
+    project.layers[1].appearance = { kind: 'poi', color: '#abcdef', size: 21, markerShape: 'circle', markerSymbol: 'none', label: '' };
     project.layers[2].appearance = {
       kind: 'shape',
       fillColor: '#112233',
@@ -244,5 +244,30 @@ describe('route travel-mode SVG markers', () => {
 
     expect(marker.querySelector('circle')).not.toBeNull();
     expect(marker.querySelector('text')?.textContent).toBe('AIR');
+  });
+});
+
+describe('POI SVG markers and labels', () => {
+  it('prints the canonical marker shape, semantic symbol, and label as vector content', () => {
+    const project = createInitialProjectDocument();
+    project.layers[1].appearance = {
+      kind: 'poi',
+      color: '#0d78b5',
+      size: 21,
+      markerShape: 'diamond',
+      markerSymbol: 'coffee',
+      label: 'Café Central',
+    };
+
+    const svgDocument = parseSvg(serializePrintScene(project, {
+      basemap: { dataUri: onePixelPng, pixelWidth: 1, pixelHeight: 1 },
+      attribution: '© OpenStreetMap contributors',
+      project: projector,
+    }));
+    const poi = requiredElement(svgDocument, '[data-layer-id="poi-cafe"]');
+
+    expect(poi.querySelector(':scope [data-poi-marker-shape="diamond"] path')).not.toBeNull();
+    expect(poi.querySelector(':scope [data-poi-marker-symbol="coffee"]')?.textContent).toBe('C');
+    expect(poi.querySelector(':scope [data-poi-label]')?.textContent).toBe('Café Central');
   });
 });

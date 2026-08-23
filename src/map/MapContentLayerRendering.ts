@@ -1,5 +1,6 @@
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { ContentLayer } from '../domain/project';
+import { POI_MARKER_SYMBOL_GLYPHS } from '../domain/poiMarkers';
 import { ROUTE_TRAVEL_PROFILE_MARKERS } from '../domain/routeProfiles';
 
 export type RenderedMapContent = {
@@ -9,6 +10,7 @@ export type RenderedMapContent = {
 };
 
 type PaintProperty = Parameters<MapLibreMap['setPaintProperty']>[1];
+type PaintValue = Parameters<MapLibreMap['setPaintProperty']>[2];
 
 type HighlightState = {
   selectedId: string | null;
@@ -24,7 +26,14 @@ const ROUTE_APPEARANCE = {
   travelProfile: 'car',
   showTravelModeIcon: false,
 } as const;
-const POI_APPEARANCE = { kind: 'poi', color: '#0d78b5', size: 14 } as const;
+const POI_APPEARANCE = {
+  kind: 'poi',
+  color: '#0d78b5',
+  size: 14,
+  markerShape: 'circle',
+  markerSymbol: 'none',
+  label: '',
+} as const;
 const SHAPE_APPEARANCE = {
   kind: 'shape', fillColor: '#d18b25', strokeColor: '#d18b25', strokeWidth: 2,
 } as const;
@@ -47,7 +56,10 @@ export const contentStructure = (layers: ContentLayer[]) => layers
     const routeMarker = layer.appearance?.kind === 'route'
       ? `:${layer.appearance.travelProfile}:${layer.appearance.showTravelModeIcon}`
       : '';
-    return `${encodedContentId(layer.id)}:${layer.type}:${JSON.stringify(layer.geometry)}${routeMarker}`;
+    const poiMarker = layer.appearance?.kind === 'poi'
+      ? `:${layer.appearance.markerShape}:${layer.appearance.markerSymbol}:${layer.appearance.label}:${layer.appearance.size}`
+      : '';
+    return `${encodedContentId(layer.id)}:${layer.type}:${JSON.stringify(layer.geometry)}${routeMarker}${poiMarker}`;
   })
   .join('|');
 
@@ -84,20 +96,81 @@ const routeLayerDescriptor = (layer: ContentLayer, isHighlighted: boolean) => {
   }];
 };
 
-const poiLayerDescriptor = (layer: ContentLayer, isHighlighted: boolean) => {
+const poiLayerDescriptors = (layer: ContentLayer, isHighlighted: boolean) => {
   const appearance = layer.appearance?.kind === 'poi' ? layer.appearance : POI_APPEARANCE;
   const radius = appearance.size / 2;
-  return {
-    id: layerId(layer.id),
-    type: 'circle' as const,
-    paint: {
-      'circle-color': isHighlighted ? HIGHLIGHT_COLOR : appearance.color,
-      'circle-opacity': layer.opacity / 100,
-      'circle-radius': isHighlighted ? radius + 2 : radius,
-      'circle-stroke-color': POI_STROKE,
-      'circle-stroke-width': 2,
-    },
-  };
+  const marker = appearance.markerShape === 'circle'
+    ? {
+        id: layerId(layer.id),
+        type: 'circle' as const,
+        paint: {
+          'circle-color': isHighlighted ? HIGHLIGHT_COLOR : appearance.color,
+          'circle-opacity': layer.opacity / 100,
+          'circle-radius': isHighlighted ? radius + 2 : radius,
+          'circle-stroke-color': POI_STROKE,
+          'circle-stroke-width': 2,
+        },
+      }
+    : {
+        id: layerId(layer.id),
+        type: 'symbol' as const,
+        layout: {
+          'text-field': appearance.markerShape === 'square' ? '■' : '◆',
+          'text-font': ['Noto Sans Regular'],
+          'text-size': appearance.size * 1.25,
+          'text-allow-overlap': true,
+          'text-ignore-placement': true,
+        },
+        paint: {
+          'text-color': isHighlighted ? HIGHLIGHT_COLOR : appearance.color,
+          'text-opacity': layer.opacity / 100,
+          'text-halo-color': POI_STROKE,
+          'text-halo-width': 1.5,
+        },
+      };
+  const descriptors: MapLayerDescriptor[] = [marker];
+  const symbol = POI_MARKER_SYMBOL_GLYPHS[appearance.markerSymbol];
+  if (symbol) {
+    descriptors.push({
+      id: layerId(layer.id, 'symbol'),
+      type: 'symbol',
+      layout: {
+        'text-field': symbol,
+        'text-font': ['Noto Sans Regular'],
+        'text-size': Math.max(10, appearance.size / 2),
+        'text-allow-overlap': true,
+        'text-ignore-placement': true,
+      },
+      paint: {
+        'text-color': '#ffffff',
+        'text-opacity': layer.opacity / 100,
+        'text-halo-color': 'rgba(0,0,0,0.28)',
+        'text-halo-width': 0.5,
+      },
+    });
+  }
+  if (appearance.label) {
+    descriptors.push({
+      id: layerId(layer.id, 'label'),
+      type: 'symbol',
+      layout: {
+        'text-field': appearance.label,
+        'text-font': ['Noto Sans Regular'],
+        'text-size': 12,
+        'text-anchor': 'top',
+        'text-offset': [0, (radius + 6) / 12],
+        'text-allow-overlap': true,
+        'text-ignore-placement': true,
+      },
+      paint: {
+        'text-color': '#1e1e1e',
+        'text-opacity': layer.opacity / 100,
+        'text-halo-color': '#ffffff',
+        'text-halo-width': 1.5,
+      },
+    });
+  }
+  return descriptors;
 };
 
 const shapeLayerDescriptors = (layer: ContentLayer, isHighlighted: boolean) => {
@@ -120,10 +193,12 @@ const shapeLayerDescriptors = (layer: ContentLayer, isHighlighted: boolean) => {
   }];
 };
 
-type MapLayerDescriptor =
-  | ReturnType<typeof routeLayerDescriptor>[number]
-  | ReturnType<typeof poiLayerDescriptor>
-  | ReturnType<typeof shapeLayerDescriptors>[number];
+type MapLayerDescriptor = {
+  id: string;
+  type: 'circle' | 'fill' | 'line' | 'symbol';
+  layout?: Record<string, unknown>;
+  paint: Record<string, PaintValue>;
+};
 
 export function mapLayerDescriptors(
   layer: ContentLayer,
@@ -135,7 +210,7 @@ export function mapLayerDescriptors(
       return routeLayerDescriptor(layer, isHighlighted);
     }
     case 'poi': {
-      return [poiLayerDescriptor(layer, isHighlighted)];
+      return poiLayerDescriptors(layer, isHighlighted);
     }
     case 'shape': {
       return shapeLayerDescriptors(layer, isHighlighted);
@@ -163,7 +238,9 @@ function addMapLayers(
   source: string,
   descriptors: MapLayerDescriptor[],
 ) {
-  for (const descriptor of descriptors) map.addLayer({ ...descriptor, source });
+  for (const descriptor of descriptors) {
+    map.addLayer({ ...descriptor, source } as Parameters<MapLibreMap['addLayer']>[0]);
+  }
   return descriptors.map(({ id }) => id);
 }
 

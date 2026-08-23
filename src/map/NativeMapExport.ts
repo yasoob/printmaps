@@ -9,10 +9,10 @@ import {
 } from './NativeMapCamera';
 import { visibleContentLayers } from './MapContentLayerRendering';
 import {
-  hasVisibleSymbolLayers,
+  hasVisibleBasemapSymbolLayers,
   scaleNativeMapStyle,
   updatePrintLayerPaint,
-  withoutSymbolLayers,
+  withoutBasemapSymbolLayers,
 } from './NativeMapStyle';
 
 export { calculateNativeTileCamera } from './NativeMapCamera';
@@ -247,10 +247,10 @@ export function createNativePrintTileExport(
   }
   const snapshots = new globalThis.Map<string, NativeMapTileSnapshot>();
   const currentStyle = structuredClone(source.map.getStyle());
-  if (isMultiRegion && plan.symbolsVisible && hasVisibleSymbolLayers(currentStyle)) {
+  if (isMultiRegion && plan.symbolsVisible && hasVisibleBasemapSymbolLayers(currentStyle)) {
     throw new Error('Multi-region native PNG export cannot place labels seamlessly. Turn off Show labels or reduce the page dimensions and retry.');
   }
-  const symbolSafeStyle = plan.symbolsVisible ? currentStyle : withoutSymbolLayers(currentStyle);
+  const symbolSafeStyle = plan.symbolsVisible ? currentStyle : withoutBasemapSymbolLayers(currentStyle);
   const pixelRatio = selectNativeExportPixelRatio(plan.output);
   const style = scaleNativeMapStyle(
     symbolSafeStyle,

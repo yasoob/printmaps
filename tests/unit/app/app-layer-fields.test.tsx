@@ -208,6 +208,12 @@ describe('editor content appearance and POI geometry fields', () => {
     expect(screen.getByRole('textbox', { name: 'Shape vertex longitude' })).toHaveValue('16.395');
     expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
   });
+});
+
+describe('editor POI appearance and geometry fields', () => {
+  beforeEach(() => {
+    exportMocks.exporter = null;
+  });
 
   it('commits POI color and marker size as undoable appearance edits', async () => {
     const user = userEvent.setup();
@@ -226,6 +232,51 @@ describe('editor content appearance and POI geometry fields', () => {
     expect(size).toHaveValue('24');
     await user.click(screen.getByRole('button', { name: 'Undo' }));
     expect(screen.getByRole('textbox', { name: 'POI marker size' })).toHaveValue('14');
+  });
+
+  it('commits POI marker shape, symbol, and label as separate undoable edits', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: 'Select Coffee stop' }));
+    const shape = screen.getByRole('combobox', { name: 'POI marker shape' });
+
+    await user.selectOptions(shape, 'diamond');
+    expect(screen.getByRole('combobox', { name: 'POI marker shape' })).toHaveFocus();
+    await user.tab();
+    const symbol = screen.getByRole('combobox', { name: 'POI marker symbol' });
+    expect(symbol).toHaveFocus();
+    await user.selectOptions(symbol, 'coffee');
+    expect(screen.getByRole('combobox', { name: 'POI marker symbol' })).toHaveFocus();
+    await user.tab();
+    const label = screen.getByRole('textbox', { name: 'POI label' });
+    expect(label).toHaveFocus();
+    await user.type(label, 'Café Central');
+    await user.tab();
+
+    expect(screen.getByRole('combobox', { name: 'POI marker shape' })).toHaveValue('diamond');
+    expect(screen.getByRole('combobox', { name: 'POI marker symbol' })).toHaveValue('coffee');
+    expect(screen.getByRole('textbox', { name: 'POI label' })).toHaveValue('Café Central');
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(screen.getByRole('textbox', { name: 'POI label' })).toHaveValue('');
+    expect(screen.getByRole('combobox', { name: 'POI marker symbol' })).toHaveValue('coffee');
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(screen.getByRole('combobox', { name: 'POI marker symbol' })).toHaveValue('none');
+    expect(screen.getByRole('combobox', { name: 'POI marker shape' })).toHaveValue('diamond');
+  });
+
+  it('rejects a POI label over 40 characters without changing history', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: 'Select Coffee stop' }));
+    const label = screen.getByRole('textbox', { name: 'POI label' });
+    await user.type(label, 'x'.repeat(41));
+    expect(label).toHaveAttribute('aria-invalid', 'true');
+    await user.tab();
+
+    expect(screen.getByRole('textbox', { name: 'POI label' })).toHaveValue('');
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
   });
 
   it('commits a POI longitude edit to the live map as one undoable change', async () => {

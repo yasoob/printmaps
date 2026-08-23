@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 9,
+  "schemaVersion": 10,
   "id": "alpine-poster",
   "title": "Alpine poster",
   "page": {
@@ -55,7 +55,10 @@
       "appearance": {
         "kind": "poi",
         "color": "#0d78b5",
-        "size": 14
+        "size": 14,
+        "markerShape": "circle",
+        "markerSymbol": "none",
+        "label": ""
       },
       "geometry": {
         "type": "Point",

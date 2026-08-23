@@ -81,6 +81,11 @@ test('content appearance edits update the live map, history, and layered SVG', a
   await page.getByLabel('POI color').fill('#445566');
   await page.getByRole('textbox', { name: 'POI marker size' }).fill('21');
   await page.getByRole('textbox', { name: 'POI marker size' }).press('Tab');
+  await page.getByRole('combobox', { name: 'POI marker shape' }).selectOption('diamond');
+  await page.getByRole('combobox', { name: 'POI marker symbol' }).selectOption('coffee');
+  await page.getByRole('textbox', { name: 'POI label' }).fill('Café Central');
+  await page.getByRole('textbox', { name: 'POI label' }).press('Tab');
+  await page.screenshot({ path: testInfo.outputPath('poi-markers-desktop.png'), fullPage: true });
 
   await page.getByRole('button', { name: 'Select City center' }).click();
   await page.getByLabel('Shape fill color').fill('#abcdef');
@@ -89,7 +94,7 @@ test('content appearance edits update the live map, history, and layered SVG', a
   await page.getByRole('textbox', { name: 'Shape outline width' }).press('Tab');
   await expect(mapRoot).toHaveAttribute(
     'data-map-layer-appearance',
-    'route-01:#112233:8|poi-cafe:#445566:21|area-center:#abcdef:#654321:3',
+    'route-01:#112233:8:car:false|poi-cafe:#445566:21:diamond:coffee:Café Central|area-center:#abcdef:#654321:3',
   );
 
   await page.getByRole('button', { name: 'Undo' }).click();
@@ -109,11 +114,16 @@ test('content appearance edits update the live map, history, and layered SVG', a
   const appearance = await page.evaluate((text) => {
     const svg = new DOMParser().parseFromString(text, 'image/svg+xml');
     const route = svg.documentElement.querySelector(':scope [data-layer-id="route-01"] path');
-    const poi = svg.documentElement.querySelector(':scope [data-layer-id="poi-cafe"] circle');
+    const poi = svg.documentElement.querySelector(':scope [data-layer-id="poi-cafe"]');
+    const poiMarker = poi?.querySelector(':scope [data-poi-marker-shape="diamond"] path');
     const shape = svg.documentElement.querySelector(':scope [data-layer-id="area-center"] path');
     return {
       route: [route?.getAttribute('stroke'), route?.getAttribute('stroke-width')],
-      poi: [poi?.getAttribute('fill'), poi?.getAttribute('r')],
+      poi: [
+        poiMarker?.getAttribute('fill'),
+        poi?.querySelector(':scope [data-poi-marker-symbol="coffee"]')?.textContent,
+        poi?.querySelector(':scope [data-poi-label]')?.textContent,
+      ],
       shape: [
         shape?.getAttribute('fill'),
         shape?.getAttribute('stroke'),
@@ -123,7 +133,7 @@ test('content appearance edits update the live map, history, and layered SVG', a
   }, svgText);
   expect(appearance).toEqual({
     route: ['#112233', '2.4'],
-    poi: ['#445566', '3'],
+    poi: ['#445566', 'C', 'Café Central'],
     shape: ['#abcdef', '#654321', '0.75'],
   });
 });

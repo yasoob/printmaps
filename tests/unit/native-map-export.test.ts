@@ -6,6 +6,10 @@ import {
   scaleNativeMapStyle,
   selectNativeExportPixelRatio,
 } from '../../src/map/NativeMapExport';
+import {
+  hasVisibleBasemapSymbolLayers,
+  withoutBasemapSymbolLayers,
+} from '../../src/map/NativeMapStyle';
 
 const rect = (left: number, top: number, width: number, height: number): DOMRect => ({
   x: left,
@@ -204,6 +208,30 @@ describe('native map export camera', () => {
 });
 
 describe('native map export job', () => {
+  it('removes basemap symbols while retaining deterministic Studio content symbols', () => {
+    const style = {
+      version: 8 as const,
+      sources: {},
+      layers: [
+        { id: 'place-labels', type: 'symbol' as const },
+        { id: 'studio-layer-8:poi-01:main', type: 'symbol' as const },
+        { id: 'studio-layer-8:poi-01:label', type: 'symbol' as const },
+        { id: 'roads', type: 'line' as const },
+      ],
+    };
+
+    const mapStyle = style as unknown as ReturnType<MapLibreMap['getStyle']>;
+    expect(hasVisibleBasemapSymbolLayers(mapStyle)).toBe(true);
+    const filtered = withoutBasemapSymbolLayers(mapStyle);
+
+    expect(filtered.layers?.map(({ id }) => id)).toEqual([
+      'studio-layer-8:poi-01:main',
+      'studio-layer-8:poi-01:label',
+      'roads',
+    ]);
+    expect(hasVisibleBasemapSymbolLayers(filtered)).toBe(false);
+  });
+
   it('scales fixed and interpolated style pixels to canonical print pixels', () => {
     const style = {
       version: 8 as const,

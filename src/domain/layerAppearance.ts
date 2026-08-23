@@ -1,4 +1,13 @@
 import { ROUTE_TRAVEL_PROFILES, type RouteTravelProfile } from './routeProfiles';
+import {
+  hasPoiLabelControlCharacter,
+  isPoiLabelValid,
+  MAX_POI_LABEL_CHARACTERS,
+  POI_MARKER_SHAPES,
+  POI_MARKER_SYMBOLS,
+  type PoiMarkerShape,
+  type PoiMarkerSymbol,
+} from './poiMarkers';
 
 export type RouteAppearance = {
   kind: 'route';
@@ -7,7 +16,14 @@ export type RouteAppearance = {
   travelProfile: RouteTravelProfile;
   showTravelModeIcon: boolean;
 };
-export type PoiAppearance = { kind: 'poi'; color: string; size: number };
+export type PoiAppearance = {
+  kind: 'poi';
+  color: string;
+  size: number;
+  markerShape: PoiMarkerShape;
+  markerSymbol: PoiMarkerSymbol;
+  label: string;
+};
 export type ShapeAppearance = {
   kind: 'shape';
   fillColor: string;
@@ -32,7 +48,16 @@ export function createDefaultLayerAppearance(type: AppearanceLayerType): LayerAp
       showTravelModeIcon: false,
     };
   }
-  if (type === 'poi') return { kind: 'poi', color: '#0d78b5', size: 14 };
+  if (type === 'poi') {
+    return {
+      kind: 'poi',
+      color: '#0d78b5',
+      size: 14,
+      markerShape: 'circle',
+      markerSymbol: 'none',
+      label: '',
+    };
+  }
   if (type === 'shape') {
     return { kind: 'shape', fillColor: '#d18b25', strokeColor: '#d18b25', strokeWidth: 2 };
   }
@@ -63,7 +88,10 @@ function isPoiAppearanceValid(appearance: PoiAppearance): boolean {
   return HEX_COLOR.test(appearance.color)
     && Number.isFinite(appearance.size)
     && appearance.size >= 8
-    && appearance.size <= 48;
+    && appearance.size <= 48
+    && POI_MARKER_SHAPES.includes(appearance.markerShape)
+    && POI_MARKER_SYMBOLS.includes(appearance.markerSymbol)
+    && isPoiLabelValid(appearance.label);
 }
 
 function isShapeAppearanceValid(appearance: ShapeAppearance): boolean {
@@ -126,6 +154,34 @@ function routeAppearanceAt(appearance: JsonObject, label: string, fail: Fail): R
   };
 }
 
+function poiAppearanceAt(appearance: JsonObject, label: string, fail: Fail): PoiAppearance {
+  const size = finiteValue(appearance.size, `${label} POI marker size`, fail);
+  if (size < 8 || size > 48) fail(`${label} POI marker size must be between 8 and 48 pixels.`);
+  if (!POI_MARKER_SHAPES.includes(appearance.markerShape as PoiMarkerShape)) {
+    fail(`${label} POI marker shape is not supported.`);
+  }
+  if (!POI_MARKER_SYMBOLS.includes(appearance.markerSymbol as PoiMarkerSymbol)) {
+    fail(`${label} POI marker symbol is not supported.`);
+  }
+  if (typeof appearance.label !== 'string' || appearance.label.trim() !== appearance.label) {
+    fail(`${label} POI label must be a trimmed string.`);
+  }
+  if (hasPoiLabelControlCharacter(appearance.label)) {
+    fail(`${label} POI label may not contain control characters.`);
+  }
+  if ([...appearance.label].length > MAX_POI_LABEL_CHARACTERS) {
+    fail(`${label} POI label must be ${MAX_POI_LABEL_CHARACTERS} characters or fewer.`);
+  }
+  return {
+    kind: 'poi',
+    color: colorValue(appearance.color, `${label} POI color`, fail),
+    size,
+    markerShape: appearance.markerShape as PoiMarkerShape,
+    markerSymbol: appearance.markerSymbol as PoiMarkerSymbol,
+    label: appearance.label,
+  };
+}
+
 export function parseLayerAppearance(
   value: unknown,
   type: AppearanceLayerType,
@@ -139,11 +195,7 @@ export function parseLayerAppearance(
   const appearance = objectValue(value, `${label} appearance`, fail);
   if (appearance.kind !== type) fail(`${label} appearance must match its ${type} layer type.`);
   if (type === 'route') return routeAppearanceAt(appearance, label, fail);
-  if (type === 'poi') {
-    const size = finiteValue(appearance.size, `${label} POI marker size`, fail);
-    if (size < 8 || size > 48) fail(`${label} POI marker size must be between 8 and 48 pixels.`);
-    return { kind: 'poi', color: colorValue(appearance.color, `${label} POI color`, fail), size };
-  }
+  if (type === 'poi') return poiAppearanceAt(appearance, label, fail);
   const strokeWidth = finiteValue(appearance.strokeWidth, `${label} shape outline width`, fail);
   if (strokeWidth < 0.5 || strokeWidth > 12) {
     fail(`${label} shape outline width must be between 0.5 and 12 pixels.`);

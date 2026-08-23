@@ -2,11 +2,11 @@ import { createInitialProjectDocument } from '../../src/domain/project';
 import { parseProjectFileText } from '../../src/domain/projectFile';
 
 describe('portable project validation', () => {
-  it('rejects the obsolete schema-8 format with a reset-oriented message', () => {
-    const obsolete = { ...createInitialProjectDocument(), schemaVersion: 8 };
+  it('rejects the obsolete schema-9 format with a reset-oriented message', () => {
+    const obsolete = { ...createInitialProjectDocument(), schemaVersion: 9 };
 
     expect(() => parseProjectFileText(JSON.stringify(obsolete))).toThrow(
-      'Schema version 8 is obsolete. Start a new project or reopen a current Print Map Studio file.',
+      'Schema version 9 is obsolete. Start a new project or reopen a current Print Map Studio file.',
     );
   });
 
@@ -31,6 +31,17 @@ describe('portable project validation', () => {
     const parsed = parseProjectFileText(JSON.stringify(source));
 
     expect(parsed.layers.find((layer) => layer.type === 'basemap')?.name).toBe('Client reference map');
+  });
+
+  it('rejects control characters in a portable POI label', () => {
+    const source = createInitialProjectDocument();
+    const poi = source.layers.find(({ type }) => type === 'poi');
+    if (poi?.appearance?.kind !== 'poi') throw new Error('Expected POI fixture.');
+    poi.appearance.label = 'Cafe\nCentral';
+
+    expect(() => parseProjectFileText(JSON.stringify(source))).toThrow(
+      'POI label may not contain control characters.',
+    );
   });
 
   it.each([

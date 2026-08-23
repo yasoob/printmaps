@@ -47,17 +47,17 @@ describe('canonical layer appearance', () => {
 
   it('assigns editable appearances to every local import format', () => {
     expect(parseGeoJsonText(geoJsonFixture).map(({ appearance }) => appearance)).toEqual([
-      { kind: 'poi', color: '#0d78b5', size: 14 },
+      { kind: 'poi', color: '#0d78b5', size: 14, markerShape: 'circle', markerSymbol: 'none', label: '' },
       { kind: 'route', color: '#d9363e', width: 4, travelProfile: 'car', showTravelModeIcon: false },
       { kind: 'shape', fillColor: '#d18b25', strokeColor: '#d18b25', strokeWidth: 2 },
     ]);
     expect(parseGpxText(gpxFixture).map(({ appearance }) => appearance)).toEqual([
-      { kind: 'poi', color: '#0d78b5', size: 14 },
+      { kind: 'poi', color: '#0d78b5', size: 14, markerShape: 'circle', markerSymbol: 'none', label: '' },
       { kind: 'route', color: '#d9363e', width: 4, travelProfile: 'car', showTravelModeIcon: false },
       { kind: 'route', color: '#d9363e', width: 4, travelProfile: 'car', showTravelModeIcon: false },
     ]);
     expect(parseKmlText(kmlFixture).map(({ appearance }) => appearance)).toEqual([
-      { kind: 'poi', color: '#0d78b5', size: 14 },
+      { kind: 'poi', color: '#0d78b5', size: 14, markerShape: 'circle', markerSymbol: 'none', label: '' },
       { kind: 'route', color: '#d9363e', width: 4, travelProfile: 'car', showTravelModeIcon: false },
       { kind: 'shape', fillColor: '#d18b25', strokeColor: '#d18b25', strokeWidth: 2 },
     ]);
@@ -71,7 +71,9 @@ describe('canonical layer appearance', () => {
       highlight,
     );
     const poi = mapLayerDescriptors(
-      layer('poi', { kind: 'poi', color: '#445566', size: 24 }),
+      layer('poi', {
+        kind: 'poi', color: '#445566', size: 24, markerShape: 'circle', markerSymbol: 'none', label: '',
+      }),
       highlight,
     );
     const shape = mapLayerDescriptors(layer('shape', {
@@ -82,5 +84,33 @@ describe('canonical layer appearance', () => {
     expect(poi[0].paint).toMatchObject({ 'circle-color': '#445566', 'circle-radius': 12 });
     expect(shape[0].paint).toMatchObject({ 'fill-color': '#abcdef' });
     expect(shape[1].paint).toMatchObject({ 'line-color': '#123456', 'line-width': 5 });
+  });
+
+  it('renders a POI marker shape, semantic symbol, and label as live map layers', () => {
+    const descriptors = mapLayerDescriptors(layer('poi', {
+      kind: 'poi',
+      color: '#445566',
+      size: 24,
+      markerShape: 'diamond',
+      markerSymbol: 'coffee',
+      label: 'Café Central',
+    }), highlight);
+
+    expect(descriptors).toHaveLength(3);
+    expect(descriptors[0]).toMatchObject({
+      type: 'symbol',
+      layout: { 'text-field': '◆', 'text-size': 30 },
+      paint: { 'text-color': '#445566' },
+    });
+    expect(descriptors[1]).toMatchObject({
+      type: 'symbol',
+      layout: { 'text-field': 'C', 'text-size': 12 },
+      paint: { 'text-color': '#ffffff' },
+    });
+    expect(descriptors[2]).toMatchObject({
+      type: 'symbol',
+      layout: { 'text-field': 'Café Central', 'text-offset': [0, 1.5] },
+      paint: { 'text-color': '#1e1e1e' },
+    });
   });
 });

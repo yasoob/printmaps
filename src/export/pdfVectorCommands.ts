@@ -1,4 +1,5 @@
 import type { ContentLayer } from '../domain/project';
+import { POI_MARKER_SYMBOL_GLYPHS } from '../domain/poiMarkers';
 import { ROUTE_TRAVEL_PROFILE_MARKERS } from '../domain/routeProfiles';
 import type { PreviewPng } from './previewPng';
 
@@ -47,6 +48,43 @@ function circleCommands(point: FramePoint, radius: number): string {
     `${formatNumber(point.x - control)} ${formatNumber(point.y + radius)} ${formatNumber(point.x - radius)} ${formatNumber(point.y + control)} ${formatNumber(point.x - radius)} ${formatNumber(point.y)} c`,
     `${formatNumber(point.x - radius)} ${formatNumber(point.y - control)} ${formatNumber(point.x - control)} ${formatNumber(point.y - radius)} ${formatNumber(point.x)} ${formatNumber(point.y - radius)} c`,
     `${formatNumber(point.x + control)} ${formatNumber(point.y - radius)} ${formatNumber(point.x + radius)} ${formatNumber(point.y - control)} ${formatNumber(point.x + radius)} ${formatNumber(point.y)} c`,
+  ].join('\n');
+}
+
+function pdfContentString(value: string, label = 'PDF text'): string {
+  let escaped = '';
+  for (const character of value) {
+    const codePoint = character.codePointAt(0) ?? 0;
+    if (['\\', '(', ')'].includes(character)) {
+      escaped += String.fromCodePoint(92) + character;
+    } else if (codePoint >= 32 && codePoint <= 126) {
+      escaped += character;
+    } else if (codePoint >= 160 && codePoint <= 255) {
+      escaped += `\\${codePoint.toString(8).padStart(3, '0')}`;
+    } else {
+      throw new Error(`${label} contains characters that the PDF font cannot encode.`);
+    }
+  }
+  return `(${escaped})`;
+}
+
+function poiMarkerCommands(point: FramePoint, radius: number, shape: 'circle' | 'square' | 'diamond') {
+  if (shape === 'circle') return circleCommands(point, radius);
+  if (shape === 'square') {
+    return [
+      `${formatNumber(point.x - radius)} ${formatNumber(point.y - radius)} m`,
+      `${formatNumber(point.x + radius)} ${formatNumber(point.y - radius)} l`,
+      `${formatNumber(point.x + radius)} ${formatNumber(point.y + radius)} l`,
+      `${formatNumber(point.x - radius)} ${formatNumber(point.y + radius)} l`,
+      'h',
+    ].join('\n');
+  }
+  return [
+    `${formatNumber(point.x)} ${formatNumber(point.y + radius)} m`,
+    `${formatNumber(point.x + radius)} ${formatNumber(point.y)} l`,
+    `${formatNumber(point.x)} ${formatNumber(point.y - radius)} l`,
+    `${formatNumber(point.x - radius)} ${formatNumber(point.y)} l`,
+    'h',
   ].join('\n');
 }
 
@@ -100,9 +138,45 @@ function poiCommands(
 ): string {
   const appearance = layer.appearance?.kind === 'poi'
     ? layer.appearance
-    : { color: '#0d78b5', size: 14 };
+    : {
+        color: '#0d78b5',
+        size: 14,
+        markerShape: 'circle' as const,
+        markerSymbol: 'none' as const,
+        label: '',
+      };
   const point = project(coordinate, context);
-  return `${colorComponents(appearance.color)} rg\n1 1 1 RG\n${formatNumber(0.4 * POINTS_PER_MM)} w\n${circleCommands(point, appearance.size / 7 * POINTS_PER_MM)}\nB`;
+  const radius = appearance.size / 7 * POINTS_PER_MM;
+  const marker = [
+    `% POI marker shape: ${appearance.markerShape}`,
+    `${colorComponents(appearance.color)} rg`,
+    '1 1 1 RG',
+    `${formatNumber(0.4 * POINTS_PER_MM)} w`,
+    poiMarkerCommands(point, radius, appearance.markerShape),
+    'B',
+  ];
+  const symbol = POI_MARKER_SYMBOL_GLYPHS[appearance.markerSymbol];
+  if (symbol) {
+    marker.push(
+      '1 1 1 rg',
+      'BT',
+      `/F1 ${formatNumber(Math.max(6, appearance.size / 2))} Tf`,
+      `${formatNumber(point.x - symbol.length * 1.35)} ${formatNumber(point.y - 1.8)} Td`,
+      `${pdfContentString(symbol)} Tj`,
+      'ET',
+    );
+  }
+  if (appearance.label) {
+    marker.push(
+      '0.117647 0.117647 0.117647 rg',
+      'BT',
+      '/F1 8 Tf',
+      `${formatNumber(point.x - appearance.label.length * 2)} ${formatNumber(point.y - radius - 8)} Td`,
+      `${pdfContentString(appearance.label, 'POI label')} Tj`,
+      'ET',
+    );
+  }
+  return marker.join('\n');
 }
 
 function shapeCommands(

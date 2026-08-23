@@ -63,7 +63,9 @@ describe('print PDF', () => {
     document.layers[0].appearance = {
       kind: 'route', color: '#010203', width: 8, travelProfile: 'car', showTravelModeIcon: false,
     };
-    document.layers[1].appearance = { kind: 'poi', color: '#abcdef', size: 21 };
+    document.layers[1].appearance = {
+      kind: 'poi', color: '#abcdef', size: 21, markerShape: 'circle', markerSymbol: 'none', label: '',
+    };
     document.layers[2].appearance = {
       kind: 'shape',
       fillColor: '#112233',
@@ -100,5 +102,39 @@ describe('print PDF', () => {
 
     expect(text).toContain('% Route travel profile: air');
     expect(text).toContain('(AIR) Tj');
+  });
+
+  it('prints canonical POI marker shape, semantic symbol, and label as vector PDF content', async () => {
+    const document = createInitialProjectDocument();
+    document.layers[1].appearance = {
+      kind: 'poi',
+      color: '#0d78b5',
+      size: 21,
+      markerShape: 'diamond',
+      markerSymbol: 'coffee',
+      label: 'Café Central',
+    };
+
+    const text = await pdfText(document);
+
+    expect(text).toContain('% POI marker shape: diamond');
+    expect(text).toContain('(C) Tj');
+    expect(text).toContain(String.raw`(Caf\351 Central) Tj`);
+  });
+
+  it('rejects a POI label that the current PDF font cannot encode', async () => {
+    const document = createInitialProjectDocument();
+    document.layers[1].appearance = {
+      kind: 'poi',
+      color: '#0d78b5',
+      size: 21,
+      markerShape: 'circle',
+      markerSymbol: 'none',
+      label: '東京',
+    };
+
+    await expect(pdfText(document)).rejects.toThrow(
+      'POI label contains characters that the PDF font cannot encode.',
+    );
   });
 });

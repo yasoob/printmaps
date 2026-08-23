@@ -40,7 +40,9 @@ function updateContainerState(
       return [`${layer.id}:${appearance.color}:${appearance.width}:${appearance.travelProfile}:${appearance.showTravelModeIcon}`];
     }
     if (appearance?.kind === 'poi') {
-      return [`${layer.id}:${appearance.color}:${appearance.size}`];
+      return [
+        `${layer.id}:${appearance.color}:${appearance.size}:${appearance.markerShape}:${appearance.markerSymbol}:${appearance.label}`,
+      ];
     }
     if (appearance?.kind === 'shape') {
       return [

@@ -3,6 +3,7 @@ import type { ContentLayer } from '../domain/project';
 import { mapLayerDescriptors } from './MapContentLayerRendering';
 
 type MutableStyleLayer = {
+  id?: string;
   type?: string;
   layout?: Record<string, unknown>;
   paint?: Record<string, unknown>;
@@ -65,18 +66,28 @@ export function scaleNativeMapStyle<T extends ReturnType<MapLibreMap['getStyle']
   return scaled;
 }
 
-export function withoutSymbolLayers<T extends ReturnType<MapLibreMap['getStyle']>>(style: T): T {
+function isStudioContentLayer(layer: MutableStyleLayer): boolean {
+  return layer.id?.startsWith('studio-layer-') === true;
+}
+
+export function withoutBasemapSymbolLayers<T extends ReturnType<MapLibreMap['getStyle']>>(style: T): T {
   const filtered = structuredClone(style);
   const mutable = filtered as T & { layers?: MutableStyleLayer[] };
-  if (mutable.layers) mutable.layers = mutable.layers.filter((layer) => layer.type !== 'symbol');
+  if (mutable.layers) {
+    mutable.layers = mutable.layers.filter((layer) => (
+      layer.type !== 'symbol' || isStudioContentLayer(layer)
+    ));
+  }
   return filtered;
 }
 
-export function hasVisibleSymbolLayers(style: ReturnType<MapLibreMap['getStyle']>): boolean {
+export function hasVisibleBasemapSymbolLayers(style: ReturnType<MapLibreMap['getStyle']>): boolean {
   const layers = style.layers ?? [];
   return layers.some((layer) => {
     const candidate = layer as unknown as MutableStyleLayer;
-    return candidate.type === 'symbol' && candidate.layout?.visibility !== 'none';
+    return candidate.type === 'symbol'
+      && !isStudioContentLayer(candidate)
+      && candidate.layout?.visibility !== 'none';
   });
 }
 

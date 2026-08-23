@@ -1,6 +1,7 @@
 import type { ContentLayer, LayerGeometry, LayerType, ProjectDocument } from '../domain/project';
 import { ROUTE_TRAVEL_PROFILE_MARKERS } from '../domain/routeProfiles';
 import { resolvePrintLayerStyle } from './layerStyle';
+import { serializePoiMarker } from './poiMarker';
 
 export type PagePoint = Readonly<{ x: number; y: number }>;
 
@@ -197,7 +198,11 @@ function geometryElement(
 
   if (geometry.type === 'Point') {
     const point = projectCoordinate(geometry.coordinates, layer, options, { width, height });
-    return `<circle cx="${formatNumber(point.x)}" cy="${formatNumber(point.y)}" r="${formatNumber(style.pointRadiusMm)}" fill="${escapeXml(style.fill)}" ${stroke}/>`;
+    return serializePoiMarker({
+      appearance: layer.appearance?.kind === 'poi' ? layer.appearance : undefined,
+      point,
+      style,
+    });
   }
   if (geometry.type === 'LineString') {
     if (geometry.coordinates.length < 2) {

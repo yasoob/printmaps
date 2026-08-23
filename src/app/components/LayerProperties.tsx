@@ -2,7 +2,6 @@ import { useRef, useState } from 'react';
 import type {
   ContentLayer,
   LayerAppearance,
-  PoiAppearance,
   RouteAppearance,
   ShapeAppearance,
 } from '../../domain/project';
@@ -12,6 +11,7 @@ import {
   type RouteTravelProfile,
 } from '../../domain/routeProfiles';
 import { CoordinateField } from './CoordinateField';
+import { PoiAppearanceControls } from './PoiAppearanceControls';
 import { PropertyRow, PropertySection } from './PropertyControls';
 import { RouteVertexControls } from './RouteVertexControls';
 import { ShapeVertexControls } from './ShapeVertexControls';
@@ -98,41 +98,6 @@ function RouteAppearanceControls({
       <PropertyRow label="Width"><label className="number-field"><input aria-label="Route width" aria-invalid={isWidthInvalid || undefined} value={widthDraft} onChange={(event) => setWidthEdit({ source: appearance.width, value: event.target.value })} onBlur={(event) => commitWidth(event.currentTarget.value)} /><small>px</small></label></PropertyRow>
       <PropertyRow label="Profile"><select aria-label="Route travel profile" value={appearance.travelProfile} onChange={(event) => onChange({ ...appearance, travelProfile: event.target.value as RouteTravelProfile })}>{ROUTE_TRAVEL_PROFILES.map((profile) => <option key={profile} value={profile}>{ROUTE_TRAVEL_PROFILE_LABELS[profile]}</option>)}</select></PropertyRow>
       <label className="check-row"><input type="checkbox" aria-label="Show travel-mode marker" checked={appearance.showTravelModeIcon} onChange={(event) => onChange({ ...appearance, showTravelModeIcon: event.target.checked })} /> Show mode marker</label>
-    </>
-  );
-}
-
-function PoiAppearanceControls({
-  appearance,
-  onChange,
-}: {
-  appearance: PoiAppearance;
-  onChange: (appearance: PoiAppearance) => void;
-}) {
-  const [sizeEdit, setSizeEdit] = useState(() => ({
-    source: appearance.size,
-    value: String(appearance.size),
-  }));
-  const sizeDraft = sizeEdit.source === appearance.size ? sizeEdit.value : String(appearance.size);
-  const sizeValue = Number(sizeDraft);
-  const isSizeInvalid = sizeDraft.trim() === ''
-    || !Number.isFinite(sizeValue)
-    || sizeValue < 8
-    || sizeValue > 48;
-  const commitSize = (value: string) => {
-    const size = Number(value);
-    if (value.trim() === '' || !Number.isFinite(size) || size < 8 || size > 48) {
-      setSizeEdit({ source: appearance.size, value: String(appearance.size) });
-      return;
-    }
-    setSizeEdit({ source: size, value: String(size) });
-    onChange({ ...appearance, size });
-  };
-
-  return (
-    <>
-      <PropertyRow label="Color"><label className="color-field"><input aria-label="POI color" type="color" value={appearance.color} onChange={(event) => onChange({ ...appearance, color: event.target.value })} /></label></PropertyRow>
-      <PropertyRow label="Size"><label className="number-field"><input aria-label="POI marker size" aria-invalid={isSizeInvalid || undefined} value={sizeDraft} onChange={(event) => setSizeEdit({ source: appearance.size, value: event.target.value })} onBlur={(event) => commitSize(event.currentTarget.value)} /><small>px</small></label></PropertyRow>
     </>
   );
 }
@@ -226,7 +191,7 @@ function LayerTypeProperties({
         <>
           {layer.appearance?.kind === 'poi' && (
             <PropertySection title="Appearance">
-              <PoiAppearanceControls key={`${layer.id}-${layer.appearance.size}`} appearance={layer.appearance} onChange={onAppearanceChange} />
+              <PoiAppearanceControls key={`${layer.id}-${layer.appearance.size}-${layer.appearance.label}`} appearance={layer.appearance} onChange={onAppearanceChange} />
             </PropertySection>
           )}
           {layer.geometry?.type === 'Point' && (

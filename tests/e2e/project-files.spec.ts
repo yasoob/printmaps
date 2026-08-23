@@ -23,7 +23,7 @@ test('Save downloads the current project as portable versioned JSON', async ({ p
   await download.saveAs(outputPath);
   const savedProject = JSON.parse(await readFile(outputPath, 'utf8'));
   expect(savedProject).toMatchObject({
-    schemaVersion: 9,
+    schemaVersion: 10,
     id: 'vienna-field-guide',
     title: 'Vienna field guide',
     page: { preset: 'A4', widthMm: 210, heightMm: 297, orientation: 'portrait' },
@@ -74,7 +74,7 @@ test('Save ZIP downloads a deterministic archive that Open restores as a fresh p
     assets: [],
   });
   expect(JSON.parse(strFromU8(entries['project.printmap.json']))).toMatchObject({
-    schemaVersion: 9,
+    schemaVersion: 10,
     camera: { bearing: 35, pitch: 0 },
     style: { visibility: { roads: false, buildings: true, labels: true } },
   });
