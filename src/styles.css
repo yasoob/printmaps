@@ -247,7 +247,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .tool-button:hover { background: var(--studio-field); }
 .tool-button.is-active { color: var(--studio-accent-strong); background: var(--studio-accent-soft); }
 .map-authoring-panel {
-  @apply absolute left-1/2 flex -translate-x-1/2 flex-wrap items-center justify-center gap-2 px-2 py-1.5;
+  @apply absolute left-1/2 z-10 flex -translate-x-1/2 flex-wrap items-center justify-center gap-2 px-2 py-1.5;
   bottom: 4.5rem;
   max-width: calc(100% - 1rem);
   min-height: 2.5rem;
@@ -260,10 +260,14 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .map-authoring-panel > label { @apply flex items-center gap-1 whitespace-nowrap; }
 .map-authoring-panel > label > select { min-width: 5.25rem; }
 .administrative-region-options {
-  @apply flex items-center gap-2 border-0 p-0;
+  @apply grid grid-cols-2 gap-x-3 gap-y-1 border-0 p-1;
+  width: min(22rem, calc(100vw - 2rem));
+  max-height: 7rem;
+  overflow-y: auto;
 }
 .administrative-region-options legend { @apply sr-only; }
 .administrative-region-options label { @apply flex items-center gap-1 whitespace-nowrap; }
+.administrative-region-error { color: var(--studio-danger); font-size: var(--studio-font-meta); }
 .map-authoring-panel > span { @apply whitespace-nowrap px-1; }
 .map-authoring-panel > button:not(.primary-button) {
   @apply h-7 px-2;

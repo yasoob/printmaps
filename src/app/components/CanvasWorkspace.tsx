@@ -239,8 +239,10 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
   };
   const mergeAdministrativeAreas = (ids: readonly AdministrativeAreaId[]) => {
     const createdId = onCreateAdministrativeAreas(ids);
-    if (createdId) setFitLayerRequest((current) => ({ id: createdId, request: current.request + 1 }));
+    if (!createdId) return false;
+    setFitLayerRequest((current) => ({ id: createdId, request: current.request + 1 }));
     exitAuthoring('shape');
+    return true;
   };
 
   let handleMapClick: ((coordinate: [number, number]) => void) | undefined;

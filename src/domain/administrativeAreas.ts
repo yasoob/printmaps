@@ -1,7 +1,18 @@
 import type { LayerGeometry } from './project';
 import { AUSTRIA_ADMIN_1_REGIONS } from '../data/austriaAdmin1';
 
-export type AdministrativeAreaId = 'AUT' | 'HUN' | 'SVK' | 'AUT-2330' | 'AUT-2331';
+export type AdministrativeAreaId =
+  | 'AUT'
+  | 'HUN'
+  | 'SVK'
+  | 'AT-1'
+  | 'AT-2'
+  | 'AT-3'
+  | 'AT-4'
+  | 'AT-5'
+  | 'AT-6'
+  | 'AT-8'
+  | 'AT-9';
 
 export type AdministrativeArea = Readonly<{
   id: string;
@@ -12,7 +23,7 @@ export type AdministrativeArea = Readonly<{
 }>;
 
 const SOURCE = 'Natural Earth 1:110m Admin 0 Countries (public domain), downloaded 2026-08-23';
-const REGION_SOURCE = 'Natural Earth 1:10m Admin 1 States/Provinces (public domain), simplified 2026-08-23';
+const REGION_SOURCE = 'Natural Earth 1:10m Admin 1 States/Provinces (public domain), downloaded 2026-08-23';
 
 export const ADMINISTRATIVE_AREAS: readonly AdministrativeArea[] = [
   {
@@ -97,6 +108,31 @@ function addRingEdges(edges: Map<string, BoundaryEdge>, ring: readonly (readonly
   }
 }
 
+function haveSharedBoundary(left: AdministrativeArea, right: AdministrativeArea): boolean {
+  const leftEdges = new Set<string>();
+  for (const ring of left.geometry.coordinates) {
+    for (let index = 1; index < ring.length; index += 1) {
+      leftEdges.add(`${positionKey(ring[index - 1])}>${positionKey(ring[index])}`);
+    }
+  }
+  return right.geometry.coordinates.some((ring) => ring.some((position, index) => (
+    index > 0 && leftEdges.has(`${positionKey(position)}>${positionKey(ring[index - 1])}`)
+  )));
+}
+
+function isConnectedSelection(areas: readonly AdministrativeArea[]): boolean {
+  const connected = new Set([0]);
+  while (connected.size < areas.length) {
+    const adjacentIndex = areas.findIndex((area, index) => (
+      !connected.has(index)
+      && [...connected].some((candidate) => haveSharedBoundary(areas[candidate], area))
+    ));
+    if (adjacentIndex === -1) return false;
+    connected.add(adjacentIndex);
+  }
+  return true;
+}
+
 function edgeStartingAt(edges: Map<string, BoundaryEdge>, startKey: string): [string, BoundaryEdge] | undefined {
   for (const [key, edge] of edges) {
     if (positionKey(edge[0]) === startKey) return [key, edge];
@@ -157,6 +193,7 @@ export function mergeAdministrativeAreas(ids: readonly string[]): Administrative
   const areas = uniqueIds.map((id) => administrativeAreaById(id));
   if (areas.some((area) => !area || area.level !== 'region')) return;
   const regions = areas as AdministrativeArea[];
+  if (!isConnectedSelection(regions)) return;
   const coordinates = mergeAlignedRings(regions);
   if (!coordinates) return;
   return {

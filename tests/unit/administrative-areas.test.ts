@@ -42,13 +42,19 @@ describe('bundled administrative areas', () => {
 
   it('merges adjacent sourced Austrian regions into one polygon without internal borders', () => {
     expect(ADMINISTRATIVE_AREAS.filter(({ level }) => level === 'region').map(({ id, name }) => ({ id, name }))).toEqual([
-      { id: 'AUT-2330', name: 'Lower Austria' },
-      { id: 'AUT-2331', name: 'Vienna' },
+      { id: 'AT-1', name: 'Burgenland' },
+      { id: 'AT-2', name: 'Carinthia' },
+      { id: 'AT-3', name: 'Lower Austria' },
+      { id: 'AT-4', name: 'Upper Austria' },
+      { id: 'AT-5', name: 'Salzburg' },
+      { id: 'AT-6', name: 'Styria' },
+      { id: 'AT-8', name: 'Vorarlberg' },
+      { id: 'AT-9', name: 'Vienna' },
     ]);
 
-    const lowerAustria = administrativeAreaById('AUT-2330');
-    const vienna = administrativeAreaById('AUT-2331');
-    const merged = mergeAdministrativeAreas(['AUT-2330', 'AUT-2331']);
+    const lowerAustria = administrativeAreaById('AT-3');
+    const vienna = administrativeAreaById('AT-9');
+    const merged = mergeAdministrativeAreas(['AT-3', 'AT-9']);
 
     expect(lowerAustria?.geometry.coordinates).toHaveLength(2);
     expect(vienna?.geometry.coordinates).toHaveLength(1);
@@ -59,7 +65,11 @@ describe('bundled administrative areas', () => {
     expect(merged?.geometry.coordinates).toHaveLength(1);
     expect(new Set(merged?.geometry.coordinates[0].map(String))).toEqual(new Set(lowerAustria?.geometry.coordinates[0].map(String)));
     expect(signedRingArea(merged!.geometry.coordinates[0])).toBeGreaterThan(0);
-    expect(mergeAdministrativeAreas(['AUT-2330', 'missing'])).toBeUndefined();
+    expect(mergeAdministrativeAreas(['AT-3', 'missing'])).toBeUndefined();
+  });
+
+  it('rejects a disconnected region selection instead of treating another exterior as a hole', () => {
+    expect(mergeAdministrativeAreas(['AT-1', 'AT-8'])).toBeUndefined();
   });
 
   it('adds a selected administrative area as one undoable canonical shape', () => {
@@ -91,9 +101,9 @@ describe('bundled administrative areas', () => {
   it('adds a merged region selection as one canonical layer and one undo step', () => {
     const store = createProjectStore(createInitialProjectDocument());
 
-    const createdId = store.getState().createAdministrativeAreas(['AUT-2330', 'AUT-2331']);
+    const createdId = store.getState().createAdministrativeAreas(['AT-3', 'AT-9']);
 
-    expect(createdId).toBe('admin-aut-2330-aut-2331');
+    expect(createdId).toBe('admin-at-3-at-9');
     const layer = store.getState().document.layers.find(({ id }) => id === createdId);
     expect(layer).toMatchObject({
       name: 'Lower Austria + Vienna',

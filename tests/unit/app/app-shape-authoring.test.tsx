@@ -38,11 +38,32 @@ describe('polygon authoring', () => {
 
     const merged = screen.getByRole('button', { name: 'Select Lower Austria + Vienna' });
     expect(merged).toHaveAttribute('aria-current', 'true');
-    expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-fit-layer-id', 'admin-aut-2330-aut-2331');
+    expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-fit-layer-id', 'admin-at-3-at-9');
     expect(screen.getByRole('button', { name: 'Select (V)' })).toHaveFocus();
     expect(screen.getByRole('button', { name: 'Export' })).toBeEnabled();
     await user.click(screen.getByRole('button', { name: 'Undo' }));
     expect(merged).not.toBeInTheDocument();
+  });
+
+  it('keeps an incompatible region selection open and explains how to recover', async () => {
+    const user = userEvent.setup();
+    render(<App autosaveRepository={null} />);
+
+    await user.click(screen.getByRole('button', { name: 'Shape (S)' }));
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Administrative level' }), 'region');
+    await user.click(screen.getByRole('checkbox', { name: 'Burgenland' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Vorarlberg' }));
+    await user.click(screen.getByRole('button', { name: 'Merge 2 selected areas' }));
+
+    expect(screen.getByRole('alert', { name: 'Administrative area status' })).toHaveTextContent('Choose regions that share a border');
+    expect(screen.getByRole('button', { name: 'Cancel shape' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Select Burgenland + Vorarlberg' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
+
+    await user.click(screen.getByRole('checkbox', { name: 'Vorarlberg' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Styria' }));
+    await user.click(screen.getByRole('button', { name: 'Merge 2 selected areas' }));
+    expect(screen.getByRole('button', { name: 'Select Burgenland + Styria' })).toHaveAttribute('aria-current', 'true');
   });
 
   it('finishes three map clicks as one selected undoable shape', async () => {

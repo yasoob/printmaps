@@ -6,7 +6,7 @@ type ShapeDrawingPanelProps = Readonly<{
   pointCount: number;
   canFinish: boolean;
   onAddAdministrativeArea: (id: AdministrativeAreaId) => void;
-  onMergeAdministrativeAreas: (ids: readonly AdministrativeAreaId[]) => void;
+  onMergeAdministrativeAreas: (ids: readonly AdministrativeAreaId[]) => boolean;
   onCancel: () => void;
   onFinish: () => void;
 }>;

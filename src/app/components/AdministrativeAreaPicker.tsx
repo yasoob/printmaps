@@ -7,7 +7,7 @@ import {
 
 type AdministrativeAreaPickerProps = Readonly<{
   onAdd: (id: AdministrativeAreaId) => void;
-  onMerge: (ids: readonly AdministrativeAreaId[]) => void;
+  onMerge: (ids: readonly AdministrativeAreaId[]) => boolean;
 }>;
 
 export function AdministrativeAreaPicker({ onAdd, onMerge }: AdministrativeAreaPickerProps) {
@@ -16,10 +16,15 @@ export function AdministrativeAreaPicker({ onAdd, onMerge }: AdministrativeAreaP
   const [level, setLevel] = useState<'country' | 'region'>('country');
   const [areaId, setAreaId] = useState<AdministrativeAreaId>(countryAreas[0].id as AdministrativeAreaId);
   const [selectedRegionIds, setSelectedRegionIds] = useState<AdministrativeAreaId[]>([]);
+  const [regionError, setRegionError] = useState('');
   const selectedRegionIdSet = useMemo(() => new Set(selectedRegionIds), [selectedRegionIds]);
   const selectedArea = administrativeAreaById(areaId);
   const toggleRegion = (id: AdministrativeAreaId, isChecked: boolean) => {
+    setRegionError('');
     setSelectedRegionIds((current) => isChecked ? [...current, id] : current.filter((candidate) => candidate !== id));
+  };
+  const mergeRegions = () => {
+    if (!onMerge(selectedRegionIds)) setRegionError('Choose regions that share a border, then retry.');
   };
 
   return (
@@ -40,7 +45,8 @@ export function AdministrativeAreaPicker({ onAdd, onMerge }: AdministrativeAreaP
             ))}
           </fieldset>
           <span className="authoring-source">Austria · Natural Earth</span>
-          <button type="button" disabled={selectedRegionIds.length === 0} onClick={() => onMerge(selectedRegionIds)}>{selectedRegionIds.length > 1 ? `Merge ${selectedRegionIds.length} selected areas` : 'Add selected area'}</button>
+          <button type="button" disabled={selectedRegionIds.length === 0} onClick={mergeRegions}>{selectedRegionIds.length > 1 ? `Merge ${selectedRegionIds.length} selected areas` : 'Add selected area'}</button>
+          {regionError && <span className="administrative-region-error" role="alert" aria-label="Administrative area status">{regionError}</span>}
         </>
       )}
     </>

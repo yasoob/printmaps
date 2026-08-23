@@ -82,12 +82,19 @@ test('bundled administrative regions merge without an internal border and retain
 
   await page.getByRole('button', { name: 'Shape (S)' }).click();
   await page.getByRole('combobox', { name: 'Administrative level' }).selectOption('region');
+  await expect(page.getByRole('group', { name: 'Regions' }).getByRole('checkbox')).toHaveCount(8);
+  await page.getByRole('checkbox', { name: 'Burgenland' }).check();
+  await page.getByRole('checkbox', { name: 'Vorarlberg' }).check();
+  await page.getByRole('button', { name: 'Merge 2 selected areas' }).click();
+  await expect(page.getByRole('alert', { name: 'Administrative area status' })).toContainText('share a border');
+  await page.getByRole('checkbox', { name: 'Burgenland' }).uncheck();
+  await page.getByRole('checkbox', { name: 'Vorarlberg' }).uncheck();
   await page.getByRole('checkbox', { name: 'Lower Austria' }).check();
   await page.getByRole('checkbox', { name: 'Vienna' }).check();
   await page.getByRole('button', { name: 'Merge 2 selected areas' }).click();
   await expect(page.getByRole('button', { name: 'Select Lower Austria + Vienna' })).toHaveAttribute('aria-current', 'true');
   await page.getByRole('checkbox', { name: 'Invert shape fill' }).check();
-  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-appearance', /admin-aut-2330-aut-2331:[^|]*:true/);
+  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-appearance', /admin-at-3-at-9:[^|]*:true/);
 
   const savePromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Save', exact: true }).click();
@@ -96,7 +103,7 @@ test('bundled administrative regions merge without an internal border and retain
   await save.saveAs(savePath);
   const savedProject = JSON.parse(await readFile(savePath, 'utf8'));
   expect(savedProject.schemaVersion).toBe(15);
-  const savedArea = savedProject.layers.find(({ id }: { id: string }) => id === 'admin-aut-2330-aut-2331');
+  const savedArea = savedProject.layers.find(({ id }: { id: string }) => id === 'admin-at-3-at-9');
   expect(savedArea.appearance.invert).toBe(true);
   expect(savedArea.name).toBe('Lower Austria + Vienna');
   expect(savedArea.geometry.coordinates).toHaveLength(1);
@@ -116,10 +123,22 @@ test('bundled administrative regions merge without an internal border and retain
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole('button', { name: 'Shape (S)' }).click();
   await page.getByRole('combobox', { name: 'Administrative level' }).selectOption('region');
+  const regionOptionsBox = await page.getByRole('group', { name: 'Regions' }).boundingBox();
   const panelBox = await page.getByRole('status', { name: 'Shape drawing status' }).locator('..').boundingBox();
+  expect(regionOptionsBox).not.toBeNull();
+  expect(regionOptionsBox!.width).toBeGreaterThanOrEqual(300);
+  expect(regionOptionsBox!.x).toBeGreaterThanOrEqual(0);
+  expect(regionOptionsBox!.x + regionOptionsBox!.width).toBeLessThanOrEqual(390);
   expect(panelBox).not.toBeNull();
   expect(panelBox!.x).toBeGreaterThanOrEqual(0);
   expect(panelBox!.x + panelBox!.width).toBeLessThanOrEqual(390);
+  const zoomControlsBox = await page.locator('.maplibregl-ctrl-bottom-right').boundingBox();
+  expect(zoomControlsBox).not.toBeNull();
+  const overlapPoint = {
+    x: Math.max(panelBox!.x, zoomControlsBox!.x) + 4,
+    y: Math.max(panelBox!.y, zoomControlsBox!.y) + 4,
+  };
+  expect(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('.map-authoring-panel') !== null, overlapPoint)).toBe(true);
   expect(await page.evaluate(() => document.body.scrollWidth - window.innerWidth)).toBe(0);
   await page.getByRole('button', { name: 'Cancel shape' }).click();
   expect(consoleProblems).toEqual([]);
