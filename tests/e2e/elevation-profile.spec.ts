@@ -52,18 +52,33 @@ test('a selected route generates an attributed elevation profile with SVG, PNG, 
 
   await page.getByRole('radio', { name: 'Imperial' }).check();
   await page.getByLabel('Profile curve color').fill('#2457a6');
-  await page.getByRole('checkbox', { name: 'Fill below curve' }).uncheck();
+  await page.getByLabel('Profile fill color').fill('#f2b84b');
+  await page.getByLabel('Elevation marker color').fill('#7c3aed');
+  await page.getByRole('spinbutton', { name: 'Profile font size' }).fill('71');
+  await expect(page.getByRole('button', { name: 'Download elevation SVG' })).toBeDisabled();
+  await page.getByRole('spinbutton', { name: 'Profile font size' }).fill('56');
+  await expect(page.getByRole('button', { name: 'Download elevation SVG' })).toBeEnabled();
   await page.getByRole('checkbox', { name: 'Horizontal grid' }).uncheck();
   await expect(page.getByLabel('Elevation summary')).toContainText('mi');
+  await expect(chart.locator('.elevation-markers circle')).toHaveCount(2);
+  await expect(chart.locator('.elevation-marker-label')).toHaveCount(2);
+  if (testInfo.project.name === 'chromium') {
+    await chart.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: 'docs/screenshots/latest-desktop.png' });
+  }
 
   const svgBytes = await downloadFormat(page, 'Download elevation SVG', testInfo.outputPath('route-01.elevation.svg'));
   const svg = svgBytes.toString('utf8');
   expect(svg).toContain('data-elevation-profile="true"');
   expect(svg).toContain('Copernicus DEM GLO-90 via Open-Meteo');
   expect(svg).toContain('stroke="#2457a6"');
+  expect(svg).toContain('fill="#f2b84b"');
+  expect(svg).toContain('data-elevation-markers="true"');
+  expect(svg).toContain('fill="#7c3aed"');
+  expect(svg).toContain('font-size="56"');
   expect(svg).toContain('data-grid-axis="vertical"');
   expect(svg).not.toContain('data-grid-axis="horizontal"');
-  expect(svg).not.toContain('data-profile-fill="true"');
+  expect(svg).toContain('data-profile-fill="true"');
   expect(svg).toContain(' mi');
 
   const png = await downloadFormat(page, 'Download elevation PNG', testInfo.outputPath('route-01.elevation.png'));
@@ -77,8 +92,12 @@ test('a selected route generates an attributed elevation profile with SVG, PNG, 
   expect(pdfText).toContain('/MediaBox [0 0 425.19685 212.598425]');
   expect(pdfText).toContain('Copernicus DEM GLO-90 via Open-Meteo');
   expect(pdfText).toContain('0.141176 0.341176 0.65098 RG');
+  expect(pdfText).toContain('% profile fill color 0.94902 0.721569 0.294118');
+  expect(pdfText).toContain('% elevation markers');
+  expect(pdfText).toContain('0.486275 0.227451 0.929412 rg');
+  expect(pdfText).toContain('BT /F1 16.8 Tf');
   expect(pdfText).not.toContain('% grid horizontal');
-  expect(pdfText).not.toContain('% profile fill');
+  expect(pdfText).toContain('% profile fill');
   expect(pdfText).toContain(' mi | ascent ');
 
   await page.setViewportSize({ width: 390, height: 844 });

@@ -85,6 +85,70 @@ describe('ElevationProfilePanel', () => {
     expect(container.querySelector('.elevation-grid-vertical')).toBeInTheDocument();
   });
 
+  it('previews a custom profile fill color', async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <ElevationProfilePanel
+        coordinates={[[16, 48], [16.1, 48.1]]}
+        routeName="Alpine Route"
+        loadProfile={vi.fn(async () => profile)}
+      />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Generate elevation profile' }));
+
+    const fillColor = screen.getByLabelText('Profile fill color');
+    fireEvent.input(fillColor, { target: { value: '#f2b84b' } });
+
+    expect(container.querySelector('.elevation-area')).toHaveStyle({ fill: '#f2b84b' });
+  });
+
+  it('previews bounded minimum and maximum elevation markers', async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <ElevationProfilePanel
+        coordinates={[[16, 48], [16.1, 48.1]]}
+        routeName="Alpine Route"
+        loadProfile={vi.fn(async () => profile)}
+      />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Generate elevation profile' }));
+
+    const markerColor = screen.getByLabelText('Elevation marker color');
+    fireEvent.input(markerColor, { target: { value: '#7c3aed' } });
+
+    const markers = container.querySelector('.elevation-markers');
+    expect(markers?.querySelectorAll(':scope circle')).toHaveLength(2);
+    expect(markers?.querySelector(':scope circle')).toHaveStyle({ fill: '#7c3aed' });
+
+    await user.click(screen.getByRole('checkbox', { name: 'Elevation markers' }));
+    expect(container.querySelector('.elevation-markers')).not.toBeInTheDocument();
+  });
+
+  it('applies only font sizes from the documented 20 to 70 range', async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <ElevationProfilePanel
+        coordinates={[[16, 48], [16.1, 48.1]]}
+        routeName="Alpine Route"
+        loadProfile={vi.fn(async () => profile)}
+      />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Generate elevation profile' }));
+
+    const fontSize = screen.getByRole('spinbutton', { name: 'Profile font size' });
+    await user.clear(fontSize);
+    await user.type(fontSize, '56');
+    expect(fontSize).not.toHaveAttribute('aria-invalid');
+    expect(container.querySelector('.elevation-marker-label')).toHaveStyle({ fontSize: '56px' });
+    expect(screen.getByRole('button', { name: 'Download elevation SVG' })).toBeEnabled();
+
+    await user.clear(fontSize);
+    await user.type(fontSize, '71');
+    expect(fontSize).toHaveAttribute('aria-invalid', 'true');
+    expect(container.querySelector('.elevation-marker-label')).toHaveStyle({ fontSize: '56px' });
+    expect(screen.getByRole('button', { name: 'Download elevation SVG' })).toBeDisabled();
+  });
+
   it('lets the user cancel a pending terrain request and retry', async () => {
     const user = userEvent.setup();
     let requestSignal: AbortSignal | undefined;

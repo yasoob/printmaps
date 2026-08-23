@@ -1,9 +1,9 @@
 import {
   createElevationProfileLayout,
   createElevationProfilePng,
-  createElevationProfilePdf,
   serializeElevationProfileSvg,
 } from '../../src/export/elevationProfile';
+import { createElevationProfilePdf } from '../../src/export/elevationProfilePdf';
 import type { ElevationProfile } from '../../src/elevation/profile';
 
 const profile: ElevationProfile = {
@@ -81,11 +81,104 @@ describe('elevation profile exports', () => {
     expect(text).not.toContain('% profile fill');
   });
 
+  it('keeps marker, font-size, and fill-color choices consistent across vector exports', async () => {
+    const options = {
+      fillColor: '#f2b84b',
+      fontSize: 56,
+      markerColor: '#7c3aed',
+      showElevationMarkers: true,
+    } as const;
+
+    const svg = serializeElevationProfileSvg(profile, 'Alpine Route', options);
+    expect(svg).toContain('data-profile-fill="true"');
+    expect(svg).toContain('fill="#f2b84b"');
+    expect(svg).toContain('data-elevation-markers="true"');
+    expect(svg).toContain('fill="#7c3aed"');
+    expect(svg).toContain('font-size="56"');
+    expect(svg).toContain('120 m');
+    expect(svg).toContain('260 m');
+
+    const pdf = await createElevationProfilePdf(profile, 'Alpine Route', options);
+    const text = new TextDecoder().decode(await pdf.arrayBuffer());
+    expect(text).toContain('% profile fill color 0.94902 0.721569 0.294118');
+    expect(text).toContain('% elevation markers');
+    expect(text).toContain('0.486275 0.227451 0.929412 rg');
+    expect(text).toContain('BT /F1 16.8 Tf');
+    expect(text).toContain('(120 m) Tj');
+    expect(text).toContain('(260 m) Tj');
+  });
+
+  it('keeps maximum-size endpoint markers clear of the title in vector exports', async () => {
+    const descendingProfile: ElevationProfile = {
+      ...profile,
+      samples: [
+        { coordinate: [16, 48], distanceMeters: 0, elevationMeters: 260 },
+        { coordinate: [16.1, 48.1], distanceMeters: 10_000, elevationMeters: 180 },
+        { coordinate: [16.2, 48.2], distanceMeters: 20_000, elevationMeters: 120 },
+      ],
+    };
+    const svgLayout = createElevationProfileLayout(descendingProfile);
+    const svg = serializeElevationProfileSvg(descendingProfile, 'Descending Route', { fontSize: 70 });
+    const svgMarkerLabel = /<text x="81" y="([\d.]+)"[^>]*>260 m<\/text>/.exec(svg);
+    expect(svgMarkerLabel).not.toBeNull();
+    expect(Number(svgMarkerLabel?.[1])).toBeGreaterThan(svgLayout.points[0].y);
+
+    const pdf = await createElevationProfilePdf(descendingProfile, 'Descending Route', { fontSize: 70, units: 'imperial' });
+    const pdfText = new TextDecoder().decode(await pdf.arrayBuffer());
+    const pdfMarkerLabel = /[\d.]+ ([\d.]+) Td \(853 ft\) Tj/.exec(pdfText);
+    const pdfLayout = createElevationProfileLayout(descendingProfile, 150 * 72 / 25.4, 75 * 72 / 25.4, { units: 'imperial' });
+    expect(pdfMarkerLabel).not.toBeNull();
+    expect(Number(pdfMarkerLabel?.[1])).toBeLessThan(75 * 72 / 25.4 - pdfLayout.points[0].y);
+  });
+
+  it('keeps maximum-size near-edge marker labels inside the plot', () => {
+    const nearEdgeProfile: ElevationProfile = {
+      ...profile,
+      samples: [
+        { coordinate: [16, 48], distanceMeters: 0, elevationMeters: 120 },
+        { coordinate: [16.01, 48.01], distanceMeters: 1000, elevationMeters: 260 },
+        { coordinate: [16.2, 48.2], distanceMeters: 20_000, elevationMeters: 180 },
+      ],
+    };
+
+    const svg = serializeElevationProfileSvg(nearEdgeProfile, 'Near-edge Route', { fontSize: 70 });
+    expect(svg).toMatch(/<text x="119\.25"[^>]+text-anchor="start"[^>]*>260 m<\/text>/);
+  });
+
+  it('keeps maximum-size vector footers on separate bounded lines', async () => {
+    const svg = serializeElevationProfileSvg(profile, 'Alpine Route', { fontSize: 70 });
+    const svgSummaryPosition = /<text x="81" y="([\d.]+)">20\.0 km/.exec(svg);
+    const svgSourcePosition = /<text x="819" y="([\d.]+)" text-anchor="end">Copernicus DEM GLO-90 via Open-Meteo<\/text>/.exec(svg);
+    expect(svgSummaryPosition).not.toBeNull();
+    expect(svgSourcePosition).not.toBeNull();
+    expect(Number(svgSourcePosition?.[1])).toBeGreaterThan(Number(svgSummaryPosition?.[1]));
+
+    const pdf = await createElevationProfilePdf(profile, 'Alpine Route', { fontSize: 70 });
+    const pdfText = new TextDecoder().decode(await pdf.arrayBuffer());
+    const summaryPosition = /BT \/F1 12\.25 Tf\n[\d.]+ ([\d.]+) Td \(20\.0 km/.exec(pdfText);
+    const sourcePosition = /BT \/F1 10\.5 Tf\n([\d.]+) ([\d.]+) Td \(Copernicus DEM GLO-90 via Open-Meteo\)/.exec(pdfText);
+    expect(summaryPosition).not.toBeNull();
+    expect(sourcePosition).not.toBeNull();
+    expect(Number(sourcePosition?.[2])).toBeLessThan(Number(summaryPosition?.[1]));
+    const layout = createElevationProfileLayout(profile, 150 * 72 / 25.4, 75 * 72 / 25.4);
+    const estimatedSourceWidth = profile.sourceLabel.length * 10.5 * 0.5;
+    expect(Number(sourcePosition?.[1]) + estimatedSourceWidth).toBeLessThanOrEqual(layout.plot.left + layout.plot.width);
+  });
+
   it('rejects an invalid curve color before serializing an export', async () => {
     expect(() => serializeElevationProfileSvg(profile, 'Alpine Route', { curveColor: 'red;stroke-width:99' }))
       .toThrow('six-digit hexadecimal color');
     await expect(createElevationProfilePdf(profile, 'Alpine Route', { curveColor: '#12345g' }))
       .rejects.toThrow('six-digit hexadecimal color');
+  });
+
+  it('rejects unsafe profile appearance values before serializing an export', async () => {
+    expect(() => serializeElevationProfileSvg(profile, 'Alpine Route', { fillColor: 'url(https://example.com)' }))
+      .toThrow('fill color');
+    expect(() => serializeElevationProfileSvg(profile, 'Alpine Route', { markerColor: '#12345g' }))
+      .toThrow('marker color');
+    await expect(createElevationProfilePdf(profile, 'Alpine Route', { fontSize: 71 }))
+      .rejects.toThrow('between 20 and 70');
   });
 
   it('rejects non-renderable finite profile measurements', () => {

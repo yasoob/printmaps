@@ -1,11 +1,7 @@
 import type { ElevationProfile } from '../elevation/profile';
-import { asciiBytes, buildPdf, pdfString, streamObject, type PdfObject } from './pdfWriter';
 
 const SVG_WIDTH = 900;
 const SVG_HEIGHT = 450;
-const PDF_WIDTH_MM = 150;
-const PDF_HEIGHT_MM = 75;
-const POINTS_PER_MM = 72 / 25.4;
 const MINIMUM_TERRAIN_ELEVATION_METERS = -12_000;
 const MAXIMUM_TERRAIN_ELEVATION_METERS = 10_000;
 const FEET_PER_METER = 3.280839895;
@@ -23,37 +19,54 @@ export type ElevationProfileSummary = Readonly<{
 export type ElevationProfileRenderOptions = Readonly<{
   units?: ElevationProfileUnits;
   curveColor?: string;
+  fillColor?: string;
+  fontSize?: number;
+  markerColor?: string;
+  showElevationMarkers?: boolean;
   showFill?: boolean;
   showHorizontalGrid?: boolean;
   showVerticalGrid?: boolean;
 }>;
 
-type ResolvedElevationProfileRenderOptions = Readonly<{
+export type ResolvedElevationProfileRenderOptions = Readonly<{
   units: ElevationProfileUnits;
   curveColor: string;
+  fillColor: string;
+  fontSize: number;
+  markerColor: string;
+  showElevationMarkers: boolean;
   showFill: boolean;
   showHorizontalGrid: boolean;
   showVerticalGrid: boolean;
 }>;
 
-function resolveRenderOptions(options: ElevationProfileRenderOptions): ResolvedElevationProfileRenderOptions {
-  const curveColor = options.curveColor ?? '#0d79c7';
-  if (!/^#[\da-f]{6}$/i.test(curveColor)) {
-    throw new Error('The elevation profile curve color must be a six-digit hexadecimal color.');
+function resolveColor(value: string | undefined, fallback: string, label: string): string {
+  const color = value ?? fallback;
+  if (!/^#[\da-f]{6}$/i.test(color)) {
+    throw new Error(`The elevation profile ${label} color must be a six-digit hexadecimal color.`);
   }
+  return color.toLowerCase();
+}
+
+function resolveFontSize(fontSize = 40): number {
+  if (!Number.isSafeInteger(fontSize) || fontSize < 20 || fontSize > 70) {
+    throw new Error('The elevation profile font size must be an integer between 20 and 70.');
+  }
+  return fontSize;
+}
+
+export function resolveElevationProfileRenderOptions(options: ElevationProfileRenderOptions): ResolvedElevationProfileRenderOptions {
   return {
     units: options.units ?? 'metric',
-    curveColor: curveColor.toLowerCase(),
+    curveColor: resolveColor(options.curveColor, '#0d79c7', 'curve'),
+    fillColor: resolveColor(options.fillColor, '#dceeff', 'fill'),
+    fontSize: resolveFontSize(options.fontSize),
+    markerColor: resolveColor(options.markerColor, '#7c3aed', 'marker'),
+    showElevationMarkers: options.showElevationMarkers ?? true,
     showFill: options.showFill ?? true,
     showHorizontalGrid: options.showHorizontalGrid ?? true,
     showVerticalGrid: options.showVerticalGrid ?? true,
   };
-}
-
-function pdfRgb(color: string): string {
-  const channels = [color.slice(1, 3), color.slice(3, 5), color.slice(5, 7)]
-    .map((channel) => Number.parseInt(channel, 16) / 255);
-  return channels.map((channel) => formatNumber(channel)).join(' ');
 }
 
 export function formatElevationProfileSummary(
@@ -77,6 +90,11 @@ export function formatElevationProfileSummary(
 }
 
 export type ElevationChartPoint = Readonly<{ x: number; y: number }>;
+export type ElevationProfileMarker = Readonly<{
+  index: number;
+  label: string;
+  point: ElevationChartPoint;
+}>;
 export type ElevationProfileLayout = Readonly<{
   width: number;
   height: number;
@@ -86,7 +104,7 @@ export type ElevationProfileLayout = Readonly<{
   elevationTicks: readonly Readonly<{ y: number; label: string }>[];
 }>;
 
-function formatNumber(value: number): string {
+export function formatElevationProfileNumber(value: number): string {
   const rounded = Math.round(value * 1_000_000) / 1_000_000;
   return Object.is(rounded, -0) ? '0' : String(rounded);
 }
@@ -174,8 +192,54 @@ export function createElevationProfileLayout(
   return { width, height, plot, points, distanceTicks, elevationTicks };
 }
 
+export function createElevationProfileMarkers(
+  profile: ElevationProfile,
+  layout: ElevationProfileLayout,
+  units: ElevationProfileUnits,
+): readonly ElevationProfileMarker[] {
+  const minimumIndex = profile.samples.findIndex((sample) => sample.elevationMeters === profile.minimumElevationMeters);
+  const maximumIndex = profile.samples.findIndex((sample) => sample.elevationMeters === profile.maximumElevationMeters);
+  const markers: ElevationProfileMarker[] = [];
+  const markerIndices = new Set([minimumIndex, maximumIndex]);
+  for (const index of markerIndices) {
+    if (index < 0) continue;
+    markers.push({
+      index,
+      point: layout.points[index],
+      label: units === 'imperial'
+        ? `${Math.round(profile.samples[index].elevationMeters * FEET_PER_METER)} ft`
+        : `${Math.round(profile.samples[index].elevationMeters)} m`,
+    });
+  }
+  return markers;
+}
+
+export function elevationProfileMarkerLabelY(pointY: number, fontSize: number, plotTop: number, gap: number): number {
+  const aboveBaseline = pointY - gap;
+  return aboveBaseline - fontSize < plotTop
+    ? pointY + fontSize + gap
+    : aboveBaseline;
+}
+
+export function elevationProfileMarkerTextAnchor({
+  pointX,
+  label,
+  fontSize,
+  plot,
+}: Readonly<{
+  pointX: number;
+  label: string;
+  fontSize: number;
+  plot: Readonly<{ left: number; width: number }>;
+}>): 'start' | 'middle' | 'end' {
+  const estimatedHalfWidth = label.length * fontSize * 0.3;
+  if (pointX - estimatedHalfWidth < plot.left) return 'start';
+  if (pointX + estimatedHalfWidth > plot.left + plot.width) return 'end';
+  return 'middle';
+}
+
 function svgPath(points: readonly ElevationChartPoint[]): string {
-  return points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${formatNumber(point.x)} ${formatNumber(point.y)}`).join(' ');
+  return points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${formatElevationProfileNumber(point.x)} ${formatElevationProfileNumber(point.y)}`).join(' ');
 }
 
 export function serializeElevationProfileSvg(
@@ -183,94 +247,23 @@ export function serializeElevationProfileSvg(
   title: string,
   options: ElevationProfileRenderOptions = {},
 ): string {
-  const resolved = resolveRenderOptions(options);
+  const resolved = resolveElevationProfileRenderOptions(options);
   const summary = formatElevationProfileSummary(profile, resolved.units);
   const layout = createElevationProfileLayout(profile, SVG_WIDTH, SVG_HEIGHT, resolved);
+  const markers = createElevationProfileMarkers(profile, layout, resolved.units);
   const linePath = svgPath(layout.points);
-  const areaPath = `${linePath} L ${formatNumber(layout.plot.left + layout.plot.width)} ${formatNumber(layout.plot.top + layout.plot.height)} L ${formatNumber(layout.plot.left)} ${formatNumber(layout.plot.top + layout.plot.height)} Z`;
-  const verticalGrid = resolved.showVerticalGrid ? `<g data-grid-axis="vertical">${layout.distanceTicks.map((tick) => `<line x1="${formatNumber(tick.x)}" y1="${formatNumber(layout.plot.top)}" x2="${formatNumber(tick.x)}" y2="${formatNumber(layout.plot.top + layout.plot.height)}" />`).join('')}</g>` : '';
-  const horizontalGrid = resolved.showHorizontalGrid ? `<g data-grid-axis="horizontal">${layout.elevationTicks.map((tick) => `<line x1="${formatNumber(layout.plot.left)}" y1="${formatNumber(tick.y)}" x2="${formatNumber(layout.plot.left + layout.plot.width)}" y2="${formatNumber(tick.y)}" />`).join('')}</g>` : '';
-  const fill = resolved.showFill ? `<path data-profile-fill="true" d="${areaPath}" fill="#dceeff"/>` : '';
-  const distanceLabels = layout.distanceTicks.map((tick) => `<text x="${formatNumber(tick.x)}" y="${formatNumber(layout.plot.top + layout.plot.height + 30)}" text-anchor="middle">${escapeXml(tick.label)}</text>`).join('');
-  const elevationLabels = layout.elevationTicks.map((tick) => `<text x="${formatNumber(layout.plot.left - 12)}" y="${formatNumber(tick.y + 4)}" text-anchor="end">${escapeXml(tick.label)}</text>`).join('');
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="150mm" height="75mm" viewBox="0 0 ${SVG_WIDTH} ${SVG_HEIGHT}" data-elevation-profile="true" role="img" aria-labelledby="title description"><title id="title">${escapeXml(title)} elevation profile</title><desc id="description">${summary.distance} route with an elevation range of ${summary.elevationRange}. ${escapeXml(profile.sourceLabel)}.</desc><rect width="900" height="450" fill="#ffffff"/><text x="81" y="42" fill="#1e1e1e" font-family="Inter,Arial,sans-serif" font-size="24" font-weight="600">${escapeXml(title)}</text><g stroke="#e5e5e5" stroke-width="1">${verticalGrid}${horizontalGrid}</g>${fill}<path d="${linePath}" fill="none" stroke="${resolved.curveColor}" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/><g fill="#666666" font-family="Inter,Arial,sans-serif" font-size="14">${distanceLabels}${elevationLabels}</g><g fill="#333333" font-family="Inter,Arial,sans-serif" font-size="15"><text x="81" y="405">${summary.distance} · ↑ ${summary.ascent} · ↓ ${summary.descent}</text><text x="819" y="405" text-anchor="end">${escapeXml(profile.sourceLabel)}</text></g></svg>`;
-}
-
-function pdfContentText(value: string): string {
-  let escaped = '';
-  for (const character of value) {
-    const codePoint = character.codePointAt(0) ?? 0;
-    if (['\\', '(', ')'].includes(character)) escaped += `\\${character}`;
-    else if (codePoint >= 32 && codePoint <= 126) escaped += character;
-    else if (codePoint >= 160 && codePoint <= 255) escaped += `\\${codePoint.toString(8).padStart(3, '0')}`;
-    else throw new Error('The elevation profile PDF cannot encode this route title. Use SVG or PNG for full Unicode text.');
-  }
-  return `(${escaped})`;
-}
-
-export async function createElevationProfilePdf(
-  profile: ElevationProfile,
-  title: string,
-  options: ElevationProfileRenderOptions = {},
-): Promise<Blob> {
-  const resolved = resolveRenderOptions(options);
-  const width = PDF_WIDTH_MM * POINTS_PER_MM;
-  const height = PDF_HEIGHT_MM * POINTS_PER_MM;
-  const summary = formatElevationProfileSummary(profile, resolved.units);
-  const layout = createElevationProfileLayout(profile, width, height, resolved);
-  const pointCommands = layout.points.map((point, index) => (
-    `${formatNumber(point.x)} ${formatNumber(height - point.y)} ${index === 0 ? 'm' : 'l'}`
-  ));
-  const verticalGridCommands = resolved.showVerticalGrid ? [
-    '% grid vertical',
-    ...layout.distanceTicks.flatMap((tick) => [
-      `${formatNumber(tick.x)} ${formatNumber(height - layout.plot.top)} m`,
-      `${formatNumber(tick.x)} ${formatNumber(height - layout.plot.top - layout.plot.height)} l S`,
-    ]),
-  ] : [];
-  const horizontalGridCommands = resolved.showHorizontalGrid ? [
-    '% grid horizontal',
-    ...layout.elevationTicks.flatMap((tick) => [
-      `${formatNumber(layout.plot.left)} ${formatNumber(height - tick.y)} m`,
-      `${formatNumber(layout.plot.left + layout.plot.width)} ${formatNumber(height - tick.y)} l S`,
-    ]),
-  ] : [];
-  const fillCommands = resolved.showFill ? [
-    '% profile fill',
-    '0.862745 0.933333 1 rg',
-    ...pointCommands,
-    `${formatNumber(layout.plot.left + layout.plot.width)} ${formatNumber(height - layout.plot.top - layout.plot.height)} l`,
-    `${formatNumber(layout.plot.left)} ${formatNumber(height - layout.plot.top - layout.plot.height)} l h f`,
-  ] : [];
-  const content = asciiBytes([
-    '1 1 1 rg',
-    `0 0 ${formatNumber(width)} ${formatNumber(height)} re f`,
-    '0.898 0.898 0.898 RG 0.5 w',
-    ...verticalGridCommands,
-    ...horizontalGridCommands,
-    ...fillCommands,
-    `${pdfRgb(resolved.curveColor)} RG 2.5 w 1 J 1 j`,
-    ...pointCommands,
-    'S',
-    '0.117647 0.117647 0.117647 rg',
-    'BT /F1 12 Tf',
-    `${formatNumber(layout.plot.left)} ${formatNumber(height - 20)} Td ${pdfContentText(title)} Tj ET`,
-    'BT /F1 7 Tf',
-    `${formatNumber(layout.plot.left)} 10 Td ${pdfContentText(`${summary.distance} | ascent ${summary.ascent} | descent ${summary.descent}`)} Tj ET`,
-    'BT /F1 6 Tf',
-    `${formatNumber(width - layout.plot.left - 135)} 10 Td ${pdfContentText(profile.sourceLabel)} Tj ET`,
-  ].join('\n'));
-  const objects: PdfObject[] = [
-    ['<< /Type /Catalog /Pages 2 0 R >>'],
-    ['<< /Type /Pages /Kids [3 0 R] /Count 1 >>'],
-    [`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${formatNumber(width)} ${formatNumber(height)}] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>`],
-    streamObject('', content),
-    ['<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>'],
-    [`<< /Title ${pdfString(`${title} elevation profile`)} /Creator (Print Map Studio) /Subject (Attributed route elevation profile.) >>`],
-  ];
-  const bytes = buildPdf(objects, 6);
-  const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
-  return new Blob([buffer], { type: 'application/pdf' });
+  const areaPath = `${linePath} L ${formatElevationProfileNumber(layout.plot.left + layout.plot.width)} ${formatElevationProfileNumber(layout.plot.top + layout.plot.height)} L ${formatElevationProfileNumber(layout.plot.left)} ${formatElevationProfileNumber(layout.plot.top + layout.plot.height)} Z`;
+  const verticalGrid = resolved.showVerticalGrid ? `<g data-grid-axis="vertical">${layout.distanceTicks.map((tick) => `<line x1="${formatElevationProfileNumber(tick.x)}" y1="${formatElevationProfileNumber(layout.plot.top)}" x2="${formatElevationProfileNumber(tick.x)}" y2="${formatElevationProfileNumber(layout.plot.top + layout.plot.height)}" />`).join('')}</g>` : '';
+  const horizontalGrid = resolved.showHorizontalGrid ? `<g data-grid-axis="horizontal">${layout.elevationTicks.map((tick) => `<line x1="${formatElevationProfileNumber(layout.plot.left)}" y1="${formatElevationProfileNumber(tick.y)}" x2="${formatElevationProfileNumber(layout.plot.left + layout.plot.width)}" y2="${formatElevationProfileNumber(tick.y)}" />`).join('')}</g>` : '';
+  const fill = resolved.showFill ? `<path data-profile-fill="true" d="${areaPath}" fill="${resolved.fillColor}"/>` : '';
+  const elevationMarkers = resolved.showElevationMarkers ? `<g data-elevation-markers="true" fill="${resolved.markerColor}" font-family="Inter,Arial,sans-serif" font-size="${formatElevationProfileNumber(resolved.fontSize)}" font-weight="600">${markers.map((marker) => {
+    const textAnchor = elevationProfileMarkerTextAnchor({ pointX: marker.point.x, label: marker.label, fontSize: resolved.fontSize, plot: layout.plot });
+    const labelY = elevationProfileMarkerLabelY(marker.point.y, resolved.fontSize, layout.plot.top, 14);
+    return `<circle cx="${formatElevationProfileNumber(marker.point.x)}" cy="${formatElevationProfileNumber(marker.point.y)}" r="8" stroke="#ffffff" stroke-width="3"/><text x="${formatElevationProfileNumber(marker.point.x)}" y="${formatElevationProfileNumber(labelY)}" text-anchor="${textAnchor}" paint-order="stroke" stroke="#ffffff" stroke-width="4">${escapeXml(marker.label)}</text>`;
+  }).join('')}</g>` : '';
+  const distanceLabels = layout.distanceTicks.map((tick) => `<text x="${formatElevationProfileNumber(tick.x)}" y="${formatElevationProfileNumber(layout.plot.top + layout.plot.height + 30)}" text-anchor="middle">${escapeXml(tick.label)}</text>`).join('');
+  const elevationLabels = layout.elevationTicks.map((tick) => `<text x="${formatElevationProfileNumber(layout.plot.left - 12)}" y="${formatElevationProfileNumber(tick.y + 4)}" text-anchor="end">${escapeXml(tick.label)}</text>`).join('');
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="150mm" height="75mm" viewBox="0 0 ${SVG_WIDTH} ${SVG_HEIGHT}" data-elevation-profile="true" role="img" aria-labelledby="title description"><title id="title">${escapeXml(title)} elevation profile</title><desc id="description">${summary.distance} route with an elevation range of ${summary.elevationRange}. ${escapeXml(profile.sourceLabel)}.</desc><rect width="900" height="450" fill="#ffffff"/><text x="81" y="42" fill="#1e1e1e" font-family="Inter,Arial,sans-serif" font-size="${formatElevationProfileNumber(resolved.fontSize * 0.6)}" font-weight="600">${escapeXml(title)}</text><g stroke="#e5e5e5" stroke-width="1">${verticalGrid}${horizontalGrid}</g>${fill}<path d="${linePath}" fill="none" stroke="${resolved.curveColor}" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>${elevationMarkers}<g fill="#666666" font-family="Inter,Arial,sans-serif" font-size="${formatElevationProfileNumber(resolved.fontSize * 0.35)}">${distanceLabels}${elevationLabels}</g><g fill="#333333" font-family="Inter,Arial,sans-serif" font-size="${formatElevationProfileNumber(resolved.fontSize * 0.375)}"><text x="81" y="400">${summary.distance} · ↑ ${summary.ascent} · ↓ ${summary.descent}</text><text x="819" y="435" text-anchor="end">${escapeXml(profile.sourceLabel)}</text></g></svg>`;
 }
 
 type ElevationPngOptions = ElevationProfileRenderOptions & Readonly<{
