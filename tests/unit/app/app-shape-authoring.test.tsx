@@ -45,6 +45,23 @@ describe('polygon authoring', () => {
     expect(merged).not.toBeInTheDocument();
   });
 
+  it('adds disconnected Tyrol without flattening its parts into editable rings', async () => {
+    const user = userEvent.setup();
+    render(<App autosaveRepository={null} />);
+
+    await user.click(screen.getByRole('button', { name: 'Shape (S)' }));
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Administrative level' }), 'region');
+    await user.click(screen.getByRole('checkbox', { name: 'Tyrol' }));
+    await user.click(screen.getByRole('button', { name: 'Add selected area' }));
+
+    expect(screen.getByRole('button', { name: 'Select Tyrol' })).toHaveAttribute('aria-current', 'true');
+    expect(screen.getByRole('status', { name: 'Multi-part geometry status' })).toHaveTextContent(
+      '2 disconnected parts',
+    );
+    expect(screen.queryByRole('heading', { name: 'Vertices' })).not.toBeInTheDocument();
+    expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-fit-layer-id', 'admin-at-7');
+  });
+
   it('keeps an incompatible region selection open and explains how to recover', async () => {
     const user = userEvent.setup();
     render(<App autosaveRepository={null} />);
@@ -55,7 +72,9 @@ describe('polygon authoring', () => {
     await user.click(screen.getByRole('checkbox', { name: 'Vorarlberg' }));
     await user.click(screen.getByRole('button', { name: 'Merge 2 selected areas' }));
 
-    expect(screen.getByRole('alert', { name: 'Administrative area status' })).toHaveTextContent('Choose regions that share a border');
+    expect(screen.getByRole('alert', { name: 'Administrative area status' })).toHaveTextContent(
+      'Choose connected single-part regions, or add Tyrol separately.',
+    );
     expect(screen.getByRole('button', { name: 'Cancel shape' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Select Burgenland + Vorarlberg' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();

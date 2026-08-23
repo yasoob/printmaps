@@ -12,11 +12,24 @@ export function mapContentSourceId(id: string, role?: string): string {
 }
 
 export function mapGeometryForLayer(layer: ContentLayer): NonNullable<ContentLayer['geometry']> {
-  return layer.geometry?.type === 'Polygon'
+  const geometry = layer.geometry;
+  if (
+    (geometry?.type === 'Polygon' || geometry?.type === 'MultiPolygon')
     && layer.appearance?.kind === 'shape'
     && layer.appearance.invert
-    ? { type: 'Polygon' as const, coordinates: [WORLD_MASK_RING, ...layer.geometry.coordinates] }
-    : layer.geometry!;
+  ) {
+    const polygons = geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates;
+    if (polygons.some((polygon) => polygon.length === 0)) {
+      throw new Error(`Shape layer "${layer.id}" contains an empty polygon.`);
+    }
+    const exteriorRings = polygons.map((polygon) => polygon[0]);
+    const outsideMask = [WORLD_MASK_RING, ...exteriorRings];
+    const filledIslands = polygons.flatMap((polygon) => polygon.slice(1).map((ring) => [ring]));
+    return filledIslands.length === 0
+      ? { type: 'Polygon', coordinates: outsideMask }
+      : { type: 'MultiPolygon', coordinates: [outsideMask, ...filledIslands] };
+  }
+  return geometry!;
 }
 
 export function addMapContentSource(

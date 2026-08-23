@@ -1,15 +1,17 @@
 import { MAX_MERCATOR_LATITUDE, type ContentLayer } from '../domain/project';
 
 export type MapBounds = [[number, number], [number, number]];
+const MULTIPOLYGON_FLAT_DEPTH = 2;
 
 function geometryCoordinates(layer: ContentLayer): readonly (readonly [number, number])[] {
   const geometry = layer.geometry;
   if (!geometry) return [];
-  let coordinates: readonly (readonly [number, number])[];
-  if (geometry.type === 'Point') coordinates = [geometry.coordinates];
-  else if (geometry.type === 'LineString') coordinates = geometry.coordinates;
-  else coordinates = geometry.coordinates.flat();
-  return coordinates;
+  switch (geometry.type) {
+    case 'Point': { return [geometry.coordinates]; }
+    case 'LineString': { return geometry.coordinates; }
+    case 'Polygon': { return geometry.coordinates.flat(); }
+    case 'MultiPolygon': { return geometry.coordinates.flat(MULTIPOLYGON_FLAT_DEPTH); }
+  }
 }
 
 export function combinedLayerBounds(layers: readonly ContentLayer[]): MapBounds | undefined {

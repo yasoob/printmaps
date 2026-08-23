@@ -75,6 +75,28 @@ describe('GeoJSON import', () => {
     })]);
   });
 
+  it('imports bounded MultiPolygon features as canonical editable shapes', () => {
+    const [layer] = parseGeoJsonText(JSON.stringify({
+      type: 'Feature',
+      properties: { name: 'Disconnected region' },
+      geometry: {
+        type: 'MultiPolygon',
+        coordinates: [
+          [[[10, 46], [11, 46], [11, 47], [10, 46]]],
+          [[[12, 47], [13, 47], [13, 48], [12, 47]]],
+        ],
+      },
+    }));
+
+    expect(layer).toMatchObject({
+      id: 'geojson-disconnected-region',
+      name: 'Disconnected region',
+      type: 'shape',
+      geometry: { type: 'MultiPolygon' },
+    });
+    expect(layer.geometry?.type === 'MultiPolygon' ? layer.geometry.coordinates : []).toHaveLength(2);
+  });
+
   it.each([
     ['malformed JSON', '{', 'not valid JSON'],
     ['a geometry root', JSON.stringify({ type: 'Point', coordinates: [0, 0] }), 'root must be a Feature or FeatureCollection'],
@@ -100,6 +122,17 @@ describe('GeoJSON import', () => {
         type: 'Polygon', coordinates: [[[0, 0], [1, 0], [1, 1], [0, 1]]],
       },
     }), 'Polygon ring 1 must end at its starting position'],
+    ['an empty MultiPolygon', JSON.stringify({
+      type: 'Feature', properties: {}, geometry: { type: 'MultiPolygon', coordinates: [] },
+    }), 'MultiPolygon needs at least one polygon'],
+    ['an empty MultiPolygon part', JSON.stringify({
+      type: 'Feature', properties: {}, geometry: { type: 'MultiPolygon', coordinates: [[]] },
+    }), 'MultiPolygon polygon 1 needs at least one ring'],
+    ['an open MultiPolygon ring', JSON.stringify({
+      type: 'Feature', properties: {}, geometry: {
+        type: 'MultiPolygon', coordinates: [[[[10, 46], [11, 46], [11, 47], [10, 47]]]],
+      },
+    }), 'MultiPolygon polygon 1 ring 1 must end at its starting position'],
     ['an altitude coordinate', JSON.stringify({
       type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [0, 0, 20] },
     }), 'exactly longitude and latitude'],
@@ -113,7 +146,9 @@ describe('GeoJSON import', () => {
   ])('rejects %s without returning a partial import', (_name, text, message) => {
     expect(() => parseGeoJsonText(text)).toThrow(message);
   });
+});
 
+describe('GeoJSON import limits and identity', () => {
   it('rejects the entire collection when a later feature is invalid', () => {
     const collection = {
       type: 'FeatureCollection',

@@ -141,6 +141,7 @@ export function createLayer({
     Point: 'poi',
     LineString: 'route',
     Polygon: 'shape',
+    MultiPolygon: 'shape',
   };
   const type = layerTypes[geometry.type];
   return {

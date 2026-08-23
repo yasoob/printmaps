@@ -2,11 +2,11 @@ import { createInitialProjectDocument } from '../../src/domain/project';
 import { parseProjectFileText } from '../../src/domain/projectFile';
 
 describe('portable project validation', () => {
-  it('rejects the obsolete schema-14 format with a reset-oriented message', () => {
-    const obsolete = { ...createInitialProjectDocument(), schemaVersion: 14 };
+  it('rejects the obsolete schema-15 format with a reset-oriented message', () => {
+    const obsolete = { ...createInitialProjectDocument(), schemaVersion: 15 };
 
     expect(() => parseProjectFileText(JSON.stringify(obsolete))).toThrow(
-      'Schema version 14 is obsolete. Start a new project or reopen a current Print Map Studio file.',
+      'Schema version 15 is obsolete. Start a new project or reopen a current Print Map Studio file.',
     );
   });
 
@@ -31,6 +31,28 @@ describe('portable project validation', () => {
     expect(parsed).not.toBe(source);
     expect(parsed.layers[0]).not.toBe(source.layers[0]);
     expect(parsed.layers[0].geometry).not.toBe(source.layers[0].geometry);
+  });
+
+  it('round-trips detached canonical MultiPolygon shape geometry', () => {
+    const source = createInitialProjectDocument();
+    const shape = source.layers.find(({ type }) => type === 'shape');
+    if (!shape) throw new Error('Expected shape fixture.');
+    shape.geometry = {
+      type: 'MultiPolygon',
+      coordinates: [
+        [[[10, 46], [11, 46], [11, 47], [10, 46]]],
+        [[[12, 47], [13, 47], [13, 48], [12, 47]]],
+      ],
+    };
+
+    const parsed = parseProjectFileText(JSON.stringify(source));
+    const parsedShape = parsed.layers.find(({ type }) => type === 'shape');
+
+    expect(parsedShape?.geometry).toEqual(shape.geometry);
+    expect(parsedShape?.geometry).not.toBe(shape.geometry);
+    expect(parsedShape?.geometry?.type === 'MultiPolygon'
+      ? parsedShape.geometry.coordinates[0]
+      : undefined).not.toBe(shape.geometry.coordinates[0]);
   });
 
   it('preserves a current portable project custom basemap layer name', () => {
@@ -93,6 +115,27 @@ describe('portable project validation', () => {
         geometry: { type: 'Point', coordinates: [16, 86] },
       }],
     }), 'latitude must be between -85.051129 and 85.051129'],
+    ['an empty MultiPolygon', JSON.stringify({
+      ...createInitialProjectDocument(),
+      layers: [{
+        ...createInitialProjectDocument().layers[2],
+        geometry: { type: 'MultiPolygon', coordinates: [] },
+      }],
+    }), 'MultiPolygon geometry needs at least one polygon'],
+    ['an empty MultiPolygon part', JSON.stringify({
+      ...createInitialProjectDocument(),
+      layers: [{
+        ...createInitialProjectDocument().layers[2],
+        geometry: { type: 'MultiPolygon', coordinates: [[]] },
+      }],
+    }), 'MultiPolygon polygon 1 needs at least one ring'],
+    ['an open MultiPolygon ring', JSON.stringify({
+      ...createInitialProjectDocument(),
+      layers: [{
+        ...createInitialProjectDocument().layers[2],
+        geometry: { type: 'MultiPolygon', coordinates: [[[[10, 46], [11, 46], [11, 47], [10, 47]]]] },
+      }],
+    }), 'Each MultiPolygon polygon 1 ring must end at its starting position'],
     ['geometry that contradicts its layer type', JSON.stringify({
       ...createInitialProjectDocument(),
       layers: [{

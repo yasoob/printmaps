@@ -64,6 +64,31 @@ function positionAt(
   return [longitude, latitude];
 }
 
+function polygonCoordinatesAt(
+  value: unknown,
+  label: string,
+  coordinateCount: CoordinateCounter,
+) {
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new GeoJsonImportError(`${label} needs at least one ring.`);
+  }
+  return value.map((candidateRing, ringIndex) => {
+    const ringLabel = `${label} ring ${ringIndex + 1}`;
+    if (!Array.isArray(candidateRing) || candidateRing.length < 4) {
+      throw new GeoJsonImportError(`${ringLabel} needs at least four positions.`);
+    }
+    const ring = candidateRing.map((position, positionIndex) => (
+      positionAt(position, `${ringLabel} position ${positionIndex + 1}`, coordinateCount)
+    ));
+    const first = ring[0];
+    const last = ring.at(-1);
+    if (!last || first[0] !== last[0] || first[1] !== last[1]) {
+      throw new GeoJsonImportError(`${ringLabel} must end at its starting position.`);
+    }
+    return ring;
+  });
+}
+
 function geometryAt(
   value: unknown,
   featureLabel: string,
@@ -88,26 +113,22 @@ function geometryAt(
     };
   }
   if (geometry.type === 'Polygon') {
-    if (!Array.isArray(geometry.coordinates) || geometry.coordinates.length === 0) {
-      throw new GeoJsonImportError(`${featureLabel} Polygon needs at least one ring.`);
-    }
     return {
       type: 'Polygon',
-      coordinates: geometry.coordinates.map((candidateRing, ringIndex) => {
-        const ringLabel = `${featureLabel} Polygon ring ${ringIndex + 1}`;
-        if (!Array.isArray(candidateRing) || candidateRing.length < 4) {
-          throw new GeoJsonImportError(`${ringLabel} needs at least four positions.`);
-        }
-        const ring = candidateRing.map((position, positionIndex) => (
-          positionAt(position, `${ringLabel} position ${positionIndex + 1}`, coordinateCount)
-        ));
-        const first = ring[0];
-        const last = ring.at(-1);
-        if (!last || first[0] !== last[0] || first[1] !== last[1]) {
-          throw new GeoJsonImportError(`${ringLabel} must end at its starting position.`);
-        }
-        return ring;
-      }),
+      coordinates: polygonCoordinatesAt(geometry.coordinates, `${featureLabel} Polygon`, coordinateCount),
+    };
+  }
+  if (geometry.type === 'MultiPolygon') {
+    if (!Array.isArray(geometry.coordinates) || geometry.coordinates.length === 0) {
+      throw new GeoJsonImportError(`${featureLabel} MultiPolygon needs at least one polygon.`);
+    }
+    return {
+      type: 'MultiPolygon',
+      coordinates: geometry.coordinates.map((polygon, polygonIndex) => polygonCoordinatesAt(
+        polygon,
+        `${featureLabel} MultiPolygon polygon ${polygonIndex + 1}`,
+        coordinateCount,
+      )),
     };
   }
   throw new GeoJsonImportError(`${featureLabel} geometry type ${String(geometry.type)} is not supported.`);

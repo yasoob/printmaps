@@ -184,6 +184,12 @@ function routeTravelModeMarker(
   return `<g data-route-travel-profile="${appearance.travelProfile}" aria-label="${escapeXml(label)} travel-mode marker"><circle cx="${formatNumber(point.x)}" cy="${formatNumber(point.y)}" r="4" fill="${escapeXml(color)}" stroke="#ffffff" stroke-width="0.6"/><text x="${formatNumber(point.x)}" y="${formatNumber(point.y)}" fill="#ffffff" font-family="sans-serif" font-size="1.8" font-weight="700" text-anchor="middle" dominant-baseline="middle">${escapeXml(label)}</text></g>`;
 }
 
+function isGeometryMatchingLayer(layer: ContentLayer, geometry: LayerGeometry | undefined): boolean {
+  if (layer.type === 'shape') return geometry?.type === 'Polygon' || geometry?.type === 'MultiPolygon';
+  if (layer.type === 'basemap') return false;
+  return geometry?.type === expectedGeometry[layer.type];
+}
+
 function geometryElement(
   layer: ContentLayer,
   options: PrintSceneOptions,
@@ -192,7 +198,7 @@ function geometryElement(
   const { assets, width, height } = context;
   if (layer.type === 'basemap') throw new PrintSceneError('Unexpected basemap geometry request.');
   const geometry = layer.geometry;
-  if (!geometry || geometry.type !== expectedGeometry[layer.type]) {
+  if (!geometry || !isGeometryMatchingLayer(layer, geometry)) {
     throw new PrintSceneError(`Layer "${layer.id}" is missing valid ${expectedGeometry[layer.type]} geometry.`);
   }
   const style = resolvePrintLayerStyle(layer, (message) => { throw new PrintSceneError(message); });

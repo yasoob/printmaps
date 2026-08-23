@@ -17,6 +17,21 @@ function signedRingArea(ring: readonly (readonly [number, number])[]): number {
 }
 
 describe('bundled administrative areas', () => {
+  it('represents Tyrol as its exact disconnected MultiPolygon geometry', () => {
+    const tyrol = administrativeAreaById('AT-7');
+
+    expect(tyrol).toMatchObject({
+      id: 'AT-7',
+      name: 'Tyrol',
+      level: 'region',
+      geometry: { type: 'MultiPolygon' },
+    });
+    expect(tyrol?.geometry.type === 'MultiPolygon' ? tyrol.geometry.coordinates : []).toHaveLength(2);
+    expect(tyrol?.geometry.type === 'MultiPolygon'
+      ? tyrol.geometry.coordinates.map((polygon) => polygon[0].length)
+      : []).toEqual([332, 102]);
+  });
+
   it('exposes a small sourced country catalogue with closed bounded polygons', () => {
     expect(ADMINISTRATIVE_AREAS.filter(({ level }) => level === 'country').map(({ id, name }) => ({ id, name }))).toEqual([
       { id: 'AUT', name: 'Austria' },
@@ -26,16 +41,21 @@ describe('bundled administrative areas', () => {
 
     for (const area of ADMINISTRATIVE_AREAS) {
       expect(area.source).toContain('Natural Earth');
-      expect(area.geometry.type).toBe('Polygon');
-      const ring = area.geometry.coordinates[0];
-      expect(ring.length).toBeGreaterThanOrEqual(4);
-      expect(ring.at(-1)).toEqual(ring[0]);
-      expect(ring.every(([longitude, latitude]) => (
-        Number.isFinite(longitude)
-        && Number.isFinite(latitude)
-        && Math.abs(longitude) <= 180
-        && Math.abs(latitude) <= 90
-      ))).toBe(true);
+      const polygons = area.geometry.type === 'Polygon'
+        ? [area.geometry.coordinates]
+        : area.geometry.coordinates;
+      for (const polygon of polygons) {
+        for (const ring of polygon) {
+          expect(ring.length).toBeGreaterThanOrEqual(4);
+          expect(ring.at(-1)).toEqual(ring[0]);
+          expect(ring.every(([longitude, latitude]) => (
+            Number.isFinite(longitude)
+            && Number.isFinite(latitude)
+            && Math.abs(longitude) <= 180
+            && Math.abs(latitude) <= 90
+          ))).toBe(true);
+        }
+      }
     }
     expect(administrativeAreaById('missing')).toBeUndefined();
   });
@@ -48,6 +68,7 @@ describe('bundled administrative areas', () => {
       { id: 'AT-4', name: 'Upper Austria' },
       { id: 'AT-5', name: 'Salzburg' },
       { id: 'AT-6', name: 'Styria' },
+      { id: 'AT-7', name: 'Tyrol' },
       { id: 'AT-8', name: 'Vorarlberg' },
       { id: 'AT-9', name: 'Vienna' },
     ]);
@@ -62,9 +83,10 @@ describe('bundled administrative areas', () => {
       name: 'Lower Austria + Vienna',
       geometry: { type: 'Polygon' },
     });
-    expect(merged?.geometry.coordinates).toHaveLength(1);
-    expect(new Set(merged?.geometry.coordinates[0].map(String))).toEqual(new Set(lowerAustria?.geometry.coordinates[0].map(String)));
-    expect(signedRingArea(merged!.geometry.coordinates[0])).toBeGreaterThan(0);
+    if (merged?.geometry.type !== 'Polygon') throw new Error('Expected a merged Polygon.');
+    expect(merged.geometry.coordinates).toHaveLength(1);
+    expect(new Set(merged.geometry.coordinates[0].map(String))).toEqual(new Set(lowerAustria?.geometry.coordinates[0].map(String)));
+    expect(signedRingArea(merged.geometry.coordinates[0])).toBeGreaterThan(0);
     expect(mergeAdministrativeAreas(['AT-3', 'missing'])).toBeUndefined();
   });
 
@@ -96,6 +118,20 @@ describe('bundled administrative areas', () => {
 
     store.getState().createAdministrativeArea('missing');
     expect(store.getState().canUndo).toBe(false);
+  });
+
+  it('adds Tyrol as a detached canonical MultiPolygon in one undoable edit', () => {
+    const store = createProjectStore(createInitialProjectDocument());
+
+    store.getState().createAdministrativeAreas(['AT-7']);
+
+    const layer = store.getState().document.layers.find(({ id }) => id === 'admin-at-7');
+    expect(layer?.geometry).toMatchObject({ type: 'MultiPolygon' });
+    expect(layer?.geometry?.type === 'MultiPolygon' ? layer.geometry.coordinates : []).toHaveLength(2);
+    expect(layer?.geometry).not.toBe(administrativeAreaById('AT-7')?.geometry);
+    expect(store.getState().selectedId).toBe('admin-at-7');
+    store.getState().undo();
+    expect(store.getState().document.layers.some(({ id }) => id === 'admin-at-7')).toBe(false);
   });
 
   it('adds a merged region selection as one canonical layer and one undo step', () => {

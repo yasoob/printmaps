@@ -24,7 +24,7 @@ export function AdministrativeAreaPicker({ onAdd, onMerge }: AdministrativeAreaP
     setSelectedRegionIds((current) => isChecked ? [...current, id] : current.filter((candidate) => candidate !== id));
   };
   const mergeRegions = () => {
-    if (!onMerge(selectedRegionIds)) setRegionError('Choose regions that share a border, then retry.');
+    if (!onMerge(selectedRegionIds)) setRegionError('Choose connected single-part regions, or add Tyrol separately.');
   };
 
   return (

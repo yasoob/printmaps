@@ -13,6 +13,7 @@ import {
 } from '../../domain/routeProfiles';
 import { CoordinateField } from './CoordinateField';
 import { ElevationProfilePanel } from './ElevationProfilePanel';
+import { MultiPartGeometryStatus } from './MultiPartGeometryStatus';
 import { PoiAppearanceControls } from './PoiAppearanceControls';
 import { PropertyRow, PropertySection } from './PropertyControls';
 import { RouteVertexControls } from './RouteVertexControls';
@@ -242,6 +243,9 @@ function LayerTypeProperties({
             <PropertySection title="Vertices">
               <ShapeVertexControls key={layer.id} coordinates={layer.geometry.coordinates} onChange={onShapeVertexChange} />
             </PropertySection>
+          )}
+          {layer.geometry?.type === 'MultiPolygon' && (
+            <MultiPartGeometryStatus partCount={layer.geometry.coordinates.length} />
           )}
         </>
       );

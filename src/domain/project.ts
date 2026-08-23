@@ -9,7 +9,7 @@ export type {
   ShapeAppearance,
 } from './layerAppearance';
 
-export const PROJECT_SCHEMA_VERSION = 15 as const;
+export const PROJECT_SCHEMA_VERSION = 16 as const;
 export const MAX_MERCATOR_LATITUDE = 85.051129;
 export const MAX_MAP_ZOOM = 22;
 
@@ -48,10 +48,14 @@ export type MapStyleSettings = {
   visibility: MapFeatureVisibility;
 };
 
+export type PolygonGeometry = { type: 'Polygon'; coordinates: [number, number][][] };
+export type MultiPolygonGeometry = { type: 'MultiPolygon'; coordinates: [number, number][][][] };
+export type ShapeGeometry = PolygonGeometry | MultiPolygonGeometry;
+
 export type LayerGeometry =
+  | ShapeGeometry
   | { type: 'Point'; coordinates: [number, number] }
-  | { type: 'LineString'; coordinates: [number, number][] }
-  | { type: 'Polygon'; coordinates: [number, number][][] };
+  | { type: 'LineString'; coordinates: [number, number][] };
 
 export type ContentLayer = {
   id: string;
@@ -134,13 +138,22 @@ export function cloneContentLayer(layer: ContentLayer): ContentLayer {
       },
     };
   }
-  return {
+  if (layer.geometry.type === 'Polygon') return {
     ...copy,
     geometry: {
       ...layer.geometry,
       coordinates: layer.geometry.coordinates.map((ring) => ring.map((position) => (
         [position[0], position[1]] as [number, number]
       ))),
+    },
+  };
+  return {
+    ...copy,
+    geometry: {
+      ...layer.geometry,
+      coordinates: layer.geometry.coordinates.map((polygon) => polygon.map((ring) => ring.map((position) => (
+        [position[0], position[1]] as [number, number]
+      )))),
     },
   };
 }

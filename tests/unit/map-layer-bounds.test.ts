@@ -23,6 +23,20 @@ describe('map layer bounds', () => {
     expect(layerBounds([layer], 'missing')).toBeUndefined();
   });
 
+  it('computes bounds across every disconnected MultiPolygon part', () => {
+    const area = administrativeAreaById('AT-7');
+    if (!area) throw new Error('Tyrol fixture unavailable.');
+    const layer: ContentLayer = {
+      id: 'admin-at-7', name: area.name, type: 'shape', visible: true, locked: false, opacity: 28,
+      geometry: area.geometry,
+    };
+
+    expect(layerBounds([layer], 'admin-at-7')).toEqual([
+      [10.081121, 46.65121],
+      [12.951179, 47.732023],
+    ]);
+  });
+
   it('combines the complete extent of multiple imported geometries', () => {
     const layers: ContentLayer[] = [
       {

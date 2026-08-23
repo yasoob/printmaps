@@ -31,6 +31,33 @@ function jpegCapture(): PreviewPng {
 }
 
 describe('inverted shape print parity', () => {
+  it('prints every disconnected MultiPolygon part in layered SVG and PDF', async () => {
+    const project = createInitialProjectDocument();
+    project.layers[2].geometry = {
+      type: 'MultiPolygon',
+      coordinates: [
+        [[[10, 46], [11, 46], [11, 47], [10, 46]]],
+        [[[12, 47], [13, 47], [13, 48], [12, 47]]],
+      ],
+    };
+
+    const svgText = serializePrintScene(project, {
+      basemap: { dataUri: onePixelPng, pixelWidth: 1, pixelHeight: 1 },
+      attribution: '© OpenStreetMap contributors',
+      project: projector,
+    });
+    const svg = new DOMParser().parseFromString(svgText, 'image/svg+xml');
+    const path = svg.querySelector(':scope [data-layer-id="area-center"] path');
+    expect(path?.getAttribute('d')?.match(/M /g)).toHaveLength(2);
+
+    const pdf = await createPrintPdf(project, jpegCapture());
+    const text = new TextDecoder('latin1').decode(await pdf.arrayBuffer());
+    const shapeStart = text.indexOf('% Vector layer: City center');
+    const shapeEnd = text.indexOf('% Vector layer: Coffee stop', shapeStart);
+    const shapeCommands = text.slice(shapeStart, shapeEnd);
+    expect(shapeCommands.match(/\nh/g)).toHaveLength(2);
+  });
+
   it('fills outside the polygon in layered SVG without outlining the page edge', () => {
     const svgText = serializePrintScene(invertedProject(), {
       basemap: { dataUri: onePixelPng, pixelWidth: 1, pixelHeight: 1 },

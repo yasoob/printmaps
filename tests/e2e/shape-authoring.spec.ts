@@ -82,11 +82,11 @@ test('bundled administrative regions merge without an internal border and retain
 
   await page.getByRole('button', { name: 'Shape (S)' }).click();
   await page.getByRole('combobox', { name: 'Administrative level' }).selectOption('region');
-  await expect(page.getByRole('group', { name: 'Regions' }).getByRole('checkbox')).toHaveCount(8);
+  await expect(page.getByRole('group', { name: 'Regions' }).getByRole('checkbox')).toHaveCount(9);
   await page.getByRole('checkbox', { name: 'Burgenland' }).check();
   await page.getByRole('checkbox', { name: 'Vorarlberg' }).check();
   await page.getByRole('button', { name: 'Merge 2 selected areas' }).click();
-  await expect(page.getByRole('alert', { name: 'Administrative area status' })).toContainText('share a border');
+  await expect(page.getByRole('alert', { name: 'Administrative area status' })).toContainText('connected single-part regions');
   await page.getByRole('checkbox', { name: 'Burgenland' }).uncheck();
   await page.getByRole('checkbox', { name: 'Vorarlberg' }).uncheck();
   await page.getByRole('checkbox', { name: 'Lower Austria' }).check();
@@ -102,7 +102,7 @@ test('bundled administrative regions merge without an internal border and retain
   const savePath = testInfo.outputPath('administrative-area.printmap.json');
   await save.saveAs(savePath);
   const savedProject = JSON.parse(await readFile(savePath, 'utf8'));
-  expect(savedProject.schemaVersion).toBe(15);
+  expect(savedProject.schemaVersion).toBe(16);
   const savedArea = savedProject.layers.find(({ id }: { id: string }) => id === 'admin-at-3-at-9');
   expect(savedArea.appearance.invert).toBe(true);
   expect(savedArea.name).toBe('Lower Austria + Vienna');
@@ -141,5 +141,55 @@ test('bundled administrative regions merge without an internal border and retain
   expect(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('.map-authoring-panel') !== null, overlapPoint)).toBe(true);
   expect(await page.evaluate(() => document.body.scrollWidth - window.innerWidth)).toBe(0);
   await page.getByRole('button', { name: 'Cancel shape' }).click();
+  expect(consoleProblems).toEqual([]);
+});
+
+test('Tyrol keeps both disconnected parts through live map, save, and layered SVG', async ({ page }, testInfo) => {
+  const consoleProblems: string[] = [];
+  page.on('pageerror', (error) => { consoleProblems.push(error.message); });
+  page.on('console', (message) => {
+    if ((message.type() === 'error' || message.type() === 'warning') && !isHeadlessWebGlDiagnostic(message.text())) {
+      consoleProblems.push(message.text());
+    }
+  });
+  await page.goto('/');
+  await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
+
+  await page.getByRole('button', { name: 'Shape (S)' }).click();
+  await page.getByRole('combobox', { name: 'Administrative level' }).selectOption('region');
+  await expect(page.getByRole('group', { name: 'Regions' }).getByRole('checkbox')).toHaveCount(9);
+  await page.getByRole('checkbox', { name: 'Tyrol' }).check();
+  await page.getByRole('button', { name: 'Add selected area' }).click();
+  await expect(page.getByRole('button', { name: 'Select Tyrol' })).toHaveAttribute('aria-current', 'true');
+  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-geometry', /admin-at-7:\[\[\[\[/);
+  await expect(page.getByRole('status', { name: 'Multi-part geometry status' })).toContainText('2 disconnected parts');
+  await expect(page.getByRole('heading', { name: 'Vertices' })).toHaveCount(0);
+  await page.getByRole('checkbox', { name: 'Invert shape fill' }).check();
+  if (testInfo.project.name === 'chromium') {
+    await page.waitForLoadState('networkidle');
+    await page.screenshot({ path: 'docs/screenshots/latest-desktop.png' });
+  }
+
+  const savePromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  const save = await savePromise;
+  const savePath = testInfo.outputPath('tyrol.printmap.json');
+  await save.saveAs(savePath);
+  const savedProject = JSON.parse(await readFile(savePath, 'utf8'));
+  const tyrol = savedProject.layers.find(({ id }: { id: string }) => id === 'admin-at-7');
+  expect(savedProject.schemaVersion).toBe(16);
+  expect(tyrol.geometry.type).toBe('MultiPolygon');
+  expect(tyrol.geometry.coordinates).toHaveLength(2);
+
+  await page.getByRole('button', { name: 'Export' }).click();
+  const svgPromise = page.waitForEvent('download');
+  await page.getByRole('dialog', { name: 'Export map' }).getByRole('button', { name: 'Download layered SVG' }).click();
+  const svgDownload = await svgPromise;
+  const svgPath = testInfo.outputPath('tyrol.layered.svg');
+  await svgDownload.saveAs(svgPath);
+  const svg = await readFile(svgPath, 'utf8');
+  const tyrolGroup = svg.match(/data-layer-id="admin-at-7"[^>]*>[\s\S]*?<\/g>/)?.[0] ?? '';
+  expect(tyrolGroup).toContain('data-shape-fill="inverted"');
+  expect(tyrolGroup.match(/M /g)?.length).toBeGreaterThanOrEqual(4);
   expect(consoleProblems).toEqual([]);
 });

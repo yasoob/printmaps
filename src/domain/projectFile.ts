@@ -1,5 +1,4 @@
 import {
-  MAX_MERCATOR_LATITUDE,
   PROJECT_SCHEMA_VERSION,
   type ContentLayer,
   type LayerGeometry,
@@ -10,6 +9,7 @@ import {
   type PagePreset,
   type ProjectDocument,
 } from './project';
+import { parseLayerGeometry } from './projectGeometry';
 import { parseProjectCamera } from './projectCamera';
 import { parseLayerAppearance, type LayerAppearance } from './layerAppearance';
 import type { CustomMarkerAsset } from './customMarkerAssets';
@@ -69,64 +69,11 @@ function positiveNumber(value: unknown, label: string) {
   return number;
 }
 
-function positionAt(value: unknown, label: string, coordinateCount: { value: number }): [number, number] {
-  if (!Array.isArray(value) || value.length !== 2) {
-    throw new ProjectFileError(`${label} must contain exactly longitude and latitude.`);
-  }
-  const longitude = finiteNumber(value[0], `${label} longitude`);
-  const latitude = finiteNumber(value[1], `${label} latitude`);
-  if (Math.abs(longitude) > 180) {
-    throw new ProjectFileError(`${label} longitude must be between -180 and 180.`);
-  }
-  if (Math.abs(latitude) > MAX_MERCATOR_LATITUDE) {
-    throw new ProjectFileError(`${label} latitude must be between -${MAX_MERCATOR_LATITUDE} and ${MAX_MERCATOR_LATITUDE}.`);
-  }
-  coordinateCount.value += 1;
-  if (coordinateCount.value > MAX_PROJECT_COORDINATES) {
-    throw new ProjectFileError(`Projects may contain at most ${MAX_PROJECT_COORDINATES.toLocaleString()} positions.`);
-  }
-  return [longitude, latitude];
-}
-
 function geometryAt(value: unknown, label: string, coordinateCount: { value: number }): LayerGeometry {
-  const geometry = objectAt(value, `${label} geometry`);
-  if (geometry.type === 'Point') {
-    return { type: 'Point', coordinates: positionAt(geometry.coordinates, `${label} Point`, coordinateCount) };
-  }
-  if (geometry.type === 'LineString') {
-    if (!Array.isArray(geometry.coordinates) || geometry.coordinates.length < 2) {
-      throw new ProjectFileError('LineString geometry needs at least two positions.');
-    }
-    return {
-      type: 'LineString',
-      coordinates: geometry.coordinates.map((position, index) => (
-        positionAt(position, `${label} LineString position ${index + 1}`, coordinateCount)
-      )),
-    };
-  }
-  if (geometry.type === 'Polygon') {
-    if (!Array.isArray(geometry.coordinates) || geometry.coordinates.length === 0) {
-      throw new ProjectFileError('Polygon geometry needs at least one ring.');
-    }
-    const coordinates = geometry.coordinates.map((candidateRing, ringIndex) => {
-      if (!Array.isArray(candidateRing) || candidateRing.length < 4) {
-        throw new ProjectFileError('Each Polygon ring needs at least four positions.');
-      }
-      const ring = candidateRing.map((position, positionIndex) => positionAt(
-        position,
-        `${label} Polygon ring ${ringIndex + 1} position ${positionIndex + 1}`,
-        coordinateCount,
-      ));
-      const first = ring[0];
-      const last = ring.at(-1);
-      if (!last || first[0] !== last[0] || first[1] !== last[1]) {
-        throw new ProjectFileError('Each Polygon ring must end at its starting position.');
-      }
-      return ring;
-    });
-    return { type: 'Polygon', coordinates };
-  }
-  throw new ProjectFileError(`${label} geometry type must be Point, LineString, or Polygon.`);
+  return parseLayerGeometry(value, label, coordinateCount, {
+    maximumCoordinates: MAX_PROJECT_COORDINATES,
+    fail: (message) => { throw new ProjectFileError(message); },
+  });
 }
 
 function optionalAppearance(appearance: LayerAppearance | undefined) {
@@ -151,50 +98,75 @@ function layerAppearanceAt(
   return appearance;
 }
 
+const EXPECTED_GEOMETRY = { route: 'LineString', poi: 'Point', basemap: null } as const;
+
+function layerTypeAt(value: unknown, index: number): LayerType {
+  if (typeof value !== 'string' || !LAYER_TYPES.has(value as LayerType)) {
+    throw new ProjectFileError(`Layer ${index + 1} type is not supported.`);
+  }
+  return value as LayerType;
+}
+
+function layerOpacityAt(value: unknown, index: number): number {
+  const opacity = finiteNumber(value, `Layer ${index + 1} opacity`);
+  if (opacity < 0 || opacity > 100) {
+    throw new ProjectFileError(`Layer ${index + 1} opacity must be between 0 and 100.`);
+  }
+  return opacity;
+}
+
+function validatedLayerGeometry(
+  value: unknown,
+  type: LayerType,
+  index: number,
+  coordinateCount: { value: number },
+): LayerGeometry | undefined {
+  if (value === undefined) return;
+  const geometry = geometryAt(value, `Layer ${index + 1}`, coordinateCount);
+  const isGeometryAllowed = type === 'shape'
+    ? geometry.type === 'Polygon' || geometry.type === 'MultiPolygon'
+    : geometry.type === EXPECTED_GEOMETRY[type as Exclude<LayerType, 'shape'>];
+  if (isGeometryAllowed) return geometry;
+  const layerLabel = type === 'poi' ? 'POI' : `${type[0].toUpperCase()}${type.slice(1)}`;
+  const expectedLabel = type === 'shape'
+    ? 'Polygon or MultiPolygon'
+    : EXPECTED_GEOMETRY[type as Exclude<LayerType, 'shape'>] ?? 'no';
+  throw new ProjectFileError(`${layerLabel} layers may only contain ${expectedLabel} geometry.`);
+}
+
+function layerAt(
+  candidate: unknown,
+  index: number,
+  context: Readonly<{
+    ids: Set<string>;
+    coordinateCount: { value: number };
+    assets: Record<string, CustomMarkerAsset>;
+  }>,
+): ContentLayer {
+  const layer = objectAt(candidate, `Layer ${index + 1}`);
+  const id = nonEmptyString(layer.id, `Layer ${index + 1} ID`);
+  if (context.ids.has(id)) throw new ProjectFileError('Layer IDs must be unique.');
+  context.ids.add(id);
+  const type = layerTypeAt(layer.type, index);
+  const appearance = layerAppearanceAt(layer, type, index, context.assets);
+  const geometry = validatedLayerGeometry(layer.geometry, type, index, context.coordinateCount);
+  return {
+    id,
+    name: nonEmptyString(layer.name, `Layer ${index + 1} name`),
+    type,
+    visible: booleanAt(layer.visible, `Layer ${index + 1} visibility`),
+    locked: booleanAt(layer.locked, `Layer ${index + 1} lock state`),
+    opacity: layerOpacityAt(layer.opacity, index),
+    ...optionalAppearance(appearance),
+    ...(geometry && { geometry }),
+  };
+}
+
 function layersAt(value: unknown, assets: Record<string, CustomMarkerAsset>) {
   if (!Array.isArray(value)) throw new ProjectFileError('Project layers must be an array.');
   if (value.length > MAX_PROJECT_LAYERS) throw new ProjectFileError(`Projects may contain at most ${MAX_PROJECT_LAYERS} layers.`);
-  const ids = new Set<string>();
-  const coordinateCount = { value: 0 };
-  return value.map((candidate, index): ContentLayer => {
-    const layer = objectAt(candidate, `Layer ${index + 1}`);
-    const id = nonEmptyString(layer.id, `Layer ${index + 1} ID`);
-    if (ids.has(id)) throw new ProjectFileError('Layer IDs must be unique.');
-    ids.add(id);
-    if (typeof layer.type !== 'string' || !LAYER_TYPES.has(layer.type as LayerType)) {
-      throw new ProjectFileError(`Layer ${index + 1} type is not supported.`);
-    }
-    const opacity = finiteNumber(layer.opacity, `Layer ${index + 1} opacity`);
-    if (opacity < 0 || opacity > 100) {
-      throw new ProjectFileError(`Layer ${index + 1} opacity must be between 0 and 100.`);
-    }
-    const type = layer.type as LayerType;
-    const appearance = layerAppearanceAt(layer, type, index, assets);
-    const geometry = layer.geometry === undefined
-      ? undefined
-      : geometryAt(layer.geometry, `Layer ${index + 1}`, coordinateCount);
-    const expectedGeometry = {
-      route: 'LineString',
-      poi: 'Point',
-      shape: 'Polygon',
-      basemap: null,
-    } as const;
-    if (geometry && geometry.type !== expectedGeometry[type]) {
-      const layerLabel = type === 'poi' ? 'POI' : `${type[0].toUpperCase()}${type.slice(1)}`;
-      const expectedLabel = expectedGeometry[type] ?? 'no';
-      throw new ProjectFileError(`${layerLabel} layers may only contain ${expectedLabel} geometry.`);
-    }
-    return {
-      id,
-      name: nonEmptyString(layer.name, `Layer ${index + 1} name`),
-      type,
-      visible: booleanAt(layer.visible, `Layer ${index + 1} visibility`),
-      locked: booleanAt(layer.locked, `Layer ${index + 1} lock state`),
-      opacity,
-      ...optionalAppearance(appearance),
-      ...(geometry && { geometry }),
-    };
-  });
+  const context = { ids: new Set<string>(), coordinateCount: { value: 0 }, assets };
+  return value.map((candidate, index) => layerAt(candidate, index, context));
 }
 
 function pageAt(value: unknown): ProjectDocument['page'] {
@@ -261,7 +233,7 @@ function currentDocumentAt(value: unknown): ProjectDocument {
   const root = objectAt(value, 'Project file');
   const schemaVersion = root.schemaVersion;
   if (!isCurrentSchemaVersion(schemaVersion)) {
-    if (typeof schemaVersion === 'number' && schemaVersion >= 1 && schemaVersion <= 14) {
+    if (typeof schemaVersion === 'number' && schemaVersion >= 1 && schemaVersion <= 15) {
       throw new ProjectFileError(
         `Schema version ${schemaVersion} is obsolete. Start a new project or reopen a current Print Map Studio file.`,
       );

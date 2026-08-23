@@ -24,10 +24,14 @@ function pointText(point: PagePoint): string {
 
 export function serializeShapeElement(options: ShapeElementOptions): string {
   const geometry = options.layer.geometry;
-  if (geometry?.type !== 'Polygon' || geometry.coordinates.length === 0) {
+  if (
+    (geometry?.type !== 'Polygon' && geometry?.type !== 'MultiPolygon')
+    || geometry.coordinates.length === 0
+  ) {
     options.fail(`Layer "${options.layer.id}" polygon must contain at least one ring.`);
   }
-  const rings = geometry.coordinates.map((ring) => {
+  const sourceRings = geometry.type === 'Polygon' ? geometry.coordinates : geometry.coordinates.flat();
+  const rings = sourceRings.map((ring) => {
     if (ring.length < 4) {
       options.fail(`Layer "${options.layer.id}" polygon rings must contain at least four coordinates.`);
     }

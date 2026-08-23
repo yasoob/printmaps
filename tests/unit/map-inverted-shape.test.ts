@@ -53,6 +53,52 @@ describe('inverted shape map geometry', () => {
     });
   });
 
+  it('cuts every MultiPolygon exterior out of one Web Mercator world mask', () => {
+    const layer = invertedLayer();
+    layer.geometry = {
+      type: 'MultiPolygon',
+      coordinates: [
+        [[[10, 45], [11, 45], [11, 46], [10, 45]]],
+        [[[12, 46], [13, 46], [13, 47], [12, 46]]],
+      ],
+    };
+
+    expect(mapGeometryForLayer(layer)).toEqual({
+      type: 'Polygon',
+      coordinates: [
+        [[-180, -85.051129], [180, -85.051129], [180, 85.051129], [-180, 85.051129], [-180, -85.051129]],
+        [[10, 45], [11, 45], [11, 46], [10, 45]],
+        [[12, 46], [13, 46], [13, 47], [12, 46]],
+      ],
+    });
+  });
+
+  it('restores MultiPolygon interior holes as filled islands in the inverted mask', () => {
+    const layer = invertedLayer();
+    layer.geometry = {
+      type: 'MultiPolygon',
+      coordinates: [
+        [
+          [[10, 45], [11, 45], [11, 46], [10, 45]],
+          [[10.2, 45.2], [10.4, 45.2], [10.4, 45.4], [10.2, 45.2]],
+        ],
+        [[[12, 46], [13, 46], [13, 47], [12, 46]]],
+      ],
+    };
+
+    expect(mapGeometryForLayer(layer)).toEqual({
+      type: 'MultiPolygon',
+      coordinates: [
+        [
+          [[-180, -85.051129], [180, -85.051129], [180, 85.051129], [-180, 85.051129], [-180, -85.051129]],
+          [[10, 45], [11, 45], [11, 46], [10, 45]],
+          [[12, 46], [13, 46], [13, 47], [12, 46]],
+        ],
+        [[[10.2, 45.2], [10.4, 45.2], [10.4, 45.4], [10.2, 45.2]]],
+      ],
+    });
+  });
+
   it('keeps the boundary source separate and excludes the outside mask from hit testing', () => {
     const { layers, map, queryRenderedFeatures, sources } = mapHarness();
     const adapter = createMapLibreContentAdapter(map, document.createElement('div'));

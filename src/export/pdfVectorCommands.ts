@@ -211,8 +211,11 @@ export function pdfVectorCommands(
   if (layer.type === 'poi' && layer.geometry.type === 'Point') {
     return poiCommands(layer, layer.geometry.coordinates, context);
   }
-  if (layer.type === 'shape' && layer.geometry.type === 'Polygon') {
-    return shapeCommands(layer, layer.geometry.coordinates, context);
+  if (layer.type === 'shape' && (layer.geometry.type === 'Polygon' || layer.geometry.type === 'MultiPolygon')) {
+    const rings = layer.geometry.type === 'Polygon'
+      ? layer.geometry.coordinates
+      : layer.geometry.coordinates.flat();
+    return shapeCommands(layer, rings, context);
   }
   throw new Error(`Layer "${layer.name}" has geometry that cannot be represented in the PDF.`);
 }

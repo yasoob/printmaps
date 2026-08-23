@@ -26,12 +26,7 @@ function createAreaLayer(set: ProjectSet, resolveArea: () => AdministrativeArea 
         locked: false,
         opacity: 28,
         appearance: createDefaultLayerAppearance('shape'),
-        geometry: {
-          type: 'Polygon',
-          coordinates: area.geometry.coordinates.map((ring) => ring.map(([longitude, latitude]) => (
-            [longitude, latitude]
-          ))),
-        },
+        geometry: structuredClone(area.geometry),
       };
       const layers = [...state.document.layers];
       const basemapIndex = layers.findIndex((candidate) => candidate.type === 'basemap');
