@@ -35,7 +35,7 @@ test('Mapbox public-token origin check fails actionably and succeeds on retry', 
   await expect(mapReady.or(mapFallback)).toBeVisible({ timeout: 20_000 });
   test.skip(await mapFallback.isVisible(), 'This browser runtime has no WebGL 2 renderer, so the live-map configuration flow cannot be verified.');
   await expect(mapReady).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Mapbox services' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Provider services' })).toBeVisible();
   await expect(page.getByText(PUBLIC_TEST_TOKEN)).toHaveCount(0);
 
   await page.getByRole('button', { name: 'Check Mapbox connection' }).click();

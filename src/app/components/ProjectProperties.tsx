@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import type { CameraSettings, MapFeatureVisibilityCategory, MapLanguage, MapStylePreset, MapStyleSettings, PageSettings, StandardPagePreset } from '../../domain/project';
 import { MapboxServiceStatus } from './MapboxServiceStatus';
-import { PropertyRow, PropertySection } from './PropertyControls';
+import { InspectorAccordion, PropertyRow } from './PropertyControls';
 import { GeolocationControl } from './GeolocationControl';
 
 function isValidPageDimension(draft: string) {
@@ -149,6 +149,24 @@ type ProjectPropertiesProps = {
   onTextScaleChange: (textScalePercent: number) => void;
 };
 
+const PROJECT_DISCLOSURE_PREFIX = 'print-map-studio:inspector:project';
+
+const MAP_STYLE_LABELS: Record<MapStylePreset, string> = {
+  bright: 'Bright',
+  liberty: 'Liberty',
+  positron: 'Positron',
+};
+
+const MAP_LANGUAGE_LABELS: Record<MapLanguage, string> = {
+  de: 'German',
+  en: 'English',
+  es: 'Spanish',
+  fr: 'French',
+  it: 'Italian',
+  local: 'Local names',
+  zh: 'Chinese',
+};
+
 export function ProjectProperties({
   camera,
   documentEpoch,
@@ -166,25 +184,30 @@ export function ProjectProperties({
   onStyleChange,
   onTextScaleChange,
 }: ProjectPropertiesProps) {
+  const visibleMapDetailCount = Object.values(style.visibility).filter(Boolean).length;
   return (
     <div className="properties-panel">
-      <div className="properties-title"><div><span className="eyebrow">Properties</span><h2 data-project-heading tabIndex={-1}>Project</h2></div><button className="icon-button" type="button" aria-label="Project menu">•••</button></div>
-      <PropertySection title="Page">
+      <div className="properties-title"><h2 data-project-heading tabIndex={-1}>Project</h2><button className="icon-button" type="button" aria-label="Project menu">•••</button></div>
+      <InspectorAccordion isDefaultExpanded storageKey={`${PROJECT_DISCLOSURE_PREFIX}:page`} summary={`${page.preset} ${page.orientation} · ${page.widthMm} × ${page.heightMm} mm`} title="Page">
         <PropertyRow label="Preset"><select aria-label="Page preset" value={page.preset} onChange={(event) => onPresetChange(event.target.value as StandardPagePreset)}><option>A4</option><option>A3</option><option>Letter</option><option disabled>Custom</option></select></PropertyRow>
         <div className="paired-fields">
           <PageDimensionField key={`width-${page.widthMm}-${page.preset}`} label="W" ariaLabel="Page width" dimension="widthMm" value={page.widthMm} onCommit={onDimensionChange} />
           <PageDimensionField key={`height-${page.heightMm}-${page.preset}`} label="H" ariaLabel="Page height" dimension="heightMm" value={page.heightMm} onCommit={onDimensionChange} />
         </div>
         <PropertyRow label="Orientation"><div className="segmented"><button className={page.orientation === 'landscape' ? 'is-active' : undefined} type="button" aria-pressed={page.orientation === 'landscape'} onClick={() => onOrientationChange('landscape')}>Landscape</button><button className={page.orientation === 'portrait' ? 'is-active' : undefined} type="button" aria-pressed={page.orientation === 'portrait'} onClick={() => onOrientationChange('portrait')}>Portrait</button></div></PropertyRow>
-      </PropertySection>
-      <PropertySection title="Map">
+      </InspectorAccordion>
+      <InspectorAccordion isDefaultExpanded storageKey={`${PROJECT_DISCLOSURE_PREFIX}:map-style`} summary={`${MAP_STYLE_LABELS[style.preset]} · ${MAP_LANGUAGE_LABELS[style.language]} · ${style.textScalePercent}%`} title="Map style">
         <PropertyRow label="Style"><select aria-label="Map style" value={style.preset} onChange={(event) => onStyleChange(event.target.value as MapStylePreset)}><option value="liberty">Liberty</option><option value="positron">Positron</option><option value="bright">Bright</option></select></PropertyRow>
         <PropertyRow label="Language"><select aria-label="Map language" value={style.language} onChange={(event) => onLanguageChange(event.target.value as MapLanguage)}><option value="local">Local names</option><option value="en">English</option><option value="de">German</option><option value="fr">French</option><option value="it">Italian</option><option value="es">Spanish</option><option value="zh">Chinese</option></select></PropertyRow>
+        <PropertyRow label="Text scale"><TextScaleField key={`text-scale-${style.textScalePercent}`} value={style.textScalePercent} onCommit={onTextScaleChange} /></PropertyRow>
+      </InspectorAccordion>
+      <InspectorAccordion isDefaultExpanded={false} storageKey={`${PROJECT_DISCLOSURE_PREFIX}:camera-location`} summary={`${camera.bearing}° bearing · ${camera.pitch}° pitch · ${camera.locked ? 'Locked' : 'Unlocked'}`} title="Camera & location">
         <PropertyRow label="Bearing"><CameraField key={`bearing-${camera.bearing}`} field="bearing" value={camera.bearing} onCommit={onBearingChange} /></PropertyRow>
         <PropertyRow label="Pitch"><CameraField key={`pitch-${camera.pitch}`} field="pitch" value={camera.pitch} onCommit={onPitchChange} /></PropertyRow>
-        <PropertyRow label="Text scale"><TextScaleField key={`text-scale-${style.textScalePercent}`} value={style.textScalePercent} onCommit={onTextScaleChange} /></PropertyRow>
         <label className="check-row"><input type="checkbox" checked={camera.locked} onChange={(event) => onMapAreaLockChange(event.target.checked)} /> Lock map area</label>
         <GeolocationControl key={`${documentEpoch}-${String(camera.locked)}`} locked={camera.locked} requestScope={documentEpoch} onLocate={onLocate} />
+      </InspectorAccordion>
+      <InspectorAccordion isDefaultExpanded={false} storageKey={`${PROJECT_DISCLOSURE_PREFIX}:map-details`} summary={`${visibleMapDetailCount} of 7 visible`} title="Map details">
         <label className="check-row"><input type="checkbox" checked={style.visibility.roads} onChange={(event) => onFeatureVisibilityChange('roads', event.target.checked)} /> Show roads</label>
         <label className="check-row"><input type="checkbox" checked={style.visibility.buildings} onChange={(event) => onFeatureVisibilityChange('buildings', event.target.checked)} /> Show buildings</label>
         <label className="check-row"><input type="checkbox" checked={style.visibility.labels} onChange={(event) => onFeatureVisibilityChange('labels', event.target.checked)} /> Show labels</label>
@@ -192,14 +215,14 @@ export function ProjectProperties({
         <label className="check-row"><input type="checkbox" checked={style.visibility.parks} onChange={(event) => onFeatureVisibilityChange('parks', event.target.checked)} /> Show parks</label>
         <label className="check-row"><input type="checkbox" checked={style.visibility.landuse} onChange={(event) => onFeatureVisibilityChange('landuse', event.target.checked)} /> Show land detail</label>
         <label className="check-row"><input type="checkbox" checked={style.visibility.transit} onChange={(event) => onFeatureVisibilityChange('transit', event.target.checked)} /> Show transit</label>
-      </PropertySection>
-      <PropertySection title="Mapbox services">
+      </InspectorAccordion>
+      <InspectorAccordion isDefaultExpanded={false} storageKey={`${PROJECT_DISCLOSURE_PREFIX}:provider-services`} summary="Public-token status and compliance" title="Provider services">
         <MapboxServiceStatus />
-      </PropertySection>
-      <PropertySection title="Export">
+      </InspectorAccordion>
+      <InspectorAccordion isDefaultExpanded={false} storageKey={`${PROJECT_DISCLOSURE_PREFIX}:technical-export`} summary="Browser preview · Attribution included" title="Technical export">
         <PropertyRow label="Resolution"><select aria-label="Export resolution" value="Browser preview" disabled><option>Browser preview</option></select></PropertyRow>
         <label className="check-row"><input type="checkbox" checked disabled readOnly /> Include map attribution</label>
-      </PropertySection>
+      </InspectorAccordion>
     </div>
   );
 }

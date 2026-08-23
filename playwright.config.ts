@@ -6,6 +6,23 @@ export default defineConfig({
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: 'http://127.0.0.1:4175',
+    storageState: {
+      cookies: [],
+      origins: [{
+        origin: 'http://127.0.0.1:4175',
+        localStorage: [
+          'page',
+          'map-style',
+          'camera-location',
+          'map-details',
+          'provider-services',
+          'technical-export',
+        ].map((section) => ({
+          name: `print-map-studio:inspector:project:${section}`,
+          value: 'open',
+        })),
+      }],
+    },
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
