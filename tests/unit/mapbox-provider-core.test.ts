@@ -1,7 +1,9 @@
 import {
   MapboxProviderError,
+  MAPBOX_CONNECTION_PROBE_ENDPOINT,
   PROVIDER_RESPONSE_USE_BOUNDARY,
   PROVIDER_RESPONSE_USE_REQUIRES_TERMS_REVIEW,
+  probeMapboxConnection,
   requestMapboxJson,
   validatePublicBrowserToken,
 } from '../../src/services/mapbox';
@@ -221,6 +223,22 @@ describe('Mapbox request primitive', () => {
       data: { id: 'place.1' },
       useBoundary: PROVIDER_RESPONSE_USE_REQUIRES_TERMS_REVIEW,
     });
+  });
+});
+
+describe('Mapbox deployment connection probe', () => {
+  it('checks the stable HTTPS style endpoint with the validated token and cancellation signal', async () => {
+    const controller = new AbortController();
+    const fetcher = vi.spyOn(globalThis, 'fetch').mockResolvedValue(Response.json({ version: 8 }));
+    const token = validatePublicBrowserToken('pk.fake-public-segment.fake-signature');
+
+    await probeMapboxConnection({ signal: controller.signal, token });
+
+    const [requestedUrl, requestInit] = fetcher.mock.calls[0];
+    const url = new URL(requestedUrl as string);
+    expect(`${url.origin}${url.pathname}`).toBe(MAPBOX_CONNECTION_PROBE_ENDPOINT);
+    expect(url.searchParams.get('access_token')).toBe(token);
+    expect(requestInit?.signal).toBe(controller.signal);
   });
 });
 

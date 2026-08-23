@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import type { CameraSettings, MapFeatureVisibilityCategory, MapStylePreset, MapStyleSettings, PageSettings, StandardPagePreset } from '../../domain/project';
+import { MapboxServiceStatus } from './MapboxServiceStatus';
 import { PropertyRow, PropertySection } from './PropertyControls';
 
 function isValidPageDimension(draft: string) {
@@ -175,6 +176,9 @@ export function ProjectProperties({
         <label className="check-row"><input type="checkbox" checked={style.visibility.roads} onChange={(event) => onFeatureVisibilityChange('roads', event.target.checked)} /> Show roads</label>
         <label className="check-row"><input type="checkbox" checked={style.visibility.buildings} onChange={(event) => onFeatureVisibilityChange('buildings', event.target.checked)} /> Show buildings</label>
         <label className="check-row"><input type="checkbox" checked={style.visibility.labels} onChange={(event) => onFeatureVisibilityChange('labels', event.target.checked)} /> Show labels</label>
+      </PropertySection>
+      <PropertySection title="Mapbox services">
+        <MapboxServiceStatus />
       </PropertySection>
       <PropertySection title="Export">
         <PropertyRow label="Resolution"><select aria-label="Export resolution" value="Browser preview" disabled><option>Browser preview</option></select></PropertyRow>

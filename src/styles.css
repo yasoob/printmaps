@@ -334,6 +334,14 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .segmented button.is-active { border: var(--studio-border-width) solid var(--studio-line-hover); color: var(--studio-text); background: var(--studio-surface); }
 .check-row { @apply flex min-h-[30px] items-center gap-2; color: var(--studio-text-secondary); font-size: var(--studio-font-label); }
 .check-row input { accent-color: var(--studio-accent); }
+.mapbox-service-status { @apply grid gap-1.5; color: var(--studio-text-secondary); font-size: var(--studio-font-meta); line-height: 1.35; }
+.mapbox-service-status strong { color: var(--studio-text-strong); font-size: var(--studio-font-label); }
+.mapbox-service-status p { @apply m-0; overflow-wrap: anywhere; }
+.mapbox-service-status code { font-size: inherit; }
+.mapbox-service-status.is-error, .mapbox-service-status.is-error strong { color: var(--studio-danger); }
+.mapbox-service-status.is-ready strong { color: var(--studio-success); }
+.mapbox-service-status .quiet-button { @apply justify-center justify-self-start px-2; border: var(--studio-border-width) solid var(--studio-line-strong); }
+.mapbox-service-status .quiet-button:disabled { @apply cursor-default; color: var(--studio-text-subtle); }
 .toggle { @apply cursor-pointer p-0.5; width: 1.75rem; height: 1rem; border-radius: 999px; background: var(--studio-line-strong); }
 .toggle span { @apply block h-3 w-3 rounded-full transition-transform; background: var(--studio-surface); }
 .toggle.is-on { background: var(--studio-accent); }

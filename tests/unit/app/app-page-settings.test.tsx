@@ -28,6 +28,9 @@ describe('editor page settings and tools', () => {
     const attribution = screen.getByRole('checkbox', { name: 'Include map attribution' });
     expect(attribution).toBeChecked();
     expect(attribution).toBeDisabled();
+    const mapboxAlert = screen.getByRole('alert');
+    expect(mapboxAlert).toHaveTextContent('Mapbox services unavailable');
+    expect(mapboxAlert).toHaveTextContent('VITE_MAPBOX_PUBLIC_ACCESS');
 
     const select = screen.getByRole('button', { name: 'Select (V)' });
     const pan = screen.getByRole('button', { name: 'Pan (H)' });
