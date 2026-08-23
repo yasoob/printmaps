@@ -16,6 +16,7 @@ type PropertiesSidebarProps = {
   closePanel: (panel?: MobilePanel | null) => void;
   onKeyDown: (event: React.KeyboardEvent<HTMLElement>, panel: MobilePanel) => void;
   onLocate: (coordinate: [number, number], onApplied: () => void) => void;
+  onReplaceLayerData: (layer: ContentLayer, trigger: HTMLElement | null) => void;
 };
 
 function selectedLayerButton(layerId?: string) {
@@ -26,7 +27,7 @@ function selectedLayerButton(layerId?: string) {
 }
 
 export function PropertiesSidebar(props: PropertiesSidebarProps) {
-  const { activePanel, closePanel, onKeyDown, onLocate, panelRef, project, selectedIndex, selectedLayer, setPreviewedLayerId } = props;
+  const { activePanel, closePanel, onKeyDown, onLocate, onReplaceLayerData, panelRef, project, selectedIndex, selectedLayer, setPreviewedLayerId } = props;
   const layers = project.document.layers;
   const clearSelectedPreview = () => {
     if (selectedLayer) setPreviewedLayerId((current) => current === selectedLayer.id ? null : current);
@@ -72,6 +73,7 @@ export function PropertiesSidebar(props: PropertiesSidebarProps) {
           onShapeVertexChange={(ringIndex, vertexIndex, coordinates) => project.setShapeVertex(selectedLayer.id, ringIndex, vertexIndex, coordinates)}
           onToggleVisibility={() => { clearSelectedPreview(); project.toggleLayerVisibility(selectedLayer.id); }}
           onToggleLock={() => project.toggleLayerLock(selectedLayer.id)}
+          onReplace={(trigger) => onReplaceLayerData(selectedLayer, trigger)}
           onDuplicate={duplicateSelected}
           onDelete={deleteSelected}
         />

@@ -59,14 +59,20 @@ describe('editor layer actions', () => {
 
     const menuButton = screen.getByRole('button', { name: 'Layer menu' });
     await user.click(menuButton);
+    const replace = screen.getByRole('menuitem', { name: 'Replace layer data' });
     const duplicate = screen.getByRole('menuitem', { name: 'Duplicate layer' });
+    expect(replace).toBeInTheDocument();
     expect(duplicate).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: 'Delete layer' })).toBeInTheDocument();
+    expect(replace).toHaveFocus();
+    await user.keyboard('{ArrowDown}');
     expect(duplicate).toHaveFocus();
     await user.keyboard('{ArrowDown}');
     expect(screen.getByRole('menuitem', { name: 'Delete layer' })).toHaveFocus();
     await user.keyboard('{ArrowUp}');
     expect(duplicate).toHaveFocus();
+    await user.keyboard('{ArrowUp}');
+    expect(replace).toHaveFocus();
     await user.keyboard('{Escape}');
     expect(screen.queryByRole('menuitem', { name: 'Duplicate layer' })).not.toBeInTheDocument();
     expect(menuButton).toHaveFocus();

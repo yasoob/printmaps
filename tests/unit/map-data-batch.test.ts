@@ -1,4 +1,5 @@
 import type { ContentLayer } from '../../src/domain/project';
+import { MAX_PROJECT_COORDINATES } from '../../src/domain/projectFile';
 import {
   MAX_MAP_DATA_BATCH_BYTES,
   MAX_MAP_DATA_FILES,
@@ -95,5 +96,27 @@ describe('map-data batch import', () => {
     ], existing)).rejects.toThrow('unsupported.txt');
     expect(existing).toHaveLength(1);
     expect(existing[0].id).toBe('existing-point');
+  });
+
+  it('counts every MultiPolygon position against project capacity', async () => {
+    const existing: ContentLayer = {
+      id: 'full-shape',
+      name: 'Full shape',
+      type: 'shape',
+      visible: true,
+      locked: false,
+      opacity: 100,
+      geometry: {
+        type: 'MultiPolygon',
+        coordinates: [[Array.from(
+          { length: MAX_PROJECT_COORDINATES },
+          () => [16, 48] as [number, number],
+        )]],
+      },
+    };
+
+    await expect(parseMapDataFiles([
+      textFile('point.geojson', pointFeature),
+    ], [existing])).rejects.toThrow(`at most ${MAX_PROJECT_COORDINATES.toLocaleString()} positions`);
   });
 });

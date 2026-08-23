@@ -1,7 +1,8 @@
 import { Download, PenLine, Redo2, Share2, Undo2 } from 'lucide-react';
 import type { RefObject } from 'react';
-import type { ContentLayer, ProjectDocument } from '../../domain/project';
+import type { ProjectDocument } from '../../domain/project';
 import type { ProjectState } from '../store';
+import type { LayerReplacementRequest, MapDataImportCommit } from '../hooks/useAppMapDataImport';
 import { GeoJsonImportButton } from './GeoJsonImportButton';
 import { ProjectFileOpenButton, ProjectSaveButton } from './ProjectFileActions';
 
@@ -16,9 +17,10 @@ type StudioHeaderProps = {
   exportDisabled: boolean;
   importDisabled: boolean;
   importOpen: boolean;
+  replacementRequest: LayerReplacementRequest | null;
   inert: boolean;
   onOpen: (document: ProjectDocument) => void;
-  onImport: (layers: readonly ContentLayer[], documentEpoch: number, sourceDocument: ProjectDocument, shouldFitView: boolean) => boolean;
+  onImport: (commit: MapDataImportCommit) => boolean;
   onImportOpenChange: (isOpen: boolean) => void;
   onExport: () => void;
 };
@@ -34,6 +36,7 @@ export function StudioHeader({
   exportDisabled,
   importDisabled,
   importOpen,
+  replacementRequest,
   inert,
   onOpen,
   onImport,
@@ -62,6 +65,7 @@ export function StudioHeader({
           isWorkActive={isImportWorkActive}
           onImport={onImport}
           onOpenChange={onImportOpenChange}
+          replacementRequest={replacementRequest}
           sourceDocument={project.document}
           startImportWork={startImportWork}
         />

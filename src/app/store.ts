@@ -45,6 +45,7 @@ export type ProjectState = {
   moveLayer: (id: string, toIndex: number) => void;
   openDocument: (document: ProjectDocument) => void;
   renameLayer: (id: string, name: string) => void;
+  replaceLayerFromImport: (id: string, layer: ContentLayer, documentEpoch: number, sourceDocument: ProjectDocument) => boolean;
   selectLayer: (id: string | null) => void;
   setCameraBearing: (bearing: number) => void;
   setCameraViewport: (center: readonly [number, number], zoom: number, mode?: 'amend' | 'history') => void;

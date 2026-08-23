@@ -48,7 +48,7 @@ export function App({ autosaveRepository }: AppProps = {}) {
   const importButtonRef = useRef<HTMLButtonElement>(null);
   const mobile = useMobilePanels();
   const handleMapDataImported = useCallback(() => setPreviewedLayerId(null), []);
-  const mapDataImport = useAppMapDataImport(project.importLayers, autosave.recoveryDraft !== null || autosave.corrupted, handleMapDataImported);
+  const mapDataImport = useAppMapDataImport(project.importLayers, project.replaceLayerFromImport, autosave.recoveryDraft !== null || autosave.corrupted, handleMapDataImported);
   const modal = useAutosaveModalArbitration({ autosave, exportButtonRef, exportOpen, importButtonRef, importOpen: mapDataImport.isImportOpen, mobile, setExportOpen, setImportOpen: mapDataImport.setIsImportOpen });
   const layers = project.document.layers; const mapPreviewedLayerId = visiblePreviewLayerId(layers, previewedLayerId);
   const selectedLayer = layers.find((layer) => layer.id === project.selectedId) ?? null; const selectedIndex = selectedLayer ? layers.findIndex((layer) => layer.id === selectedLayer.id) : -1;
@@ -79,7 +79,7 @@ export function App({ autosaveRepository }: AppProps = {}) {
           startImportWork={mapDataImport.startImportWork}
           exportDisabled={isAuthoring}
           importDisabled={modal.surface !== null && modal.surface !== 'import'}
-          importOpen={modal.surface === 'import'}
+          importOpen={modal.surface === 'import'} replacementRequest={mapDataImport.replacementRequest}
           inert={modal.mobilePanel !== null}
           onOpen={handleOpenedDocument}
           onImport={mapDataImport.handleImportedLayers}
@@ -136,7 +136,7 @@ export function App({ autosaveRepository }: AppProps = {}) {
           setPreviewedLayerId={setPreviewedLayerId}
           closePanel={mobile.closePanel}
           onKeyDown={mobile.handlePanelKeyDown}
-          onLocate={mapLocation.locate}
+          onLocate={mapLocation.locate} onReplaceLayerData={mapDataImport.requestLayerReplacement}
         />
       </main>
       <ProjectAutosaveErrorNotice autosave={autosave} />

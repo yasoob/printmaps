@@ -14,6 +14,15 @@ const pointGeoJson = JSON.stringify({
   }],
 });
 
+const routeGeoJson = JSON.stringify({
+  type: 'FeatureCollection',
+  features: [{
+    type: 'Feature',
+    properties: { name: 'Stale replacement' },
+    geometry: { type: 'LineString', coordinates: [[16, 48], [16.1, 48.1]] },
+  }],
+});
+
 function fileWithText(name: string, text: string | Promise<string>, type: string) {
   const file = new File([], name, { type });
   Object.defineProperty(file, 'text', { value: () => Promise.resolve(text) });
@@ -137,7 +146,59 @@ describe('GeoJSON import document isolation', () => {
     expect(screen.getByRole('button', { name: 'Portrait' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: 'Undo' })).toBeEnabled();
   });
+});
 
+describe('reviewed import replacement isolation', () => {
+  it('keeps global review reselection in add mode after a replacement chooser is cancelled', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<App autosaveRepository={null} />);
+    const { importInput } = fileInputs(container);
+    await user.click(screen.getByRole('button', { name: 'Select Route 01' }));
+    await user.click(screen.getByRole('button', { name: 'Layer menu' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Replace layer data' }));
+
+    fireEvent.drop(window, {
+      dataTransfer: { files: reviewFiles(), types: ['Files'] },
+    });
+    const dialog = await screen.findByRole('dialog', { name: 'Import map data' });
+    await user.click(within(dialog).getByRole('button', { name: 'Replace files' }));
+    fireEvent.change(importInput, {
+      target: { files: [fileWithText('route.geojson', routeGeoJson, 'application/geo+json')] },
+    });
+
+    expect(await within(dialog).findByRole('button', { name: 'Import 1 files' })).toBeInTheDocument();
+    expect(dialog).toHaveAccessibleName('Import map data');
+    expect(screen.queryByRole('button', { name: 'Replace Route 01' })).not.toBeInTheDocument();
+  });
+
+  it('rejects reviewed replacement geometry after its source document changes', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<App autosaveRepository={null} />);
+    const { importInput } = fileInputs(container);
+    await user.click(screen.getByRole('button', { name: 'Select Route 01' }));
+    const layerName = screen.getByRole('textbox', { name: 'Layer name' });
+    const routeLongitude = screen.getByRole('textbox', { name: 'Route vertex longitude' });
+    await user.click(screen.getByRole('button', { name: 'Layer menu' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Replace layer data' }));
+    fireEvent.change(importInput, {
+      target: { files: [fileWithText('replacement.geojson', routeGeoJson, 'application/geo+json')] },
+    });
+    const commit = await screen.findByRole('button', { name: 'Replace Route 01' });
+
+    fireEvent.change(layerName, { target: { value: 'Route changed during review' } });
+    fireEvent.blur(layerName);
+    await user.click(commit);
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'The project changed before this data could be applied. Choose the replacement again.',
+    );
+    expect(layerName).toHaveValue('Route changed during review');
+    expect(routeLongitude).toHaveValue('16.326');
+    expect(screen.getByRole('dialog', { name: 'Replace Route 01 data' })).toBeInTheDocument();
+  });
+});
+
+describe('GeoJSON import document isolation', () => {
   it('does not finish a pending import into a document opened later', async () => {
     let finishImport: ((text: string) => void) | undefined;
     const slowText = new Promise<string>((resolve) => { finishImport = resolve; });

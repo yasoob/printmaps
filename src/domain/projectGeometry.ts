@@ -1,5 +1,17 @@
 import { MAX_MERCATOR_LATITUDE, type LayerGeometry } from './project';
 
+export function geometryPositionCount(geometry: LayerGeometry | undefined): number {
+  if (!geometry) return 0;
+  if (geometry.type === 'Point') return 1;
+  if (geometry.type === 'LineString') return geometry.coordinates.length;
+  if (geometry.type === 'Polygon') {
+    return geometry.coordinates.reduce((total, ring) => total + ring.length, 0);
+  }
+  return geometry.coordinates.reduce((total, polygon) => (
+    total + polygon.reduce((polygonTotal, ring) => polygonTotal + ring.length, 0)
+  ), 0);
+}
+
 type CoordinateCounter = { value: number };
 type GeometryParserOptions = Readonly<{
   fail: (message: string) => never;

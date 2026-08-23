@@ -1,6 +1,7 @@
 import { FileUp, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useEffect, useRef, type RefObject } from 'react';
+import type { ContentLayer } from '../../domain/project';
 import type { ParsedMapDataBatch } from '../../import/mapDataBatch';
 
 function trapDialogFocus(event: React.KeyboardEvent<HTMLDialogElement>) {
@@ -23,10 +24,37 @@ function trapDialogFocus(event: React.KeyboardEvent<HTMLDialogElement>) {
   }
 }
 
+function importDialogCopy(target: ContentLayer | null) {
+  if (target) return {
+    commitLabel: `Replace ${target.name}`,
+    description: `Keep ${target.name} identity and appearance; only its geometry changes.`,
+    fitLabel: 'Fit replacement content',
+    legend: 'Map view after replacement',
+    title: `Replace ${target.name} data`,
+  };
+  return {
+    commitLabel: null,
+    description: 'Review this local-only batch before adding it to the project.',
+    fitLabel: 'Fit imported content',
+    legend: 'Map view after import',
+    title: 'Import map data',
+  };
+}
+
+function ReplacementNote({ target }: { target: ContentLayer | null }) {
+  if (!target) return null;
+  return <p className="map-data-replacement-note"><strong>{`Keep ${target.name} identity and appearance`}</strong><br />Name, order, visibility, lock, opacity, and styling stay unchanged.</p>;
+}
+
+function commitLabel(replacementLabel: string | null, fileCount: number) {
+  return replacementLabel ?? `Import ${fileCount} files`;
+}
+
 type MapDataImportPortalsProps = {
   batch: ParsedMapDataBatch | null;
   dialogError: string | null;
   inputRef: RefObject<HTMLInputElement | null>;
+  replacementTarget: ContentLayer | null;
   onClose: () => void;
   onCommit: () => void;
   selectedNames: readonly string[];
@@ -43,6 +71,7 @@ export function MapDataImportPortals({
   batch,
   dialogError,
   inputRef,
+  replacementTarget,
   onClose,
   onCommit,
   selectedNames,
@@ -50,6 +79,7 @@ export function MapDataImportPortals({
   state,
 }: MapDataImportPortalsProps) {
   const { isDragActive, isOpen, isReading, shouldFitView } = state;
+  const copy = importDialogCopy(replacementTarget);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const importButtonRef = useRef<HTMLButtonElement>(null);
   const replaceButtonRef = useRef<HTMLButtonElement>(null);
@@ -91,7 +121,10 @@ export function MapDataImportPortals({
           onKeyDown={handleKeyDown}
         >
           <header className="export-dialog-header">
-            <div><h2 id="map-data-import-title">Import map data</h2><p>Review this local-only batch before adding it to the project.</p></div>
+            <div>
+              <h2 id="map-data-import-title">{copy.title}</h2>
+              <p>{copy.description}</p>
+            </div>
             <button className="icon-button" type="button" aria-label="Close map data import" onClick={onClose}><X size={15} /></button>
           </header>
           <div className="map-data-import-body">
@@ -100,10 +133,11 @@ export function MapDataImportPortals({
             </ul>
             {isReading && <p role="status">Checking files…</p>}
             {dialogError && <p className="export-error" role="alert">{dialogError}</p>}
+            <ReplacementNote target={replacementTarget} />
             {batch && (
               <fieldset>
-                <legend>Map view after import</legend>
-                <label><input type="radio" name="import-view" checked={shouldFitView} onChange={() => setShouldFitView(true)} /> Fit imported content</label>
+                <legend>{copy.legend}</legend>
+                <label><input type="radio" name="import-view" checked={shouldFitView} onChange={() => setShouldFitView(true)} /> {copy.fitLabel}</label>
                 <label><input type="radio" name="import-view" checked={!shouldFitView} onChange={() => setShouldFitView(false)} /> Keep current view</label>
               </fieldset>
             )}
@@ -111,7 +145,7 @@ export function MapDataImportPortals({
           <footer className="export-dialog-actions">
             <button ref={replaceButtonRef} type="button" disabled={isReading} onClick={() => inputRef.current?.click()}>{batch ? 'Replace files' : 'Choose replacement files'}</button>
             <button type="button" disabled={isReading} onClick={onClose}>Cancel</button>
-            {batch && <button ref={importButtonRef} className="primary-button" type="button" onClick={onCommit}>Import {batch.files.length} files</button>}
+            {batch && <button ref={importButtonRef} className="primary-button" type="button" onClick={onCommit}>{commitLabel(copy.commitLabel, batch.files.length)}</button>}
           </footer>
         </dialog>
       </div>

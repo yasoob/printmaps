@@ -39,7 +39,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .brand-block, .document-actions, .history-actions { @apply flex items-center gap-1; }
 .document-actions { @apply justify-end; }
 .project-file-status {
-  @apply absolute right-2 top-full mt-1 max-w-sm px-3 py-2 text-xs;
+  @apply pointer-events-none absolute right-2 top-full mt-1 max-w-sm px-3 py-2 text-xs;
   border: var(--studio-border-width) solid var(--studio-line-strong);
   border-radius: var(--studio-radius-md);
   background: var(--studio-surface);
@@ -535,6 +535,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   font-size: var(--studio-font-label);
 }
 .layer-menu button:hover { background: var(--studio-field); }
+.layer-menu button:disabled { @apply cursor-not-allowed; color: var(--studio-text-muted); background: transparent; }
 .layer-menu .danger-button { color: var(--studio-danger); }
 
 .map-data-drop-overlay {
@@ -586,6 +587,12 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .map-data-import-body legend { @apply mb-1 font-medium; color: var(--studio-text-strong); }
 .map-data-import-body label { @apply flex min-h-8 items-center gap-2; }
 .map-data-import-body input { accent-color: var(--studio-accent); }
+.map-data-replacement-note {
+  @apply m-0 rounded px-3 py-2;
+  border: var(--studio-border-width) solid var(--studio-line);
+  background: var(--studio-field);
+  color: var(--studio-text-secondary);
+}
 
 .export-overlay {
   @apply fixed inset-0 z-[100] grid place-items-center;

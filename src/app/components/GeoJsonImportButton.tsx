@@ -1,6 +1,7 @@
 import { FileUp } from 'lucide-react';
-import { useCallback, type RefObject } from 'react';
-import type { ContentLayer, ProjectDocument } from '../../domain/project';
+import { useCallback, useEffect, type RefObject } from 'react';
+import type { ProjectDocument } from '../../domain/project';
+import type { LayerReplacementRequest, MapDataImportCommit } from '../hooks/useAppMapDataImport';
 import { useMapDataDrop } from '../hooks/useMapDataDrop';
 import { useMapDataImport } from '../hooks/useMapDataImport';
 import { MapDataImportPortals } from './MapDataImportPortals';
@@ -14,13 +15,9 @@ type GeoJsonImportButtonProps = {
   isWorkActive: boolean;
   startImportWork: () => number | null;
   isOpen: boolean;
+  replacementRequest: LayerReplacementRequest | null;
   onOpenChange: (isOpen: boolean) => void;
-  onImport: (
-    layers: readonly ContentLayer[],
-    documentEpoch: number,
-    sourceDocument: ProjectDocument,
-    shouldFitView: boolean,
-  ) => boolean;
+  onImport: (commit: MapDataImportCommit) => boolean;
 };
 
 export function GeoJsonImportButton({
@@ -32,11 +29,14 @@ export function GeoJsonImportButton({
   sourceDocument,
   startImportWork,
   isOpen,
+  replacementRequest,
   onOpenChange,
   onImport,
 }: GeoJsonImportButtonProps) {
   const {
     batch,
+    chooseImportFiles,
+    chooseReplacementFile,
     closeDialog,
     commitReviewedImport,
     dialogError,
@@ -44,6 +44,7 @@ export function GeoJsonImportButton({
     inputRef,
     isReading,
     prepareFiles,
+    replacementTarget,
     selectedNames,
     setShouldFitView,
     shouldFitView,
@@ -59,8 +60,11 @@ export function GeoJsonImportButton({
     startImportWork,
     triggerRef: buttonRef,
   });
+  useEffect(() => {
+    if (replacementRequest) chooseReplacementFile(replacementRequest.target, replacementRequest.trigger);
+  }, [chooseReplacementFile, replacementRequest]);
   const handleDroppedFiles = useCallback((files: readonly File[]) => {
-    void prepareFiles(files, true);
+    void prepareFiles(files, true, null);
   }, [prepareFiles]);
   const isDragActive = useMapDataDrop({
     isDisabled: isDisabled || isWorkActive,
@@ -78,7 +82,7 @@ export function GeoJsonImportButton({
         accept=".geojson,.gpx,.kml,application/geo+json,application/gpx+xml,application/vnd.google-earth.kml+xml"
         onChange={handleInputChange}
       />
-      <button ref={buttonRef} className="quiet-button" type="button" disabled={isDisabled || isReading || isWorkActive} onClick={() => inputRef.current?.click()}>
+      <button ref={buttonRef} className="quiet-button" type="button" disabled={isDisabled || isReading || isWorkActive} onClick={chooseImportFiles}>
         <FileUp size={14} /> Import
       </button>
       {status && (
@@ -94,6 +98,7 @@ export function GeoJsonImportButton({
         batch={batch}
         dialogError={dialogError}
         inputRef={inputRef}
+        replacementTarget={replacementTarget}
         onClose={closeDialog}
         onCommit={commitReviewedImport}
         selectedNames={selectedNames}

@@ -1,4 +1,5 @@
 import type { ContentLayer } from '../domain/project';
+import { geometryPositionCount } from '../domain/projectGeometry';
 import {
   MAX_PROJECT_COORDINATES,
   MAX_PROJECT_LAYERS,
@@ -55,14 +56,6 @@ function importerForFilename(filename: string): MapDataImporter {
   throw new Error(`${filename}: choose a GeoJSON, GPX, or KML file with the matching filename suffix.`);
 }
 
-function geometryPositionCount(layer: ContentLayer): number {
-  const geometry = layer.geometry;
-  if (!geometry) return 0;
-  if (geometry.type === 'Point') return 1;
-  if (geometry.type === 'LineString') return geometry.coordinates.length;
-  return geometry.coordinates.reduce((total, ring) => total + ring.length, 0);
-}
-
 function preflightMapDataFile(file: File) {
   const importer = importerForFilename(file.name);
   if (file.size > importer.maxBytes) {
@@ -113,7 +106,7 @@ export async function parseMapDataFiles(
   const usedIds = new Set(existingLayers.map(({ id }) => id));
   const layers: ContentLayer[] = [];
   let positionCount = existingLayers.reduce(
-    (total, layer) => total + geometryPositionCount(layer),
+    (total, layer) => total + geometryPositionCount(layer.geometry),
     0,
   );
   const parsedFiles = preparedFiles.map(({ file, importer }, index) => {
@@ -125,7 +118,7 @@ export async function parseMapDataFiles(
       throw new Error(`Projects may contain at most ${MAX_PROJECT_LAYERS} layers.`);
     }
     positionCount += fileLayers.reduce(
-      (total, layer) => total + geometryPositionCount(layer),
+      (total, layer) => total + geometryPositionCount(layer.geometry),
       0,
     );
     if (positionCount > MAX_PROJECT_COORDINATES) {

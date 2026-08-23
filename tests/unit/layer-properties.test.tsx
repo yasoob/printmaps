@@ -11,6 +11,7 @@ const actions = {
   onOpacityChange: vi.fn(),
   onPoiCoordinatesChange: vi.fn(),
   onPoiCustomMarkerChange: vi.fn(),
+  onReplace: vi.fn(),
   onRouteVertexInsert: vi.fn(),
   onRouteVertexRemove: vi.fn(),
   onRouteVertexChange: vi.fn(),
@@ -64,6 +65,18 @@ describe('layer appearance draft boundaries', () => {
 
     expect(screen.getByRole('button', { name: 'Generate elevation profile' })).toBeInTheDocument();
     expect(screen.getByText('Copernicus DEM GLO-90 via Open-Meteo')).toBeInTheDocument();
+  });
+
+  it('disables imported-data replacement for a locked layer and focuses the first available menu action', async () => {
+    const user = userEvent.setup();
+    const lockedRoute = route(4);
+    lockedRoute.locked = true;
+    render(<LayerProperties layer={lockedRoute} {...actions} />);
+
+    await user.click(screen.getByRole('button', { name: 'Layer menu' }));
+
+    expect(screen.getByRole('menuitem', { name: 'Replace layer data' })).toBeDisabled();
+    expect(screen.getByRole('menuitem', { name: 'Duplicate layer' })).toHaveFocus();
   });
 
   it('toggles inverted fill as one canonical appearance edit', async () => {

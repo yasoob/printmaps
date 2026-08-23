@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import type { ContentLayer, LayerAppearance, RouteAppearance, ShapeAppearance } from '../../domain/project';
 import type { CustomMarkerAsset } from '../../domain/customMarkerAssets';
 import {
@@ -8,6 +8,7 @@ import {
 } from '../../domain/routeProfiles';
 import { CoordinateField } from './CoordinateField';
 import { ElevationProfilePanel } from './ElevationProfilePanel';
+import { LayerMenu } from './LayerMenu';
 import { MultiPartGeometryStatus } from './MultiPartGeometryStatus';
 import { PoiAppearanceControls } from './PoiAppearanceControls';
 import { PropertyRow, PropertySection } from './PropertyControls';
@@ -26,43 +27,8 @@ type LayerPropertiesProps = {
   onRouteVertexChange: (vertexIndex: number, coordinates: readonly [number, number]) => void;
   onShapeVertexChange: (ringIndex: number, vertexIndex: number, coordinates: readonly [number, number]) => void;
   onToggleVisibility: () => void; onToggleLock: () => void;
-  onDuplicate: () => void; onDelete: () => void;
+  onReplace: (trigger: HTMLElement | null) => void; onDuplicate: () => void; onDelete: () => void;
 };
-
-function LayerMenu({ onDuplicate, onDelete }: Pick<LayerPropertiesProps, 'onDuplicate' | 'onDelete'>) {
-  const [open, setOpen] = useState(false);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-      event.preventDefault();
-      const items = [...(menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])];
-      const currentIndex = items.indexOf(document.activeElement as HTMLElement);
-      const direction = event.key === 'ArrowDown' ? 1 : -1;
-      items[(currentIndex + direction + items.length) % items.length]?.focus();
-    } else if (event.key === 'Escape') {
-      event.preventDefault();
-      setOpen(false);
-      queueMicrotask(() => buttonRef.current?.focus());
-    }
-  };
-  const toggleMenu = () => {
-    setOpen(!open);
-    if (!open) queueMicrotask(() => menuRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus());
-  };
-
-  return (
-    <>
-      <button ref={buttonRef} className="icon-button" type="button" aria-label="Layer menu" aria-haspopup="menu" aria-expanded={open} onClick={toggleMenu}>•••</button>
-      {open && (
-        <div ref={menuRef} className="layer-menu" role="menu" onKeyDown={handleKeyDown}>
-          <button type="button" role="menuitem" onClick={() => { setOpen(false); onDuplicate(); }}>Duplicate layer</button>
-          <button className="danger-button" type="button" role="menuitem" onClick={onDelete}>Delete layer</button>
-        </div>
-      )}
-    </>
-  );
-}
 
 function RouteAppearanceControls({
   appearance,
@@ -268,6 +234,7 @@ export function LayerProperties({
   onShapeVertexChange,
   onToggleVisibility,
   onToggleLock,
+  onReplace,
   onDuplicate,
   onDelete,
 }: LayerPropertiesProps) {
@@ -299,7 +266,7 @@ export function LayerProperties({
     <div className="properties-panel">
       <div className="properties-title">
         <div><span className="eyebrow">Layer properties</span><h2>{layer.name}</h2></div>
-        <LayerMenu onDuplicate={onDuplicate} onDelete={onDelete} />
+        <LayerMenu onReplace={onReplace} onDuplicate={onDuplicate} onDelete={onDelete} replaceDisabled={layer.type === 'basemap' || layer.locked} />
       </div>
       <PropertySection title="Layer">
         <PropertyRow label="Name"><input aria-label="Layer name" value={nameDraft} onChange={(event) => setNameEdit({ source: layer.name, value: event.target.value })} onBlur={commitName} /></PropertyRow>

@@ -8,6 +8,7 @@ import { commitDocument, replaceLayers, type ProjectSet } from './storeDocument'
 import { createPoiStructureActions } from './storePoiActions';
 import { createAdministrativeAreaActions } from './storeAdministrativeAreaActions';
 import { createRouteGeometryActions } from './storeRouteGeometryActions';
+import { createReplaceLayerFromImportAction } from './storeImportReplacementAction';
 type LayerPropertyActions = Pick<ProjectState, 'insertRouteVertex' | 'removeRouteVertex' | 'renameLayer' | 'selectLayer' | 'setLayerAppearance' | 'setLayerOpacity' | 'setPoiCoordinates' | 'setPoiCustomMarker' | 'setRouteVertex' | 'toggleLayerVisibility' | 'toggleLayerLock'>;
 
 function isCanonicalCustomMarkerAsset(asset: CustomMarkerAsset): boolean {
@@ -107,12 +108,13 @@ function createShapeAction(set: ProjectSet): ProjectState['createShape'] {
   });
 }
 
-export function createLayerStructureActions(set: ProjectSet): Pick<ProjectState, 'createAdministrativeArea' | 'createAdministrativeAreas' | 'createPoi' | 'createPoiBatch' | 'createRoute' | 'createShape' | 'deleteLayer' | 'duplicateLayer' | 'importLayers' | 'moveLayer'> {
+export function createLayerStructureActions(set: ProjectSet): Pick<ProjectState, 'createAdministrativeArea' | 'createAdministrativeAreas' | 'createPoi' | 'createPoiBatch' | 'createRoute' | 'createShape' | 'deleteLayer' | 'duplicateLayer' | 'importLayers' | 'moveLayer' | 'replaceLayerFromImport'> {
   return {
     ...createPoiStructureActions(set),
     ...createAdministrativeAreaActions(set),
     createRoute: createRouteAction(set),
     createShape: createShapeAction(set),
+    replaceLayerFromImport: createReplaceLayerFromImportAction(set),
     deleteLayer: (id) => set((state) => {
       if (state.document.layers.every((layer) => layer.id !== id)) return state;
       const layers = state.document.layers.filter((layer) => layer.id !== id);
@@ -176,6 +178,7 @@ export function createLayerStructureActions(set: ProjectSet): Pick<ProjectState,
       });
       return wasImported;
     },
+
     moveLayer: (id, toIndex) => set((state) => {
       if (!Number.isFinite(toIndex)) return state;
       const fromIndex = state.document.layers.findIndex((layer) => layer.id === id);
