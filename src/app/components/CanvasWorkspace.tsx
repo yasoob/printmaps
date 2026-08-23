@@ -1,5 +1,6 @@
 import { Frame, Hand, Layers3, MapPin, MousePointer2, Route, Shapes, SlidersHorizontal, Type } from 'lucide-react';
 import { useMemo, useRef, useState, type RefObject } from 'react';
+import type { AdministrativeAreaId } from '../../domain/administrativeAreas';
 import type { PoiSpreadsheetEntry } from '../../domain/poiSpreadsheet';
 import type { CustomMarkerAsset } from '../../domain/customMarkerAssets';
 import type { CameraSettings, ContentLayer, MapFeatureVisibility, MapLanguage, MapStylePreset, PageSettings } from '../../domain/project';
@@ -15,7 +16,8 @@ import { MapCanvas } from '../../map/MapCanvas';
 import type { MobilePanel } from '../hooks/useMobilePanels';
 import { usePoiAuthoring } from '../hooks/usePoiAuthoring';
 import { PoiAuthoringControls } from './PoiAuthoringControls';
-import { DrawingPanel, RouteDrawingPanel } from './RouteDrawingPanel';
+import { RouteDrawingPanel } from './RouteDrawingPanel';
+import { ShapeDrawingPanel } from './ShapeDrawingPanel';
 
 const tools = [
   { id: 'select', label: 'Select', shortcut: 'V', icon: MousePointer2 },
@@ -152,6 +154,7 @@ type CanvasWorkspaceProps = {
   layersTriggerRef: RefObject<HTMLButtonElement | null>;
   propertiesTriggerRef: RefObject<HTMLButtonElement | null>;
   onLayerSelect: (id: string | null) => void;
+  onCreateAdministrativeArea: (id: AdministrativeAreaId) => string | null;
   onCreatePoi: (coordinates: readonly [number, number]) => void;
   onCreatePoiBatch: (entries: readonly PoiSpreadsheetEntry[]) => void;
   onCreateRoute: (
@@ -172,8 +175,9 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
   const [storedShapePoints, setStoredShapePoints] = useState<[number, number][]>([]);
   const [toolDocumentEpoch, setToolDocumentEpoch] = useState(props.documentEpoch);
   const [fitRequest, setFitRequest] = useState(0);
+  const [fitLayerRequest, setFitLayerRequest] = useState({ id: null as string | null, request: 0 });
   const selectToolRef = useRef<HTMLButtonElement>(null);
-  const { activePanel, assets, camera, documentEpoch, featureVisibility, language, layers, layersTriggerRef, onAuthoringChange, onBackgroundClick, onCreatePoi, onCreatePoiBatch, onCreateRoute, onCreateShape, onExporterChange, onLayerSelect, openPanel, page, previewedId, propertiesTriggerRef, selectedId, stylePreset, textScalePercent } = props;
+  const { activePanel, assets, camera, documentEpoch, featureVisibility, language, layers, layersTriggerRef, onAuthoringChange, onBackgroundClick, onCreateAdministrativeArea, onCreatePoi, onCreatePoiBatch, onCreateRoute, onCreateShape, onExporterChange, onLayerSelect, openPanel, page, previewedId, propertiesTriggerRef, selectedId, stylePreset, textScalePercent } = props;
   const activeTool = toolDocumentEpoch === documentEpoch ? storedActiveTool : 'select';
   const routePoints = toolDocumentEpoch === documentEpoch ? storedRoutePoints : EMPTY_ROUTE_POINTS;
   const shapePoints = toolDocumentEpoch === documentEpoch ? storedShapePoints : EMPTY_SHAPE_POINTS;
@@ -194,6 +198,13 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
     ...createShapeDraftLayers(shapePoints, layers),
     ...layers.filter((layer) => layer.geometry),
   ], [layers, routeOptions, routePoints, shapePoints]);
+  const exitAuthoring = (draft: 'route' | 'shape') => {
+    selectToolRef.current?.focus();
+    if (draft === 'route') setStoredRoutePoints([]);
+    else setStoredShapePoints([]);
+    setStoredActiveTool('select');
+    onAuthoringChange(documentEpoch, false);
+  };
   const activateTool = (id: string) => {
     setToolDocumentEpoch(documentEpoch);
     setStoredActiveTool(id);
@@ -204,31 +215,20 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
   };
   const finishRoute = () => {
     if (!canFinishRoute) return;
-    selectToolRef.current?.focus();
     onCreateRoute(routePoints, routeOptions);
-    setStoredRoutePoints([]);
-    setStoredActiveTool('select');
-    onAuthoringChange(documentEpoch, false);
+    exitAuthoring('route');
   };
-  const cancelRoute = () => {
-    selectToolRef.current?.focus();
-    setStoredRoutePoints([]);
-    setStoredActiveTool('select');
-    onAuthoringChange(documentEpoch, false);
-  };
+  const cancelRoute = () => exitAuthoring('route');
   const finishShape = () => {
     if (!canFinishShape) return;
-    selectToolRef.current?.focus();
     onCreateShape(shapePoints);
-    setStoredShapePoints([]);
-    setStoredActiveTool('select');
-    onAuthoringChange(documentEpoch, false);
+    exitAuthoring('shape');
   };
-  const cancelShape = () => {
-    selectToolRef.current?.focus();
-    setStoredShapePoints([]);
-    setStoredActiveTool('select');
-    onAuthoringChange(documentEpoch, false);
+  const cancelShape = () => exitAuthoring('shape');
+  const addAdministrativeArea = (id: AdministrativeAreaId) => {
+    const createdId = onCreateAdministrativeArea(id);
+    if (createdId) setFitLayerRequest((current) => ({ id: createdId, request: current.request + 1 }));
+    exitAuthoring('shape');
   };
 
   let handleMapClick: ((coordinate: [number, number]) => void) | undefined;
@@ -255,7 +255,7 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
 
   return (
     <section className="canvas-region" inert={activePanel !== null}>
-      <MapCanvas camera={camera} stylePreset={stylePreset} language={language} textScalePercent={textScalePercent} featureVisibility={featureVisibility} layers={geometryLayers} assets={assets} contentRevision={geometryLayers} selectedId={selectedId} previewedId={previewedId} onLayerSelect={onLayerSelect} onMapClick={handleMapClick} onBackgroundClick={onBackgroundClick} onExporterChange={onExporterChange} fitRequest={fitRequest} orientation={page.orientation} page={page} />
+      <MapCanvas camera={camera} stylePreset={stylePreset} language={language} textScalePercent={textScalePercent} featureVisibility={featureVisibility} layers={geometryLayers} assets={assets} contentRevision={geometryLayers} selectedId={selectedId} previewedId={previewedId} onLayerSelect={onLayerSelect} onMapClick={handleMapClick} onBackgroundClick={onBackgroundClick} onExporterChange={onExporterChange} fitRequest={fitRequest} fitLayerId={fitLayerRequest.id} fitLayerRequest={fitLayerRequest.request} orientation={page.orientation} page={page} />
       <div className="mobile-panel-actions" aria-label="Editor panels">
         <button ref={layersTriggerRef} type="button" aria-label="Open layers" aria-controls="layers-panel" aria-expanded={activePanel === 'layers'} onClick={() => openPanel('layers')}><Layers3 size={15} /><span>Layers</span></button>
         <button ref={propertiesTriggerRef} type="button" aria-label="Open properties" aria-controls="properties-panel" aria-expanded={activePanel === 'properties'} onClick={() => openPanel('properties')}><SlidersHorizontal size={15} /><span>Properties</span></button>
@@ -275,7 +275,7 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
       )}
       <PoiAuthoringControls active={activeTool === 'pin'} spreadsheetOpen={poiAuthoring.spreadsheetOpen} spreadsheetTriggerRef={poiAuthoring.spreadsheetTriggerRef} onCancel={poiAuthoring.cancel} onCancelSpreadsheet={poiAuthoring.cancelSpreadsheet} onOpenSpreadsheet={poiAuthoring.openSpreadsheet} onSubmitSpreadsheet={poiAuthoring.submitSpreadsheet} />
       {activeTool === 'shape' && (
-        <DrawingPanel statusLabel="Shape drawing status" status={`Polygon shape · ${shapePoints.length} ${shapePoints.length === 1 ? 'vertex' : 'vertices'}`} cancelLabel="Cancel shape" finishLabel="Finish shape" finishDisabled={!canFinishShape} onCancel={cancelShape} onFinish={finishShape} />
+        <ShapeDrawingPanel pointCount={shapePoints.length} canFinish={canFinishShape} onAddAdministrativeArea={addAdministrativeArea} onCancel={cancelShape} onFinish={finishShape} />
       )}
       <div className="canvas-status" aria-label="Canvas status"><button type="button">100%</button><span /> <button type="button">1:20,000</button></div>
     </section>

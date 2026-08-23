@@ -70,3 +70,41 @@ test('polygon authoring can be cancelled, undone, redone, and exported as vector
   expect(svg).toMatch(/data-layer-id="shape-01"[^>]*>[\s\S]*?<path /);
   expect(consoleProblems).toEqual([]);
 });
+
+test('bundled administrative areas support direct selection, invert, save, and layered SVG', async ({ page }, testInfo) => {
+  const consoleProblems: string[] = [];
+  page.on('pageerror', (error) => { consoleProblems.push(error.message); });
+  page.on('console', (message) => {
+    if (message.type() === 'error') consoleProblems.push(message.text());
+  });
+  await page.goto('/');
+  await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
+
+  await page.getByRole('button', { name: 'Shape (S)' }).click();
+  await page.getByRole('combobox', { name: 'Administrative area' }).selectOption('AUT');
+  await page.getByRole('button', { name: 'Add administrative area' }).click();
+  await expect(page.getByRole('button', { name: 'Select Austria' })).toHaveAttribute('aria-current', 'true');
+  await page.getByRole('checkbox', { name: 'Invert shape fill' }).check();
+  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-appearance', /admin-aut:[^|]*:true/);
+
+  const savePromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  const save = await savePromise;
+  const savePath = testInfo.outputPath('administrative-area.printmap.json');
+  await save.saveAs(savePath);
+  const savedProject = JSON.parse(await readFile(savePath, 'utf8'));
+  expect(savedProject.schemaVersion).toBe(13);
+  expect(savedProject.layers.find(({ id }: { id: string }) => id === 'admin-aut').appearance.invert).toBe(true);
+
+  await page.getByRole('button', { name: 'Export' }).click();
+  const svgPromise = page.waitForEvent('download');
+  await page.getByRole('dialog', { name: 'Export map' }).getByRole('button', { name: 'Download layered SVG' }).click();
+  const svgDownload = await svgPromise;
+  const svgPath = testInfo.outputPath('administrative-area.layered.svg');
+  await svgDownload.saveAs(svgPath);
+  const svg = await readFile(svgPath, 'utf8');
+  expect(svg).toContain('data-layer-name="Austria"');
+  expect(svg).toContain('data-shape-fill="inverted"');
+  expect(svg).toContain('data-shape-outline="true"');
+  expect(consoleProblems).toEqual([]);
+});

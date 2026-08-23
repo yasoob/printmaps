@@ -48,7 +48,7 @@ function updateContainerState(
     }
     if (appearance?.kind === 'shape') {
       return [
-        `${layer.id}:${appearance.fillColor}:${appearance.strokeColor}:${appearance.strokeWidth}`,
+        `${layer.id}:${appearance.fillColor}:${appearance.strokeColor}:${appearance.strokeWidth}:${appearance.invert}`,
       ];
     }
     return [];
@@ -79,6 +79,8 @@ function removeRenderedContent(map: MapLibreMap, rendered: RenderedMapContent) {
       return true;
     }
   });
+  const remainingLayerIds = new Set(rendered.mapLayerIds);
+  rendered.hitTestLayerIds = rendered.hitTestLayerIds.filter((id) => remainingLayerIds.has(id));
   rendered.sourceIds = rendered.sourceIds.filter((id) => {
     try {
       if (map.getSource(id)) map.removeSource(id);
@@ -196,7 +198,7 @@ export function createMapLibreContentAdapter(
   container: HTMLElement,
   options: MapContentAdapterOptions = {},
 ): MapContentAdapter {
-  const rendered: RenderedMapContent = { mapLayerIds: [], sourceIds: [], structure: '' };
+  const rendered: RenderedMapContent = { mapLayerIds: [], hitTestLayerIds: [], sourceIds: [], structure: '' };
   let cachedContentRevision: object | undefined;
   let cachedVisibleLayers: ContentLayer[] = [];
   let cachedStructure = '';
@@ -257,9 +259,9 @@ export function createMapLibreContentAdapter(
   return {
     sync,
     hitTest: (point) => {
-      if (rendered.mapLayerIds.length === 0) return null;
+      if (rendered.hitTestLayerIds.length === 0) return null;
       try {
-        const feature = map.queryRenderedFeatures(point, { layers: rendered.mapLayerIds })[0];
+        const feature = map.queryRenderedFeatures(point, { layers: rendered.hitTestLayerIds })[0];
         const hitLayerId = typeof feature?.properties?.layerId === 'string' ? feature.properties.layerId : null;
         delete container.dataset.mapContentError;
         return hitLayerId;

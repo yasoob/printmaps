@@ -272,7 +272,7 @@ function currentDocumentAt(value: unknown): ProjectDocument {
   const root = objectAt(value, 'Project file');
   const schemaVersion = root.schemaVersion;
   if (!isCurrentSchemaVersion(schemaVersion)) {
-    if (typeof schemaVersion === 'number' && schemaVersion >= 1 && schemaVersion <= 11) {
+    if (typeof schemaVersion === 'number' && schemaVersion >= 1 && schemaVersion <= 12) {
       throw new ProjectFileError(
         `Schema version ${schemaVersion} is obsolete. Start a new project or reopen a current Print Map Studio file.`,
       );

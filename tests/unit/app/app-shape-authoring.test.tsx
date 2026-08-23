@@ -6,6 +6,26 @@ import { createInitialProjectDocument } from '../../../src/domain/project';
 vi.mock('../../../src/map/MapCanvas', async () => import('./MapCanvasMock'));
 
 describe('polygon authoring', () => {
+  it('adds a bundled administrative area as a selected undoable shape', async () => {
+    const user = userEvent.setup();
+    render(<App autosaveRepository={null} />);
+
+    await user.click(screen.getByRole('button', { name: 'Shape (S)' }));
+    const areaSelect = screen.getByRole('combobox', { name: 'Administrative area' });
+    await user.selectOptions(areaSelect, 'AUT');
+    await user.click(screen.getByRole('button', { name: 'Add administrative area' }));
+
+    expect(screen.getByRole('button', { name: 'Select Austria' })).toHaveAttribute('aria-current', 'true');
+    expect(screen.getByRole('heading', { name: 'Austria' })).toBeInTheDocument();
+    expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-layer-geometry', expect.stringContaining('admin-aut'));
+    expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-fit-layer-id', 'admin-aut');
+    expect(screen.getByRole('button', { name: 'Select (V)' })).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'Export' })).toBeEnabled();
+
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(screen.queryByRole('button', { name: 'Select Austria' })).not.toBeInTheDocument();
+  });
+
   it('finishes three map clicks as one selected undoable shape', async () => {
     const user = userEvent.setup();
     render(<App autosaveRepository={null} />);

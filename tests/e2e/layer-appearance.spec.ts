@@ -94,7 +94,7 @@ test('content appearance edits update the live map, history, and layered SVG', a
   await page.getByRole('textbox', { name: 'Shape outline width' }).press('Tab');
   await expect(mapRoot).toHaveAttribute(
     'data-map-layer-appearance',
-    'route-01:#112233:8:car:false|poi-cafe:#445566:21:diamond:coffee:Café Central|area-center:#abcdef:#654321:3',
+    'route-01:#112233:8:car:false|poi-cafe:#445566:21:diamond:coffee:Café Central|area-center:#abcdef:#654321:3:false',
   );
 
   await page.getByRole('button', { name: 'Undo' }).click();

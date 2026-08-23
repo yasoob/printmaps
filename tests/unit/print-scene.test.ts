@@ -132,6 +132,7 @@ describe('layered SVG print scene', () => {
       fillColor: '#112233',
       strokeColor: '#fedcba',
       strokeWidth: 3,
+      invert: false,
     };
 
     const svgDocument = parseSvg(serializePrintScene(project, {

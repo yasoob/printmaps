@@ -373,7 +373,7 @@ describe('editor layer appearance validation and actions', () => {
     exportMocks.exporter = null;
   });
 
-  it('commits shape fill, outline color, and width as undoable appearance edits', async () => {
+  it('commits shape fill, outline, width, and invert as undoable appearance edits', async () => {
     const user = userEvent.setup();
     render(<App />);
 
@@ -381,16 +381,21 @@ describe('editor layer appearance validation and actions', () => {
     const fill = screen.getByLabelText('Shape fill color');
     const stroke = screen.getByLabelText('Shape outline color');
     const width = screen.getByRole('textbox', { name: 'Shape outline width' });
+    const invert = screen.getByRole('checkbox', { name: 'Invert shape fill' });
 
     fireEvent.change(fill, { target: { value: '#abcdef' } });
     fireEvent.change(stroke, { target: { value: '#123456' } });
     await user.clear(width);
     await user.type(width, '5');
     await user.tab();
+    await user.click(invert);
 
     expect(fill).toHaveValue('#abcdef');
     expect(stroke).toHaveValue('#123456');
     expect(width).toHaveValue('5');
+    expect(invert).toBeChecked();
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(screen.getByRole('checkbox', { name: 'Invert shape fill' })).not.toBeChecked();
     await user.click(screen.getByRole('button', { name: 'Undo' }));
     expect(screen.getByRole('textbox', { name: 'Shape outline width' })).toHaveValue('2');
   });

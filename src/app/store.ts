@@ -13,6 +13,7 @@ import {
 import type { RouteAuthoringOptions } from '../domain/routeProfiles';
 import type { PoiSpreadsheetEntry } from '../domain/poiSpreadsheet';
 import type { CustomMarkerAsset } from '../domain/customMarkerAssets';
+import type { AdministrativeAreaId } from '../domain/administrativeAreas';
 import { copyDocument, createDocumentActions } from './storeDocument';
 import { createCameraActions } from './storeCameraActions';
 import { createLayerPropertyActions, createLayerStructureActions } from './storeLayerActions';
@@ -28,6 +29,7 @@ export type ProjectState = {
   future: ProjectDocument[];
   canUndo: boolean;
   canRedo: boolean;
+  createAdministrativeArea: (id: AdministrativeAreaId | string) => string | null;
   createPoi: (coordinates: readonly [number, number]) => void;
   createPoiBatch: (entries: readonly PoiSpreadsheetEntry[]) => void;
   createRoute: (

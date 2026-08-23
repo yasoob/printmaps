@@ -106,6 +106,7 @@ export function App({ autosaveRepository }: AppProps = {}) {
           layersTriggerRef={mobile.layersTriggerRef}
           propertiesTriggerRef={mobile.propertiesTriggerRef}
           onLayerSelect={project.selectLayer}
+          onCreateAdministrativeArea={project.createAdministrativeArea}
           onCreatePoi={project.createPoi}
           onCreatePoiBatch={project.createPoiBatch}
           onCreateRoute={project.createRoute}

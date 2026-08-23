@@ -2,11 +2,23 @@ import { createInitialProjectDocument } from '../../src/domain/project';
 import { parseProjectFileText } from '../../src/domain/projectFile';
 
 describe('portable project validation', () => {
-  it('rejects the obsolete schema-11 format with a reset-oriented message', () => {
-    const obsolete = { ...createInitialProjectDocument(), schemaVersion: 11 };
+  it('rejects the obsolete schema-12 format with a reset-oriented message', () => {
+    const obsolete = { ...createInitialProjectDocument(), schemaVersion: 12 };
 
     expect(() => parseProjectFileText(JSON.stringify(obsolete))).toThrow(
-      'Schema version 11 is obsolete. Start a new project or reopen a current Print Map Studio file.',
+      'Schema version 12 is obsolete. Start a new project or reopen a current Print Map Studio file.',
+    );
+  });
+
+  it('requires an explicit shape invert state in the current schema', () => {
+    const source = createInitialProjectDocument();
+    const shape = source.layers.find(({ type }) => type === 'shape');
+    if (shape?.appearance?.kind !== 'shape') throw new Error('Expected shape fixture.');
+    const appearance: Partial<typeof shape.appearance> = shape.appearance;
+    delete appearance.invert;
+
+    expect(() => parseProjectFileText(JSON.stringify(source))).toThrow(
+      'shape invert state must be true or false.',
     );
   });
 

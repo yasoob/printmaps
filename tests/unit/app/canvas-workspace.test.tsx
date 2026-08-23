@@ -52,6 +52,7 @@ const sharedProps = {
   layersTriggerRef: createRef<HTMLButtonElement>(),
   propertiesTriggerRef: createRef<HTMLButtonElement>(),
   onLayerSelect: vi.fn(),
+  onCreateAdministrativeArea: vi.fn(),
   onCreatePoi: vi.fn(),
   onCreatePoiBatch: vi.fn(),
   onCreateRoute: vi.fn(),

@@ -19,6 +19,8 @@ type MapCanvasProps = {
   onBackgroundClick: () => void;
   onExporterChange?: (exporter: PreviewPngExporter | null) => void;
   fitRequest?: number;
+  fitLayerId?: string | null;
+  fitLayerRequest?: number;
   orientation?: 'landscape' | 'portrait';
   page?: PageSettings;
   contentRevision?: object;
@@ -51,6 +53,8 @@ export function MapCanvas({
   onBackgroundClick,
   onExporterChange,
   fitRequest = 0,
+  fitLayerId,
+  fitLayerRequest,
   orientation = 'landscape',
   page,
   contentRevision,
@@ -62,6 +66,8 @@ export function MapCanvas({
     textScalePercent,
     featureVisibility: resolveFeatureVisibility(featureVisibility),
     fitRequest,
+    fitLayerId,
+    fitLayerRequest,
     layers,
     assets,
     onBackgroundClick,
@@ -75,7 +81,7 @@ export function MapCanvas({
 
   return (
     <div className="canvas-surface" aria-label="Map canvas">
-      <div ref={container} className="map-root" data-testid="map-canvas" data-fit-request={fitRequest} />
+      <div ref={container} className="map-root" data-testid="map-canvas" data-fit-request={fitRequest} data-fit-layer-id={fitLayerId} />
       {visibleError && (
         <div className="map-fallback" role="status">
           <div><strong>Map preview unavailable</strong><span>{visibleError.message}</span></div>

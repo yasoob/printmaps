@@ -30,6 +30,7 @@ export type ShapeAppearance = {
   fillColor: string;
   strokeColor: string;
   strokeWidth: number;
+  invert: boolean;
 };
 export type LayerAppearance = RouteAppearance | PoiAppearance | ShapeAppearance;
 export type AppearanceLayerType = LayerAppearance['kind'] | 'basemap';
@@ -61,7 +62,7 @@ export function createDefaultLayerAppearance(type: AppearanceLayerType): LayerAp
     };
   }
   if (type === 'shape') {
-    return { kind: 'shape', fillColor: '#d18b25', strokeColor: '#d18b25', strokeWidth: 2 };
+    return { kind: 'shape', fillColor: '#d18b25', strokeColor: '#d18b25', strokeWidth: 2, invert: false };
   }
   return;
 }
@@ -105,7 +106,8 @@ function isShapeAppearanceValid(appearance: ShapeAppearance): boolean {
     && HEX_COLOR.test(appearance.strokeColor)
     && Number.isFinite(appearance.strokeWidth)
     && appearance.strokeWidth >= 0.5
-    && appearance.strokeWidth <= 12;
+    && appearance.strokeWidth <= 12
+    && typeof appearance.invert === 'boolean';
 }
 
 export function canonicalLayerAppearance(
@@ -211,10 +213,14 @@ export function parseLayerAppearance(
   if (strokeWidth < 0.5 || strokeWidth > 12) {
     fail(`${label} shape outline width must be between 0.5 and 12 pixels.`);
   }
+  if (typeof appearance.invert !== 'boolean') {
+    fail(`${label} shape invert state must be true or false.`);
+  }
   return {
     kind: 'shape',
     fillColor: colorValue(appearance.fillColor, `${label} shape fill color`, fail),
     strokeColor: colorValue(appearance.strokeColor, `${label} shape outline color`, fail),
     strokeWidth,
+    invert: appearance.invert,
   };
 }

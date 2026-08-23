@@ -47,19 +47,19 @@ describe('canonical layer appearance', () => {
 
   it('assigns editable appearances to every local import format', () => {
     expect(parseGeoJsonText(geoJsonFixture).map(({ appearance }) => appearance)).toEqual([
-      { kind: 'poi', color: '#0d78b5', size: 14, markerShape: 'circle', markerSymbol: 'none', label: '' },
+      { kind: 'poi', color: '#0d78b5', size: 14, markerShape: 'circle', markerSymbol: 'none', label: '', customAssetId: null },
       { kind: 'route', color: '#d9363e', width: 4, travelProfile: 'car', showTravelModeIcon: false },
-      { kind: 'shape', fillColor: '#d18b25', strokeColor: '#d18b25', strokeWidth: 2 },
+      { kind: 'shape', fillColor: '#d18b25', strokeColor: '#d18b25', strokeWidth: 2, invert: false },
     ]);
     expect(parseGpxText(gpxFixture).map(({ appearance }) => appearance)).toEqual([
-      { kind: 'poi', color: '#0d78b5', size: 14, markerShape: 'circle', markerSymbol: 'none', label: '' },
+      { kind: 'poi', color: '#0d78b5', size: 14, markerShape: 'circle', markerSymbol: 'none', label: '', customAssetId: null },
       { kind: 'route', color: '#d9363e', width: 4, travelProfile: 'car', showTravelModeIcon: false },
       { kind: 'route', color: '#d9363e', width: 4, travelProfile: 'car', showTravelModeIcon: false },
     ]);
     expect(parseKmlText(kmlFixture).map(({ appearance }) => appearance)).toEqual([
-      { kind: 'poi', color: '#0d78b5', size: 14, markerShape: 'circle', markerSymbol: 'none', label: '' },
+      { kind: 'poi', color: '#0d78b5', size: 14, markerShape: 'circle', markerSymbol: 'none', label: '', customAssetId: null },
       { kind: 'route', color: '#d9363e', width: 4, travelProfile: 'car', showTravelModeIcon: false },
-      { kind: 'shape', fillColor: '#d18b25', strokeColor: '#d18b25', strokeWidth: 2 },
+      { kind: 'shape', fillColor: '#d18b25', strokeColor: '#d18b25', strokeWidth: 2, invert: false },
     ]);
   });
 
@@ -77,7 +77,7 @@ describe('canonical layer appearance', () => {
       highlight,
     );
     const shape = mapLayerDescriptors(layer('shape', {
-      kind: 'shape', fillColor: '#abcdef', strokeColor: '#123456', strokeWidth: 5,
+      kind: 'shape', fillColor: '#abcdef', strokeColor: '#123456', strokeWidth: 5, invert: false,
     }), highlight);
 
     expect(route[0].paint).toMatchObject({ 'line-color': '#112233', 'line-width': 8 });

@@ -82,6 +82,7 @@ describe('print PDF', () => {
       fillColor: '#112233',
       strokeColor: '#fedcba',
       strokeWidth: 3,
+      invert: false,
     };
 
     const text = await pdfText(document);
@@ -98,6 +99,7 @@ describe('print PDF', () => {
     expect(text).toContain('0.996078 0.862745 0.729412 RG');
     expect(text).toContain('2.125984 w');
   });
+
 
   it('prints an enabled route travel-mode marker as vector PDF content', async () => {
     const document = createInitialProjectDocument();

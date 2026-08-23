@@ -197,6 +197,7 @@ describe('MapLibre content adapter', () => {
     ]));
   });
 
+
   it('updates rendered paint for selected and previewed layers without rebuilding them', () => {
     const { map, layers, paintUpdates } = createMapHarness();
     const adapter = createMapLibreContentAdapter(map, document.createElement('div'));

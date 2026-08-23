@@ -187,11 +187,14 @@ function shapeCommands(
   if (rings.length === 0) throw new Error(`Shape layer "${layer.name}" has no printable polygon.`);
   const appearance = layer.appearance?.kind === 'shape'
     ? layer.appearance
-    : { fillColor: '#d18b25', strokeColor: '#d18b25', strokeWidth: 2 };
+    : { fillColor: '#d18b25', strokeColor: '#d18b25', strokeWidth: 2, invert: false };
   const path = rings.map((ring) => ring.map((coordinate, index) => (
     `${pointText(project(coordinate, context))} ${index === 0 ? 'm' : 'l'}`
   )).join('\n') + '\nh').join('\n');
-  return `${colorComponents(appearance.fillColor)} rg\n${colorComponents(appearance.strokeColor)} RG\n${formatNumber(appearance.strokeWidth * 0.25 * POINTS_PER_MM)} w\n${path}\nB*`;
+  const paint = `${colorComponents(appearance.fillColor)} rg\n${colorComponents(appearance.strokeColor)} RG\n${formatNumber(appearance.strokeWidth * 0.25 * POINTS_PER_MM)} w`;
+  if (!appearance.invert) return `${paint}\n${path}\nB*`;
+  const pagePath = `0 0 m\n${formatNumber(context.width)} 0 l\n${formatNumber(context.width)} ${formatNumber(context.height)} l\n0 ${formatNumber(context.height)} l\nh`;
+  return `${paint}\n% Inverted shape fill\n${pagePath}\n${path}\nf*\n% Shape boundary outline\n${path}\nS`;
 }
 
 export function pdfVectorCommands(

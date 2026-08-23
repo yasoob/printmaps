@@ -3,9 +3,11 @@ import type { ContentLayer, PoiAppearance } from '../domain/project';
 import type { CustomMarkerAsset } from '../domain/customMarkerAssets';
 import { POI_MARKER_SYMBOL_GLYPHS } from '../domain/poiMarkers';
 import { ROUTE_TRAVEL_PROFILE_MARKERS } from '../domain/routeProfiles';
+import { addMapContentSource, mapContentSourceId, mapGeometryForLayer } from './MapContentGeometry';
 
 export type RenderedMapContent = {
   mapLayerIds: string[];
+  hitTestLayerIds: string[];
   sourceIds: string[];
   structure: string;
 };
@@ -18,7 +20,6 @@ type HighlightState = {
   previewedId: string | null;
 };
 
-const SOURCE_PREFIX = 'studio-source-';
 const LAYER_PREFIX = 'studio-layer-';
 const ROUTE_APPEARANCE = {
   kind: 'route',
@@ -37,13 +38,12 @@ const POI_APPEARANCE = {
   customAssetId: null,
 } as const;
 const SHAPE_APPEARANCE = {
-  kind: 'shape', fillColor: '#d18b25', strokeColor: '#d18b25', strokeWidth: 2,
+  kind: 'shape', fillColor: '#d18b25', strokeColor: '#d18b25', strokeWidth: 2, invert: false,
 } as const;
 const HIGHLIGHT_COLOR = '#006fc9';
 const POI_STROKE = '#ffffff';
 
 const encodedContentId = (id: string) => `${id.length}:${id}`;
-const sourceId = (id: string) => `${SOURCE_PREFIX}${encodedContentId(id)}`;
 const layerId = (id: string, role = 'main') => `${LAYER_PREFIX}${encodedContentId(id)}:${role}`;
 export const customMarkerImageId = (assetId: string) => `studio-marker-${assetId}`;
 const isLayerHighlighted = (layer: ContentLayer, highlight: HighlightState) => (
@@ -62,7 +62,8 @@ export const contentStructure = (layers: ContentLayer[]) => layers
     const poiMarker = layer.appearance?.kind === 'poi'
       ? `:${layer.appearance.markerShape}:${layer.appearance.markerSymbol}:${layer.appearance.label}:${layer.appearance.size}:${layer.appearance.customAssetId ?? ''}`
       : '';
-    return `${encodedContentId(layer.id)}:${layer.type}:${JSON.stringify(layer.geometry)}${routeMarker}${poiMarker}`;
+    const shapeMask = layer.appearance?.kind === 'shape' ? `:${layer.appearance.invert}` : '';
+    return `${encodedContentId(layer.id)}:${layer.type}:${JSON.stringify(layer.geometry)}${routeMarker}${poiMarker}${shapeMask}`;
   })
   .join('|');
 
@@ -208,6 +209,7 @@ const shapeLayerDescriptors = (layer: ContentLayer, isHighlighted: boolean) => {
   return [{
     id: layerId(layer.id, 'fill'),
     type: 'fill' as const,
+    hitTest: !appearance.invert,
     paint: {
       'fill-color': isHighlighted ? HIGHLIGHT_COLOR : appearance.fillColor,
       'fill-opacity': layer.opacity / 100,
@@ -215,6 +217,7 @@ const shapeLayerDescriptors = (layer: ContentLayer, isHighlighted: boolean) => {
   }, {
     id: layerId(layer.id, 'line'),
     type: 'line' as const,
+    sourceRole: appearance.invert ? 'outline' as const : undefined,
     paint: {
       'line-color': isHighlighted ? HIGHLIGHT_COLOR : appearance.strokeColor,
       'line-opacity': layer.opacity / 100,
@@ -226,6 +229,8 @@ const shapeLayerDescriptors = (layer: ContentLayer, isHighlighted: boolean) => {
 type MapLayerDescriptor = {
   id: string;
   type: 'circle' | 'fill' | 'line' | 'symbol';
+  hitTest?: boolean;
+  sourceRole?: 'outline';
   layout?: Record<string, unknown>;
   paint: Record<string, PaintValue>;
 };
@@ -269,9 +274,15 @@ function addMapLayers(
   map: MapLibreMap,
   source: string,
   descriptors: MapLayerDescriptor[],
+  outlineSource?: string,
 ) {
   for (const descriptor of descriptors) {
-    map.addLayer({ ...descriptor, source } as Parameters<MapLibreMap['addLayer']>[0]);
+    const { sourceRole, ...mapDescriptor } = descriptor;
+    delete mapDescriptor.hitTest;
+    map.addLayer({
+      ...mapDescriptor,
+      source: sourceRole === 'outline' ? outlineSource : source,
+    } as Parameters<MapLibreMap['addLayer']>[0]);
   }
   return descriptors.map(({ id }) => id);
 }
@@ -285,18 +296,21 @@ export function addContentLayer(
     rendered: RenderedMapContent;
   }>,
 ) {
-  const source = sourceId(layer.id);
-  map.addSource(source, {
-    type: 'geojson',
-    data: {
-      type: 'Feature',
-      properties: { layerId: layer.id },
-      geometry: layer.geometry!,
-    },
-  });
+  const source = mapContentSourceId(layer.id);
+  const geometry = mapGeometryForLayer(layer);
+  addMapContentSource(map, source, layer, geometry);
   options.rendered.sourceIds.push(source);
 
   const descriptors = mapLayerDescriptors(layer, options.highlight, options.assets);
-  options.rendered.mapLayerIds.push(...descriptors.map(({ id }) => id));
-  return addMapLayers(map, source, descriptors);
+  const needsOutlineSource = descriptors.some(({ sourceRole }) => sourceRole === 'outline');
+  const outlineSource = needsOutlineSource ? mapContentSourceId(layer.id, 'outline') : undefined;
+  if (outlineSource) {
+    addMapContentSource(map, outlineSource, layer, layer.geometry!);
+    options.rendered.sourceIds.push(outlineSource);
+  }
+  for (const { hitTest, id } of descriptors) {
+    options.rendered.mapLayerIds.push(id);
+    if (hitTest !== false) options.rendered.hitTestLayerIds.push(id);
+  }
+  return addMapLayers(map, source, descriptors, outlineSource);
 }

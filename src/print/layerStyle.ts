@@ -45,7 +45,7 @@ export function resolvePrintLayerStyle(
   } else {
     const appearance = layer.appearance?.kind === 'shape'
       ? layer.appearance
-      : { fillColor: '#d18b25', strokeColor: '#d18b25', strokeWidth: 2 };
+      : { fillColor: '#d18b25', strokeColor: '#d18b25', strokeWidth: 2, invert: false };
     style = {
       fill: appearance.fillColor,
       stroke: appearance.strokeColor,

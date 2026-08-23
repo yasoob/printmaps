@@ -13,6 +13,7 @@ import { mapStyleUrl } from './mapStyles';
 import { useMapFeatureVisibility } from './useMapFeatureVisibility';
 import { useMapLanguage } from './useMapLanguage';
 import { useMapTextScale } from './useMapTextScale';
+import { useMapFitRequests } from './useMapFitRequests';
 
 type MapCanvasControllerOptions = {
   camera: CameraSettings;
@@ -21,6 +22,8 @@ type MapCanvasControllerOptions = {
   textScalePercent: number;
   featureVisibility: MapFeatureVisibility;
   fitRequest: number;
+  fitLayerId?: string | null;
+  fitLayerRequest?: number;
   layers: ContentLayer[];
   assets: Record<string, CustomMarkerAsset>;
   onBackgroundClick: () => void;
@@ -31,8 +34,6 @@ type MapCanvasControllerOptions = {
   selectedId: string | null;
   contentRevision?: object;
 };
-
-const PAGE_BOUNDS: [[number, number], [number, number]] = [[16.28, 48.14], [16.48, 48.26]];
 
 function clearMapStateAttributes(container: HTMLDivElement | null) {
   container?.removeAttribute('data-map-ready');
@@ -47,6 +48,8 @@ export function useMapCanvasController({
   textScalePercent,
   featureVisibility,
   fitRequest,
+  fitLayerId,
+  fitLayerRequest,
   layers,
   assets,
   onBackgroundClick,
@@ -64,7 +67,6 @@ export function useMapCanvasController({
   const layerSelect = useRef(onLayerSelect), backgroundClick = useRef(onBackgroundClick), mapClick = useRef(onMapClick);
   const exporterChange = useRef(onExporterChange);
   const availableExporter = useRef<PreviewPngExporter | null>(null);
-  const handledFitRequest = useRef(0);
   const [mapError, setMapError] = useState<MapError | null>(null), [contentError, setContentError] = useState<ContentError | null>(null);
 
   const invalidateExporter = useCallback(() => {
@@ -153,18 +155,8 @@ export function useMapCanvasController({
     container.current?.setAttribute('data-map-bearing', String(camera.bearing));
     container.current?.setAttribute('data-map-pitch', String(camera.pitch));
   }, [camera.bearing, camera.pitch, stylePreset]);
+  useMapFitRequests({ camera, container, fitLayerId, fitLayerRequest, fitRequest, layers, map });
 
-  useEffect(() => {
-    if (!(fitRequest > handledFitRequest.current && map.current)) return;
-    handledFitRequest.current = fitRequest;
-    map.current.fitBounds(PAGE_BOUNDS, {
-      bearing: camera.bearing,
-      duration: 0,
-      padding: 64,
-      pitch: camera.pitch,
-    });
-    container.current?.setAttribute('data-camera-fit-request', String(fitRequest));
-  }, [camera.bearing, camera.pitch, fitRequest]);
 
   return { container, visibleError: mapError ?? contentError };
 }

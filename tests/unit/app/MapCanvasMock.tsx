@@ -16,6 +16,7 @@ type MapCanvasMockProps = {
   onBackgroundClick: () => void;
   onExporterChange?: (exporter: typeof exportMocks.exporter) => void;
   fitRequest?: number;
+  fitLayerId?: string | null;
   orientation?: 'landscape' | 'portrait';
   page?: { preset?: string; widthMm: number; heightMm: number };
 };
@@ -34,6 +35,7 @@ export function MapCanvas({
   onBackgroundClick,
   onExporterChange,
   fitRequest,
+  fitLayerId,
   orientation,
   page,
 }: MapCanvasMockProps) {
@@ -46,6 +48,7 @@ export function MapCanvas({
     <div
       data-testid="map-canvas"
       data-fit-request={fitRequest}
+      data-fit-layer-id={fitLayerId ?? ''}
       data-camera={`${camera.bearing},${camera.pitch}`}
       data-style-preset={stylePreset}
       data-map-language={language}

@@ -3,6 +3,7 @@ import { ROUTE_TRAVEL_PROFILE_MARKERS } from '../domain/routeProfiles';
 import { resolvePrintLayerStyle } from './layerStyle';
 import { serializePoiMarker } from './poiMarker';
 import type { CustomMarkerAsset } from '../domain/customMarkerAssets';
+import { serializeShapeElement } from './shapeElement';
 
 export type PagePoint = Readonly<{ x: number; y: number }>;
 
@@ -217,23 +218,15 @@ function geometryElement(
     return `<path d="${commands}" fill="none" ${stroke} stroke-linecap="round" stroke-linejoin="round"/>${routeTravelModeMarker(layer, points, style.stroke)}`;
   }
 
-  if (geometry.coordinates.length === 0) {
-    throw new PrintSceneError(`Layer "${layer.id}" polygon must contain at least one ring.`);
-  }
-  const rings = geometry.coordinates.map((ring) => {
-    if (ring.length < 4) {
-      throw new PrintSceneError(`Layer "${layer.id}" polygon rings must contain at least four coordinates.`);
-    }
-    const first = ring[0];
-    const last = ring.at(-1);
-    if (!first || !last || first[0] !== last[0] || first[1] !== last[1]) {
-      throw new PrintSceneError(`Layer "${layer.id}" polygon rings must be closed.`);
-    }
-    return ring
-      .map((coordinate, index) => `${index === 0 ? 'M' : 'L'} ${pointText(projectCoordinate(coordinate, layer, options, { width, height }))}`)
-      .join(' ') + ' Z';
+  const appearance = layer.appearance?.kind === 'shape'
+    ? layer.appearance
+    : { kind: 'shape' as const, fillColor: '#d18b25', strokeColor: '#d18b25', strokeWidth: 2, invert: false };
+  return serializeShapeElement({
+    layer, appearance, width, height,
+    fill: escapeXml(style.fill), stroke: escapeXml(style.stroke), strokeWidthMm: style.strokeWidthMm,
+    project: (coordinate) => projectCoordinate(coordinate, layer, options, { width, height }),
+    fail: (message) => { throw new PrintSceneError(message); },
   });
-  return `<path d="${rings.join(' ')}" fill="${escapeXml(style.fill)}" ${stroke} fill-rule="evenodd" stroke-linejoin="round"/>`;
 }
 
 function layerGroupAttributes(layer: ContentLayer, role: 'raster-basemap' | 'vector-overlay'): string {

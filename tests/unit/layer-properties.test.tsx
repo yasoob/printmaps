@@ -41,7 +41,7 @@ function shapeWithHole(): ContentLayer {
     visible: true,
     locked: false,
     opacity: 30,
-    appearance: { kind: 'shape', fillColor: '#ffd0cc', strokeColor: '#c5352c', strokeWidth: 2 },
+    appearance: { kind: 'shape', fillColor: '#ffd0cc', strokeColor: '#c5352c', strokeWidth: 2, invert: false },
     geometry: {
       type: 'Polygon',
       coordinates: [
@@ -53,6 +53,25 @@ function shapeWithHole(): ContentLayer {
 }
 
 describe('layer appearance draft boundaries', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('toggles inverted fill as one canonical appearance edit', async () => {
+    const user = userEvent.setup();
+    render(<LayerProperties layer={shapeWithHole()} {...actions} />);
+
+    await user.click(screen.getByRole('checkbox', { name: 'Invert shape fill' }));
+
+    expect(actions.onAppearanceChange).toHaveBeenLastCalledWith({
+      kind: 'shape',
+      fillColor: '#ffd0cc',
+      strokeColor: '#c5352c',
+      strokeWidth: 2,
+      invert: true,
+    });
+  });
+
   it('does not resurrect an abandoned width draft when canonical history returns to its source value', async () => {
     const user = userEvent.setup();
     const view = render(<LayerProperties layer={route(4)} {...actions} />);
