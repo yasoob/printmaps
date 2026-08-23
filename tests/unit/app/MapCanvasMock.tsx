@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import type { CameraSettings, ContentLayer, MapFeatureVisibility, MapLanguage, MapStylePreset } from '../../../src/domain/project';
+import type { MapBounds } from '../../../src/map/MapLayerBounds';
 import { exportMocks } from './exportMocks';
 
 type MapCanvasMockProps = {
@@ -17,6 +18,8 @@ type MapCanvasMockProps = {
   onExporterChange?: (exporter: typeof exportMocks.exporter) => void;
   fitRequest?: number;
   fitLayerId?: string | null;
+  fitImportBounds?: MapBounds;
+  fitImportRequest?: number;
   orientation?: 'landscape' | 'portrait';
   page?: { preset?: string; widthMm: number; heightMm: number };
 };
@@ -36,6 +39,7 @@ export function MapCanvas({
   onExporterChange,
   fitRequest,
   fitLayerId,
+  fitImportRequest,
   orientation,
   page,
 }: MapCanvasMockProps) {
@@ -49,6 +53,7 @@ export function MapCanvas({
       data-testid="map-canvas"
       data-fit-request={fitRequest}
       data-fit-layer-id={fitLayerId ?? ''}
+      data-camera-fit-import={fitImportRequest}
       data-camera={`${camera.bearing},${camera.pitch}`}
       data-style-preset={stylePreset}
       data-map-language={language}

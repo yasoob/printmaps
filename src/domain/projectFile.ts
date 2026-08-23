@@ -14,8 +14,8 @@ import type { CustomMarkerAsset } from './customMarkerAssets';
 import { parseProjectAssets } from './projectAssets';
 
 export const MAX_PROJECT_FILE_BYTES = 10 * 1024 * 1024;
-const MAX_LAYERS = 1000;
-const MAX_COORDINATES = 200_000;
+export const MAX_PROJECT_LAYERS = 1000;
+export const MAX_PROJECT_COORDINATES = 200_000;
 const LAYER_TYPES = new Set<LayerType>(['route', 'poi', 'shape', 'basemap']);
 const PAGE_PRESETS = new Set<PagePreset>(['A4', 'A3', 'Letter', 'Custom']);
 const PAGE_ORIENTATIONS = new Set<PageOrientation>(['landscape', 'portrait']);
@@ -80,8 +80,8 @@ function positionAt(value: unknown, label: string, coordinateCount: { value: num
     throw new ProjectFileError(`${label} latitude must be between -90 and 90.`);
   }
   coordinateCount.value += 1;
-  if (coordinateCount.value > MAX_COORDINATES) {
-    throw new ProjectFileError(`Projects may contain at most ${MAX_COORDINATES.toLocaleString()} positions.`);
+  if (coordinateCount.value > MAX_PROJECT_COORDINATES) {
+    throw new ProjectFileError(`Projects may contain at most ${MAX_PROJECT_COORDINATES.toLocaleString()} positions.`);
   }
   return [longitude, latitude];
 }
@@ -151,7 +151,7 @@ function layerAppearanceAt(
 
 function layersAt(value: unknown, assets: Record<string, CustomMarkerAsset>) {
   if (!Array.isArray(value)) throw new ProjectFileError('Project layers must be an array.');
-  if (value.length > MAX_LAYERS) throw new ProjectFileError(`Projects may contain at most ${MAX_LAYERS} layers.`);
+  if (value.length > MAX_PROJECT_LAYERS) throw new ProjectFileError(`Projects may contain at most ${MAX_PROJECT_LAYERS} layers.`);
   const ids = new Set<string>();
   const coordinateCount = { value: 0 };
   return value.map((candidate, index): ContentLayer => {

@@ -462,7 +462,7 @@ describe('project store layer imports', () => {
       },
     ];
 
-    store.getState().importLayers(importedLayers, store.getState().documentEpoch);
+    store.getState().importLayers(importedLayers, store.getState().documentEpoch, store.getState().document);
 
     expect(layerState(store).map((layer) => layer.id)).toEqual([
       'route-01',
@@ -498,7 +498,7 @@ describe('project store layer imports', () => {
       geometry: { type: 'LineString', coordinates: [[16.36, 48.2], [16.38, 48.22]] },
     };
 
-    store.getState().importLayers([importedLayer, importedLayer], store.getState().documentEpoch);
+    store.getState().importLayers([importedLayer, importedLayer], store.getState().documentEpoch, store.getState().document);
 
     expect(layerState(store).map((layer) => layer.id)).toEqual([
       'route-01',

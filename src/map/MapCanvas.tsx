@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react';
 import type { CustomMarkerAsset } from '../domain/customMarkerAssets';
 import type { CameraSettings, ContentLayer, MapFeatureVisibility, MapLanguage, MapStylePreset, PageSettings } from '../domain/project';
 import type { PreviewPngExporter } from '../export/previewPng';
+import type { MapBounds } from './MapLayerBounds';
 import { useMapCanvasController } from './useMapCanvasController';
 
 type MapCanvasProps = {
@@ -21,6 +22,8 @@ type MapCanvasProps = {
   fitRequest?: number;
   fitLayerId?: string | null;
   fitLayerRequest?: number;
+  fitImportBounds?: MapBounds;
+  fitImportRequest?: number;
   orientation?: 'landscape' | 'portrait';
   page?: PageSettings;
   contentRevision?: object;
@@ -55,6 +58,8 @@ export function MapCanvas({
   fitRequest = 0,
   fitLayerId,
   fitLayerRequest,
+  fitImportBounds,
+  fitImportRequest,
   orientation = 'landscape',
   page,
   contentRevision,
@@ -68,6 +73,8 @@ export function MapCanvas({
     fitRequest,
     fitLayerId,
     fitLayerRequest,
+    fitImportBounds,
+    fitImportRequest,
     layers,
     assets,
     onBackgroundClick,
@@ -81,7 +88,7 @@ export function MapCanvas({
 
   return (
     <div className="canvas-surface" aria-label="Map canvas">
-      <div ref={container} className="map-root" data-testid="map-canvas" data-fit-request={fitRequest} data-fit-layer-id={fitLayerId} />
+      <div ref={container} className="map-root" data-testid="map-canvas" data-fit-request={fitRequest} data-fit-layer-id={fitLayerId} data-fit-import-request={fitImportRequest} />
       {visibleError && (
         <div className="map-fallback" role="status">
           <div><strong>Map preview unavailable</strong><span>{visibleError.message}</span></div>

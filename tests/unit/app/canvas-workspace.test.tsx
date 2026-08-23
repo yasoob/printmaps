@@ -47,6 +47,7 @@ const sharedProps = {
   featureVisibility: { roads: true, buildings: true, labels: true, water: true, parks: true, landuse: true, transit: true },
   previewedId: null,
   documentEpoch: 0,
+  importFitRequest: { request: 0 },
   page: { preset: 'A4', widthMm: 297, heightMm: 210, orientation: 'landscape' } as const,
   activePanel: null,
   layersTriggerRef: createRef<HTMLButtonElement>(),

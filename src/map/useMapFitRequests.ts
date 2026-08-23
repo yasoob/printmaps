@@ -1,7 +1,7 @@
 import { useEffect, useRef, type RefObject } from 'react';
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { CameraSettings, ContentLayer } from '../domain/project';
-import { layerBounds } from './MapLayerBounds';
+import { layerBounds, type MapBounds } from './MapLayerBounds';
 
 const PAGE_BOUNDS: [[number, number], [number, number]] = [[16.28, 48.14], [16.48, 48.26]];
 
@@ -10,6 +10,8 @@ type MapFitRequestOptions = Readonly<{
   container: RefObject<HTMLDivElement | null>;
   fitLayerId?: string | null;
   fitLayerRequest?: number;
+  fitImportBounds?: MapBounds;
+  fitImportRequest?: number;
   fitRequest: number;
   layers: readonly ContentLayer[];
   map: RefObject<MapLibreMap | null>;
@@ -18,6 +20,7 @@ type MapFitRequestOptions = Readonly<{
 export function useMapFitRequests(options: MapFitRequestOptions) {
   const handledFitRequest = useRef(0);
   const handledLayerFitRequest = useRef(0);
+  const handledFitImportRequest = useRef(0);
 
   useEffect(() => {
     if (!(options.fitRequest > handledFitRequest.current && options.map.current)) return;
@@ -45,4 +48,17 @@ export function useMapFitRequests(options: MapFitRequestOptions) {
     });
     options.container.current?.setAttribute('data-camera-fit-layer', options.fitLayerId ?? '');
   }, [options.camera.bearing, options.camera.pitch, options.container, options.fitLayerId, options.fitLayerRequest, options.layers, options.map]);
+
+  useEffect(() => {
+    const request = options.fitImportRequest ?? 0;
+    if (!(request > handledFitImportRequest.current && options.fitImportBounds && options.map.current)) return;
+    handledFitImportRequest.current = request;
+    options.map.current.fitBounds(options.fitImportBounds, {
+      bearing: options.camera.bearing,
+      duration: 0,
+      padding: 72,
+      pitch: options.camera.pitch,
+    });
+    options.container.current?.setAttribute('data-camera-fit-import', String(request));
+  }, [options.camera.bearing, options.camera.pitch, options.container, options.fitImportBounds, options.fitImportRequest, options.map]);
 }

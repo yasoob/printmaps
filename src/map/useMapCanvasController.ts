@@ -14,6 +14,7 @@ import { useMapFeatureVisibility } from './useMapFeatureVisibility';
 import { useMapLanguage } from './useMapLanguage';
 import { useMapTextScale } from './useMapTextScale';
 import { useMapFitRequests } from './useMapFitRequests';
+import type { MapBounds } from './MapLayerBounds';
 
 type MapCanvasControllerOptions = {
   camera: CameraSettings;
@@ -24,6 +25,8 @@ type MapCanvasControllerOptions = {
   fitRequest: number;
   fitLayerId?: string | null;
   fitLayerRequest?: number;
+  fitImportBounds?: MapBounds;
+  fitImportRequest?: number;
   layers: ContentLayer[];
   assets: Record<string, CustomMarkerAsset>;
   onBackgroundClick: () => void;
@@ -50,6 +53,8 @@ export function useMapCanvasController({
   fitRequest,
   fitLayerId,
   fitLayerRequest,
+  fitImportBounds,
+  fitImportRequest,
   layers,
   assets,
   onBackgroundClick,
@@ -155,7 +160,7 @@ export function useMapCanvasController({
     container.current?.setAttribute('data-map-bearing', String(camera.bearing));
     container.current?.setAttribute('data-map-pitch', String(camera.pitch));
   }, [camera.bearing, camera.pitch, stylePreset]);
-  useMapFitRequests({ camera, container, fitLayerId, fitLayerRequest, fitRequest, layers, map });
+  useMapFitRequests({ camera, container, fitImportBounds, fitImportRequest, fitLayerId, fitLayerRequest, fitRequest, layers, map });
 
 
   return { container, visibleError: mapError ?? contentError };

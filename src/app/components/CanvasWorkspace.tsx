@@ -13,6 +13,7 @@ import {
 } from '../../domain/routeProfiles';
 import type { PreviewPngExporter } from '../../export/previewPng';
 import { MapCanvas } from '../../map/MapCanvas';
+import type { MapBounds } from '../../map/MapLayerBounds';
 import type { MobilePanel } from '../hooks/useMobilePanels';
 import { usePoiAuthoring } from '../hooks/usePoiAuthoring';
 import { PoiAuthoringControls } from './PoiAuthoringControls';
@@ -150,6 +151,7 @@ type CanvasWorkspaceProps = {
   previewedId: string | null;
   page: PageSettings;
   documentEpoch: number;
+  importFitRequest: { bounds?: MapBounds; request: number };
   activePanel: MobilePanel | null;
   layersTriggerRef: RefObject<HTMLButtonElement | null>;
   propertiesTriggerRef: RefObject<HTMLButtonElement | null>;
@@ -178,7 +180,7 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
   const [fitRequest, setFitRequest] = useState(0);
   const [fitLayerRequest, setFitLayerRequest] = useState({ id: null as string | null, request: 0 });
   const selectToolRef = useRef<HTMLButtonElement>(null);
-  const { activePanel, assets, camera, documentEpoch, featureVisibility, language, layers, layersTriggerRef, onAuthoringChange, onBackgroundClick, onCreateAdministrativeArea, onCreateAdministrativeAreas, onCreatePoi, onCreatePoiBatch, onCreateRoute, onCreateShape, onExporterChange, onLayerSelect, openPanel, page, previewedId, propertiesTriggerRef, selectedId, stylePreset, textScalePercent } = props;
+  const { activePanel, assets, camera, documentEpoch, featureVisibility, importFitRequest, language, layers, layersTriggerRef, onAuthoringChange, onBackgroundClick, onCreateAdministrativeArea, onCreateAdministrativeAreas, onCreatePoi, onCreatePoiBatch, onCreateRoute, onCreateShape, onExporterChange, onLayerSelect, openPanel, page, previewedId, propertiesTriggerRef, selectedId, stylePreset, textScalePercent } = props;
   const activeTool = toolDocumentEpoch === documentEpoch ? storedActiveTool : 'select';
   const routePoints = toolDocumentEpoch === documentEpoch ? storedRoutePoints : EMPTY_ROUTE_POINTS;
   const shapePoints = toolDocumentEpoch === documentEpoch ? storedShapePoints : EMPTY_SHAPE_POINTS;
@@ -261,7 +263,7 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
 
   return (
     <section className="canvas-region" inert={activePanel !== null}>
-      <MapCanvas camera={camera} stylePreset={stylePreset} language={language} textScalePercent={textScalePercent} featureVisibility={featureVisibility} layers={geometryLayers} assets={assets} contentRevision={geometryLayers} selectedId={selectedId} previewedId={previewedId} onLayerSelect={onLayerSelect} onMapClick={handleMapClick} onBackgroundClick={onBackgroundClick} onExporterChange={onExporterChange} fitRequest={fitRequest} fitLayerId={fitLayerRequest.id} fitLayerRequest={fitLayerRequest.request} orientation={page.orientation} page={page} />
+      <MapCanvas camera={camera} stylePreset={stylePreset} language={language} textScalePercent={textScalePercent} featureVisibility={featureVisibility} layers={geometryLayers} assets={assets} contentRevision={geometryLayers} selectedId={selectedId} previewedId={previewedId} onLayerSelect={onLayerSelect} onMapClick={handleMapClick} onBackgroundClick={onBackgroundClick} onExporterChange={onExporterChange} fitRequest={fitRequest} fitLayerId={fitLayerRequest.id} fitLayerRequest={fitLayerRequest.request} fitImportBounds={importFitRequest.bounds} fitImportRequest={importFitRequest.request} orientation={page.orientation} page={page} />
       <div className="mobile-panel-actions" aria-label="Editor panels">
         <button ref={layersTriggerRef} type="button" aria-label="Open layers" aria-controls="layers-panel" aria-expanded={activePanel === 'layers'} onClick={() => openPanel('layers')}><Layers3 size={15} /><span>Layers</span></button>
         <button ref={propertiesTriggerRef} type="button" aria-label="Open properties" aria-controls="properties-panel" aria-expanded={activePanel === 'properties'} onClick={() => openPanel('properties')}><SlidersHorizontal size={15} /><span>Properties</span></button>

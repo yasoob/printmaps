@@ -13,6 +13,7 @@ import { ExportDialog } from './components/ExportDialog';
 import { LayersSidebar } from './components/LayersSidebar';
 import { PropertiesSidebar } from './components/PropertiesSidebar';
 import { StudioHeader } from './components/StudioHeader';
+import { useAppMapDataImport } from './hooks/useAppMapDataImport';
 import { useAutosaveModalArbitration } from './hooks/useAutosaveModalArbitration';
 import { useMobilePanels } from './hooks/useMobilePanels';
 import { createProjectStore } from './store';
@@ -20,6 +21,12 @@ import { createProjectStore } from './store';
 type AppProps = {
   autosaveRepository?: AutosaveRepository | null;
 };
+
+function visiblePreviewLayerId(layers: readonly ContentLayer[], previewedLayerId: string | null) {
+  if (previewedLayerId === null) return null;
+  const layer = layers.find(({ id }) => id === previewedLayerId);
+  return layer?.visible && layer.geometry ? previewedLayerId : null;
+}
 
 export function App({ autosaveRepository }: AppProps = {}) {
   const [projectStore] = useState(() => createProjectStore());
@@ -36,18 +43,18 @@ export function App({ autosaveRepository }: AppProps = {}) {
   const [mapExporter, setMapExporter] = useState<{ run: PreviewPngExporter } | null>(null);
   const draggedLayerIdRef = useRef<string | null>(null);
   const exportButtonRef = useRef<HTMLButtonElement>(null);
+  const importButtonRef = useRef<HTMLButtonElement>(null);
   const mobile = useMobilePanels();
-  const modal = useAutosaveModalArbitration({ autosave, exportButtonRef, exportOpen, mobile, setExportOpen });
+  const handleMapDataImported = useCallback(() => setPreviewedLayerId(null), []);
+  const mapDataImport = useAppMapDataImport(project.importLayers, autosave.recoveryDraft !== null || autosave.corrupted, handleMapDataImported);
+  const modal = useAutosaveModalArbitration({ autosave, exportButtonRef, exportOpen, importButtonRef, importOpen: mapDataImport.isImportOpen, mobile, setExportOpen, setImportOpen: mapDataImport.setIsImportOpen });
   const layers = project.document.layers;
-  const mapPreviewedLayerId = previewedLayerId !== null && layers.some((layer) => (
-    layer.id === previewedLayerId && layer.visible && layer.geometry
-  )) ? previewedLayerId : null;
+  const mapPreviewedLayerId = visiblePreviewLayerId(layers, previewedLayerId);
   const selectedLayer = layers.find((layer) => layer.id === project.selectedId) ?? null;
   const selectedIndex = selectedLayer ? layers.findIndex((layer) => layer.id === selectedLayer.id) : -1;
   const isAuthoring = authoringState.documentEpoch === project.documentEpoch && authoringState.active;
   const selectLayer = project.selectLayer;
   const openDocument = project.openDocument;
-  const importLayers = project.importLayers;
   const clearSelection = useCallback(() => selectLayer(null), [selectLayer]);
   const handleExporterChange = useCallback((exporter: PreviewPngExporter | null) => {
     setMapExporter(exporter ? { run: exporter } : null);
@@ -56,27 +63,29 @@ export function App({ autosaveRepository }: AppProps = {}) {
     openDocument(document);
     setPreviewedLayerId(null);
   }, [openDocument]);
-  const handleImportedLayers = useCallback((layers: readonly ContentLayer[], documentEpoch: number) => {
-    const imported = importLayers(layers, documentEpoch);
-    if (!imported) return false;
-    setPreviewedLayerId(null);
-    return true;
-  }, [importLayers]);
+
   const handleAuthoringChange = useCallback((documentEpoch: number, isActive: boolean) => {
     setAuthoringState({ documentEpoch, active: isActive });
   }, []);
 
   return (
     <>
-      <main className="studio-shell" inert={modal.surface === 'export' || modal.surface === 'autosave'}>
+      <main className="studio-shell" inert={['export', 'autosave', 'import'].includes(modal.surface ?? '')}>
         <StudioHeader
           project={project}
           projectTitleRef={mobile.projectTitleRef}
           exportButtonRef={exportButtonRef}
+          importButtonRef={importButtonRef}
+          finishImportWork={mapDataImport.finishImportWork}
+          isImportWorkActive={mapDataImport.isImportWorkActive}
+          startImportWork={mapDataImport.startImportWork}
           exportDisabled={isAuthoring}
+          importDisabled={modal.surface !== null && modal.surface !== 'import'}
+          importOpen={modal.surface === 'import'}
           inert={modal.mobilePanel !== null}
           onOpen={handleOpenedDocument}
-          onImport={handleImportedLayers}
+          onImport={mapDataImport.handleImportedLayers}
+          onImportOpenChange={mapDataImport.setIsImportOpen}
           onExport={() => setExportOpen(true)}
         />
         <LayersSidebar
@@ -102,6 +111,7 @@ export function App({ autosaveRepository }: AppProps = {}) {
           textScalePercent={project.document.style.textScalePercent}
           featureVisibility={project.document.style.visibility}
           documentEpoch={project.documentEpoch}
+          importFitRequest={mapDataImport.importFitRequest}
           activePanel={modal.mobilePanel}
           layersTriggerRef={mobile.layersTriggerRef}
           propertiesTriggerRef={mobile.propertiesTriggerRef}

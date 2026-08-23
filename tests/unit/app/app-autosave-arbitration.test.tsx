@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../../../src/app/App';
 import { createInitialProjectDocument } from '../../../src/domain/project';
@@ -44,6 +44,27 @@ function createDelayedDraftRepository() {
   };
 }
 
+const pointGeoJson = JSON.stringify({
+  type: 'FeatureCollection',
+  features: [{
+    type: 'Feature',
+    properties: { name: 'Delayed point' },
+    geometry: { type: 'Point', coordinates: [16.37, 48.21] },
+  }],
+});
+
+function mapDataFile(name: string, text: string | Promise<string>) {
+  const file = new File([], name, { type: 'application/geo+json' });
+  Object.defineProperty(file, 'text', { value: () => Promise.resolve(text) });
+  return file;
+}
+
+function getImportInput(container: HTMLElement) {
+  const inputs = container.querySelectorAll<HTMLInputElement>('input[type="file"]');
+  if (inputs.length !== 2) throw new Error(`Expected two file inputs, received ${inputs.length}.`);
+  return inputs[1];
+}
+
 describe('autosave modal arbitration', () => {
   beforeEach(() => {
     exportMocks.exporter = null;
@@ -81,6 +102,47 @@ describe('autosave modal arbitration', () => {
 
     await waitFor(() => expect(recoveryDialog).not.toBeInTheDocument());
     await waitFor(() => expect(exportTrigger).toHaveFocus());
+  });
+
+  it('preempts an open import review when a delayed recovery decision arrives', async () => {
+    const user = userEvent.setup();
+    const { repository, resolveLoad } = createDelayedDraftRepository();
+    const { container } = render(<App autosaveRepository={repository} />);
+    fireEvent.change(getImportInput(container), {
+      target: {
+        files: [
+          mapDataFile('first.geojson', pointGeoJson),
+          mapDataFile('second.geojson', pointGeoJson),
+        ],
+      },
+    });
+    expect(await screen.findByRole('dialog', { name: 'Import map data' })).toBeInTheDocument();
+
+    await resolveLoad();
+
+    const recoveryDialog = await screen.findByRole('dialog', { name: 'Recover local draft' });
+    expect(screen.getAllByRole('dialog')).toEqual([recoveryDialog]);
+    await user.click(screen.getByRole('button', { name: 'Discard draft' }));
+    await waitFor(() => expect(recoveryDialog).not.toBeInTheDocument());
+    expect(screen.queryByRole('dialog', { name: 'Import map data' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Import' })).toHaveFocus());
+  });
+
+  it('rejects an immediate import that settles behind a delayed recovery decision', async () => {
+    let finishImport: ((text: string) => void) | undefined;
+    const slowText = new Promise<string>((resolve) => { finishImport = resolve; });
+    const { repository, resolveLoad } = createDelayedDraftRepository();
+    const { container } = render(<App autosaveRepository={repository} />);
+    fireEvent.change(getImportInput(container), {
+      target: { files: [mapDataFile('slow.geojson', slowText)] },
+    });
+
+    await resolveLoad();
+    await act(async () => { finishImport?.(pointGeoJson); });
+
+    expect(screen.getByRole('dialog', { name: 'Recover local draft' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Select Delayed point' })).not.toBeInTheDocument();
   });
 
   it('preempts the Layers drawer for a delayed recovery decision and restores its trigger after discard', async () => {

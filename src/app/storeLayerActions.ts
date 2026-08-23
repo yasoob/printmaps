@@ -158,10 +158,10 @@ export function createLayerStructureActions(set: ProjectSet): Pick<ProjectState,
         selectedId: duplicateId,
       };
     }),
-    importLayers: (importedLayers, documentEpoch) => {
+    importLayers: (importedLayers, documentEpoch, sourceDocument) => {
       let wasImported = false;
       set((state) => {
-        if (importedLayers.length === 0 || documentEpoch !== state.documentEpoch) return state;
+        if (importedLayers.length === 0 || documentEpoch !== state.documentEpoch || sourceDocument !== state.document) return state;
         wasImported = true;
 
         const layers = [...state.document.layers];

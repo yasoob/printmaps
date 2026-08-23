@@ -9,10 +9,17 @@ type StudioHeaderProps = {
   project: ProjectState;
   projectTitleRef: RefObject<HTMLButtonElement | null>;
   exportButtonRef: RefObject<HTMLButtonElement | null>;
+  importButtonRef: RefObject<HTMLButtonElement | null>;
+  finishImportWork: (workId: number) => void;
+  isImportWorkActive: boolean;
+  startImportWork: () => number | null;
   exportDisabled: boolean;
+  importDisabled: boolean;
+  importOpen: boolean;
   inert: boolean;
   onOpen: (document: ProjectDocument) => void;
-  onImport: (layers: readonly ContentLayer[], documentEpoch: number) => boolean;
+  onImport: (layers: readonly ContentLayer[], documentEpoch: number, sourceDocument: ProjectDocument, shouldFitView: boolean) => boolean;
+  onImportOpenChange: (isOpen: boolean) => void;
   onExport: () => void;
 };
 
@@ -20,10 +27,17 @@ export function StudioHeader({
   project,
   projectTitleRef,
   exportButtonRef,
+  importButtonRef,
+  finishImportWork,
+  isImportWorkActive,
+  startImportWork,
   exportDisabled,
+  importDisabled,
+  importOpen,
   inert,
   onOpen,
   onImport,
+  onImportOpenChange,
   onExport,
 }: StudioHeaderProps) {
   return (
@@ -40,10 +54,16 @@ export function StudioHeader({
       <div className="document-actions">
         <ProjectFileOpenButton onOpen={onOpen} />
         <GeoJsonImportButton
-          key={project.documentEpoch}
+          buttonRef={importButtonRef}
+          isDisabled={importDisabled}
           documentEpoch={project.documentEpoch}
-          existingLayerIds={project.document.layers.map((layer) => layer.id)}
+          finishImportWork={finishImportWork}
+          isOpen={importOpen}
+          isWorkActive={isImportWorkActive}
           onImport={onImport}
+          onOpenChange={onImportOpenChange}
+          sourceDocument={project.document}
+          startImportWork={startImportWork}
         />
         <ProjectSaveButton document={project.document} />
         <button className="quiet-button" type="button"><Share2 size={14} /> Share</button>

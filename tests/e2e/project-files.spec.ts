@@ -228,6 +228,124 @@ test('imports supported GeoJSON as one undoable editable layer batch', async ({ 
   await expect(page.getByRole('heading', { name: 'Project' })).toBeVisible();
 });
 
+test('drops multiple map-data files as one reviewed batch and fits their combined extent', async ({ page }) => {
+  await page.goto('/');
+  const files = await Promise.all([
+    ['supported.geojson', 'application/geo+json', 'tests/fixtures/import/supported.geojson'],
+    ['namespaced.kml', 'application/vnd.google-earth.kml+xml', 'tests/fixtures/import/wave2/namespaced.kml'],
+  ].map(async ([name, type, filename]) => {
+    const bytes = await readFile(path.resolve(filename));
+    return { name, type, base64: bytes.toString('base64') };
+  }));
+  const transfer = await page.evaluateHandle((entries) => {
+    const dataTransfer = new DataTransfer();
+    for (const entry of entries) {
+      const bytes = Uint8Array.from(atob(entry.base64), (character) => character.codePointAt(0) ?? 0);
+      dataTransfer.items.add(new File([bytes], entry.name, { type: entry.type }));
+    }
+    return dataTransfer;
+  }, files);
+
+  await page.locator('.canvas-region').dispatchEvent('dragenter', { dataTransfer: transfer });
+  await expect(page.getByText('Drop GeoJSON, GPX, or KML files')).toBeVisible();
+  await page.locator('.canvas-region').dispatchEvent('drop', { dataTransfer: transfer });
+
+  const dialog = page.getByRole('dialog', { name: 'Import map data' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByText('supported.geojson')).toBeVisible();
+  await expect(dialog.getByText('namespaced.kml')).toBeVisible();
+  await expect(dialog.getByRole('radio', { name: 'Fit imported content' })).toBeChecked();
+  await dialog.getByRole('button', { name: 'Import 2 files' }).click();
+
+  await expect(page.getByRole('status', { name: 'Map data import status' }))
+    .toHaveText('Imported 2 files as 6 layers. Undo removes the whole import.');
+  await expect(page.getByRole('button', { name: 'Select Café Central' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Select Café point' })).toBeVisible();
+  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-camera-fit-import', '1');
+
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(page.getByRole('button', { name: 'Select Café Central' })).not.toBeVisible();
+  await expect(page.getByRole('button', { name: 'Select Café point' })).not.toBeVisible();
+});
+
+test('replaces a reviewed import batch without changing the explicit retain-view choice', async ({ page }) => {
+  await page.goto('/');
+  const chooserPromise = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'Import' }).click();
+  const chooser = await chooserPromise;
+  await chooser.setFiles([
+    path.resolve('tests/fixtures/import/supported.geojson'),
+    path.resolve('tests/fixtures/import/wave2/namespaced.gpx'),
+  ]);
+
+  const dialog = page.getByRole('dialog', { name: 'Import map data' });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole('radio', { name: 'Keep current view' }).check();
+  const replacementChooserPromise = page.waitForEvent('filechooser');
+  await dialog.getByRole('button', { name: 'Replace files' }).click();
+  const replacementChooser = await replacementChooserPromise;
+  await replacementChooser.setFiles(path.resolve('tests/fixtures/import/wave2/namespaced.kml'));
+
+  await expect(dialog.getByRole('radio', { name: 'Keep current view' })).toBeChecked();
+  await expect(dialog.getByText('namespaced.kml')).toBeVisible();
+  await expect(dialog.getByText('supported.geojson')).not.toBeVisible();
+  await dialog.getByRole('button', { name: 'Import 1 files' }).click();
+
+  await expect(page.getByRole('button', { name: 'Select Café point' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Select Café Central' })).not.toBeVisible();
+  await expect(page.getByTestId('map-canvas')).not.toHaveAttribute('data-camera-fit-import');
+});
+
+test('ignores map-data drops while another modal workflow owns the editor', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Export' }).click();
+  const exportDialog = page.getByRole('dialog', { name: 'Export map' });
+  await expect(exportDialog).toBeVisible();
+  const transfer = await page.evaluateHandle(() => {
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(new File(['{}'], 'blocked.geojson', { type: 'application/geo+json' }));
+    return dataTransfer;
+  });
+
+  await page.locator('.canvas-region').dispatchEvent('dragenter', { dataTransfer: transfer });
+  await page.locator('.canvas-region').dispatchEvent('drop', { dataTransfer: transfer });
+
+  await expect(exportDialog).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Import map data' })).not.toBeVisible();
+});
+
+test('contains import review focus and restores it after cancelling a dropped batch', async ({ page }) => {
+  await page.goto('/');
+  const transfer = await page.evaluateHandle(() => {
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(new File([
+      JSON.stringify({
+        type: 'FeatureCollection',
+        features: [{
+          type: 'Feature',
+          properties: { name: 'Dropped point' },
+          geometry: { type: 'Point', coordinates: [16.37, 48.21] },
+        }],
+      }),
+    ], 'dropped.geojson', { type: 'application/geo+json' }));
+    return dataTransfer;
+  });
+  await page.locator('.canvas-region').dispatchEvent('drop', { dataTransfer: transfer });
+
+  const dialog = page.getByRole('dialog', { name: 'Import map data' });
+  const addFiles = dialog.getByRole('button', { name: 'Import 1 files' });
+  await expect(addFiles).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(dialog.getByRole('button', { name: 'Close map data import' })).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  await expect(addFiles).toBeFocused();
+  await page.keyboard.press('Escape');
+
+  await expect(dialog).not.toBeVisible();
+  await expect(page.getByRole('button', { name: 'Import' })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
+});
+
 test('imports GPX as one undoable editable layer batch', async ({ page }) => {
   await page.goto('/');
 
