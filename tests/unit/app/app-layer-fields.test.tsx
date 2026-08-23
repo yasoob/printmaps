@@ -87,6 +87,12 @@ describe('editor layer fields', () => {
     await user.click(screen.getByRole('button', { name: 'Undo' }));
     expect(screen.getByRole('textbox', { name: 'Layer opacity' })).toHaveValue('28');
   });
+});
+
+describe('editor content appearance and POI geometry fields', () => {
+  beforeEach(() => {
+    exportMocks.exporter = null;
+  });
 
   it('commits route color and width as separate undoable appearance edits', async () => {
     const user = userEvent.setup();
@@ -127,6 +133,77 @@ describe('editor layer fields', () => {
     expect(size).toHaveValue('24');
     await user.click(screen.getByRole('button', { name: 'Undo' }));
     expect(screen.getByRole('textbox', { name: 'POI marker size' })).toHaveValue('14');
+  });
+
+  it('commits a POI longitude edit to the live map as one undoable change', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: 'Select Coffee stop' }));
+    const longitude = screen.getByRole('textbox', { name: 'POI longitude' });
+    const map = screen.getByTestId('map-canvas');
+    expect(longitude).toHaveValue('16.3725');
+
+    await user.clear(longitude);
+    await user.type(longitude, '16.4');
+    expect(map).toHaveAttribute('data-layer-geometry', expect.stringContaining('poi-cafe:[16.3725,48.2084]'));
+    await user.tab();
+
+    expect(longitude).toHaveValue('16.4');
+    expect(screen.getByRole('textbox', { name: 'POI latitude' })).toHaveFocus();
+    expect(map).toHaveAttribute('data-layer-geometry', expect.stringContaining('poi-cafe:[16.4,48.2084]'));
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(screen.getByRole('textbox', { name: 'POI longitude' })).toHaveValue('16.3725');
+    expect(map).toHaveAttribute('data-layer-geometry', expect.stringContaining('poi-cafe:[16.3725,48.2084]'));
+  });
+
+  it('commits a POI latitude edit to the live map as one undoable change', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: 'Select Coffee stop' }));
+    const latitude = screen.getByRole('textbox', { name: 'POI latitude' });
+    const map = screen.getByTestId('map-canvas');
+    expect(latitude).toHaveValue('48.2084');
+
+    await user.clear(latitude);
+    await user.type(latitude, '48.25');
+    await user.tab();
+
+    expect(latitude).toHaveValue('48.25');
+    expect(map).toHaveAttribute('data-layer-geometry', expect.stringContaining('poi-cafe:[16.3725,48.25]'));
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(screen.getByRole('textbox', { name: 'POI latitude' })).toHaveValue('48.2084');
+  });
+
+  it.each([
+    ['POI longitude', '181', '16.3725'],
+    ['POI latitude', '-91', '48.2084'],
+  ])('rejects invalid %s without moving the POI or changing history', async (
+    controlName,
+    invalidValue,
+    canonicalValue,
+  ) => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: 'Select Coffee stop' }));
+    const control = screen.getByRole('textbox', { name: controlName });
+    const map = screen.getByTestId('map-canvas');
+
+    await user.clear(control);
+    await user.type(control, invalidValue);
+    expect(control).toHaveAttribute('aria-invalid', 'true');
+    await user.tab();
+
+    expect(screen.getByRole('textbox', { name: controlName })).toHaveValue(canonicalValue);
+    expect(map).toHaveAttribute('data-layer-geometry', expect.stringContaining('poi-cafe:[16.3725,48.2084]'));
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
+  });
+});
+
+describe('editor layer appearance validation and actions', () => {
+  beforeEach(() => {
+    exportMocks.exporter = null;
   });
 
   it('commits shape fill, outline color, and width as undoable appearance edits', async () => {

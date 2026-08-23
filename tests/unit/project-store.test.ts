@@ -77,6 +77,20 @@ describe('project store camera history', () => {
 });
 
 describe('project store history', () => {
+  it('rejects invalid POI coordinate edits without changing history', () => {
+    const store = createProjectStore(createInitialProjectDocument());
+
+    store.getState().setPoiCoordinates('poi-cafe', [181, 48.21]);
+    store.getState().setPoiCoordinates('route-01', [16.37, 48.21]);
+    store.getState().setPoiCoordinates('missing', [16.37, 48.21]);
+
+    expect(layerState(store).find((layer) => layer.id === 'poi-cafe')?.geometry).toEqual({
+      type: 'Point',
+      coordinates: [16.3725, 48.2084],
+    });
+    expect(store.getState().canUndo).toBe(false);
+  });
+
   it('canonicalizes inconsistent dimensions when reselecting the current orientation', () => {
     const document = createDocument();
     document.page = { preset: 'A4', widthMm: 210, heightMm: 297, orientation: 'landscape' };

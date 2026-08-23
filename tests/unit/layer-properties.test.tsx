@@ -8,6 +8,7 @@ const actions = {
   onDelete: vi.fn(),
   onDuplicate: vi.fn(),
   onOpacityChange: vi.fn(),
+  onPoiCoordinatesChange: vi.fn(),
   onRename: vi.fn(),
   onToggleLock: vi.fn(),
   onToggleVisibility: vi.fn(),

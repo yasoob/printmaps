@@ -1,6 +1,26 @@
 import { readFile } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
 
+async function downloadPoiSvgPoint(
+  page: import('@playwright/test').Page,
+  outputPath: string,
+) {
+  await page.getByRole('button', { name: 'Export' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Export map' });
+  const downloadPromise = page.waitForEvent('download');
+  await dialog.getByRole('button', { name: 'Download layered SVG' }).click();
+  const download = await downloadPromise;
+  await download.saveAs(outputPath);
+  const svgText = await readFile(outputPath, 'utf8');
+  const point = await page.evaluate((text) => {
+    const svg = new DOMParser().parseFromString(text, 'image/svg+xml');
+    const circle = svg.documentElement.querySelector(':scope [data-layer-id="poi-cafe"] circle');
+    return [circle?.getAttribute('cx'), circle?.getAttribute('cy')];
+  }, svgText);
+  await dialog.getByRole('button', { name: 'Close export' }).click();
+  return point;
+}
+
 test('content appearance edits update the live map, history, and layered SVG', async ({ page }, testInfo) => {
   await page.goto('/');
   const mapRoot = page.getByTestId('map-canvas');
@@ -63,4 +83,48 @@ test('content appearance edits update the live map, history, and layered SVG', a
     poi: ['#445566', '3'],
     shape: ['#abcdef', '#654321', '0.75'],
   });
+});
+
+test('POI coordinates update the live map, history, portable project, and layered SVG', async ({ page }, testInfo) => {
+  const consoleProblems: string[] = [];
+  page.on('pageerror', (error) => { consoleProblems.push(error.message); });
+  page.on('console', (message) => {
+    if (message.type() === 'error' || message.type() === 'warning') consoleProblems.push(message.text());
+  });
+  await page.goto('/');
+  const mapRoot = page.getByTestId('map-canvas');
+  const mapReady = page.locator('[data-map-ready="true"]');
+  const mapFallback = page.getByText('Map preview unavailable');
+  await expect(mapReady.or(mapFallback)).toBeVisible({ timeout: 20_000 });
+  test.skip(await mapFallback.isVisible(), 'This browser fixture has no WebGL 2 renderer, so live geometry/export cannot be exercised.');
+
+  await page.getByRole('button', { name: 'Select Coffee stop' }).click();
+  const initialPoint = await downloadPoiSvgPoint(page, testInfo.outputPath('poi-before.layered.svg'));
+  const longitude = page.getByRole('textbox', { name: 'POI longitude' });
+  const latitude = page.getByRole('textbox', { name: 'POI latitude' });
+  await longitude.fill('16.4');
+  await longitude.press('Tab');
+  await expect(latitude).toBeFocused();
+  await expect(mapRoot).toHaveAttribute('data-map-layer-geometry', /poi-cafe:\[16\.4,48\.2084\]/);
+  await latitude.fill('48.25');
+  await latitude.press('Tab');
+  await expect(mapRoot).toHaveAttribute('data-map-layer-geometry', /poi-cafe:\[16\.4,48\.25\]/);
+
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(page.getByRole('textbox', { name: 'POI latitude' })).toHaveValue('48.2084');
+  await page.getByRole('button', { name: 'Redo' }).click();
+  await expect(page.getByRole('textbox', { name: 'POI latitude' })).toHaveValue('48.25');
+
+  const movedPoint = await downloadPoiSvgPoint(page, testInfo.outputPath('poi-after.layered.svg'));
+  expect(movedPoint).not.toEqual(initialPoint);
+  const savePromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  const projectDownload = await savePromise;
+  const projectPath = testInfo.outputPath('poi-edited.printmap.json');
+  await projectDownload.saveAs(projectPath);
+  const project = JSON.parse(await readFile(projectPath, 'utf8')) as {
+    layers: Array<{ id: string; geometry?: { coordinates: unknown } }>;
+  };
+  expect(project.layers.find((layer) => layer.id === 'poi-cafe')?.geometry?.coordinates).toEqual([16.4, 48.25]);
+  expect(consoleProblems).toEqual([]);
 });

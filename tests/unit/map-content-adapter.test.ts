@@ -30,6 +30,7 @@ function createMapHarness({
   styleLoaded?: boolean;
 } = {}) {
   const sources = new Set<string>();
+  const sourceDefinitions = new Map<string, unknown>();
   const layers = new Map<string, AddedLayer>();
   let addSourceCalls = 0;
   let addLayerCalls = 0;
@@ -47,17 +48,19 @@ function createMapHarness({
       if (failIsStyleLoaded) throw new Error('isStyleLoaded failure');
       return styleLoaded;
     },
-    addSource: (id: string) => {
+    addSource: (id: string, source: unknown) => {
       addSourceCalls += 1;
       if (addSourceCalls === failAddSourceAt) throw new Error('addSource failure');
       if (sources.has(id)) throw new Error(`Source ${id} already exists`);
       sources.add(id);
+      sourceDefinitions.set(id, source);
     },
     getSource: (id: string) => sources.has(id) ? {} : undefined,
     removeSource: (id: string) => {
       removeSourceCalls += 1;
       if (shouldFailAt(failRemoveSourceAt, removeSourceCalls)) throw new Error('removeSource failure');
       sources.delete(id);
+      sourceDefinitions.delete(id);
     },
     addLayer: (layer: AddedLayer) => {
       addLayerCalls += 1;
@@ -90,7 +93,7 @@ function createMapHarness({
     },
   } as unknown as MapLibreMap;
 
-  return { map, sources, layers, paintUpdates, layoutUpdates };
+  return { map, sources, sourceDefinitions, layers, paintUpdates, layoutUpdates };
 }
 
 function contentLayer(
@@ -216,6 +219,23 @@ describe('MapLibre content adapter', () => {
       ['studio-layer-3:poi:main', 'circle-color', '#006fc9'],
       ['studio-layer-3:poi:main', 'circle-radius', 9],
     ]));
+  });
+
+  it('reports synchronized geometry after a live POI coordinate update', () => {
+    const { map, sourceDefinitions } = createMapHarness();
+    const container = document.createElement('div');
+    const adapter = createMapLibreContentAdapter(map, container);
+    const poi = contentLayer('poi', 'poi', { type: 'Point', coordinates: [1, 1] });
+
+    adapter.sync({ layers: [poi], selectedId: null, previewedId: null, contentRevision: {} });
+    expect(container).toHaveAttribute('data-map-layer-geometry', 'poi:[1,1]');
+
+    const movedPoi = { ...poi, geometry: { type: 'Point' as const, coordinates: [2, 3] as [number, number] } };
+    adapter.sync({ layers: [movedPoi], selectedId: null, previewedId: null, contentRevision: {} });
+    expect(container).toHaveAttribute('data-map-layer-geometry', 'poi:[2,3]');
+    expect(sourceDefinitions.get('studio-source-3:poi')).toMatchObject({
+      data: { geometry: { type: 'Point', coordinates: [2, 3] } },
+    });
   });
 
   it('reuses the content snapshot for selection and hover syncs with an explicit revision', () => {

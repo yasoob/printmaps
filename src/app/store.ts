@@ -39,6 +39,7 @@ export type ProjectState = {
   setPageOrientation: (orientation: PageOrientation) => void;
   setPagePreset: (preset: StandardPagePreset) => void;
   setLayerAppearance: (id: string, appearance: LayerAppearance) => void;
+  setPoiCoordinates: (id: string, coordinates: readonly [number, number]) => void;
   setLayerOpacity: (id: string, opacity: number) => void;
   setMapStyle: (preset: MapStylePreset) => void;
   setMapTextScale: (textScalePercent: number) => void;

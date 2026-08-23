@@ -62,6 +62,7 @@ export function PropertiesSidebar(props: PropertiesSidebarProps) {
           onRename={(name) => project.renameLayer(selectedLayer.id, name)}
           onOpacityChange={(opacity) => project.setLayerOpacity(selectedLayer.id, opacity)}
           onAppearanceChange={(appearance) => project.setLayerAppearance(selectedLayer.id, appearance)}
+          onPoiCoordinatesChange={(coordinates) => project.setPoiCoordinates(selectedLayer.id, coordinates)}
           onToggleVisibility={() => { clearSelectedPreview(); project.toggleLayerVisibility(selectedLayer.id); }}
           onToggleLock={() => project.toggleLayerLock(selectedLayer.id)}
           onDuplicate={duplicateSelected}

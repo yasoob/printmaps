@@ -49,11 +49,11 @@ This product is not deployed and has no compatibility obligation to earlier deve
 3. Select one highest-value unresolved vertical slice.
 4. Follow strict RED → GREEN → REFACTOR: write one falsifiable test first and run it to observe the expected failure.
 5. Implement the smallest complete slice. Add or update tests for **every UI interaction introduced or changed** in that slice, including pointer, keyboard, selection/focus, disabled/error, and responsive behavior where applicable.
-6. Run focused tests, the full relevant test suite, and `npm run doctor`; React Doctor findings are blocking unless documented as a verified false positive.
-7. Capture the current UI after every run—even for primarily nonvisual slices—at 1440×900, and at 390×844 when responsive behavior changed. Save the stable latest desktop image to `docs/screenshots/latest-desktop.png`, preserve timestamped evidence when materially changed, and include `MEDIA:/root/workspace/docs/screenshots/latest-desktop.png` in every progress report.
-8. Update `docs/FINDINGS.md` with evidence, screenshot path, and unresolved risks.
-9. Run independent code review for multi-file changes, fix blockers, and commit verified progress.
-10. Report concise progress and the next unresolved slice with the latest screenshot.
+6. Use tiered verification. During implementation run focused tests, lint, typecheck, React Doctor, and impacted Chromium interaction coverage. Run the full unit suite, build, audit and all-browser Playwright suite for cross-cutting map/export/persistence changes, after every three verified feature slices, and for the final completion gate.
+7. Capture the UI at 1440×900 when visible behavior or layout changes, and at 390×844 when responsive behavior changes. For nonvisual slices, retain the last verified screenshots rather than recapturing identical UI.
+8. Update `docs/FINDINGS.md` with evidence, screenshot path when changed, and unresolved risks.
+9. Run one independent fail-closed review for multi-file/high-risk changes. If blockers are found, fix them and perform one bounded recheck of those findings instead of recursively restarting complete reviews.
+10. Report concise progress and the next unresolved slice.
 
 ## Rules
 
@@ -66,5 +66,5 @@ This product is not deployed and has no compatibility obligation to earlier deve
 - Do not lower or rewrite the completion gate to declare success early.
 - Bound subprocesses and clean them up.
 - Every implemented UI interaction must be covered while it is implemented; do not defer interaction tests to a later cleanup phase.
-- Every run must capture and deliver the latest 1440×900 UI screenshot, even when the slice is mostly nonvisual.
+- Capture and deliver refreshed screenshots when a slice changes visible behavior or layout; otherwise preserve the last verified desktop/mobile evidence.
 - React Doctor is a mandatory per-slice gate. Run `npm run doctor` after implementation and before review/commit, and fix React-specific issues rather than suppressing them without evidence.

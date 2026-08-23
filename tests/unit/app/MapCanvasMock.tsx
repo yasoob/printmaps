@@ -52,6 +52,9 @@ export function MapCanvas({
       data-page-preset={page?.preset}
       data-page-size={page ? `${page.widthMm}x${page.heightMm}` : ''}
       data-layer-state={layers.map(({ id, visible }) => `${id}:${visible}`).join(',')}
+      data-layer-geometry={layers.map(({ geometry, id }) => (
+        geometry ? `${id}:${JSON.stringify(geometry.coordinates)}` : `${id}:none`
+      )).join('|')}
       data-selected-layer={selectedId ?? ''}
       data-previewed-layer={previewedId ?? ''}
     >
