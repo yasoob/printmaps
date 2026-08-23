@@ -30,6 +30,7 @@ export type ProjectState = {
   canUndo: boolean;
   canRedo: boolean;
   createAdministrativeArea: (id: AdministrativeAreaId | string) => string | null;
+  createAdministrativeAreas: (ids: readonly (AdministrativeAreaId | string)[]) => string | null;
   createPoi: (coordinates: readonly [number, number]) => void;
   createPoiBatch: (entries: readonly PoiSpreadsheetEntry[]) => void;
   createRoute: (

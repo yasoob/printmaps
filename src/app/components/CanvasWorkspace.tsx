@@ -155,6 +155,7 @@ type CanvasWorkspaceProps = {
   propertiesTriggerRef: RefObject<HTMLButtonElement | null>;
   onLayerSelect: (id: string | null) => void;
   onCreateAdministrativeArea: (id: AdministrativeAreaId) => string | null;
+  onCreateAdministrativeAreas: (ids: readonly AdministrativeAreaId[]) => string | null;
   onCreatePoi: (coordinates: readonly [number, number]) => void;
   onCreatePoiBatch: (entries: readonly PoiSpreadsheetEntry[]) => void;
   onCreateRoute: (
@@ -177,7 +178,7 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
   const [fitRequest, setFitRequest] = useState(0);
   const [fitLayerRequest, setFitLayerRequest] = useState({ id: null as string | null, request: 0 });
   const selectToolRef = useRef<HTMLButtonElement>(null);
-  const { activePanel, assets, camera, documentEpoch, featureVisibility, language, layers, layersTriggerRef, onAuthoringChange, onBackgroundClick, onCreateAdministrativeArea, onCreatePoi, onCreatePoiBatch, onCreateRoute, onCreateShape, onExporterChange, onLayerSelect, openPanel, page, previewedId, propertiesTriggerRef, selectedId, stylePreset, textScalePercent } = props;
+  const { activePanel, assets, camera, documentEpoch, featureVisibility, language, layers, layersTriggerRef, onAuthoringChange, onBackgroundClick, onCreateAdministrativeArea, onCreateAdministrativeAreas, onCreatePoi, onCreatePoiBatch, onCreateRoute, onCreateShape, onExporterChange, onLayerSelect, openPanel, page, previewedId, propertiesTriggerRef, selectedId, stylePreset, textScalePercent } = props;
   const activeTool = toolDocumentEpoch === documentEpoch ? storedActiveTool : 'select';
   const routePoints = toolDocumentEpoch === documentEpoch ? storedRoutePoints : EMPTY_ROUTE_POINTS;
   const shapePoints = toolDocumentEpoch === documentEpoch ? storedShapePoints : EMPTY_SHAPE_POINTS;
@@ -230,6 +231,11 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
     if (createdId) setFitLayerRequest((current) => ({ id: createdId, request: current.request + 1 }));
     exitAuthoring('shape');
   };
+  const mergeAdministrativeAreas = (ids: readonly AdministrativeAreaId[]) => {
+    const createdId = onCreateAdministrativeAreas(ids);
+    if (createdId) setFitLayerRequest((current) => ({ id: createdId, request: current.request + 1 }));
+    exitAuthoring('shape');
+  };
 
   let handleMapClick: ((coordinate: [number, number]) => void) | undefined;
   switch (activeTool) {
@@ -275,7 +281,7 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
       )}
       <PoiAuthoringControls active={activeTool === 'pin'} spreadsheetOpen={poiAuthoring.spreadsheetOpen} spreadsheetTriggerRef={poiAuthoring.spreadsheetTriggerRef} onCancel={poiAuthoring.cancel} onCancelSpreadsheet={poiAuthoring.cancelSpreadsheet} onOpenSpreadsheet={poiAuthoring.openSpreadsheet} onSubmitSpreadsheet={poiAuthoring.submitSpreadsheet} />
       {activeTool === 'shape' && (
-        <ShapeDrawingPanel pointCount={shapePoints.length} canFinish={canFinishShape} onAddAdministrativeArea={addAdministrativeArea} onCancel={cancelShape} onFinish={finishShape} />
+        <ShapeDrawingPanel pointCount={shapePoints.length} canFinish={canFinishShape} onAddAdministrativeArea={addAdministrativeArea} onMergeAdministrativeAreas={mergeAdministrativeAreas} onCancel={cancelShape} onFinish={finishShape} />
       )}
       <div className="canvas-status" aria-label="Canvas status"><button type="button">100%</button><span /> <button type="button">1:20,000</button></div>
     </section>

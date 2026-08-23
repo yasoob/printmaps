@@ -1,16 +1,18 @@
 import type { LayerGeometry } from './project';
+import { AUSTRIA_ADMIN_1_REGIONS } from '../data/austriaAdmin1';
 
-export type AdministrativeAreaId = 'AUT' | 'HUN' | 'SVK';
+export type AdministrativeAreaId = 'AUT' | 'HUN' | 'SVK' | 'AUT-2330' | 'AUT-2331';
 
 export type AdministrativeArea = Readonly<{
-  id: AdministrativeAreaId;
+  id: string;
   name: string;
-  level: 'country';
+  level: 'country' | 'region';
   source: string;
   geometry: Extract<LayerGeometry, { type: 'Polygon' }>;
 }>;
 
 const SOURCE = 'Natural Earth 1:110m Admin 0 Countries (public domain), downloaded 2026-08-23';
+const REGION_SOURCE = 'Natural Earth 1:10m Admin 1 States/Provinces (public domain), simplified 2026-08-23';
 
 export const ADMINISTRATIVE_AREAS: readonly AdministrativeArea[] = [
   {
@@ -64,8 +66,104 @@ export const ADMINISTRATIVE_AREAS: readonly AdministrativeArea[] = [
       [22.558138, 49.085738],
     ]] },
   },
+  ...AUSTRIA_ADMIN_1_REGIONS.map((region) => ({
+    id: region.id,
+    name: region.name,
+    level: 'region' as const,
+    source: REGION_SOURCE,
+    geometry: {
+      type: 'Polygon' as const,
+      coordinates: region.coordinates.map((ring) => ring.map(([longitude, latitude]) => (
+        [longitude, latitude] as [number, number]
+      ))),
+    },
+  })),
 ] as const;
 
 export function administrativeAreaById(id: string): AdministrativeArea | undefined {
   return ADMINISTRATIVE_AREAS.find((area) => area.id === id);
+}
+
+const positionKey = ([longitude, latitude]: readonly [number, number]) => `${longitude},${latitude}`;
+type BoundaryEdge = readonly [[number, number], [number, number]];
+
+function addRingEdges(edges: Map<string, BoundaryEdge>, ring: readonly (readonly [number, number])[]) {
+  for (let index = 1; index < ring.length; index += 1) {
+    const start = ring[index - 1];
+    const end = ring[index];
+    const key = `${positionKey(start)}>${positionKey(end)}`;
+    const reverseKey = `${positionKey(end)}>${positionKey(start)}`;
+    if (!edges.delete(reverseKey)) edges.set(key, [[...start], [...end]]);
+  }
+}
+
+function edgeStartingAt(edges: Map<string, BoundaryEdge>, startKey: string): [string, BoundaryEdge] | undefined {
+  for (const [key, edge] of edges) {
+    if (positionKey(edge[0]) === startKey) return [key, edge];
+  }
+}
+
+function reversedRing(ring: readonly [number, number][]): [number, number][] {
+  const reversed: [number, number][] = [];
+  for (let index = ring.length - 1; index >= 0; index -= 1) reversed.push(ring[index]);
+  return reversed;
+}
+
+function mergeAlignedRings(areas: readonly AdministrativeArea[]): [number, number][][] | undefined {
+  const edges = new Map<string, BoundaryEdge>();
+  for (const area of areas) {
+    for (const ring of area.geometry.coordinates) addRingEdges(edges, ring);
+  }
+
+  const remaining = new Map(edges);
+  const rings: [number, number][][] = [];
+  while (remaining.size > 0) {
+    const firstEntry = remaining.entries().next().value;
+    if (!firstEntry) return;
+    const [firstKey, firstEdge] = firstEntry;
+    remaining.delete(firstKey);
+    const ring: [number, number][] = [[...firstEdge[0]], [...firstEdge[1]]];
+    while (positionKey(ring.at(-1)!) !== positionKey(ring[0])) {
+      const currentKey = positionKey(ring.at(-1)!);
+      const nextEntry = edgeStartingAt(remaining, currentKey);
+      if (!nextEntry) return;
+      remaining.delete(nextEntry[0]);
+      ring.push([...nextEntry[1][1]]);
+      if (ring.length > edges.size + 1) return;
+    }
+    rings.push(ring);
+  }
+  rings.sort((left, right) => Math.abs(ringArea(right)) - Math.abs(ringArea(left)));
+  return rings.map((ring, index) => {
+    const isCounterClockwise = ringArea(ring) > 0;
+    const shouldBeCounterClockwise = index === 0;
+    return isCounterClockwise === shouldBeCounterClockwise ? ring : reversedRing(ring);
+  });
+}
+
+function ringArea(ring: readonly (readonly [number, number])[]): number {
+  let area = 0;
+  for (let index = 1; index < ring.length; index += 1) {
+    const [x1, y1] = ring[index - 1];
+    const [x2, y2] = ring[index];
+    area += x1 * y2 - x2 * y1;
+  }
+  return area / 2;
+}
+
+export function mergeAdministrativeAreas(ids: readonly string[]): AdministrativeArea | undefined {
+  const uniqueIds = [...new Set(ids)];
+  if (uniqueIds.length === 0 || uniqueIds.length !== ids.length) return;
+  const areas = uniqueIds.map((id) => administrativeAreaById(id));
+  if (areas.some((area) => !area || area.level !== 'region')) return;
+  const regions = areas as AdministrativeArea[];
+  const coordinates = mergeAlignedRings(regions);
+  if (!coordinates) return;
+  return {
+    id: regions.map(({ id }) => id).join('+'),
+    name: regions.map(({ name }) => name).join(' + '),
+    level: 'region',
+    source: REGION_SOURCE,
+    geometry: { type: 'Polygon', coordinates },
+  };
 }

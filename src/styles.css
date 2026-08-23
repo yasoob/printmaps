@@ -259,6 +259,11 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 .map-authoring-panel > label { @apply flex items-center gap-1 whitespace-nowrap; }
 .map-authoring-panel > label > select { min-width: 5.25rem; }
+.administrative-region-options {
+  @apply flex items-center gap-2 border-0 p-0;
+}
+.administrative-region-options legend { @apply sr-only; }
+.administrative-region-options label { @apply flex items-center gap-1 whitespace-nowrap; }
 .map-authoring-panel > span { @apply whitespace-nowrap px-1; }
 .map-authoring-panel > button:not(.primary-button) {
   @apply h-7 px-2;

@@ -1,16 +1,16 @@
-import { administrativeAreaById } from '../domain/administrativeAreas';
+import { administrativeAreaById, mergeAdministrativeAreas, type AdministrativeArea } from '../domain/administrativeAreas';
 import { createDefaultLayerAppearance, type ContentLayer } from '../domain/project';
 import type { ProjectState } from './store';
 import { commitDocument, replaceLayers, type ProjectSet } from './storeDocument';
 
-export function createAdministrativeAreaAction(set: ProjectSet): ProjectState['createAdministrativeArea'] {
-  return (areaId) => {
+function createAreaLayer(set: ProjectSet, resolveArea: () => AdministrativeArea | undefined) {
+  return () => {
     let createdId: string | null = null;
     set((state) => {
-      const area = administrativeAreaById(areaId);
+      const area = resolveArea();
       if (!area) return state;
       const usedIds = new Set(state.document.layers.map((layer) => layer.id));
-      const baseId = `admin-${area.id.toLowerCase()}`;
+      const baseId = `admin-${area.id.toLowerCase().replaceAll('+', '-')}`;
       let id = baseId;
       let suffix = 2;
       while (usedIds.has(id)) {
@@ -42,5 +42,12 @@ export function createAdministrativeAreaAction(set: ProjectSet): ProjectState['c
       };
     });
     return createdId;
+  };
+}
+
+export function createAdministrativeAreaActions(set: ProjectSet): Pick<ProjectState, 'createAdministrativeArea' | 'createAdministrativeAreas'> {
+  return {
+    createAdministrativeArea: (areaId) => createAreaLayer(set, () => administrativeAreaById(areaId))(),
+    createAdministrativeAreas: (areaIds) => createAreaLayer(set, () => mergeAdministrativeAreas(areaIds))(),
   };
 }

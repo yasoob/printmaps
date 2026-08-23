@@ -71,7 +71,7 @@ test('polygon authoring can be cancelled, undone, redone, and exported as vector
   expect(consoleProblems).toEqual([]);
 });
 
-test('bundled administrative areas support direct selection, invert, save, and layered SVG', async ({ page }, testInfo) => {
+test('bundled administrative regions merge without an internal border and retain print parity', async ({ page }, testInfo) => {
   const consoleProblems: string[] = [];
   page.on('pageerror', (error) => { consoleProblems.push(error.message); });
   page.on('console', (message) => {
@@ -81,11 +81,13 @@ test('bundled administrative areas support direct selection, invert, save, and l
   await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
 
   await page.getByRole('button', { name: 'Shape (S)' }).click();
-  await page.getByRole('combobox', { name: 'Administrative area' }).selectOption('AUT');
-  await page.getByRole('button', { name: 'Add administrative area' }).click();
-  await expect(page.getByRole('button', { name: 'Select Austria' })).toHaveAttribute('aria-current', 'true');
+  await page.getByRole('combobox', { name: 'Administrative level' }).selectOption('region');
+  await page.getByRole('checkbox', { name: 'Lower Austria' }).check();
+  await page.getByRole('checkbox', { name: 'Vienna' }).check();
+  await page.getByRole('button', { name: 'Merge 2 selected areas' }).click();
+  await expect(page.getByRole('button', { name: 'Select Lower Austria + Vienna' })).toHaveAttribute('aria-current', 'true');
   await page.getByRole('checkbox', { name: 'Invert shape fill' }).check();
-  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-appearance', /admin-aut:[^|]*:true/);
+  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-appearance', /admin-aut-2330-aut-2331:[^|]*:true/);
 
   const savePromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Save', exact: true }).click();
@@ -94,7 +96,10 @@ test('bundled administrative areas support direct selection, invert, save, and l
   await save.saveAs(savePath);
   const savedProject = JSON.parse(await readFile(savePath, 'utf8'));
   expect(savedProject.schemaVersion).toBe(13);
-  expect(savedProject.layers.find(({ id }: { id: string }) => id === 'admin-aut').appearance.invert).toBe(true);
+  const savedArea = savedProject.layers.find(({ id }: { id: string }) => id === 'admin-aut-2330-aut-2331');
+  expect(savedArea.appearance.invert).toBe(true);
+  expect(savedArea.name).toBe('Lower Austria + Vienna');
+  expect(savedArea.geometry.coordinates).toHaveLength(1);
 
   await page.getByRole('button', { name: 'Export' }).click();
   const svgPromise = page.waitForEvent('download');
@@ -103,8 +108,19 @@ test('bundled administrative areas support direct selection, invert, save, and l
   const svgPath = testInfo.outputPath('administrative-area.layered.svg');
   await svgDownload.saveAs(svgPath);
   const svg = await readFile(svgPath, 'utf8');
-  expect(svg).toContain('data-layer-name="Austria"');
+  expect(svg).toContain('data-layer-name="Lower Austria + Vienna"');
   expect(svg).toContain('data-shape-fill="inverted"');
   expect(svg).toContain('data-shape-outline="true"');
+
+  await page.getByRole('button', { name: 'Close export' }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: 'Shape (S)' }).click();
+  await page.getByRole('combobox', { name: 'Administrative level' }).selectOption('region');
+  const panelBox = await page.getByRole('status', { name: 'Shape drawing status' }).locator('..').boundingBox();
+  expect(panelBox).not.toBeNull();
+  expect(panelBox!.x).toBeGreaterThanOrEqual(0);
+  expect(panelBox!.x + panelBox!.width).toBeLessThanOrEqual(390);
+  expect(await page.evaluate(() => document.body.scrollWidth - window.innerWidth)).toBe(0);
+  await page.getByRole('button', { name: 'Cancel shape' }).click();
   expect(consoleProblems).toEqual([]);
 });

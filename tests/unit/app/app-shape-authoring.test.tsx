@@ -26,6 +26,25 @@ describe('polygon authoring', () => {
     expect(screen.queryByRole('button', { name: 'Select Austria' })).not.toBeInTheDocument();
   });
 
+  it('merges two selected regions into one fitted undoable shape', async () => {
+    const user = userEvent.setup();
+    render(<App autosaveRepository={null} />);
+
+    await user.click(screen.getByRole('button', { name: 'Shape (S)' }));
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Administrative level' }), 'region');
+    await user.click(screen.getByRole('checkbox', { name: 'Lower Austria' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Vienna' }));
+    await user.click(screen.getByRole('button', { name: 'Merge 2 selected areas' }));
+
+    const merged = screen.getByRole('button', { name: 'Select Lower Austria + Vienna' });
+    expect(merged).toHaveAttribute('aria-current', 'true');
+    expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-fit-layer-id', 'admin-aut-2330-aut-2331');
+    expect(screen.getByRole('button', { name: 'Select (V)' })).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'Export' })).toBeEnabled();
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(merged).not.toBeInTheDocument();
+  });
+
   it('finishes three map clicks as one selected undoable shape', async () => {
     const user = userEvent.setup();
     render(<App autosaveRepository={null} />);

@@ -6,8 +6,7 @@ import { validateCustomMarkerAssetCollection, validateStoredCustomMarkerAsset, t
 import type { ProjectState } from './store';
 import { commitDocument, replaceLayers, type ProjectSet } from './storeDocument';
 import { createPoiStructureActions } from './storePoiActions';
-import { createAdministrativeAreaAction } from './storeAdministrativeAreaActions';
-
+import { createAdministrativeAreaActions } from './storeAdministrativeAreaActions';
 type LayerPropertyActions = Pick<ProjectState, 'renameLayer' | 'selectLayer' | 'setLayerAppearance' | 'setLayerOpacity' | 'setPoiCoordinates' | 'setPoiCustomMarker' | 'setRouteVertex' | 'toggleLayerVisibility' | 'toggleLayerLock'>;
 
 function isCanonicalCustomMarkerAsset(asset: CustomMarkerAsset): boolean {
@@ -118,10 +117,10 @@ function createShapeAction(set: ProjectSet): ProjectState['createShape'] {
   });
 }
 
-export function createLayerStructureActions(set: ProjectSet): Pick<ProjectState, 'createAdministrativeArea' | 'createPoi' | 'createPoiBatch' | 'createRoute' | 'createShape' | 'deleteLayer' | 'duplicateLayer' | 'importLayers' | 'moveLayer'> {
+export function createLayerStructureActions(set: ProjectSet): Pick<ProjectState, 'createAdministrativeArea' | 'createAdministrativeAreas' | 'createPoi' | 'createPoiBatch' | 'createRoute' | 'createShape' | 'deleteLayer' | 'duplicateLayer' | 'importLayers' | 'moveLayer'> {
   return {
     ...createPoiStructureActions(set),
-    createAdministrativeArea: createAdministrativeAreaAction(set),
+    ...createAdministrativeAreaActions(set),
     createRoute: createRouteAction(set),
     createShape: createShapeAction(set),
     deleteLayer: (id) => set((state) => {
