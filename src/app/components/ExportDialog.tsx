@@ -11,8 +11,6 @@ import {
 } from '../../export/previewPng';
 import { ExportDialogView, type ExportFormat } from './ExportDialogView';
 
-const EXPORT_FORMAT_LABELS: Record<ExportFormat, string> = { png: 'PNG', svg: 'Layered SVG', pdf: 'PDF' };
-
 export type ExportDialogProps = {
   exporter: PreviewPngExporter | null;
   filename: string;
@@ -155,7 +153,7 @@ function selectExportFormat(format: ExportFormat, options: Readonly<{
   if (options.isBusy) return;
   options.setFormat(format);
   options.setError(null);
-  options.setStatus(`Ready to export ${EXPORT_FORMAT_LABELS[format]}.`);
+  options.setStatus('');
 }
 
 function runSelectedExport(format: ExportFormat, png: () => Promise<void>, svg: () => Promise<void>, pdf: () => void) {
@@ -172,7 +170,7 @@ export function ExportDialog({ exporter, filename, document, onClose }: ExportDi
   const [busy, setBusy] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState<ExportFormat>('png');
   const [technicalDetailsExpanded, setTechnicalDetailsExpanded] = useState(false);
-  const [status, setStatus] = useState('Ready to export PNG.');
+  const [status, setStatus] = useState('');
   const [error, setError] = useState<string | null>(null);
   const preflight = useExportPreflight(document.page);
 

@@ -69,6 +69,51 @@ test('export offers one keyboard-accessible format choice with responsive techni
   await expect(dialog.getByRole('button', { name: 'Download PNG' })).toBeFocused();
   await expect(dialog.locator('.primary-button')).toHaveCount(1);
   await expect(dialog.locator('#export-technical-content')).toBeHidden();
+  const idleStatus = dialog.getByRole('status');
+  await expect(idleStatus).toHaveText('');
+  await expect(idleStatus).toHaveCSS('position', 'absolute');
+
+  const chrome = await dialog.evaluate((element) => {
+    const read = (selector: string) => {
+      const target = element.querySelector<HTMLElement>(selector);
+      if (!target) throw new Error(`Missing export element: ${selector}`);
+      const style = getComputedStyle(target);
+      return {
+        backgroundColor: style.backgroundColor,
+        borderWidths: [style.borderTopWidth, style.borderRightWidth, style.borderBottomWidth, style.borderLeftWidth],
+      };
+    };
+    const formatGroup = read('.export-format-group');
+    const formatOptions = [...element.querySelectorAll<HTMLElement>('.export-format-option')].map((option) => {
+      const style = getComputedStyle(option);
+      return {
+        backgroundColor: style.backgroundColor,
+        borderWidths: [style.borderTopWidth, style.borderRightWidth, style.borderBottomWidth, style.borderLeftWidth],
+        boxShadow: style.boxShadow,
+      };
+    });
+    return {
+      formatGroupBackground: formatGroup.backgroundColor,
+      formatOptions,
+      headerBorderWidths: read('.export-dialog-header').borderWidths,
+      outputBorderWidths: read('.export-output-summary').borderWidths,
+      technicalBorderWidths: read('.export-technical-details').borderWidths,
+      footerBorderWidths: read('.export-dialog-actions').borderWidths,
+      cancelBackground: read('.export-dialog-actions > button:not(.primary-button)').backgroundColor,
+      cancelBorderWidths: read('.export-dialog-actions > button:not(.primary-button)').borderWidths,
+    };
+  });
+  expect(chrome.formatGroupBackground).not.toBe('rgba(0, 0, 0, 0)');
+  expect(chrome.formatOptions).toHaveLength(3);
+  expect(chrome.formatOptions.every(({ borderWidths }) => borderWidths.every((width) => width === '0px'))).toBe(true);
+  expect(chrome.formatOptions.every(({ boxShadow }) => boxShadow === 'none')).toBe(true);
+  expect(chrome.formatOptions[0]?.backgroundColor).not.toBe(chrome.formatOptions[1]?.backgroundColor);
+  expect(chrome.headerBorderWidths.every((width) => width === '0px')).toBe(true);
+  expect(chrome.outputBorderWidths.every((width) => width === '0px')).toBe(true);
+  expect(chrome.technicalBorderWidths.every((width) => width === '0px')).toBe(true);
+  expect(chrome.footerBorderWidths.every((width) => width === '0px')).toBe(true);
+  expect(chrome.cancelBackground).toBe('rgba(0, 0, 0, 0)');
+  expect(chrome.cancelBorderWidths.every((width) => width === '0px')).toBe(true);
 
   await svg.click();
   await expect(svg).toHaveAttribute('aria-checked', 'true');

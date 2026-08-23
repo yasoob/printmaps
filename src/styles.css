@@ -722,37 +722,50 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   @apply flex items-start justify-between gap-4 border-b px-4 py-3;
   border-color: var(--studio-line);
 }
+.export-dialog > .export-dialog-header { border-bottom-width: 0; }
 .export-dialog-header h2 { @apply m-0 text-sm font-semibold; color: var(--studio-text-strong); }
 .export-dialog-header p { @apply mb-0 mt-1; color: var(--studio-text-muted); font-size: var(--studio-font-label); }
 .export-dialog-body { @apply grid gap-3 overflow-y-auto px-4 py-4; font-size: var(--studio-font-control); color: var(--studio-text-secondary); }
 .export-dialog-body strong { color: var(--studio-text-strong); }
 .export-dialog-body p { @apply m-0; line-height: 1.45; }
 .export-dialog-body [role='status'] { font-variant-numeric: tabular-nums; color: var(--studio-text-muted); }
-.export-format-group { @apply grid grid-cols-3 gap-2; }
+.export-status:empty {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.export-format-group {
+  @apply grid grid-cols-3 gap-1 rounded p-1;
+  background: var(--studio-field);
+}
 .export-format-option {
   @apply grid min-w-0 cursor-pointer gap-1 rounded px-3 py-2.5 text-left;
   min-height: 3.75rem;
-  border: var(--studio-border-width) solid var(--studio-line-strong);
-  background: var(--studio-surface);
+  border: 0;
+  background: transparent;
   color: var(--studio-text-strong);
 }
 .export-format-option:hover { background: var(--studio-field); }
 .export-format-option[aria-checked='true'] {
-  border-color: var(--studio-accent);
-  background: var(--studio-accent-soft);
-  box-shadow: inset 0 0 0 1px var(--studio-accent);
+  background: var(--studio-surface);
 }
 .export-format-option:disabled { @apply cursor-default opacity-60; }
 .export-format-option span { @apply font-semibold; font-size: var(--studio-font-control); }
 .export-format-option small { color: var(--studio-text-muted); font-size: var(--studio-font-label); line-height: 1.25; }
 .export-output-summary {
   @apply grid gap-1 rounded px-3 py-2.5;
-  border: var(--studio-border-width) solid var(--studio-line);
+  border: 0;
   background: var(--studio-field);
 }
 .export-output-summary > span { color: var(--studio-text-muted); font-size: var(--studio-font-label); }
 .export-output-summary strong { font-variant-numeric: tabular-nums; }
-.export-technical-details { @apply border-y; border-color: var(--studio-line); }
+.export-technical-details { border: 0; }
 .export-technical-details h3 { @apply m-0; }
 .export-technical-details h3 > button {
   @apply flex min-h-8 w-full cursor-pointer items-center gap-2 py-1.5 text-left font-medium;
@@ -774,6 +787,15 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   background: var(--studio-surface);
   font-size: var(--studio-font-control);
 }
+.export-dialog > .export-dialog-actions {
+  border-top-width: 0;
+  background: var(--studio-surface);
+}
+.export-dialog > .export-dialog-actions > button:not(.primary-button) {
+  border: 0;
+  background: transparent;
+}
+.export-dialog > .export-dialog-actions > button:not(.primary-button):hover { background: var(--studio-field); }
 
 @media (max-width: 420px) {
   .export-format-option { @apply px-2; }

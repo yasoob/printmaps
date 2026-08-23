@@ -166,7 +166,7 @@ export function ExportDialogView(props: ExportDialogViewProps) {
               <p>Reduce the page dimensions before retrying.</p>
             </div>
           )}
-          <p role="status">{status}</p>
+          <p className="export-status" role="status">{status}</p>
           {error && <p className="export-error" role="alert">{error}</p>}
         </div>
         <div className="export-dialog-actions">
