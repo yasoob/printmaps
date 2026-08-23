@@ -31,10 +31,7 @@ export const POI_MARKER_SYMBOL_GLYPHS: Record<PoiMarkerSymbol, string> = {
 export const MAX_POI_LABEL_CHARACTERS = 40;
 
 export function hasPoiLabelControlCharacter(value: string): boolean {
-  return [...value].some((character) => {
-    const codePoint = character.codePointAt(0) ?? 0;
-    return codePoint <= 31 || codePoint === 127;
-  });
+  return /[\p{Cc}\p{Cf}]/u.test(value);
 }
 
 export function isPoiLabelValid(value: string): boolean {

@@ -10,6 +10,7 @@ import {
   type ProjectDocument,
 } from '../domain/project';
 import type { RouteAuthoringOptions } from '../domain/routeProfiles';
+import type { PoiSpreadsheetEntry } from '../domain/poiSpreadsheet';
 import { copyDocument, createDocumentActions } from './storeDocument';
 import { createCameraActions } from './storeCameraActions';
 import { createLayerPropertyActions, createLayerStructureActions } from './storeLayerActions';
@@ -26,6 +27,7 @@ export type ProjectState = {
   canUndo: boolean;
   canRedo: boolean;
   createPoi: (coordinates: readonly [number, number]) => void;
+  createPoiBatch: (entries: readonly PoiSpreadsheetEntry[]) => void;
   createRoute: (
     coordinates: readonly (readonly [number, number])[],
     options?: RouteAuthoringOptions,

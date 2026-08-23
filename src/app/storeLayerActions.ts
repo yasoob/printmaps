@@ -4,49 +4,10 @@ import { isValidPosition, moveRouteVertex } from '../domain/routeGeometry';
 import { buildRouteCoordinates, DEFAULT_ROUTE_AUTHORING_OPTIONS, isRouteAuthoringOptions } from '../domain/routeProfiles';
 import type { ProjectState } from './store';
 import { commitDocument, replaceLayers, type ProjectSet } from './storeDocument';
+import { createPoiStructureActions } from './storePoiActions';
 
-type LayerStructureActions = Pick<ProjectState, 'createPoi' | 'createRoute' | 'createShape' | 'deleteLayer' | 'duplicateLayer' | 'importLayers' | 'moveLayer'>;
+type LayerStructureActions = Pick<ProjectState, 'createPoi' | 'createPoiBatch' | 'createRoute' | 'createShape' | 'deleteLayer' | 'duplicateLayer' | 'importLayers' | 'moveLayer'>;
 type LayerPropertyActions = Pick<ProjectState, 'renameLayer' | 'selectLayer' | 'setLayerAppearance' | 'setLayerOpacity' | 'setPoiCoordinates' | 'setRouteVertex' | 'toggleLayerVisibility' | 'toggleLayerLock'>;
-
-function createPoiAction(set: ProjectSet): ProjectState['createPoi'] {
-  return ([longitude, latitude]) => set((state) => {
-    if (
-      !Number.isFinite(longitude)
-      || !Number.isFinite(latitude)
-      || longitude < -180
-      || longitude > 180
-      || latitude < -90
-      || latitude > 90
-    ) return state;
-    const usedIds = new Set(state.document.layers.map((layer) => layer.id));
-    let poiNumber = 0;
-    let id: string;
-    do {
-      poiNumber += 1;
-      id = `poi-${String(poiNumber).padStart(2, '0')}`;
-    } while (usedIds.has(id));
-    const poi = {
-      id,
-      name: `POI ${String(poiNumber).padStart(2, '0')}`,
-      type: 'poi' as const,
-      visible: true,
-      locked: false,
-      opacity: 100,
-      appearance: createDefaultLayerAppearance('poi'),
-      geometry: {
-        type: 'Point' as const,
-        coordinates: [longitude, latitude] as [number, number],
-      },
-    };
-    const layers = [...state.document.layers];
-    const basemapIndex = layers.findIndex((layer) => layer.type === 'basemap');
-    layers.splice(basemapIndex === -1 ? layers.length : basemapIndex, 0, poi);
-    return {
-      ...commitDocument(state, replaceLayers(state.document, layers)),
-      selectedId: id,
-    };
-  });
-}
 
 function createRouteAction(set: ProjectSet): ProjectState['createRoute'] {
   return (coordinates, options = DEFAULT_ROUTE_AUTHORING_OPTIONS) => set((state) => {
@@ -143,7 +104,7 @@ function createShapeAction(set: ProjectSet): ProjectState['createShape'] {
 
 export function createLayerStructureActions(set: ProjectSet): LayerStructureActions {
   return {
-    createPoi: createPoiAction(set),
+    ...createPoiStructureActions(set),
     createRoute: createRouteAction(set),
     createShape: createShapeAction(set),
     deleteLayer: (id) => set((state) => {

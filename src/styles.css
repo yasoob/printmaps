@@ -266,6 +266,38 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 .map-authoring-panel > button:not(.primary-button):hover { background: var(--studio-field); }
 .map-authoring-panel > .primary-button { @apply h-7 px-2.5; }
+.poi-spreadsheet-panel {
+  @apply absolute left-1/2 flex -translate-x-1/2 flex-col gap-2 p-3;
+  bottom: 4.5rem;
+  width: min(32rem, calc(100% - 1rem));
+  border: var(--studio-border-width) solid var(--studio-line-strong);
+  border-radius: var(--studio-radius-lg);
+  background: var(--studio-surface-raised);
+  color: var(--studio-text-secondary);
+  font-size: var(--studio-font-control);
+}
+.poi-spreadsheet-heading { @apply flex items-baseline justify-between gap-3; }
+.poi-spreadsheet-heading strong { color: var(--studio-text); font-size: var(--studio-font-label); }
+.poi-spreadsheet-heading span { color: var(--studio-text-subtle); font-size: var(--studio-font-meta); }
+.poi-spreadsheet-panel > label { @apply font-medium; color: var(--studio-text); font-size: var(--studio-font-meta); }
+.poi-spreadsheet-panel textarea {
+  @apply w-full resize-y px-2 py-1.5 outline-none;
+  min-height: 7rem;
+  max-height: 14rem;
+  border: var(--studio-border-width) solid var(--studio-line-strong);
+  border-radius: var(--studio-radius-sm);
+  background: var(--studio-field);
+  color: var(--studio-text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: var(--studio-font-meta);
+  font-variant-numeric: tabular-nums;
+}
+.poi-spreadsheet-panel textarea:focus { border-color: var(--studio-accent); }
+.poi-spreadsheet-panel textarea[aria-invalid="true"] { border-color: var(--studio-danger); }
+.poi-spreadsheet-panel > p { @apply m-0; color: var(--studio-danger); font-size: var(--studio-font-meta); }
+.poi-spreadsheet-actions { @apply flex justify-end gap-2; }
+.poi-spreadsheet-actions button { @apply h-7 px-2.5; border-radius: var(--studio-radius-md); }
+.poi-spreadsheet-actions button:not(.primary-button):hover { background: var(--studio-field); }
 .canvas-status {
   @apply absolute bottom-2.5 right-2.5 flex items-center px-1;
   height: 1.625rem;
@@ -517,6 +549,14 @@ button:focus-visible, input:focus-visible, select:focus-visible {
     bottom: calc(max(14px, var(--studio-safe-bottom)) + 3.5rem);
     max-width: calc(100vw - 16px - var(--studio-safe-left) - var(--studio-safe-right));
   }
+  .poi-spreadsheet-panel {
+    bottom: calc(max(14px, var(--studio-safe-bottom)) + 3.5rem);
+    left: calc(50% + (var(--studio-safe-left) - var(--studio-safe-right)) / 2);
+    width: calc(100vw - 16px - var(--studio-safe-left) - var(--studio-safe-right));
+    max-height: calc(100dvh - 8rem - var(--studio-safe-top) - var(--studio-safe-bottom));
+  }
+  .poi-spreadsheet-heading { @apply items-start; }
+  .poi-spreadsheet-panel textarea { min-height: 5.5rem; max-height: 22dvh; }
   .maplibregl-ctrl-bottom-left {
     bottom: var(--studio-safe-bottom);
     left: calc(4px + var(--studio-safe-left));

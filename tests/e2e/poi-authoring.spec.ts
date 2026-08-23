@@ -65,3 +65,55 @@ test('POI placement can be cancelled, undone, redone, and exported as vector con
   expect(svg).toMatch(/data-layer-id="poi-01"[^>]*>[\s\S]*?<circle /);
   expect(consoleProblems).toEqual([]);
 });
+
+test('pasted POI rows create one responsive undoable batch', async ({ page }) => {
+  const consoleProblems: string[] = [];
+  page.on('pageerror', (error) => { consoleProblems.push(error.message); });
+  page.on('console', (message) => {
+    if ((message.type() === 'error' || message.type() === 'warning') && !isHeadlessWebGlDiagnostic(message.text())) {
+      consoleProblems.push(message.text());
+    }
+  });
+  await page.goto('/');
+  const mapReady = page.locator('[data-map-ready="true"]');
+  const mapFallback = page.getByText('Map preview unavailable');
+  await expect(mapReady.or(mapFallback)).toBeVisible({ timeout: 20_000 });
+  test.skip(await mapFallback.isVisible(), 'This browser fixture has no WebGL 2 renderer, so batch POIs cannot be verified on the map.');
+
+  await page.getByRole('button', { name: 'Pin (P)' }).click();
+  await page.getByRole('button', { name: 'Paste POI list' }).click();
+  const spreadsheet = page.getByRole('textbox', { name: 'POI spreadsheet rows' });
+  await expect(spreadsheet).toBeFocused();
+  await spreadsheet.fill('Broken row');
+  await page.getByRole('button', { name: 'Add POIs' }).click();
+  await expect(page.getByText(/Spreadsheet row 1/iu)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
+
+  await spreadsheet.fill('Name\tLongitude\tLatitude\nCafé Central\t16.3725\t48.2084\nMuseum Quarter\t16.3599\t48.2034');
+  await page.getByRole('button', { name: 'Add POIs' }).click();
+  const firstPoi = page.getByRole('button', { name: 'Select Café Central' });
+  const secondPoi = page.getByRole('button', { name: 'Select Museum Quarter' });
+  await expect(firstPoi).toHaveAttribute('aria-current', 'true');
+  await expect(secondPoi).toBeVisible();
+  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-order', /poi-01,poi-02/);
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(firstPoi).toHaveCount(0);
+  await expect(secondPoi).toHaveCount(0);
+  await page.getByRole('button', { name: 'Redo' }).click();
+  await expect(firstPoi).toBeVisible();
+  await expect(secondPoi).toBeVisible();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: 'Pin (P)' }).click();
+  await page.getByRole('button', { name: 'Paste POI list' }).click();
+  const panel = page.locator('.poi-spreadsheet-panel');
+  await expect(panel).toBeVisible();
+  const panelBox = await panel.boundingBox();
+  expect(panelBox).not.toBeNull();
+  expect(panelBox!.x).toBeGreaterThanOrEqual(0);
+  expect(panelBox!.x + panelBox!.width).toBeLessThanOrEqual(390);
+  expect(await page.evaluate(() => document.body.scrollWidth - window.innerWidth)).toBe(0);
+  await page.getByRole('button', { name: 'Cancel list' }).click();
+  await expect(page.getByRole('button', { name: 'Paste POI list' })).toBeFocused();
+  expect(consoleProblems).toEqual([]);
+});
