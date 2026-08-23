@@ -1,4 +1,5 @@
 import type { ContentLayer, LayerGeometry, LayerType, ProjectDocument } from '../domain/project';
+import { resolvePrintLayerStyle } from './layerStyle';
 
 export type PagePoint = Readonly<{ x: number; y: number }>;
 
@@ -13,13 +14,9 @@ export type CoordinateProjector = (
 
 export type RasterBasemapAsset = Readonly<{ dataUri: string; pixelWidth: number; pixelHeight: number }>;
 
-export type PrintLayerStyle = Readonly<{
-  fill?: string; stroke?: string; strokeWidthMm?: number; pointRadiusMm?: number;
-}>;
-
 export type PrintSceneOptions = Readonly<{
   basemap: RasterBasemapAsset; attribution: string; project: CoordinateProjector;
-  layerStyles?: Readonly<Record<string, PrintLayerStyle | undefined>>; metadata?: string;
+  metadata?: string;
 }>;
 
 export class PrintSceneError extends Error {
@@ -34,14 +31,6 @@ const expectedGeometry: Readonly<Record<Exclude<LayerType, 'basemap'>, LayerGeom
   poi: 'Point',
   shape: 'Polygon',
 };
-
-const defaultStyles: Readonly<Record<Exclude<LayerType, 'basemap'>, Required<PrintLayerStyle>>> = {
-  route: { fill: 'none', stroke: '#2563eb', strokeWidthMm: 1.2, pointRadiusMm: 2 },
-  poi: { fill: '#dc2626', stroke: '#ffffff', strokeWidthMm: 0.4, pointRadiusMm: 2 },
-  shape: { fill: '#2563eb', stroke: '#1d4ed8', strokeWidthMm: 0.5, pointRadiusMm: 2 },
-};
-
-const safePaint = /^(?:none|[a-zA-Z]+|#[0-9a-fA-F]{3,8}|(?:rgb|rgba|hsl|hsla)\([0-9.,%+\-\s]+\))$/;
 
 function escapeXml(value: string): string {
   return value.replaceAll(/[&<>"']/g, (character) => ({
@@ -150,19 +139,6 @@ function validateBasemap(asset: RasterBasemapAsset | undefined): void {
   }
 }
 
-function resolveStyle(layer: ContentLayer, override: PrintLayerStyle | undefined): Required<PrintLayerStyle> {
-  if (layer.type === 'basemap') {
-    throw new PrintSceneError('Basemap layers do not accept vector styles.');
-  }
-  const style = { ...defaultStyles[layer.type], ...override };
-  if (!safePaint.test(style.fill) || !safePaint.test(style.stroke)) {
-    throw new PrintSceneError(`Layer "${layer.id}" contains an unsafe SVG paint value.`);
-  }
-  finitePositive(style.strokeWidthMm, `Layer "${layer.id}" stroke width`);
-  finitePositive(style.pointRadiusMm, `Layer "${layer.id}" point radius`);
-  return style;
-}
-
 function projectCoordinate(
   coordinate: readonly [number, number],
   layer: ContentLayer,
@@ -203,7 +179,7 @@ function geometryElement(
   if (!geometry || geometry.type !== expectedGeometry[layer.type]) {
     throw new PrintSceneError(`Layer "${layer.id}" is missing valid ${expectedGeometry[layer.type]} geometry.`);
   }
-  const style = resolveStyle(layer, options.layerStyles?.[layer.id]);
+  const style = resolvePrintLayerStyle(layer, (message) => { throw new PrintSceneError(message); });
   const stroke = `stroke="${escapeXml(style.stroke)}" stroke-width="${formatNumber(style.strokeWidthMm)}"`;
 
   if (geometry.type === 'Point') {

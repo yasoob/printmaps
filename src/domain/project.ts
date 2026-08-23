@@ -1,4 +1,14 @@
-export const PROJECT_SCHEMA_VERSION = 7 as const;
+import { createDefaultLayerAppearance, type LayerAppearance } from './layerAppearance';
+
+export { createDefaultLayerAppearance } from './layerAppearance';
+export type {
+  LayerAppearance,
+  PoiAppearance,
+  RouteAppearance,
+  ShapeAppearance,
+} from './layerAppearance';
+
+export const PROJECT_SCHEMA_VERSION = 8 as const;
 
 export type LayerType = 'route' | 'poi' | 'shape' | 'basemap';
 export type PageOrientation = 'landscape' | 'portrait';
@@ -38,6 +48,7 @@ export type ContentLayer = {
   visible: boolean;
   locked: boolean;
   opacity: number;
+  appearance?: LayerAppearance;
   geometry?: LayerGeometry;
 };
 
@@ -50,60 +61,6 @@ export type ProjectDocument = {
   style: MapStyleSettings;
   layers: ContentLayer[];
 };
-
-export type ProjectDocumentV1 = {
-  schemaVersion: 1;
-  id: string;
-  title: string;
-  layers: ContentLayer[];
-};
-
-export type ProjectDocumentV2 = {
-  schemaVersion: 2;
-  id: string;
-  title: string;
-  page: Omit<PageSettings, 'preset'>;
-  layers: ContentLayer[];
-};
-
-export type ProjectDocumentV3 = {
-  schemaVersion: 3;
-  id: string;
-  title: string;
-  page: PageSettings;
-  layers: ContentLayer[];
-};
-
-export type ProjectDocumentV4 = {
-  schemaVersion: 4;
-  id: string;
-  title: string;
-  page: PageSettings;
-  camera: CameraSettings;
-  layers: ContentLayer[];
-};
-
-export type ProjectDocumentV5 = {
-  schemaVersion: 5;
-  id: string;
-  title: string;
-  page: PageSettings;
-  camera: CameraSettings;
-  style: Pick<MapStyleSettings, 'preset'>;
-  layers: ContentLayer[];
-};
-
-export type ProjectDocumentV6 = {
-  schemaVersion: 6;
-  id: string;
-  title: string;
-  page: PageSettings;
-  camera: CameraSettings;
-  style: Omit<MapStyleSettings, 'visibility'>;
-  layers: ContentLayer[];
-};
-
-export type StoredProjectDocument = ProjectDocumentV1 | ProjectDocumentV2 | ProjectDocumentV3 | ProjectDocumentV4 | ProjectDocumentV5 | ProjectDocumentV6 | ProjectDocument;
 
 const createDefaultPageSettings = (): PageSettings => ({
   preset: 'A4',
@@ -128,94 +85,18 @@ export function mapStyleBasemapName(preset: MapStylePreset): string {
   return `${preset === 'liberty' ? 'Liberty' : 'Positron'} basemap`;
 }
 
-export function migrateProjectDocument(document: StoredProjectDocument): ProjectDocument {
-  if (document.schemaVersion === 1) {
-    return {
-      ...document,
-      schemaVersion: PROJECT_SCHEMA_VERSION,
-      page: createDefaultPageSettings(),
-      camera: createDefaultCameraSettings(),
-      style: createDefaultMapStyleSettings(),
-    };
-  }
-  if (document.schemaVersion === 2) {
-    return {
-      ...document,
-      schemaVersion: PROJECT_SCHEMA_VERSION,
-      page: {
-        ...document.page,
-        preset: inferPagePreset(
-          document.page.widthMm,
-          document.page.heightMm,
-          document.page.orientation,
-        ),
-      },
-      camera: createDefaultCameraSettings(),
-      style: createDefaultMapStyleSettings(),
-    };
-  }
-  if (document.schemaVersion === 3) {
-    return {
-      ...document,
-      schemaVersion: PROJECT_SCHEMA_VERSION,
-      camera: createDefaultCameraSettings(),
-      style: createDefaultMapStyleSettings(),
-    };
-  }
-  if (document.schemaVersion === 4) {
-    return {
-      ...document,
-      schemaVersion: PROJECT_SCHEMA_VERSION,
-      style: createDefaultMapStyleSettings(),
-    };
-  }
-  if (document.schemaVersion === 5) {
-    return {
-      ...document,
-      schemaVersion: PROJECT_SCHEMA_VERSION,
-      style: {
-        ...document.style,
-        textScalePercent: 100,
-        visibility: createDefaultMapFeatureVisibility(),
-      },
-    };
-  }
-  if (document.schemaVersion === 6) {
-    return {
-      ...document,
-      schemaVersion: PROJECT_SCHEMA_VERSION,
-      style: { ...document.style, visibility: createDefaultMapFeatureVisibility() },
-    };
-  }
-  return document;
-}
-
-function inferPagePreset(
-  widthMm: number,
-  heightMm: number,
-  orientation: PageOrientation,
-): PagePreset {
-  const isDimensionsMatchOrientation = orientation === 'landscape'
-    ? widthMm >= heightMm
-    : heightMm >= widthMm;
-  if (!isDimensionsMatchOrientation) return 'Custom';
-
-  const shortEdge = Math.min(widthMm, heightMm);
-  const longEdge = Math.max(widthMm, heightMm);
-  if (shortEdge === 210 && longEdge === 297) return 'A4';
-  if (shortEdge === 297 && longEdge === 420) return 'A3';
-  if (shortEdge === 215.9 && longEdge === 279.4) return 'Letter';
-  return 'Custom';
-}
-
 export function cloneContentLayer(layer: ContentLayer): ContentLayer {
-  if (!layer.geometry) return { ...layer };
+  const appearance = layer.appearance ? { ...layer.appearance } : undefined;
+  const base = { ...layer };
+  delete base.appearance;
+  const copy = appearance ? { ...base, appearance } : base;
+  if (!layer.geometry) return copy;
   if (layer.geometry.type === 'Point') {
-    return { ...layer, geometry: { ...layer.geometry, coordinates: [...layer.geometry.coordinates] } };
+    return { ...copy, geometry: { ...layer.geometry, coordinates: [...layer.geometry.coordinates] } };
   }
   if (layer.geometry.type === 'LineString') {
     return {
-      ...layer,
+      ...copy,
       geometry: {
         ...layer.geometry,
         coordinates: layer.geometry.coordinates.map((position) => (
@@ -225,7 +106,7 @@ export function cloneContentLayer(layer: ContentLayer): ContentLayer {
     };
   }
   return {
-    ...layer,
+    ...copy,
     geometry: {
       ...layer.geometry,
       coordinates: layer.geometry.coordinates.map((ring) => ring.map((position) => (
@@ -243,6 +124,7 @@ const initialLayers: ContentLayer[] = [
     visible: true,
     locked: false,
     opacity: 100,
+    appearance: createDefaultLayerAppearance('route'),
     geometry: {
       type: 'LineString',
       coordinates: [[16.326, 48.194], [16.353, 48.205], [16.391, 48.215], [16.429, 48.226]],
@@ -255,6 +137,7 @@ const initialLayers: ContentLayer[] = [
     visible: true,
     locked: false,
     opacity: 100,
+    appearance: createDefaultLayerAppearance('poi'),
     geometry: { type: 'Point', coordinates: [16.3725, 48.2084] },
   },
   {
@@ -264,6 +147,7 @@ const initialLayers: ContentLayer[] = [
     visible: true,
     locked: false,
     opacity: 28,
+    appearance: createDefaultLayerAppearance('shape'),
     geometry: {
       type: 'Polygon',
       coordinates: [[

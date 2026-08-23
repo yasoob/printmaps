@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../../../src/app/App';
 import { exportMocks } from './exportMocks';
@@ -86,6 +86,94 @@ describe('editor layer fields', () => {
 
     await user.click(screen.getByRole('button', { name: 'Undo' }));
     expect(screen.getByRole('textbox', { name: 'Layer opacity' })).toHaveValue('28');
+  });
+
+  it('commits route color and width as separate undoable appearance edits', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: 'Select Route 01' }));
+    const color = screen.getByLabelText('Route color');
+    const width = screen.getByRole('textbox', { name: 'Route width' });
+
+    fireEvent.change(color, { target: { value: '#123456' } });
+    await user.clear(width);
+    await user.type(width, '8');
+    await user.tab();
+
+    expect(color).toHaveValue('#123456');
+    expect(width).toHaveValue('8');
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(screen.getByRole('textbox', { name: 'Route width' })).toHaveValue('4');
+    expect(screen.getByLabelText('Route color')).toHaveValue('#123456');
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(screen.getByLabelText('Route color')).toHaveValue('#d9363e');
+  });
+
+  it('commits POI color and marker size as undoable appearance edits', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: 'Select Coffee stop' }));
+    const color = screen.getByLabelText('POI color');
+    const size = screen.getByRole('textbox', { name: 'POI marker size' });
+
+    fireEvent.change(color, { target: { value: '#654321' } });
+    await user.clear(size);
+    await user.type(size, '24');
+    await user.tab();
+
+    expect(color).toHaveValue('#654321');
+    expect(size).toHaveValue('24');
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(screen.getByRole('textbox', { name: 'POI marker size' })).toHaveValue('14');
+  });
+
+  it('commits shape fill, outline color, and width as undoable appearance edits', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: 'Select City center' }));
+    const fill = screen.getByLabelText('Shape fill color');
+    const stroke = screen.getByLabelText('Shape outline color');
+    const width = screen.getByRole('textbox', { name: 'Shape outline width' });
+
+    fireEvent.change(fill, { target: { value: '#abcdef' } });
+    fireEvent.change(stroke, { target: { value: '#123456' } });
+    await user.clear(width);
+    await user.type(width, '5');
+    await user.tab();
+
+    expect(fill).toHaveValue('#abcdef');
+    expect(stroke).toHaveValue('#123456');
+    expect(width).toHaveValue('5');
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(screen.getByRole('textbox', { name: 'Shape outline width' })).toHaveValue('2');
+  });
+
+  it.each([
+    ['Route 01', 'Route width', '17', '4'],
+    ['Coffee stop', 'POI marker size', '7', '14'],
+    ['City center', 'Shape outline width', '13', '2'],
+  ])('marks and restores an invalid %s appearance size without changing history', async (
+    layerName,
+    controlName,
+    invalidValue,
+    canonicalValue,
+  ) => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: `Select ${layerName}` }));
+    const control = screen.getByRole('textbox', { name: controlName });
+    await user.clear(control);
+    await user.type(control, invalidValue);
+    expect(control).toHaveAttribute('aria-invalid', 'true');
+    await user.tab();
+
+    expect(control).toHaveValue(canonicalValue);
+    expect(control).not.toHaveAttribute('aria-invalid');
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
   });
 
   it('ignores an empty opacity edit instead of coercing it to zero', async () => {

@@ -57,4 +57,30 @@ describe('print PDF', () => {
     expect(poi).toBeLessThan(route);
     expect(text).toContain('/Order [8 0 R 9 0 R 10 0 R 7 0 R 11 0 R]');
   });
+
+  it('uses canonical route, POI, and shape appearance in vector commands', async () => {
+    const document = createInitialProjectDocument();
+    document.layers[0].appearance = { kind: 'route', color: '#010203', width: 8 };
+    document.layers[1].appearance = { kind: 'poi', color: '#abcdef', size: 21 };
+    document.layers[2].appearance = {
+      kind: 'shape',
+      fillColor: '#112233',
+      strokeColor: '#fedcba',
+      strokeWidth: 3,
+    };
+
+    const text = await pdfText(document);
+    const poiStart = text.indexOf('% Vector layer: Coffee stop');
+    const routeStart = text.indexOf('% Vector layer: Route 01');
+    const poiCommands = text.slice(poiStart, routeStart);
+
+    expect(text).toContain('0.003922 0.007843 0.011765 RG\n6.80315 w');
+    expect(text).toContain('0.670588 0.803922 0.937255 rg');
+    expect(text).toContain('429.448819 297.637795 m');
+    expect(poiCommands).toContain('1 1 1 RG\n1.133858 w');
+    expect(poiCommands).toContain('\nB\n');
+    expect(text).toContain('0.066667 0.133333 0.2 rg');
+    expect(text).toContain('0.996078 0.862745 0.729412 RG');
+    expect(text).toContain('2.125984 w');
+  });
 });

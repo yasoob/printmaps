@@ -2,40 +2,12 @@ import { createInitialProjectDocument } from '../../src/domain/project';
 import { parseProjectFileText } from '../../src/domain/projectFile';
 
 describe('portable project validation', () => {
-  it('migrates a version-5 project to the default global text scale', () => {
-    const source = createInitialProjectDocument();
-    const versionFive = {
-      ...source,
-      schemaVersion: 5,
-      style: { preset: source.style.preset },
-    };
+  it('rejects the obsolete schema-7 format with a reset-oriented message', () => {
+    const obsolete = { ...createInitialProjectDocument(), schemaVersion: 7 };
 
-    const parsed = parseProjectFileText(JSON.stringify(versionFive));
-
-    expect(parsed.schemaVersion).toBe(7);
-    expect(parsed.style).toEqual({
-      preset: 'liberty',
-      textScalePercent: 100,
-      visibility: { roads: true, buildings: true, labels: true },
-    });
-  });
-
-  it('migrates a version-6 project to default feature visibility', () => {
-    const source = createInitialProjectDocument();
-    const versionSix = {
-      ...source,
-      schemaVersion: 6,
-      style: { preset: source.style.preset, textScalePercent: 125 },
-    };
-
-    const parsed = parseProjectFileText(JSON.stringify(versionSix));
-
-    expect(parsed.schemaVersion).toBe(7);
-    expect(parsed.style).toEqual({
-      preset: 'liberty',
-      textScalePercent: 125,
-      visibility: { roads: true, buildings: true, labels: true },
-    });
+    expect(() => parseProjectFileText(JSON.stringify(obsolete))).toThrow(
+      'Schema version 7 is obsolete. Start a new project or reopen a current Print Map Studio file.',
+    );
   });
 
   it('parses a current portable project into a detached canonical document', () => {

@@ -39,11 +39,6 @@ export async function createLayeredSvg(document: ProjectDocument, capture: Previ
         y: point.y * context.pageHeightMm,
       };
     },
-    layerStyles: {
-      'route-01': { stroke: '#d9363e' },
-      'poi-cafe': { fill: '#0d78b5' },
-      'area-center': { fill: '#d18b25', stroke: '#d18b25' },
-    },
   });
   return new Blob([svg], { type: 'image/svg+xml' });
 }

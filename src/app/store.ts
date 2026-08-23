@@ -1,14 +1,13 @@
 import { createStore } from 'zustand/vanilla';
 import {
   createInitialProjectDocument,
-  migrateProjectDocument,
   type ContentLayer,
+  type LayerAppearance,
   type MapFeatureVisibilityCategory,
   type MapStylePreset,
   type PageOrientation,
   type StandardPagePreset,
   type ProjectDocument,
-  type StoredProjectDocument,
 } from '../domain/project';
 import { copyDocument, createDocumentActions } from './storeDocument';
 import { createCameraActions } from './storeCameraActions';
@@ -31,7 +30,7 @@ export type ProjectState = {
   duplicateLayer: (id: string) => void;
   importLayers: (layers: readonly ContentLayer[], documentEpoch: number) => boolean;
   moveLayer: (id: string, toIndex: number) => void;
-  openDocument: (document: StoredProjectDocument) => void;
+  openDocument: (document: ProjectDocument) => void;
   renameLayer: (id: string, name: string) => void;
   selectLayer: (id: string | null) => void;
   setCameraBearing: (bearing: number) => void;
@@ -39,6 +38,7 @@ export type ProjectState = {
   setPageDimension: (dimension: 'widthMm' | 'heightMm', value: number) => void;
   setPageOrientation: (orientation: PageOrientation) => void;
   setPagePreset: (preset: StandardPagePreset) => void;
+  setLayerAppearance: (id: string, appearance: LayerAppearance) => void;
   setLayerOpacity: (id: string, opacity: number) => void;
   setMapStyle: (preset: MapStylePreset) => void;
   setMapTextScale: (textScalePercent: number) => void;
@@ -50,11 +50,10 @@ export type ProjectState = {
 };
 
 export function createProjectStore(
-  initialDocument: StoredProjectDocument = createInitialProjectDocument(),
+  initialDocument: ProjectDocument = createInitialProjectDocument(),
 ) {
-  const document = migrateProjectDocument(initialDocument);
   return createStore<ProjectState>((set) => ({
-    document: copyDocument(document),
+    document: copyDocument(initialDocument),
     documentEpoch: 0,
     selectedId: null,
     past: [],

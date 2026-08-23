@@ -1,5 +1,5 @@
 import {
-  migrateProjectDocument,
+  PROJECT_SCHEMA_VERSION,
   type ContentLayer,
   type LayerGeometry,
   type LayerType,
@@ -7,14 +7,8 @@ import {
   type PageOrientation,
   type PagePreset,
   type ProjectDocument,
-  type ProjectDocumentV1,
-  type ProjectDocumentV2,
-  type ProjectDocumentV3,
-  type ProjectDocumentV4,
-  type ProjectDocumentV5,
-  type ProjectDocumentV6,
-  type StoredProjectDocument,
 } from './project';
+import { parseLayerAppearance, type LayerAppearance } from './layerAppearance';
 
 export const MAX_PROJECT_FILE_BYTES = 10 * 1024 * 1024;
 const MAX_LAYERS = 1000;
@@ -23,12 +17,12 @@ const LAYER_TYPES = new Set<LayerType>(['route', 'poi', 'shape', 'basemap']);
 const PAGE_PRESETS = new Set<PagePreset>(['A4', 'A3', 'Letter', 'Custom']);
 const PAGE_ORIENTATIONS = new Set<PageOrientation>(['landscape', 'portrait']);
 const MAP_STYLE_PRESETS = new Set<MapStylePreset>(['liberty', 'positron']);
-const SUPPORTED_SCHEMA_VERSIONS = new Set([1, 2, 3, 4, 5, 6, 7]);
+
 
 type JsonObject = Record<string, unknown>;
 
-function isSupportedSchemaVersion(value: unknown): value is StoredProjectDocument['schemaVersion'] {
-  return typeof value === 'number' && SUPPORTED_SCHEMA_VERSIONS.has(value);
+function isCurrentSchemaVersion(value: unknown): value is ProjectDocument['schemaVersion'] {
+  return value === PROJECT_SCHEMA_VERSION;
 }
 
 export class ProjectFileError extends Error {
@@ -131,6 +125,10 @@ function geometryAt(value: unknown, label: string, coordinateCount: { value: num
   throw new ProjectFileError(`${label} geometry type must be Point, LineString, or Polygon.`);
 }
 
+function optionalAppearance(appearance: LayerAppearance | undefined) {
+  return appearance ? { appearance } : {};
+}
+
 function layersAt(value: unknown) {
   if (!Array.isArray(value)) throw new ProjectFileError('Project layers must be an array.');
   if (value.length > MAX_LAYERS) throw new ProjectFileError(`Projects may contain at most ${MAX_LAYERS} layers.`);
@@ -149,6 +147,12 @@ function layersAt(value: unknown) {
       throw new ProjectFileError(`Layer ${index + 1} opacity must be between 0 and 100.`);
     }
     const type = layer.type as LayerType;
+    const appearance = parseLayerAppearance(
+      layer.appearance,
+      type,
+      `Layer ${index + 1}`,
+      (message) => { throw new ProjectFileError(message); },
+    );
     const geometry = layer.geometry === undefined
       ? undefined
       : geometryAt(layer.geometry, `Layer ${index + 1}`, coordinateCount);
@@ -170,17 +174,13 @@ function layersAt(value: unknown) {
       visible: booleanAt(layer.visible, `Layer ${index + 1} visibility`),
       locked: booleanAt(layer.locked, `Layer ${index + 1} lock state`),
       opacity,
+      ...optionalAppearance(appearance),
       ...(geometry && { geometry }),
     };
   });
 }
 
-function pageAt(value: unknown, shouldIncludePreset: false): ProjectDocumentV2['page'];
-function pageAt(value: unknown, shouldIncludePreset: true): ProjectDocument['page'];
-function pageAt(
-  value: unknown,
-  shouldIncludePreset: boolean,
-): ProjectDocumentV2['page'] | ProjectDocument['page'] {
+function pageAt(value: unknown): ProjectDocument['page'] {
   const page = objectAt(value, 'Project page');
   const orientation = page.orientation;
   if (typeof orientation !== 'string' || !PAGE_ORIENTATIONS.has(orientation as PageOrientation)) {
@@ -191,7 +191,6 @@ function pageAt(
     heightMm: positiveNumber(page.heightMm, 'Page height'),
     orientation: orientation as PageOrientation,
   };
-  if (!shouldIncludePreset) return base;
   if (typeof page.preset !== 'string' || !PAGE_PRESETS.has(page.preset as PagePreset)) {
     throw new ProjectFileError('Page preset must be A4, A3, Letter, or Custom.');
   }
@@ -227,21 +226,16 @@ function cameraAt(value: unknown): ProjectDocument['camera'] {
   return { bearing, pitch };
 }
 
-function styleAt(value: unknown, schemaVersion: 5): ProjectDocumentV5['style'];
-function styleAt(value: unknown, schemaVersion: 6): ProjectDocumentV6['style'];
-function styleAt(value: unknown, schemaVersion: 7): ProjectDocument['style'];
-function styleAt(value: unknown, schemaVersion: 5 | 6 | 7): ProjectDocumentV5['style'] | ProjectDocumentV6['style'] | ProjectDocument['style'] {
+function styleAt(value: unknown): ProjectDocument['style'] {
   const style = objectAt(value, 'Project style');
   if (typeof style.preset !== 'string' || !MAP_STYLE_PRESETS.has(style.preset as MapStylePreset)) {
     throw new ProjectFileError('Map style preset must be liberty or positron.');
   }
   const preset = style.preset as MapStylePreset;
-  if (schemaVersion === 5) return { preset };
   const textScalePercent = finiteNumber(style.textScalePercent, 'Map text scale');
   if (textScalePercent < 50 || textScalePercent > 200) {
     throw new ProjectFileError('Map text scale must be between 50 and 200 percent.');
   }
-  if (schemaVersion === 6) return { preset, textScalePercent };
   const visibility = objectAt(style.visibility, 'Map feature visibility');
   return {
     preset,
@@ -254,10 +248,15 @@ function styleAt(value: unknown, schemaVersion: 5 | 6 | 7): ProjectDocumentV5['s
   };
 }
 
-function storedDocumentAt(value: unknown): StoredProjectDocument {
+function currentDocumentAt(value: unknown): ProjectDocument {
   const root = objectAt(value, 'Project file');
   const schemaVersion = root.schemaVersion;
-  if (!isSupportedSchemaVersion(schemaVersion)) {
+  if (!isCurrentSchemaVersion(schemaVersion)) {
+    if (typeof schemaVersion === 'number' && schemaVersion >= 1 && schemaVersion <= 7) {
+      throw new ProjectFileError(
+        `Schema version ${schemaVersion} is obsolete. Start a new project or reopen a current Print Map Studio file.`,
+      );
+    }
     const displayed = typeof schemaVersion === 'number' || typeof schemaVersion === 'string'
       ? String(schemaVersion)
       : 'missing';
@@ -268,26 +267,12 @@ function storedDocumentAt(value: unknown): StoredProjectDocument {
     title: nonEmptyString(root.title, 'Project title'),
     layers: layersAt(root.layers),
   };
-  if (schemaVersion === 1) return { schemaVersion, ...common } satisfies ProjectDocumentV1;
-  if (schemaVersion === 2) {
-    return { schemaVersion, ...common, page: pageAt(root.page, false) } satisfies ProjectDocumentV2;
-  }
-  const page = pageAt(root.page, true);
-  if (schemaVersion === 3) return { schemaVersion, ...common, page } satisfies ProjectDocumentV3;
-  const camera = cameraAt(root.camera);
-  if (schemaVersion === 4) return { schemaVersion, ...common, page, camera } satisfies ProjectDocumentV4;
-  if (schemaVersion === 5) {
-    return { schemaVersion, ...common, page, camera, style: styleAt(root.style, 5) } satisfies ProjectDocumentV5;
-  }
-  if (schemaVersion === 6) {
-    return { schemaVersion, ...common, page, camera, style: styleAt(root.style, 6) } satisfies ProjectDocumentV6;
-  }
   return {
     schemaVersion,
     ...common,
-    page,
-    camera,
-    style: styleAt(root.style, 7),
+    page: pageAt(root.page),
+    camera: cameraAt(root.camera),
+    style: styleAt(root.style),
   } satisfies ProjectDocument;
 }
 
@@ -298,5 +283,5 @@ export function parseProjectFileText(text: string): ProjectDocument {
   } catch {
     throw new ProjectFileError('This file is not valid JSON.');
   }
-  return migrateProjectDocument(storedDocumentAt(value));
+  return currentDocumentAt(value);
 }

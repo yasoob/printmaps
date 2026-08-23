@@ -1,10 +1,11 @@
 import type { ContentLayer, ProjectDocument } from '../domain/project';
 import { asciiBytes, buildPdf, pdfString, streamObject, type PdfObject } from './pdfWriter';
+import { pdfVectorCommands } from './pdfVectorCommands';
 import type { PreviewPng } from './previewPng';
 
 const POINTS_PER_MM = 72 / 25.4;
 const ATTRIBUTION = 'OpenFreeMap · OpenMapTiles · © OpenStreetMap contributors';
-type FramePoint = Readonly<{ x: number; y: number }>;
+
 
 type PdfGroup = Readonly<{
   layer?: ContentLayer;
@@ -101,71 +102,6 @@ async function jpegBytes(capture: PreviewPng, signal: AbortSignal | undefined): 
   return bytes;
 }
 
-function colorComponents(hexadecimal: string): string {
-  const channels = [1, 3, 5].map((offset) => (
-    Number.parseInt(hexadecimal.slice(offset, offset + 2), 16) / 255
-  ));
-  return channels.map((channel) => formatNumber(channel)).join(' ');
-}
-
-function project(
-  coordinate: readonly [number, number],
-  capture: PreviewPng & Required<Pick<PreviewPng, 'projectToFrame'>>,
-  width: number,
-  height: number,
-): FramePoint {
-  const point = capture.projectToFrame(coordinate);
-  if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) {
-    throw new Error('The map projection returned an invalid point during PDF export.');
-  }
-  return { x: point.x * width, y: (1 - point.y) * height };
-}
-
-function pointText(point: FramePoint): string {
-  return `${formatNumber(point.x)} ${formatNumber(point.y)}`;
-}
-
-function circleCommands(point: FramePoint, radius: number): string {
-  const kappa = 0.552284749831;
-  const control = radius * kappa;
-  return [
-    `${formatNumber(point.x + radius)} ${formatNumber(point.y)} m`,
-    `${formatNumber(point.x + radius)} ${formatNumber(point.y + control)} ${formatNumber(point.x + control)} ${formatNumber(point.y + radius)} ${formatNumber(point.x)} ${formatNumber(point.y + radius)} c`,
-    `${formatNumber(point.x - control)} ${formatNumber(point.y + radius)} ${formatNumber(point.x - radius)} ${formatNumber(point.y + control)} ${formatNumber(point.x - radius)} ${formatNumber(point.y)} c`,
-    `${formatNumber(point.x - radius)} ${formatNumber(point.y - control)} ${formatNumber(point.x - control)} ${formatNumber(point.y - radius)} ${formatNumber(point.x)} ${formatNumber(point.y - radius)} c`,
-    `${formatNumber(point.x + control)} ${formatNumber(point.y - radius)} ${formatNumber(point.x + radius)} ${formatNumber(point.y - control)} ${formatNumber(point.x + radius)} ${formatNumber(point.y)} c`,
-  ].join('\n');
-}
-
-function vectorCommands(
-  layer: ContentLayer,
-  capture: PreviewPng & Required<Pick<PreviewPng, 'projectToFrame'>>,
-  width: number,
-  height: number,
-): string {
-  if (layer.type === 'basemap' || !layer.geometry) return '';
-  if (layer.type === 'route' && layer.geometry.type === 'LineString') {
-    if (layer.geometry.coordinates.length < 2) throw new Error(`Route layer "${layer.name}" has no printable line.`);
-    const path = layer.geometry.coordinates.map((coordinate, index) => (
-      `${pointText(project(coordinate, capture, width, height))} ${index === 0 ? 'm' : 'l'}`
-    )).join('\n');
-    return `${colorComponents('#d9363e')} RG\n${formatNumber(1.2 * POINTS_PER_MM)} w\n1 J\n1 j\n${path}\nS`;
-  }
-  if (layer.type === 'poi' && layer.geometry.type === 'Point') {
-    const point = project(layer.geometry.coordinates, capture, width, height);
-    return `${colorComponents('#0d78b5')} rg\n${circleCommands(point, 2 * POINTS_PER_MM)}\nf`;
-  }
-  if (layer.type === 'shape' && layer.geometry.type === 'Polygon') {
-    if (layer.geometry.coordinates.length === 0) throw new Error(`Shape layer "${layer.name}" has no printable polygon.`);
-    const path = layer.geometry.coordinates.map((ring) => ring.map((coordinate, index) => (
-      `${pointText(project(coordinate, capture, width, height))} ${index === 0 ? 'm' : 'l'}`
-    )).join('\n') + '\nh').join('\n');
-    const color = colorComponents('#d18b25');
-    return `${color} rg\n${color} RG\n${formatNumber(0.5 * POINTS_PER_MM)} w\n${path}\nB*`;
-  }
-  throw new Error(`Layer "${layer.name}" has geometry that cannot be represented in the PDF.`);
-}
-
 function createContentStream(
   groups: readonly PdfGroup[],
   capture: PreviewPng & Required<Pick<PreviewPng, 'projectToFrame'>>,
@@ -190,7 +126,7 @@ function createContentStream(
     index -= 1;
     const { layer, name, resourceName } = vectorGroups[index];
     if (!layer) continue;
-    const commands = vectorCommands(layer, capture, width, height);
+    const commands = pdfVectorCommands(layer, capture, width, height);
     lines.push(
       `% Vector layer: ${name.replaceAll(/[\r\n%]/g, ' ')}`,
       'q',

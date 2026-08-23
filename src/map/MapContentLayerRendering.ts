@@ -16,9 +16,11 @@ type HighlightState = {
 
 const SOURCE_PREFIX = 'studio-source-';
 const LAYER_PREFIX = 'studio-layer-';
-const ROUTE_COLOR = '#d9363e';
-const POI_COLOR = '#0d78b5';
-const SHAPE_COLOR = '#d18b25';
+const ROUTE_APPEARANCE = { kind: 'route', color: '#d9363e', width: 4 } as const;
+const POI_APPEARANCE = { kind: 'poi', color: '#0d78b5', size: 14 } as const;
+const SHAPE_APPEARANCE = {
+  kind: 'shape', fillColor: '#d18b25', strokeColor: '#d18b25', strokeWidth: 2,
+} as const;
 const HIGHLIGHT_COLOR = '#006fc9';
 const POI_STROKE = '#ffffff';
 
@@ -37,52 +39,62 @@ export const contentStructure = (layers: ContentLayer[]) => layers
   .map((layer) => `${encodedContentId(layer.id)}:${layer.type}:${JSON.stringify(layer.geometry)}`)
   .join('|');
 
-const routeLayerDescriptor = (layer: ContentLayer, isHighlighted: boolean) => ({
-  id: layerId(layer.id),
-  type: 'line' as const,
-  paint: {
-    'line-color': isHighlighted ? HIGHLIGHT_COLOR : ROUTE_COLOR,
-    'line-opacity': layer.opacity / 100,
-    'line-width': isHighlighted ? 6 : 4,
-  },
-  layout: { 'line-cap': 'round' as const, 'line-join': 'round' as const },
-});
+const routeLayerDescriptor = (layer: ContentLayer, isHighlighted: boolean) => {
+  const appearance = layer.appearance?.kind === 'route' ? layer.appearance : ROUTE_APPEARANCE;
+  return {
+    id: layerId(layer.id),
+    type: 'line' as const,
+    paint: {
+      'line-color': isHighlighted ? HIGHLIGHT_COLOR : appearance.color,
+      'line-opacity': layer.opacity / 100,
+      'line-width': isHighlighted ? appearance.width + 2 : appearance.width,
+    },
+    layout: { 'line-cap': 'round' as const, 'line-join': 'round' as const },
+  };
+};
 
-const poiLayerDescriptor = (layer: ContentLayer, isHighlighted: boolean) => ({
-  id: layerId(layer.id),
-  type: 'circle' as const,
-  paint: {
-    'circle-color': isHighlighted ? HIGHLIGHT_COLOR : POI_COLOR,
-    'circle-opacity': layer.opacity / 100,
-    'circle-radius': isHighlighted ? 9 : 7,
-    'circle-stroke-color': POI_STROKE,
-    'circle-stroke-width': 2,
-  },
-});
+const poiLayerDescriptor = (layer: ContentLayer, isHighlighted: boolean) => {
+  const appearance = layer.appearance?.kind === 'poi' ? layer.appearance : POI_APPEARANCE;
+  const radius = appearance.size / 2;
+  return {
+    id: layerId(layer.id),
+    type: 'circle' as const,
+    paint: {
+      'circle-color': isHighlighted ? HIGHLIGHT_COLOR : appearance.color,
+      'circle-opacity': layer.opacity / 100,
+      'circle-radius': isHighlighted ? radius + 2 : radius,
+      'circle-stroke-color': POI_STROKE,
+      'circle-stroke-width': 2,
+    },
+  };
+};
 
-const shapeLayerDescriptors = (layer: ContentLayer, isHighlighted: boolean) => [{
-  id: layerId(layer.id, 'fill'),
-  type: 'fill' as const,
-  paint: {
-    'fill-color': isHighlighted ? HIGHLIGHT_COLOR : SHAPE_COLOR,
-    'fill-opacity': layer.opacity / 100,
-  },
-}, {
-  id: layerId(layer.id, 'line'),
-  type: 'line' as const,
-  paint: {
-    'line-color': isHighlighted ? HIGHLIGHT_COLOR : SHAPE_COLOR,
-    'line-opacity': layer.opacity / 100,
-    'line-width': isHighlighted ? 3 : 2,
-  },
-}];
+const shapeLayerDescriptors = (layer: ContentLayer, isHighlighted: boolean) => {
+  const appearance = layer.appearance?.kind === 'shape' ? layer.appearance : SHAPE_APPEARANCE;
+  return [{
+    id: layerId(layer.id, 'fill'),
+    type: 'fill' as const,
+    paint: {
+      'fill-color': isHighlighted ? HIGHLIGHT_COLOR : appearance.fillColor,
+      'fill-opacity': layer.opacity / 100,
+    },
+  }, {
+    id: layerId(layer.id, 'line'),
+    type: 'line' as const,
+    paint: {
+      'line-color': isHighlighted ? HIGHLIGHT_COLOR : appearance.strokeColor,
+      'line-opacity': layer.opacity / 100,
+      'line-width': isHighlighted ? appearance.strokeWidth + 1 : appearance.strokeWidth,
+    },
+  }];
+};
 
 type MapLayerDescriptor =
   | ReturnType<typeof routeLayerDescriptor>
   | ReturnType<typeof poiLayerDescriptor>
   | ReturnType<typeof shapeLayerDescriptors>[number];
 
-function mapLayerDescriptors(
+export function mapLayerDescriptors(
   layer: ContentLayer,
   highlight: HighlightState,
 ): MapLayerDescriptor[] {

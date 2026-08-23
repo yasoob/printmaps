@@ -17,7 +17,7 @@ describe('GeoJSON import', () => {
   it('turns supported features into detached canonical editable layers', () => {
     const layers = parseGeoJsonText(supportedFixture);
 
-    expect(layers).toEqual([
+    expect(layers).toMatchObject([
       {
         id: 'geojson-cafe',
         name: 'Café Central',

@@ -23,7 +23,7 @@ test('Save downloads the current project as portable versioned JSON', async ({ p
   await download.saveAs(outputPath);
   const savedProject = JSON.parse(await readFile(outputPath, 'utf8'));
   expect(savedProject).toMatchObject({
-    schemaVersion: 7,
+    schemaVersion: 8,
     id: 'vienna-field-guide',
     title: 'Vienna field guide',
     page: { preset: 'A4', widthMm: 210, heightMm: 297, orientation: 'portrait' },
@@ -74,7 +74,7 @@ test('Save ZIP downloads a deterministic archive that Open restores as a fresh p
     assets: [],
   });
   expect(JSON.parse(strFromU8(entries['project.printmap.json']))).toMatchObject({
-    schemaVersion: 7,
+    schemaVersion: 8,
     camera: { bearing: 35, pitch: 0 },
     style: { visibility: { roads: false, buildings: true, labels: true } },
   });
@@ -99,7 +99,6 @@ test('opens a validated portable project as a focused fresh history root', async
   await page.getByRole('button', { name: 'Select Route 01' }).click();
   await expect(page.getByRole('button', { name: 'Undo' })).toBeEnabled();
   const alpineProject = JSON.parse(await readFile(path.resolve('tests/fixtures/alpine-poster.printmap.json'), 'utf8'));
-  alpineProject.schemaVersion = 7;
   alpineProject.camera = { bearing: -20, pitch: 35 };
   alpineProject.style = {
     preset: 'positron',

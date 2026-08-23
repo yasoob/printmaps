@@ -123,16 +123,19 @@ describe('layered SVG print scene', () => {
     const project = createInitialProjectDocument();
     project.layers[0].visible = false;
     project.layers[0].opacity = 37;
+    project.layers[0].appearance = { kind: 'route', color: '#010203', width: 8 };
+    project.layers[1].appearance = { kind: 'poi', color: '#abcdef', size: 21 };
+    project.layers[2].appearance = {
+      kind: 'shape',
+      fillColor: '#112233',
+      strokeColor: '#fedcba',
+      strokeWidth: 3,
+    };
 
     const svgDocument = parseSvg(serializePrintScene(project, {
       basemap: { dataUri: onePixelPng, pixelWidth: 1, pixelHeight: 1 },
       attribution: '© OpenStreetMap contributors',
       project: projector,
-      layerStyles: {
-        'route-01': { stroke: '#010203', strokeWidthMm: 2.25 },
-        'poi-cafe': { fill: '#abcdef', pointRadiusMm: 3.5 },
-        'area-center': { fill: 'none', stroke: '#fedcba', strokeWidthMm: 0.75 },
-      },
     }));
     const route = requiredElement(svgDocument, '[data-layer-id="route-01"]');
     const poi = requiredElement(svgDocument, '[data-layer-id="poi-cafe"] circle');
@@ -142,11 +145,11 @@ describe('layered SVG print scene', () => {
     expect(route.getAttribute('opacity')).toBe('0.37');
     const routePath = requiredElement(route, ':scope > path');
     expect(routePath.getAttribute('stroke')).toBe('#010203');
-    expect(routePath.getAttribute('stroke-width')).toBe('2.25');
+    expect(routePath.getAttribute('stroke-width')).toBe('2.4');
     expect(routePath.getAttribute('d')).toBe('M 26 106 L 53 95 L 91 85 L 129 74');
     expect(poi.getAttribute('fill')).toBe('#abcdef');
-    expect(poi.getAttribute('r')).toBe('3.5');
-    expect(shape.getAttribute('fill')).toBe('none');
+    expect(poi.getAttribute('r')).toBe('3');
+    expect(shape.getAttribute('fill')).toBe('#112233');
     expect(shape.getAttribute('stroke')).toBe('#fedcba');
     expect(shape.getAttribute('stroke-width')).toBe('0.75');
   });
@@ -205,10 +208,12 @@ describe('layered SVG print scene', () => {
     expect(() => serializePrintScene(project, options)).toThrow('invalid opacity');
 
     project.layers[0].opacity = 100;
-    expect(() => serializePrintScene(project, {
-      ...options,
-      layerStyles: { 'route-01': { stroke: 'url(javascript:owned())' } },
-    })).toThrow('unsafe SVG paint');
+    project.layers[0].appearance = {
+      kind: 'route',
+      color: 'url(javascript:owned())',
+      width: 4,
+    };
+    expect(() => serializePrintScene(project, options)).toThrow('unsafe SVG paint');
 
     project.page.widthMm = Infinity;
     expect(() => serializePrintScene(project, options)).toThrow('Page width');

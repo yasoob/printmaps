@@ -1,7 +1,6 @@
 import type { StoreApi } from 'zustand/vanilla';
 import {
   cloneContentLayer,
-  migrateProjectDocument,
   type ContentLayer,
   type ProjectDocument,
 } from '../domain/project';
@@ -36,7 +35,7 @@ export function commitDocument(state: ProjectState, document: ProjectDocument) {
 export function createDocumentActions(set: ProjectSet): Pick<ProjectState, 'openDocument' | 'undo' | 'redo'> {
   return {
     openDocument: (storedDocument) => {
-      const openedDocument = copyDocument(migrateProjectDocument(storedDocument));
+      const openedDocument = copyDocument(storedDocument);
       set((state) => ({
         document: openedDocument,
         documentEpoch: state.documentEpoch + 1,

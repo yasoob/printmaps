@@ -5,10 +5,6 @@ import {
   type ContentLayer,
   type LayerGeometry,
   type ProjectDocument,
-  type ProjectDocumentV1,
-  type ProjectDocumentV2,
-  type ProjectDocumentV3,
-  type ProjectDocumentV4,
 } from '../../src/domain/project';
 
 const layers = [
@@ -41,44 +37,6 @@ function lineStringGeometryAt(document: ProjectDocument, layerIndex: number): Li
 }
 
 describe('project store camera history', () => {
-  it('migrates a version-4 document with the Liberty open map style', () => {
-    const currentDocument = createDocument();
-    const versionFourDocument: ProjectDocumentV4 = {
-      schemaVersion: 4,
-      id: currentDocument.id,
-      title: currentDocument.title,
-      page: currentDocument.page,
-      camera: currentDocument.camera,
-      layers: currentDocument.layers,
-    };
-
-    const store = createProjectStore(versionFourDocument);
-
-    expect(store.getState().document).toMatchObject({
-      schemaVersion: 7,
-      style: { preset: 'liberty', textScalePercent: 100, visibility: { roads: true, buildings: true, labels: true } },
-    });
-  });
-
-  it('migrates a version-3 document with a neutral map camera', () => {
-    const currentDocument = createDocument();
-    const versionThreeDocument: ProjectDocumentV3 = {
-      schemaVersion: 3,
-      id: currentDocument.id,
-      title: currentDocument.title,
-      page: currentDocument.page,
-      layers: currentDocument.layers,
-    };
-
-    const store = createProjectStore(versionThreeDocument);
-
-    expect(store.getState().document).toMatchObject({
-      schemaVersion: 7,
-      camera: { bearing: 0, pitch: 0 },
-      style: { preset: 'liberty', textScalePercent: 100, visibility: { roads: true, buildings: true, labels: true } },
-    });
-  });
-
   it('commits a valid bearing as one undoable camera edit', () => {
     const store = createProjectStore(createDocument());
 
@@ -119,59 +77,6 @@ describe('project store camera history', () => {
 });
 
 describe('project store history', () => {
-
-  it('migrates a version-1 document without page settings at the store boundary', () => {
-    const versionOneDocument: ProjectDocumentV1 = {
-      schemaVersion: 1,
-      id: 'legacy-project',
-      title: 'Legacy project',
-      layers,
-    };
-
-    const store = createProjectStore(versionOneDocument);
-
-    expect(store.getState().document).toMatchObject({
-      schemaVersion: 7,
-      page: { preset: 'A4', widthMm: 297, heightMm: 210, orientation: 'landscape' },
-      style: { preset: 'liberty', textScalePercent: 100, visibility: { roads: true, buildings: true, labels: true } },
-    });
-  });
-
-  it.each([
-    {
-      name: 'standard landscape dimensions',
-      page: { widthMm: 297, heightMm: 210, orientation: 'landscape' as const },
-      preset: 'A4',
-    },
-    {
-      name: 'standard portrait dimensions',
-      page: { widthMm: 210, heightMm: 297, orientation: 'portrait' as const },
-      preset: 'A4',
-    },
-    {
-      name: 'standard dimensions inconsistent with the declared orientation',
-      page: { widthMm: 210, heightMm: 297, orientation: 'landscape' as const },
-      preset: 'Custom',
-    },
-    {
-      name: 'genuinely custom dimensions',
-      page: { widthMm: 250, heightMm: 180, orientation: 'landscape' as const },
-      preset: 'Custom',
-    },
-  ])('migrates version-2 $name without changing dimensions', ({ page, preset }) => {
-    const versionTwoDocument: ProjectDocumentV2 = {
-      schemaVersion: 2,
-      id: 'legacy-project',
-      title: 'Legacy project',
-      page,
-      layers,
-    };
-
-    const store = createProjectStore(versionTwoDocument);
-
-    expect(store.getState().document.page).toEqual({ ...page, preset });
-  });
-
   it('canonicalizes inconsistent dimensions when reselecting the current orientation', () => {
     const document = createDocument();
     document.page = { preset: 'A4', widthMm: 210, heightMm: 297, orientation: 'landscape' };

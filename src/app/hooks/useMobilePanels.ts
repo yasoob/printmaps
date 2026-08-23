@@ -55,6 +55,7 @@ export function useMobilePanels() {
   };
 
   const handlePanelKeyDown = (event: React.KeyboardEvent<HTMLElement>, panel: MobilePanel) => {
+    if (activePanel !== panel) return;
     if (event.key === 'Escape') {
       event.preventDefault();
       closePanel(panel);

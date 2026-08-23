@@ -1,11 +1,18 @@
 import { useRef, useState } from 'react';
-import type { ContentLayer } from '../../domain/project';
-import { NumberField, PropertyRow, PropertySection } from './PropertyControls';
+import type {
+  ContentLayer,
+  LayerAppearance,
+  PoiAppearance,
+  RouteAppearance,
+  ShapeAppearance,
+} from '../../domain/project';
+import { PropertyRow, PropertySection } from './PropertyControls';
 
 type LayerPropertiesProps = {
   layer: ContentLayer;
   onRename: (name: string) => void;
   onOpacityChange: (opacity: number) => void;
+  onAppearanceChange: (appearance: LayerAppearance) => void;
   onToggleVisibility: () => void;
   onToggleLock: () => void;
   onDuplicate: () => void;
@@ -47,10 +54,119 @@ function LayerMenu({ onDuplicate, onDelete }: Pick<LayerPropertiesProps, 'onDupl
   );
 }
 
+function RouteAppearanceControls({
+  appearance,
+  onChange,
+}: {
+  appearance: RouteAppearance;
+  onChange: (appearance: RouteAppearance) => void;
+}) {
+  const [widthEdit, setWidthEdit] = useState(() => ({
+    source: appearance.width,
+    value: String(appearance.width),
+  }));
+  const widthDraft = widthEdit.source === appearance.width ? widthEdit.value : String(appearance.width);
+  const widthValue = Number(widthDraft);
+  const isWidthInvalid = widthDraft.trim() === ''
+    || !Number.isFinite(widthValue)
+    || widthValue < 1
+    || widthValue > 16;
+  const commitWidth = (value: string) => {
+    const width = Number(value);
+    if (value.trim() === '' || !Number.isFinite(width) || width < 1 || width > 16) {
+      setWidthEdit({ source: appearance.width, value: String(appearance.width) });
+      return;
+    }
+    setWidthEdit({ source: width, value: String(width) });
+    onChange({ ...appearance, width });
+  };
+
+  return (
+    <>
+      <PropertyRow label="Color"><label className="color-field"><input aria-label="Route color" type="color" value={appearance.color} onChange={(event) => onChange({ ...appearance, color: event.target.value })} /></label></PropertyRow>
+      <PropertyRow label="Width"><label className="number-field"><input aria-label="Route width" aria-invalid={isWidthInvalid || undefined} value={widthDraft} onChange={(event) => setWidthEdit({ source: appearance.width, value: event.target.value })} onBlur={(event) => commitWidth(event.currentTarget.value)} /><small>px</small></label></PropertyRow>
+    </>
+  );
+}
+
+function PoiAppearanceControls({
+  appearance,
+  onChange,
+}: {
+  appearance: PoiAppearance;
+  onChange: (appearance: PoiAppearance) => void;
+}) {
+  const [sizeEdit, setSizeEdit] = useState(() => ({
+    source: appearance.size,
+    value: String(appearance.size),
+  }));
+  const sizeDraft = sizeEdit.source === appearance.size ? sizeEdit.value : String(appearance.size);
+  const sizeValue = Number(sizeDraft);
+  const isSizeInvalid = sizeDraft.trim() === ''
+    || !Number.isFinite(sizeValue)
+    || sizeValue < 8
+    || sizeValue > 48;
+  const commitSize = (value: string) => {
+    const size = Number(value);
+    if (value.trim() === '' || !Number.isFinite(size) || size < 8 || size > 48) {
+      setSizeEdit({ source: appearance.size, value: String(appearance.size) });
+      return;
+    }
+    setSizeEdit({ source: size, value: String(size) });
+    onChange({ ...appearance, size });
+  };
+
+  return (
+    <>
+      <PropertyRow label="Color"><label className="color-field"><input aria-label="POI color" type="color" value={appearance.color} onChange={(event) => onChange({ ...appearance, color: event.target.value })} /></label></PropertyRow>
+      <PropertyRow label="Size"><label className="number-field"><input aria-label="POI marker size" aria-invalid={isSizeInvalid || undefined} value={sizeDraft} onChange={(event) => setSizeEdit({ source: appearance.size, value: event.target.value })} onBlur={(event) => commitSize(event.currentTarget.value)} /><small>px</small></label></PropertyRow>
+    </>
+  );
+}
+
+function ShapeAppearanceControls({
+  appearance,
+  onChange,
+}: {
+  appearance: ShapeAppearance;
+  onChange: (appearance: ShapeAppearance) => void;
+}) {
+  const [widthEdit, setWidthEdit] = useState(() => ({
+    source: appearance.strokeWidth,
+    value: String(appearance.strokeWidth),
+  }));
+  const widthDraft = widthEdit.source === appearance.strokeWidth
+    ? widthEdit.value
+    : String(appearance.strokeWidth);
+  const widthValue = Number(widthDraft);
+  const isWidthInvalid = widthDraft.trim() === ''
+    || !Number.isFinite(widthValue)
+    || widthValue < 0.5
+    || widthValue > 12;
+  const commitWidth = (value: string) => {
+    const strokeWidth = Number(value);
+    if (value.trim() === '' || !Number.isFinite(strokeWidth) || strokeWidth < 0.5 || strokeWidth > 12) {
+      setWidthEdit({ source: appearance.strokeWidth, value: String(appearance.strokeWidth) });
+      return;
+    }
+    setWidthEdit({ source: strokeWidth, value: String(strokeWidth) });
+    onChange({ ...appearance, strokeWidth });
+  };
+
+  return (
+    <>
+      <PropertyRow label="Fill"><label className="color-field"><input aria-label="Shape fill color" type="color" value={appearance.fillColor} onChange={(event) => onChange({ ...appearance, fillColor: event.target.value })} /></label></PropertyRow>
+      <PropertyRow label="Outline"><label className="color-field"><input aria-label="Shape outline color" type="color" value={appearance.strokeColor} onChange={(event) => onChange({ ...appearance, strokeColor: event.target.value })} /></label></PropertyRow>
+      <PropertyRow label="Width"><label className="number-field"><input aria-label="Shape outline width" aria-invalid={isWidthInvalid || undefined} value={widthDraft} onChange={(event) => setWidthEdit({ source: appearance.strokeWidth, value: event.target.value })} onBlur={(event) => commitWidth(event.currentTarget.value)} /><small>px</small></label></PropertyRow>
+    </>
+  );
+}
+
 export function LayerProperties({
   layer,
   onRename,
   onOpacityChange,
+  onAppearanceChange,
   onToggleVisibility,
   onToggleLock,
   onDuplicate,
@@ -92,11 +208,21 @@ export function LayerProperties({
         <PropertyRow label="Visible"><button aria-label="Toggle layer visibility" className={`toggle${layer.visible ? ' is-on' : ''}`} type="button" aria-pressed={layer.visible} onClick={onToggleVisibility}><span /></button></PropertyRow>
         <PropertyRow label="Locked"><button aria-label="Toggle layer lock" className={`toggle${layer.locked ? ' is-on' : ''}`} type="button" aria-pressed={layer.locked} onClick={onToggleLock}><span /></button></PropertyRow>
       </PropertySection>
-      <PropertySection title="Appearance">
-        <PropertyRow label="Stroke"><label className="color-field"><span style={{ background: 'var(--studio-route)' }} /><input aria-label="Layer stroke color" value="Route red" readOnly /></label></PropertyRow>
-        <PropertyRow label="Width"><NumberField value="3" suffix="px" ariaLabel="Layer stroke width" /></PropertyRow>
-        <PropertyRow label="Blend"><select aria-label="Layer blend mode" defaultValue="Normal"><option>Normal</option><option>Multiply</option><option>Screen</option></select></PropertyRow>
-      </PropertySection>
+      {layer.appearance?.kind === 'route' && (
+        <PropertySection title="Appearance">
+          <RouteAppearanceControls key={`${layer.id}-${layer.appearance.width}`} appearance={layer.appearance} onChange={onAppearanceChange} />
+        </PropertySection>
+      )}
+      {layer.appearance?.kind === 'poi' && (
+        <PropertySection title="Appearance">
+          <PoiAppearanceControls key={`${layer.id}-${layer.appearance.size}`} appearance={layer.appearance} onChange={onAppearanceChange} />
+        </PropertySection>
+      )}
+      {layer.appearance?.kind === 'shape' && (
+        <PropertySection title="Appearance">
+          <ShapeAppearanceControls key={`${layer.id}-${layer.appearance.strokeWidth}`} appearance={layer.appearance} onChange={onAppearanceChange} />
+        </PropertySection>
+      )}
     </div>
   );
 }

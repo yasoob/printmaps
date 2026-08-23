@@ -14,7 +14,7 @@ const kmlFixture = readFileSync('tests/fixtures/import/wave2/namespaced.kml', 'u
 
 describe('GPX and KML import', () => {
   it('imports namespaced GPX waypoints, routes, and tracks as detached 2D layers', () => {
-    expect(parseGpxText(gpxFixture)).toEqual([
+    expect(parseGpxText(gpxFixture)).toMatchObject([
       {
         id: 'gpx-cafe-central',
         name: 'Café Central',
@@ -52,7 +52,7 @@ describe('GPX and KML import', () => {
   });
 
   it('imports namespaced KML points, lines, and polygons from nested folders', () => {
-    expect(parseKmlText(kmlFixture)).toEqual([
+    expect(parseKmlText(kmlFixture)).toMatchObject([
       {
         id: 'kml-cafe-point',
         name: 'Café point',

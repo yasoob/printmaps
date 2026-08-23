@@ -33,6 +33,21 @@ function updateContainerState(
   visibleLayers: ContentLayer[],
 ) {
   container.dataset.mapLayerOrder = visibleLayers.map((layer) => layer.id).join(',');
+  container.dataset.mapLayerAppearance = visibleLayers.flatMap((layer) => {
+    const { appearance } = layer;
+    if (appearance?.kind === 'route') {
+      return [`${layer.id}:${appearance.color}:${appearance.width}`];
+    }
+    if (appearance?.kind === 'poi') {
+      return [`${layer.id}:${appearance.color}:${appearance.size}`];
+    }
+    if (appearance?.kind === 'shape') {
+      return [
+        `${layer.id}:${appearance.fillColor}:${appearance.strokeColor}:${appearance.strokeWidth}`,
+      ];
+    }
+    return [];
+  }).join('|');
   container.dataset.selectedLayer = state.selectedId ?? '';
   container.dataset.previewedLayer = state.previewedId ?? '';
   delete container.dataset.mapContentError;
@@ -40,6 +55,7 @@ function updateContainerState(
 
 function markContainerFailure(container: HTMLElement) {
   container.dataset.mapLayerOrder = '';
+  container.dataset.mapLayerAppearance = '';
   container.dataset.selectedLayer = '';
   container.dataset.previewedLayer = '';
   container.dataset.mapContentError = 'true';

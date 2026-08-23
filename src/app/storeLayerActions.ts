@@ -1,4 +1,5 @@
-import { cloneContentLayer } from '../domain/project';
+import { canonicalLayerAppearance } from '../domain/layerAppearance';
+import { cloneContentLayer, createDefaultLayerAppearance } from '../domain/project';
 import type { ProjectState } from './store';
 import { commitDocument, replaceLayers, type ProjectSet } from './storeDocument';
 
@@ -8,7 +9,7 @@ type LayerStructureActions = Pick<
 >;
 type LayerPropertyActions = Pick<
   ProjectState,
-  'renameLayer' | 'selectLayer' | 'setLayerOpacity' | 'toggleLayerVisibility' | 'toggleLayerLock'
+  'renameLayer' | 'selectLayer' | 'setLayerAppearance' | 'setLayerOpacity' | 'toggleLayerVisibility' | 'toggleLayerLock'
 >;
 
 function createPoiAction(set: ProjectSet): ProjectState['createPoi'] {
@@ -35,6 +36,7 @@ function createPoiAction(set: ProjectSet): ProjectState['createPoi'] {
       visible: true,
       locked: false,
       opacity: 100,
+      appearance: createDefaultLayerAppearance('poi'),
       geometry: {
         type: 'Point' as const,
         coordinates: [longitude, latitude] as [number, number],
@@ -74,6 +76,7 @@ function createRouteAction(set: ProjectSet): ProjectState['createRoute'] {
       visible: true,
       locked: false,
       opacity: 100,
+      appearance: createDefaultLayerAppearance('route'),
       geometry: {
         type: 'LineString' as const,
         coordinates: coordinates.map(([longitude, latitude]) => [longitude, latitude] as [number, number]),
@@ -117,6 +120,7 @@ function createShapeAction(set: ProjectSet): ProjectState['createShape'] {
       visible: true,
       locked: false,
       opacity: 28,
+      appearance: createDefaultLayerAppearance('shape'),
       geometry: {
         type: 'Polygon' as const,
         coordinates: [ring],
@@ -229,6 +233,19 @@ export function createLayerPropertyActions(set: ProjectSet): LayerPropertyAction
         ? id
         : state.selectedId,
     })),
+    setLayerAppearance: (id, appearance) => set((state) => {
+      const layer = state.document.layers.find((candidate) => candidate.id === id);
+      const nextAppearance = canonicalLayerAppearance(layer?.type ?? 'basemap', appearance);
+      if (!layer || !nextAppearance) return state;
+      if (JSON.stringify(layer.appearance) === JSON.stringify(nextAppearance)) return state;
+
+      return commitDocument(state, replaceLayers(
+        state.document,
+        state.document.layers.map((candidate) => (
+          candidate.id === id ? { ...candidate, appearance: nextAppearance } : candidate
+        )),
+      ));
+    }),
     setLayerOpacity: (id, opacity) => set((state) => {
       const layer = state.document.layers.find((candidate) => candidate.id === id);
       const nextOpacity = Math.max(0, Math.min(100, opacity));

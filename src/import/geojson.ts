@@ -1,4 +1,9 @@
-import type { ContentLayer, LayerGeometry, LayerType } from '../domain/project';
+import {
+  createDefaultLayerAppearance,
+  type ContentLayer,
+  type LayerGeometry,
+  type LayerType,
+} from '../domain/project';
 
 export const MAX_GEOJSON_FILE_BYTES = 5 * 1024 * 1024;
 export const MAX_GEOJSON_FEATURES = 1000;
@@ -172,13 +177,15 @@ function featureAt(
     suffix += 1;
   }
   usedIds.add(id);
+  const type = layerTypeFor(geometry);
   return {
     id,
     name,
-    type: layerTypeFor(geometry),
+    type,
     visible: true,
     locked: false,
     opacity: 100,
+    appearance: createDefaultLayerAppearance(type),
     geometry,
   };
 }
