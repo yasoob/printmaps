@@ -247,8 +247,9 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .tool-button:hover { background: var(--studio-field); }
 .tool-button.is-active { color: var(--studio-accent-strong); background: var(--studio-accent-soft); }
 .map-authoring-panel {
-  @apply absolute left-1/2 flex -translate-x-1/2 items-center gap-2 px-2 py-1.5;
+  @apply absolute left-1/2 flex -translate-x-1/2 flex-wrap items-center justify-center gap-2 px-2 py-1.5;
   bottom: 4.5rem;
+  max-width: calc(100% - 1rem);
   min-height: 2.5rem;
   border: var(--studio-border-width) solid var(--studio-line-strong);
   border-radius: var(--studio-radius-lg);
@@ -256,6 +257,8 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   color: var(--studio-text-secondary);
   font-size: var(--studio-font-control);
 }
+.map-authoring-panel > label { @apply flex items-center gap-1 whitespace-nowrap; }
+.map-authoring-panel > label > select { min-width: 5.25rem; }
 .map-authoring-panel > span { @apply whitespace-nowrap px-1; }
 .map-authoring-panel > button:not(.primary-button) {
   @apply h-7 px-2;

@@ -95,6 +95,9 @@ function printPaintValue(
   }
   if (property === 'circle-radius') return value * pixelsPerMillimetre * (2 / 7);
   if (property === 'circle-stroke-width') return value * pixelsPerMillimetre * 0.2;
+  if (property === 'text-halo-width' && layer.appearance?.kind === 'route') {
+    return value * pixelsPerMillimetre;
+  }
   return value;
 }
 

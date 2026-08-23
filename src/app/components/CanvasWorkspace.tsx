@@ -1,9 +1,17 @@
 import { Frame, Hand, Layers3, MapPin, MousePointer2, Route, Shapes, SlidersHorizontal, Type } from 'lucide-react';
 import { useMemo, useRef, useState, type RefObject } from 'react';
 import type { CameraSettings, ContentLayer, MapFeatureVisibility, MapStylePreset, PageSettings } from '../../domain/project';
+import {
+  buildRouteCoordinates,
+  DEFAULT_ROUTE_AUTHORING_OPTIONS,
+  type RouteLineShape,
+  type RouteTravelProfile,
+  type RouteAuthoringOptions,
+} from '../../domain/routeProfiles';
 import type { PreviewPngExporter } from '../../export/previewPng';
 import { MapCanvas } from '../../map/MapCanvas';
 import type { MobilePanel } from '../hooks/useMobilePanels';
+import { DrawingPanel, RouteDrawingPanel } from './RouteDrawingPanel';
 
 const tools = [
   { id: 'select', label: 'Select', shortcut: 'V', icon: MousePointer2 },
@@ -24,6 +32,7 @@ function countDistinctPoints(points: readonly (readonly [number, number])[]): nu
 function createRouteDraftLayers(
   routePoints: [number, number][],
   projectLayers: ContentLayer[],
+  options: RouteAuthoringOptions,
 ): ContentLayer[] {
   const usedIds = new Set(projectLayers.map((layer) => layer.id));
   const uniqueId = (base: string) => {
@@ -46,6 +55,8 @@ function createRouteDraftLayers(
     geometry: { type: 'Point', coordinates },
   }));
   if (routePoints.length < 2) return pointLayers;
+  const coordinates = buildRouteCoordinates(routePoints, options.lineShape);
+  if (coordinates.length < 2) return pointLayers;
   return [...pointLayers, {
     id: uniqueId('route-draft'),
     name: 'Route draft',
@@ -53,7 +64,14 @@ function createRouteDraftLayers(
     visible: true,
     locked: true,
     opacity: 100,
-    geometry: { type: 'LineString', coordinates: routePoints },
+    appearance: {
+      kind: 'route',
+      color: '#d9363e',
+      width: 4,
+      travelProfile: options.travelProfile,
+      showTravelModeIcon: options.showTravelModeIcon,
+    },
+    geometry: { type: 'LineString', coordinates },
   }];
 }
 
@@ -102,24 +120,16 @@ function createShapeDraftLayers(
   }];
 }
 
-type DrawingPanelProps = {
-  statusLabel: string;
-  status: string;
-  cancelLabel: string;
-  finishLabel: string;
-  finishDisabled: boolean;
-  onCancel: () => void;
-  onFinish: () => void;
-};
-
-function DrawingPanel(props: DrawingPanelProps) {
-  return (
-    <div className="map-authoring-panel">
-      <span role="status" aria-label={props.statusLabel}>{props.status}</span>
-      <button type="button" onClick={props.onCancel}>{props.cancelLabel}</button>
-      <button className="primary-button" type="button" disabled={props.finishDisabled} onClick={props.onFinish}>{props.finishLabel}</button>
-    </div>
-  );
+function useRouteAuthoringOptions() {
+  const [routeLineShape, setRouteLineShape] = useState<RouteLineShape>(DEFAULT_ROUTE_AUTHORING_OPTIONS.lineShape);
+  const [routeTravelProfile, setRouteTravelProfile] = useState<RouteTravelProfile>(DEFAULT_ROUTE_AUTHORING_OPTIONS.travelProfile);
+  const [showTravelModeIcon, setShowTravelModeIcon] = useState(DEFAULT_ROUTE_AUTHORING_OPTIONS.showTravelModeIcon);
+  const routeOptions = useMemo<RouteAuthoringOptions>(() => ({
+    lineShape: routeLineShape,
+    travelProfile: routeTravelProfile,
+    showTravelModeIcon,
+  }), [routeLineShape, routeTravelProfile, showTravelModeIcon]);
+  return { routeLineShape, routeTravelProfile, showTravelModeIcon, routeOptions, setRouteLineShape, setRouteTravelProfile, setShowTravelModeIcon };
 }
 
 type CanvasWorkspaceProps = {
@@ -137,7 +147,10 @@ type CanvasWorkspaceProps = {
   propertiesTriggerRef: RefObject<HTMLButtonElement | null>;
   onLayerSelect: (id: string | null) => void;
   onCreatePoi: (coordinates: readonly [number, number]) => void;
-  onCreateRoute: (coordinates: readonly (readonly [number, number])[]) => void;
+  onCreateRoute: (
+    coordinates: readonly (readonly [number, number])[],
+    options?: RouteAuthoringOptions,
+  ) => void;
   onCreateShape: (coordinates: readonly (readonly [number, number])[]) => void;
   onAuthoringChange: (documentEpoch: number, isActive: boolean) => void;
   onBackgroundClick: () => void;
@@ -148,6 +161,7 @@ type CanvasWorkspaceProps = {
 export function CanvasWorkspace(props: CanvasWorkspaceProps) {
   const [storedActiveTool, setStoredActiveTool] = useState('select');
   const [storedRoutePoints, setStoredRoutePoints] = useState<[number, number][]>([]);
+  const { routeLineShape, routeTravelProfile, showTravelModeIcon, routeOptions, setRouteLineShape, setRouteTravelProfile, setShowTravelModeIcon } = useRouteAuthoringOptions();
   const [storedShapePoints, setStoredShapePoints] = useState<[number, number][]>([]);
   const [toolDocumentEpoch, setToolDocumentEpoch] = useState(props.documentEpoch);
   const [fitRequest, setFitRequest] = useState(0);
@@ -156,12 +170,14 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
   const activeTool = toolDocumentEpoch === documentEpoch ? storedActiveTool : 'select';
   const routePoints = toolDocumentEpoch === documentEpoch ? storedRoutePoints : EMPTY_ROUTE_POINTS;
   const shapePoints = toolDocumentEpoch === documentEpoch ? storedShapePoints : EMPTY_SHAPE_POINTS;
+  const canFinishRoute = countDistinctPoints(routePoints) >= 2
+    && buildRouteCoordinates(routePoints, routeOptions.lineShape).length >= 2;
   const canFinishShape = countDistinctPoints(shapePoints) >= 3;
   const geometryLayers = useMemo(() => [
-    ...createRouteDraftLayers(routePoints, layers),
+    ...createRouteDraftLayers(routePoints, layers, routeOptions),
     ...createShapeDraftLayers(shapePoints, layers),
     ...layers.filter((layer) => layer.geometry),
-  ], [layers, routePoints, shapePoints]);
+  ], [layers, routeOptions, routePoints, shapePoints]);
   const activateTool = (id: string) => {
     setToolDocumentEpoch(documentEpoch);
     setStoredActiveTool(id);
@@ -170,9 +186,9 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
     onAuthoringChange(documentEpoch, ['route', 'pin', 'shape'].includes(id));
   };
   const finishRoute = () => {
-    if (routePoints.length < 2) return;
+    if (!canFinishRoute) return;
     selectToolRef.current?.focus();
-    onCreateRoute(routePoints);
+    onCreateRoute(routePoints, routeOptions);
     setStoredRoutePoints([]);
     setStoredActiveTool('select');
     onAuthoringChange(documentEpoch, false);
@@ -248,7 +264,7 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
         ))}
       </nav>
       {activeTool === 'route' && (
-        <DrawingPanel statusLabel="Route drawing status" status={`Straight route · ${routePoints.length} ${routePoints.length === 1 ? 'point' : 'points'}`} cancelLabel="Cancel route" finishLabel="Finish route" finishDisabled={routePoints.length < 2} onCancel={cancelRoute} onFinish={finishRoute} />
+        <RouteDrawingPanel pointCount={routePoints.length} canFinish={canFinishRoute} lineShape={routeLineShape} travelProfile={routeTravelProfile} showTravelModeIcon={showTravelModeIcon} onLineShapeChange={setRouteLineShape} onTravelProfileChange={setRouteTravelProfile} onShowTravelModeIconChange={setShowTravelModeIcon} onCancel={cancelRoute} onFinish={finishRoute} />
       )}
       {activeTool === 'pin' && (
         <div className="map-authoring-panel">

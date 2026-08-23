@@ -1,4 +1,12 @@
-export type RouteAppearance = { kind: 'route'; color: string; width: number };
+import { ROUTE_TRAVEL_PROFILES, type RouteTravelProfile } from './routeProfiles';
+
+export type RouteAppearance = {
+  kind: 'route';
+  color: string;
+  width: number;
+  travelProfile: RouteTravelProfile;
+  showTravelModeIcon: boolean;
+};
 export type PoiAppearance = { kind: 'poi'; color: string; size: number };
 export type ShapeAppearance = {
   kind: 'shape';
@@ -15,7 +23,15 @@ type JsonObject = Record<string, unknown>;
 const HEX_COLOR = /^#[0-9a-f]{6}$/i;
 
 export function createDefaultLayerAppearance(type: AppearanceLayerType): LayerAppearance | undefined {
-  if (type === 'route') return { kind: 'route', color: '#d9363e', width: 4 };
+  if (type === 'route') {
+    return {
+      kind: 'route',
+      color: '#d9363e',
+      width: 4,
+      travelProfile: 'car',
+      showTravelModeIcon: false,
+    };
+  }
   if (type === 'poi') return { kind: 'poi', color: '#0d78b5', size: 14 };
   if (type === 'shape') {
     return { kind: 'shape', fillColor: '#d18b25', strokeColor: '#d18b25', strokeWidth: 2 };
@@ -38,7 +54,9 @@ function isRouteAppearanceValid(appearance: RouteAppearance): boolean {
   return HEX_COLOR.test(appearance.color)
     && Number.isFinite(appearance.width)
     && appearance.width >= 1
-    && appearance.width <= 16;
+    && appearance.width <= 16
+    && ROUTE_TRAVEL_PROFILES.includes(appearance.travelProfile)
+    && typeof appearance.showTravelModeIcon === 'boolean';
 }
 
 function isPoiAppearanceValid(appearance: PoiAppearance): boolean {
@@ -90,6 +108,24 @@ function colorValue(value: unknown, label: string, fail: Fail): string {
   return value.toLowerCase();
 }
 
+function routeAppearanceAt(appearance: JsonObject, label: string, fail: Fail): RouteAppearance {
+  const width = finiteValue(appearance.width, `${label} route width`, fail);
+  if (width < 1 || width > 16) fail(`${label} route width must be between 1 and 16 pixels.`);
+  if (!ROUTE_TRAVEL_PROFILES.includes(appearance.travelProfile as RouteTravelProfile)) {
+    fail(`${label} route travel profile is not supported.`);
+  }
+  if (typeof appearance.showTravelModeIcon !== 'boolean') {
+    fail(`${label} route travel-mode marker must be true or false.`);
+  }
+  return {
+    kind: 'route',
+    color: colorValue(appearance.color, `${label} route color`, fail),
+    width,
+    travelProfile: appearance.travelProfile as RouteTravelProfile,
+    showTravelModeIcon: appearance.showTravelModeIcon,
+  };
+}
+
 export function parseLayerAppearance(
   value: unknown,
   type: AppearanceLayerType,
@@ -102,11 +138,7 @@ export function parseLayerAppearance(
   }
   const appearance = objectValue(value, `${label} appearance`, fail);
   if (appearance.kind !== type) fail(`${label} appearance must match its ${type} layer type.`);
-  if (type === 'route') {
-    const width = finiteValue(appearance.width, `${label} route width`, fail);
-    if (width < 1 || width > 16) fail(`${label} route width must be between 1 and 16 pixels.`);
-    return { kind: 'route', color: colorValue(appearance.color, `${label} route color`, fail), width };
-  }
+  if (type === 'route') return routeAppearanceAt(appearance, label, fail);
   if (type === 'poi') {
     const size = finiteValue(appearance.size, `${label} POI marker size`, fail);
     if (size < 8 || size > 48) fail(`${label} POI marker size must be between 8 and 48 pixels.`);

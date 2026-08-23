@@ -1,5 +1,6 @@
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { ContentLayer } from '../domain/project';
+import { ROUTE_TRAVEL_PROFILE_MARKERS } from '../domain/routeProfiles';
 
 export type RenderedMapContent = {
   mapLayerIds: string[];
@@ -16,7 +17,13 @@ type HighlightState = {
 
 const SOURCE_PREFIX = 'studio-source-';
 const LAYER_PREFIX = 'studio-layer-';
-const ROUTE_APPEARANCE = { kind: 'route', color: '#d9363e', width: 4 } as const;
+const ROUTE_APPEARANCE = {
+  kind: 'route',
+  color: '#d9363e',
+  width: 4,
+  travelProfile: 'car',
+  showTravelModeIcon: false,
+} as const;
 const POI_APPEARANCE = { kind: 'poi', color: '#0d78b5', size: 14 } as const;
 const SHAPE_APPEARANCE = {
   kind: 'shape', fillColor: '#d18b25', strokeColor: '#d18b25', strokeWidth: 2,
@@ -36,12 +43,17 @@ export const visibleContentLayers = (layers: ContentLayer[]) => (
 );
 
 export const contentStructure = (layers: ContentLayer[]) => layers
-  .map((layer) => `${encodedContentId(layer.id)}:${layer.type}:${JSON.stringify(layer.geometry)}`)
+  .map((layer) => {
+    const routeMarker = layer.appearance?.kind === 'route'
+      ? `:${layer.appearance.travelProfile}:${layer.appearance.showTravelModeIcon}`
+      : '';
+    return `${encodedContentId(layer.id)}:${layer.type}:${JSON.stringify(layer.geometry)}${routeMarker}`;
+  })
   .join('|');
 
 const routeLayerDescriptor = (layer: ContentLayer, isHighlighted: boolean) => {
   const appearance = layer.appearance?.kind === 'route' ? layer.appearance : ROUTE_APPEARANCE;
-  return {
+  const line = {
     id: layerId(layer.id),
     type: 'line' as const,
     paint: {
@@ -51,6 +63,25 @@ const routeLayerDescriptor = (layer: ContentLayer, isHighlighted: boolean) => {
     },
     layout: { 'line-cap': 'round' as const, 'line-join': 'round' as const },
   };
+  if (!appearance.showTravelModeIcon) return [line];
+  return [line, {
+    id: layerId(layer.id, 'travel-mode'),
+    type: 'symbol' as const,
+    layout: {
+      'symbol-placement': 'line-center' as const,
+      'text-field': ROUTE_TRAVEL_PROFILE_MARKERS[appearance.travelProfile],
+      'text-font': ['Noto Sans Regular'],
+      'text-size': 11,
+      'text-allow-overlap': true,
+      'text-ignore-placement': true,
+    },
+    paint: {
+      'text-color': '#ffffff',
+      'text-opacity': layer.opacity / 100,
+      'text-halo-color': isHighlighted ? HIGHLIGHT_COLOR : appearance.color,
+      'text-halo-width': 4,
+    },
+  }];
 };
 
 const poiLayerDescriptor = (layer: ContentLayer, isHighlighted: boolean) => {
@@ -90,7 +121,7 @@ const shapeLayerDescriptors = (layer: ContentLayer, isHighlighted: boolean) => {
 };
 
 type MapLayerDescriptor =
-  | ReturnType<typeof routeLayerDescriptor>
+  | ReturnType<typeof routeLayerDescriptor>[number]
   | ReturnType<typeof poiLayerDescriptor>
   | ReturnType<typeof shapeLayerDescriptors>[number];
 
@@ -101,7 +132,7 @@ export function mapLayerDescriptors(
   const isHighlighted = isLayerHighlighted(layer, highlight);
   switch (layer.type) {
     case 'route': {
-      return [routeLayerDescriptor(layer, isHighlighted)];
+      return routeLayerDescriptor(layer, isHighlighted);
     }
     case 'poi': {
       return [poiLayerDescriptor(layer, isHighlighted)];

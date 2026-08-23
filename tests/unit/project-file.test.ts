@@ -2,11 +2,11 @@ import { createInitialProjectDocument } from '../../src/domain/project';
 import { parseProjectFileText } from '../../src/domain/projectFile';
 
 describe('portable project validation', () => {
-  it('rejects the obsolete schema-7 format with a reset-oriented message', () => {
-    const obsolete = { ...createInitialProjectDocument(), schemaVersion: 7 };
+  it('rejects the obsolete schema-8 format with a reset-oriented message', () => {
+    const obsolete = { ...createInitialProjectDocument(), schemaVersion: 8 };
 
     expect(() => parseProjectFileText(JSON.stringify(obsolete))).toThrow(
-      'Schema version 7 is obsolete. Start a new project or reopen a current Print Map Studio file.',
+      'Schema version 8 is obsolete. Start a new project or reopen a current Print Map Studio file.',
     );
   });
 

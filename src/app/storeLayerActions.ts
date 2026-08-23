@@ -1,17 +1,12 @@
 import { canonicalLayerAppearance } from '../domain/layerAppearance';
 import { cloneContentLayer, createDefaultLayerAppearance } from '../domain/project';
 import { isValidPosition, moveRouteVertex } from '../domain/routeGeometry';
+import { buildRouteCoordinates, DEFAULT_ROUTE_AUTHORING_OPTIONS, isRouteAuthoringOptions } from '../domain/routeProfiles';
 import type { ProjectState } from './store';
 import { commitDocument, replaceLayers, type ProjectSet } from './storeDocument';
 
-type LayerStructureActions = Pick<
-  ProjectState,
-  'createPoi' | 'createRoute' | 'createShape' | 'deleteLayer' | 'duplicateLayer' | 'importLayers' | 'moveLayer'
->;
-type LayerPropertyActions = Pick<
-  ProjectState,
-  'renameLayer' | 'selectLayer' | 'setLayerAppearance' | 'setLayerOpacity' | 'setPoiCoordinates' | 'setRouteVertex' | 'toggleLayerVisibility' | 'toggleLayerLock'
->;
+type LayerStructureActions = Pick<ProjectState, 'createPoi' | 'createRoute' | 'createShape' | 'deleteLayer' | 'duplicateLayer' | 'importLayers' | 'moveLayer'>;
+type LayerPropertyActions = Pick<ProjectState, 'renameLayer' | 'selectLayer' | 'setLayerAppearance' | 'setLayerOpacity' | 'setPoiCoordinates' | 'setRouteVertex' | 'toggleLayerVisibility' | 'toggleLayerLock'>;
 
 function createPoiAction(set: ProjectSet): ProjectState['createPoi'] {
   return ([longitude, latitude]) => set((state) => {
@@ -54,8 +49,9 @@ function createPoiAction(set: ProjectSet): ProjectState['createPoi'] {
 }
 
 function createRouteAction(set: ProjectSet): ProjectState['createRoute'] {
-  return (coordinates) => set((state) => {
-    if (coordinates.length < 2 || coordinates.some(([longitude, latitude]) => (
+  return (coordinates, options = DEFAULT_ROUTE_AUTHORING_OPTIONS) => set((state) => {
+    const distinctCoordinates = new Set(coordinates.map(([longitude, latitude]) => `${longitude},${latitude}`));
+    if (!isRouteAuthoringOptions(options) || distinctCoordinates.size < 2 || coordinates.some(([longitude, latitude]) => (
       !Number.isFinite(longitude)
       || !Number.isFinite(latitude)
       || longitude < -180
@@ -70,6 +66,10 @@ function createRouteAction(set: ProjectSet): ProjectState['createRoute'] {
       routeNumber += 1;
       id = `route-${String(routeNumber).padStart(2, '0')}`;
     } while (usedIds.has(id));
+    const routeCoordinates = buildRouteCoordinates(coordinates, options.lineShape);
+    if (routeCoordinates.length < 2) return state;
+    const defaultAppearance = createDefaultLayerAppearance('route');
+    if (defaultAppearance?.kind !== 'route') return state;
     const route = {
       id,
       name: `Route ${String(routeNumber).padStart(2, '0')}`,
@@ -77,10 +77,14 @@ function createRouteAction(set: ProjectSet): ProjectState['createRoute'] {
       visible: true,
       locked: false,
       opacity: 100,
-      appearance: createDefaultLayerAppearance('route'),
+      appearance: {
+        ...defaultAppearance,
+        travelProfile: options.travelProfile,
+        showTravelModeIcon: options.showTravelModeIcon,
+      },
       geometry: {
         type: 'LineString' as const,
-        coordinates: coordinates.map(([longitude, latitude]) => [longitude, latitude] as [number, number]),
+        coordinates: routeCoordinates,
       },
     };
     const layers = [...state.document.layers];

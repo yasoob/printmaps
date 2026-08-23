@@ -129,7 +129,9 @@ describe('native map export camera', () => {
         visible: true,
         locked: false,
         opacity: 100,
-        appearance: { kind: 'route', color: '#d9363e', width: 4 },
+        appearance: {
+          kind: 'route', color: '#d9363e', width: 4, travelProfile: 'air', showTravelModeIcon: true,
+        },
         geometry: { type: 'LineString', coordinates: [[16.3, 48.2], [16.4, 48.3]] },
       }],
       pixelsPerMillimetre: 10,
@@ -156,6 +158,11 @@ describe('native map export camera', () => {
       'studio-layer-8:route-01:main',
       'line-width',
       6,
+    );
+    expect(setPaintProperty).toHaveBeenCalledWith(
+      'studio-layer-8:route-01:travel-mode',
+      'text-halo-width',
+      20,
     );
     expect(remove).toHaveBeenCalledOnce();
   });

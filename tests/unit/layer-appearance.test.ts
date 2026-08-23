@@ -36,11 +36,11 @@ describe('canonical layer appearance', () => {
     const store = createProjectStore(createInitialProjectDocument());
 
     store.getState().setLayerAppearance('route-01', {
-      kind: 'route', color: '#D9363E', width: 4,
+      kind: 'route', color: '#D9363E', width: 4, travelProfile: 'car', showTravelModeIcon: false,
     });
 
     expect(store.getState().document.layers[0].appearance).toEqual({
-      kind: 'route', color: '#d9363e', width: 4,
+      kind: 'route', color: '#d9363e', width: 4, travelProfile: 'car', showTravelModeIcon: false,
     });
     expect(store.getState().canUndo).toBe(false);
   });
@@ -48,24 +48,26 @@ describe('canonical layer appearance', () => {
   it('assigns editable appearances to every local import format', () => {
     expect(parseGeoJsonText(geoJsonFixture).map(({ appearance }) => appearance)).toEqual([
       { kind: 'poi', color: '#0d78b5', size: 14 },
-      { kind: 'route', color: '#d9363e', width: 4 },
+      { kind: 'route', color: '#d9363e', width: 4, travelProfile: 'car', showTravelModeIcon: false },
       { kind: 'shape', fillColor: '#d18b25', strokeColor: '#d18b25', strokeWidth: 2 },
     ]);
     expect(parseGpxText(gpxFixture).map(({ appearance }) => appearance)).toEqual([
       { kind: 'poi', color: '#0d78b5', size: 14 },
-      { kind: 'route', color: '#d9363e', width: 4 },
-      { kind: 'route', color: '#d9363e', width: 4 },
+      { kind: 'route', color: '#d9363e', width: 4, travelProfile: 'car', showTravelModeIcon: false },
+      { kind: 'route', color: '#d9363e', width: 4, travelProfile: 'car', showTravelModeIcon: false },
     ]);
     expect(parseKmlText(kmlFixture).map(({ appearance }) => appearance)).toEqual([
       { kind: 'poi', color: '#0d78b5', size: 14 },
-      { kind: 'route', color: '#d9363e', width: 4 },
+      { kind: 'route', color: '#d9363e', width: 4, travelProfile: 'car', showTravelModeIcon: false },
       { kind: 'shape', fillColor: '#d18b25', strokeColor: '#d18b25', strokeWidth: 2 },
     ]);
   });
 
   it('maps canonical appearance to live MapLibre paint descriptors', () => {
     const route = mapLayerDescriptors(
-      layer('route', { kind: 'route', color: '#112233', width: 8 }),
+      layer('route', {
+        kind: 'route', color: '#112233', width: 8, travelProfile: 'car', showTravelModeIcon: false,
+      }),
       highlight,
     );
     const poi = mapLayerDescriptors(

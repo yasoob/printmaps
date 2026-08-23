@@ -123,7 +123,9 @@ describe('layered SVG print scene', () => {
     const project = createInitialProjectDocument();
     project.layers[0].visible = false;
     project.layers[0].opacity = 37;
-    project.layers[0].appearance = { kind: 'route', color: '#010203', width: 8 };
+    project.layers[0].appearance = {
+      kind: 'route', color: '#010203', width: 8, travelProfile: 'car', showTravelModeIcon: false,
+    };
     project.layers[1].appearance = { kind: 'poi', color: '#abcdef', size: 21 };
     project.layers[2].appearance = {
       kind: 'shape',
@@ -212,10 +214,35 @@ describe('layered SVG print scene', () => {
       kind: 'route',
       color: 'url(javascript:owned())',
       width: 4,
+      travelProfile: 'car',
+      showTravelModeIcon: false,
     };
     expect(() => serializePrintScene(project, options)).toThrow('unsafe SVG paint');
 
     project.page.widthMm = Infinity;
     expect(() => serializePrintScene(project, options)).toThrow('Page width');
+  });
+});
+
+describe('route travel-mode SVG markers', () => {
+  it('prints an enabled marker inside its named vector layer', () => {
+    const project = createInitialProjectDocument();
+    project.layers[0].appearance = {
+      kind: 'route',
+      color: '#d9363e',
+      width: 4,
+      travelProfile: 'air',
+      showTravelModeIcon: true,
+    };
+
+    const svgDocument = parseSvg(serializePrintScene(project, {
+      basemap: { dataUri: onePixelPng, pixelWidth: 1, pixelHeight: 1 },
+      attribution: '© OpenStreetMap contributors',
+      project: projector,
+    }));
+    const marker = requiredElement(svgDocument, '[data-layer-id="route-01"] [data-route-travel-profile="air"]');
+
+    expect(marker.querySelector('circle')).not.toBeNull();
+    expect(marker.querySelector('text')?.textContent).toBe('AIR');
   });
 });

@@ -294,6 +294,29 @@ describe('editor content appearance and POI geometry fields', () => {
   });
 });
 
+describe('route travel-profile properties', () => {
+  it('commits profile and marker visibility as separate undoable edits', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: 'Select Route 01' }));
+    const profile = screen.getByRole('combobox', { name: 'Route travel profile' });
+    const marker = screen.getByRole('checkbox', { name: 'Show travel-mode marker' });
+    await user.selectOptions(profile, 'air');
+    await user.click(marker);
+
+    expect(profile).toHaveValue('air');
+    expect(marker).toBeChecked();
+    expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-layer-state', expect.stringContaining('route-01:true'));
+
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(screen.getByRole('checkbox', { name: 'Show travel-mode marker' })).not.toBeChecked();
+    expect(screen.getByRole('combobox', { name: 'Route travel profile' })).toHaveValue('air');
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(screen.getByRole('combobox', { name: 'Route travel profile' })).toHaveValue('car');
+  });
+});
+
 describe('editor layer appearance validation and actions', () => {
   beforeEach(() => {
     exportMocks.exporter = null;

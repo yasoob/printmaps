@@ -1,4 +1,5 @@
 import type { ContentLayer, LayerGeometry, LayerType, ProjectDocument } from '../domain/project';
+import { ROUTE_TRAVEL_PROFILE_MARKERS } from '../domain/routeProfiles';
 import { resolvePrintLayerStyle } from './layerStyle';
 
 export type PagePoint = Readonly<{ x: number; y: number }>;
@@ -168,6 +169,18 @@ function pointText(point: PagePoint): string {
   return `${formatNumber(point.x)} ${formatNumber(point.y)}`;
 }
 
+function routeTravelModeMarker(
+  layer: ContentLayer,
+  points: readonly PagePoint[],
+  color: string,
+): string {
+  const appearance = layer.appearance?.kind === 'route' ? layer.appearance : undefined;
+  if (!appearance?.showTravelModeIcon) return '';
+  const point = points[Math.floor((points.length - 1) / 2)];
+  const label = ROUTE_TRAVEL_PROFILE_MARKERS[appearance.travelProfile];
+  return `<g data-route-travel-profile="${appearance.travelProfile}" aria-label="${escapeXml(label)} travel-mode marker"><circle cx="${formatNumber(point.x)}" cy="${formatNumber(point.y)}" r="4" fill="${escapeXml(color)}" stroke="#ffffff" stroke-width="0.6"/><text x="${formatNumber(point.x)}" y="${formatNumber(point.y)}" fill="#ffffff" font-family="sans-serif" font-size="1.8" font-weight="700" text-anchor="middle" dominant-baseline="middle">${escapeXml(label)}</text></g>`;
+}
+
 function geometryElement(
   layer: ContentLayer,
   options: PrintSceneOptions,
@@ -194,7 +207,7 @@ function geometryElement(
       projectCoordinate(coordinate, layer, options, { width, height })
     ));
     const commands = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${pointText(point)}`).join(' ');
-    return `<path d="${commands}" fill="none" ${stroke} stroke-linecap="round" stroke-linejoin="round"/>`;
+    return `<path d="${commands}" fill="none" ${stroke} stroke-linecap="round" stroke-linejoin="round"/>${routeTravelModeMarker(layer, points, style.stroke)}`;
   }
 
   if (geometry.coordinates.length === 0) {

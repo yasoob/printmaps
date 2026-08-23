@@ -9,6 +9,7 @@ import {
   type StandardPagePreset,
   type ProjectDocument,
 } from '../domain/project';
+import type { RouteAuthoringOptions } from '../domain/routeProfiles';
 import { copyDocument, createDocumentActions } from './storeDocument';
 import { createCameraActions } from './storeCameraActions';
 import { createLayerPropertyActions, createLayerStructureActions } from './storeLayerActions';
@@ -25,7 +26,10 @@ export type ProjectState = {
   canUndo: boolean;
   canRedo: boolean;
   createPoi: (coordinates: readonly [number, number]) => void;
-  createRoute: (coordinates: readonly (readonly [number, number])[]) => void;
+  createRoute: (
+    coordinates: readonly (readonly [number, number])[],
+    options?: RouteAuthoringOptions,
+  ) => void;
   createShape: (coordinates: readonly (readonly [number, number])[]) => void;
   deleteLayer: (id: string) => void;
   duplicateLayer: (id: string) => void;

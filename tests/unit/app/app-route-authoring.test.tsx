@@ -6,6 +6,27 @@ import { createInitialProjectDocument } from '../../../src/domain/project';
 vi.mock('../../../src/map/MapCanvas', async () => import('./MapCanvasMock'));
 
 describe('straight route authoring', () => {
+  it('authors an arc with a travel profile and printable mode marker', async () => {
+    const user = userEvent.setup();
+    render(<App autosaveRepository={null} />);
+
+    await user.click(screen.getByRole('button', { name: 'Route (R)' }));
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Route line shape' }), 'arc');
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Route travel profile' }), 'air');
+    await user.click(screen.getByRole('checkbox', { name: 'Show travel-mode marker' }));
+    await user.click(screen.getByRole('button', { name: 'Map route point 1' }));
+    await user.click(screen.getByRole('button', { name: 'Map route point 2' }));
+
+    expect(screen.getByRole('status', { name: 'Route drawing status' })).toHaveTextContent('Arc route · Air · 2 points');
+    const draftGeometry = screen.getByTestId('map-canvas').dataset.layerGeometry ?? '';
+    expect(draftGeometry.match(/route-draft:/)?.input).not.toContain('route-draft:[[16.31,48.19],[16.4,48.24]]');
+
+    await user.click(screen.getByRole('button', { name: 'Finish route' }));
+
+    expect(screen.getByRole('combobox', { name: 'Route travel profile' })).toHaveValue('air');
+    expect(screen.getByRole('checkbox', { name: 'Show travel-mode marker' })).toBeChecked();
+  });
+
   it('finishes two map clicks as one selected undoable route', async () => {
     const user = userEvent.setup();
     render(<App autosaveRepository={null} />);

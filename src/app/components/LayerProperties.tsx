@@ -6,6 +6,11 @@ import type {
   RouteAppearance,
   ShapeAppearance,
 } from '../../domain/project';
+import {
+  ROUTE_TRAVEL_PROFILES,
+  ROUTE_TRAVEL_PROFILE_LABELS,
+  type RouteTravelProfile,
+} from '../../domain/routeProfiles';
 import { CoordinateField } from './CoordinateField';
 import { PropertyRow, PropertySection } from './PropertyControls';
 import { RouteVertexControls } from './RouteVertexControls';
@@ -91,6 +96,8 @@ function RouteAppearanceControls({
     <>
       <PropertyRow label="Color"><label className="color-field"><input aria-label="Route color" type="color" value={appearance.color} onChange={(event) => onChange({ ...appearance, color: event.target.value })} /></label></PropertyRow>
       <PropertyRow label="Width"><label className="number-field"><input aria-label="Route width" aria-invalid={isWidthInvalid || undefined} value={widthDraft} onChange={(event) => setWidthEdit({ source: appearance.width, value: event.target.value })} onBlur={(event) => commitWidth(event.currentTarget.value)} /><small>px</small></label></PropertyRow>
+      <PropertyRow label="Profile"><select aria-label="Route travel profile" value={appearance.travelProfile} onChange={(event) => onChange({ ...appearance, travelProfile: event.target.value as RouteTravelProfile })}>{ROUTE_TRAVEL_PROFILES.map((profile) => <option key={profile} value={profile}>{ROUTE_TRAVEL_PROFILE_LABELS[profile]}</option>)}</select></PropertyRow>
+      <label className="check-row"><input type="checkbox" aria-label="Show travel-mode marker" checked={appearance.showTravelModeIcon} onChange={(event) => onChange({ ...appearance, showTravelModeIcon: event.target.checked })} /> Show mode marker</label>
     </>
   );
 }

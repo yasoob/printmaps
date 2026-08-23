@@ -20,7 +20,7 @@ This comparison treats the current official Printmaps.net product pages as the e
 | Physical page, orientation, bearing/pitch, text scale | Implemented | `src/domain/project.ts`; `src/app/components/ProjectProperties.tsx`; unit coverage under `tests/unit/app/` | Map-area lock and geolocation remain absent. |
 | Open map styles and major visibility | Partial | `src/map/mapStyles.ts`; `src/map/MapFeatureVisibility.ts`; `tests/unit/map-styles.test.ts`; `tests/unit/map-feature-visibility.test.ts` | Liberty/Positron only; no language selector or Printmaps-style expanded detail catalogue. |
 | Native-detail print PNG | Implemented with explicit multi-region guards | `src/map/NativeMapExport.ts` renders each preflight region through a fresh target-pixel MapLibre map at increased zoom, scales basemap and canonical overlay styling into print pixels, and fails closed for pitched or independently placed symbol seams; `src/export/printSizePng.ts` composes safe overlap regions 1:1; unit and browser export tests prove exact 3508×2480 and guarded two-region 7087×591 output. | This is native target-resolution raster rendering, not a browser-canvas enlargement. Multi-region jobs require 0° pitch and Labels off; single-region jobs retain labels and pitch. PNG still has no embedded physical-resolution metadata. |
-| Straight route drawing and vertex editing | Partial | `src/app/components/CanvasWorkspace.tsx`; `src/app/store.ts`; `src/domain/routeGeometry.ts`; route flows in `tests/e2e/editor.spec.ts` | No address/search-driven route, road snapping, arcs, travel profiles, or travel-mode icons. Mapbox-backed matching stays gated by `docs/decisions/0001-mapbox-renderer-and-storage.md`. |
+| Expert route drawing and vertex editing | Partial | `src/app/components/CanvasWorkspace.tsx`; `src/domain/routeProfiles.ts`; `src/domain/routeGeometry.ts`; `tests/unit/route-profiles.test.ts`; `tests/e2e/route-authoring.spec.ts` | Straight and great-circle arc drawing, six travel-mode choices, optional live/vector-print mode markers, vertex editing and Undo/Redo are implemented. Address/search-driven routes and road snapping remain gated by `docs/decisions/0001-mapbox-renderer-and-storage.md`; the compact mode markers are not yet a full pictographic icon catalogue. |
 | POI placement, coordinates, appearance | Partial | Point authoring and coordinate/appearance controls in `src/app/`; canonical appearance in `src/domain/layerAppearance.ts`; browser coverage in `tests/e2e/editor.spec.ts` | No labels/icons/marker shapes, custom image upload, searchable placement, or spreadsheet/batch entry. |
 | Polygon drawing/editing | Implemented for freeform geometry | `src/domain/shapeGeometry.ts`; `src/app/storeShapeActions.ts`; shape browser flows in `tests/e2e/editor.spec.ts` | No administrative-area catalogue, automatic merge, or invert operation. |
 | GPX/KML/GeoJSON import | Implemented | `src/import/geojson.ts`; `src/import/gpxKml.ts`; parser/unit fixtures and `tests/e2e/project-files.spec.ts` | No drag/drop, multi-file fit choice, or replace workflow yet. |
@@ -30,11 +30,12 @@ This comparison treats the current official Printmaps.net product pages as the e
 
 ## Priority after this refresh
 
-1. Address/search-driven and road-snapped route authoring with travel profiles, subject to the accepted Mapbox renderer/storage boundary.
-2. Rich POI labels/icons/custom markers and bounded spreadsheet entry.
-3. Broader styles, language, and detail controls.
-4. Administrative area selection, merge, fill, outline, and invert.
-5. Secondary tools such as elevation profiles.
+1. Rich POI labels/icons/custom markers and bounded spreadsheet entry.
+2. Broader styles, language, and detail controls.
+3. Administrative area selection, merge, fill, outline, and invert.
+4. Secondary tools such as elevation profiles.
+
+Address/search-driven and road-snapped routes remain a high-value gap, but stay fail-closed until the accepted Mapbox renderer/storage boundary permits a compliant implementation.
 
 ## Claims we must not make
 

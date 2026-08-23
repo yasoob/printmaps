@@ -24,7 +24,9 @@ function route(width: number): ContentLayer {
     visible: true,
     locked: false,
     opacity: 100,
-    appearance: { kind: 'route', color: '#d9363e', width },
+    appearance: {
+      kind: 'route', color: '#d9363e', width, travelProfile: 'car', showTravelModeIcon: false,
+    },
     geometry: { type: 'LineString', coordinates: [[0, 0], [1, 1]] },
   };
 }

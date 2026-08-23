@@ -1,4 +1,5 @@
 import type { ContentLayer } from '../domain/project';
+import { ROUTE_TRAVEL_PROFILE_MARKERS } from '../domain/routeProfiles';
 import type { PreviewPng } from './previewPng';
 
 const POINTS_PER_MM = 72 / 25.4;
@@ -57,11 +58,39 @@ function routeCommands(
   if (coordinates.length < 2) throw new Error(`Route layer "${layer.name}" has no printable line.`);
   const appearance = layer.appearance?.kind === 'route'
     ? layer.appearance
-    : { color: '#d9363e', width: 4 };
+    : {
+      color: '#d9363e',
+      width: 4,
+      travelProfile: 'car' as const,
+      showTravelModeIcon: false,
+    };
   const path = coordinates.map((coordinate, index) => (
     `${pointText(project(coordinate, context))} ${index === 0 ? 'm' : 'l'}`
   )).join('\n');
-  return `${colorComponents(appearance.color)} RG\n${formatNumber(appearance.width * 0.3 * POINTS_PER_MM)} w\n1 J\n1 j\n${path}\nS`;
+  const line = `${colorComponents(appearance.color)} RG\n${formatNumber(appearance.width * 0.3 * POINTS_PER_MM)} w\n1 J\n1 j\n${path}\nS`;
+  if (!appearance.showTravelModeIcon) return line;
+  const point = project(coordinates[Math.floor((coordinates.length - 1) / 2)], context);
+  const label = ROUTE_TRAVEL_PROFILE_MARKERS[appearance.travelProfile];
+  const radius = 4 * POINTS_PER_MM;
+  const textX = point.x - label.length * 1.35;
+  const textY = point.y - 1.8;
+  const marker = [
+    `% Route travel profile: ${appearance.travelProfile}`,
+    'q',
+    `${colorComponents(appearance.color)} rg`,
+    '1 1 1 RG',
+    `${formatNumber(0.6 * POINTS_PER_MM)} w`,
+    circleCommands(point, radius),
+    'B',
+    '1 1 1 rg',
+    'BT',
+    '/F1 5 Tf',
+    `${formatNumber(textX)} ${formatNumber(textY)} Td`,
+    `(${label}) Tj`,
+    'ET',
+    'Q',
+  ].join('\n');
+  return `${line}\n${marker}`;
 }
 
 function poiCommands(
