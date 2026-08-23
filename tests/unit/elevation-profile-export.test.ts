@@ -37,6 +37,19 @@ describe('elevation profile exports', () => {
     expect(text).toContain('Copernicus DEM GLO-90 via Open-Meteo');
   });
 
+  it('uses the selected print width for exact SVG and PDF dimensions', async () => {
+    const svg = serializeElevationProfileSvg(profile, 'Alpine Route', { printWidthMm: 220 });
+    expect(svg).toContain('width="220mm" height="110mm"');
+
+    const pdf = await createElevationProfilePdf(profile, 'Alpine Route', { printWidthMm: 220 });
+    const text = new TextDecoder().decode(await pdf.arrayBuffer());
+    expect(text).toContain('/MediaBox [0 0 623.622047 311.811024]');
+    expect(text).toContain('1.466667 0 0 1.466667 0 0 cm');
+
+    expect(() => serializeElevationProfileSvg(profile, 'Alpine Route', { printWidthMm: 49 }))
+      .toThrow('between 50 and 300');
+  });
+
   it('rasterizes the same attributed SVG into a PNG', async () => {
     const expected = new Blob(['png'], { type: 'image/png' });
     const rasterize = vi.fn(async (svg: string) => {
@@ -46,6 +59,18 @@ describe('elevation profile exports', () => {
     });
 
     await expect(createElevationProfilePng(profile, 'Alpine Route', { rasterize })).resolves.toBe(expected);
+  });
+
+  it('rasterizes PNG output at twelve pixels per selected print millimetre', async () => {
+    const expected = new Blob(['png'], { type: 'image/png' });
+    const rasterize = vi.fn(async (_svg: string, width: number, height: number) => {
+      expect(width).toBe(2640);
+      expect(height).toBe(1320);
+      return expected;
+    });
+
+    await expect(createElevationProfilePng(profile, 'Alpine Route', { printWidthMm: 220, rasterize }))
+      .resolves.toBe(expected);
   });
 
   it('uses imperial distances and elevations consistently in SVG and PDF exports', async () => {
@@ -107,6 +132,29 @@ describe('elevation profile exports', () => {
     expect(text).toContain('(120 m) Tj');
     expect(text).toContain('(260 m) Tj');
   });
+
+  it('keeps the selected two-color fill gradient consistent across vector exports', async () => {
+    const options = {
+      fillColor: '#f2b84b',
+      gradientColor: '#ffffff',
+      showGradient: true,
+    } as const;
+
+    const svg = serializeElevationProfileSvg(profile, 'Alpine Route', options);
+    expect(svg).toContain('<linearGradient id="elevation-profile-gradient"');
+    expect(svg).toContain('stop-color="#f2b84b"');
+    expect(svg).toContain('stop-color="#ffffff"');
+    expect(svg).toContain('fill="url(#elevation-profile-gradient)"');
+
+    const pdf = await createElevationProfilePdf(profile, 'Alpine Route', options);
+    const text = new TextDecoder().decode(await pdf.arrayBuffer());
+    expect(text).toContain('/ShadingType 2');
+    expect(text).toContain('/C0 [0.94902 0.721569 0.294118] /C1 [1 1 1]');
+    expect(text).toContain('/Sh1 sh');
+  });
+});
+
+describe('elevation profile export safeguards', () => {
 
   it('keeps maximum-size endpoint markers clear of the title in vector exports', async () => {
     const descendingProfile: ElevationProfile = {

@@ -102,6 +102,25 @@ describe('ElevationProfilePanel', () => {
     expect(container.querySelector('.elevation-area')).toHaveStyle({ fill: '#f2b84b' });
   });
 
+  it('previews an optional two-color profile gradient', async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <ElevationProfilePanel
+        coordinates={[[16, 48], [16.1, 48.1]]}
+        routeName="Alpine Route"
+        loadProfile={vi.fn(async () => profile)}
+      />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Generate elevation profile' }));
+
+    await user.click(screen.getByRole('checkbox', { name: 'Gradient fill' }));
+    fireEvent.input(screen.getByLabelText('Profile gradient color'), { target: { value: '#f2b84b' } });
+
+    expect(container.querySelector('.elevation-area')).toHaveStyle({ fill: 'url(#elevation-fill-gradient)' });
+    expect(container.querySelector('.elevation-area')).not.toHaveAttribute('fill');
+    expect(container.querySelector(':scope .elevation-fill-gradient stop:last-child')).toHaveAttribute('stop-color', '#f2b84b');
+  });
+
   it('previews bounded minimum and maximum elevation markers', async () => {
     const user = userEvent.setup();
     const { container } = render(
@@ -146,6 +165,31 @@ describe('ElevationProfilePanel', () => {
     await user.type(fontSize, '71');
     expect(fontSize).toHaveAttribute('aria-invalid', 'true');
     expect(container.querySelector('.elevation-marker-label')).toHaveStyle({ fontSize: '56px' });
+    expect(screen.getByRole('button', { name: 'Download elevation SVG' })).toBeDisabled();
+  });
+
+  it('applies only print widths from the documented 50 to 300 mm range', async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <ElevationProfilePanel
+        coordinates={[[16, 48], [16.1, 48.1]]}
+        routeName="Alpine Route"
+        loadProfile={vi.fn(async () => profile)}
+      />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Generate elevation profile' }));
+
+    const printWidth = screen.getByRole('spinbutton', { name: 'Profile print width' });
+    await user.clear(printWidth);
+    await user.type(printWidth, '220');
+    expect(printWidth).not.toHaveAttribute('aria-invalid');
+    expect(container.querySelector('.elevation-chart')).toHaveAttribute('data-print-width-mm', '220');
+    expect(screen.getByRole('button', { name: 'Download elevation SVG' })).toBeEnabled();
+
+    await user.clear(printWidth);
+    await user.type(printWidth, '49');
+    expect(printWidth).toHaveAttribute('aria-invalid', 'true');
+    expect(container.querySelector('.elevation-chart')).toHaveAttribute('data-print-width-mm', '220');
     expect(screen.getByRole('button', { name: 'Download elevation SVG' })).toBeDisabled();
   });
 

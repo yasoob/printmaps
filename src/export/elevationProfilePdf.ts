@@ -51,8 +51,11 @@ export async function createElevationProfilePdf(
   options: ElevationProfileRenderOptions = {},
 ): Promise<Blob> {
   const resolved = resolveElevationProfileRenderOptions(options);
+  const pageWidth = resolved.printWidthMm * POINTS_PER_MM;
+  const pageHeight = resolved.printWidthMm / 2 * POINTS_PER_MM;
   const width = PDF_WIDTH_MM * POINTS_PER_MM;
   const height = PDF_HEIGHT_MM * POINTS_PER_MM;
+  const pageScale = resolved.printWidthMm / PDF_WIDTH_MM;
   const summary = formatElevationProfileSummary(profile, resolved.units);
   const layout = createElevationProfileLayout(profile, width, height, resolved);
   const markers = createElevationProfileMarkers(profile, layout, resolved.units);
@@ -78,10 +81,19 @@ export async function createElevationProfilePdf(
   const fillCommands = resolved.showFill ? [
     '% profile fill',
     `% profile fill color ${pdfRgb(resolved.fillColor)}`,
-    `${pdfRgb(resolved.fillColor)} rg`,
-    ...pointCommands,
-    `${format(layout.plot.left + layout.plot.width)} ${format(height - layout.plot.top - layout.plot.height)} l`,
-    `${format(layout.plot.left)} ${format(height - layout.plot.top - layout.plot.height)} l h f`,
+    ...(resolved.showGradient ? [
+      'q',
+      ...pointCommands,
+      `${format(layout.plot.left + layout.plot.width)} ${format(height - layout.plot.top - layout.plot.height)} l`,
+      `${format(layout.plot.left)} ${format(height - layout.plot.top - layout.plot.height)} l h W n`,
+      '/Sh1 sh',
+      'Q',
+    ] : [
+      `${pdfRgb(resolved.fillColor)} rg`,
+      ...pointCommands,
+      `${format(layout.plot.left + layout.plot.width)} ${format(height - layout.plot.top - layout.plot.height)} l`,
+      `${format(layout.plot.left)} ${format(height - layout.plot.top - layout.plot.height)} l h f`,
+    ]),
   ] : [];
   const markerCommands = resolved.showElevationMarkers ? [
     '% elevation markers',
@@ -107,6 +119,8 @@ export async function createElevationProfilePdf(
     }),
   ] : [];
   const content = asciiBytes([
+    'q',
+    `${format(pageScale)} 0 0 ${format(pageScale)} 0 0 cm`,
     '1 1 1 rg',
     `0 0 ${format(width)} ${format(height)} re f`,
     '0.898 0.898 0.898 RG 0.5 w',
@@ -124,15 +138,19 @@ export async function createElevationProfilePdf(
     `${format(layout.plot.left)} 24 Td ${pdfContentText(`${summary.distance} | ascent ${summary.ascent} | descent ${summary.descent}`)} Tj ET`,
     `BT /F1 ${format(resolved.fontSize * 0.15)} Tf`,
     `${format(Math.max(layout.plot.left, layout.plot.left + layout.plot.width - profile.sourceLabel.length * resolved.fontSize * 0.15 * 0.5))} 7 Td ${pdfContentText(profile.sourceLabel)} Tj ET`,
+    'Q',
   ].join('\n'));
   const objects: PdfObject[] = [
     ['<< /Type /Catalog /Pages 2 0 R >>'],
     ['<< /Type /Pages /Kids [3 0 R] /Count 1 >>'],
-    [`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${format(width)} ${format(height)}] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>`],
+    [`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${format(pageWidth)} ${format(pageHeight)}] /Resources << /Font << /F1 5 0 R >>${resolved.showGradient ? ' /Shading << /Sh1 7 0 R >>' : ''} >> /Contents 4 0 R >>`],
     streamObject('', content),
     ['<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>'],
     [`<< /Title ${pdfString(`${title} elevation profile`)} /Creator (Print Map Studio) /Subject (Attributed route elevation profile.) >>`],
   ];
+  if (resolved.showGradient) {
+    objects.push([`<< /ShadingType 2 /ColorSpace /DeviceRGB /Coords [0 ${format(height - layout.plot.top)} 0 ${format(height - layout.plot.top - layout.plot.height)}] /Function << /FunctionType 2 /Domain [0 1] /C0 [${pdfRgb(resolved.fillColor)}] /C1 [${pdfRgb(resolved.gradientColor)}] /N 1 >> /Extend [true true] >>`]);
+  }
   const bytes = buildPdf(objects, 6);
   const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
   return new Blob([buffer], { type: 'application/pdf' });

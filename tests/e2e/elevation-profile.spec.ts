@@ -51,8 +51,12 @@ test('a selected route generates an attributed elevation profile with SVG, PNG, 
   await expect(page.getByText('Copernicus DEM GLO-90 via Open-Meteo')).toBeVisible();
 
   await page.getByRole('radio', { name: 'Imperial' }).check();
+  await page.getByRole('spinbutton', { name: 'Profile print width' }).fill('220');
   await page.getByLabel('Profile curve color').fill('#2457a6');
   await page.getByLabel('Profile fill color').fill('#f2b84b');
+  await page.getByRole('checkbox', { name: 'Gradient fill' }).check();
+  await page.getByLabel('Profile gradient color').fill('#ffffff');
+  await expect(chart.locator('.elevation-area')).toHaveCSS('fill', /elevation-fill-gradient/);
   await page.getByLabel('Elevation marker color').fill('#7c3aed');
   await page.getByRole('spinbutton', { name: 'Profile font size' }).fill('71');
   await expect(page.getByRole('button', { name: 'Download elevation SVG' })).toBeDisabled();
@@ -70,9 +74,12 @@ test('a selected route generates an attributed elevation profile with SVG, PNG, 
   const svgBytes = await downloadFormat(page, 'Download elevation SVG', testInfo.outputPath('route-01.elevation.svg'));
   const svg = svgBytes.toString('utf8');
   expect(svg).toContain('data-elevation-profile="true"');
+  expect(svg).toContain('width="220mm" height="110mm"');
   expect(svg).toContain('Copernicus DEM GLO-90 via Open-Meteo');
   expect(svg).toContain('stroke="#2457a6"');
-  expect(svg).toContain('fill="#f2b84b"');
+  expect(svg).toContain('stop-color="#f2b84b"');
+  expect(svg).toContain('fill="url(#elevation-profile-gradient)"');
+  expect(svg).toContain('stop-color="#ffffff"');
   expect(svg).toContain('data-elevation-markers="true"');
   expect(svg).toContain('fill="#7c3aed"');
   expect(svg).toContain('font-size="56"');
@@ -83,13 +90,15 @@ test('a selected route generates an attributed elevation profile with SVG, PNG, 
 
   const png = await downloadFormat(page, 'Download elevation PNG', testInfo.outputPath('route-01.elevation.png'));
   expect([...png.subarray(0, 8)]).toEqual([137, 80, 78, 71, 13, 10, 26, 10]);
-  expect(png.readUInt32BE(16)).toBe(1800);
-  expect(png.readUInt32BE(20)).toBe(900);
+  expect(png.readUInt32BE(16)).toBe(2640);
+  expect(png.readUInt32BE(20)).toBe(1320);
 
   const pdf = await downloadFormat(page, 'Download elevation PDF', testInfo.outputPath('route-01.elevation.pdf'));
   const pdfText = pdf.toString('latin1');
   expect(pdfText.startsWith('%PDF-1.7')).toBe(true);
-  expect(pdfText).toContain('/MediaBox [0 0 425.19685 212.598425]');
+  expect(pdfText).toContain('/MediaBox [0 0 623.622047 311.811024]');
+  expect(pdfText).toContain('/ShadingType 2');
+  expect(pdfText).toContain('/Sh1 sh');
   expect(pdfText).toContain('Copernicus DEM GLO-90 via Open-Meteo');
   expect(pdfText).toContain('0.141176 0.341176 0.65098 RG');
   expect(pdfText).toContain('% profile fill color 0.94902 0.721569 0.294118');
