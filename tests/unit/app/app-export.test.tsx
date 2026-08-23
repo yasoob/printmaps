@@ -40,6 +40,7 @@ async function verifyLayeredSvgDownload() {
 
   await user.click(screen.getByRole('button', { name: 'Export' }));
   const dialog = screen.getByRole('dialog', { name: 'Export map' });
+  await user.click(within(dialog).getByRole('radio', { name: /Layered SVG/ }));
   await user.click(screen.getByRole('button', { name: 'Download layered SVG' }));
 
   await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Download started for layered SVG'));
@@ -71,6 +72,7 @@ async function verifyLayeredMapCaptureCancellation() {
   render(<App />);
 
   await user.click(screen.getByRole('button', { name: 'Export' }));
+  await user.click(screen.getByRole('radio', { name: /Layered SVG/ }));
   await user.click(screen.getByRole('button', { name: 'Download layered SVG' }));
 
   expect(receivedSignal).toBeInstanceOf(AbortSignal);
@@ -109,6 +111,7 @@ async function verifyPdfDownload() {
 
   await user.click(screen.getByRole('button', { name: 'Export' }));
   const dialog = screen.getByRole('dialog', { name: 'Export map' });
+  await user.click(within(dialog).getByRole('radio', { name: /PDF/ }));
   await user.click(screen.getByRole('button', { name: 'Download PDF' }));
 
   await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Download started for PDF'));
@@ -153,6 +156,7 @@ async function verifyPdfCancellation() {
   render(<App />);
 
   await user.click(screen.getByRole('button', { name: 'Export' }));
+  await user.click(screen.getByRole('radio', { name: /PDF/ }));
   await user.click(screen.getByRole('button', { name: 'Download PDF' }));
   const cancel = await screen.findByRole('button', { name: 'Cancel export' });
   await waitFor(() => expect(finishEncoding).toBeTypeOf('function'));
@@ -251,6 +255,32 @@ describe('editor export', () => {
     await user.keyboard('{Escape}');
     expect(dialog).not.toBeInTheDocument();
     expect(trigger).toHaveFocus();
+  });
+
+  it('chooses one export format and progressively discloses technical details', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: 'Export' }));
+    const dialog = screen.getByRole('dialog', { name: 'Export map' });
+    const formats = within(dialog).getByRole('radiogroup', { name: 'Export format' });
+
+    expect(within(formats).getByRole('radio', { name: /PNG/ })).toHaveAttribute('aria-checked', 'true');
+    expect(within(formats).getByRole('radio', { name: /Layered SVG/ })).toHaveAttribute('aria-checked', 'false');
+    expect(within(dialog).getByRole('button', { name: 'Download PNG' })).toHaveFocus();
+    expect(within(dialog).getByText('PNG physical-resolution metadata is not embedded.')).not.toBeVisible();
+
+    await user.click(within(formats).getByRole('radio', { name: /Layered SVG/ }));
+    expect(within(formats).getByRole('radio', { name: /Layered SVG/ })).toHaveAttribute('aria-checked', 'true');
+    expect(within(dialog).getByRole('button', { name: 'Download layered SVG' })).toBeEnabled();
+    expect(dialog).toHaveTextContent('297 × 210 mm');
+
+    const technicalDetails = within(dialog).getByRole('button', { name: 'Technical details' });
+    expect(technicalDetails).toHaveAttribute('aria-expanded', 'false');
+    await user.click(technicalDetails);
+    expect(technicalDetails).toHaveAttribute('aria-expanded', 'true');
+    expect(dialog).toHaveTextContent('raster basemap');
+    expect(dialog).toHaveTextContent('named vector overlays');
   });
 
   it('downloads a layered SVG with an embedded raster basemap and named vector groups', verifyLayeredSvgDownload);

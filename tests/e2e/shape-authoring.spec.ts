@@ -58,7 +58,9 @@ test('polygon authoring can be cancelled, undone, redone, and exported as vector
   await expect(createdShape).toBeVisible();
 
   await page.getByRole('button', { name: 'Export' }).click();
-  const downloadButton = page.getByRole('dialog', { name: 'Export map' }).getByRole('button', { name: 'Download layered SVG' });
+  const exportDialog = page.getByRole('dialog', { name: 'Export map' });
+  await exportDialog.getByRole('radio', { name: /Layered SVG/ }).click();
+  const downloadButton = exportDialog.getByRole('button', { name: 'Download layered SVG' });
   await expect(downloadButton).toBeEnabled({ timeout: 20_000 });
   const downloadPromise = page.waitForEvent('download');
   await downloadButton.click();
@@ -109,6 +111,7 @@ test('bundled administrative regions merge without an internal border and retain
   expect(savedArea.geometry.coordinates).toHaveLength(1);
 
   await page.getByRole('button', { name: 'Export' }).click();
+  await page.getByRole('dialog', { name: 'Export map' }).getByRole('radio', { name: /Layered SVG/ }).click();
   const svgPromise = page.waitForEvent('download');
   await page.getByRole('dialog', { name: 'Export map' }).getByRole('button', { name: 'Download layered SVG' }).click();
   const svgDownload = await svgPromise;
@@ -182,6 +185,7 @@ test('Tyrol keeps both disconnected parts through live map, save, and layered SV
   expect(tyrol.geometry.coordinates).toHaveLength(2);
 
   await page.getByRole('button', { name: 'Export' }).click();
+  await page.getByRole('dialog', { name: 'Export map' }).getByRole('radio', { name: /Layered SVG/ }).click();
   const svgPromise = page.waitForEvent('download');
   await page.getByRole('dialog', { name: 'Export map' }).getByRole('button', { name: 'Download layered SVG' }).click();
   const svgDownload = await svgPromise;

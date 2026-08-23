@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { X } from 'lucide-react';
 import type { ProjectDocument } from '../../domain/project';
 import { createLayeredSvg, startLayeredSvgDownload } from '../../export/layeredSvg';
 import { planExportPreflight } from '../../export/preflight';
@@ -10,6 +9,9 @@ import {
   type PreviewPngExporter,
   type PrintTileExportPlan,
 } from '../../export/previewPng';
+import { ExportDialogView, type ExportFormat } from './ExportDialogView';
+
+const EXPORT_FORMAT_LABELS: Record<ExportFormat, string> = { png: 'PNG', svg: 'Layered SVG', pdf: 'PDF' };
 
 export type ExportDialogProps = {
   exporter: PreviewPngExporter | null;
@@ -33,10 +35,6 @@ function trapDialogFocus(event: React.KeyboardEvent<HTMLDialogElement>, dialog: 
     event.preventDefault();
     (isMovingBeforeFirst ? focusable.at(-1) : focusable[0])?.focus();
   }
-}
-
-function formatBytes(bytes: number): string {
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MiB`;
 }
 
 function useExportPreflight(page: ProjectDocument['page']) {
@@ -94,61 +92,6 @@ function reportPngStage(
   window.dispatchEvent(new CustomEvent('printmap:png-export-stage', { detail: { stage } }));
 }
 
-type ExportDialogViewProps = {
-  busy: boolean;
-  cancelButtonRef: React.RefObject<HTMLButtonElement | null>;
-  dialogRef: React.RefObject<HTMLDialogElement | null>;
-  downloadButtonRef: React.RefObject<HTMLButtonElement | null>;
-  error: string | null;
-  onCancel: () => void;
-  onClose: () => void;
-  onDownloadLayeredSvg: () => void;
-  onDownloadPdf: () => void;
-  onDownloadPng: () => void;
-  onKeyDown: React.KeyboardEventHandler<HTMLDialogElement>;
-  preflight: ReturnType<typeof planExportPreflight>;
-  status: string;
-};
-
-function ExportDialogView(props: ExportDialogViewProps) {
-  const { busy, cancelButtonRef, dialogRef, downloadButtonRef, error, onCancel, onClose, onDownloadLayeredSvg, onDownloadPdf, onDownloadPng, onKeyDown, preflight, status } = props;
-  return (
-    <div className="export-overlay">
-      <div className="export-backdrop" aria-hidden="true" onClick={busy ? undefined : onClose} />
-      <dialog ref={dialogRef} className="export-dialog" open aria-modal="true" aria-labelledby="export-title" aria-busy={busy} tabIndex={-1} onKeyDown={onKeyDown}>
-        <div className="export-dialog-header">
-          <div><span className="eyebrow">Export</span><h2 id="export-title">Export map</h2></div>
-          <button className="icon-button" type="button" aria-label="Close export" disabled={busy} onClick={onClose}><X size={16} /></button>
-        </div>
-        <div className="export-dialog-body">
-          <strong>PNG export preflight</strong>
-          {preflight.dimensions && (
-            <p><strong>{preflight.dimensions.widthPx} × {preflight.dimensions.heightPx} px — 300 DPI pixel target for placement at the selected page size.</strong></p>
-          )}
-          {preflight.estimates && <p>Estimated peak memory {formatBytes(preflight.estimates.peakBytes)}.</p>}
-          <p>PNG physical-resolution metadata is not embedded.</p>
-          <p>The PNG renderer renders each map tile at its target pixel dimensions from the live vector map style instead of enlarging the browser preview. Layered SVG and exact-page PDF still embed a raster basemap while route, POI, and shape remain named vector overlays.</p>
-          {preflight.errors.length > 0 && (
-            <div className="export-error" role="alert">
-              <strong>Export blocked</strong>
-              <ul>{preflight.errors.map((issue) => <li key={issue.code}>{issue.message}</li>)}</ul>
-              <p>Reduce the page dimensions before retrying.</p>
-            </div>
-          )}
-          <p role="status">{status}</p>
-          {error && <p className="export-error" role="alert">{error}</p>}
-        </div>
-        <div className="export-dialog-actions">
-          <button ref={cancelButtonRef} type="button" onClick={busy ? onCancel : onClose}>{busy ? 'Cancel export' : 'Cancel'}</button>
-          <button type="button" disabled={busy} onClick={onDownloadPdf}>Download PDF</button>
-          <button type="button" disabled={busy} onClick={onDownloadLayeredSvg}>Download layered SVG</button>
-          <button ref={downloadButtonRef} className="primary-button" type="button" disabled={busy || !preflight.safe} onClick={onDownloadPng}>{busy ? 'Preparing…' : 'Download PNG'}</button>
-        </div>
-      </dialog>
-    </div>
-  );
-}
-
 type PdfExportOptions = Pick<ExportDialogProps, 'document' | 'exporter' | 'filename'> & {
   abortControllerRef: React.RefObject<AbortController | null>;
   setBusy: (isBusy: boolean) => void;
@@ -193,13 +136,43 @@ async function runPdfExport(options: PdfExportOptions): Promise<void> {
   }
 }
 
+function handleExportDialogKeyDown(event: React.KeyboardEvent<HTMLDialogElement>, isBusy: boolean, dialog: HTMLDialogElement | null, onClose: () => void) {
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!isBusy) onClose();
+    return;
+  }
+  trapDialogFocus(event, dialog);
+}
+
+function selectExportFormat(format: ExportFormat, options: Readonly<{
+  isBusy: boolean;
+  setError: (error: string | null) => void;
+  setFormat: (format: ExportFormat) => void;
+  setStatus: (status: string) => void;
+}>) {
+  if (options.isBusy) return;
+  options.setFormat(format);
+  options.setError(null);
+  options.setStatus(`Ready to export ${EXPORT_FORMAT_LABELS[format]}.`);
+}
+
+function runSelectedExport(format: ExportFormat, png: () => Promise<void>, svg: () => Promise<void>, pdf: () => void) {
+  if (format === 'png') void png();
+  else if (format === 'svg') void svg();
+  else pdf();
+}
+
 export function ExportDialog({ exporter, filename, document, onClose }: ExportDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const downloadButtonRef = useRef<HTMLButtonElement>(null);
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const [busy, setBusy] = useState(false);
-  const [status, setStatus] = useState('Ready to export the current print-frame preview.');
+  const [selectedFormat, setSelectedFormat] = useState<ExportFormat>('png');
+  const [technicalDetailsExpanded, setTechnicalDetailsExpanded] = useState(false);
+  const [status, setStatus] = useState('Ready to export PNG.');
   const [error, setError] = useState<string | null>(null);
   const preflight = useExportPreflight(document.page);
 
@@ -211,15 +184,7 @@ export function ExportDialog({ exporter, filename, document, onClose }: ExportDi
   }, [busy]);
   useEffect(() => () => abortControllerRef.current?.abort(), []);
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLDialogElement>) => {
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      event.stopPropagation();
-      if (!busy) onClose();
-      return;
-    }
-    trapDialogFocus(event, dialogRef.current);
-  };
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDialogElement>) => handleExportDialogKeyDown(event, busy, dialogRef.current, onClose);
 
   const download = async () => {
     if (!exporter?.createPrintTileRenderer) {
@@ -314,5 +279,8 @@ export function ExportDialog({ exporter, filename, document, onClose }: ExportDi
 
   const downloadPdf = () => void runPdfExport({ abortControllerRef, document, exporter, filename, setBusy, setError, setStatus });
 
-  return <ExportDialogView busy={busy} cancelButtonRef={cancelButtonRef} dialogRef={dialogRef} downloadButtonRef={downloadButtonRef} error={error} onCancel={cancelExport} onClose={onClose} onDownloadLayeredSvg={downloadLayeredSvg} onDownloadPdf={downloadPdf} onDownloadPng={download} onKeyDown={handleKeyDown} preflight={preflight} status={status} />;
+  const changeFormat = (format: ExportFormat) => selectExportFormat(format, { isBusy: busy, setError, setFormat: setSelectedFormat, setStatus });
+  const downloadSelectedFormat = () => runSelectedExport(selectedFormat, download, downloadLayeredSvg, downloadPdf);
+
+  return <ExportDialogView busy={busy} cancelButtonRef={cancelButtonRef} dialogRef={dialogRef} document={document} downloadButtonRef={downloadButtonRef} error={error} onCancel={cancelExport} onClose={onClose} onDownload={downloadSelectedFormat} onFormatChange={changeFormat} onKeyDown={handleKeyDown} onTechnicalDetailsToggle={() => setTechnicalDetailsExpanded((expanded) => !expanded)} preflight={preflight} selectedFormat={selectedFormat} status={status} technicalDetailsExpanded={technicalDetailsExpanded} />;
 }

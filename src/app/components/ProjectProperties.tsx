@@ -219,8 +219,8 @@ export function ProjectProperties({
       <InspectorAccordion isDefaultExpanded={false} storageKey={`${PROJECT_DISCLOSURE_PREFIX}:provider-services`} summary="Public-token status and compliance" title="Provider services">
         <MapboxServiceStatus />
       </InspectorAccordion>
-      <InspectorAccordion isDefaultExpanded={false} storageKey={`${PROJECT_DISCLOSURE_PREFIX}:technical-export`} summary="Browser preview · Attribution included" title="Technical export">
-        <PropertyRow label="Resolution"><select aria-label="Export resolution" value="Browser preview" disabled><option>Browser preview</option></select></PropertyRow>
+      <InspectorAccordion isDefaultExpanded={false} storageKey={`${PROJECT_DISCLOSURE_PREFIX}:technical-export`} summary="Format-specific · Attribution included" title="Output settings">
+        <PropertyRow label="Resolution"><select aria-label="Export resolution" value="Format-specific" disabled><option>Format-specific</option></select></PropertyRow>
         <label className="check-row"><input type="checkbox" checked disabled readOnly /> Include map attribution</label>
       </InspectorAccordion>
     </div>

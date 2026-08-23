@@ -51,6 +51,67 @@ async function downloadPng(page: Page, dialog: Locator): Promise<Download> {
   ]);
 }
 
+test('export offers one keyboard-accessible format choice with responsive technical disclosure', async ({ page }, testInfo) => {
+  const consoleProblems: string[] = [];
+  page.on('pageerror', (error) => { consoleProblems.push(error.message); });
+  page.on('console', (message) => {
+    if (message.type() === 'error') consoleProblems.push(message.text());
+  });
+  await page.goto('/');
+  await expect(page.locator('[data-map-ready="true"]').or(page.getByText('Map preview unavailable'))).toBeVisible({ timeout: 20_000 });
+
+  await page.getByRole('button', { name: 'Export' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Export map' });
+  const png = dialog.getByRole('radio', { name: /PNG/ });
+  const svg = dialog.getByRole('radio', { name: /Layered SVG/ });
+  const pdf = dialog.getByRole('radio', { name: /PDF/ });
+  await expect(png).toHaveAttribute('aria-checked', 'true');
+  await expect(dialog.getByRole('button', { name: 'Download PNG' })).toBeFocused();
+  await expect(dialog.locator('.primary-button')).toHaveCount(1);
+  await expect(dialog.locator('#export-technical-content')).toBeHidden();
+
+  await svg.click();
+  await expect(svg).toHaveAttribute('aria-checked', 'true');
+  await expect(dialog).toContainText('297 × 210 mm');
+  await expect(dialog.getByRole('button', { name: 'Download layered SVG' })).toBeVisible();
+  await svg.press('ArrowRight');
+  await expect(pdf).toHaveAttribute('aria-checked', 'true');
+  await expect(pdf).toBeFocused();
+  await expect(dialog.getByRole('button', { name: 'Download PDF' })).toBeVisible();
+
+  const details = dialog.getByRole('button', { name: 'Technical details' });
+  await details.click();
+  await expect(details).toHaveAttribute('aria-expanded', 'true');
+  await expect(dialog).toContainText('raster basemap');
+  await expect(dialog).toContainText('named vector overlays');
+  if (testInfo.project.name === 'chromium') await page.screenshot({ path: 'docs/screenshots/latest-desktop.png' });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const dialogBox = await dialog.boundingBox();
+  expect(dialogBox).not.toBeNull();
+  expect(dialogBox!.x).toBeGreaterThanOrEqual(0);
+  expect(dialogBox!.y).toBeGreaterThanOrEqual(0);
+  expect(dialogBox!.x + dialogBox!.width).toBeLessThanOrEqual(390);
+  expect(dialogBox!.y + dialogBox!.height).toBeLessThanOrEqual(844);
+  for (const control of [
+    dialog.getByRole('radio', { name: /PNG/ }),
+    dialog.getByRole('radio', { name: /Layered SVG/ }),
+    dialog.getByRole('radio', { name: /PDF/ }),
+    details,
+    dialog.getByRole('button', { name: 'Close export' }),
+    dialog.getByRole('button', { name: 'Cancel' }),
+    dialog.getByRole('button', { name: 'Download PDF' }),
+  ]) {
+    const controlBox = await control.boundingBox();
+    expect(controlBox).not.toBeNull();
+    expect(controlBox!.height).toBeGreaterThanOrEqual(44);
+    expect(controlBox!.width).toBeGreaterThanOrEqual(44);
+  }
+  expect(await page.evaluate(() => document.body.scrollWidth - window.innerWidth)).toBe(0);
+  if (testInfo.project.name === 'chromium') await page.screenshot({ path: 'docs/screenshots/latest-mobile.png' });
+  expect(consoleProblems).toEqual([]);
+});
+
 test('layered SVG download embeds the raster basemap and preserves named vector groups', async ({ page }, testInfo) => {
   await page.goto('/');
   const mapReady = page.locator('[data-map-ready="true"]');
@@ -60,6 +121,7 @@ test('layered SVG download embeds the raster basemap and preserves named vector 
 
   await page.getByRole('button', { name: 'Export' }).click();
   const dialog = page.getByRole('dialog', { name: 'Export map' });
+  await dialog.getByRole('radio', { name: /Layered SVG/ }).click();
   await expect(dialog).toContainText('raster basemap');
   await expect(dialog).toContainText('named vector overlays');
   const downloadPromise = page.waitForEvent('download');
@@ -118,6 +180,7 @@ test('PDF download has the exact page box with a raster basemap and named vector
 
   await page.getByRole('button', { name: 'Export' }).click();
   const dialog = page.getByRole('dialog', { name: 'Export map' });
+  await dialog.getByRole('radio', { name: /PDF/ }).click();
   await expect(dialog).toContainText('exact-page PDF');
   const downloadPromise = page.waitForEvent('download');
   await dialog.getByRole('button', { name: 'Download PDF' }).click();

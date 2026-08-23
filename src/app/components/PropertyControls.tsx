@@ -26,6 +26,8 @@ function readDisclosurePreference(storageKey: string, isDefaultExpanded: boolean
 
 export function InspectorAccordion({ children, isDefaultExpanded, storageKey, summary, title }: InspectorAccordionProps) {
   const contentId = useId();
+  const labelId = `${contentId}-label`;
+  const summaryId = `${contentId}-summary`;
   const [isExpanded, setIsExpanded] = useState(() => readDisclosurePreference(storageKey, isDefaultExpanded));
   const toggle = () => {
     const isNextExpanded = !isExpanded;
@@ -40,10 +42,10 @@ export function InspectorAccordion({ children, isDefaultExpanded, storageKey, su
   return (
     <section className="inspector-accordion">
       <h3>
-        <button type="button" aria-controls={contentId} aria-expanded={isExpanded} onClick={toggle}>
+        <button type="button" aria-controls={contentId} aria-describedby={summaryId} aria-expanded={isExpanded} aria-labelledby={labelId} onClick={toggle}>
           <ChevronRight aria-hidden="true" className="inspector-chevron" size={16} />
-          <span className="inspector-section-label">{title}</span>
-          <span className="inspector-section-summary">{summary}</span>
+          <span id={labelId} className="inspector-section-label">{title}</span>
+          <span id={summaryId} className="inspector-section-summary">{summary}</span>
         </button>
       </h3>
       <div id={contentId} className="inspector-accordion-content" hidden={!isExpanded}>{children}</div>

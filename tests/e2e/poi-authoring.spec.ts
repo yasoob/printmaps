@@ -53,7 +53,9 @@ test('POI placement can be cancelled, undone, redone, and exported as vector con
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-order', /poi-01/);
 
   await page.getByRole('button', { name: 'Export' }).click();
-  const downloadButton = page.getByRole('dialog', { name: 'Export map' }).getByRole('button', { name: 'Download layered SVG' });
+  const exportDialog = page.getByRole('dialog', { name: 'Export map' });
+  await exportDialog.getByRole('radio', { name: /Layered SVG/ }).click();
+  const downloadButton = exportDialog.getByRole('button', { name: 'Download layered SVG' });
   await expect(downloadButton).toBeEnabled({ timeout: 20_000 });
   const downloadPromise = page.waitForEvent('download');
   await downloadButton.click();

@@ -6,9 +6,23 @@
 - 44px flat top bar with product title, project title, save/share/export actions.
 - 240px left sidebar: search/filter, flat Layers list, visibility/lock controls and direct drag handles. The current document has one print frame, so do not show a `Page 1` collection hierarchy.
 - Full-bleed map canvas in the center with a subtle neutral pasteboard and white print-frame overlay.
-- 272px right sidebar: when selection is empty, show Project properties; when a layer is selected, show Layer properties.
+- 304–320px right sidebar: when selection is empty, show Project properties; when a layer is selected, show Layer properties.
 - Compact floating toolbar centered near the bottom, inspired by Atlas.co: selection, pan, route, pin, shape, text, fit. It may use a 1px border and solid surface but no decorative shadow.
 - Status/zoom controls stay quiet and secondary.
+
+## Felt-inspired sidebar reference
+
+Use the supplied Felt sidebar as a quality reference for calm density, not as branding to copy.
+
+- Prefer a 304–320px desktop inspector so labels and values breathe. Rows follow a stable two-column rhythm: quiet left label, stronger right value/control, 40–44px vertical rhythm where practical.
+- Use near-white/warm-neutral surfaces, low-contrast dividers, and borderless field fills by default. Borders strengthen only on hover, focus, validation, or selection. Avoid stacking hard full-width rules around every control.
+- Section titles are dark and semibold; field labels are muted; values are near-black. Color belongs to map swatches and semantic states, not generic chrome.
+- Keep section spacing and separators consistent. Accordions remain useful for major groups, but their headers should feel like Felt section headers rather than large boxed rows.
+- Use Lucide exclusively at a consistent 16px size and approximately 1.75px stroke. Replace Unicode/text symbols such as `•••`, arrows, and handcrafted chevrons with the corresponding Lucide icon. Native select indicators may remain only if they visually match across supported browsers.
+- Add one shared native-semantic Checkbox primitive with a 16px square, 4px radius, muted border, near-black checked fill, and a clearly visible white Lucide check. Preserve keyboard input, visible focus, disabled state, forced-colors behavior, and a 44px mobile hit area. Do not rely on browser `accent-color`.
+- Add one shared Switch primitive for true on/off settings: near-black active track, white thumb, muted inactive track. Do not mix blue native checkboxes, custom blue toggles, and black switches.
+- Use checkboxes for independent multi-select lists such as visible map categories; use switches for a standalone behavior such as `Show legend` or `Lock map area`. Both must share the same active/inactive color logic.
+- Dropdown values and chevrons align consistently; color swatches use the same square size, radius, border, and spacing.
 
 ## Visual language
 

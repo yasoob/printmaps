@@ -131,7 +131,10 @@ test('desktop commands, orientation, reorder, and overflow menu work in a real b
 
   await page.getByRole('button', { name: 'Select Route 01' }).click();
   await page.getByRole('button', { name: 'Layer menu' }).click();
+  const replace = page.getByRole('menuitem', { name: 'Replace layer data' });
   const duplicate = page.getByRole('menuitem', { name: 'Duplicate layer' });
+  await expect(replace).toBeFocused();
+  await replace.press('ArrowDown');
   await expect(duplicate).toBeFocused();
   await duplicate.press('ArrowDown');
   await expect(page.getByRole('menuitem', { name: 'Delete layer' })).toBeFocused();

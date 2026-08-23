@@ -678,7 +678,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 .export-dialog {
   @apply relative z-10 grid w-full overflow-hidden;
-  max-width: 28rem;
+  max-width: 32rem;
   max-height: calc(100dvh - max(2rem, var(--studio-safe-top)) - max(2rem, var(--studio-safe-bottom)));
   border: var(--studio-border-width) solid var(--studio-line-strong);
   border-radius: var(--studio-radius-lg);
@@ -688,11 +688,46 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   @apply flex items-start justify-between gap-4 border-b px-4 py-3;
   border-color: var(--studio-line);
 }
-.export-dialog-header h2 { @apply mt-0.5 text-sm font-semibold; color: var(--studio-text-strong); }
-.export-dialog-body { @apply grid gap-2 overflow-y-auto px-4 py-4; font-size: var(--studio-font-control); color: var(--studio-text-secondary); }
+.export-dialog-header h2 { @apply m-0 text-sm font-semibold; color: var(--studio-text-strong); }
+.export-dialog-header p { @apply mb-0 mt-1; color: var(--studio-text-muted); font-size: var(--studio-font-label); }
+.export-dialog-body { @apply grid gap-3 overflow-y-auto px-4 py-4; font-size: var(--studio-font-control); color: var(--studio-text-secondary); }
 .export-dialog-body strong { color: var(--studio-text-strong); }
 .export-dialog-body p { @apply m-0; line-height: 1.45; }
 .export-dialog-body [role='status'] { font-variant-numeric: tabular-nums; color: var(--studio-text-muted); }
+.export-format-group { @apply grid grid-cols-3 gap-2; }
+.export-format-option {
+  @apply grid min-w-0 cursor-pointer gap-1 rounded px-3 py-2.5 text-left;
+  min-height: 3.75rem;
+  border: var(--studio-border-width) solid var(--studio-line-strong);
+  background: var(--studio-surface);
+  color: var(--studio-text-strong);
+}
+.export-format-option:hover { background: var(--studio-field); }
+.export-format-option[aria-checked='true'] {
+  border-color: var(--studio-accent);
+  background: var(--studio-accent-soft);
+  box-shadow: inset 0 0 0 1px var(--studio-accent);
+}
+.export-format-option:disabled { @apply cursor-default opacity-60; }
+.export-format-option span { @apply font-semibold; font-size: var(--studio-font-control); }
+.export-format-option small { color: var(--studio-text-muted); font-size: var(--studio-font-label); line-height: 1.25; }
+.export-output-summary {
+  @apply grid gap-1 rounded px-3 py-2.5;
+  border: var(--studio-border-width) solid var(--studio-line);
+  background: var(--studio-field);
+}
+.export-output-summary > span { color: var(--studio-text-muted); font-size: var(--studio-font-label); }
+.export-output-summary strong { font-variant-numeric: tabular-nums; }
+.export-technical-details { @apply border-y; border-color: var(--studio-line); }
+.export-technical-details h3 { @apply m-0; }
+.export-technical-details h3 > button {
+  @apply flex min-h-8 w-full cursor-pointer items-center gap-2 py-1.5 text-left font-medium;
+  color: var(--studio-text-strong);
+  font-size: var(--studio-font-control);
+}
+.export-technical-chevron { @apply shrink-0; color: var(--studio-text-muted); transition: transform 120ms ease-out; }
+.export-technical-details h3 > button[aria-expanded='true'] .export-technical-chevron { transform: rotate(90deg); }
+.export-technical-details > div { @apply grid gap-2 pb-3 pl-6; color: var(--studio-text-secondary); }
 .export-error { color: var(--studio-danger) !important; }
 .export-dialog-actions {
   @apply flex justify-end gap-2 border-t px-4 py-3;
@@ -704,6 +739,15 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   border: var(--studio-border-width) solid var(--studio-line-strong);
   background: var(--studio-surface);
   font-size: var(--studio-font-control);
+}
+
+@media (max-width: 420px) {
+  .export-format-option { @apply px-2; }
+  .export-format-option small { font-size: var(--studio-font-meta); }
+  .export-dialog .icon-button,
+  .export-technical-details h3 > button,
+  .export-dialog-actions > button { min-height: 2.8125rem; }
+  .export-dialog .icon-button { width: 2.8125rem; height: 2.8125rem; }
 }
 
 .recovery-overlay {

@@ -12,6 +12,7 @@ async function downloadPoiSvgPoint(
 ) {
   await page.getByRole('button', { name: 'Export' }).click();
   const dialog = page.getByRole('dialog', { name: 'Export map' });
+  await dialog.getByRole('radio', { name: /Layered SVG/ }).click();
   const downloadPromise = page.waitForEvent('download');
   await dialog.getByRole('button', { name: 'Download layered SVG' }).click();
   const download = await downloadPromise;
@@ -32,6 +33,7 @@ async function downloadRouteSvgPath(
 ) {
   await page.getByRole('button', { name: 'Export' }).click();
   const dialog = page.getByRole('dialog', { name: 'Export map' });
+  await dialog.getByRole('radio', { name: /Layered SVG/ }).click();
   const downloadPromise = page.waitForEvent('download');
   await dialog.getByRole('button', { name: 'Download layered SVG' }).click();
   const download = await downloadPromise;
@@ -51,6 +53,7 @@ async function downloadShapeSvgPath(
 ) {
   await page.getByRole('button', { name: 'Export' }).click();
   const dialog = page.getByRole('dialog', { name: 'Export map' });
+  await dialog.getByRole('radio', { name: /Layered SVG/ }).click();
   const downloadPromise = page.waitForEvent('download');
   await dialog.getByRole('button', { name: 'Download layered SVG' }).click();
   const download = await downloadPromise;
@@ -103,6 +106,7 @@ test('content appearance edits update the live map, history, and layered SVG', a
   await expect(page.getByRole('textbox', { name: 'Shape outline width' })).toHaveValue('3');
 
   await page.getByRole('button', { name: 'Export' }).click();
+  await page.getByRole('dialog', { name: 'Export map' }).getByRole('radio', { name: /Layered SVG/ }).click();
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('dialog', { name: 'Export map' })
     .getByRole('button', { name: 'Download layered SVG' })
@@ -173,6 +177,7 @@ test('a validated custom POI marker survives the live map, portable project, and
   expect(project.assets[customAssetId!]).toMatchObject({ mimeType: 'image/svg+xml', width: 100, height: 120 });
 
   await page.getByRole('button', { name: 'Export' }).click();
+  await page.getByRole('dialog', { name: 'Export map' }).getByRole('radio', { name: /Layered SVG/ }).click();
   const svgPromise = page.waitForEvent('download');
   await page.getByRole('dialog', { name: 'Export map' }).getByRole('button', { name: 'Download layered SVG' }).click();
   const svgDownload = await svgPromise;

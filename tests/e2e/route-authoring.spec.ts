@@ -57,6 +57,7 @@ test('expert arc route authoring is undoable and exports a travel-mode marker', 
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-order', /route-02/);
 
   await page.getByRole('button', { name: 'Export' }).click();
+  await page.getByRole('dialog', { name: 'Export map' }).getByRole('radio', { name: /Layered SVG/ }).click();
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('dialog', { name: 'Export map' }).getByRole('button', { name: 'Download layered SVG' }).click();
   const download = await downloadPromise;

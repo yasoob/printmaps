@@ -23,7 +23,7 @@ describe('editor page settings and tools', () => {
     expect(screen.getByRole('checkbox', { name: 'Show buildings' })).toBeChecked();
     expect(screen.getByRole('checkbox', { name: 'Show labels' })).toBeChecked();
     const exportResolution = screen.getByRole('combobox', { name: 'Export resolution' });
-    expect(exportResolution).toHaveValue('Browser preview');
+    expect(exportResolution).toHaveValue('Format-specific');
     expect(exportResolution).toBeDisabled();
     const attribution = screen.getByRole('checkbox', { name: 'Include map attribution' });
     expect(attribution).toBeChecked();

@@ -32,7 +32,7 @@ describe('project inspector disclosure', () => {
     const camera = screen.getByRole('button', { name: /Camera & location/ });
     const details = screen.getByRole('button', { name: /Map details/ });
     const services = screen.getByRole('button', { name: /Provider services/ });
-    const technical = screen.getByRole('button', { name: /Technical export/ });
+    const technical = screen.getByRole('button', { name: /Output settings/ });
 
     expect(page).toHaveAttribute('aria-expanded', 'true');
     expect(page).toHaveTextContent('A4 landscape · 297 × 210 mm');
