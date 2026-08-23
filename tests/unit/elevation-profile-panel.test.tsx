@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ElevationProfilePanel } from '../../src/app/components/ElevationProfilePanel';
 import type { ElevationProfile } from '../../src/elevation/profile';
@@ -40,6 +40,49 @@ describe('ElevationProfilePanel', () => {
     expect(screen.getByRole('button', { name: 'Download elevation SVG' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Download elevation PNG' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Download elevation PDF' })).toBeEnabled();
+  });
+
+  it('switches the profile summary between metric and imperial units', async () => {
+    const user = userEvent.setup();
+    render(
+      <ElevationProfilePanel
+        coordinates={[[16, 48], [16.1, 48.1]]}
+        routeName="Alpine Route"
+        loadProfile={vi.fn(async () => profile)}
+      />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Generate elevation profile' }));
+
+    await user.click(screen.getByRole('radio', { name: 'Imperial' }));
+
+    expect(screen.getByText('12.4 mi')).toBeInTheDocument();
+    expect(screen.getByText('394–853 ft')).toBeInTheDocument();
+    expect(screen.getByText('↑ 459 ft')).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'Metric' })).not.toBeChecked();
+  });
+
+  it('previews route-coherent curve, fill, and grid settings', async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <ElevationProfilePanel
+        coordinates={[[16, 48], [16.1, 48.1]]}
+        routeName="Alpine Route"
+        routeColor="#d9363e"
+        loadProfile={vi.fn(async () => profile)}
+      />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Generate elevation profile' }));
+
+    const color = screen.getByLabelText('Profile curve color');
+    expect(color).toHaveValue('#d9363e');
+    fireEvent.input(color, { target: { value: '#2457a6' } });
+    await user.click(screen.getByRole('checkbox', { name: 'Fill below curve' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Horizontal grid' }));
+
+    expect(container.querySelector('.elevation-line')).toHaveStyle({ stroke: '#2457a6' });
+    expect(container.querySelector('.elevation-area')).not.toBeInTheDocument();
+    expect(container.querySelector('.elevation-grid-horizontal')).not.toBeInTheDocument();
+    expect(container.querySelector('.elevation-grid-vertical')).toBeInTheDocument();
   });
 
   it('lets the user cancel a pending terrain request and retry', async () => {

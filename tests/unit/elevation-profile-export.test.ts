@@ -48,6 +48,46 @@ describe('elevation profile exports', () => {
     await expect(createElevationProfilePng(profile, 'Alpine Route', { rasterize })).resolves.toBe(expected);
   });
 
+  it('uses imperial distances and elevations consistently in SVG and PDF exports', async () => {
+    const svg = serializeElevationProfileSvg(profile, 'Alpine Route', { units: 'imperial' });
+    expect(svg).toContain('12.4 mi');
+    expect(svg).toContain('459 ft');
+    expect(svg).not.toContain('20.0 km');
+
+    const pdf = await createElevationProfilePdf(profile, 'Alpine Route', { units: 'imperial' });
+    const text = new TextDecoder().decode(await pdf.arrayBuffer());
+    expect(text).toContain('12.4 mi | ascent 459 ft | descent 262 ft');
+    expect(text).not.toContain('20.0 km');
+  });
+
+  it('keeps curve color, fill, and grid choices consistent across vector exports', async () => {
+    const options = {
+      curveColor: '#2457a6',
+      showFill: false,
+      showHorizontalGrid: false,
+      showVerticalGrid: true,
+    } as const;
+    const svg = serializeElevationProfileSvg(profile, 'Alpine Route', options);
+    expect(svg).toContain('stroke="#2457a6"');
+    expect(svg).toContain('data-grid-axis="vertical"');
+    expect(svg).not.toContain('data-grid-axis="horizontal"');
+    expect(svg).not.toContain('data-profile-fill="true"');
+
+    const pdf = await createElevationProfilePdf(profile, 'Alpine Route', options);
+    const text = new TextDecoder().decode(await pdf.arrayBuffer());
+    expect(text).toContain('0.141176 0.341176 0.65098 RG');
+    expect(text).toContain('% grid vertical');
+    expect(text).not.toContain('% grid horizontal');
+    expect(text).not.toContain('% profile fill');
+  });
+
+  it('rejects an invalid curve color before serializing an export', async () => {
+    expect(() => serializeElevationProfileSvg(profile, 'Alpine Route', { curveColor: 'red;stroke-width:99' }))
+      .toThrow('six-digit hexadecimal color');
+    await expect(createElevationProfilePdf(profile, 'Alpine Route', { curveColor: '#12345g' }))
+      .rejects.toThrow('six-digit hexadecimal color');
+  });
+
   it('rejects non-renderable finite profile measurements', () => {
     const pathological: ElevationProfile = {
       ...profile,

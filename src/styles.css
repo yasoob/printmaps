@@ -400,6 +400,30 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .elevation-profile-panel > [role="status"] { line-height: 1.35; }
 .elevation-profile-panel > [role="alert"] { @apply m-0; color: var(--studio-danger); line-height: 1.35; }
 .elevation-profile-panel > a { color: var(--studio-accent-strong); line-height: 1.35; }
+.elevation-profile-ready { @apply grid gap-2; }
+.elevation-profile-ready > [role="alert"] { @apply m-0; color: var(--studio-danger); line-height: 1.35; }
+.elevation-settings {
+  @apply grid gap-1.5 p-2;
+  min-width: 0;
+  border: var(--studio-border-width) solid var(--studio-line);
+  border-radius: var(--studio-radius-sm);
+  background: var(--studio-field);
+}
+.elevation-settings legend { @apply px-1 font-semibold; color: var(--studio-text-strong); font-size: var(--studio-font-label); }
+.elevation-setting-row { @apply grid grid-cols-[1fr_auto_auto] items-center gap-2; }
+.elevation-setting-row label, .elevation-option-grid label { @apply flex min-h-7 items-center gap-1; }
+.elevation-setting-row input, .elevation-option-grid input { accent-color: var(--studio-accent); }
+.elevation-color-row { @apply flex min-h-7 items-center justify-between gap-2; }
+.elevation-color-row input {
+  width: 2rem;
+  height: 1.5rem;
+  padding: 0.125rem;
+  border: var(--studio-border-width) solid var(--studio-line-strong);
+  border-radius: var(--studio-radius-xs);
+  background: var(--studio-surface);
+}
+.elevation-option-grid { @apply grid grid-cols-2 gap-x-2; }
+.elevation-option-grid label:first-child { @apply col-span-2; }
 .elevation-chart {
   @apply block w-full;
   border: var(--studio-border-width) solid var(--studio-line);

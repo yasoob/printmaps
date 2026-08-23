@@ -181,6 +181,7 @@ function RouteLayerProperties({
               key={`${layer.id}-${JSON.stringify(layer.geometry.coordinates)}`}
               coordinates={layer.geometry.coordinates}
               routeName={layer.name}
+              routeColor={layer.appearance.color}
             />
           </PropertySection>
         </>
