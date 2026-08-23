@@ -2,11 +2,11 @@ import { createInitialProjectDocument } from '../../src/domain/project';
 import { parseProjectFileText } from '../../src/domain/projectFile';
 
 describe('portable project validation', () => {
-  it('rejects the obsolete schema-12 format with a reset-oriented message', () => {
-    const obsolete = { ...createInitialProjectDocument(), schemaVersion: 12 };
+  it('rejects the obsolete schema-13 format with a reset-oriented message', () => {
+    const obsolete = { ...createInitialProjectDocument(), schemaVersion: 13 };
 
     expect(() => parseProjectFileText(JSON.stringify(obsolete))).toThrow(
-      'Schema version 12 is obsolete. Start a new project or reopen a current Print Map Studio file.',
+      'Schema version 13 is obsolete. Start a new project or reopen a current Print Map Studio file.',
     );
   });
 
@@ -96,12 +96,16 @@ describe('portable project validation', () => {
     }), 'A4 page dimensions must be 297 × 210 mm in landscape'],
     ['an out-of-range camera bearing', JSON.stringify({
       ...createInitialProjectDocument(),
-      camera: { bearing: 181, pitch: 0 },
+      camera: { ...createInitialProjectDocument().camera, bearing: 181 },
     }), 'Camera bearing must be between -180 and 180'],
     ['an out-of-range camera pitch', JSON.stringify({
       ...createInitialProjectDocument(),
-      camera: { bearing: 0, pitch: 61 },
+      camera: { ...createInitialProjectDocument().camera, pitch: 61 },
     }), 'Camera pitch must be between 0 and 60'],
+    ['a missing map-area lock state', JSON.stringify({
+      ...createInitialProjectDocument(),
+      camera: { bearing: 0, pitch: 0 },
+    }), 'Map area lock state must be true or false'],
     ['an unsupported map style', JSON.stringify({
       ...createInitialProjectDocument(),
       style: { preset: 'satellite' },

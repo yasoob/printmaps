@@ -9,7 +9,7 @@ export type {
   ShapeAppearance,
 } from './layerAppearance';
 
-export const PROJECT_SCHEMA_VERSION = 13 as const;
+export const PROJECT_SCHEMA_VERSION = 14 as const;
 
 export type LayerType = 'route' | 'poi' | 'shape' | 'basemap';
 export type PageOrientation = 'landscape' | 'portrait';
@@ -29,6 +29,7 @@ export type PageSettings = {
 
 export type CameraSettings = {
   bearing: number;
+  locked: boolean;
   pitch: number;
 };
 
@@ -73,7 +74,7 @@ const createDefaultPageSettings = (): PageSettings => ({
   orientation: 'landscape',
 });
 
-const createDefaultCameraSettings = (): CameraSettings => ({ bearing: 0, pitch: 0 });
+const createDefaultCameraSettings = (): CameraSettings => ({ bearing: 0, locked: false, pitch: 0 });
 const createDefaultMapFeatureVisibility = (): MapFeatureVisibility => ({
   roads: true,
   buildings: true,

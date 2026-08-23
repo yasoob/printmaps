@@ -24,6 +24,10 @@ export function useMapFitRequests(options: MapFitRequestOptions) {
 
   useEffect(() => {
     if (!(options.fitRequest > handledFitRequest.current && options.map.current)) return;
+    if (options.camera.locked) {
+      handledFitRequest.current = options.fitRequest;
+      return;
+    }
     handledFitRequest.current = options.fitRequest;
     options.map.current.fitBounds(PAGE_BOUNDS, {
       bearing: options.camera.bearing,
@@ -32,11 +36,15 @@ export function useMapFitRequests(options: MapFitRequestOptions) {
       pitch: options.camera.pitch,
     });
     options.container.current?.setAttribute('data-camera-fit-request', String(options.fitRequest));
-  }, [options.camera.bearing, options.camera.pitch, options.container, options.fitRequest, options.map]);
+  }, [options.camera.bearing, options.camera.locked, options.camera.pitch, options.container, options.fitRequest, options.map]);
 
   useEffect(() => {
     const request = options.fitLayerRequest ?? 0;
     if (!(request > handledLayerFitRequest.current && options.map.current)) return;
+    if (options.camera.locked) {
+      handledLayerFitRequest.current = request;
+      return;
+    }
     const bounds = layerBounds(options.layers, options.fitLayerId ?? null);
     if (!bounds) return;
     handledLayerFitRequest.current = request;
@@ -47,11 +55,15 @@ export function useMapFitRequests(options: MapFitRequestOptions) {
       pitch: options.camera.pitch,
     });
     options.container.current?.setAttribute('data-camera-fit-layer', options.fitLayerId ?? '');
-  }, [options.camera.bearing, options.camera.pitch, options.container, options.fitLayerId, options.fitLayerRequest, options.layers, options.map]);
+  }, [options.camera.bearing, options.camera.locked, options.camera.pitch, options.container, options.fitLayerId, options.fitLayerRequest, options.layers, options.map]);
 
   useEffect(() => {
     const request = options.fitImportRequest ?? 0;
     if (!(request > handledFitImportRequest.current && options.fitImportBounds && options.map.current)) return;
+    if (options.camera.locked) {
+      handledFitImportRequest.current = request;
+      return;
+    }
     handledFitImportRequest.current = request;
     options.map.current.fitBounds(options.fitImportBounds, {
       bearing: options.camera.bearing,
@@ -60,5 +72,5 @@ export function useMapFitRequests(options: MapFitRequestOptions) {
       pitch: options.camera.pitch,
     });
     options.container.current?.setAttribute('data-camera-fit-import', String(request));
-  }, [options.camera.bearing, options.camera.pitch, options.container, options.fitImportBounds, options.fitImportRequest, options.map]);
+  }, [options.camera.bearing, options.camera.locked, options.camera.pitch, options.container, options.fitImportBounds, options.fitImportRequest, options.map]);
 }

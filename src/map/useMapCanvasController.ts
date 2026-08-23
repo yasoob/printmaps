@@ -15,6 +15,9 @@ import { useMapLanguage } from './useMapLanguage';
 import { useMapTextScale } from './useMapTextScale';
 import { useMapFitRequests } from './useMapFitRequests';
 import type { MapBounds } from './MapLayerBounds';
+import { setMapInteractionLock } from './MapInteractionLock';
+import type { MapLocationRequest } from './MapLocationRequest';
+import { useMapLocationRequest } from './useMapLocationRequest';
 
 type MapCanvasControllerOptions = {
   camera: CameraSettings;
@@ -27,6 +30,7 @@ type MapCanvasControllerOptions = {
   fitLayerRequest?: number;
   fitImportBounds?: MapBounds;
   fitImportRequest?: number;
+  locationRequest: MapLocationRequest;
   layers: ContentLayer[];
   assets: Record<string, CustomMarkerAsset>;
   onBackgroundClick: () => void;
@@ -55,6 +59,7 @@ export function useMapCanvasController({
   fitLayerRequest,
   fitImportBounds,
   fitImportRequest,
+  locationRequest,
   layers,
   assets,
   onBackgroundClick,
@@ -160,6 +165,11 @@ export function useMapCanvasController({
     container.current?.setAttribute('data-map-bearing', String(camera.bearing));
     container.current?.setAttribute('data-map-pitch', String(camera.pitch));
   }, [camera.bearing, camera.pitch, stylePreset]);
+  useEffect(() => {
+    if (!map.current) return;
+    setMapInteractionLock(map.current, camera.locked);
+  }, [camera.locked, stylePreset]);
+  useMapLocationRequest({ container, locationRequest, map, stylePreset });
   useMapFitRequests({ camera, container, fitImportBounds, fitImportRequest, fitLayerId, fitLayerRequest, fitRequest, layers, map });
 
 

@@ -25,11 +25,11 @@ test('Save downloads the current project as portable versioned JSON', async ({ p
   await download.saveAs(outputPath);
   const savedProject = JSON.parse(await readFile(outputPath, 'utf8'));
   expect(savedProject).toMatchObject({
-    schemaVersion: 13,
+    schemaVersion: 14,
     id: 'vienna-field-guide',
     title: 'Vienna field guide',
     page: { preset: 'A4', widthMm: 210, heightMm: 297, orientation: 'portrait' },
-    camera: { bearing: 35, pitch: 40 },
+    camera: { bearing: 35, locked: false, pitch: 40 },
     style: {
       preset: 'positron',
       language: 'de',
@@ -77,8 +77,8 @@ test('Save ZIP downloads a deterministic archive that Open restores as a fresh p
     assets: [],
   });
   expect(JSON.parse(strFromU8(entries['project.printmap.json']))).toMatchObject({
-    schemaVersion: 13,
-    camera: { bearing: 35, pitch: 0 },
+    schemaVersion: 14,
+    camera: { bearing: 35, locked: false, pitch: 0 },
     style: {
       language: 'local',
       visibility: { roads: false, buildings: true, labels: true, water: true, parks: true, landuse: true, transit: true },
@@ -105,7 +105,7 @@ test('opens a validated portable project as a focused fresh history root', async
   await page.getByRole('button', { name: 'Select Route 01' }).click();
   await expect(page.getByRole('button', { name: 'Undo' })).toBeEnabled();
   const alpineProject = JSON.parse(await readFile(path.resolve('tests/fixtures/alpine-poster.printmap.json'), 'utf8'));
-  alpineProject.camera = { bearing: -20, pitch: 35 };
+  alpineProject.camera = { bearing: -20, locked: true, pitch: 35 };
   alpineProject.style = {
     preset: 'positron',
     language: 'de',
@@ -132,6 +132,7 @@ test('opens a validated portable project as a focused fresh history root', async
   await expect(page.getByRole('textbox', { name: 'Page height' })).toHaveValue('420');
   await expect(page.getByRole('textbox', { name: 'Bearing' })).toHaveValue('-20');
   await expect(page.getByRole('textbox', { name: 'Pitch' })).toHaveValue('35');
+  await expect(page.getByRole('checkbox', { name: 'Lock map area' })).toBeChecked();
   await expect(page.getByRole('combobox', { name: 'Map style' })).toHaveValue('positron');
   await expect(page.getByRole('combobox', { name: 'Map language' })).toHaveValue('de');
   await expect(page.getByRole('textbox', { name: 'Text scale' })).toHaveValue('150');

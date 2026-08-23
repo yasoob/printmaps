@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../../../src/app/App';
 import { exportMocks } from './exportMocks';
@@ -192,6 +192,55 @@ describe('editor map style controls', () => {
 describe('editor map detail and page commands', () => {
   beforeEach(() => {
     exportMocks.exporter = null;
+  });
+
+  it('locks map movement as one undoable project change', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const lock = screen.getByRole('checkbox', { name: 'Lock map area' });
+    const fit = screen.getByRole('button', { name: 'Fit page (Shift+1)' });
+    const pan = screen.getByRole('button', { name: 'Pan (H)' });
+    const map = screen.getByTestId('map-canvas');
+
+    expect(lock).not.toBeChecked();
+    expect(fit).toBeEnabled();
+    expect(pan).toBeEnabled();
+    expect(map).toHaveAttribute('data-map-area-locked', 'false');
+
+    await user.click(lock);
+
+    expect(lock).toBeChecked();
+    expect(fit).toBeDisabled();
+    expect(pan).toBeDisabled();
+    expect(map).toHaveAttribute('data-map-area-locked', 'true');
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(lock).not.toBeChecked();
+    expect(fit).toBeEnabled();
+    expect(map).toHaveAttribute('data-map-area-locked', 'false');
+  });
+
+  it('centers the map from browser geolocation and gates the action while locked', async () => {
+    let succeed: PositionCallback | undefined;
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: {
+        getCurrentPosition: (success: PositionCallback) => { succeed = success; },
+      },
+    });
+    const user = userEvent.setup();
+    render(<App />);
+    const locate = screen.getByRole('button', { name: 'Use my location' });
+    const map = screen.getByTestId('map-canvas');
+
+    await user.click(locate);
+    act(() => succeed?.({ coords: { longitude: 16.37, latitude: 48.21 } } as GeolocationPosition));
+
+    expect(map).toHaveAttribute('data-map-location-request', '1:16.37,48.21');
+    expect(screen.getByRole('status')).toHaveTextContent('Map centered');
+
+    await user.click(screen.getByRole('checkbox', { name: 'Lock map area' }));
+    expect(screen.getByRole('button', { name: 'Use my location' })).toBeDisabled();
+    expect(screen.getByText('Unlock the map area to use your location.')).toBeInTheDocument();
   });
 
   it('toggles a map feature category as one undoable change', async () => {

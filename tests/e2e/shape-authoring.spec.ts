@@ -95,7 +95,7 @@ test('bundled administrative regions merge without an internal border and retain
   const savePath = testInfo.outputPath('administrative-area.printmap.json');
   await save.saveAs(savePath);
   const savedProject = JSON.parse(await readFile(savePath, 'utf8'));
-  expect(savedProject.schemaVersion).toBe(13);
+  expect(savedProject.schemaVersion).toBe(14);
   const savedArea = savedProject.layers.find(({ id }: { id: string }) => id === 'admin-aut-2330-aut-2331');
   expect(savedArea.appearance.invert).toBe(true);
   expect(savedArea.name).toBe('Lower Austria + Vienna');

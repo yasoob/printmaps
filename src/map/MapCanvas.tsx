@@ -3,6 +3,7 @@ import type { CustomMarkerAsset } from '../domain/customMarkerAssets';
 import type { CameraSettings, ContentLayer, MapFeatureVisibility, MapLanguage, MapStylePreset, PageSettings } from '../domain/project';
 import type { PreviewPngExporter } from '../export/previewPng';
 import type { MapBounds } from './MapLayerBounds';
+import { mapLocationRequestDiagnostic, resolveMapLocationRequest, type MapLocationRequest } from './MapLocationRequest';
 import { useMapCanvasController } from './useMapCanvasController';
 
 type MapCanvasProps = {
@@ -24,6 +25,7 @@ type MapCanvasProps = {
   fitLayerRequest?: number;
   fitImportBounds?: MapBounds;
   fitImportRequest?: number;
+  locationRequest?: MapLocationRequest;
   orientation?: 'landscape' | 'portrait';
   page?: PageSettings;
   contentRevision?: object;
@@ -42,7 +44,7 @@ const resolveFeatureVisibility = (visibility?: MapFeatureVisibility) => visibili
 const resolveMapLanguage = (language?: MapLanguage) => language ?? 'local';
 
 export function MapCanvas({
-  camera = { bearing: 0, pitch: 0 },
+  camera = { bearing: 0, locked: false, pitch: 0 },
   stylePreset = 'liberty',
   language,
   textScalePercent = 100,
@@ -60,6 +62,7 @@ export function MapCanvas({
   fitLayerRequest,
   fitImportBounds,
   fitImportRequest,
+  locationRequest,
   orientation = 'landscape',
   page,
   contentRevision,
@@ -75,6 +78,7 @@ export function MapCanvas({
     fitLayerRequest,
     fitImportBounds,
     fitImportRequest,
+    locationRequest: resolveMapLocationRequest(locationRequest),
     layers,
     assets,
     onBackgroundClick,
@@ -88,7 +92,7 @@ export function MapCanvas({
 
   return (
     <div className="canvas-surface" aria-label="Map canvas">
-      <div ref={container} className="map-root" data-testid="map-canvas" data-fit-request={fitRequest} data-fit-layer-id={fitLayerId} data-fit-import-request={fitImportRequest} />
+      <div ref={container} className="map-root" data-testid="map-canvas" data-fit-request={fitRequest} data-fit-layer-id={fitLayerId} data-fit-import-request={fitImportRequest} data-map-area-locked={camera.locked} data-map-location-request={mapLocationRequestDiagnostic(locationRequest)} />
       {visibleError && (
         <div className="map-fallback" role="status">
           <div><strong>Map preview unavailable</strong><span>{visibleError.message}</span></div>

@@ -238,7 +238,7 @@ function cameraAt(value: unknown): ProjectDocument['camera'] {
   if (pitch < 0 || pitch > 60) {
     throw new ProjectFileError('Camera pitch must be between 0 and 60.');
   }
-  return { bearing, pitch };
+  return { bearing, locked: booleanAt(camera.locked, 'Map area lock state'), pitch };
 }
 
 function styleAt(value: unknown): ProjectDocument['style'] {
@@ -272,7 +272,7 @@ function currentDocumentAt(value: unknown): ProjectDocument {
   const root = objectAt(value, 'Project file');
   const schemaVersion = root.schemaVersion;
   if (!isCurrentSchemaVersion(schemaVersion)) {
-    if (typeof schemaVersion === 'number' && schemaVersion >= 1 && schemaVersion <= 12) {
+    if (typeof schemaVersion === 'number' && schemaVersion >= 1 && schemaVersion <= 13) {
       throw new ProjectFileError(
         `Schema version ${schemaVersion} is obsolete. Start a new project or reopen a current Print Map Studio file.`,
       );

@@ -15,6 +15,7 @@ type PropertiesSidebarProps = {
   setPreviewedLayerId: Dispatch<SetStateAction<string | null>>;
   closePanel: (panel?: MobilePanel | null) => void;
   onKeyDown: (event: React.KeyboardEvent<HTMLElement>, panel: MobilePanel) => void;
+  onLocate: (coordinate: [number, number], onApplied: () => void) => void;
 };
 
 function selectedLayerButton(layerId?: string) {
@@ -25,7 +26,7 @@ function selectedLayerButton(layerId?: string) {
 }
 
 export function PropertiesSidebar(props: PropertiesSidebarProps) {
-  const { activePanel, closePanel, onKeyDown, panelRef, project, selectedIndex, selectedLayer, setPreviewedLayerId } = props;
+  const { activePanel, closePanel, onKeyDown, onLocate, panelRef, project, selectedIndex, selectedLayer, setPreviewedLayerId } = props;
   const layers = project.document.layers;
   const clearSelectedPreview = () => {
     if (selectedLayer) setPreviewedLayerId((current) => current === selectedLayer.id ? null : current);
@@ -73,7 +74,7 @@ export function PropertiesSidebar(props: PropertiesSidebarProps) {
           onDelete={deleteSelected}
         />
       ) : (
-        <ProjectProperties camera={project.document.camera} style={project.document.style} page={project.document.page} onBearingChange={project.setCameraBearing} onDimensionChange={project.setPageDimension} onFeatureVisibilityChange={project.setMapFeatureVisibility} onLanguageChange={project.setMapLanguage} onOrientationChange={project.setPageOrientation} onPitchChange={project.setCameraPitch} onPresetChange={project.setPagePreset} onStyleChange={project.setMapStyle} onTextScaleChange={project.setMapTextScale} />
+        <ProjectProperties camera={project.document.camera} documentEpoch={project.documentEpoch} style={project.document.style} page={project.document.page} onBearingChange={project.setCameraBearing} onDimensionChange={project.setPageDimension} onFeatureVisibilityChange={project.setMapFeatureVisibility} onLanguageChange={project.setMapLanguage} onLocate={onLocate} onMapAreaLockChange={project.setMapAreaLocked} onOrientationChange={project.setPageOrientation} onPitchChange={project.setCameraPitch} onPresetChange={project.setPagePreset} onStyleChange={project.setMapStyle} onTextScaleChange={project.setMapTextScale} />
       )}
     </aside>
   );

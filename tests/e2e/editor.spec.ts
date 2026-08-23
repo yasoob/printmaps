@@ -141,6 +141,43 @@ test('desktop commands, orientation, reorder, and overflow menu work in a real b
   await expect(page.getByRole('button', { name: 'Select Route 01 copy' })).toBeFocused();
 });
 
+test('browser location centers the map and map-area lock gates movement commands', async ({ context, page, browserName }) => {
+  test.skip(browserName === 'firefox', 'Firefox fixture intentionally exercises the WebGL fallback path.');
+  const consoleProblems: string[] = [];
+  page.on('pageerror', (error) => { consoleProblems.push(error.message); });
+  page.on('console', (message) => {
+    if ((message.type() === 'error' || message.type() === 'warning') && !isHeadlessWebGlDiagnostic(message.text())) {
+      consoleProblems.push(message.text());
+    }
+  });
+  await context.grantPermissions(['geolocation'], { origin: 'http://127.0.0.1:4175' });
+  await context.setGeolocation({ longitude: 16.3725, latitude: 48.2084 });
+  await page.goto('/');
+  const map = page.getByTestId('map-canvas');
+  await expect(map).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
+
+  await page.getByRole('button', { name: 'Use my location' }).click();
+
+  await expect(page.locator('.map-location-status')).toContainText('Map centered on your current location');
+  await expect(map).toHaveAttribute('data-map-location-applied', '1');
+
+  const lock = page.getByRole('checkbox', { name: 'Lock map area' });
+  await lock.check();
+  await expect(map).toHaveAttribute('data-map-area-locked', 'true');
+  await expect(page.getByRole('button', { name: 'Pan (H)' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Fit page (Shift+1)' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Use my location' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Zoom in' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Zoom out' })).toBeDisabled();
+
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(lock).not.toBeChecked();
+  await expect(map).toHaveAttribute('data-map-area-locked', 'false');
+  await expect(page.getByRole('button', { name: 'Use my location' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Zoom in' })).toBeEnabled();
+  expect(consoleProblems).toEqual([]);
+});
+
 test('style loading failure shows a recoverable map status', async ({ page, browserName }) => {
   test.skip(browserName === 'firefox', 'Firefox fixture intentionally exercises the WebGL fallback path.');
   await page.route('**/styles/liberty.json', (route) => route.abort());

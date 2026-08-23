@@ -374,6 +374,15 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .segmented button.is-active { border: var(--studio-border-width) solid var(--studio-line-hover); color: var(--studio-text); background: var(--studio-surface); }
 .check-row { @apply flex min-h-[30px] items-center gap-2; color: var(--studio-text-secondary); font-size: var(--studio-font-label); }
 .check-row input { accent-color: var(--studio-accent); }
+.map-location-control { @apply grid gap-1.5 py-1; }
+.map-location-control .quiet-button {
+  @apply justify-center px-2;
+  border: var(--studio-border-width) solid var(--studio-line-strong);
+}
+.map-location-control .quiet-button:disabled { @apply cursor-default; color: var(--studio-text-subtle); }
+.map-location-status { @apply m-0; color: var(--studio-text-muted); font-size: var(--studio-font-meta); line-height: 1.35; }
+.map-location-status.is-error { color: var(--studio-danger); }
+.map-location-status.is-success { color: var(--studio-success); }
 .mapbox-service-status { @apply grid gap-1.5; color: var(--studio-text-secondary); font-size: var(--studio-font-meta); line-height: 1.35; }
 .mapbox-service-status strong { color: var(--studio-text-strong); font-size: var(--studio-font-label); }
 .mapbox-service-status p { @apply m-0; overflow-wrap: anywhere; }

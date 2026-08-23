@@ -1,7 +1,7 @@
 import type { ProjectState } from './store';
 import { commitDocument, type ProjectSet } from './storeDocument';
 
-type CameraActions = Pick<ProjectState, 'setCameraBearing' | 'setCameraPitch'>;
+type CameraActions = Pick<ProjectState, 'setCameraBearing' | 'setCameraPitch' | 'setMapAreaLocked'>;
 
 export function createCameraActions(set: ProjectSet): CameraActions {
   return {
@@ -12,6 +12,13 @@ export function createCameraActions(set: ProjectSet): CameraActions {
       return commitDocument(state, {
         ...state.document,
         camera: { ...state.document.camera, bearing },
+      });
+    }),
+    setMapAreaLocked: (isLocked) => set((state) => {
+      if (state.document.camera.locked === isLocked) return state;
+      return commitDocument(state, {
+        ...state.document,
+        camera: { ...state.document.camera, locked: isLocked },
       });
     }),
     setCameraPitch: (pitch) => set((state) => {

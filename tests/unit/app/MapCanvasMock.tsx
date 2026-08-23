@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import type { CameraSettings, ContentLayer, MapFeatureVisibility, MapLanguage, MapStylePreset } from '../../../src/domain/project';
 import type { MapBounds } from '../../../src/map/MapLayerBounds';
+import { mapLocationRequestDiagnostic, type MapLocationRequest } from '../../../src/map/MapLocationRequest';
 import { exportMocks } from './exportMocks';
 
 type MapCanvasMockProps = {
@@ -20,12 +21,13 @@ type MapCanvasMockProps = {
   fitLayerId?: string | null;
   fitImportBounds?: MapBounds;
   fitImportRequest?: number;
+  locationRequest?: MapLocationRequest;
   orientation?: 'landscape' | 'portrait';
   page?: { preset?: string; widthMm: number; heightMm: number };
 };
 
 export function MapCanvas({
-  camera = { bearing: 0, pitch: 0 },
+  camera = { bearing: 0, locked: false, pitch: 0 },
   stylePreset = 'liberty',
   language = 'local',
   textScalePercent = 100,
@@ -40,6 +42,7 @@ export function MapCanvas({
   fitRequest,
   fitLayerId,
   fitImportRequest,
+  locationRequest,
   orientation,
   page,
 }: MapCanvasMockProps) {
@@ -47,6 +50,9 @@ export function MapCanvas({
     onExporterChange?.(exportMocks.exporter);
     return () => onExporterChange?.(null);
   }, [onExporterChange]);
+  useEffect(() => {
+    if (locationRequest?.coordinate) locationRequest.onApplied?.();
+  }, [locationRequest]);
 
   return (
     <div
@@ -55,6 +61,8 @@ export function MapCanvas({
       data-fit-layer-id={fitLayerId ?? ''}
       data-camera-fit-import={fitImportRequest}
       data-camera={`${camera.bearing},${camera.pitch}`}
+      data-map-area-locked={camera.locked}
+      data-map-location-request={mapLocationRequestDiagnostic(locationRequest)}
       data-style-preset={stylePreset}
       data-map-language={language}
       data-text-scale={textScalePercent}
