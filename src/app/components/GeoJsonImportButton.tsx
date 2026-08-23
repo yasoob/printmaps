@@ -35,6 +35,7 @@ export function GeoJsonImportButton({
 }: GeoJsonImportButtonProps) {
   const {
     batch,
+    batchAppearance,
     chooseImportFiles,
     chooseReplacementFile,
     closeDialog,
@@ -43,9 +44,11 @@ export function GeoJsonImportButton({
     handleInputChange,
     inputRef,
     isReading,
+    isBatchAppearanceValid,
     prepareFiles,
     replacementTarget,
     selectedNames,
+    setBatchAppearance,
     setShouldFitView,
     shouldFitView,
     status,
@@ -96,12 +99,15 @@ export function GeoJsonImportButton({
       )}
       <MapDataImportPortals
         batch={batch}
+        batchAppearance={batchAppearance}
         dialogError={dialogError}
+        isBatchAppearanceValid={isBatchAppearanceValid}
         inputRef={inputRef}
         replacementTarget={replacementTarget}
         onClose={closeDialog}
         onCommit={commitReviewedImport}
         selectedNames={selectedNames}
+        setBatchAppearance={setBatchAppearance}
         setShouldFitView={setShouldFitView}
         state={{ isDragActive, isOpen, isReading, shouldFitView }}
       />

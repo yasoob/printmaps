@@ -1,5 +1,11 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import type { ContentLayer } from '../../domain/project';
+import {
+  applyMapDataBatchAppearance,
+  createMapDataBatchAppearance,
+  isMapDataBatchAppearanceValid,
+  type MapDataBatchAppearance,
+} from '../../import/mapDataBatchAppearance';
 import {
   replacementSuccess,
   reviewedSuccess,
@@ -17,6 +23,21 @@ export function useMapDataImport(options: MapDataImportOptions) {
     setBatch, setDialogError, setPhase, setReplacementTarget, setShouldFitView, setStatus,
     shouldFitView, status,
   } = reader;
+  const [appearanceState, setAppearanceState] = useState<{
+    batch: NonNullable<typeof batch>;
+    settings: MapDataBatchAppearance;
+  } | null>(null);
+  const batchAppearance = batch
+    ? (appearanceState?.batch === batch
+        ? appearanceState.settings
+        : createMapDataBatchAppearance(batch.layers))
+    : null;
+  const isBatchAppearanceValid = !batch
+    || replacementTarget !== null
+    || (batchAppearance !== null && isMapDataBatchAppearanceValid(batch.layers, batchAppearance));
+  const setBatchAppearance = useCallback((settings: MapDataBatchAppearance) => {
+    if (batch) setAppearanceState({ batch, settings });
+  }, [batch]);
 
   const closeDialog = useCallback((shouldRestoreFocus = true) => {
     requestIdRef.current += 1;
@@ -37,9 +58,18 @@ export function useMapDataImport(options: MapDataImportOptions) {
   const commitReviewedImport = () => {
     const reviewedSource = reviewedSourceRef.current;
     if (!batch || !reviewedSource) return;
+    let layers = batch.layers;
+    if (!replacementTarget && batchAppearance) {
+      try {
+        layers = applyMapDataBatchAppearance(batch.layers, batchAppearance);
+      } catch (error) {
+        setDialogError(error instanceof Error ? error.message : 'Choose valid import styling values before adding this batch.');
+        return;
+      }
+    }
     if (!onImport({
       documentEpoch: reviewedSource.documentEpoch,
-      layers: batch.layers,
+      layers,
       replacementTarget,
       shouldFitView,
       sourceDocument: reviewedSource.sourceDocument,
@@ -69,6 +99,7 @@ export function useMapDataImport(options: MapDataImportOptions) {
 
   return {
     batch,
+    batchAppearance,
     chooseImportFiles,
     chooseReplacementFile,
     closeDialog,
@@ -77,9 +108,11 @@ export function useMapDataImport(options: MapDataImportOptions) {
     handleInputChange,
     inputRef,
     isReading,
+    isBatchAppearanceValid,
     prepareFiles,
     replacementTarget,
     selectedNames,
+    setBatchAppearance,
     setShouldFitView,
     shouldFitView,
     status: status?.documentEpoch === documentEpoch ? status : null,
