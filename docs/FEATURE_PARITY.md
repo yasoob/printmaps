@@ -33,8 +33,9 @@ This comparison treats the current official Printmaps.net product pages as the e
 
 ## Priority after this refresh
 
-1. Reassess broader municipality/region data after the completed import and bounded Austrian-state workflows.
-2. Continue secondary parity breadth only where it produces a complete user-visible workflow without weakening the established local/export safety boundaries.
+1. Deliver the original semantic-token map-style registry and accessible first-party thumbnail gallery in `docs/MAP_STYLE_PRESET_PLAN.md`, preserving language/detail/camera/export invariants.
+2. Reassess broader municipality/region data after the completed import and bounded Austrian-state workflows.
+3. Continue secondary parity breadth only where it produces a complete user-visible workflow without weakening the established local/export safety boundaries.
 
 Address/search-driven and road-snapped routes remain a high-value gap, but stay fail-closed until the accepted Mapbox renderer/storage boundary permits a compliant implementation.
 
