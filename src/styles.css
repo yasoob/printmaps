@@ -39,7 +39,10 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .brand-block, .document-actions, .history-actions { @apply flex items-center gap-1; }
 .document-actions { @apply justify-end; }
 .project-file-status {
-  @apply pointer-events-none absolute right-2 top-full mt-1 max-w-sm px-3 py-2 text-xs;
+  @apply pointer-events-none fixed z-[90] max-w-sm px-3 py-2 text-xs;
+  top: calc(var(--studio-topbar-height) + var(--studio-safe-top) + 4px);
+  right: calc(8px + var(--studio-safe-right));
+  width: min(24rem, calc(100vw - 16px - var(--studio-safe-left) - var(--studio-safe-right)));
   border: var(--studio-border-width) solid var(--studio-line-strong);
   border-radius: var(--studio-radius-md);
   background: var(--studio-surface);
@@ -69,8 +72,22 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .brand-name { @apply mx-1.5 text-xs font-semibold tracking-tight; }
 .top-divider { @apply h-4 w-px; background: var(--studio-line); }
 .project-title, .icon-button, .quiet-button, .primary-button, .tool-button { @apply cursor-pointer; }
-.project-title { @apply rounded px-2 py-1.5 text-xs font-medium; }
+.project-file-menu-wrap { @apply relative min-w-0; }
+.project-title { @apply flex max-w-full items-center gap-1 rounded px-2 py-1.5 text-xs font-medium; }
+.project-title span { @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap; }
 .project-title:hover, .quiet-button:hover, .icon-button:hover { background: var(--studio-field); }
+.project-file-menu {
+  @apply absolute left-0 top-full z-[80] mt-1 grid min-w-56 p-1;
+  border: var(--studio-border-width) solid var(--studio-line-strong);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface-raised);
+}
+.project-file-menu > button {
+  @apply flex min-h-9 w-full items-center gap-2 rounded px-2.5 text-left;
+  color: var(--studio-text-strong);
+  font-size: var(--studio-font-control);
+}
+.project-file-menu > button:hover, .project-file-menu > button:focus-visible { background: var(--studio-field); }
 .icon-button {
   @apply inline-grid place-items-center;
   width: var(--studio-control-height);
@@ -328,9 +345,11 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   grid-template-columns: 1rem minmax(0, 1fr);
   min-height: 3.75rem;
 }
+.inspector-accordion h3 > button[aria-expanded="true"] { min-height: 2.75rem; }
 .inspector-accordion h3 > button:hover { background: var(--studio-hover); }
 .inspector-chevron {
-  grid-row: 1 / span 2;
+  align-self: start;
+  margin-top: 0.0625rem;
   color: var(--studio-text-muted);
   transition: transform 120ms ease-out;
 }
@@ -860,7 +879,9 @@ button:focus-visible, input:focus-visible, select:focus-visible {
     padding-right: calc(8px + var(--studio-safe-right));
   }
   .brand-block { @apply min-w-0; }
-  .project-title { @apply max-w-[116px] overflow-hidden text-ellipsis whitespace-nowrap; }
+  .project-title { @apply max-w-[116px]; }
+  .project-file-menu { min-width: min(16rem, calc(100vw - 16px - var(--studio-safe-left) - var(--studio-safe-right))); }
+  .project-file-menu > button { min-height: 2.75rem; }
   .document-actions { @apply min-w-0; }
   .primary-button { @apply px-2; }
 

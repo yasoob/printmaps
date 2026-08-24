@@ -42,14 +42,16 @@ test('project inspector progressively discloses advanced controls on desktop and
   const camera = page.getByRole('button', { name: /Camera & location/ });
   const details = page.getByRole('button', { name: /Map details/ });
   await expect(pageSection).toHaveAttribute('aria-expanded', 'true');
-  await expect(pageSection).toContainText('A4 landscape · 297 × 210 mm');
+  await expect(pageSection).not.toContainText('A4 landscape · 297 × 210 mm');
   await expect(mapStyle).toHaveAttribute('aria-expanded', 'true');
+  await expect(mapStyle).not.toContainText('Liberty · Local names · 100%');
   await expect(camera).toHaveAttribute('aria-expanded', 'false');
   await expect(details).toHaveAttribute('aria-expanded', 'false');
   await expect(page.getByRole('textbox', { name: 'Bearing' })).toHaveCount(0);
 
   await camera.focus();
   await camera.press('Enter');
+  await expect(camera).not.toContainText('0° bearing · 0° pitch · Unlocked');
   await expect(page.getByRole('textbox', { name: 'Bearing' })).toBeVisible();
   const lockSwitch = page.getByRole('switch', { name: 'Lock map area' });
   await lockSwitch.check();
@@ -63,8 +65,9 @@ test('project inspector progressively discloses advanced controls on desktop and
   });
   expect(checkedColors).toEqual({ background: 'rgb(0, 0, 0)', foreground: 'rgb(255, 255, 255)' });
   await roads.uncheck();
-  await expect(details).toContainText('6 of 7 visible');
+  await expect(details).not.toContainText('6 of 7 visible');
   await details.click();
+  await expect(details).toContainText('6 of 7 visible');
   await page.getByRole('button', { name: 'Select Route 01' }).click();
   await expect(page.getByText('Layer properties')).toHaveCount(0);
   expect(await page.locator('.property-section').evaluateAll((elements) => elements.map((element) => getComputedStyle(element).borderTopWidth))).toEqual(expect.arrayContaining(['0px']));

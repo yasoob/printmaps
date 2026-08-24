@@ -69,8 +69,10 @@ This product is not deployed and has no compatibility obligation to earlier deve
 - Do not lower or rewrite the completion gate to declare success early.
 - Bound subprocesses and clean them up.
 - Every implemented UI interaction must be covered while it is implemented; do not defer interaction tests to a later cleanup phase.
-- Complexity must be progressively disclosed: inspector accordions show primary controls first, advanced sections stay collapsed with useful summaries, interface text remains readable, and every dialog/action uses the shared visual hierarchy defined in `docs/UI_BRIEF.md`.
+- Complexity must be progressively disclosed: inspector accordions show primary controls first, advanced sections stay collapsed with useful summaries, interface text remains readable, and every dialog/action uses the shared visual hierarchy defined in `docs/UI_BRIEF.md`. Accordion summaries appear only while collapsed; expanded headers show only the title, with the chevron aligned to that title.
+- Autosave is the canonical save behavior. Portable project files are explicit downloads in the project/File menu and must not appear as misleading top-bar Save controls.
 - UI chrome follows the Felt-inspired cohesion rules in `docs/UI_BRIEF.md`: muted neutral surfaces, minimal structural borders, consistent Lucide iconography, one shared dark checked control with a white tick, one shared switch, and restrained use of accent color.
+- Map style breadth is delivered through the original/open preset-gallery contract in `docs/UI_BRIEF.md`; external editor assets and proprietary tile services are research references only and never production dependencies.
 - Borders are state or structure, never decoration. Interior inspector and modal grouping defaults to spacing, typography, alignment, and subtle surface contrast; each retained divider requires a concrete hierarchy or state justification.
 - Do not perform a wholesale shadcn/ui migration. Evolve focused shared primitives on the existing Tailwind/token stack; add a third-party primitive only for a demonstrated accessibility need.
 - Capture and deliver refreshed screenshots when a slice changes visible behavior or layout; otherwise preserve the last verified desktop/mobile evidence.

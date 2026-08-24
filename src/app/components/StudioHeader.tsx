@@ -4,7 +4,7 @@ import type { ProjectDocument } from '../../domain/project';
 import type { ProjectState } from '../store';
 import type { LayerReplacementRequest, MapDataImportCommit } from '../hooks/useAppMapDataImport';
 import { GeoJsonImportButton } from './GeoJsonImportButton';
-import { ProjectFileOpenButton, ProjectSaveButton } from './ProjectFileActions';
+import { ProjectFileMenu } from './ProjectFileActions';
 
 type StudioHeaderProps = {
   project: ProjectState;
@@ -48,14 +48,13 @@ export function StudioHeader({
       <div className="brand-block">
         <div className="brand-mark" aria-hidden="true"><PenLine size={16} strokeWidth={2} /></div>
         <span className="brand-name">Print Map Studio</span><span className="top-divider" />
-        <button ref={projectTitleRef} className="project-title" type="button">{project.document.title}</button>
+        <ProjectFileMenu document={project.document} onOpen={onOpen} title={project.document.title} triggerRef={projectTitleRef} />
       </div>
       <div className="history-actions" aria-label="History">
         <button className="icon-button" type="button" aria-label="Undo" title="Undo" disabled={!project.canUndo} onClick={project.undo}><Undo2 size={15} /></button>
         <button className="icon-button" type="button" aria-label="Redo" title="Redo" disabled={!project.canRedo} onClick={project.redo}><Redo2 size={15} /></button>
       </div>
       <div className="document-actions">
-        <ProjectFileOpenButton onOpen={onOpen} />
         <GeoJsonImportButton
           buttonRef={importButtonRef}
           isDisabled={importDisabled}
@@ -69,7 +68,6 @@ export function StudioHeader({
           sourceDocument={project.document}
           startImportWork={startImportWork}
         />
-        <ProjectSaveButton document={project.document} />
         <button className="quiet-button" type="button"><Share2 size={14} /> Share</button>
         <button ref={exportButtonRef} className="primary-button" type="button" disabled={exportDisabled} title={exportDisabled ? 'Finish or cancel map authoring before export' : undefined} onClick={onExport}><Download size={14} /> Export</button>
       </div>

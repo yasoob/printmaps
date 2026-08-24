@@ -42,10 +42,10 @@ export function InspectorAccordion({ children, isDefaultExpanded, storageKey, su
   return (
     <section className="inspector-accordion">
       <h3>
-        <button type="button" aria-controls={contentId} aria-describedby={summaryId} aria-expanded={isExpanded} aria-labelledby={labelId} onClick={toggle}>
+        <button type="button" aria-controls={contentId} aria-describedby={isExpanded ? undefined : summaryId} aria-expanded={isExpanded} aria-labelledby={labelId} onClick={toggle}>
           <ChevronRight aria-hidden="true" className="inspector-chevron" size={16} />
           <span id={labelId} className="inspector-section-label">{title}</span>
-          <span id={summaryId} className="inspector-section-summary">{summary}</span>
+          {!isExpanded && <span id={summaryId} className="inspector-section-summary">{summary}</span>}
         </button>
       </h3>
       <div id={contentId} className="inspector-accordion-content" hidden={!isExpanded}>{children}</div>

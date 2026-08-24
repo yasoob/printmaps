@@ -1,9 +1,16 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { strFromU8, unzipSync } from 'fflate';
 
-test('Save downloads the current project as portable versioned JSON', async ({ context, page }, testInfo) => {
+async function openProjectFileMenu(page: Page) {
+  await page.locator('.project-title').click();
+  const menu = page.getByRole('menu', { name: 'Project file menu' });
+  await expect(menu).toBeVisible();
+  return menu;
+}
+
+test('Download project saves the current portable versioned JSON', async ({ context, page }, testInfo) => {
   await context.grantPermissions(['geolocation'], { origin: 'http://127.0.0.1:4175' });
   await context.setGeolocation({ longitude: 16.41, latitude: 48.23 });
   await page.goto('/');
@@ -22,7 +29,8 @@ test('Save downloads the current project as portable versioned JSON', async ({ c
   await page.getByRole('combobox', { name: 'Map language' }).selectOption('de');
 
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  const fileMenu = await openProjectFileMenu(page);
+  await fileMenu.getByRole('menuitem', { name: 'Download project', exact: true }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe('vienna-field-guide.printmap.json');
 
@@ -50,7 +58,7 @@ test('Save downloads the current project as portable versioned JSON', async ({ c
   ]);
 });
 
-test('Save ZIP downloads a deterministic archive that Open restores as a fresh project', async ({ page }, testInfo) => {
+test('Download project archive is deterministic and Open project restores a fresh root', async ({ page }, testInfo) => {
   await page.goto('/');
   await page.getByRole('textbox', { name: 'Bearing' }).fill('35');
   await page.getByRole('textbox', { name: 'Bearing' }).press('Tab');
@@ -58,7 +66,8 @@ test('Save ZIP downloads a deterministic archive that Open restores as a fresh p
 
   const downloadArchive = async (filename: string) => {
     const downloadPromise = page.waitForEvent('download');
-    await page.getByRole('button', { name: 'Save ZIP' }).click();
+    const fileMenu = await openProjectFileMenu(page);
+    await fileMenu.getByRole('menuitem', { name: 'Download project archive' }).click();
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toBe('vienna-field-guide.printmap.zip');
     const outputPath = testInfo.outputPath(filename);
@@ -92,7 +101,8 @@ test('Save ZIP downloads a deterministic archive that Open restores as a fresh p
 
   await page.getByRole('button', { name: 'Portrait' }).click();
   const chooserPromise = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Open' }).click();
+  const fileMenu = await openProjectFileMenu(page);
+  await fileMenu.getByRole('menuitem', { name: 'Open project' }).click();
   const chooser = await chooserPromise;
   await chooser.setFiles(firstPath);
 
@@ -101,7 +111,7 @@ test('Save ZIP downloads a deterministic archive that Open restores as a fresh p
   await expect(page.getByRole('button', { name: 'Landscape' })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
   await expect(page.getByRole('status', { name: 'Project file status' })).toContainText('Opened Vienna field guide');
-  await expect(page.getByRole('button', { name: 'Open' })).toBeFocused();
+  await expect(page.locator('.project-title')).toBeFocused();
 });
 
 test('opens a validated portable project as a focused fresh history root', async ({ page, browserName }) => {
@@ -120,7 +130,8 @@ test('opens a validated portable project as a focused fresh history root', async
   alpineProject.layers.find((layer: { type: string }) => layer.type === 'basemap').name = 'Positron basemap';
 
   const chooserPromise = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Open' }).click();
+  const fileMenu = await openProjectFileMenu(page);
+  await fileMenu.getByRole('menuitem', { name: 'Open project' }).click();
   const chooser = await chooserPromise;
   await chooser.setFiles({
     name: 'alpine-poster.printmap.json',
@@ -158,7 +169,7 @@ test('opens a validated portable project as a focused fresh history root', async
   await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Redo' })).toBeDisabled();
   await expect(page.getByRole('status', { name: 'Project file status' })).toHaveText('Opened Alpine poster. Edit history was reset.');
-  await expect(page.getByRole('button', { name: 'Open' })).toBeFocused();
+  await expect(page.locator('.project-title')).toBeFocused();
 });
 
 test('rejects invalid project files without replacing work and allows a retry', async ({ page }) => {
@@ -192,7 +203,8 @@ test('rejects invalid project files without replacing work and allows a retry', 
     },
   ]) {
     const chooserPromise = page.waitForEvent('filechooser');
-    await page.getByRole('button', { name: 'Open' }).click();
+    const fileMenu = await openProjectFileMenu(page);
+    await fileMenu.getByRole('menuitem', { name: 'Open project' }).click();
     const chooser = await chooserPromise;
     await chooser.setFiles(invalidFile.file);
 
@@ -200,16 +212,17 @@ test('rejects invalid project files without replacing work and allows a retry', 
     await expect(page.getByRole('button', { name: 'Vienna field guide' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Portrait' })).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByRole('button', { name: 'Undo' })).toBeEnabled();
-    await expect(page.getByRole('button', { name: 'Open' })).toBeFocused();
+    await expect(page.locator('.project-title')).toBeFocused();
   }
 
   const retryChooserPromise = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Open' }).click();
+  const retryMenu = await openProjectFileMenu(page);
+  await retryMenu.getByRole('menuitem', { name: 'Open project' }).click();
   const retryChooser = await retryChooserPromise;
   await retryChooser.setFiles(path.resolve('tests/fixtures/alpine-poster.printmap.json'));
   await expect(page.getByRole('button', { name: 'Alpine poster' })).toBeVisible();
   await expect(page.getByRole('status', { name: 'Project file status' })).toContainText('Edit history was reset');
-  await expect(page.getByRole('button', { name: 'Open' })).toBeFocused();
+  await expect(page.locator('.project-title')).toBeFocused();
 });
 
 test('imports supported GeoJSON as one undoable editable layer batch', async ({ page }) => {

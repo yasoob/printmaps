@@ -99,7 +99,8 @@ test('bundled administrative regions merge without an internal border and retain
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-appearance', /admin-at-3-at-9:[^|]*:true/);
 
   const savePromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await page.locator('.project-title').click();
+  await page.getByRole('menuitem', { name: 'Download project', exact: true }).click();
   const save = await savePromise;
   const savePath = testInfo.outputPath('administrative-area.printmap.json');
   await save.saveAs(savePath);
@@ -174,7 +175,8 @@ test('Tyrol keeps both disconnected parts through live map, save, and layered SV
   }
 
   const savePromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await page.locator('.project-title').click();
+  await page.getByRole('menuitem', { name: 'Download project', exact: true }).click();
   const save = await savePromise;
   const savePath = testInfo.outputPath('tyrol.printmap.json');
   await save.saveAs(savePath);
