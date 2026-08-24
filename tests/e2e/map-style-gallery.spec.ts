@@ -28,13 +28,7 @@ test('chooses original map presets through the responsive thumbnail gallery', as
     return { complete: image.complete, height: image.naturalHeight, width: image.naturalWidth };
   }));
   expect(thumbnailMetrics).toEqual(Array.from({ length: 12 }, () => ({ complete: true, height: 144, width: 216 })));
-  const filterHeights = await page.getByRole('toolbar', { name: 'Map style theme families' }).getByRole('button').evaluateAll(
-    (buttons) => buttons.map((button) => button.getBoundingClientRect().height),
-  );
-  expect(Math.min(...filterHeights)).toBeGreaterThanOrEqual(32);
 
-  await page.getByRole('button', { name: 'Dark theme' }).click();
-  await expect(gallery.getByRole('radio')).toHaveCount(2);
   const nightInk = gallery.getByRole('radio', { name: /^Night Ink:/ });
   const blueprint = gallery.getByRole('radio', { name: /^Blueprint:/ });
   await nightInk.focus();
@@ -81,10 +75,6 @@ test('chooses original map presets through the responsive thumbnail gallery', as
   expect(await gallery.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(2);
   expect(await page.evaluate(() => document.body.scrollWidth - innerWidth)).toBe(0);
   expect(await propertiesDialog.evaluate((element) => element.scrollWidth - element.clientWidth)).toBe(0);
-  const mobileFilterHeights = await page.getByRole('toolbar', { name: 'Map style theme families' }).getByRole('button').evaluateAll(
-    (buttons) => buttons.map((button) => button.getBoundingClientRect().height),
-  );
-  expect(Math.min(...mobileFilterHeights)).toBeGreaterThanOrEqual(44);
   if (testInfo.project.name === 'chromium') await page.screenshot({ path: 'docs/screenshots/latest-mobile.png' });
   expect(consoleProblems).toEqual([]);
 });

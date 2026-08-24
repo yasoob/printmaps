@@ -17,9 +17,8 @@ Print Map Studio will provide an original visual preset gallery built entirely o
 
 ### Information architecture
 
-1. **Theme family filter** — a small intent-level grouping: Minimal, Editorial, Dark, Soft, Natural, Playful.
-2. **Map style cards** — actual canonical presets saved in the project and used by live rendering and print export.
-3. **Advanced map details** — existing language, text scale, and feature visibility remain independent controls below the gallery.
+1. **Map style cards** — actual canonical presets saved in the project and used by live rendering and print export, presented directly as previews without a separate textual family-filter row.
+2. **Advanced map details** — existing language, text scale, and feature visibility remain independent controls below the gallery.
 
 The gallery uses a 3-column desktop / 2-column mobile grid. Cards contain deterministic first-party thumbnails, an original preset name, and an accessible selected state. Unselected cards remain visually quiet; the selected card uses one dark outline/check. The grid must not create live MapLibre instances.
 
@@ -65,7 +64,7 @@ These are Print Map Studio concepts, not copies of external style names or palet
 - Implement one preset registry with stable IDs, family, label, description, semantic tokens, and thumbnail path.
 - Compile preset JSON from one same-origin base style at development/build time; generated styles remain deterministic and committed or hash-verified.
 - Generate all thumbnails from the same representative Vienna center/zoom, viewport, language, and visibility state. Commit bounded WebP/PNG thumbnails; do not fetch Mapiful previews at runtime.
-- Provide one shared attribution adjacent to the preview gallery for the underlying open map data.
+- Preview thumbnails do not repeat attribution in the inspector. The live map remains the visible source-attribution surface, while exports retain mandatory attribution according to their existing contract.
 - Keep thumbnail generation out of normal client startup and out of every test run.
 
 ## Interaction and persistence

@@ -1,20 +1,6 @@
 import { Check } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
-import {
-  MAP_STYLE_PRESETS,
-  type MapStyleFamily,
-  type MapStylePreset,
-} from '../../domain/mapStylePresets';
-
-const MAP_STYLE_FAMILIES: readonly { id: 'all' | MapStyleFamily; label: string }[] = [
-  { id: 'all', label: 'All' },
-  { id: 'minimal', label: 'Minimal' },
-  { id: 'editorial', label: 'Editorial' },
-  { id: 'dark', label: 'Dark' },
-  { id: 'soft', label: 'Soft' },
-  { id: 'natural', label: 'Natural' },
-  { id: 'playful', label: 'Playful' },
-];
+import { useRef } from 'react';
+import { MAP_STYLE_PRESETS, type MapStylePreset } from '../../domain/mapStylePresets';
 
 type MapStyleGalleryProps = {
   selectedPreset: MapStylePreset;
@@ -22,14 +8,9 @@ type MapStyleGalleryProps = {
 };
 
 export function MapStyleGallery({ selectedPreset, onSelect }: MapStyleGalleryProps) {
-  const [family, setFamily] = useState<'all' | MapStyleFamily>('all');
   const cardRefs = useRef(new Map<MapStylePreset, HTMLButtonElement>());
-  const visiblePresets = useMemo(() => (
-    family === 'all' ? MAP_STYLE_PRESETS : MAP_STYLE_PRESETS.filter((preset) => preset.family === family)
-  ), [family]);
-  const tabStop = visiblePresets.some(({ id }) => id === selectedPreset)
-    ? selectedPreset
-    : visiblePresets[0]?.id;
+  const visiblePresets = MAP_STYLE_PRESETS;
+  const tabStop = selectedPreset;
 
   const moveFocus = (currentIndex: number, direction: 'first' | 'last' | number) => {
     let nextIndex: number;
@@ -42,19 +23,6 @@ export function MapStyleGallery({ selectedPreset, onSelect }: MapStyleGalleryPro
 
   return (
     <div className="map-style-picker">
-      <div aria-label="Map style theme families" className="map-style-filters" role="toolbar">
-        {MAP_STYLE_FAMILIES.map((option) => (
-          <button
-            key={option.id}
-            aria-label={`${option.label} theme${option.id === 'all' ? 's' : ''}`}
-            aria-pressed={family === option.id}
-            type="button"
-            onClick={() => setFamily(option.id)}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
       <div aria-label="Map style presets" className="map-style-gallery" role="radiogroup">
         {visiblePresets.map((preset, index) => (
           <button
@@ -90,7 +58,6 @@ export function MapStyleGallery({ selectedPreset, onSelect }: MapStyleGalleryPro
           </button>
         ))}
       </div>
-      <p className="map-style-attribution">Preview data © OpenStreetMap contributors · OpenFreeMap</p>
     </div>
   );
 }

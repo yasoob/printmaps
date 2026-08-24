@@ -62,8 +62,8 @@ Use the supplied Felt sidebar as a quality reference for calm density, not as br
 
 Use the Mapiful editor as an interaction reference for making many visual choices approachable, without copying its names, code, thumbnails, tile endpoints, or proprietary assets.
 
-- Separate a small set of curated **theme families** from concrete **map styles**. Theme families organize intent such as Minimal, Editorial, Dark, Soft, Natural, and Playful; style cards are the actual canonical MapLibre presets saved in the project.
-- Replace the narrow style dropdown with an accordion gallery: quiet theme-family filters followed by a responsive 3-column desktop / 2-column mobile grid of visual thumbnails. A selected style uses one clear dark outline/check state; unselected cards remain border-light.
+- Keep the Map style accordion preview-first: show the complete responsive 3-column desktop / 2-column mobile thumbnail grid directly, without a wrapping textual theme-family filter row. A selected style uses one clear dark outline/check state; unselected cards remain border-light. Keep each concise preset name on one ellipsized line and retain the full accessible name/description.
+- Do not repeat source attribution beneath the preset thumbnails; the live map already carries the required visible provider/data attribution. Mandatory attribution remains on the map and in exported artifacts where required.
 - Generate and own every preview from our open OpenFreeMap/OpenMapTiles style pipeline at one deterministic representative location. Do not ship screenshots or requests from Mapiful.
 - Build presets from named semantic tokens—canvas, land, water, parks, buildings, major/minor roads, boundaries, transit, labels, and halos—rather than ad-hoc color substitutions. Validate label contrast and visibility for each preset.
 - Start with a coherent collection of at least 10–12 genuinely distinct presets spanning monochrome, paper, dark, coastal, natural, warm, cool, and expressive treatments. Preserve language, text scale, feature visibility, camera, overlays, persistence, and native/SVG/PDF export when switching.

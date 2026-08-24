@@ -10,17 +10,16 @@ describe('map style preset gallery', () => {
     exportMocks.exporter = null;
   });
 
-  it('filters twelve presets and selects one as a single undoable project change', async () => {
+  it('shows twelve preview-first presets and selects one as a single undoable project change', async () => {
     const user = userEvent.setup();
     render(<App />);
 
     expect(screen.queryByRole('combobox', { name: 'Map style' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('toolbar', { name: 'Map style theme families' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Preview data/)).not.toBeInTheDocument();
     const gallery = screen.getByRole('radiogroup', { name: 'Map style presets' });
     expect(within(gallery).getAllByRole('radio')).toHaveLength(12);
     expect(within(gallery).getByRole('radio', { name: /Paper/ })).toBeChecked();
-
-    await user.click(screen.getByRole('button', { name: 'Dark theme' }));
-    expect(within(gallery).getAllByRole('radio')).toHaveLength(2);
     expect(within(gallery).getByRole('radio', { name: /Night Ink/ })).toBeVisible();
     expect(within(gallery).getByRole('radio', { name: /Blueprint/ })).toBeVisible();
 
