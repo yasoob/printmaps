@@ -5,7 +5,7 @@ test('autosaves to IndexedDB and requires explicit recover or discard choices', 
   await page.goto('/');
   const autosaveStatus = page.getByRole('status', { name: 'Autosave status' });
   await expect(autosaveStatus).toHaveText('Autosave ready');
-  await page.getByRole('combobox', { name: 'Map style' }).selectOption('positron');
+  await page.getByRole('radio', { name: /^Night Ink:/ }).click();
   await page.getByRole('textbox', { name: 'Bearing' }).fill('-20');
   await page.getByRole('textbox', { name: 'Pitch' }).fill('35');
   await page.getByRole('textbox', { name: 'Pitch' }).press('Tab');
@@ -34,13 +34,13 @@ test('autosaves to IndexedDB and requires explicit recover or discard choices', 
   await expect(page.getByRole('button', { name: 'Portrait' })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('textbox', { name: 'Bearing' })).toHaveValue('-20');
   await expect(page.getByRole('textbox', { name: 'Pitch' })).toHaveValue('35');
-  await expect(page.getByRole('combobox', { name: 'Map style' })).toHaveValue('positron');
+  await expect(page.getByRole('radio', { name: /^Night Ink:/ })).toHaveAttribute('aria-checked', 'true');
   await expect(page.getByRole('combobox', { name: 'Map language' })).toHaveValue('de');
   await expect(page.getByRole('textbox', { name: 'Text scale' })).toHaveValue('135');
   await expect(page.getByRole('checkbox', { name: 'Show labels' })).not.toBeChecked();
   await expect(page.getByRole('checkbox', { name: 'Show land detail' })).not.toBeChecked();
   const mapCanvas = page.getByTestId('map-canvas');
-  await expect(mapCanvas).toHaveAttribute('data-style-preset', 'positron');
+  await expect(mapCanvas).toHaveAttribute('data-style-preset', 'night-ink');
   if (browserName !== 'firefox') {
     await expect(mapCanvas).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
     await expect(mapCanvas).toHaveAttribute('data-map-text-scale', '135');

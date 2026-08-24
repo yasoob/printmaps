@@ -1,5 +1,6 @@
 import { createDefaultLayerAppearance, type LayerAppearance } from './layerAppearance';
 import type { CustomMarkerAsset } from './customMarkerAssets';
+import { MAP_STYLE_PRESET_LABELS, type MapStylePreset } from './mapStylePresets';
 
 export { createDefaultLayerAppearance } from './layerAppearance';
 export type {
@@ -9,7 +10,7 @@ export type {
   ShapeAppearance,
 } from './layerAppearance';
 
-export const PROJECT_SCHEMA_VERSION = 16 as const;
+export const PROJECT_SCHEMA_VERSION = 17 as const;
 export const MAX_MERCATOR_LATITUDE = 85.051129;
 export const MAX_MAP_ZOOM = 22;
 
@@ -21,7 +22,7 @@ export type LayerType = 'route' | 'poi' | 'shape' | 'basemap';
 export type PageOrientation = 'landscape' | 'portrait';
 export type PagePreset = 'A4' | 'A3' | 'Letter' | 'Custom';
 export type StandardPagePreset = Exclude<PagePreset, 'Custom'>;
-export type MapStylePreset = 'liberty' | 'positron' | 'bright';
+export type { MapStylePreset } from './mapStylePresets';
 export type MapLanguage = 'local' | 'en' | 'de' | 'fr' | 'it' | 'es' | 'zh';
 export type MapFeatureVisibilityCategory = 'roads' | 'buildings' | 'labels' | 'water' | 'parks' | 'landuse' | 'transit';
 export type MapFeatureVisibility = Record<MapFeatureVisibilityCategory, boolean>;
@@ -103,19 +104,14 @@ const createDefaultMapFeatureVisibility = (): MapFeatureVisibility => ({
   transit: true,
 });
 const createDefaultMapStyleSettings = (): MapStyleSettings => ({
-  preset: 'liberty',
+  preset: 'paper',
   language: 'local',
   textScalePercent: 100,
   visibility: createDefaultMapFeatureVisibility(),
 });
 
 export function mapStyleBasemapName(preset: MapStylePreset): string {
-  const names: Record<MapStylePreset, string> = {
-    bright: 'Bright',
-    liberty: 'Liberty',
-    positron: 'Positron',
-  };
-  return `${names[preset]} basemap`;
+  return `${MAP_STYLE_PRESET_LABELS[preset]} basemap`;
 }
 
 export function cloneContentLayer(layer: ContentLayer): ContentLayer {
@@ -197,7 +193,7 @@ const initialLayers: ContentLayer[] = [
       ]],
     },
   },
-  { id: 'basemap', name: 'Liberty basemap', type: 'basemap', visible: true, locked: true, opacity: 100 },
+  { id: 'basemap', name: 'Paper basemap', type: 'basemap', visible: true, locked: true, opacity: 100 },
 ];
 
 export function createInitialProjectDocument(): ProjectDocument {

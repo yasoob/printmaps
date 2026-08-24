@@ -37,7 +37,7 @@ describe('project inspector disclosure', () => {
     expect(page).toHaveAttribute('aria-expanded', 'true');
     expect(page).not.toHaveTextContent('A4 landscape · 297 × 210 mm');
     expect(mapStyle).toHaveAttribute('aria-expanded', 'true');
-    expect(mapStyle).not.toHaveTextContent('Liberty · Local names · 100%');
+    expect(mapStyle).not.toHaveTextContent('Paper · Local names · 100%');
     expect(camera).toHaveAttribute('aria-expanded', 'false');
     expect(camera).toHaveTextContent('0° bearing · 0° pitch · Unlocked');
     expect(details).toHaveAttribute('aria-expanded', 'false');

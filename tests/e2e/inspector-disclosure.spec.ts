@@ -44,7 +44,7 @@ test('project inspector progressively discloses advanced controls on desktop and
   await expect(pageSection).toHaveAttribute('aria-expanded', 'true');
   await expect(pageSection).not.toContainText('A4 landscape · 297 × 210 mm');
   await expect(mapStyle).toHaveAttribute('aria-expanded', 'true');
-  await expect(mapStyle).not.toContainText('Liberty · Local names · 100%');
+  await expect(mapStyle).not.toContainText('Paper · Local names · 100%');
   await expect(camera).toHaveAttribute('aria-expanded', 'false');
   await expect(details).toHaveAttribute('aria-expanded', 'false');
   await expect(page.getByRole('textbox', { name: 'Bearing' })).toHaveCount(0);

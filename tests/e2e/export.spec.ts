@@ -204,7 +204,7 @@ test('layered SVG download embeds the raster basemap and preserves named vector 
   });
   expect(structure.imageHref).toMatch(/^data:image\/png;base64,/);
   expect(structure.groups.map(({ name }) => name)).toEqual([
-    'Liberty basemap',
+    'Paper basemap',
     'Route 01',
     'Coffee stop',
     'City center',

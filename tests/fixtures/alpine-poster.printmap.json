@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 16,
+  "schemaVersion": 17,
   "id": "alpine-poster",
   "title": "Alpine poster",
   "page": {
@@ -16,7 +16,7 @@
     "zoom": 11.2
   },
   "style": {
-    "preset": "liberty",
+    "preset": "paper",
     "language": "local",
     "textScalePercent": 100,
     "visibility": {
@@ -77,7 +77,7 @@
     },
     {
       "id": "basemap",
-      "name": "Liberty basemap",
+      "name": "Paper basemap",
       "type": "basemap",
       "visible": true,
       "locked": true,

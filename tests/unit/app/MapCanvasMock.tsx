@@ -30,7 +30,7 @@ type MapCanvasMockProps = {
 
 export function MapCanvas({
   camera = { bearing: 0, center: [16.3725, 48.2084], locked: false, pitch: 0, zoom: 11.2 },
-  stylePreset = 'liberty',
+  stylePreset = 'paper',
   language = 'local',
   textScalePercent = 100,
   featureVisibility = { roads: true, buildings: true, labels: true, water: true, parks: true, landuse: true, transit: true },

@@ -48,7 +48,7 @@ const resolveMapLanguage = (language?: MapLanguage) => language ?? 'local';
 
 export function MapCanvas({
   camera = { bearing: 0, center: [16.3725, 48.2084], locked: false, pitch: 0, zoom: 11.2 },
-  stylePreset = 'liberty',
+  stylePreset = 'paper',
   language,
   textScalePercent = 100,
   featureVisibility,

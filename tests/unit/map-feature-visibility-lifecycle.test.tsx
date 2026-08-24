@@ -110,7 +110,7 @@ it('applies canonical feature visibility live and again after a style switch', a
     'roads:false,buildings:true,labels:true,water:true,parks:true,landuse:true,transit:true',
   );
 
-  rerender(<MapCanvas {...props} featureVisibility={roadsHidden} stylePreset="positron" />);
+  rerender(<MapCanvas {...props} featureVisibility={roadsHidden} stylePreset="night-ink" />);
   await waitFor(() => expect(mocks.visibilityUpdates).toContainEqual([1, 'road-primary', 'none']));
 });
 

@@ -2,11 +2,11 @@ import { createInitialProjectDocument } from '../../src/domain/project';
 import { parseProjectFileText } from '../../src/domain/projectFile';
 
 describe('portable project validation', () => {
-  it('rejects the obsolete schema-15 format with a reset-oriented message', () => {
-    const obsolete = { ...createInitialProjectDocument(), schemaVersion: 15 };
+  it('rejects the obsolete schema-16 format with a reset-oriented message', () => {
+    const obsolete = { ...createInitialProjectDocument(), schemaVersion: 16 };
 
     expect(() => parseProjectFileText(JSON.stringify(obsolete))).toThrow(
-      'Schema version 15 is obsolete. Start a new project or reopen a current Print Map Studio file.',
+      'Schema version 16 is obsolete. Start a new project or reopen a current Print Map Studio file.',
     );
   });
 
@@ -57,7 +57,7 @@ describe('portable project validation', () => {
 
   it('preserves a current portable project custom basemap layer name', () => {
     const source = createInitialProjectDocument();
-    source.style = { ...source.style, preset: 'positron', textScalePercent: 100 };
+    source.style = { ...source.style, preset: 'night-ink', textScalePercent: 100 };
     const basemap = source.layers.find((layer) => layer.type === 'basemap');
     if (!basemap) throw new Error('Expected fixture basemap.');
     basemap.name = 'Client reference map';
@@ -162,7 +162,7 @@ describe('portable project validation', () => {
     ['an unsupported map style', JSON.stringify({
       ...createInitialProjectDocument(),
       style: { preset: 'satellite' },
-    }), 'Map style preset must be liberty, positron, or bright'],
+    }), 'Map style preset is not supported by this version of Print Map Studio'],
     ['an unsupported map language', JSON.stringify({
       ...createInitialProjectDocument(),
       style: { ...createInitialProjectDocument().style, language: 'klingon' },

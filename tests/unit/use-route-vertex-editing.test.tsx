@@ -51,7 +51,7 @@ describe('route vertex editing focus lifecycle', () => {
       map,
       onRouteVertexChange,
       selectedId,
-      stylePreset: 'liberty',
+      stylePreset: 'paper',
     }), { initialProps: { layers: routeLayers(), selectedId: 'route-01' } as HookProps });
     focusedRouteHandle(1);
 
@@ -66,7 +66,7 @@ describe('route vertex editing focus lifecycle', () => {
       map,
       onRouteVertexChange,
       selectedId,
-      stylePreset: 'liberty',
+      stylePreset: 'paper',
     }), { initialProps: { layers: routeLayers(), selectedId: 'route-01' } as HookProps });
     focusedRouteHandle(2);
 

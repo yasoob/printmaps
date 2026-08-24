@@ -262,7 +262,7 @@ describe('MapCanvas camera synchronization', () => {
     rerender(<MapCanvas {...baseProps} selectedId={null} camera={updatedCamera} />);
     const updatedJump = { bearing: 35, center: updatedCamera.center, pitch: 40, zoom: 11.2 };
     await waitFor(() => expect(mocks.mapJumpTo).toHaveBeenLastCalledWith(updatedJump)); const cameraSyncCalls = mocks.mapJumpTo.mock.calls.length;
-    rerender(<MapCanvas {...baseProps} selectedId={null} camera={updatedCamera} stylePreset="positron" />);
+    rerender(<MapCanvas {...baseProps} selectedId={null} camera={updatedCamera} stylePreset="night-ink" />);
     await waitFor(() => expect(mocks.adapterSync).toHaveBeenCalledTimes(2));
     expect(mocks.mapJumpTo).toHaveBeenCalledTimes(cameraSyncCalls + 1); expect(mocks.mapJumpTo).toHaveBeenLastCalledWith(updatedJump);
     rerender(<MapCanvas {...baseProps} selectedId={null} camera={updatedCamera} fitRequest={1} />);
@@ -288,7 +288,7 @@ describe('MapCanvas camera synchronization', () => {
   it('creates every style lifecycle at the canonical viewport', async () => {
     const camera = { bearing: 35, center: [11.34, 47.31] as [number, number], locked: false, pitch: 40, zoom: 13.5 }; const { rerender } = render(<MapCanvas {...baseProps} selectedId={null} camera={camera} />);
     await waitFor(() => expect(mocks.adapterSync).toHaveBeenCalledTimes(1));
-    rerender(<MapCanvas {...baseProps} selectedId={null} camera={camera} stylePreset="positron" />);
+    rerender(<MapCanvas {...baseProps} selectedId={null} camera={camera} stylePreset="night-ink" />);
     await waitFor(() => expect(mocks.adapterSync).toHaveBeenCalledTimes(2));
     expect(mocks.mapCreateOptions).toHaveLength(2); expect(mocks.mapCreateOptions).toEqual([
       expect.objectContaining({ bearing: 35, center: [11.34, 47.31], pitch: 40, zoom: 13.5 }),

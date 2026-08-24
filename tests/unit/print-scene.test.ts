@@ -44,7 +44,7 @@ describe('layered SVG print scene', () => {
 
     const groups = [...svg.children].filter((child) => child.localName === 'g') as SVGElement[];
     expect(groups.map((group) => group.dataset.layerName)).toEqual([
-      'Liberty basemap',
+      'Paper basemap',
       'Route 01',
       'Coffee stop',
       'City center',

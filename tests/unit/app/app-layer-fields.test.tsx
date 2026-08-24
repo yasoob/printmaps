@@ -28,7 +28,7 @@ describe('editor layer fields', () => {
     const user = userEvent.setup();
     render(<App />);
 
-    for (const layerName of ['Route 01', 'Coffee stop', 'City center', 'Liberty basemap']) {
+    for (const layerName of ['Route 01', 'Coffee stop', 'City center', 'Paper basemap']) {
       await user.click(screen.getByRole('button', { name: `Select ${layerName}` }));
       await user.click(screen.getByRole('button', { name: 'Layer menu' }));
       await user.click(screen.getByRole('menuitem', { name: 'Delete layer' }));

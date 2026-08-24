@@ -17,7 +17,7 @@ test('desktop editor switches between project and layer properties', async ({ pa
       consoleProblems.push(message.text());
     }
   });
-  await page.route('**/styles/positron.json', async (route) => {
+  await page.route('**/styles/night-ink.json', async (route) => {
     await positronStyleGate;
     await route.continue();
   });
@@ -45,11 +45,11 @@ test('desktop editor switches between project and layer properties', async ({ pa
     await page.getByRole('textbox', { name: 'Pitch' }).press('Tab');
     await page.getByRole('textbox', { name: 'Text scale' }).fill('125');
     await page.getByRole('checkbox', { name: 'Show roads' }).uncheck();
-    const style = page.getByRole('combobox', { name: 'Map style' });
+    const style = page.getByRole('radio', { name: /^Night Ink:/ });
     await style.focus();
-    await style.selectOption('positron');
+    await style.click();
     const map = page.getByTestId('map-canvas');
-    await expect(map).toHaveAttribute('data-style-preset', 'positron');
+    await expect(map).toHaveAttribute('data-style-preset', 'night-ink');
     await expect(map).not.toHaveAttribute('data-map-ready', 'true');
     releasePositronStyle();
     await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
@@ -183,7 +183,7 @@ test('browser location centers the map and map-area lock gates movement commands
 
 test('style loading failure shows a recoverable map status', async ({ page, browserName }) => {
   test.skip(browserName === 'firefox', 'Firefox fixture intentionally exercises the WebGL fallback path.');
-  await page.route('**/styles/liberty.json', (route) => route.abort());
+  await page.route('**/styles/paper.json', (route) => route.abort());
 
   await page.goto('/');
 
@@ -194,24 +194,24 @@ test('style loading failure shows a recoverable map status', async ({ page, brow
 
 test('switches open map styles and recovers after a selected style fails', async ({ page, browserName }) => {
   test.skip(browserName === 'firefox', 'Firefox fixture intentionally exercises the WebGL fallback path.');
-  await page.route('**/styles/positron.json', (route) => route.abort());
+  await page.route('**/styles/night-ink.json', (route) => route.abort());
   await page.goto('/');
   await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
-  const style = page.getByRole('combobox', { name: 'Map style' });
+  const style = page.getByRole('radio', { name: /^Night Ink:/ });
 
-  await style.selectOption('positron');
+  await style.click();
 
-  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-style-preset', 'positron');
+  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-style-preset', 'night-ink');
   await expect(page.getByLabel('Map canvas').getByRole('status')).toContainText('map style could not be loaded', { ignoreCase: true });
 
-  await style.selectOption('liberty');
+  await page.getByRole('radio', { name: /^Paper:/ }).click();
 
-  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-style-preset', 'liberty');
+  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-style-preset', 'paper');
   await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
   await expect(page.getByLabel('Map canvas').getByRole('status')).not.toBeVisible();
 });
 
-test('applies Bright, translated labels, and expanded map detail controls', async ({ page, browserName }) => {
+test('applies Coastal, translated labels, and expanded map detail controls', async ({ page, browserName }) => {
   test.skip(browserName === 'firefox', 'Firefox fixture intentionally exercises the WebGL fallback path.');
   const consoleProblems: string[] = [];
   page.on('pageerror', (error) => { consoleProblems.push(error.message); });
@@ -224,8 +224,8 @@ test('applies Bright, translated labels, and expanded map detail controls', asyn
   const map = page.getByTestId('map-canvas');
   await expect(map).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
 
-  await page.getByRole('combobox', { name: 'Map style' }).selectOption('bright');
-  await expect(map).toHaveAttribute('data-style-preset', 'bright');
+  await page.getByRole('radio', { name: /^Coastal:/ }).click();
+  await expect(map).toHaveAttribute('data-style-preset', 'coastal');
   await expect(map).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
   await page.getByRole('combobox', { name: 'Map language' }).selectOption('de');
   await page.getByRole('checkbox', { name: 'Show water' }).uncheck();
@@ -236,6 +236,6 @@ test('applies Bright, translated labels, and expanded map detail controls', asyn
   await expect(map).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
   await expect(map).toHaveAttribute('data-map-language', 'de');
   await expect(map).toHaveAttribute('data-map-feature-visibility', 'roads:true,buildings:true,labels:true,water:false,parks:false,landuse:false,transit:false');
-  await expect(page.getByRole('button', { name: 'Select Bright basemap' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Select Coastal basemap' })).toBeVisible();
   expect(consoleProblems).toEqual([]);
 });

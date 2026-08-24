@@ -14,6 +14,7 @@ import { parseProjectCamera } from './projectCamera';
 import { parseLayerAppearance, type LayerAppearance } from './layerAppearance';
 import type { CustomMarkerAsset } from './customMarkerAssets';
 import { parseProjectAssets } from './projectAssets';
+import { MAP_STYLE_PRESETS as MAP_STYLE_PRESET_DEFINITIONS } from './mapStylePresets';
 
 export const MAX_PROJECT_FILE_BYTES = 10 * 1024 * 1024;
 export const MAX_PROJECT_LAYERS = 1000;
@@ -21,7 +22,7 @@ export const MAX_PROJECT_COORDINATES = 200_000;
 const LAYER_TYPES = new Set<LayerType>(['route', 'poi', 'shape', 'basemap']);
 const PAGE_PRESETS = new Set<PagePreset>(['A4', 'A3', 'Letter', 'Custom']);
 const PAGE_ORIENTATIONS = new Set<PageOrientation>(['landscape', 'portrait']);
-const MAP_STYLE_PRESETS = new Set<MapStylePreset>(['liberty', 'positron', 'bright']);
+const MAP_STYLE_PRESETS = new Set<MapStylePreset>(MAP_STYLE_PRESET_DEFINITIONS.map(({ id }) => id));
 const MAP_LANGUAGES = new Set<MapLanguage>(['local', 'en', 'de', 'fr', 'it', 'es', 'zh']);
 type JsonObject = Record<string, unknown>;
 
@@ -205,7 +206,7 @@ function pageAt(value: unknown): ProjectDocument['page'] {
 function styleAt(value: unknown): ProjectDocument['style'] {
   const style = objectAt(value, 'Project style');
   if (typeof style.preset !== 'string' || !MAP_STYLE_PRESETS.has(style.preset as MapStylePreset)) {
-    throw new ProjectFileError('Map style preset must be liberty, positron, or bright.');
+    throw new ProjectFileError('Map style preset is not supported by this version of Print Map Studio.');
   }
   const preset = style.preset as MapStylePreset;
   if (typeof style.language !== 'string' || !MAP_LANGUAGES.has(style.language as MapLanguage)) {
@@ -233,7 +234,7 @@ function currentDocumentAt(value: unknown): ProjectDocument {
   const root = objectAt(value, 'Project file');
   const schemaVersion = root.schemaVersion;
   if (!isCurrentSchemaVersion(schemaVersion)) {
-    if (typeof schemaVersion === 'number' && schemaVersion >= 1 && schemaVersion <= 15) {
+    if (typeof schemaVersion === 'number' && schemaVersion >= 1 && schemaVersion <= 16) {
       throw new ProjectFileError(
         `Schema version ${schemaVersion} is obsolete. Start a new project or reopen a current Print Map Studio file.`,
       );

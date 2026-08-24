@@ -15,7 +15,7 @@ describe('editor page settings and tools', () => {
     render(<App />);
 
     expect(screen.getByRole('combobox', { name: 'Page preset' })).toBeInTheDocument();
-    expect(screen.getByRole('combobox', { name: 'Map style' })).toBeInTheDocument();
+    expect(screen.getByRole('radiogroup', { name: 'Map style presets' })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Bearing' })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Pitch' })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Text scale' })).toBeInTheDocument();
@@ -100,40 +100,33 @@ describe('editor map style controls', () => {
   it('applies a canonical open map style as one undoable change', async () => {
     const user = userEvent.setup();
     render(<App />);
-    const style = screen.getByRole('combobox', { name: 'Map style' });
     const map = screen.getByTestId('map-canvas');
 
-    await user.selectOptions(style, 'positron');
+    await user.click(screen.getByRole('radio', { name: /Night Ink/ }));
 
-    expect(style).toHaveValue('positron');
-    expect(map).toHaveAttribute('data-style-preset', 'positron');
-    expect(screen.getByRole('button', { name: 'Select Positron basemap' })).toBeInTheDocument();
+    expect(map).toHaveAttribute('data-style-preset', 'night-ink');
+    expect(screen.getByRole('button', { name: 'Select Night Ink basemap' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Undo' })).toBeEnabled();
 
     await user.click(screen.getByRole('button', { name: 'Undo' }));
-    expect(style).toHaveValue('liberty');
-    expect(map).toHaveAttribute('data-style-preset', 'liberty');
-    expect(screen.getByRole('button', { name: 'Select Liberty basemap' })).toBeInTheDocument();
+    expect(map).toHaveAttribute('data-style-preset', 'paper');
+    expect(screen.getByRole('button', { name: 'Select Paper basemap' })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Redo' }));
-    expect(style).toHaveValue('positron');
-    expect(map).toHaveAttribute('data-style-preset', 'positron');
+    expect(map).toHaveAttribute('data-style-preset', 'night-ink');
   });
 
-  it('offers the Bright open style as a canonical undoable preset', async () => {
+  it('offers the Coastal open style as a canonical undoable preset', async () => {
     const user = userEvent.setup();
     render(<App />);
-    const style = screen.getByRole('combobox', { name: 'Map style' });
     const map = screen.getByTestId('map-canvas');
 
-    await user.selectOptions(style, 'bright');
+    await user.click(screen.getByRole('radio', { name: /Coastal/ }));
 
-    expect(style).toHaveValue('bright');
-    expect(map).toHaveAttribute('data-style-preset', 'bright');
-    expect(screen.getByRole('button', { name: 'Select Bright basemap' })).toBeInTheDocument();
+    expect(map).toHaveAttribute('data-style-preset', 'coastal');
+    expect(screen.getByRole('button', { name: 'Select Coastal basemap' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Undo' }));
-    expect(style).toHaveValue('liberty');
-    expect(map).toHaveAttribute('data-style-preset', 'liberty');
+    expect(map).toHaveAttribute('data-style-preset', 'paper');
   });
 
   it('changes the canonical map language as one undoable edit', async () => {

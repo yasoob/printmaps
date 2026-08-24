@@ -9,10 +9,10 @@ describe('project store map style history', () => {
     basemap.name = 'Client reference map';
     const store = createProjectStore(document);
 
-    store.getState().setMapStyle('positron');
+    store.getState().setMapStyle('night-ink');
 
     expect(store.getState().document.layers.find((layer) => layer.type === 'basemap')?.name)
       .toBe('Client reference map');
-    expect(store.getState().document.style.preset).toBe('positron');
+    expect(store.getState().document.style.preset).toBe('night-ink');
   });
 });

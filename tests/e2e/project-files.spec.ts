@@ -25,7 +25,7 @@ test('Download project saves the current portable versioned JSON', async ({ cont
   await page.getByRole('checkbox', { name: 'Show roads' }).uncheck();
   await page.getByRole('checkbox', { name: 'Show water' }).uncheck();
   await page.getByRole('button', { name: 'Portrait' }).click();
-  await page.getByRole('combobox', { name: 'Map style' }).selectOption('positron');
+  await page.getByRole('radio', { name: /^Night Ink:/ }).click();
   await page.getByRole('combobox', { name: 'Map language' }).selectOption('de');
 
   const downloadPromise = page.waitForEvent('download');
@@ -38,13 +38,13 @@ test('Download project saves the current portable versioned JSON', async ({ cont
   await download.saveAs(outputPath);
   const savedProject = JSON.parse(await readFile(outputPath, 'utf8'));
   expect(savedProject).toMatchObject({
-    schemaVersion: 16,
+    schemaVersion: 17,
     id: 'vienna-field-guide',
     title: 'Vienna field guide',
     page: { preset: 'A4', widthMm: 210, heightMm: 297, orientation: 'portrait' },
     camera: { bearing: 35, center: [16.41, 48.23], locked: false, pitch: 40, zoom: 14 },
     style: {
-      preset: 'positron',
+      preset: 'night-ink',
       language: 'de',
       textScalePercent: 125,
       visibility: { roads: false, buildings: true, labels: true, water: false, parks: true, landuse: true, transit: true },
@@ -91,7 +91,7 @@ test('Download project archive is deterministic and Open project restores a fres
     assets: [],
   });
   expect(JSON.parse(strFromU8(entries['project.printmap.json']))).toMatchObject({
-    schemaVersion: 16,
+    schemaVersion: 17,
     camera: { bearing: 35, center: [16.3725, 48.2084], locked: false, pitch: 0, zoom: 11.2 },
     style: {
       language: 'local',
@@ -122,12 +122,12 @@ test('opens a validated portable project as a focused fresh history root', async
   const alpineProject = JSON.parse(await readFile(path.resolve('tests/fixtures/alpine-poster.printmap.json'), 'utf8'));
   alpineProject.camera = { bearing: -20, center: [11.34, 47.31], locked: true, pitch: 35, zoom: 13.5 };
   alpineProject.style = {
-    preset: 'positron',
+    preset: 'night-ink',
     language: 'de',
     textScalePercent: 150,
     visibility: { roads: false, buildings: true, labels: false, water: false, parks: true, landuse: true, transit: true },
   };
-  alpineProject.layers.find((layer: { type: string }) => layer.type === 'basemap').name = 'Positron basemap';
+  alpineProject.layers.find((layer: { type: string }) => layer.type === 'basemap').name = 'Night Ink basemap';
 
   const chooserPromise = page.waitForEvent('filechooser');
   const fileMenu = await openProjectFileMenu(page);
@@ -142,21 +142,21 @@ test('opens a validated portable project as a focused fresh history root', async
   await expect(page.getByRole('button', { name: 'Alpine poster' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Project' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Select Summit route' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Select Positron basemap' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Select Night Ink basemap' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Select Route 01' })).not.toBeVisible();
   await expect(page.getByRole('textbox', { name: 'Page width' })).toHaveValue('297');
   await expect(page.getByRole('textbox', { name: 'Page height' })).toHaveValue('420');
   await expect(page.getByRole('textbox', { name: 'Bearing' })).toHaveValue('-20');
   await expect(page.getByRole('textbox', { name: 'Pitch' })).toHaveValue('35');
   await expect(page.getByRole('switch', { name: 'Lock map area' })).toBeChecked();
-  await expect(page.getByRole('combobox', { name: 'Map style' })).toHaveValue('positron');
+  await expect(page.getByRole('radio', { name: /^Night Ink:/ })).toHaveAttribute('aria-checked', 'true');
   await expect(page.getByRole('combobox', { name: 'Map language' })).toHaveValue('de');
   await expect(page.getByRole('textbox', { name: 'Text scale' })).toHaveValue('150');
   await expect(page.getByRole('checkbox', { name: 'Show roads' })).not.toBeChecked();
   await expect(page.getByRole('checkbox', { name: 'Show buildings' })).toBeChecked();
   await expect(page.getByRole('checkbox', { name: 'Show labels' })).not.toBeChecked();
   await expect(page.getByRole('checkbox', { name: 'Show water' })).not.toBeChecked();
-  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-style-preset', 'positron');
+  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-style-preset', 'night-ink');
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-center', '11.34,47.31');
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-zoom', '13.5');
   if (browserName !== 'firefox') {

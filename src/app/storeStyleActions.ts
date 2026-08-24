@@ -1,13 +1,10 @@
 import type { ProjectState } from './store';
 import { mapStyleBasemapName } from '../domain/project';
+import { MAP_STYLE_PRESETS } from '../domain/mapStylePresets';
 import { commitDocument, type ProjectSet } from './storeDocument';
 
 type StyleActions = Pick<ProjectState, 'setMapFeatureVisibility' | 'setMapLanguage' | 'setMapStyle' | 'setMapTextScale'>;
-const GENERATED_BASEMAP_NAMES = new Set([
-  mapStyleBasemapName('liberty'),
-  mapStyleBasemapName('positron'),
-  mapStyleBasemapName('bright'),
-]);
+const GENERATED_BASEMAP_NAMES = new Set(MAP_STYLE_PRESETS.map(({ id }) => mapStyleBasemapName(id)));
 
 export function createStyleActions(set: ProjectSet): StyleActions {
   return {

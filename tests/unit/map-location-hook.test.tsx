@@ -14,10 +14,10 @@ it('consumes a location request once instead of replaying it after a style chang
     locationRequest: request,
     map: mapReference as never,
     stylePreset,
-  }), { initialProps: { stylePreset: 'liberty' } });
+  }), { initialProps: { stylePreset: 'paper' } });
 
   expect(easeTo).toHaveBeenCalledOnce();
-  view.rerender({ stylePreset: 'positron' });
+  view.rerender({ stylePreset: 'night-ink' });
   expect(easeTo).toHaveBeenCalledOnce();
   expect(request.onApplied).toHaveBeenCalledOnce();
 });
@@ -31,7 +31,7 @@ it('accepts request one again after the project scope changes', () => {
     container,
     locationRequest: { coordinate: [16.4, 48.2], request: 1, scope },
     map: mapReference as never,
-    stylePreset: 'liberty',
+    stylePreset: 'paper',
   }), { initialProps: { scope: 1 } });
 
   expect(easeTo).toHaveBeenCalledOnce();
@@ -47,7 +47,7 @@ it('does not acknowledge a non-Mercator location request', () => {
     container: createRef<HTMLDivElement>(),
     locationRequest: { coordinate: [16.4, 86], onApplied, request: 1 },
     map: mapReference as never,
-    stylePreset: 'liberty',
+    stylePreset: 'paper',
   }));
 
   expect(easeTo).not.toHaveBeenCalled(); expect(onApplied).not.toHaveBeenCalled();
