@@ -23,14 +23,13 @@ const DOWNLOAD_LABEL: Record<ExportFormat, string> = {
   pdf: 'Download PDF',
 };
 
-function downloadLabel(format: ExportFormat, delivery: RasterDelivery): string {
-  if (format === 'png' && delivery === 'tile-package') return 'Save tile package';
+function downloadLabel(format: ExportFormat): string {
   return DOWNLOAD_LABEL[format];
 }
 
-function canDownload(format: ExportFormat, delivery: RasterDelivery, preflight: ExportPreflight, canStreamPackage: boolean): boolean {
+function canDownload(format: ExportFormat, delivery: RasterDelivery, preflight: ExportPreflight, canStreamLargePng: boolean): boolean {
   if (format !== 'png') return true;
-  return preflight.safe && (delivery !== 'tile-package' || canStreamPackage);
+  return preflight.safe && (delivery !== 'streaming-png' || canStreamLargePng);
 }
 
 function formatBytes(bytes: number): string {
@@ -93,8 +92,8 @@ function ExportOutputSummary({ document, preflight, selectedFormat }: Readonly<{
     <section className="export-output-summary" aria-labelledby="export-output-title">
       <span id="export-output-title">Output</span>
       {preflight.dimensions && <strong>{preflight.dimensions.widthPx} × {preflight.dimensions.heightPx} px — 300 DPI pixel target</strong>}
-      {preflight.delivery === 'tile-package' ? (
-        <p>{pageLabel} · Streamed ZIP of independently valid PNG tiles plus an assembly manifest; not a single PNG.</p>
+      {preflight.delivery === 'streaming-png' ? (
+        <p>{pageLabel} · Rendered in bounded regions and streamed into one PNG file.</p>
       ) : <p>{pageLabel} · Native-detail PNG</p>}
     </section>
   );
@@ -107,41 +106,18 @@ function ExportOutputSummary({ document, preflight, selectedFormat }: Readonly<{
   );
 }
 
-function RasterDeliveryChoice({ busy, delivery, onChange }: Readonly<{
-  busy: boolean;
+function StreamingPngNotice({ delivery, canStreamLargePng, selectedFormat }: Readonly<{
   delivery: RasterDelivery;
-  onChange: (delivery: RasterDelivery) => void;
-}>) {
-  return (
-    <div className="export-format-group" role="radiogroup" aria-label="Raster output delivery">
-      <button type="button" role="radio" aria-checked={delivery === 'single-png'} disabled={busy} onClick={() => onChange('single-png')}>
-        <span>Single PNG</span><small>One canvas-backed image for ordinary output sizes</small>
-      </button>
-      <button type="button" role="radio" aria-checked={delivery === 'tile-package'} disabled={busy} onClick={() => onChange('tile-package')}>
-        <span>Large-output tile package</span><small>Streamed ZIP of assembly-ready PNG tiles</small>
-      </button>
-    </div>
-  );
-}
-
-function RasterDeliverySection({ busy, delivery, onChange, canStreamPackage, selectedFormat }: Readonly<{
-  busy: boolean;
-  delivery: RasterDelivery;
-  onChange: (delivery: RasterDelivery) => void;
-  canStreamPackage: boolean;
+  canStreamLargePng: boolean;
   selectedFormat: ExportFormat;
 }>) {
-  if (selectedFormat !== 'png') return null;
+  if (selectedFormat !== 'png' || delivery !== 'streaming-png') return null;
+  if (canStreamLargePng) return null;
   return (
-    <>
-      <RasterDeliveryChoice busy={busy} delivery={delivery} onChange={onChange} />
-      {delivery === 'tile-package' && !canStreamPackage && (
-        <div className="export-error" role="alert">
-          <strong>Large-output package unavailable</strong>
-          <p>Use Chrome or Edge with the File System Access API, or reduce the page size and choose Single PNG.</p>
-        </div>
-      )}
-    </>
+    <div className="export-error" role="alert">
+      <strong>Large single PNG unavailable in this browser</strong>
+      <p>Use Chrome or Edge with the File System Access API, or reduce the page size.</p>
+    </div>
   );
 }
 
@@ -165,7 +141,7 @@ function ExportTechnicalDetails({ busy, expanded, onToggle, preflight, selectedF
           <>
             {preflight.estimates && <p>Estimated peak memory {formatBytes(preflight.estimates.peakBytes)}.</p>}
             <p>PNG physical-resolution metadata is not embedded.</p>
-            <p>The PNG renderer renders each map tile at its target pixel dimensions from the live vector map style instead of enlarging the browser preview.</p>
+            <p>The PNG renderer renders bounded map regions at their target pixel dimensions from the live vector map style instead of enlarging the browser preview.</p>
           </>
         ) : (
           <p>{selectedFormat === 'svg' ? 'Layered SVG' : 'The exact-page PDF'} embeds a raster basemap while route, POI, and shape remain named vector overlays.</p>
@@ -188,7 +164,7 @@ type ExportDialogViewProps = {
   onDownload: () => void;
   onFormatChange: (format: ExportFormat) => void;
   onKeyDown: React.KeyboardEventHandler<HTMLDialogElement>;
-  onRasterDeliveryChange: (delivery: RasterDelivery) => void;
+
   onTechnicalDetailsToggle: () => void;
   preflight: ExportPreflight;
   rasterDelivery: RasterDelivery;
@@ -198,7 +174,7 @@ type ExportDialogViewProps = {
 };
 
 export function ExportDialogView(props: ExportDialogViewProps) {
-  const { busy, cancelButtonRef, dialogRef, document, downloadButtonRef, error, largeRasterSupported, onCancel, onClose, onDownload, onFormatChange, onKeyDown, onRasterDeliveryChange, onTechnicalDetailsToggle, preflight, rasterDelivery, selectedFormat, status, technicalDetailsExpanded } = props;
+  const { busy, cancelButtonRef, dialogRef, document, downloadButtonRef, error, largeRasterSupported, onCancel, onClose, onDownload, onFormatChange, onKeyDown, onTechnicalDetailsToggle, preflight, rasterDelivery, selectedFormat, status, technicalDetailsExpanded } = props;
   const canDownloadSelectedFormat = canDownload(selectedFormat, rasterDelivery, preflight, largeRasterSupported);
   return (
     <div className="export-overlay">
@@ -210,7 +186,7 @@ export function ExportDialogView(props: ExportDialogViewProps) {
         </div>
         <div className="export-dialog-body">
           <ExportFormatChoice busy={busy} onChange={onFormatChange} selectedFormat={selectedFormat} />
-          <RasterDeliverySection busy={busy} canStreamPackage={largeRasterSupported} delivery={rasterDelivery} onChange={onRasterDeliveryChange} selectedFormat={selectedFormat} />
+          <StreamingPngNotice canStreamLargePng={largeRasterSupported} delivery={rasterDelivery} selectedFormat={selectedFormat} />
           <ExportOutputSummary document={document} preflight={preflight} selectedFormat={selectedFormat} />
           <ExportTechnicalDetails busy={busy} expanded={technicalDetailsExpanded} onToggle={onTechnicalDetailsToggle} preflight={preflight} selectedFormat={selectedFormat} />
           {selectedFormat === 'png' && preflight.errors.length > 0 && (
@@ -226,7 +202,7 @@ export function ExportDialogView(props: ExportDialogViewProps) {
         </div>
         <div className="export-dialog-actions">
           <button ref={cancelButtonRef} type="button" onClick={busy ? onCancel : onClose}>{busy ? 'Cancel export' : 'Cancel'}</button>
-          <button ref={downloadButtonRef} className="primary-button" type="button" disabled={busy || !canDownloadSelectedFormat} onClick={onDownload}>{busy ? 'Preparing…' : downloadLabel(selectedFormat, rasterDelivery)}</button>
+          <button ref={downloadButtonRef} className="primary-button" type="button" disabled={busy || !canDownloadSelectedFormat} onClick={onDownload}>{busy ? 'Preparing…' : downloadLabel(selectedFormat)}</button>
         </div>
       </dialog>
     </div>

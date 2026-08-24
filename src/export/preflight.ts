@@ -19,6 +19,7 @@ import {
   type PixelRounding,
 } from './preflightTypes';
 import type { ExportGrid } from './preflightValidation';
+import { planStreamingPngStrips } from './streamingPngPlan';
 
 export { DEFAULT_EXPORT_PREFLIGHT_LIMITS } from './preflightTypes';
 export { getPixelSurfaceAllocationIssue } from './preflightAllocation';
@@ -154,6 +155,21 @@ function createTilePlan(
   };
 }
 
+function validationGrid(
+  request: ExportPreflightRequest,
+  dimensions: NonNullable<ExportPreflightResult['dimensions']>,
+  grid: ExportGrid,
+): ExportGrid {
+  if (request.rasterDelivery !== 'streaming-png') return grid;
+  const maximumContentHeight = Math.min(grid.contentSidePx, dimensions.heightPx);
+  const { stripCount } = planStreamingPngStrips(
+    dimensions.widthPx,
+    dimensions.heightPx,
+    maximumContentHeight,
+  );
+  return { ...grid, rows: stripCount, tileCount: grid.columns * stripCount };
+}
+
 function finishResult(
   request: ExportPreflightRequest,
   state: ResultState,
@@ -218,8 +234,9 @@ export function planExportPreflight(
 
   appendDimensionIssues(dimensions, limits, errors, request.rasterDelivery ?? 'single-png');
   const grid = createExportGrid(widthPx, heightPx, limits);
-  appendTileCountIssue(grid, limits, errors);
-  const memory = estimateMemory(request, dimensions, grid, limits);
+  const checkedGrid = validationGrid(request, dimensions, grid);
+  appendTileCountIssue(checkedGrid, limits, errors);
+  const memory = estimateMemory(request, dimensions, checkedGrid, limits);
   state.estimates = memory.estimates;
   if (memory.issue) errors.push(memory.issue);
   if (state.attributions.length === 0) {
@@ -228,7 +245,7 @@ export function planExportPreflight(
   appendMissingIssues(request, errors);
   state.effectivePpi = appendRasterIssues(request, limits, state.warnings as ExportPreflightIssue[], errors);
   state.cancellation = resolveCancellation(
-    grid.tileCount,
+    checkedGrid.tileCount,
     request.cancellationSupported,
     state.warnings as ExportPreflightIssue[],
     errors,

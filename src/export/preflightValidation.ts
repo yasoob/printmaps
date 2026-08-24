@@ -66,7 +66,7 @@ function isPageOutsideLimits(request: ExportPreflightRequest, limits: ExportPref
   const { widthMm, heightMm } = request.page;
   if ([widthMm, heightMm].some((value) => !Number.isFinite(value))) return false;
   return [widthMm, heightMm].some((value) => value < limits.minPageSideMm
-    || (request.rasterDelivery !== 'tile-package' && value > limits.maxPageSideMm));
+    || (request.rasterDelivery !== 'streaming-png' && value > limits.maxPageSideMm));
 }
 
 export function validateInitialRequest(
@@ -133,11 +133,17 @@ export function appendDimensionIssues(
   delivery: RasterDelivery = 'single-png',
 ): void {
   const { widthPx, heightPx, pixelCount } = dimensions;
-  if (delivery === 'tile-package') {
+  if (delivery === 'streaming-png') {
+    if (widthPx > limits.maxOutputSidePx || heightPx > limits.maxOutputSidePx) {
+      errors.push({
+        code: 'OUTPUT_SIDE_LIMIT_EXCEEDED',
+        message: `Streamed PNG sides may not exceed ${limits.maxOutputSidePx} pixels.`,
+      });
+    }
     if (widthPx > 0x7F_FF_FF_FF || heightPx > 0x7F_FF_FF_FF) {
       errors.push({
         code: 'PNG_DIMENSION_LIMIT_EXCEEDED',
-        message: 'Assembled PNG dimensions may not exceed 2,147,483,647 pixels per side.',
+        message: 'Streamed PNG dimensions may not exceed 2,147,483,647 pixels per side.',
       });
     }
     return;

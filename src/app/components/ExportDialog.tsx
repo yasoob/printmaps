@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ProjectDocument } from '../../domain/project';
 import { projectAttributions } from '../../domain/projectAttributions';
 import { createLayeredSvg, startLayeredSvgDownload } from '../../export/layeredSvg';
-import { canStreamLargeRasterPackage } from '../../export/largeRasterPackage';
+import { canStreamLargeRasterPng } from '../../export/largeRasterPng';
 import { planExportPreflight, type RasterDelivery } from '../../export/preflight';
 import { createPrintPdf, startPrintPdfDownload } from '../../export/printPdf';
 import type { PreviewPngExporter } from '../../export/previewPng';
@@ -33,19 +33,29 @@ function trapDialogFocus(event: React.KeyboardEvent<HTMLDialogElement>, dialog: 
   }
 }
 
-function useExportPreflight(document: ProjectDocument, rasterDelivery: RasterDelivery) {
-  return useMemo(() => planExportPreflight({
-    format: 'png',
-    page: { widthMm: document.page.widthMm, heightMm: document.page.heightMm },
-    dpi: 300,
-    attributions: projectAttributions(document),
-    basemap: 'raster',
-    vectorOverlays: true,
-    missing: {},
-    rasterLayers: [],
-    cancellationSupported: true,
-    rasterDelivery,
-  }), [document, rasterDelivery]);
+function useExportPreflight(document: ProjectDocument): Readonly<{
+  preflight: ReturnType<typeof planExportPreflight>;
+  rasterDelivery: RasterDelivery;
+}> {
+  return useMemo(() => {
+    const request = {
+      format: 'png' as const,
+      page: { widthMm: document.page.widthMm, heightMm: document.page.heightMm },
+      dpi: 300,
+      attributions: projectAttributions(document),
+      basemap: 'raster' as const,
+      vectorOverlays: true,
+      missing: {},
+      rasterLayers: [],
+      cancellationSupported: true,
+    };
+    const single = planExportPreflight({ ...request, rasterDelivery: 'single-png' });
+    if (single.safe) return { preflight: single, rasterDelivery: 'single-png' };
+    const streaming = planExportPreflight({ ...request, rasterDelivery: 'streaming-png' });
+    return streaming.safe
+      ? { preflight: streaming, rasterDelivery: 'streaming-png' }
+      : { preflight: single, rasterDelivery: 'single-png' };
+  }, [document]);
 }
 
 
@@ -128,12 +138,12 @@ export function ExportDialog({ exporter, filename, document, onClose }: ExportDi
   const abortControllerRef = useRef<AbortController | null>(null);
   const [busy, setBusy] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState<ExportFormat>('png');
-  const [rasterDelivery, setRasterDelivery] = useState<RasterDelivery>('single-png');
+
   const [technicalDetailsExpanded, setTechnicalDetailsExpanded] = useState(false);
   const [status, setStatus] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const preflight = useExportPreflight(document, rasterDelivery);
-  const largeRasterSupported = canStreamLargeRasterPackage();
+  const { preflight, rasterDelivery } = useExportPreflight(document);
+  const largeRasterSupported = canStreamLargeRasterPng();
 
   useEffect(() => {
     (preflight.safe ? downloadButtonRef : cancelButtonRef).current?.focus();
@@ -197,13 +207,7 @@ export function ExportDialog({ exporter, filename, document, onClose }: ExportDi
   const downloadPdf = () => void runPdfExport({ abortControllerRef, document, exporter, filename, setBusy, setError, setStatus });
 
   const changeFormat = (format: ExportFormat) => selectExportFormat(format, { isBusy: busy, setError, setFormat: setSelectedFormat, setStatus });
-  const changeRasterDelivery = (delivery: RasterDelivery) => {
-    if (busy) return;
-    setRasterDelivery(delivery);
-    setError(null);
-    setStatus('');
-  };
   const downloadSelectedFormat = () => runSelectedExport(selectedFormat, download, downloadLayeredSvg, downloadPdf);
 
-  return <ExportDialogView busy={busy} cancelButtonRef={cancelButtonRef} dialogRef={dialogRef} document={document} downloadButtonRef={downloadButtonRef} error={error} largeRasterSupported={largeRasterSupported} onCancel={cancelExport} onClose={onClose} onDownload={downloadSelectedFormat} onFormatChange={changeFormat} onKeyDown={handleKeyDown} onRasterDeliveryChange={changeRasterDelivery} onTechnicalDetailsToggle={() => setTechnicalDetailsExpanded((expanded) => !expanded)} preflight={preflight} rasterDelivery={rasterDelivery} selectedFormat={selectedFormat} status={status} technicalDetailsExpanded={technicalDetailsExpanded} />;
+  return <ExportDialogView busy={busy} cancelButtonRef={cancelButtonRef} dialogRef={dialogRef} document={document} downloadButtonRef={downloadButtonRef} error={error} largeRasterSupported={largeRasterSupported} onCancel={cancelExport} onClose={onClose} onDownload={downloadSelectedFormat} onFormatChange={changeFormat} onKeyDown={handleKeyDown} onTechnicalDetailsToggle={() => setTechnicalDetailsExpanded((expanded) => !expanded)} preflight={preflight} rasterDelivery={rasterDelivery} selectedFormat={selectedFormat} status={status} technicalDetailsExpanded={technicalDetailsExpanded} />;
 }

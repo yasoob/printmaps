@@ -51,28 +51,28 @@ describe('export preflight planning', () => {
     expect(result.errors).toEqual([]);
   });
 
-  it('offers bounded tile-package planning when a single PNG exceeds canvas memory', () => {
+  it('offers bounded streaming PNG planning when one canvas exceeds memory', () => {
     const single = planExportPreflight(completeRequest({
       page: { widthMm: 1330, heightMm: 1330 },
     }));
     const packaged = planExportPreflight(completeRequest({
       page: { widthMm: 1330, heightMm: 1330 },
-      rasterDelivery: 'tile-package',
+      rasterDelivery: 'streaming-png',
     }));
 
     expect(single.safe).toBe(false);
     expect(single.errors.map(({ code }) => code)).toContain('MEMORY_BUDGET_EXCEEDED');
     expect(packaged.safe).toBe(true);
-    expect(packaged.delivery).toBe('tile-package');
+    expect(packaged.delivery).toBe('streaming-png');
     expect(packaged.plan).toMatchObject({ mode: 'tiles', columns: 4, rows: 4 });
     expect(packaged.estimates?.peakBytes).toBeLessThan(512 * 1024 * 1024);
     expect(packaged.estimates?.encodedOutputBytes).toBeGreaterThan(512 * 1024 * 1024);
   });
 
-  it('allows a tile package beyond the single-PNG page-side policy without claiming unlimited output', () => {
+  it('allows a streamed PNG beyond the ordinary page-side policy', () => {
     const packaged = planExportPreflight(completeRequest({
       page: { widthMm: 1400, heightMm: 210 },
-      rasterDelivery: 'tile-package',
+      rasterDelivery: 'streaming-png',
     }));
 
     expect(packaged.safe).toBe(true);
@@ -80,15 +80,47 @@ describe('export preflight planning', () => {
     expect(packaged.plan?.tiles.length).toBeGreaterThan(1);
   });
 
-  it('rejects packages estimated beyond the compatible streamed ZIP size with actionable guidance', () => {
-    const packaged = planExportPreflight(completeRequest({
-      page: { widthMm: 3000, heightMm: 3000 },
-      rasterDelivery: 'tile-package',
+  it('retains a configurable streamed-PNG side limit', () => {
+    const streamed = planExportPreflight(completeRequest({
+      page: { widthMm: 1400, heightMm: 210 },
+      rasterDelivery: 'streaming-png',
+    }), { maxOutputSidePx: 10_000 });
+
+    expect(streamed.safe).toBe(false);
+    expect(streamed.errors.map(({ code }) => code)).toContain('OUTPUT_SIDE_LIMIT_EXCEEDED');
+  });
+
+  it('counts the full-width streaming strip in the memory budget', () => {
+    const streamed = planExportPreflight(completeRequest({
+      page: { widthMm: 10_000, heightMm: 100 },
+      dpi: 254,
+      rasterDelivery: 'streaming-png',
+    }), { memoryBudgetBytes: 60 * 1024 * 1024 });
+
+    expect(streamed.safe).toBe(false);
+    expect(streamed.errors.map(({ code }) => code)).toContain('MEMORY_BUDGET_EXCEEDED');
+    expect(streamed.estimates?.peakBytes).toBeGreaterThan(60 * 1024 * 1024);
+  });
+
+  it('validates the actual streamed-region count rather than the coarser square grid', () => {
+    const streamed = planExportPreflight(completeRequest({
+      page: { widthMm: 10_000, heightMm: 10_000 },
+      dpi: 254,
+      rasterDelivery: 'streaming-png',
     }));
 
-    expect(packaged.safe).toBe(false);
-    expect(packaged.errors.find(({ code }) => code === 'PACKAGE_SIZE_LIMIT_EXCEEDED')?.message)
-      .toContain('4 GiB');
+    expect(streamed.safe).toBe(false);
+    expect(streamed.errors.map(({ code }) => code)).toContain('TILE_COUNT_LIMIT_EXCEEDED');
+  });
+
+  it('does not impose the removed ZIP 4 GiB limit on a streamed PNG', () => {
+    const streamed = planExportPreflight(completeRequest({
+      page: { widthMm: 3000, heightMm: 3000 },
+      rasterDelivery: 'streaming-png',
+    }));
+
+    expect(streamed.safe).toBe(true);
+    expect(streamed.errors.map(({ code }) => code)).not.toContain('PACKAGE_SIZE_LIMIT_EXCEEDED');
   });
 
   it('plans overlapping strips or tiles whose render surfaces stay inside the GPU limit', () => {

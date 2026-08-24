@@ -1,7 +1,7 @@
 export type PixelRounding = 'round' | 'floor' | 'ceil';
 export type ExportFormat = 'png' | 'pdf' | 'layered-svg';
 export type BasemapMode = 'raster' | 'none';
-export type RasterDelivery = 'single-png' | 'tile-package';
+export type RasterDelivery = 'single-png' | 'streaming-png';
 
 export type RasterLayerResolution = {
   id: string;

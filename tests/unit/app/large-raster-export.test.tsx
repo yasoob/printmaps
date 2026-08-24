@@ -3,6 +3,23 @@ import userEvent from '@testing-library/user-event';
 import { App } from '../../../src/app/App';
 import { exportMocks } from './exportMocks';
 
+const largePngMocks = vi.hoisted(() => ({
+  supported: true,
+  create: vi.fn(),
+  pick: vi.fn(),
+}));
+
+vi.mock('../../../src/export/largeRasterPng', () => ({
+  canStreamLargeRasterPng: () => largePngMocks.supported,
+  createLargeRasterPng: largePngMocks.create,
+  createLargeRasterPngRegions: () => [{
+    tile: { index: 0, column: 0, row: 0 },
+    region: { x: 0, y: 0, width: 64, height: 64 },
+    source: { x: 0, y: 0, width: 64, height: 64 },
+    destination: { x: 0, y: 0, width: 64, height: 64 },
+  }],
+  pickLargeRasterPngFile: largePngMocks.pick,
+}));
 vi.mock('../../../src/map/MapCanvas', async () => import('./MapCanvasMock'));
 
 async function setLargeSquare(user: ReturnType<typeof userEvent.setup>) {
@@ -17,40 +34,28 @@ async function setLargeSquare(user: ReturnType<typeof userEvent.setup>) {
 describe('large raster export', () => {
   beforeEach(() => {
     exportMocks.exporter = null;
-    Object.defineProperty(window, 'showSaveFilePicker', { configurable: true, value: undefined });
+    largePngMocks.supported = true;
+    largePngMocks.create.mockReset();
+    largePngMocks.pick.mockReset();
   });
 
   afterEach(() => vi.restoreAllMocks());
 
-  it('streams an oversized raster package to a user-picked file before renderer startup', async () => {
+  it('streams one oversized PNG to a user-picked file before renderer startup', async () => {
     const user = userEvent.setup();
     const events: string[] = [];
-    const writable = {
-      write: vi.fn(() => { events.push('write'); }),
-      close: vi.fn(() => { events.push('close'); }),
-      abort: vi.fn(),
-    };
-    const picker = vi.fn(() => {
+    const writable = { write: vi.fn(), close: vi.fn(), abort: vi.fn() };
+    largePngMocks.pick.mockImplementation(async () => {
       events.push('picker');
-      return Promise.resolve({ createWritable: () => Promise.resolve(writable) });
+      return writable;
     });
-    Object.defineProperty(window, 'showSaveFilePicker', { configurable: true, value: picker });
-    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
-      drawImage: vi.fn(), fillRect: vi.fn(), fillText: vi.fn(),
-      measureText: vi.fn(() => ({ width: 80 })),
-      set fillStyle(_value: string) {}, set font(_value: string) {},
-      set globalAlpha(_value: number) {}, set textBaseline(_value: CanvasTextBaseline) {},
-    } as unknown as CanvasRenderingContext2D);
-    vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation((callback, type) => {
-      callback(new Blob(['png'], { type: type ?? 'image/png' }));
+    largePngMocks.create.mockImplementation(async () => {
+      events.push('stream-png');
+      await writable.write(new Uint8Array([137, 80, 78, 71]));
+      await writable.close();
+      return { width: 15_709, height: 15_709, renderCount: 16, bytesWritten: 4 };
     });
-    const renderPrintTile = vi.fn(({ region }: { region: { width: number; height: number } }) => {
-      events.push('render');
-      const tile = document.createElement('canvas');
-      tile.width = region.width;
-      tile.height = region.height;
-      return Promise.resolve(tile);
-    });
+    const renderPrintTile = vi.fn();
     exportMocks.exporter = Object.assign(vi.fn(), {
       createPrintTileRenderer: vi.fn(() => {
         events.push('renderer-factory');
@@ -61,39 +66,56 @@ describe('large raster export', () => {
 
     await setLargeSquare(user);
     await user.click(screen.getByRole('button', { name: 'Export' }));
-    expect(screen.getByRole('button', { name: 'Download PNG' })).toBeDisabled();
-    await user.click(screen.getByRole('radio', { name: /Large-output tile package/ }));
-    expect(screen.getByRole('dialog', { name: 'Export map' })).toHaveTextContent('not a single PNG');
-    await user.click(screen.getByRole('button', { name: 'Save tile package' }));
+    const dialog = screen.getByRole('dialog', { name: 'Export map' });
+    expect(within(dialog).queryByRole('radiogroup', { name: 'Raster output delivery' })).not.toBeInTheDocument();
+    expect(dialog).toHaveTextContent('one PNG file');
+    expect(dialog).not.toHaveTextContent(/tile/i);
+    await user.click(within(dialog).getByRole('button', { name: 'Download PNG' }));
 
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Saved 15709 × 15709 tile package with 16 PNG tiles'));
+    await waitFor(() => expect(within(dialog).getByRole('status')).toHaveTextContent('Saved 15709 × 15709 PNG'));
     expect(events.indexOf('picker')).toBeLessThan(events.indexOf('renderer-factory'));
-    expect(picker).toHaveBeenCalledOnce();
-    expect(renderPrintTile).toHaveBeenCalledTimes(16);
-    expect(writable.write).toHaveBeenCalled();
+    expect(largePngMocks.create).toHaveBeenCalledOnce();
     expect(writable.close).toHaveBeenCalledOnce();
     expect(writable.abort).not.toHaveBeenCalled();
   });
 
   it('treats file-picker cancellation as cancellation without starting map rendering', async () => {
     const user = userEvent.setup();
-    const picker = vi.fn().mockRejectedValue(new DOMException('Dismissed', 'AbortError'));
-    Object.defineProperty(window, 'showSaveFilePicker', { configurable: true, value: picker });
+    largePngMocks.pick.mockRejectedValue(new DOMException('Dismissed', 'AbortError'));
     const rendererFactory = vi.fn();
     exportMocks.exporter = Object.assign(vi.fn(), { createPrintTileRenderer: rendererFactory });
     render(<App />);
 
     await setLargeSquare(user);
     await user.click(screen.getByRole('button', { name: 'Export' }));
-    await user.click(screen.getByRole('radio', { name: /Large-output tile package/ }));
-    await user.click(screen.getByRole('button', { name: 'Save tile package' }));
+    await user.click(screen.getByRole('button', { name: 'Download PNG' }));
 
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Export cancelled'));
     expect(rendererFactory).not.toHaveBeenCalled();
   });
 
-  it('gives unsupported browsers an actionable large-output fallback without rendering', async () => {
+  it('aborts a picked file when native renderer planning fails before encoder ownership', async () => {
     const user = userEvent.setup();
+    const failure = new Error('pitched multi-region export is unavailable');
+    const writable = { write: vi.fn(), close: vi.fn(), abort: vi.fn() };
+    largePngMocks.pick.mockResolvedValue(writable);
+    exportMocks.exporter = Object.assign(vi.fn(), {
+      createPrintTileRenderer: vi.fn(() => { throw failure; }),
+    });
+    render(<App />);
+
+    await setLargeSquare(user);
+    await user.click(screen.getByRole('button', { name: 'Export' }));
+    await user.click(screen.getByRole('button', { name: 'Download PNG' }));
+
+    await waitFor(() => expect(within(screen.getByRole('dialog', { name: 'Export map' })).getByRole('alert')).toHaveTextContent(failure.message));
+    expect(writable.abort).toHaveBeenCalledWith(failure);
+    expect(largePngMocks.create).not.toHaveBeenCalled();
+  });
+
+  it('gives unsupported browsers an actionable large-PNG fallback without rendering', async () => {
+    const user = userEvent.setup();
+    largePngMocks.supported = false;
     const rendererFactory = vi.fn();
     exportMocks.exporter = Object.assign(vi.fn(), { createPrintTileRenderer: rendererFactory });
     render(<App />);
@@ -101,11 +123,10 @@ describe('large raster export', () => {
     await setLargeSquare(user);
     await user.click(screen.getByRole('button', { name: 'Export' }));
     const dialog = screen.getByRole('dialog', { name: 'Export map' });
-    await user.click(within(dialog).getByRole('radio', { name: /Large-output tile package/ }));
 
     expect(within(dialog).getByRole('alert')).toHaveTextContent('Chrome or Edge');
     expect(within(dialog).getByRole('alert')).toHaveTextContent('reduce the page size');
-    expect(within(dialog).getByRole('button', { name: 'Save tile package' })).toBeDisabled();
+    expect(within(dialog).getByRole('button', { name: 'Download PNG' })).toBeDisabled();
     expect(rendererFactory).not.toHaveBeenCalled();
   });
 });

@@ -1,11 +1,10 @@
 import type { ProjectDocument } from '../../domain/project';
-import type { planExportPreflight } from '../../export/preflight';
 import type { PrintTileExportPlan } from '../../export/previewPng';
 
-export function createPrintTileExportPlan(
+export function createPrintRegionExportPlan(
   output: PrintTileExportPlan['output'],
   document: ProjectDocument,
-  tiles: NonNullable<ReturnType<typeof planExportPreflight>['plan']>['tiles'],
+  regions: PrintTileExportPlan['regions'],
   signal: AbortSignal,
 ): PrintTileExportPlan {
   const pixelsPerMillimetre = (output.width / document.page.widthMm
@@ -13,12 +12,7 @@ export function createPrintTileExportPlan(
   return {
     output,
     pixelsPerMillimetre,
-    regions: tiles.map((tile) => ({
-      x: tile.renderX,
-      y: tile.renderY,
-      width: tile.renderWidth,
-      height: tile.renderHeight,
-    })),
+    regions,
     signal,
     symbolsVisible: document.style.visibility.labels,
   };

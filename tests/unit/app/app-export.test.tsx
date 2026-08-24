@@ -208,7 +208,7 @@ async function verifyNativeTileProgressCancellation() {
   });
 
   const cancel = screen.getByRole('button', { name: 'Cancel export' });
-  expect(screen.getByRole('status')).toHaveTextContent('1/2 tiles (50%)');
+  expect(screen.getByRole('status')).toHaveTextContent('1/2 regions (50%)');
   expect(cancel).toHaveFocus();
   fireEvent.click(cancel);
   expect(screen.getByRole('status')).toHaveTextContent('Cancelling export');
@@ -247,7 +247,7 @@ describe('editor export', () => {
     expect(download).toHaveFocus();
     expect(dialog).toHaveTextContent('3508 × 2480 px — 300 DPI pixel target');
     expect(dialog).toHaveTextContent('PNG physical-resolution metadata is not embedded');
-    expect(dialog).toHaveTextContent('renders each map tile at its target pixel dimensions');
+    expect(dialog).toHaveTextContent('renders bounded map regions at their target pixel dimensions');
     expect(dialog).not.toHaveTextContent('resamples the current browser render');
 
     await user.click(download);
@@ -257,19 +257,16 @@ describe('editor export', () => {
     expect(trigger).toHaveFocus();
   });
 
-  it('offers an explicit single PNG versus streamed tile-package choice', async () => {
+  it('presents PNG as one file without exposing internal tile delivery choices', async () => {
     const user = userEvent.setup();
     Object.defineProperty(window, 'showSaveFilePicker', { configurable: true, value: vi.fn() });
     render(<App />);
 
     await user.click(screen.getByRole('button', { name: 'Export' }));
-    const deliveries = screen.getByRole('radiogroup', { name: 'Raster output delivery' });
 
-    expect(within(deliveries).getByRole('radio', { name: /Single PNG/ }))
-      .toHaveAttribute('aria-checked', 'true');
-    expect(within(deliveries).getByRole('radio', { name: /Large-output tile package/ }))
-      .toHaveAttribute('aria-checked', 'false');
+    expect(screen.queryByRole('radiogroup', { name: 'Raster output delivery' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Download PNG' })).toBeEnabled();
+    expect(screen.getByRole('dialog', { name: 'Export map' })).not.toHaveTextContent('tile package');
   });
 
   it('chooses one export format and progressively discloses technical details', async () => {
@@ -306,22 +303,22 @@ describe('editor export', () => {
 
   it('propagates Cancel while the PDF basemap is being encoded', verifyPdfCancellation);
 
-  it('blocks an unsafe print-size allocation before capture', async () => {
+  it('blocks an unusably small PNG before capture', async () => {
     const user = userEvent.setup();
     render(<App />);
 
     const width = screen.getByRole('textbox', { name: 'Page width' });
     await user.clear(width);
-    await user.type(width, '1330');
+    await user.type(width, '1');
     await user.tab();
     const height = screen.getByRole('textbox', { name: 'Page height' });
     await user.clear(height);
-    await user.type(height, '1330');
+    await user.type(height, '1');
     await user.tab();
     await user.click(screen.getByRole('button', { name: 'Export' }));
 
     const dialog = screen.getByRole('dialog', { name: 'Export map' });
-    expect(within(dialog).getByRole('alert')).toHaveTextContent('Estimated peak memory');
+    expect(within(dialog).getByRole('alert')).toHaveTextContent('too small');
     expect(within(dialog).getByRole('alert')).toHaveTextContent('Reduce the page dimensions before retrying');
     expect(screen.getByRole('button', { name: 'Download PNG' })).toBeDisabled();
   });
@@ -332,11 +329,11 @@ describe('editor export', () => {
 
     const width = screen.getByRole('textbox', { name: 'Page width' });
     await user.clear(width);
-    await user.type(width, '1330');
+    await user.type(width, '1');
     await user.tab();
     const height = screen.getByRole('textbox', { name: 'Page height' });
     await user.clear(height);
-    await user.type(height, '1330');
+    await user.type(height, '1');
     await user.tab();
     await user.click(screen.getByRole('button', { name: 'Export' }));
 

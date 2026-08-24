@@ -62,7 +62,7 @@ test('export offers one keyboard-accessible format choice with responsive techni
 
   await page.getByRole('button', { name: 'Export' }).click();
   const dialog = page.getByRole('dialog', { name: 'Export map' });
-  const png = dialog.getByRole('radio', { name: /PNG/ });
+  const png = dialog.getByRole('radio', { name: /^PNG / });
   const svg = dialog.getByRole('radio', { name: /Layered SVG/ });
   const pdf = dialog.getByRole('radio', { name: /PDF/ });
   await expect(png).toHaveAttribute('aria-checked', 'true');
@@ -139,7 +139,7 @@ test('export offers one keyboard-accessible format choice with responsive techni
   expect(dialogBox!.x + dialogBox!.width).toBeLessThanOrEqual(390);
   expect(dialogBox!.y + dialogBox!.height).toBeLessThanOrEqual(844);
   for (const control of [
-    dialog.getByRole('radio', { name: /PNG/ }),
+    dialog.getByRole('radio', { name: /^PNG / }),
     dialog.getByRole('radio', { name: /Layered SVG/ }),
     dialog.getByRole('radio', { name: /PDF/ }),
     details,
@@ -271,7 +271,7 @@ test('export downloads the current print frame as PNG on desktop and mobile', as
     await expect(dialog).toBeVisible();
     await expect(dialog).toContainText('3508 × 2480 px — 300 DPI pixel target');
     await expect(dialog).toContainText('PNG physical-resolution metadata is not embedded');
-    await expect(dialog).toContainText('renders each map tile at its target pixel dimensions');
+    await expect(dialog).toContainText('renders bounded map regions at their target pixel dimensions');
     await expect(dialog).not.toContainText('resamples the current browser render');
     const dialogBox = await dialog.boundingBox();
     expect(dialogBox).not.toBeNull();
@@ -425,6 +425,7 @@ test('large PNG export renders multiple overlapping native map tiles', async ({ 
   await expect(dialog.getByRole('alert')).toContainText('Turn off Show labels');
   await dialog.getByRole('button', { name: 'Close export' }).click();
   await page.getByRole('checkbox', { name: 'Show labels' }).uncheck();
+  await expect(mapReady).toBeVisible({ timeout: 20_000 });
   await page.getByRole('button', { name: 'Export' }).click();
   await expect(dialog).toContainText('7087 × 591 px — 300 DPI pixel target');
 

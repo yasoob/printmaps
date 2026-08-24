@@ -6,6 +6,7 @@ import type {
   ExportPreflightResult,
 } from './preflightTypes';
 import type { ExportGrid } from './preflightValidation';
+import { planStreamingPngStrips } from './streamingPngPlan';
 
 type Dimensions = NonNullable<ExportPreflightResult['dimensions']>;
 type Estimates = NonNullable<ExportPreflightResult['estimates']>;
@@ -34,12 +35,12 @@ export function estimateMemory(
   const peakTileRgbaBytes = largestRenderWidth * largestRenderHeight * 4 * limits.tileBufferCount;
   const encodedOutputBytes = estimatedOutputBytes(request.format, rgbaBytes);
   const tilePlanBytes = grid.tileCount * ESTIMATED_TILE_PLAN_RECORD_BYTES;
-  const contentWidth = Math.min(grid.contentSidePx, dimensions.widthPx);
   const contentHeight = Math.min(grid.contentSidePx, dimensions.heightPx);
-  const contentRgbaBytes = contentWidth * contentHeight * 4;
   const sharedPeakBytes = peakTileRgbaBytes + tilePlanBytes;
-  const peakBytes = sharedPeakBytes + (request.rasterDelivery === 'tile-package'
-    ? contentRgbaBytes + Math.ceil(contentRgbaBytes * 1.05)
+  const streaming = planStreamingPngStrips(dimensions.widthPx, dimensions.heightPx, contentHeight);
+  const streamingWorkingBytes = streaming.stripBytes + dimensions.widthPx * 8 + 1024 * 1024;
+  const peakBytes = sharedPeakBytes + (request.rasterDelivery === 'streaming-png'
+    ? streamingWorkingBytes
     : rgbaBytes + encodedOutputBytes);
   const estimates = { rgbaBytes, peakTileRgbaBytes, encodedOutputBytes, peakBytes };
   const values = [rgbaBytes, peakTileRgbaBytes, encodedOutputBytes, tilePlanBytes, peakBytes];
@@ -52,15 +53,7 @@ export function estimateMemory(
       },
     };
   }
-  if (request.rasterDelivery === 'tile-package' && encodedOutputBytes >= 0xFF_FF_00_00) {
-    return {
-      estimates,
-      issue: {
-        code: 'PACKAGE_SIZE_LIMIT_EXCEEDED',
-        message: 'The estimated package exceeds the 4 GiB compatible streamed ZIP limit. Reduce page dimensions or DPI.',
-      },
-    };
-  }
+
   if (peakBytes > limits.memoryBudgetBytes) {
     return {
       estimates,
