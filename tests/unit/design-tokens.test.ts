@@ -28,6 +28,8 @@ describe('design token discipline', () => {
     expect(styles).toContain('.inspector-section-summary');
     expect(styles).toContain('.maplibregl-ctrl-attrib');
     expect(styles).toMatch(/\.maplibregl-ctrl-attrib[^}]*font-size:\s*var\(--studio-font-micro\)/s);
+    expect(styles).toMatch(/\.studio-checkbox-box[^}]*pointer-events:\s*none/s);
+    expect(styles).toMatch(/\.studio-switch-track[^}]*pointer-events:\s*none/s);
     expect(styles).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(/);
     expect(components).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(/);
     expect(iconComponents).not.toMatch(/[↑↓←→▲▼▶◀‹›]|•••/);

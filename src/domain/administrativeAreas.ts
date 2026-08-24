@@ -1,6 +1,7 @@
 import type { LayerGeometry } from './project';
 import { AUSTRIA_ADMIN_1_REGIONS } from '../data/austriaAdmin1';
 import { AUSTRIA_TYROL_REGION } from '../data/austriaTyrol';
+import { VIENNA_DISTRICTS } from '../data/viennaDistricts';
 
 export type AdministrativeAreaId =
   | 'AUT'
@@ -14,12 +15,13 @@ export type AdministrativeAreaId =
   | 'AT-6'
   | 'AT-7'
   | 'AT-8'
-  | 'AT-9';
+  | 'AT-9'
+  | (typeof VIENNA_DISTRICTS)[number]['id'];
 
 export type AdministrativeArea = Readonly<{
   id: string;
   name: string;
-  level: 'country' | 'region';
+  level: 'country' | 'region' | 'municipality';
   source: string;
   geometry: Extract<LayerGeometry, { type: 'Polygon' | 'MultiPolygon' }>;
 }>;
@@ -29,6 +31,9 @@ type PolygonAdministrativeArea = AdministrativeArea & {
 
 const SOURCE = 'Natural Earth 1:110m Admin 0 Countries (public domain), downloaded 2026-08-23';
 const REGION_SOURCE = 'Natural Earth 1:10m Admin 1 States/Provinces (public domain), downloaded 2026-08-23';
+const MUNICIPALITY_SOURCE = 'City of Vienna Open Government Data district boundaries (CC BY 3.0 AT), downloaded 2026-08-24 and simplified at 0.00008° tolerance';
+export const VIENNA_DISTRICT_SOURCE_URL = 'https://data.wien.gv.at/daten/geo?service=WFS&request=GetFeature&version=1.1.0&typeName=ogdwien:BEZIRKSGRENZEOGD&srsName=EPSG:4326&outputFormat=json';
+export const VIENNA_DISTRICT_LICENSE_URL = 'https://creativecommons.org/licenses/by/3.0/at/';
 const polygonRegionAreas = AUSTRIA_ADMIN_1_REGIONS.map((region): AdministrativeArea => ({
   id: region.id,
   name: region.name,
@@ -58,6 +63,18 @@ const austriaRegionAreas = [
   tyrolArea,
   ...polygonRegionAreas.slice(6),
 ];
+const viennaMunicipalAreas = VIENNA_DISTRICTS.map((district): AdministrativeArea => ({
+  id: district.id,
+  name: district.name,
+  level: 'municipality',
+  source: MUNICIPALITY_SOURCE,
+  geometry: {
+    type: 'Polygon',
+    coordinates: district.coordinates.map((ring) => ring.map(([longitude, latitude]) => (
+      [longitude, latitude] as [number, number]
+    ))),
+  },
+}));
 
 export const ADMINISTRATIVE_AREAS: readonly AdministrativeArea[] = [
   {
@@ -112,6 +129,7 @@ export const ADMINISTRATIVE_AREAS: readonly AdministrativeArea[] = [
     ]] },
   },
   ...austriaRegionAreas,
+  ...viennaMunicipalAreas,
 ] as const;
 
 export function administrativeAreaById(id: string): AdministrativeArea | undefined {

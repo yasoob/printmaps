@@ -1,4 +1,6 @@
+import { createProjectStore } from '../../src/app/store';
 import { createInitialProjectDocument } from '../../src/domain/project';
+import { createLayeredSvg } from '../../src/export/layeredSvg';
 import { createPrintPdf } from '../../src/export/printPdf';
 import type { PreviewPng } from '../../src/export/previewPng';
 import { serializePrintScene } from '../../src/print/scene';
@@ -31,6 +33,41 @@ function jpegCapture(): PreviewPng {
 }
 
 describe('inverted shape print parity', () => {
+  it('credits the licensed Vienna district source in layered SVG and PDF', async () => {
+    const store = createProjectStore(createInitialProjectDocument());
+    store.getState().createAdministrativeArea('AT-9-01');
+    const project = store.getState().document;
+    const capture = jpegCapture();
+
+    const svgBlob = await createLayeredSvg(project, capture);
+    const pdfBlob = await createPrintPdf(project, capture);
+    const svg = await svgBlob.text();
+    const pdf = new TextDecoder('latin1').decode(await pdfBlob.arrayBuffer());
+
+    expect(svg).toContain('City of Vienna OGD (CC BY 3.0 AT; boundaries simplified)');
+    expect(pdf).toContain(String.raw`City of Vienna OGD \(CC BY 3.0 AT; boundaries simplified\)`);
+  });
+
+  it('fits the combined district credit inside a 100 mm custom page', async () => {
+    const store = createProjectStore(createInitialProjectDocument());
+    store.getState().createAdministrativeArea('AT-9-01');
+    const project = store.getState().document;
+    project.page = { ...project.page, heightMm: 210, orientation: 'portrait', preset: 'Custom', widthMm: 100 };
+    const capture = jpegCapture();
+
+    const svgBlob = await createLayeredSvg(project, capture);
+    const pdfBlob = await createPrintPdf(project, capture);
+    const svg = new DOMParser().parseFromString(await svgBlob.text(), 'image/svg+xml');
+    const pdf = new TextDecoder('latin1').decode(await pdfBlob.arrayBuffer());
+    const svgFontSize = Number(svg.querySelector(':scope #attribution text')?.getAttribute('font-size'));
+    const pdfFontSize = Number(pdf.match(/\/F1 ([\d.]+) Tf/)?.[1]);
+
+    expect(svgFontSize).toBeGreaterThan(0);
+    expect(svgFontSize).toBeLessThan(2.5);
+    expect(pdfFontSize).toBeGreaterThan(0);
+    expect(pdfFontSize).toBeLessThan(6);
+  });
+
   it('prints every disconnected MultiPolygon part in layered SVG and PDF', async () => {
     const project = createInitialProjectDocument();
     project.layers[2].geometry = {

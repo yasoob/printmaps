@@ -31,7 +31,7 @@ describe('editor page dimensions', () => {
     await user.type(field, '-1');
     expect(field).toHaveAttribute('aria-invalid', 'true');
     expect(undo).toBeDisabled();
-    await user.click(screen.getByRole('button', { name: 'Project menu' }));
+    await user.click(screen.getByRole('button', { name: 'Vienna field guide' }));
     expect(field).toHaveValue(originalValue);
     expect(preset).toHaveValue('A4');
     expect(undo).toBeDisabled();

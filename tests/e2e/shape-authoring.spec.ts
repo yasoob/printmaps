@@ -6,6 +6,70 @@ const isHeadlessWebGlDiagnostic = (message: string) => (
   || message.includes('AllowWebgl2:false restricts context creation on this system')
 );
 
+test('Vienna municipality catalogue preserves source credit through project and print downloads', async ({ page }, testInfo) => {
+  const consoleProblems: string[] = [];
+  page.on('pageerror', (error) => { consoleProblems.push(error.message); });
+  page.on('console', (message) => {
+    if ((message.type() === 'error' || message.type() === 'warning') && !isHeadlessWebGlDiagnostic(message.text())) {
+      consoleProblems.push(message.text());
+    }
+  });
+  await page.goto('/');
+  await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
+
+  await page.getByRole('button', { name: 'Shape (S)' }).click();
+  await page.getByRole('combobox', { name: 'Administrative level' }).selectOption('municipality');
+  const district = page.getByRole('combobox', { name: 'Vienna district' });
+  await expect(district.getByRole('option')).toHaveCount(23);
+  await expect(page.getByRole('link', { name: 'Vienna district boundaries source' })).toHaveAttribute('href', /BEZIRKSGRENZEOGD/);
+  await expect(page.getByRole('link', { name: 'CC BY 3.0 AT license' })).toHaveAttribute('href', 'https://creativecommons.org/licenses/by/3.0/at/');
+  await district.selectOption('AT-9-01');
+  await page.getByRole('button', { name: 'Add municipal district' }).click();
+  await expect(page.getByRole('button', { name: 'Select Innere Stadt' })).toHaveAttribute('aria-current', 'true');
+  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-geometry', /admin-at-9-01:/);
+  await page.getByRole('switch', { name: 'Invert shape fill' }).check();
+  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-appearance', /admin-at-9-01:[^|]*:true/);
+  await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/latest-desktop.png' });
+
+  const projectPromise = page.waitForEvent('download');
+  await page.locator('.project-title').click();
+  await page.getByRole('menuitem', { name: 'Download project', exact: true }).click();
+  const projectDownload = await projectPromise;
+  const projectPath = testInfo.outputPath('vienna-district.printmap.json');
+  await projectDownload.saveAs(projectPath);
+  const project = JSON.parse(await readFile(projectPath, 'utf8'));
+  const districtLayer = project.layers.find(({ id }: { id: string }) => id === 'admin-at-9-01');
+  expect(project.schemaVersion).toBe(17);
+  expect(districtLayer).toMatchObject({ name: 'Innere Stadt', geometry: { type: 'Polygon' }, appearance: { invert: true } });
+  expect(districtLayer.geometry.coordinates.flat().length).toBeLessThanOrEqual(500);
+
+  await page.getByRole('button', { name: 'Export' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Export map' });
+  await dialog.getByRole('radio', { name: /Layered SVG/ }).click();
+  const svgPromise = page.waitForEvent('download');
+  await dialog.getByRole('button', { name: 'Download layered SVG' }).click();
+  const svgDownload = await svgPromise;
+  const svgPath = testInfo.outputPath('vienna-district.layered.svg');
+  await svgDownload.saveAs(svgPath);
+  const svg = await readFile(svgPath, 'utf8');
+  expect(svg).toContain('data-layer-name="Innere Stadt"');
+  expect(svg).toContain('City of Vienna OGD (CC BY 3.0 AT; boundaries simplified)');
+
+  await page.getByRole('button', { name: 'Close export' }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: 'Shape (S)' }).click();
+  await page.getByRole('combobox', { name: 'Administrative level' }).selectOption('municipality');
+  await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/latest-mobile.png' });
+  const panel = page.getByRole('status', { name: 'Shape drawing status' }).locator('..');
+  const panelBox = await panel.boundingBox();
+  expect(panelBox).not.toBeNull();
+  expect(panelBox!.x).toBeGreaterThanOrEqual(0);
+  expect(panelBox!.x + panelBox!.width).toBeLessThanOrEqual(390);
+  expect(await page.evaluate(() => document.body.scrollWidth - window.innerWidth)).toBe(0);
+  await page.getByRole('button', { name: 'Cancel shape' }).click();
+  expect(consoleProblems).toEqual([]);
+});
+
 test('polygon authoring can be cancelled, undone, redone, and exported as vector content', async ({ page }, testInfo) => {
   const consoleProblems: string[] = [];
   page.on('pageerror', (error) => { consoleProblems.push(error.message); });
@@ -105,7 +169,7 @@ test('bundled administrative regions merge without an internal border and retain
   const savePath = testInfo.outputPath('administrative-area.printmap.json');
   await save.saveAs(savePath);
   const savedProject = JSON.parse(await readFile(savePath, 'utf8'));
-  expect(savedProject.schemaVersion).toBe(16);
+  expect(savedProject.schemaVersion).toBe(17);
   const savedArea = savedProject.layers.find(({ id }: { id: string }) => id === 'admin-at-3-at-9');
   expect(savedArea.appearance.invert).toBe(true);
   expect(savedArea.name).toBe('Lower Austria + Vienna');
@@ -182,7 +246,7 @@ test('Tyrol keeps both disconnected parts through live map, save, and layered SV
   await save.saveAs(savePath);
   const savedProject = JSON.parse(await readFile(savePath, 'utf8'));
   const tyrol = savedProject.layers.find(({ id }: { id: string }) => id === 'admin-at-7');
-  expect(savedProject.schemaVersion).toBe(16);
+  expect(savedProject.schemaVersion).toBe(17);
   expect(tyrol.geometry.type).toBe('MultiPolygon');
   expect(tyrol.geometry.coordinates).toHaveLength(2);
 

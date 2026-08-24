@@ -17,6 +17,26 @@ function signedRingArea(ring: readonly (readonly [number, number])[]): number {
 }
 
 describe('bundled administrative areas', () => {
+  it('exposes every Vienna municipal district from one bounded attributed source', () => {
+    const municipalities = ADMINISTRATIVE_AREAS.filter(({ level }) => level === 'municipality');
+
+    expect(municipalities).toHaveLength(23);
+    expect(municipalities.map(({ id, name }) => ({ id, name }))).toEqual(expect.arrayContaining([
+      { id: 'AT-9-01', name: 'Innere Stadt' },
+      { id: 'AT-9-23', name: 'Liesing' },
+    ]));
+    expect(municipalities.every(({ source }) => (
+      source.includes('City of Vienna Open Government Data')
+      && source.includes('CC BY 3.0 AT')
+      && source.includes('simplified')
+    ))).toBe(true);
+    expect(municipalities.every(({ geometry }) => (
+      geometry.type === 'Polygon'
+      && geometry.coordinates.every((ring) => ring.length >= 4 && ring.at(-1)?.join(',') === ring[0].join(','))
+      && geometry.coordinates.reduce((total, ring) => total + ring.length, 0) <= 500
+    ))).toBe(true);
+  });
+
   it('represents Tyrol as its exact disconnected MultiPolygon geometry', () => {
     const tyrol = administrativeAreaById('AT-7');
 
@@ -40,6 +60,7 @@ describe('bundled administrative areas', () => {
     ]);
 
     for (const area of ADMINISTRATIVE_AREAS) {
+      if (area.level === 'municipality') continue;
       expect(area.source).toContain('Natural Earth');
       const polygons = area.geometry.type === 'Polygon'
         ? [area.geometry.coordinates]

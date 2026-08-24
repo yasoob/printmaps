@@ -1,8 +1,7 @@
 import type { ProjectDocument } from '../domain/project';
+import { projectAttributionText } from '../domain/projectAttributions';
 import { serializePrintScene } from '../print/scene';
 import type { PreviewPng } from './previewPng';
-
-const ATTRIBUTION = 'OpenFreeMap · OpenMapTiles · © OpenStreetMap contributors';
 
 function bytesToBase64(bytes: Uint8Array): string {
   const chunkSize = 32_768;
@@ -30,7 +29,7 @@ export async function createLayeredSvg(document: ProjectDocument, capture: Previ
   const dataUri = `data:${mime};base64,${bytesToBase64(new Uint8Array(await capture.blob.arrayBuffer()))}`;
   const svg = serializePrintScene(document, {
     basemap: { dataUri, pixelWidth: capture.width, pixelHeight: capture.height },
-    attribution: ATTRIBUTION,
+    attribution: projectAttributionText(document),
     metadata: 'Raster basemap captured from the current browser map; user route, POI, and shape overlays remain named vectors.',
     project: (coordinate, context) => {
       const point = capture.projectToFrame!(coordinate);

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ProjectDocument } from '../../domain/project';
+import { projectAttributions } from '../../domain/projectAttributions';
 import { createLayeredSvg, startLayeredSvgDownload } from '../../export/layeredSvg';
 import { planExportPreflight } from '../../export/preflight';
 import { createPrintPdf, startPrintPdfDownload } from '../../export/printPdf';
@@ -35,18 +36,18 @@ function trapDialogFocus(event: React.KeyboardEvent<HTMLDialogElement>, dialog: 
   }
 }
 
-function useExportPreflight(page: ProjectDocument['page']) {
+function useExportPreflight(document: ProjectDocument) {
   return useMemo(() => planExportPreflight({
     format: 'png',
-    page: { widthMm: page.widthMm, heightMm: page.heightMm },
+    page: { widthMm: document.page.widthMm, heightMm: document.page.heightMm },
     dpi: 300,
-    attributions: ['OpenFreeMap · OpenMapTiles · © OpenStreetMap contributors'],
+    attributions: projectAttributions(document),
     basemap: 'raster',
     vectorOverlays: true,
     missing: {},
     rasterLayers: [],
     cancellationSupported: true,
-  }), [page.heightMm, page.widthMm]);
+  }), [document]);
 }
 
 function printPixelDensity(
@@ -172,7 +173,7 @@ export function ExportDialog({ exporter, filename, document, onClose }: ExportDi
   const [technicalDetailsExpanded, setTechnicalDetailsExpanded] = useState(false);
   const [status, setStatus] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const preflight = useExportPreflight(document.page);
+  const preflight = useExportPreflight(document);
 
   useEffect(() => {
     (preflight.safe ? downloadButtonRef : cancelButtonRef).current?.focus();

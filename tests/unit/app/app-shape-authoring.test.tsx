@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../../../src/app/App';
 import { createInitialProjectDocument } from '../../../src/domain/project';
@@ -6,6 +6,31 @@ import { createInitialProjectDocument } from '../../../src/domain/project';
 vi.mock('../../../src/map/MapCanvas', async () => import('./MapCanvasMock'));
 
 describe('polygon authoring', () => {
+  it('adds one sourced Vienna municipal district as a fitted undoable shape', async () => {
+    const user = userEvent.setup();
+    render(<App autosaveRepository={null} />);
+
+    await user.click(screen.getByRole('button', { name: 'Shape (S)' }));
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Administrative level' }), 'municipality');
+    const district = screen.getByRole('combobox', { name: 'Vienna district' });
+    expect(within(district).getAllByRole('option')).toHaveLength(23);
+    await user.selectOptions(district, 'AT-9-01');
+    expect(screen.getByRole('link', { name: 'Vienna district boundaries source' })).toHaveAttribute(
+      'href', expect.stringContaining('BEZIRKSGRENZEOGD'),
+    );
+    expect(screen.getByRole('link', { name: 'CC BY 3.0 AT license' })).toHaveAttribute(
+      'href', 'https://creativecommons.org/licenses/by/3.0/at/',
+    );
+    await user.click(screen.getByRole('button', { name: 'Add municipal district' }));
+
+    const layer = screen.getByRole('button', { name: 'Select Innere Stadt' });
+    expect(layer).toHaveAttribute('aria-current', 'true');
+    expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-fit-layer-id', 'admin-at-9-01');
+    expect(screen.getByRole('button', { name: 'Select (V)' })).toHaveFocus();
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(layer).not.toBeInTheDocument();
+  });
+
   it('adds a bundled administrative area as a selected undoable shape', async () => {
     const user = userEvent.setup();
     render(<App autosaveRepository={null} />);

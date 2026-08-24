@@ -1,10 +1,11 @@
 import type { ContentLayer, ProjectDocument } from '../domain/project';
+import { fitAttributionFontSize, projectAttributionText } from '../domain/projectAttributions';
 import { asciiBytes, buildPdf, pdfString, streamObject, type PdfObject } from './pdfWriter';
 import { pdfVectorCommands } from './pdfVectorCommands';
 import type { PreviewPng } from './previewPng';
 
 const POINTS_PER_MM = 72 / 25.4;
-const ATTRIBUTION = 'OpenFreeMap · OpenMapTiles · © OpenStreetMap contributors';
+
 
 
 type PdfGroup = Readonly<{
@@ -102,12 +103,14 @@ async function jpegBytes(capture: PreviewPng, signal: AbortSignal | undefined): 
   return bytes;
 }
 
-function createContentStream(
-  groups: readonly PdfGroup[],
-  capture: PreviewPng & Required<Pick<PreviewPng, 'projectToFrame'>>,
-  width: number,
-  height: number,
-): Uint8Array {
+function createContentStream(options: Readonly<{
+  groups: readonly PdfGroup[];
+  capture: PreviewPng & Required<Pick<PreviewPng, 'projectToFrame'>>;
+  width: number;
+  height: number;
+  attributionText: string;
+}>): Uint8Array {
+  const { attributionText, capture, groups, height, width } = options;
   const basemap = groups.find(({ layer }) => layer?.type === 'basemap');
   if (!basemap) throw new Error('The project must contain one basemap for PDF export.');
   const lines = [
@@ -139,6 +142,7 @@ function createContentStream(
   }
   const attribution = groups.at(-1);
   if (!attribution) throw new Error('The PDF attribution layer is unavailable.');
+  const attributionFontSize = fitAttributionFontSize(attributionText, Math.max(0.1, width - 12), 6);
   lines.push(
     '/OC /Attribution BDC',
     'q',
@@ -146,9 +150,9 @@ function createContentStream(
     `0 0 ${formatNumber(width)} ${formatNumber(5 * POINTS_PER_MM)} re f`,
     '0.066667 0.094118 0.152941 rg',
     'BT',
-    '/F1 6 Tf',
+    `/F1 ${formatNumber(attributionFontSize)} Tf`,
     `6 ${formatNumber(1.8 * POINTS_PER_MM)} Td`,
-    `${pdfContentString(ATTRIBUTION)} Tj`,
+    `${pdfContentString(attributionText)} Tj`,
     'ET',
     'Q',
     'EMC',
@@ -205,7 +209,13 @@ export async function createPrintPdf(
     `/BasemapGS ${basemapGraphicsStateReference} 0 R`,
     ...vectorLayers.map((_, index) => `/GS${index + 1} ${graphicsStateReferences[index]} 0 R`),
   ].join(' ');
-  const content = createContentStream(groups, capture, width, height);
+  const content = createContentStream({
+    groups,
+    capture,
+    width,
+    height,
+    attributionText: projectAttributionText(document),
+  });
 
   const objects: PdfObject[] = [
     [`<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [${allGroupReferences}] /D << /Order [${orderedGroupReferences}] /OFF [${offGroupReferences}] >> >> >>`],

@@ -475,6 +475,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 .studio-checkbox-box {
   @apply grid h-4 w-4 shrink-0 place-items-center;
+  pointer-events: none;
   border: var(--studio-border-width) solid var(--studio-line-strong);
   border-radius: var(--studio-radius-sm);
   color: var(--studio-on-dark);
@@ -495,6 +496,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .studio-checkbox:has(input:disabled), .studio-switch:has(input:disabled) { @apply cursor-default; }
 .studio-switch-track {
   @apply block shrink-0 p-0.5;
+  pointer-events: none;
   width: 2rem;
   height: 1.125rem;
   border-radius: 999px;

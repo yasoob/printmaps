@@ -1,4 +1,5 @@
 import type { ContentLayer, LayerGeometry, LayerType, ProjectDocument } from '../domain/project';
+import { fitAttributionFontSize } from '../domain/projectAttributions';
 import { ROUTE_TRAVEL_PROFILE_MARKERS } from '../domain/routeProfiles';
 import { resolvePrintLayerStyle } from './layerStyle';
 import { serializePoiMarker } from './poiMarker';
@@ -314,7 +315,8 @@ export function serializePrintScene(document: ProjectDocument, options: PrintSce
   ));
   const attributionHeight = Math.min(5, height);
   const attributionY = height - attributionHeight;
-  const attributionGroup = `<g id="attribution" data-scene-role="attribution" data-layer-name="Attribution" clip-path="url(#page-clip)"><title>Attribution</title><rect x="0" y="${formatNumber(attributionY)}" width="${widthText}" height="${formatNumber(attributionHeight)}" fill="#ffffff" opacity="0.88"/><text x="2" y="${formatNumber(height - attributionHeight / 2)}" fill="#111827" font-family="sans-serif" font-size="2.5" dominant-baseline="middle">${escapeXml(attribution)}</text></g>`;
+  const attributionFontSize = fitAttributionFontSize(attribution, Math.max(0.1, width - 4), 2.5);
+  const attributionGroup = `<g id="attribution" data-scene-role="attribution" data-layer-name="Attribution" clip-path="url(#page-clip)"><title>Attribution</title><rect x="0" y="${formatNumber(attributionY)}" width="${widthText}" height="${formatNumber(attributionHeight)}" fill="#ffffff" opacity="0.88"/><text x="2" y="${formatNumber(height - attributionHeight / 2)}" fill="#111827" font-family="sans-serif" font-size="${formatNumber(attributionFontSize)}" dominant-baseline="middle">${escapeXml(attribution)}</text></g>`;
 
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
