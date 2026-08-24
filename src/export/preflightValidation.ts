@@ -1,11 +1,11 @@
 import {
   MAX_SAFE_EXPORT_TILE_COUNT,
-  type ExportFormat,
   type ExportPreflightIssue,
   type ExportPreflightLimits,
   type ExportPreflightRequest,
   type ExportPreflightResult,
   type RasterLayerResolution,
+  type RasterDelivery,
 } from './preflightTypes';
 
 export type ExportGrid = {
@@ -17,12 +17,10 @@ export type ExportGrid = {
 };
 
 type Dimensions = NonNullable<ExportPreflightResult['dimensions']>;
-type Estimates = NonNullable<ExportPreflightResult['estimates']>;
 type Cancellation = ExportPreflightResult['cancellation'];
 
 const isInteger = Number.isInteger.bind(Number);
-// Covers 13 numeric fields, the array reference, and conservative JS object/array overhead.
-const ESTIMATED_TILE_PLAN_RECORD_BYTES = 256;
+
 
 function hasInvalidLimits(limits: ExportPreflightLimits): boolean {
   const positiveValues = [
@@ -67,9 +65,8 @@ function hasInvalidPage(request: ExportPreflightRequest): boolean {
 function isPageOutsideLimits(request: ExportPreflightRequest, limits: ExportPreflightLimits): boolean {
   const { widthMm, heightMm } = request.page;
   if ([widthMm, heightMm].some((value) => !Number.isFinite(value))) return false;
-  return [widthMm, heightMm].some(
-    (value) => value < limits.minPageSideMm || value > limits.maxPageSideMm,
-  );
+  return [widthMm, heightMm].some((value) => value < limits.minPageSideMm
+    || (request.rasterDelivery !== 'tile-package' && value > limits.maxPageSideMm));
 }
 
 export function validateInitialRequest(
@@ -133,8 +130,18 @@ export function appendDimensionIssues(
   dimensions: Dimensions,
   limits: ExportPreflightLimits,
   errors: ExportPreflightIssue[],
+  delivery: RasterDelivery = 'single-png',
 ): void {
   const { widthPx, heightPx, pixelCount } = dimensions;
+  if (delivery === 'tile-package') {
+    if (widthPx > 0x7F_FF_FF_FF || heightPx > 0x7F_FF_FF_FF) {
+      errors.push({
+        code: 'PNG_DIMENSION_LIMIT_EXCEEDED',
+        message: 'Assembled PNG dimensions may not exceed 2,147,483,647 pixels per side.',
+      });
+    }
+    return;
+  }
   if (widthPx > limits.maxOutputSidePx || heightPx > limits.maxOutputSidePx) {
     errors.push({
       code: 'OUTPUT_SIDE_LIMIT_EXCEEDED',
@@ -166,51 +173,6 @@ export function appendTileCountIssue(
   }
 }
 
-function estimatedOutputBytes(format: ExportFormat, rgbaBytes: number): number {
-  if (format === 'pdf') return Math.ceil(rgbaBytes * 1.05 + 1024 * 1024);
-  if (format === 'layered-svg') return Math.ceil(rgbaBytes * 1.4 + 256 * 1024);
-  return Math.ceil(rgbaBytes * 1.05);
-}
-
-export function estimateMemory(
-  request: ExportPreflightRequest,
-  dimensions: Dimensions,
-  grid: ExportGrid,
-  limits: ExportPreflightLimits,
-): { estimates: Estimates; issue?: ExportPreflightIssue } {
-  const largestRenderWidth = grid.columns > 1
-    ? Math.min(grid.renderSidePx, dimensions.widthPx)
-    : dimensions.widthPx;
-  const largestRenderHeight = grid.rows > 1
-    ? Math.min(grid.renderSidePx, dimensions.heightPx)
-    : dimensions.heightPx;
-  const rgbaBytes = dimensions.pixelCount * 4;
-  const peakTileRgbaBytes = largestRenderWidth * largestRenderHeight * 4 * limits.tileBufferCount;
-  const encodedOutputBytes = estimatedOutputBytes(request.format, rgbaBytes);
-  const tilePlanBytes = grid.tileCount * ESTIMATED_TILE_PLAN_RECORD_BYTES;
-  const peakBytes = rgbaBytes + peakTileRgbaBytes + encodedOutputBytes + tilePlanBytes;
-  const estimates = { rgbaBytes, peakTileRgbaBytes, encodedOutputBytes, peakBytes };
-  const values = [rgbaBytes, peakTileRgbaBytes, encodedOutputBytes, tilePlanBytes, peakBytes];
-  if (values.some((value) => !Number.isSafeInteger(value))) {
-    return {
-      estimates,
-      issue: {
-        code: 'MEMORY_ESTIMATE_UNREPRESENTABLE',
-        message: 'The export memory estimate cannot be represented safely.',
-      },
-    };
-  }
-  if (peakBytes > limits.memoryBudgetBytes) {
-    return {
-      estimates,
-      issue: {
-        code: 'MEMORY_BUDGET_EXCEEDED',
-        message: `Estimated peak memory is ${peakBytes} bytes; the budget is ${limits.memoryBudgetBytes} bytes.`,
-      },
-    };
-  }
-  return { estimates };
-}
 
 export function appendMissingIssues(
   request: ExportPreflightRequest,

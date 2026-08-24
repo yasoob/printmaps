@@ -2,14 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ProjectDocument } from '../../domain/project';
 import { projectAttributions } from '../../domain/projectAttributions';
 import { createLayeredSvg, startLayeredSvgDownload } from '../../export/layeredSvg';
-import { planExportPreflight } from '../../export/preflight';
+import { canStreamLargeRasterPackage } from '../../export/largeRasterPackage';
+import { planExportPreflight, type RasterDelivery } from '../../export/preflight';
 import { createPrintPdf, startPrintPdfDownload } from '../../export/printPdf';
-import { createPrintSizePng, type PrintSizePngStage } from '../../export/printSizePng';
-import {
-  startPreviewDownload,
-  type PreviewPngExporter,
-  type PrintTileExportPlan,
-} from '../../export/previewPng';
+import type { PreviewPngExporter } from '../../export/previewPng';
+import { runPngExport } from './exportDialogPng';
 import { ExportDialogView, type ExportFormat } from './ExportDialogView';
 
 export type ExportDialogProps = {
@@ -36,7 +33,7 @@ function trapDialogFocus(event: React.KeyboardEvent<HTMLDialogElement>, dialog: 
   }
 }
 
-function useExportPreflight(document: ProjectDocument) {
+function useExportPreflight(document: ProjectDocument, rasterDelivery: RasterDelivery) {
   return useMemo(() => planExportPreflight({
     format: 'png',
     page: { widthMm: document.page.widthMm, heightMm: document.page.heightMm },
@@ -47,49 +44,10 @@ function useExportPreflight(document: ProjectDocument) {
     missing: {},
     rasterLayers: [],
     cancellationSupported: true,
-  }), [document]);
+    rasterDelivery,
+  }), [document, rasterDelivery]);
 }
 
-function printPixelDensity(
-  output: Readonly<{ width: number; height: number }>,
-  page: ProjectDocument['page'],
-): number {
-  return (output.width / page.widthMm + output.height / page.heightMm) / 2;
-}
-
-function createPrintTileExportPlan(
-  output: PrintTileExportPlan['output'],
-  document: ProjectDocument,
-  tiles: NonNullable<ReturnType<typeof planExportPreflight>['plan']>['tiles'],
-  signal: AbortSignal,
-): PrintTileExportPlan {
-  return {
-    output,
-    pixelsPerMillimetre: printPixelDensity(output, document.page),
-    regions: tiles.map((tile) => ({
-      x: tile.renderX,
-      y: tile.renderY,
-      width: tile.renderWidth,
-      height: tile.renderHeight,
-    })),
-    signal,
-    symbolsVisible: document.style.visibility.labels,
-  };
-}
-
-const PNG_STAGE_STATUS: Record<PrintSizePngStage, string> = {
-  rendering: 'Rendering native-detail map tiles…',
-  composing: 'Composing native-detail map tiles…',
-  encoding: 'Encoding PNG…',
-};
-
-function reportPngStage(
-  stage: PrintSizePngStage | 'downloading',
-  setStatus: React.Dispatch<React.SetStateAction<string>>,
-): void {
-  if (stage !== 'downloading') setStatus(PNG_STAGE_STATUS[stage]);
-  window.dispatchEvent(new CustomEvent('printmap:png-export-stage', { detail: { stage } }));
-}
 
 type PdfExportOptions = Pick<ExportDialogProps, 'document' | 'exporter' | 'filename'> & {
   abortControllerRef: React.RefObject<AbortController | null>;
@@ -170,10 +128,12 @@ export function ExportDialog({ exporter, filename, document, onClose }: ExportDi
   const abortControllerRef = useRef<AbortController | null>(null);
   const [busy, setBusy] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState<ExportFormat>('png');
+  const [rasterDelivery, setRasterDelivery] = useState<RasterDelivery>('single-png');
   const [technicalDetailsExpanded, setTechnicalDetailsExpanded] = useState(false);
   const [status, setStatus] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const preflight = useExportPreflight(document);
+  const preflight = useExportPreflight(document, rasterDelivery);
+  const largeRasterSupported = canStreamLargeRasterPackage();
 
   useEffect(() => {
     (preflight.safe ? downloadButtonRef : cancelButtonRef).current?.focus();
@@ -185,54 +145,12 @@ export function ExportDialog({ exporter, filename, document, onClose }: ExportDi
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDialogElement>) => handleExportDialogKeyDown(event, busy, dialogRef.current, onClose);
 
-  const download = async () => {
+  const download = () => {
     if (!exporter?.createPrintTileRenderer) {
       setError('The live map preview is not ready yet. Wait for the map to load and try again.');
-      return;
+      return Promise.resolve();
     }
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-    setBusy(true);
-    setError(null);
-    setStatus('Rendering native-detail map tiles…');
-    try {
-      if (!preflight.dimensions || !preflight.plan) throw new Error('Export preflight did not produce a target tile plan.');
-      const output = {
-        width: preflight.dimensions.widthPx,
-        height: preflight.dimensions.heightPx,
-      };
-      const exportPlan = createPrintTileExportPlan(
-        output, document, preflight.plan.tiles, controller.signal,
-      );
-      const renderTile = exporter.createPrintTileRenderer(exportPlan);
-      const result = await createPrintSizePng({
-        preflight,
-        renderTile: ({ region, signal }) => renderTile({ output, region, signal }),
-        signal: controller.signal,
-        onStage: (stage) => { reportPngStage(stage, setStatus); },
-        onProgress: ({ completedTiles, totalTiles, fraction }) => {
-          setStatus(`Composing PNG… ${completedTiles}/${totalTiles} tiles (${Math.round(fraction * 100)}%).`);
-        },
-      });
-      try {
-        reportPngStage('downloading', setStatus);
-        startPreviewDownload(result.blob, filename);
-        setStatus(`Download started for ${result.width} × ${result.height} PNG.`);
-      } finally {
-        result.surface.width = 0;
-        result.surface.height = 0;
-      }
-    } catch (error_) {
-      if (controller.signal.aborted || (error_ instanceof DOMException && error_.name === 'AbortError')) {
-        setStatus('Export cancelled.');
-      } else {
-        setError(error_ instanceof Error ? error_.message : 'PNG export failed.');
-        setStatus('Export failed.');
-      }
-    } finally {
-      if (abortControllerRef.current === controller) abortControllerRef.current = null;
-      setBusy(false);
-    }
+    return runPngExport({ abortControllerRef, document, exporter, filename, preflight, rasterDelivery, setBusy, setError, setStatus });
   };
 
   const cancelExport = () => {
@@ -279,7 +197,13 @@ export function ExportDialog({ exporter, filename, document, onClose }: ExportDi
   const downloadPdf = () => void runPdfExport({ abortControllerRef, document, exporter, filename, setBusy, setError, setStatus });
 
   const changeFormat = (format: ExportFormat) => selectExportFormat(format, { isBusy: busy, setError, setFormat: setSelectedFormat, setStatus });
+  const changeRasterDelivery = (delivery: RasterDelivery) => {
+    if (busy) return;
+    setRasterDelivery(delivery);
+    setError(null);
+    setStatus('');
+  };
   const downloadSelectedFormat = () => runSelectedExport(selectedFormat, download, downloadLayeredSvg, downloadPdf);
 
-  return <ExportDialogView busy={busy} cancelButtonRef={cancelButtonRef} dialogRef={dialogRef} document={document} downloadButtonRef={downloadButtonRef} error={error} onCancel={cancelExport} onClose={onClose} onDownload={downloadSelectedFormat} onFormatChange={changeFormat} onKeyDown={handleKeyDown} onTechnicalDetailsToggle={() => setTechnicalDetailsExpanded((expanded) => !expanded)} preflight={preflight} selectedFormat={selectedFormat} status={status} technicalDetailsExpanded={technicalDetailsExpanded} />;
+  return <ExportDialogView busy={busy} cancelButtonRef={cancelButtonRef} dialogRef={dialogRef} document={document} downloadButtonRef={downloadButtonRef} error={error} largeRasterSupported={largeRasterSupported} onCancel={cancelExport} onClose={onClose} onDownload={downloadSelectedFormat} onFormatChange={changeFormat} onKeyDown={handleKeyDown} onRasterDeliveryChange={changeRasterDelivery} onTechnicalDetailsToggle={() => setTechnicalDetailsExpanded((expanded) => !expanded)} preflight={preflight} rasterDelivery={rasterDelivery} selectedFormat={selectedFormat} status={status} technicalDetailsExpanded={technicalDetailsExpanded} />;
 }

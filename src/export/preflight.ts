@@ -4,10 +4,10 @@ import {
   appendRasterIssues,
   appendTileCountIssue,
   createExportGrid,
-  estimateMemory,
   resolveCancellation,
   validateInitialRequest,
 } from './preflightValidation';
+import { estimateMemory } from './preflightEstimates';
 import {
   DEFAULT_EXPORT_PREFLIGHT_LIMITS,
   type ExportPreflightIssue,
@@ -32,6 +32,7 @@ export type {
   ExportTile,
   ExportTilePlan,
   PixelRounding,
+  RasterDelivery,
   RasterLayerResolution,
 } from './preflightTypes';
 
@@ -161,6 +162,7 @@ function finishResult(
   return {
     safe: state.errors.length === 0,
     format: request.format,
+    delivery: request.rasterDelivery ?? 'single-png',
     ...state,
     plan: state.errors.length === 0 ? plan : null,
   };
@@ -214,7 +216,7 @@ export function planExportPreflight(
     });
   }
 
-  appendDimensionIssues(dimensions, limits, errors);
+  appendDimensionIssues(dimensions, limits, errors, request.rasterDelivery ?? 'single-png');
   const grid = createExportGrid(widthPx, heightPx, limits);
   appendTileCountIssue(grid, limits, errors);
   const memory = estimateMemory(request, dimensions, grid, limits);

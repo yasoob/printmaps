@@ -257,6 +257,21 @@ describe('editor export', () => {
     expect(trigger).toHaveFocus();
   });
 
+  it('offers an explicit single PNG versus streamed tile-package choice', async () => {
+    const user = userEvent.setup();
+    Object.defineProperty(window, 'showSaveFilePicker', { configurable: true, value: vi.fn() });
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: 'Export' }));
+    const deliveries = screen.getByRole('radiogroup', { name: 'Raster output delivery' });
+
+    expect(within(deliveries).getByRole('radio', { name: /Single PNG/ }))
+      .toHaveAttribute('aria-checked', 'true');
+    expect(within(deliveries).getByRole('radio', { name: /Large-output tile package/ }))
+      .toHaveAttribute('aria-checked', 'false');
+    expect(screen.getByRole('button', { name: 'Download PNG' })).toBeEnabled();
+  });
+
   it('chooses one export format and progressively discloses technical details', async () => {
     const user = userEvent.setup();
     render(<App />);

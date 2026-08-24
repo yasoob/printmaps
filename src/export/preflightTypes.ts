@@ -1,6 +1,7 @@
 export type PixelRounding = 'round' | 'floor' | 'ceil';
 export type ExportFormat = 'png' | 'pdf' | 'layered-svg';
 export type BasemapMode = 'raster' | 'none';
+export type RasterDelivery = 'single-png' | 'tile-package';
 
 export type RasterLayerResolution = {
   id: string;
@@ -24,6 +25,7 @@ export type ExportPreflightRequest = {
   };
   rasterLayers?: readonly RasterLayerResolution[];
   cancellationSupported: boolean;
+  rasterDelivery?: RasterDelivery;
 };
 
 export type ExportPreflightLimits = {
@@ -96,6 +98,7 @@ export type ExportTilePlan = {
 export type ExportPreflightResult = {
   safe: boolean;
   format: ExportFormat;
+  delivery: RasterDelivery;
   dimensions: {
     widthPx: number;
     heightPx: number;

@@ -51,6 +51,46 @@ describe('export preflight planning', () => {
     expect(result.errors).toEqual([]);
   });
 
+  it('offers bounded tile-package planning when a single PNG exceeds canvas memory', () => {
+    const single = planExportPreflight(completeRequest({
+      page: { widthMm: 1330, heightMm: 1330 },
+    }));
+    const packaged = planExportPreflight(completeRequest({
+      page: { widthMm: 1330, heightMm: 1330 },
+      rasterDelivery: 'tile-package',
+    }));
+
+    expect(single.safe).toBe(false);
+    expect(single.errors.map(({ code }) => code)).toContain('MEMORY_BUDGET_EXCEEDED');
+    expect(packaged.safe).toBe(true);
+    expect(packaged.delivery).toBe('tile-package');
+    expect(packaged.plan).toMatchObject({ mode: 'tiles', columns: 4, rows: 4 });
+    expect(packaged.estimates?.peakBytes).toBeLessThan(512 * 1024 * 1024);
+    expect(packaged.estimates?.encodedOutputBytes).toBeGreaterThan(512 * 1024 * 1024);
+  });
+
+  it('allows a tile package beyond the single-PNG page-side policy without claiming unlimited output', () => {
+    const packaged = planExportPreflight(completeRequest({
+      page: { widthMm: 1400, heightMm: 210 },
+      rasterDelivery: 'tile-package',
+    }));
+
+    expect(packaged.safe).toBe(true);
+    expect(packaged.errors.map(({ code }) => code)).not.toContain('PAGE_SIDE_LIMIT_EXCEEDED');
+    expect(packaged.plan?.tiles.length).toBeGreaterThan(1);
+  });
+
+  it('rejects packages estimated beyond the compatible streamed ZIP size with actionable guidance', () => {
+    const packaged = planExportPreflight(completeRequest({
+      page: { widthMm: 3000, heightMm: 3000 },
+      rasterDelivery: 'tile-package',
+    }));
+
+    expect(packaged.safe).toBe(false);
+    expect(packaged.errors.find(({ code }) => code === 'PACKAGE_SIZE_LIMIT_EXCEEDED')?.message)
+      .toContain('4 GiB');
+  });
+
   it('plans overlapping strips or tiles whose render surfaces stay inside the GPU limit', () => {
     const limits = {
       gpuMaxSidePx: 512,

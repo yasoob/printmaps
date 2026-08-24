@@ -1,7 +1,7 @@
 import { ChevronRight, X } from 'lucide-react';
 import type React from 'react';
 import type { ProjectDocument } from '../../domain/project';
-import { planExportPreflight } from '../../export/preflight';
+import { planExportPreflight, type RasterDelivery } from '../../export/preflight';
 
 export type ExportFormat = 'png' | 'svg' | 'pdf';
 
@@ -22,6 +22,16 @@ const DOWNLOAD_LABEL: Record<ExportFormat, string> = {
   svg: 'Download layered SVG',
   pdf: 'Download PDF',
 };
+
+function downloadLabel(format: ExportFormat, delivery: RasterDelivery): string {
+  if (format === 'png' && delivery === 'tile-package') return 'Save tile package';
+  return DOWNLOAD_LABEL[format];
+}
+
+function canDownload(format: ExportFormat, delivery: RasterDelivery, preflight: ExportPreflight, canStreamPackage: boolean): boolean {
+  if (format !== 'png') return true;
+  return preflight.safe && (delivery !== 'tile-package' || canStreamPackage);
+}
 
 function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MiB`;
@@ -83,7 +93,9 @@ function ExportOutputSummary({ document, preflight, selectedFormat }: Readonly<{
     <section className="export-output-summary" aria-labelledby="export-output-title">
       <span id="export-output-title">Output</span>
       {preflight.dimensions && <strong>{preflight.dimensions.widthPx} × {preflight.dimensions.heightPx} px — 300 DPI pixel target</strong>}
-      <p>{pageLabel} · Native-detail PNG</p>
+      {preflight.delivery === 'tile-package' ? (
+        <p>{pageLabel} · Streamed ZIP of independently valid PNG tiles plus an assembly manifest; not a single PNG.</p>
+      ) : <p>{pageLabel} · Native-detail PNG</p>}
     </section>
   );
   return (
@@ -92,6 +104,44 @@ function ExportOutputSummary({ document, preflight, selectedFormat }: Readonly<{
       <strong>{pageLabel} · {document.page.widthMm} × {document.page.heightMm} mm</strong>
       <p>{selectedFormat === 'svg' ? 'Raster basemap · named vector overlays' : 'Exact-page PDF · named vector overlays'}</p>
     </section>
+  );
+}
+
+function RasterDeliveryChoice({ busy, delivery, onChange }: Readonly<{
+  busy: boolean;
+  delivery: RasterDelivery;
+  onChange: (delivery: RasterDelivery) => void;
+}>) {
+  return (
+    <div className="export-format-group" role="radiogroup" aria-label="Raster output delivery">
+      <button type="button" role="radio" aria-checked={delivery === 'single-png'} disabled={busy} onClick={() => onChange('single-png')}>
+        <span>Single PNG</span><small>One canvas-backed image for ordinary output sizes</small>
+      </button>
+      <button type="button" role="radio" aria-checked={delivery === 'tile-package'} disabled={busy} onClick={() => onChange('tile-package')}>
+        <span>Large-output tile package</span><small>Streamed ZIP of assembly-ready PNG tiles</small>
+      </button>
+    </div>
+  );
+}
+
+function RasterDeliverySection({ busy, delivery, onChange, canStreamPackage, selectedFormat }: Readonly<{
+  busy: boolean;
+  delivery: RasterDelivery;
+  onChange: (delivery: RasterDelivery) => void;
+  canStreamPackage: boolean;
+  selectedFormat: ExportFormat;
+}>) {
+  if (selectedFormat !== 'png') return null;
+  return (
+    <>
+      <RasterDeliveryChoice busy={busy} delivery={delivery} onChange={onChange} />
+      {delivery === 'tile-package' && !canStreamPackage && (
+        <div className="export-error" role="alert">
+          <strong>Large-output package unavailable</strong>
+          <p>Use Chrome or Edge with the File System Access API, or reduce the page size and choose Single PNG.</p>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -132,21 +182,24 @@ type ExportDialogViewProps = {
   document: ProjectDocument;
   downloadButtonRef: React.RefObject<HTMLButtonElement | null>;
   error: string | null;
+  largeRasterSupported: boolean;
   onCancel: () => void;
   onClose: () => void;
   onDownload: () => void;
   onFormatChange: (format: ExportFormat) => void;
   onKeyDown: React.KeyboardEventHandler<HTMLDialogElement>;
+  onRasterDeliveryChange: (delivery: RasterDelivery) => void;
   onTechnicalDetailsToggle: () => void;
   preflight: ExportPreflight;
+  rasterDelivery: RasterDelivery;
   selectedFormat: ExportFormat;
   status: string;
   technicalDetailsExpanded: boolean;
 };
 
 export function ExportDialogView(props: ExportDialogViewProps) {
-  const { busy, cancelButtonRef, dialogRef, document, downloadButtonRef, error, onCancel, onClose, onDownload, onFormatChange, onKeyDown, onTechnicalDetailsToggle, preflight, selectedFormat, status, technicalDetailsExpanded } = props;
-  const selectedFormatIsSafe = selectedFormat !== 'png' || preflight.safe;
+  const { busy, cancelButtonRef, dialogRef, document, downloadButtonRef, error, largeRasterSupported, onCancel, onClose, onDownload, onFormatChange, onKeyDown, onRasterDeliveryChange, onTechnicalDetailsToggle, preflight, rasterDelivery, selectedFormat, status, technicalDetailsExpanded } = props;
+  const canDownloadSelectedFormat = canDownload(selectedFormat, rasterDelivery, preflight, largeRasterSupported);
   return (
     <div className="export-overlay">
       <div className="export-backdrop" aria-hidden="true" onClick={busy ? undefined : onClose} />
@@ -157,6 +210,7 @@ export function ExportDialogView(props: ExportDialogViewProps) {
         </div>
         <div className="export-dialog-body">
           <ExportFormatChoice busy={busy} onChange={onFormatChange} selectedFormat={selectedFormat} />
+          <RasterDeliverySection busy={busy} canStreamPackage={largeRasterSupported} delivery={rasterDelivery} onChange={onRasterDeliveryChange} selectedFormat={selectedFormat} />
           <ExportOutputSummary document={document} preflight={preflight} selectedFormat={selectedFormat} />
           <ExportTechnicalDetails busy={busy} expanded={technicalDetailsExpanded} onToggle={onTechnicalDetailsToggle} preflight={preflight} selectedFormat={selectedFormat} />
           {selectedFormat === 'png' && preflight.errors.length > 0 && (
@@ -166,12 +220,13 @@ export function ExportDialogView(props: ExportDialogViewProps) {
               <p>Reduce the page dimensions before retrying.</p>
             </div>
           )}
+
           <p className="export-status" role="status">{status}</p>
           {error && <p className="export-error" role="alert">{error}</p>}
         </div>
         <div className="export-dialog-actions">
           <button ref={cancelButtonRef} type="button" onClick={busy ? onCancel : onClose}>{busy ? 'Cancel export' : 'Cancel'}</button>
-          <button ref={downloadButtonRef} className="primary-button" type="button" disabled={busy || !selectedFormatIsSafe} onClick={onDownload}>{busy ? 'Preparing…' : DOWNLOAD_LABEL[selectedFormat]}</button>
+          <button ref={downloadButtonRef} className="primary-button" type="button" disabled={busy || !canDownloadSelectedFormat} onClick={onDownload}>{busy ? 'Preparing…' : downloadLabel(selectedFormat, rasterDelivery)}</button>
         </div>
       </dialog>
     </div>
