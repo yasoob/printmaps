@@ -54,3 +54,71 @@ test('project file menu keeps autosave authoritative on desktop and mobile', asy
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0);
   if (testInfo.project.name === 'chromium') await page.screenshot({ path: 'docs/screenshots/latest-mobile.png' });
 });
+
+test('Share hands off the current portable project and stays reachable on mobile', async ({ page }) => {
+  const consoleProblems: string[] = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') consoleProblems.push(message.text());
+  });
+  page.on('pageerror', (error) => { consoleProblems.push(error.message); });
+  await page.addInitScript(() => {
+    const state = globalThis as typeof globalThis & {
+      __sharedProject?: { name: string; text: string; title?: string };
+    };
+    Object.defineProperties(navigator, {
+      canShare: { configurable: true, value: () => true },
+      share: {
+        configurable: true,
+        value: async (data: ShareData) => {
+          const file = data.files?.[0];
+          if (!file) throw new Error('Missing shared project file.');
+          state.__sharedProject = { name: file.name, text: await file.text(), title: data.title };
+        },
+      },
+    });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Portrait' }).click();
+
+  const share = page.getByRole('button', { name: 'Share' });
+  await share.click();
+  await expect(page.getByRole('status', { name: 'Project share status' })).toContainText('Project shared');
+  await expect(share).toBeFocused();
+  const sharedProject = await page.evaluate(() => (
+    globalThis as typeof globalThis & {
+      __sharedProject?: { name: string; text: string; title?: string };
+    }
+  ).__sharedProject);
+  expect(sharedProject?.name).toBe('vienna-field-guide.printmap.json');
+  expect(sharedProject?.title).toBe('Vienna field guide');
+  expect(JSON.parse(sharedProject!.text)).toMatchObject({
+    schemaVersion: 17,
+    page: { orientation: 'portrait', widthMm: 210, heightMm: 297 },
+  });
+
+  await page.evaluate(() => {
+    Object.defineProperties(navigator, {
+      canShare: { configurable: true, value: undefined },
+      share: { configurable: true, value: undefined },
+    });
+  });
+  const fallbackDownload = page.waitForEvent('download');
+  await share.click();
+  const downloadedProject = await fallbackDownload;
+  expect(downloadedProject.suggestedFilename()).toBe('vienna-field-guide.printmap.json');
+  await expect(page.getByRole('status', { name: 'Project share status' })).toContainText(
+    'Project file downloaded. Send it to share this editable map.',
+  );
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(share).toBeVisible();
+  const shareBounds = await share.boundingBox();
+  expect(shareBounds).not.toBeNull();
+  expect(shareBounds!.height).toBeGreaterThanOrEqual(44);
+  const exportBounds = await page.getByRole('button', { name: 'Export' }).boundingBox();
+  expect(exportBounds).not.toBeNull();
+  expect(exportBounds!.height).toBeGreaterThanOrEqual(44);
+  expect(Math.abs(exportBounds!.height - shareBounds!.height)).toBeLessThanOrEqual(1);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0);
+  expect(consoleProblems).toEqual([]);
+});

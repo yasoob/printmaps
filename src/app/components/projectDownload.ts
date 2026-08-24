@@ -6,6 +6,18 @@ function safeFilenameId(document: ProjectDocument) {
   return document.id.replaceAll(/[^a-z0-9._-]+/gi, '-').replaceAll(/^[-.]+|[-.]+$/g, '') || 'project';
 }
 
+export function createPortableProjectFile(document: ProjectDocument) {
+  const file = new File(
+    [`${JSON.stringify(document, null, 2)}\n`],
+    `${safeFilenameId(document)}.printmap.json`,
+    { type: 'application/json' },
+  );
+  if (file.size > MAX_PROJECT_FILE_BYTES) {
+    throw new Error('The portable project JSON must be 10 MB or smaller. Remove project content before saving.');
+  }
+  return file;
+}
+
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   try {
@@ -19,11 +31,8 @@ function downloadBlob(blob: Blob, filename: string) {
 }
 
 export function downloadProjectDocument(document: ProjectDocument) {
-  const blob = new Blob([`${JSON.stringify(document, null, 2)}\n`], { type: 'application/json' });
-  if (blob.size > MAX_PROJECT_FILE_BYTES) {
-    throw new Error('The portable project JSON must be 10 MB or smaller. Remove project content before saving.');
-  }
-  downloadBlob(blob, `${safeFilenameId(document)}.printmap.json`);
+  const file = createPortableProjectFile(document);
+  downloadBlob(file, file.name);
 }
 
 export function downloadProjectArchive(document: ProjectDocument) {

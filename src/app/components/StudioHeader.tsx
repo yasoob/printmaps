@@ -1,10 +1,11 @@
-import { Download, PenLine, Redo2, Share2, Undo2 } from 'lucide-react';
+import { Download, PenLine, Redo2, Undo2 } from 'lucide-react';
 import type { RefObject } from 'react';
 import type { ProjectDocument } from '../../domain/project';
 import type { ProjectState } from '../store';
 import type { LayerReplacementRequest, MapDataImportCommit } from '../hooks/useAppMapDataImport';
 import { GeoJsonImportButton } from './GeoJsonImportButton';
 import { ProjectFileMenu } from './ProjectFileActions';
+import { ProjectShareButton } from './ProjectShareButton';
 
 type StudioHeaderProps = {
   project: ProjectState;
@@ -68,7 +69,7 @@ export function StudioHeader({
           sourceDocument={project.document}
           startImportWork={startImportWork}
         />
-        <button className="quiet-button" type="button"><Share2 size={14} /> Share</button>
+        <ProjectShareButton document={project.document} />
         <button ref={exportButtonRef} className="primary-button" type="button" disabled={exportDisabled} title={exportDisabled ? 'Finish or cancel map authoring before export' : undefined} onClick={onExport}><Download size={14} /> Export</button>
       </div>
     </header>

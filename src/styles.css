@@ -911,6 +911,11 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 @media (max-width: 899px) {
   .studio-shell { grid-template: calc(var(--studio-topbar-height) + var(--studio-safe-top)) minmax(0, 1fr) / minmax(0, 1fr); }
   .history-actions, .quiet-button, .canvas-status { @apply hidden; }
+  .document-actions .project-share-button,
+  .document-actions > .primary-button {
+    @apply inline-flex px-2;
+    height: 2.75rem;
+  }
   .topbar {
     grid-template-columns: minmax(0, 1fr) auto;
     padding-top: var(--studio-safe-top);
