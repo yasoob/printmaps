@@ -3,6 +3,8 @@ dist/
 playwright-report/
 test-results/
 coverage/
+.cache/
+__pycache__/
 .env
 .env.local
 *.log

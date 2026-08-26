@@ -34,6 +34,19 @@ The mission is complete only when all of the following are true:
 6. Accessibility, responsive behavior, visual QA, performance and final review.
 7. Phase-2 capabilities from the plan only after the core gate is solid.
 
+## Global administrative-boundary data policy
+
+Administrative boundaries are a generated world-data capability, not a country-by-country feature queue.
+
+- Do not add another country-specific boundary module, fixture, screenshot, test file, or commit.
+- Replace the manually assembled catalogue with one version-pinned, checksum-verified ingestion pipeline.
+- Import Natural Earth Admin 0 countries and Admin 1 states/provinces globally in one run. Generate a compact metadata index plus lazy country geometry shards so a client downloads geometry only for the selected country.
+- Treat stable source identifiers and ISO codes as data, not TypeScript unions. Validate all generated rings, coordinate bounds, IDs, source/version metadata, and country-shard references at generation time and in one global catalogue contract test.
+- Updating world coverage means bumping the source version/checksum and regenerating once; it must never require editing one source module per country.
+- Keep exceptional municipal sources such as Vienna explicitly attributed and separate until a globally licensed ADM2–ADM5 source is integrated. If deeper worldwide levels are required, ingest geoBoundaries globally with required CC BY 4.0 acknowledgement rather than adding municipalities manually.
+- Preserve the existing ProjectDocument, undo/redo, autosave, layer styling, merge, selection, and export behavior. Persist selected boundary geometry in the project so reopening and exporting never depend on a live third-party API.
+- Do not delete the working hand-curated catalogue until the generated global catalogue passes representative desktop/mobile authoring, persistence, merge, and export checks; then remove the superseded country modules and country-specific tests atomically.
+
 ## Pre-release schema policy
 
 This product is not deployed and has no compatibility obligation to earlier development schemas.
