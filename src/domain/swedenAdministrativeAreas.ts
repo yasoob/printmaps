@@ -1,9 +1,16 @@
-import { SWEDEN_ADMIN_1_REGIONS } from '../data/swedenAdmin1';
+import SWEDEN_ADMIN_1_JSON from '../data/swedenAdmin1.txt?raw';
 import type { LayerGeometry } from './project';
 
 const COUNTRY_SOURCE = 'Natural Earth 1:110m Admin 0 Countries (public domain), downloaded 2026-08-26';
 const REGION_SOURCE = 'Natural Earth 1:10m Admin 1 States/Provinces (public domain), downloaded 2026-08-26';
 type SwedenGeometry = Extract<LayerGeometry, { type: 'Polygon' | 'MultiPolygon' }>;
+type SwedenAdmin1Region = Readonly<{
+  id: string;
+  name: string;
+  sourceName: string;
+  geometry: SwedenGeometry;
+}>;
+const SWEDEN_ADMIN_1_REGIONS = JSON.parse(SWEDEN_ADMIN_1_JSON) as readonly SwedenAdmin1Region[];
 
 function detachGeometry(geometry: SwedenGeometry): SwedenGeometry {
   if (geometry.type === 'Polygon') {
