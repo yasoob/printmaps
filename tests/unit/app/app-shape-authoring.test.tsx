@@ -138,6 +138,22 @@ it('exposes every Polish voivodeship through the region country selector', async
   expect(screen.getByText('Poland · Natural Earth')).toBeInTheDocument();
 });
 
+it('exposes every German federal state through the region country selector', async () => {
+  const user = userEvent.setup();
+  render(<App autosaveRepository={null} />);
+
+  await user.click(screen.getByRole('button', { name: 'Area (S)' }));
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Administrative level' }), 'region');
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Region country' }), 'DEU');
+
+  const regions = screen.getByRole('group', { name: 'Germany regions' });
+  expect(within(regions).getAllByRole('checkbox')).toHaveLength(16);
+  expect(within(regions).getByRole('checkbox', { name: 'Bavaria' })).toBeInTheDocument();
+  expect(within(regions).getByRole('checkbox', { name: 'Berlin' })).toBeInTheDocument();
+  expect(within(regions).getByRole('checkbox', { name: 'North Rhine-Westphalia' })).toBeInTheDocument();
+  expect(screen.getByText('Germany · Natural Earth')).toBeInTheDocument();
+});
+
 it('filters the active region catalogue without losing hidden selections', async () => {
   const user = userEvent.setup();
   render(<App autosaveRepository={null} />);

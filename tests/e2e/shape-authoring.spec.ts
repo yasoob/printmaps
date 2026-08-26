@@ -199,7 +199,7 @@ test('a finished custom area supports point editing, insertion, undo, and explic
   await expect(page.locator('.shape-transform-marker')).toHaveCount(5);
 });
 
-test('Polish, Czech, Hungarian, Slovak and Austrian region catalogues create durable areas with print parity', async ({ page }, testInfo) => {
+test('German, Polish, Czech, Hungarian, Slovak and Austrian region catalogues create durable areas with print parity', async ({ page }, testInfo) => {
   const consoleProblems: string[] = [];
   page.on('pageerror', (error) => { consoleProblems.push(error.message); });
   page.on('console', (message) => {
@@ -207,6 +207,20 @@ test('Polish, Czech, Hungarian, Slovak and Austrian region catalogues create dur
   });
   await page.goto('/');
   await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
+
+  await page.getByRole('button', { name: 'Area (S)' }).click();
+  await page.getByRole('combobox', { name: 'Administrative level' }).selectOption('region');
+  await page.getByRole('combobox', { name: 'Region country' }).selectOption('DEU');
+  const germanyRegions = page.getByRole('group', { name: 'Germany regions' });
+  await expect(germanyRegions.getByRole('checkbox')).toHaveCount(16);
+  await germanyRegions.getByRole('checkbox', { name: 'Bavaria' }).check();
+  await page.getByRole('button', { name: 'Add selected area' }).click();
+  await expect(page.getByRole('button', { name: 'Select Bavaria' })).toHaveAttribute('aria-current', 'true');
+  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-geometry', /admin-de-by:/);
+  if (testInfo.project.name === 'chromium') {
+    await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/germany-region-catalogue-20260826.png' });
+  }
+  await page.getByRole('button', { name: 'Undo' }).click();
 
   await page.getByRole('button', { name: 'Area (S)' }).click();
   await page.getByRole('combobox', { name: 'Administrative level' }).selectOption('region');
