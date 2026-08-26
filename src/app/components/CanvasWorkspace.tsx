@@ -265,7 +265,7 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
   });
 
   return (
-    <section className="canvas-region" inert={activePanel !== null}>
+    <section className={`canvas-region${activeTool === 'route' ? ' has-route-authoring' : ''}`} inert={activePanel !== null}>
       <LocationSearch key={documentEpoch} provider={searchProvider} proximity={camera.center} onSelect={(coordinate, result) => {
         const isResultConsumed = isSearchResultConsumed(activeTool, routeLineShape, shapeMode, poiAuthoring.spreadsheetOpen); if (!isResultConsumed) onLocate?.(coordinate, () => {});
         if (activeTool === 'route' && routeLineShape === 'road') {

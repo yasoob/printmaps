@@ -9,12 +9,12 @@ import { ShapeDrawingPanel } from './ShapeDrawingPanel';
 import { ShapeEditingToolbar } from './ShapeEditingToolbar';
 
 const tools = [
-  { id: 'select', label: 'Select', shortcut: 'V', icon: MousePointer2 },
-  { id: 'pan', label: 'Pan', shortcut: 'H', icon: Hand },
-  { id: 'route', label: 'Route', shortcut: 'R', icon: Route },
-  { id: 'pin', label: 'Pin', shortcut: 'P', icon: MapPin },
-  { id: 'shape', label: 'Area', shortcut: 'S', icon: Shapes },
-  { id: 'frame', label: 'Fit page', shortcut: 'Shift+1', icon: Frame, command: true },
+  { id: 'select', label: 'Select', mobileLabel: 'Select', shortcut: 'V', icon: MousePointer2 },
+  { id: 'pan', label: 'Pan', mobileLabel: 'Pan', shortcut: 'H', icon: Hand },
+  { id: 'route', label: 'Route', mobileLabel: 'Route', shortcut: 'R', icon: Route, groupStart: true },
+  { id: 'pin', label: 'Pin', mobileLabel: 'Pin', shortcut: 'P', icon: MapPin },
+  { id: 'shape', label: 'Area', mobileLabel: 'Area', shortcut: 'S', icon: Shapes },
+  { id: 'frame', label: 'Fit page', mobileLabel: 'Fit', shortcut: 'Shift+1', icon: Frame, command: true, groupStart: true, mobileGroupStart: true },
 ];
 
 type SelectedShapeControls = {
@@ -56,11 +56,12 @@ export function CanvasWorkspaceChrome({
         <button ref={propertiesTriggerRef} type="button" aria-label="Open properties" aria-controls="properties-panel" aria-expanded={activePanel === 'properties'} onClick={() => onOpenPanel('properties')}><SlidersHorizontal size={15} /><span>Properties</span></button>
       </div>
       <nav className="tool-palette" aria-label="Map tools">
-        {tools.map(({ id, label, shortcut, icon: Icon, command }, index) => (
+        {tools.map(({ id, label, mobileLabel, shortcut, icon: Icon, command, groupStart, mobileGroupStart }) => (
           <div className="tool-slot" key={id}>
-            {index === 2 && <span className="tool-separator" />}
+            {groupStart && <span className={`tool-separator${mobileGroupStart ? ' is-mobile-only' : ''}`} aria-hidden="true" />}
             <button ref={id === 'select' ? selectToolRef : undefined} className={`tool-button${!command && activeTool === id ? ' is-active' : ''}`} type="button" aria-label={`${label} (${shortcut})`} aria-pressed={command ? undefined : activeTool === id} title={`${label} · ${shortcut}`} disabled={camera.locked && (id === 'pan' || id === 'frame')} onClick={() => command ? onFitPage() : onActivateTool(id)}>
               <Icon size={17} strokeWidth={1.8} />
+              <span className="tool-label" aria-hidden="true">{mobileLabel}</span>
             </button>
           </div>
         ))}

@@ -338,6 +338,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 .tool-slot { @apply flex items-center; }
 .tool-separator { @apply mx-1.5 h-5 w-px; background: var(--studio-line); }
+.tool-separator.is-mobile-only { display: none; }
 .tool-button {
   @apply grid place-items-center;
   width: var(--studio-tool-size);
@@ -347,6 +348,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 .tool-button:hover { background: var(--studio-field); }
 .tool-button.is-active { color: var(--studio-accent-strong); background: var(--studio-accent-soft); }
+.tool-label { display: none; }
 .shape-editing-toolbar {
   @apply absolute left-1/2 z-20 flex -translate-x-1/2 items-center overflow-hidden;
   bottom: 4.5rem;
@@ -389,6 +391,12 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .authoring-segmented > button + button { border-left: var(--studio-border-width) solid var(--studio-line); }
 .authoring-segmented > button:hover { background: var(--studio-field); }
 .authoring-segmented > button[aria-checked="true"] { background: var(--studio-text); color: var(--studio-on-dark); }
+.route-authoring-panel { width: min(36rem, calc(100% - 1rem)); }
+.route-authoring-panel > [role="status"] { @apply basis-full text-center; }
+.route-path-options > button { @apply flex min-h-8 items-center gap-1.5 px-2; }
+.route-marker-field { @apply flex items-center gap-1.5 whitespace-nowrap; }
+.route-marker-field > span { @apply text-xs font-medium; color: var(--studio-text-muted); }
+.route-marker-field > select { min-width: 6.75rem; }
 .shape-authoring-panel { max-width: min(46rem, calc(100% - 1rem)); }
 .shape-mode-tabs {
   @apply flex items-center;
@@ -1291,8 +1299,19 @@ button:focus-visible, input:focus-visible, select:focus-visible {
     overflow-x: auto;
     scrollbar-width: none;
   }
-  .tool-button { width: 2.75rem; height: 2.75rem; }
+  .tool-button {
+    @apply flex flex-col items-center justify-center gap-0.5;
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+  .tool-button > svg { width: 15px; height: 15px; }
+  .tool-label {
+    display: block;
+    font-size: 0.6875rem;
+    line-height: 0.75rem;
+  }
   .tool-palette::-webkit-scrollbar { display: none; }
+  .tool-separator.is-mobile-only { display: block; }
   .shape-editing-toolbar {
     bottom: calc(max(14px, var(--studio-safe-bottom)) + 4rem);
     left: calc(50% + (var(--studio-safe-left) - var(--studio-safe-right)) / 2);
@@ -1315,6 +1334,11 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   .maplibregl-ctrl-bottom-right,
   .map-scale {
     bottom: calc(max(14px, var(--studio-safe-bottom)) + 4rem);
+  }
+  .canvas-region.has-route-authoring .maplibregl-ctrl-bottom-left,
+  .canvas-region.has-route-authoring .maplibregl-ctrl-bottom-right,
+  .canvas-region.has-route-authoring .map-scale {
+    bottom: calc(max(14px, var(--studio-safe-bottom)) + 16rem);
   }
   .maplibregl-ctrl-bottom-left {
     left: calc(4px + var(--studio-safe-left));

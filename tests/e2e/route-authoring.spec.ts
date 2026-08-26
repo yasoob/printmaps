@@ -41,8 +41,8 @@ test('expert arc route authoring is undoable and exports a travel-mode marker', 
   await page.getByRole('button', { name: 'Route (R)' }).click();
   await expect(page.getByRole('button', { name: 'Export' })).toBeDisabled();
   await page.getByRole('radio', { name: 'Arc', exact: true }).click();
-  await page.getByRole('radio', { name: 'Air travel marker' }).click();
-  await expect(page.getByRole('status', { name: 'Route drawing status' })).toContainText('0 points');
+  await page.getByRole('combobox', { name: 'Travel marker' }).selectOption('air');
+  await expect(page.getByRole('status', { name: 'Route drawing status' })).toContainText('Click the map to add route points');
   const canvas = page.locator('.maplibregl-canvas');
   const canvasBox = await canvas.boundingBox();
   const frameBox = await page.locator('.print-frame').boundingBox();

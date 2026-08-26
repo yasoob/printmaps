@@ -78,7 +78,20 @@ it('cancels pending road routing when a searched waypoint is selected', async ()
 });
 
 describe('straight route authoring', () => {
-  it('uses roving arrow, Home, and End selection in route radio groups', async () => {
+  it('keeps the default route panel compact and self-explanatory', async () => {
+    const user = userEvent.setup();
+    render(<App autosaveRepository={null} />);
+    await user.click(screen.getByRole('button', { name: 'Route (R)' }));
+
+    expect(screen.getByRole('radio', { name: 'Straight' })).toHaveTextContent('Straight');
+    expect(screen.getByRole('radio', { name: 'Arc' })).toHaveTextContent('Arc');
+    expect(screen.getByRole('radio', { name: 'Road' })).toHaveTextContent('Road');
+    expect(screen.getByRole('combobox', { name: 'Travel marker' })).toHaveValue('none');
+    expect(screen.queryByRole('radiogroup', { name: 'Travel mode marker' })).not.toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Route drawing status' })).toHaveTextContent('Click the map to add route points');
+  });
+
+  it('uses roving path selection and one explicit marker field', async () => {
     const user = userEvent.setup();
     render(<App autosaveRepository={null} />);
     await user.click(screen.getByRole('button', { name: 'Route (R)' }));
@@ -95,15 +108,9 @@ describe('straight route authoring', () => {
     await user.keyboard('{Home}');
     expect(straight).toHaveFocus();
 
-    const markers = screen.getByRole('radiogroup', { name: 'Travel mode marker' });
-    const none = within(markers).getByRole('radio', { name: 'No travel marker' });
-    const ship = within(markers).getByRole('radio', { name: 'Ship travel marker' });
-    none.focus();
-    await user.keyboard('{ArrowLeft}');
-    expect(ship).toHaveFocus();
-    expect(ship).toHaveAttribute('aria-checked', 'true');
-    await user.keyboard('{Home}');
-    expect(none).toHaveFocus();
+    const marker = screen.getByRole('combobox', { name: 'Travel marker' });
+    await user.selectOptions(marker, 'ship');
+    expect(marker).toHaveValue('ship');
   });
 
   it('authors an arc with a travel profile and printable mode marker', async () => {
@@ -113,7 +120,7 @@ describe('straight route authoring', () => {
     await user.click(screen.getByRole('button', { name: 'Route (R)' }));
     expect(screen.queryByRole('combobox', { name: 'Route line shape' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('radio', { name: 'Arc' }));
-    await user.click(screen.getByRole('radio', { name: 'Air travel marker' }));
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Travel marker' }), 'air');
     await user.click(screen.getByRole('button', { name: 'Map route point 1' }));
     expect(screen.getByRole('status', { name: 'Route drawing status' })).toHaveTextContent('1 point');
     await user.click(screen.getByRole('button', { name: 'Map route point 2' }));
@@ -189,7 +196,7 @@ describe('straight route authoring', () => {
     await user.click(screen.getByRole('button', { name: 'Route (R)' }));
     expect(screen.getByRole('button', { name: 'Export' })).toBeDisabled();
     const finish = screen.getByRole('button', { name: 'Finish route' });
-    expect(screen.getByRole('status', { name: 'Route drawing status' })).toHaveTextContent('0 points');
+    expect(screen.getByRole('status', { name: 'Route drawing status' })).toHaveTextContent('Click the map to add route points');
     expect(finish).toBeDisabled();
 
     await user.click(screen.getByRole('button', { name: 'Map route point 1' }));
@@ -250,7 +257,7 @@ describe('straight route authoring', () => {
     expect(screen.queryByRole('status', { name: 'Route drawing status' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Select (V)' })).toHaveAttribute('aria-pressed', 'true');
     await user.click(screen.getByRole('button', { name: 'Route (R)' }));
-    expect(screen.getByRole('status', { name: 'Route drawing status' })).toHaveTextContent('0 points');
+    expect(screen.getByRole('status', { name: 'Route drawing status' })).toHaveTextContent('Click the map to add route points');
   });
 
   it('discards route points when the user switches tools', async () => {
@@ -262,7 +269,7 @@ describe('straight route authoring', () => {
     await user.click(screen.getByRole('button', { name: 'Pan (H)' }));
     await user.click(screen.getByRole('button', { name: 'Route (R)' }));
 
-    expect(screen.getByRole('status', { name: 'Route drawing status' })).toHaveTextContent('0 points');
+    expect(screen.getByRole('status', { name: 'Route drawing status' })).toHaveTextContent('Click the map to add route points');
     expect(screen.getByRole('button', { name: 'Finish route' })).toBeDisabled();
   });
 });

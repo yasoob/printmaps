@@ -252,6 +252,37 @@ test('mobile Export action gives its icon balanced spacing', async ({ page }) =>
   await expectBalancedHorizontalSpacing(button, button.locator('svg'), button.locator('span'));
 });
 
+test('mobile map palette names tools and separates the view command', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+
+  const toolbar = page.getByRole('navigation', { name: 'Map tools' });
+  await expect(toolbar.locator('.tool-label')).toHaveText(['Select', 'Pan', 'Route', 'Pin', 'Area', 'Fit']);
+  await expect(toolbar.locator('.tool-separator')).toHaveCount(2);
+  expect(await toolbar.locator('.tool-label').first().evaluate((element) => Number(getComputedStyle(element).fontSize.replace('px', '')))).toBeGreaterThanOrEqual(11);
+
+  await toolbar.getByRole('button', { name: 'Route (R)' }).click();
+  const routePath = page.getByRole('radiogroup', { name: 'Route path' });
+  await expect(routePath.getByRole('radio', { name: 'Straight' })).toContainText('Straight');
+  await expect(routePath.getByRole('radio', { name: 'Arc' })).toContainText('Arc');
+  await expect(routePath.getByRole('radio', { name: 'Road' })).toContainText('Road');
+  await expect(page.getByRole('combobox', { name: 'Travel marker' })).toHaveValue('none');
+  await expect(page.getByRole('status', { name: 'Route drawing status' })).toHaveText('Click the map to add route points');
+  const panel = page.locator('.route-authoring-panel');
+  const panelBox = await panel.boundingBox();
+  expect(panelBox).not.toBeNull();
+  expect(panelBox!.height).toBeLessThanOrEqual(150);
+  await expectNoOverlap(panel, page.locator('.map-scale'));
+  await expectNoOverlap(panel, page.locator('.maplibregl-ctrl-bottom-left'));
+  await expectNoOverlap(panel, page.locator('.maplibregl-ctrl-bottom-right'));
+  await page.screenshot({ path: 'docs/screenshots/mobile-route-palette-20260826.png' });
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(toolbar.locator('.tool-label:visible')).toHaveCount(0);
+  await expect(toolbar.locator('.tool-separator:visible')).toHaveCount(1);
+});
+
+
 test('mobile navigation buttons use full touch targets', async ({ page }) => {
   const consoleErrors: string[] = [];
   const pageErrors: string[] = [];
