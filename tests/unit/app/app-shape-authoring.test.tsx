@@ -202,6 +202,22 @@ it('exposes every Dutch province through the region country selector', async () 
   expect(screen.getByText('Netherlands · Natural Earth')).toBeInTheDocument();
 });
 
+it('exposes every Danish region through the region country selector', async () => {
+  const user = userEvent.setup();
+  render(<App autosaveRepository={null} />);
+
+  await user.click(screen.getByRole('button', { name: 'Area (S)' }));
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Administrative level' }), 'region');
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Region country' }), 'DNK');
+
+  const regions = screen.getByRole('group', { name: 'Denmark regions' });
+  expect(within(regions).getAllByRole('checkbox')).toHaveLength(5);
+  expect(within(regions).getByRole('checkbox', { name: 'Capital Region' })).toBeInTheDocument();
+  expect(within(regions).getByRole('checkbox', { name: 'Central Denmark' })).toBeInTheDocument();
+  expect(within(regions).getByRole('checkbox', { name: 'Southern Denmark' })).toBeInTheDocument();
+  expect(screen.getByText('Denmark · Natural Earth')).toBeInTheDocument();
+});
+
 it('filters the active region catalogue without losing hidden selections', async () => {
   const user = userEvent.setup();
   render(<App autosaveRepository={null} />);

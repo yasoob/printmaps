@@ -6,18 +6,19 @@ import { SLOVAKIA_ADMIN_1_REGIONS } from '../data/slovakiaAdmin1';
 import { VIENNA_DISTRICTS } from '../data/viennaDistricts';
 import { BELGIUM_COUNTRY_AREA, BELGIUM_REGION_AREAS } from './belgiumAdministrativeAreas';
 import { CZECHIA_COUNTRY_AREA, CZECHIA_REGION_AREAS } from './czechiaAdministrativeAreas';
+import { DENMARK_COUNTRY_AREA, DENMARK_REGION_AREAS } from './denmarkAdministrativeAreas';
 import { GERMANY_COUNTRY_AREA, GERMANY_REGION_AREAS } from './germanyAdministrativeAreas';
 import { HUNGARY_REGION_AREAS } from './hungaryAdministrativeAreas';
 import { NETHERLANDS_COUNTRY_AREA, NETHERLANDS_REGION_AREAS } from './netherlandsAdministrativeAreas';
 import { POLAND_COUNTRY_AREA, POLAND_REGION_AREAS } from './polandAdministrativeAreas';
 import { SWITZERLAND_COUNTRY_AREA, SWITZERLAND_REGION_AREAS } from './switzerlandAdministrativeAreas';
 
-export type AdministrativeAreaId = 'AUT' | 'BEL' | 'CHE' | 'CZE' | 'DEU' | 'HUN' | 'NLD' | 'POL' | 'SVK'
+export type AdministrativeAreaId = 'AUT' | 'BEL' | 'CHE' | 'CZE' | 'DEU' | 'DNK' | 'HUN' | 'NLD' | 'POL' | 'SVK'
   | 'AT-1' | 'AT-2' | 'AT-3' | 'AT-4' | 'AT-5' | 'AT-6' | 'AT-7' | 'AT-8' | 'AT-9'
-  | (typeof BELGIUM_REGION_AREAS)[number]['id'] | (typeof CZECHIA_REGION_AREAS)[number]['id'] | (typeof GERMANY_REGION_AREAS)[number]['id'] | (typeof HUNGARY_REGION_AREAS)[number]['id'] | (typeof NETHERLANDS_REGION_AREAS)[number]['id'] | (typeof POLAND_REGION_AREAS)[number]['id'] | (typeof SLOVAKIA_ADMIN_1_REGIONS)[number]['id'] | (typeof SWITZERLAND_REGION_AREAS)[number]['id']
+  | (typeof BELGIUM_REGION_AREAS)[number]['id'] | (typeof CZECHIA_REGION_AREAS)[number]['id'] | (typeof DENMARK_REGION_AREAS)[number]['id'] | (typeof GERMANY_REGION_AREAS)[number]['id'] | (typeof HUNGARY_REGION_AREAS)[number]['id'] | (typeof NETHERLANDS_REGION_AREAS)[number]['id'] | (typeof POLAND_REGION_AREAS)[number]['id'] | (typeof SLOVAKIA_ADMIN_1_REGIONS)[number]['id'] | (typeof SWITZERLAND_REGION_AREAS)[number]['id']
   | (typeof VIENNA_DISTRICTS)[number]['id'];
 
-export type AdministrativeCountryCode = Extract<AdministrativeAreaId, 'AUT' | 'BEL' | 'CHE' | 'CZE' | 'DEU' | 'HUN' | 'NLD' | 'POL' | 'SVK'>;
+export type AdministrativeCountryCode = Extract<AdministrativeAreaId, 'AUT' | 'BEL' | 'CHE' | 'CZE' | 'DEU' | 'DNK' | 'HUN' | 'NLD' | 'POL' | 'SVK'>;
 
 export type AdministrativeArea = Readonly<{
   countryCode: AdministrativeCountryCode;
@@ -113,7 +114,7 @@ export const ADMINISTRATIVE_AREAS: readonly AdministrativeArea[] = [
       [16.979667, 48.123497],
     ]] },
   },
-  BELGIUM_COUNTRY_AREA, NETHERLANDS_COUNTRY_AREA, GERMANY_COUNTRY_AREA, SWITZERLAND_COUNTRY_AREA,
+  BELGIUM_COUNTRY_AREA, NETHERLANDS_COUNTRY_AREA, DENMARK_COUNTRY_AREA, GERMANY_COUNTRY_AREA, SWITZERLAND_COUNTRY_AREA,
   {
     countryCode: 'HUN',
     id: 'HUN',
@@ -153,6 +154,7 @@ export const ADMINISTRATIVE_AREAS: readonly AdministrativeArea[] = [
   },
   ...austriaRegionAreas,
   ...BELGIUM_REGION_AREAS, ...CZECHIA_REGION_AREAS,
+  ...DENMARK_REGION_AREAS,
   ...GERMANY_REGION_AREAS,
   ...HUNGARY_REGION_AREAS,
   ...NETHERLANDS_REGION_AREAS,
@@ -281,10 +283,7 @@ function ringArea(ring: readonly (readonly [number, number])[]): number {
 
 type MergeableAdministrativeLevel = Extract<AdministrativeArea['level'], 'region' | 'municipality'>;
 
-type AdministrativeAreaSelection = {
-  areas: AdministrativeArea[];
-  level: MergeableAdministrativeLevel;
-};
+type AdministrativeAreaSelection = { areas: AdministrativeArea[]; level: MergeableAdministrativeLevel };
 
 function administrativeAreaSelection(ids: readonly string[]): AdministrativeAreaSelection | undefined {
   const uniqueIds = [...new Set(ids)];
