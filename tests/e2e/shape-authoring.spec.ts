@@ -199,7 +199,7 @@ test('a finished custom area supports point editing, insertion, undo, and explic
   await expect(page.locator('.shape-transform-marker')).toHaveCount(5);
 });
 
-test('Slovak and Austrian region catalogues create durable areas with print parity', async ({ page }, testInfo) => {
+test('Hungarian, Slovak and Austrian region catalogues create durable areas with print parity', async ({ page }, testInfo) => {
   const consoleProblems: string[] = [];
   page.on('pageerror', (error) => { consoleProblems.push(error.message); });
   page.on('console', (message) => {
@@ -207,6 +207,22 @@ test('Slovak and Austrian region catalogues create durable areas with print pari
   });
   await page.goto('/');
   await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
+
+  await page.getByRole('button', { name: 'Area (S)' }).click();
+  await page.getByRole('combobox', { name: 'Administrative level' }).selectOption('region');
+  await page.getByRole('combobox', { name: 'Region country' }).selectOption('HUN');
+  const hungaryRegions = page.getByRole('group', { name: 'Hungary regions' });
+  await expect(hungaryRegions.getByRole('checkbox')).toHaveCount(43);
+  await expect(hungaryRegions.getByRole('checkbox', { name: 'Veszprém', exact: true })).toBeVisible();
+  await expect(hungaryRegions.getByRole('checkbox', { name: 'Veszprém (city)', exact: true })).toBeVisible();
+  await hungaryRegions.getByRole('checkbox', { name: 'Budapest' }).check();
+  if (testInfo.project.name === 'chromium') {
+    await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/hungary-region-catalogue-20260826.png' });
+  }
+  await page.getByRole('button', { name: 'Add selected area' }).click();
+  await expect(page.getByRole('button', { name: 'Select Budapest' })).toHaveAttribute('aria-current', 'true');
+  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-geometry', /admin-hu-bu:/);
+  await page.getByRole('button', { name: 'Undo' }).click();
 
   await page.getByRole('button', { name: 'Area (S)' }).click();
   await page.getByRole('combobox', { name: 'Administrative level' }).selectOption('region');

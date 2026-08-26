@@ -4,6 +4,7 @@ import { AUSTRIA_ADMIN_1_REGIONS } from '../data/austriaAdmin1';
 import { AUSTRIA_TYROL_REGION } from '../data/austriaTyrol';
 import { SLOVAKIA_ADMIN_1_REGIONS } from '../data/slovakiaAdmin1';
 import { VIENNA_DISTRICTS } from '../data/viennaDistricts';
+import { HUNGARY_REGION_AREAS } from './hungaryAdministrativeAreas';
 
 export type AdministrativeAreaId =
   | 'AUT'
@@ -18,6 +19,7 @@ export type AdministrativeAreaId =
   | 'AT-7'
   | 'AT-8'
   | 'AT-9'
+  | (typeof HUNGARY_REGION_AREAS)[number]['id']
   | (typeof SLOVAKIA_ADMIN_1_REGIONS)[number]['id']
   | (typeof VIENNA_DISTRICTS)[number]['id'];
 
@@ -31,18 +33,15 @@ export type AdministrativeArea = Readonly<{
   source: string;
   geometry: Extract<LayerGeometry, { type: 'Polygon' | 'MultiPolygon' }>;
 }>;
-type PolygonAdministrativeArea = AdministrativeArea & {
-  geometry: Extract<LayerGeometry, { type: 'Polygon' }>;
-};
+type PolygonAdministrativeArea = AdministrativeArea & { geometry: Extract<LayerGeometry, { type: 'Polygon' }> };
 
 const SOURCE = 'Natural Earth 1:110m Admin 0 Countries (public domain), downloaded 2026-08-23';
 const AUSTRIA_REGION_SOURCE = 'Natural Earth 1:10m Admin 1 States/Provinces (public domain), downloaded 2026-08-23';
 const SLOVAKIA_REGION_SOURCE = 'Natural Earth 1:10m Admin 1 States/Provinces (public domain), downloaded 2026-08-26';
 const MUNICIPALITY_SOURCE = 'City of Vienna Open Government Data district boundaries (CC BY 3.0 AT), downloaded 2026-08-24 and simplified at 0.00008° tolerance';
-const MUNICIPALITY_SLIVER_AREA_LIMIT = 1e-6;
-const MUNICIPALITY_SLIVER_AREA_RATIO = 1e-4;
-export const VIENNA_DISTRICT_SOURCE_URL = 'https://data.wien.gv.at/daten/geo?service=WFS&request=GetFeature&version=1.1.0&typeName=ogdwien:BEZIRKSGRENZEOGD&srsName=EPSG:4326&outputFormat=json';
-export const VIENNA_DISTRICT_LICENSE_URL = 'https://creativecommons.org/licenses/by/3.0/at/';
+const MUNICIPALITY_SLIVER_AREA_LIMIT = 1e-6, MUNICIPALITY_SLIVER_AREA_RATIO = 1e-4;
+export const VIENNA_DISTRICT_SOURCE_URL = 'https://data.wien.gv.at/daten/geo?service=WFS&request=GetFeature&version=1.1.0&typeName=ogdwien:BEZIRKSGRENZEOGD&srsName=EPSG:4326&outputFormat=json',
+  VIENNA_DISTRICT_LICENSE_URL = 'https://creativecommons.org/licenses/by/3.0/at/';
 const polygonRegionAreas = AUSTRIA_ADMIN_1_REGIONS.map((region): AdministrativeArea => ({
   countryCode: 'AUT',
   id: region.id,
@@ -157,6 +156,7 @@ export const ADMINISTRATIVE_AREAS: readonly AdministrativeArea[] = [
     ]] },
   },
   ...austriaRegionAreas,
+  ...HUNGARY_REGION_AREAS,
   ...slovakiaRegionAreas,
   ...viennaMunicipalAreas,
 ] as const;

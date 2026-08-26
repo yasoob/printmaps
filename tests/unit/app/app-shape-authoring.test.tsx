@@ -89,6 +89,23 @@ it('matches district names independently of browser locale casing', async () => 
   }
 });
 
+it('exposes every Hungarian first-order division through the region country selector', async () => {
+  const user = userEvent.setup();
+  render(<App autosaveRepository={null} />);
+
+  await user.click(screen.getByRole('button', { name: 'Area (S)' }));
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Administrative level' }), 'region');
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Region country' }), 'HUN');
+
+  const regions = screen.getByRole('group', { name: 'Hungary regions' });
+  expect(within(regions).getAllByRole('checkbox')).toHaveLength(43);
+  expect(within(regions).getByRole('checkbox', { name: 'Budapest' })).toBeInTheDocument();
+  expect(within(regions).getByRole('checkbox', { name: 'Csongrád-Csanád' })).toBeInTheDocument();
+  expect(within(regions).getByRole('checkbox', { name: 'Veszprém' })).toBeInTheDocument();
+  expect(within(regions).getByRole('checkbox', { name: 'Veszprém (city)' })).toBeInTheDocument();
+  expect(screen.getByText('Hungary · Natural Earth')).toBeInTheDocument();
+});
+
 it('switches the region catalogue by country without retaining an incompatible selection', async () => {
   const user = userEvent.setup();
   render(<App autosaveRepository={null} />);

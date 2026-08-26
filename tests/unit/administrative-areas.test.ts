@@ -104,7 +104,7 @@ describe('bundled administrative areas', () => {
   });
 
   it('merges adjacent sourced Austrian regions into one polygon without internal borders', () => {
-    expect(ADMINISTRATIVE_AREAS.filter(({ level }) => level === 'region').map(({ id, name }) => ({ id, name }))).toEqual([
+    expect(ADMINISTRATIVE_AREAS.filter(({ countryCode, level }) => countryCode === 'AUT' && level === 'region').map(({ id, name }) => ({ id, name }))).toEqual([
       { id: 'AT-1', name: 'Burgenland' },
       { id: 'AT-2', name: 'Carinthia' },
       { id: 'AT-3', name: 'Lower Austria' },
