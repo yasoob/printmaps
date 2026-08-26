@@ -25,6 +25,7 @@
     "fflate": "^0.8.3",
     "lucide-react": "^1.33.0",
     "maplibre-gl": "^6.4.1",
+    "polygon-clipping": "^0.15.7",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "terra-draw": "^1.32.3",

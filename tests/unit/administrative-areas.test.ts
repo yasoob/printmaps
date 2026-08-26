@@ -115,6 +115,34 @@ describe('bundled administrative areas', () => {
     expect(mergeAdministrativeAreas(['AT-1', 'AT-8'])).toBeUndefined();
   });
 
+  it('merges adjacent Vienna municipal districts without an internal border', () => {
+    const merged = mergeAdministrativeAreas(['AT-9-01', 'AT-9-08']);
+
+    expect(merged).toMatchObject({
+      id: 'AT-9-01+AT-9-08',
+      name: 'Innere Stadt + Josefstadt',
+      level: 'municipality',
+    });
+    expect(merged?.geometry.type).toBe('Polygon');
+    expect(merged?.geometry.coordinates).toHaveLength(1);
+    expect(mergeAdministrativeAreas(['AT-9-01', 'AT-9-23'])).toBeUndefined();
+    expect(mergeAdministrativeAreas(['AT-9-01', 'AT-3'])).toBeUndefined();
+  });
+
+  it('merges representative connected Vienna selections without artificial holes', () => {
+    const selections = [
+      ['AT-9-02', 'AT-9-20'],
+      ['AT-9-16', 'AT-9-17'],
+      ADMINISTRATIVE_AREAS.filter(({ level }) => level === 'municipality').map(({ id }) => id),
+    ];
+
+    for (const selection of selections) {
+      const merged = mergeAdministrativeAreas(selection);
+      expect(merged?.geometry.type, selection.join(' + ')).toBe('Polygon');
+      expect(merged?.geometry.coordinates, selection.join(' + ')).toHaveLength(1);
+    }
+  });
+
   it('adds a selected administrative area as one undoable canonical shape', () => {
     const store = createProjectStore(createInitialProjectDocument());
 

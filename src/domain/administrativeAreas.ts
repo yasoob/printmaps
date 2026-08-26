@@ -1,3 +1,4 @@
+import { union as unionPolygons, type Polygon as ClippingPolygon } from 'polygon-clipping';
 import type { LayerGeometry } from './project';
 import { AUSTRIA_ADMIN_1_REGIONS } from '../data/austriaAdmin1';
 import { AUSTRIA_TYROL_REGION } from '../data/austriaTyrol';
@@ -32,6 +33,8 @@ type PolygonAdministrativeArea = AdministrativeArea & {
 const SOURCE = 'Natural Earth 1:110m Admin 0 Countries (public domain), downloaded 2026-08-23';
 const REGION_SOURCE = 'Natural Earth 1:10m Admin 1 States/Provinces (public domain), downloaded 2026-08-23';
 const MUNICIPALITY_SOURCE = 'City of Vienna Open Government Data district boundaries (CC BY 3.0 AT), downloaded 2026-08-24 and simplified at 0.00008° tolerance';
+const MUNICIPALITY_SLIVER_AREA_LIMIT = 1e-6;
+const MUNICIPALITY_SLIVER_AREA_RATIO = 1e-4;
 export const VIENNA_DISTRICT_SOURCE_URL = 'https://data.wien.gv.at/daten/geo?service=WFS&request=GetFeature&version=1.1.0&typeName=ogdwien:BEZIRKSGRENZEOGD&srsName=EPSG:4326&outputFormat=json';
 export const VIENNA_DISTRICT_LICENSE_URL = 'https://creativecommons.org/licenses/by/3.0/at/';
 const polygonRegionAreas = AUSTRIA_ADMIN_1_REGIONS.map((region): AdministrativeArea => ({
@@ -218,6 +221,27 @@ function mergeAlignedRings(areas: readonly PolygonAdministrativeArea[]): [number
   });
 }
 
+function mergeMunicipalityPolygons(areas: readonly PolygonAdministrativeArea[]): [number, number][][] | undefined {
+  try {
+    const polygons = areas.map(({ geometry }) => geometry.coordinates.map((ring) => (
+      ring.map(([longitude, latitude]) => [longitude, latitude] as [number, number])
+    )) as ClippingPolygon);
+    const [first, ...remaining] = polygons;
+    const merged = unionPolygons(first, ...remaining);
+    if (merged.length !== 1) return;
+    const [exterior, ...holes] = merged[0];
+    if (!exterior) return;
+    const sliverAreaLimit = Math.max(
+      MUNICIPALITY_SLIVER_AREA_LIMIT,
+      Math.abs(ringArea(exterior)) * MUNICIPALITY_SLIVER_AREA_RATIO,
+    );
+    const meaningfulHoles = holes.filter((ring) => Math.abs(ringArea(ring)) > sliverAreaLimit);
+    return [exterior, ...meaningfulHoles].map((ring) => ring.map(([longitude, latitude]) => [longitude, latitude]));
+  } catch {
+    return undefined;
+  }
+}
+
 function ringArea(ring: readonly (readonly [number, number])[]): number {
   let area = 0;
   for (let index = 1; index < ring.length; index += 1) {
@@ -228,23 +252,39 @@ function ringArea(ring: readonly (readonly [number, number])[]): number {
   return area / 2;
 }
 
-export function mergeAdministrativeAreas(ids: readonly string[]): AdministrativeArea | undefined {
+type MergeableAdministrativeLevel = Extract<AdministrativeArea['level'], 'region' | 'municipality'>;
+
+type AdministrativeAreaSelection = {
+  areas: AdministrativeArea[];
+  level: MergeableAdministrativeLevel;
+};
+
+function administrativeAreaSelection(ids: readonly string[]): AdministrativeAreaSelection | undefined {
   const uniqueIds = [...new Set(ids)];
   if (uniqueIds.length === 0 || uniqueIds.length !== ids.length) return;
   const areas = uniqueIds.map((id) => administrativeAreaById(id));
-  if (areas.some((area) => !area || area.level !== 'region')) return;
-  const regions = areas as AdministrativeArea[];
-  if (regions.length === 1) return regions[0];
-  if (regions.some(({ geometry }) => geometry.type !== 'Polygon')) return;
-  const polygonRegions = regions as PolygonAdministrativeArea[];
-  if (!isConnectedSelection(polygonRegions)) return;
-  const coordinates = mergeAlignedRings(polygonRegions);
+  const level = areas[0]?.level;
+  if ((level !== 'region' && level !== 'municipality') || areas.some((area) => !area || area.level !== level)) return;
+  return { areas: areas as AdministrativeArea[], level };
+}
+
+export function mergeAdministrativeAreas(ids: readonly string[]): AdministrativeArea | undefined {
+  const selection = administrativeAreaSelection(ids);
+  if (!selection) return;
+  const { areas: selectedAreas, level } = selection;
+  if (selectedAreas.length === 1) return selectedAreas[0];
+  if (selectedAreas.some(({ geometry }) => geometry.type !== 'Polygon')) return;
+  const polygonAreas = selectedAreas as PolygonAdministrativeArea[];
+  if (!isConnectedSelection(polygonAreas)) return;
+  const coordinates = level === 'municipality'
+    ? mergeMunicipalityPolygons(polygonAreas)
+    : mergeAlignedRings(polygonAreas);
   if (!coordinates) return;
   return {
-    id: regions.map(({ id }) => id).join('+'),
-    name: regions.map(({ name }) => name).join(' + '),
-    level: 'region',
-    source: REGION_SOURCE,
+    id: selectedAreas.map(({ id }) => id).join('+'),
+    name: selectedAreas.map(({ name }) => name).join(' + '),
+    level,
+    source: level === 'municipality' ? MUNICIPALITY_SOURCE : REGION_SOURCE,
     geometry: { type: 'Polygon', coordinates },
   };
 }

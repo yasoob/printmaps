@@ -6,7 +6,7 @@ const isHeadlessWebGlDiagnostic = (message: string) => (
   || message.includes('AllowWebgl2:false restricts context creation on this system')
 );
 
-test('Vienna municipality catalogue preserves source credit through project and print downloads', async ({ page }, testInfo) => {
+test('Vienna municipality selection and merging preserve source credit through project and print downloads', async ({ page }, testInfo) => {
   const consoleProblems: string[] = [];
   page.on('pageerror', (error) => { consoleProblems.push(error.message); });
   page.on('console', (message) => {
@@ -19,17 +19,18 @@ test('Vienna municipality catalogue preserves source credit through project and 
 
   await page.getByRole('button', { name: 'Area (S)' }).click();
   await page.getByRole('combobox', { name: 'Administrative level' }).selectOption('municipality');
-  const district = page.getByRole('combobox', { name: 'Vienna district' });
-  await expect(district.getByRole('option')).toHaveCount(23);
+  const districts = page.getByRole('group', { name: 'Vienna districts' });
+  await expect(districts.getByRole('checkbox')).toHaveCount(23);
   await expect(page.getByRole('link', { name: 'Vienna district boundaries source' })).toHaveAttribute('href', /BEZIRKSGRENZEOGD/);
   await expect(page.getByRole('link', { name: 'CC BY 3.0 AT license' })).toHaveAttribute('href', 'https://creativecommons.org/licenses/by/3.0/at/');
-  await district.selectOption('AT-9-01');
-  await page.getByRole('button', { name: 'Add municipal district' }).click();
-  await expect(page.getByRole('button', { name: 'Select Innere Stadt' })).toHaveAttribute('aria-current', 'true');
-  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-geometry', /admin-at-9-01:/);
+  await page.getByRole('checkbox', { name: 'Innere Stadt' }).check();
+  await page.getByRole('checkbox', { name: 'Josefstadt' }).check();
+  await page.getByRole('button', { name: 'Merge 2 selected districts' }).click();
+  await expect(page.getByRole('button', { name: 'Select Innere Stadt + Josefstadt' })).toHaveAttribute('aria-current', 'true');
+  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-geometry', /admin-at-9-01-at-9-08:/);
   await page.getByRole('switch', { name: 'Invert shape fill' }).check();
-  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-appearance', /admin-at-9-01:[^|]*:true/);
-  await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/latest-desktop.png' });
+  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-appearance', /admin-at-9-01-at-9-08:[^|]*:true/);
+  await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/vienna-district-merge-20260826.png' });
 
   const projectPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Save' }).click();
@@ -37,10 +38,11 @@ test('Vienna municipality catalogue preserves source credit through project and 
   const projectPath = testInfo.outputPath('vienna-district.printmap.json');
   await projectDownload.saveAs(projectPath);
   const project = JSON.parse(await readFile(projectPath, 'utf8'));
-  const districtLayer = project.layers.find(({ id }: { id: string }) => id === 'admin-at-9-01');
+  const districtLayer = project.layers.find(({ id }: { id: string }) => id === 'admin-at-9-01-at-9-08');
   expect(project.schemaVersion).toBe(20);
-  expect(districtLayer).toMatchObject({ name: 'Innere Stadt', geometry: { type: 'Polygon' }, appearance: { invert: true } });
-  expect(districtLayer.geometry.coordinates.flat().length).toBeLessThanOrEqual(500);
+  expect(districtLayer).toMatchObject({ name: 'Innere Stadt + Josefstadt', geometry: { type: 'Polygon' }, appearance: { invert: true } });
+  expect(districtLayer.geometry.coordinates).toHaveLength(1);
+  expect(districtLayer.geometry.coordinates.flat().length).toBeLessThanOrEqual(1000);
 
   await page.getByRole('button', { name: 'Export' }).click();
   const dialog = page.getByRole('dialog', { name: 'Export map' });
@@ -51,13 +53,14 @@ test('Vienna municipality catalogue preserves source credit through project and 
   const svgPath = testInfo.outputPath('vienna-district.layered.svg');
   await svgDownload.saveAs(svgPath);
   const svg = await readFile(svgPath, 'utf8');
-  expect(svg).toContain('data-layer-name="Innere Stadt"');
+  expect(svg).toContain('data-layer-name="Innere Stadt + Josefstadt"');
   expect(svg).toContain('City of Vienna OGD (CC BY 3.0 AT; boundaries simplified)');
 
   await page.getByRole('button', { name: 'Close export' }).click();
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole('button', { name: 'Area (S)' }).click();
   await page.getByRole('combobox', { name: 'Administrative level' }).selectOption('municipality');
+  await expect(page.getByRole('group', { name: 'Vienna districts' }).getByRole('checkbox')).toHaveCount(23);
   await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/latest-mobile.png' });
   const panel = page.locator('.map-authoring-panel');
   const panelBox = await panel.boundingBox();
