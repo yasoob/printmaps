@@ -64,6 +64,21 @@ describe('editor layer actions', () => {
     expect(screen.getByRole('button', { name: 'Select City center' })).toHaveFocus();
   });
 
+  it('uses matching close language for both mobile sidebars', async () => {
+    stubMobileViewport();
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: 'Open layers' }));
+    const closeLayers = screen.getByRole('button', { name: 'Close layers' });
+    await waitFor(() => expect(closeLayers).toHaveFocus());
+    await user.click(closeLayers);
+    expect(screen.getByRole('button', { name: 'Open layers' })).toHaveFocus();
+
+    await user.click(screen.getByRole('button', { name: 'Open properties' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Close properties' })).toHaveFocus());
+  });
+
   it('restores focus to the replacement layer menu after duplicating inside the properties drawer', async () => {
     stubMobileViewport();
     const user = userEvent.setup();

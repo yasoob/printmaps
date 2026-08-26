@@ -1,4 +1,4 @@
-import { Eye, EyeOff, GripVertical, Layers3, Lock, MapPin, PanelLeftClose, Route, Search, Shapes, Unlock } from 'lucide-react';
+import { Eye, EyeOff, GripVertical, Layers3, Lock, MapPin, PanelLeftClose, Route, Search, Shapes, Unlock, X } from 'lucide-react';
 import { memo, type Dispatch, type RefObject, type SetStateAction } from 'react';
 import type { ContentLayer, LayerType } from '../../domain/project';
 import { ProjectAutosaveStatus } from '../../storage/ProjectAutosaveUi';
@@ -124,7 +124,17 @@ export const LayersSidebar = memo(function LayersSidebar(props: LayersSidebarPro
   const { activePanel, autosave, closePanel, layers, panelRef, onKeyDown } = props;
   return (
     <aside ref={panelRef} id="layers-panel" className={`left-sidebar${activePanel === 'layers' ? ' is-mobile-open' : ''}`} aria-label="Layers sidebar" role={activePanel === 'layers' ? 'dialog' : undefined} aria-modal={activePanel === 'layers' ? true : undefined} inert={activePanel === 'properties'} onKeyDown={(event) => onKeyDown(event, 'layers')}>
-      <div className="panel-header"><span>Layers</span><button className="icon-button" type="button" aria-label="Collapse layers" onClick={() => closePanel('layers')}><PanelLeftClose size={15} /></button></div>
+      <div className="panel-header">
+        <span>Layers</span>
+        <button
+          className="icon-button"
+          type="button"
+          aria-label={activePanel === 'layers' ? 'Close layers' : 'Collapse layers'}
+          onClick={() => closePanel('layers')}
+        >
+          {activePanel === 'layers' ? <X size={15} /> : <PanelLeftClose size={15} />}
+        </button>
+      </div>
       <label className="panel-search"><Search size={14} aria-hidden="true" /><input aria-label="Filter layers" placeholder="Filter layers" /></label>
       <ul className="layer-tree" aria-label="Map layers">
         {layers.map((layer, index) => (

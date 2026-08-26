@@ -98,7 +98,7 @@ const verifyMobileDrawers = async (page: Page) => {
   await setSafeAreaInsets(page);
   await layersButton.click();
   const layersDialog = page.getByRole('dialog', { name: 'Layers sidebar' });
-  const collapseLayers = page.getByRole('button', { name: 'Collapse layers' });
+  const closeLayers = page.getByRole('button', { name: 'Close layers' });
   await expect(layersDialog).toBeVisible();
   await expect(layersButton).toHaveAttribute('aria-expanded', 'true');
   await expect(page.locator('.topbar')).toHaveAttribute('inert');
@@ -113,11 +113,11 @@ const verifyMobileDrawers = async (page: Page) => {
   expect(safeDrawerBox!.y).toBeGreaterThanOrEqual(64);
   expect(safeDrawerBox!.y + safeDrawerBox!.height).toBeLessThanOrEqual(820);
   await clearSafeAreaInsets(page);
-  await expect(collapseLayers).toBeFocused();
-  await collapseLayers.press('Shift+Tab');
+  await expect(closeLayers).toBeFocused();
+  await closeLayers.press('Shift+Tab');
   await expect(layersDialog.locator('button:not([disabled]), input:not([disabled]), select:not([disabled])').last()).toBeFocused();
   await page.keyboard.press('Tab');
-  await expect(collapseLayers).toBeFocused();
+  await expect(closeLayers).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(layersDialog).not.toBeVisible();
   await expect(layersButton).toBeFocused();
