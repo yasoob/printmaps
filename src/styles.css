@@ -442,6 +442,10 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   color: var(--studio-text);
 }
 .administrative-filter > input:focus-visible { border-color: var(--studio-accent); }
+.map-authoring-panel > .administrative-coverage {
+  max-width: 18rem;
+  white-space: normal;
+}
 .administrative-region-error { color: var(--studio-danger); font-size: var(--studio-font-meta); }
 .map-authoring-panel > span { @apply whitespace-nowrap px-1; }
 .map-authoring-panel > button:not(.primary-button) {

@@ -32,6 +32,21 @@ function displayedCatalogueStatus(
   return loadStatus.text;
 }
 
+function RegionCoverage({ catalogue, regionCount }: Readonly<{
+  catalogue: GeneratedAdministrativeIndex | null;
+  regionCount: number;
+}>) {
+  if (!catalogue) return null;
+  const countryOnlyCount = catalogue.countries.length - regionCount;
+  if (countryOnlyCount <= 0) return null;
+  return (
+    <span className="administrative-coverage">
+      {regionCount} {regionCount === 1 ? 'country has' : 'countries have'} regional boundaries.{' '}
+      {countryOnlyCount} {countryOnlyCount === 1 ? 'country is' : 'countries are'} available at Country level only.
+    </span>
+  );
+}
+
 const countryAreas = ADMINISTRATIVE_AREAS.filter(({ level }) => level === 'country');
 const regionAreas = ADMINISTRATIVE_AREAS.filter(({ level }) => level === 'region');
 const regionCountries = countryAreas.filter(({ countryCode }) => (
@@ -184,6 +199,7 @@ function RegionAreaPicker({ onMerge }: Pick<AdministrativeAreaPickerProps, 'onMe
       </fieldset>
       <span role="status" aria-label="Administrative catalogue status">{displayedLoadStatus}</span>
       <span aria-live="polite">{selectedIds.length} {selectedIds.length === 1 ? 'region' : 'regions'} selected</span>
+      <RegionCoverage catalogue={catalogue} regionCount={countryOptions.length} />
       <span className="authoring-source">{selectedCountryName} · Natural Earth</span>
       <button type="button" disabled={selectedAreas.length === 0} onClick={() => {
         if (!onMerge(selectedAreas)) setError('Choose connected single-part regions, or add multi-part regions separately.');

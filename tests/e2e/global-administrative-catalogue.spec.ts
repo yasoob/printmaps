@@ -19,6 +19,7 @@ test('generated worldwide catalogue lazily creates a durable Japanese region', a
   await page.getByRole('combobox', { name: 'Administrative level' }).selectOption('region');
   const country = page.getByRole('combobox', { name: 'Region country' });
   await expect(country.locator('option')).toHaveCount(251);
+  await expect(page.getByText('251 countries have regional boundaries. 7 countries are available at Country level only.')).toBeVisible();
   await country.selectOption('JPN');
 
   const regions = page.getByRole('group', { name: 'Japan regions' });
@@ -26,7 +27,9 @@ test('generated worldwide catalogue lazily creates a durable Japanese region', a
   await expect(regions.getByRole('checkbox')).toHaveCount(47);
   await regions.getByRole('checkbox', { name: 'Kyōto Prefecture' }).check();
   await expect(page.getByText('1 region selected')).toBeVisible();
-  await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/global-japan-region-catalogue-20260826.png' });
+  if (testInfo.project.name === 'chromium') {
+    await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/global-region-coverage-20260826.png' });
+  }
   await page.getByRole('button', { name: 'Add selected area' }).click();
 
   const layer = page.getByRole('button', { name: 'Select Kyōto Prefecture' });
