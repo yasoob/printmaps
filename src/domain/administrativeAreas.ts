@@ -6,19 +6,18 @@ import { SLOVAKIA_ADMIN_1_REGIONS } from '../data/slovakiaAdmin1';
 import { VIENNA_DISTRICTS } from '../data/viennaDistricts';
 import { CZECHIA_COUNTRY_AREA, CZECHIA_REGION_AREAS } from './czechiaAdministrativeAreas';
 import { HUNGARY_REGION_AREAS } from './hungaryAdministrativeAreas';
+import { POLAND_COUNTRY_AREA, POLAND_REGION_AREAS } from './polandAdministrativeAreas';
 
 export type AdministrativeAreaId =
-  | 'AUT'
-  | 'CZE'
-  | 'HUN'
-  | 'SVK'
+  | 'AUT' | 'CZE' | 'HUN' | 'POL' | 'SVK'
   | 'AT-1' | 'AT-2' | 'AT-3' | 'AT-4' | 'AT-5' | 'AT-6' | 'AT-7' | 'AT-8' | 'AT-9'
   | (typeof CZECHIA_REGION_AREAS)[number]['id']
   | (typeof HUNGARY_REGION_AREAS)[number]['id']
+  | (typeof POLAND_REGION_AREAS)[number]['id']
   | (typeof SLOVAKIA_ADMIN_1_REGIONS)[number]['id']
   | (typeof VIENNA_DISTRICTS)[number]['id'];
 
-export type AdministrativeCountryCode = Extract<AdministrativeAreaId, 'AUT' | 'CZE' | 'HUN' | 'SVK'>;
+export type AdministrativeCountryCode = Extract<AdministrativeAreaId, 'AUT' | 'CZE' | 'HUN' | 'POL' | 'SVK'>;
 
 export type AdministrativeArea = Readonly<{
   countryCode: AdministrativeCountryCode;
@@ -133,6 +132,7 @@ export const ADMINISTRATIVE_AREAS: readonly AdministrativeArea[] = [
     ]] },
   },
   CZECHIA_COUNTRY_AREA,
+  POLAND_COUNTRY_AREA,
   {
     countryCode: 'SVK',
     id: 'SVK',
@@ -154,6 +154,7 @@ export const ADMINISTRATIVE_AREAS: readonly AdministrativeArea[] = [
   ...austriaRegionAreas,
   ...CZECHIA_REGION_AREAS,
   ...HUNGARY_REGION_AREAS,
+  ...POLAND_REGION_AREAS,
   ...slovakiaRegionAreas,
   ...viennaMunicipalAreas,
 ] as const;

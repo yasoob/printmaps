@@ -199,7 +199,7 @@ test('a finished custom area supports point editing, insertion, undo, and explic
   await expect(page.locator('.shape-transform-marker')).toHaveCount(5);
 });
 
-test('Czech, Hungarian, Slovak and Austrian region catalogues create durable areas with print parity', async ({ page }, testInfo) => {
+test('Polish, Czech, Hungarian, Slovak and Austrian region catalogues create durable areas with print parity', async ({ page }, testInfo) => {
   const consoleProblems: string[] = [];
   page.on('pageerror', (error) => { consoleProblems.push(error.message); });
   page.on('console', (message) => {
@@ -207,6 +207,20 @@ test('Czech, Hungarian, Slovak and Austrian region catalogues create durable are
   });
   await page.goto('/');
   await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
+
+  await page.getByRole('button', { name: 'Area (S)' }).click();
+  await page.getByRole('combobox', { name: 'Administrative level' }).selectOption('region');
+  await page.getByRole('combobox', { name: 'Region country' }).selectOption('POL');
+  const polandRegions = page.getByRole('group', { name: 'Poland regions' });
+  await expect(polandRegions.getByRole('checkbox')).toHaveCount(16);
+  await polandRegions.getByRole('checkbox', { name: 'Masovian' }).check();
+  if (testInfo.project.name === 'chromium') {
+    await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/poland-region-catalogue-20260826.png' });
+  }
+  await page.getByRole('button', { name: 'Add selected area' }).click();
+  await expect(page.getByRole('button', { name: 'Select Masovian' })).toHaveAttribute('aria-current', 'true');
+  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-geometry', /admin-pl-mz:/);
+  await page.getByRole('button', { name: 'Undo' }).click();
 
   await page.getByRole('button', { name: 'Area (S)' }).click();
   await page.getByRole('combobox', { name: 'Administrative level' }).selectOption('region');
