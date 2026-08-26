@@ -216,9 +216,15 @@ test('Hungarian, Slovak and Austrian region catalogues create durable areas with
   await expect(hungaryRegions.getByRole('checkbox', { name: 'Veszprém', exact: true })).toBeVisible();
   await expect(hungaryRegions.getByRole('checkbox', { name: 'Veszprém (city)', exact: true })).toBeVisible();
   await hungaryRegions.getByRole('checkbox', { name: 'Budapest' }).check();
+  const hungaryFilter = page.getByRole('searchbox', { name: 'Filter Hungary regions' });
+  await hungaryFilter.fill('Veszprém');
+  await expect(hungaryRegions.getByRole('checkbox')).toHaveCount(2);
+  await expect(page.getByText('1 region selected')).toBeVisible();
   if (testInfo.project.name === 'chromium') {
-    await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/hungary-region-catalogue-20260826.png' });
+    await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/hungary-region-filter-20260826.png' });
   }
+  await hungaryFilter.fill('');
+  await expect(hungaryRegions.getByRole('checkbox', { name: 'Budapest' })).toBeChecked();
   await page.getByRole('button', { name: 'Add selected area' }).click();
   await expect(page.getByRole('button', { name: 'Select Budapest' })).toHaveAttribute('aria-current', 'true');
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-geometry', /admin-hu-bu:/);

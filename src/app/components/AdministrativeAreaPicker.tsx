@@ -24,19 +24,26 @@ const municipalityAreas = ADMINISTRATIVE_AREAS.filter(({ level }) => level === '
 
 function RegionAreaPicker({ onMerge }: Pick<AdministrativeAreaPickerProps, 'onMerge'>) {
   const [countryCode, setCountryCode] = useState<AdministrativeCountryCode>('AUT');
+  const [query, setQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<AdministrativeAreaId[]>([]);
   const [error, setError] = useState('');
   const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
-  const filteredAreas = regionAreas.filter((area) => area.countryCode === countryCode);
   const selectedCountry = administrativeAreaById(countryCode);
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredAreas = regionAreas.filter((area) => (
+    area.countryCode === countryCode
+    && (normalizedQuery.length === 0 || area.name.toLowerCase().includes(normalizedQuery))
+  ));
 
   return (
     <>
       <label>Country <select aria-label="Region country" value={countryCode} onChange={(event) => {
         setCountryCode(event.target.value as AdministrativeCountryCode);
+        setQuery('');
         setSelectedIds([]);
         setError('');
       }}>{regionCountries.map((area) => <option key={area.id} value={area.countryCode}>{area.name}</option>)}</select></label>
+      <label className="administrative-filter">Search <input type="search" aria-label={`Filter ${selectedCountry?.name ?? 'selected'} regions`} value={query} onChange={(event) => setQuery(event.currentTarget.value)} /></label>
       <fieldset className="administrative-region-options">
         <legend>{selectedCountry?.name} regions</legend>
         {filteredAreas.map((area) => (
@@ -46,6 +53,7 @@ function RegionAreaPicker({ onMerge }: Pick<AdministrativeAreaPickerProps, 'onMe
           }} />
         ))}
       </fieldset>
+      <span aria-live="polite">{selectedIds.length} {selectedIds.length === 1 ? 'region' : 'regions'} selected</span>
       <span className="authoring-source">{selectedCountry?.name} · Natural Earth</span>
       <button type="button" disabled={selectedIds.length === 0} onClick={() => {
         if (!onMerge(selectedIds)) setError('Choose connected single-part regions, or add Tyrol separately.');

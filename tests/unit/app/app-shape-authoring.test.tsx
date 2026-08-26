@@ -106,6 +106,28 @@ it('exposes every Hungarian first-order division through the region country sele
   expect(screen.getByText('Hungary · Natural Earth')).toBeInTheDocument();
 });
 
+it('filters the active region catalogue without losing hidden selections', async () => {
+  const user = userEvent.setup();
+  render(<App autosaveRepository={null} />);
+
+  await user.click(screen.getByRole('button', { name: 'Area (S)' }));
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Administrative level' }), 'region');
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Region country' }), 'HUN');
+  const regions = screen.getByRole('group', { name: 'Hungary regions' });
+  await user.click(within(regions).getByRole('checkbox', { name: 'Budapest' }));
+
+  const filter = screen.getByRole('searchbox', { name: 'Filter Hungary regions' });
+  await user.type(filter, 'Veszprém');
+
+  expect(within(regions).getAllByRole('checkbox')).toHaveLength(2);
+  expect(within(regions).getByRole('checkbox', { name: 'Veszprém' })).toBeInTheDocument();
+  expect(within(regions).getByRole('checkbox', { name: 'Veszprém (city)' })).toBeInTheDocument();
+  expect(screen.getByText('1 region selected')).toBeInTheDocument();
+
+  await user.clear(filter);
+  expect(within(regions).getByRole('checkbox', { name: 'Budapest' })).toBeChecked();
+});
+
 it('switches the region catalogue by country without retaining an incompatible selection', async () => {
   const user = userEvent.setup();
   render(<App autosaveRepository={null} />);
