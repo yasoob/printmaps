@@ -2,7 +2,7 @@ import { createInitialProjectDocument } from '../../src/domain/project';
 import { parseProjectFileText } from '../../src/domain/projectFile';
 
 describe('portable project validation', () => {
-  it.each([16, 17, 18, 19])('rejects the obsolete schema-%s format with a reset-oriented message', (schemaVersion) => {
+  it.each([16, 17, 18, 19, 20])('rejects the obsolete schema-%s format with a reset-oriented message', (schemaVersion) => {
     const obsolete = { ...createInitialProjectDocument(), schemaVersion };
 
     expect(() => parseProjectFileText(JSON.stringify(obsolete))).toThrow(

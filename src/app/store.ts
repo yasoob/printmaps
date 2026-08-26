@@ -7,6 +7,7 @@ import {
   type IsochroneAreaInput,
   type MapLanguage,
   type MapFeatureVisibilityCategory,
+  type MapMatchingInput,
   type MapStylePreset,
   type PageOrientation,
   type StandardPagePreset,
@@ -33,6 +34,7 @@ export type ProjectState = {
   future: ProjectDocument[];
   canUndo: boolean;
   canRedo: boolean;
+  applyMapMatching: (id: string, input: MapMatchingInput, expectedDocumentEpoch: number) => boolean;
   createAdministrativeArea: (id: AdministrativeAreaId | string) => string | null;
   createAdministrativeAreas: (ids: readonly (AdministrativeAreaId | string)[]) => string | null;
   createIsochroneArea: (input: IsochroneAreaInput, expectedDocumentEpoch: number) => string | null;

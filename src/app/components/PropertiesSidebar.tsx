@@ -1,6 +1,7 @@
 import { X } from 'lucide-react';
 import { memo, useCallback, useLayoutEffect, useRef, type Dispatch, type RefObject, type SetStateAction } from 'react';
 import type { ContentLayer } from '../../domain/project';
+import type { MapMatchingProvider } from '../../services/mapbox/contracts';
 import type { MobilePanel } from '../hooks/useMobilePanels';
 import type { ProjectState } from '../store';
 import { LayerProperties } from './LayerProperties';
@@ -9,6 +10,7 @@ import { ProjectProperties } from './ProjectProperties';
 type PropertiesSidebarProps = {
   project: ProjectState;
   selectedLayer: ContentLayer | null;
+  mapMatchingProvider?: MapMatchingProvider;
   activePanel: MobilePanel | null;
   panelRef: RefObject<HTMLElement | null>;
   setPreviewedLayerId: Dispatch<SetStateAction<string | null>>;
@@ -45,7 +47,8 @@ function hasSameLayerActions(previous: ProjectState, next: ProjectState) {
 }
 
 function hasSameGeometryActions(previous: ProjectState, next: ProjectState) {
-  return previous.setPoiCoordinates === next.setPoiCoordinates
+  return previous.applyMapMatching === next.applyMapMatching
+    && previous.setPoiCoordinates === next.setPoiCoordinates
     && previous.setPoiCustomMarker === next.setPoiCustomMarker
     && previous.insertRouteVertex === next.insertRouteVertex
     && previous.removeRouteVertex === next.removeRouteVertex
@@ -53,9 +56,10 @@ function hasSameGeometryActions(previous: ProjectState, next: ProjectState) {
     && previous.setShapeVertex === next.setShapeVertex;
 }
 
-function isSamePropertiesSidebarProps(previous: PropertiesSidebarProps, next: PropertiesSidebarProps) {
-  const hasSameSurface = previous.activePanel === next.activePanel
+function hasSameSurface(previous: PropertiesSidebarProps, next: PropertiesSidebarProps) {
+  return previous.activePanel === next.activePanel
     && previous.closePanel === next.closePanel
+    && previous.mapMatchingProvider === next.mapMatchingProvider
     && previous.onDeleteSelected === next.onDeleteSelected
     && previous.onKeyDown === next.onKeyDown
     && previous.panelRef === next.panelRef
@@ -63,14 +67,17 @@ function isSamePropertiesSidebarProps(previous: PropertiesSidebarProps, next: Pr
     && previous.setPreviewedLayerId === next.setPreviewedLayerId
     && previous.onLocate === next.onLocate
     && previous.onReplaceLayerData === next.onReplaceLayerData;
-  return hasSameSurface
+}
+
+function isSamePropertiesSidebarProps(previous: PropertiesSidebarProps, next: PropertiesSidebarProps) {
+  return hasSameSurface(previous, next)
     && hasSameProjectData(previous, next)
     && hasSameLayerActions(previous.project, next.project)
     && hasSameGeometryActions(previous.project, next.project);
 }
 
 export const PropertiesSidebar = memo(function PropertiesSidebar(props: PropertiesSidebarProps) {
-  const { activePanel, closePanel, onDeleteSelected, onKeyDown, onLocate, onReplaceLayerData, panelRef, project, selectedLayer, setPreviewedLayerId } = props;
+  const { activePanel, closePanel, mapMatchingProvider, onDeleteSelected, onKeyDown, onLocate, onReplaceLayerData, panelRef, project, selectedLayer, setPreviewedLayerId } = props;
   const activePanelRef = useRef(activePanel);
   useLayoutEffect(() => {
     activePanelRef.current = activePanel;
@@ -99,6 +106,9 @@ export const PropertiesSidebar = memo(function PropertiesSidebar(props: Properti
         <LayerProperties
           layer={selectedLayer}
           assets={project.document.assets}
+          documentEpoch={project.documentEpoch}
+          {...(mapMatchingProvider ? { mapMatchingProvider } : {})}
+          onApplyMapMatching={(input, expectedDocumentEpoch) => project.applyMapMatching(selectedLayer.id, input, expectedDocumentEpoch)}
           onRename={(name) => project.renameLayer(selectedLayer.id, name)}
           onOpacityChange={(opacity) => project.setLayerOpacity(selectedLayer.id, opacity)}
           onAppearanceChange={(appearance) => project.setLayerAppearance(selectedLayer.id, appearance)}

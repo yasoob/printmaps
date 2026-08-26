@@ -20,6 +20,7 @@ export type {
 } from './contracts';
 export { createMapboxDirectionsProvider } from './directions';
 export { createMapboxIsochroneProvider } from './isochrone';
+export { createMapboxMapMatchingProvider } from './mapMatching';
 export { MapboxProviderError } from './errors';
 export type { MapboxProviderErrorCode } from './errors';
 export { requestMapboxJson } from './request';

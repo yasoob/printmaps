@@ -9,8 +9,9 @@ import { createAdministrativeAreaActions } from './storeAdministrativeAreaAction
 import { createRouteGeometryActions } from './storeRouteGeometryActions';
 import { createDirectionsRouteAction } from './storeDirectionsRouteActions';
 import { createRouteAction } from './storeRouteCreationAction';
+import { createMapMatchingAction } from './storeMapMatchingAction';
 import { createReplaceLayerFromImportAction } from './storeImportReplacementAction';
-type LayerPropertyActions = Pick<ProjectState, 'insertRouteVertex' | 'removeRouteVertex' | 'renameLayer' | 'replaceRouteGeometry' | 'selectLayer' | 'setLayerAppearance' | 'setLayerOpacity' | 'setPoiCoordinates' | 'setPoiCustomMarker' | 'setRouteVertex' | 'toggleLayerVisibility' | 'toggleLayerLock'>;
+type LayerPropertyActions = Pick<ProjectState, 'applyMapMatching' | 'insertRouteVertex' | 'removeRouteVertex' | 'renameLayer' | 'replaceRouteGeometry' | 'selectLayer' | 'setLayerAppearance' | 'setLayerOpacity' | 'setPoiCoordinates' | 'setPoiCustomMarker' | 'setRouteVertex' | 'toggleLayerVisibility' | 'toggleLayerLock'>;
 
 function isCanonicalCustomMarkerAsset(asset: CustomMarkerAsset): boolean {
   try {
@@ -153,6 +154,7 @@ export function createLayerStructureActions(set: ProjectSet): Pick<ProjectState,
 
 export function createLayerPropertyActions(set: ProjectSet): LayerPropertyActions {
   return {
+    applyMapMatching: createMapMatchingAction(set),
     ...createRouteGeometryActions(set),
     renameLayer: (id, name) => set((state) => {
       const layer = state.document.layers.find((candidate) => candidate.id === id);

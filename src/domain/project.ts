@@ -12,7 +12,7 @@ export type {
   ShapeAppearance,
 } from './layerAppearance';
 
-export const PROJECT_SCHEMA_VERSION = 20 as const;
+export const PROJECT_SCHEMA_VERSION = 21 as const;
 export const MAX_MERCATOR_LATITUDE = 85.051129;
 export const MAX_MAP_ZOOM = 22;
 
@@ -78,7 +78,15 @@ export type GeocodingProvenance = {
   providerFeatureId: string;
 };
 
-export type ProviderProvenance = IsochroneProvenance | DirectionsProvenance | GeocodingProvenance;
+export type MapMatchingProvenance = {
+  provider: 'mapbox';
+  service: 'map-matching-v5';
+  profile: 'driving' | 'cycling' | 'walking';
+  confidence?: number;
+  sourcePointCount: number;
+};
+
+export type ProviderProvenance = IsochroneProvenance | DirectionsProvenance | GeocodingProvenance | MapMatchingProvenance;
 
 export type SearchPoiInput = {
   coordinate: [number, number];
@@ -92,6 +100,13 @@ export type DirectionsRouteInput = {
   profile: DirectionsProvenance['profile'];
   distanceMeters: number;
   durationSeconds: number;
+};
+
+export type MapMatchingInput = {
+  geometry: readonly (readonly [number, number])[];
+  profile: MapMatchingProvenance['profile'];
+  confidence?: number;
+  sourcePointCount: number;
 };
 
 export type IsochroneAreaInput = {
@@ -176,6 +191,7 @@ function cloneProviderProvenance(provenance: ProviderProvenance | undefined): Pr
     };
   }
   if (provenance?.service === 'geocoding-v6') return { ...provenance };
+  if (provenance?.service === 'map-matching-v5') return { ...provenance };
 }
 
 export function cloneContentLayer(layer: ContentLayer): ContentLayer {

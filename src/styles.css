@@ -800,6 +800,23 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 .elevation-downloads button:hover { background: var(--studio-field); }
 .elevation-downloads button:disabled { @apply cursor-default; color: var(--studio-text-subtle); }
+.route-map-matching { @apply grid gap-2; }
+.route-map-matching .secondary-action {
+  @apply flex cursor-pointer items-center justify-center px-2;
+  min-height: var(--studio-control-height);
+  border: var(--studio-border-width) solid var(--studio-line-strong);
+  border-radius: var(--studio-radius-sm);
+  background: var(--studio-surface);
+  color: var(--studio-text-secondary);
+  font-size: var(--studio-font-label);
+}
+.route-map-matching .secondary-action:hover { background: var(--studio-field); }
+.route-map-matching .secondary-action:disabled { @apply cursor-default; color: var(--studio-text-subtle); }
+.route-map-matching > small { color: var(--studio-text-muted); line-height: 1.4; }
+.route-map-matching .provider-provenance-summary { @apply p-2; border-radius: var(--studio-radius-sm); background: var(--studio-field); color: var(--studio-text-secondary); line-height: 1.4; }
+.route-map-matching [role="status"] { color: var(--studio-success); line-height: 1.4; }
+.route-map-matching [role="alert"] { color: var(--studio-danger); line-height: 1.4; }
+
 .custom-marker-control { @apply mt-2 grid grid-cols-2 gap-1.5; }
 .custom-marker-control .secondary-action {
   @apply flex cursor-pointer items-center justify-center gap-1.5 px-2;

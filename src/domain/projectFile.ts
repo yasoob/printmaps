@@ -158,6 +158,9 @@ function layerAt(
   if (provenance?.service === 'directions-v5' && geometry?.type !== 'LineString') {
     throw new ProjectFileError('Directions provenance requires LineString route geometry.');
   }
+  if (provenance?.service === 'map-matching-v5' && geometry?.type !== 'LineString') {
+    throw new ProjectFileError('Map-matching provenance requires LineString route geometry.');
+  }
   return {
     id,
     name: nonEmptyString(layer.name, `Layer ${index + 1} name`),

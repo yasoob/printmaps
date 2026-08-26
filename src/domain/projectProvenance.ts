@@ -3,6 +3,7 @@ import type {
   GeocodingProvenance,
   IsochroneProvenance,
   LayerType,
+  MapMatchingProvenance,
   ProviderProvenance,
 } from './project';
 import { parseLayerGeometry } from './projectGeometry';
@@ -111,6 +112,29 @@ function parseGeocodingProvenance(
   return { provider: 'mapbox', service: 'geocoding-v6', providerFeatureId };
 }
 
+function parseMapMatchingProvenance(
+  provenance: JsonObject,
+  type: LayerType,
+  index: number,
+): MapMatchingProvenance {
+  if (type !== 'route') throw new ProjectFileError(`Layer ${index + 1} map-matching provenance is only valid for Route layers.`);
+  const sourcePointCount = finiteNumber(provenance.sourcePointCount, `Layer ${index + 1} provenance source point count`);
+  if (!Number.isSafeInteger(sourcePointCount) || sourcePointCount < 2 || sourcePointCount > 100) {
+    throw new ProjectFileError(`Layer ${index + 1} provenance source point count must be a whole number from 2 to 100.`);
+  }
+  const confidence = provenance.confidence === undefined
+    ? undefined
+    : finiteNumber(provenance.confidence, `Layer ${index + 1} provenance confidence`);
+  if (confidence !== undefined && (confidence < 0 || confidence > 1)) {
+    throw new ProjectFileError(`Layer ${index + 1} provenance confidence must be between zero and one.`);
+  }
+  return {
+    provider: 'mapbox', service: 'map-matching-v5', profile: profileAt(provenance.profile, index),
+    sourcePointCount,
+    ...(confidence !== undefined && { confidence }),
+  };
+}
+
 export function parseLayerProvenance(
   value: unknown,
   type: LayerType,
@@ -130,6 +154,9 @@ export function parseLayerProvenance(
   }
   if (provenance.service === 'geocoding-v6') {
     return parseGeocodingProvenance(provenance, type, index);
+  }
+  if (provenance.service === 'map-matching-v5') {
+    return parseMapMatchingProvenance(provenance, type, index);
   }
   throw new ProjectFileError(`Layer ${index + 1} provenance provider is not supported.`);
 }

@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { useStore } from 'zustand';
 import type { ContentLayer, ProjectDocument } from '../domain/project';
 import type { PreviewPngExporter } from '../export/previewPng';
-import type { DirectionsProvider, SearchProvider } from '../services/mapbox/contracts';
+import type { DirectionsProvider, MapMatchingProvider, SearchProvider } from '../services/mapbox/contracts';
 import { createMapboxSearchProvider } from '../services/mapbox/search';
 import { createIndexedDbAutosaveRepository, type AutosaveRepository } from '../storage/autosave';
 import {
@@ -25,6 +25,7 @@ import { createProjectStore } from './store';
 type AppProps = {
   autosaveRepository?: AutosaveRepository | null;
   directionsProvider?: DirectionsProvider;
+  mapMatchingProvider?: MapMatchingProvider;
   searchProvider?: SearchProvider;
 };
 
@@ -32,13 +33,17 @@ const defaultSearchProvider = createMapboxSearchProvider({
   token: import.meta.env.VITE_MAPBOX_PUBLIC_ACCESS,
 });
 
+function optionalMapMatchingProvider(provider: MapMatchingProvider | undefined) {
+  return provider ? { mapMatchingProvider: provider } : {};
+}
+
 function visiblePreviewLayerId(layers: readonly ContentLayer[], previewedLayerId: string | null) {
   if (previewedLayerId === null) return null;
   const layer = layers.find(({ id }) => id === previewedLayerId);
   return layer?.visible && layer.geometry ? previewedLayerId : null;
 }
 
-export function App({ autosaveRepository, directionsProvider, searchProvider }: AppProps = {}) {
+export function App({ autosaveRepository, directionsProvider, mapMatchingProvider, searchProvider }: AppProps = {}) {
   const [projectStore] = useState(() => createProjectStore());
   const [resolvedAutosaveRepository] = useState(() => (
     autosaveRepository === undefined
@@ -137,6 +142,7 @@ export function App({ autosaveRepository, directionsProvider, searchProvider }: 
         <PropertiesSidebar
           project={project}
           selectedLayer={selectedLayer}
+          {...optionalMapMatchingProvider(mapMatchingProvider)}
 
           activePanel={modal.mobilePanel}
           panelRef={mobile.propertiesPanelRef}

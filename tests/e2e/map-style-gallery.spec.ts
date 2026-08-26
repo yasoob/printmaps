@@ -56,7 +56,7 @@ test('chooses original map presets through the responsive thumbnail gallery', as
   const projectPath = await projectDownload.path();
   expect(projectPath).not.toBeNull();
   const project = JSON.parse(await readFile(projectPath!, 'utf8'));
-  expect(project).toMatchObject({ schemaVersion: 20, style: { preset: 'night-ink' } });
+  expect(project).toMatchObject({ schemaVersion: 21, style: { preset: 'night-ink' } });
 
   await page.getByRole('button', { name: 'Export' }).click();
   const exportDialog = page.getByRole('dialog', { name: 'Export map' });

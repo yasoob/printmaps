@@ -48,7 +48,10 @@ export function replaceRouteGeometry(
   const geometry = layer.geometry?.type === 'Arc'
     ? createArcGeometry(coordinates)
     : { type: 'LineString' as const, coordinates };
-  return geometry ? { ...layer, geometry } : null;
+  if (!geometry) return null;
+  const updated = { ...layer, geometry };
+  delete updated.provenance;
+  return updated;
 }
 
 export function moveRouteVertex(
@@ -87,7 +90,9 @@ export function insertRouteVertex(
   if (!isValidPosition(inserted[0], inserted[1])) return null;
   const coordinates = layer.geometry.coordinates.map((coordinate) => [...coordinate] as [number, number]);
   coordinates.splice(vertexIndex + 1, 0, inserted);
-  return { ...layer, geometry: { type: 'LineString', coordinates } };
+  const updated = { ...layer, geometry: { type: 'LineString' as const, coordinates } };
+  delete updated.provenance;
+  return updated;
 }
 
 export function removeRouteVertex(
@@ -106,5 +111,7 @@ export function removeRouteVertex(
   const coordinates = layer.geometry.coordinates.map((coordinate) => [...coordinate] as [number, number]);
   coordinates.splice(vertexIndex, 1);
   if (new Set(coordinates.map(([longitude, latitude]) => `${longitude},${latitude}`)).size < 2) return null;
-  return { ...layer, geometry: { type: 'LineString', coordinates } };
+  const updated = { ...layer, geometry: { type: 'LineString' as const, coordinates } };
+  delete updated.provenance;
+  return updated;
 }

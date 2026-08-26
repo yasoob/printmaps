@@ -1,21 +1,15 @@
 import { memo, useCallback, useLayoutEffect, useRef, useState } from 'react';
-import type { ContentLayer, LayerAppearance, RouteAppearance, ShapeAppearance } from '../../domain/project';
+import type { ContentLayer, LayerAppearance, MapMatchingInput, ShapeAppearance } from '../../domain/project';
 import type { CustomMarkerAsset } from '../../domain/customMarkerAssets';
-import {
-  ROUTE_TRAVEL_PROFILES,
-  ROUTE_TRAVEL_PROFILE_LABELS,
-  type RouteTravelProfile,
-} from '../../domain/routeProfiles';
+import type { MapMatchingProvider } from '../../services/mapbox/contracts';
 import { CoordinateField } from './CoordinateField';
-import { DirectionsProvenanceSummary } from './DirectionsProvenanceSummary';
-import { ElevationProfilePanel } from './ElevationProfilePanel';
 import { LayerIdentityProperties } from './LayerIdentityProperties';
 import { MultiPartGeometryStatus } from './MultiPartGeometryStatus';
 import { PoiAppearanceControls } from './PoiAppearanceControls';
-import { InspectorAccordion, PropertyRow, PropertySection } from './PropertyControls';
-import { RouteVertexControls } from './RouteVertexControls';
+import { PropertyRow, PropertySection } from './PropertyControls';
+import { RouteLayerProperties } from './RouteLayerProperties';
 import { ShapeVertexControls } from './ShapeVertexControls';
-import { Checkbox, Switch } from './UiControls';
+import { Switch } from './UiControls';
 
 function useStableEvent<Arguments extends unknown[], Result>(callback: (...arguments_: Arguments) => Result) {
   const callbackRef = useRef(callback);
@@ -26,6 +20,9 @@ function useStableEvent<Arguments extends unknown[], Result>(callback: (...argum
 type LayerPropertiesProps = {
   layer: ContentLayer;
   assets: Record<string, CustomMarkerAsset>;
+  documentEpoch?: number;
+  mapMatchingProvider?: MapMatchingProvider;
+  onApplyMapMatching?: (input: MapMatchingInput, expectedDocumentEpoch: number) => boolean;
   onRename: (name: string) => void;
   onOpacityChange: (opacity: number) => void;
   onAppearanceChange: (appearance: LayerAppearance) => void;
@@ -37,43 +34,6 @@ type LayerPropertiesProps = {
   onToggleVisibility: () => void; onToggleLock: () => void;
   onReplace: (trigger: HTMLElement | null) => void; onDuplicate: () => void; onDelete: () => void;
 };
-
-function RouteAppearanceControls({
-  appearance,
-  onChange,
-}: {
-  appearance: RouteAppearance;
-  onChange: (appearance: RouteAppearance) => void;
-}) {
-  const [widthEdit, setWidthEdit] = useState(() => ({
-    source: appearance.width,
-    value: String(appearance.width),
-  }));
-  const widthDraft = widthEdit.source === appearance.width ? widthEdit.value : String(appearance.width);
-  const widthValue = Number(widthDraft);
-  const isWidthInvalid = widthDraft.trim() === ''
-    || !Number.isFinite(widthValue)
-    || widthValue < 1
-    || widthValue > 16;
-  const commitWidth = (value: string) => {
-    const width = Number(value);
-    if (value.trim() === '' || !Number.isFinite(width) || width < 1 || width > 16) {
-      setWidthEdit({ source: appearance.width, value: String(appearance.width) });
-      return;
-    }
-    setWidthEdit({ source: width, value: String(width) });
-    onChange({ ...appearance, width });
-  };
-
-  return (
-    <>
-      <PropertyRow label="Color"><label className="color-field"><input aria-label="Route color" type="color" value={appearance.color} onChange={(event) => onChange({ ...appearance, color: event.target.value })} /></label></PropertyRow>
-      <PropertyRow label="Width"><label className="number-field"><input aria-label="Route width" aria-invalid={isWidthInvalid || undefined} value={widthDraft} onChange={(event) => setWidthEdit({ source: appearance.width, value: event.target.value })} onBlur={(event) => commitWidth(event.currentTarget.value)} /><small>px</small></label></PropertyRow>
-      <PropertyRow label="Profile"><select aria-label="Route travel profile" value={appearance.travelProfile} onChange={(event) => onChange({ ...appearance, travelProfile: event.target.value as RouteTravelProfile })}>{ROUTE_TRAVEL_PROFILES.map((profile) => <option key={profile} value={profile}>{ROUTE_TRAVEL_PROFILE_LABELS[profile]}</option>)}</select></PropertyRow>
-      <Checkbox aria-label="Show travel-mode marker" isChecked={appearance.showTravelModeIcon} label="Show mode marker" onCheckedChange={(isChecked) => onChange({ ...appearance, showTravelModeIcon: isChecked })} />
-    </>
-  );
-}
 
 function PoiCoordinateControls({
   coordinates,
@@ -129,44 +89,6 @@ const ShapeAppearanceControls = memo(function ShapeAppearanceControls({
   );
 }, (previous, next) => previous.appearance === next.appearance);
 
-function RouteLayerProperties({
-  layer,
-  onAppearanceChange,
-  onRouteVertexInsert,
-  onRouteVertexRemove,
-  onRouteVertexChange,
-}: Pick<LayerPropertiesProps, 'layer' | 'onAppearanceChange' | 'onRouteVertexInsert' | 'onRouteVertexRemove' | 'onRouteVertexChange'>) {
-  if (layer.appearance?.kind !== 'route') return null;
-  return (
-    <>
-      <PropertySection title="Appearance">
-        <RouteAppearanceControls key={`${layer.id}-${layer.appearance.width}`} appearance={layer.appearance} onChange={onAppearanceChange} />
-      </PropertySection>
-      <DirectionsProvenanceSummary layer={layer} />
-      {layer.geometry?.type === 'LineString' && (
-        <InspectorAccordion
-          isDefaultExpanded={false}
-          storageKey="print-map-studio:inspector:layer:route-advanced"
-          summary="Vertices · Elevation profile"
-          title="Advanced"
-        >
-          <PropertySection title="Vertices">
-            <RouteVertexControls key={layer.id} coordinates={layer.geometry.coordinates} disabled={layer.locked || !layer.visible} onChange={onRouteVertexChange} onInsert={onRouteVertexInsert} onRemove={onRouteVertexRemove} />
-          </PropertySection>
-          <PropertySection title="Elevation">
-            <ElevationProfilePanel
-              key={`${layer.id}-${JSON.stringify(layer.geometry.coordinates)}`}
-              coordinates={layer.geometry.coordinates}
-              routeName={layer.name}
-              routeColor={layer.appearance.color}
-            />
-          </PropertySection>
-        </InspectorAccordion>
-      )}
-    </>
-  );
-}
-
 function PoiLayerProperties({
   layer,
   assets,
@@ -192,8 +114,26 @@ function PoiLayerProperties({
   );
 }
 
+type RouteTypePropertiesProps = {
+  documentEpoch: number | undefined;
+  layer: ContentLayer;
+  mapMatchingProvider: MapMatchingProvider | undefined;
+  onApplyMapMatching: LayerPropertiesProps['onApplyMapMatching'];
+  onAppearanceChange: LayerPropertiesProps['onAppearanceChange'];
+  onRouteVertexInsert: LayerPropertiesProps['onRouteVertexInsert'];
+  onRouteVertexRemove: LayerPropertiesProps['onRouteVertexRemove'];
+  onRouteVertexChange: LayerPropertiesProps['onRouteVertexChange'];
+};
+
+function RouteTypeProperties(props: RouteTypePropertiesProps) {
+  return <RouteLayerProperties layer={props.layer} {...(props.documentEpoch !== undefined && { documentEpoch: props.documentEpoch })} {...(props.mapMatchingProvider && { mapMatchingProvider: props.mapMatchingProvider })} {...(props.onApplyMapMatching && { onApplyMapMatching: props.onApplyMapMatching })} onAppearanceChange={props.onAppearanceChange} onRouteVertexInsert={props.onRouteVertexInsert} onRouteVertexRemove={props.onRouteVertexRemove} onRouteVertexChange={props.onRouteVertexChange} />;
+}
+
 function LayerTypeProperties({
+  documentEpoch,
   layer,
+  mapMatchingProvider,
+  onApplyMapMatching,
   assets,
   onAppearanceChange,
   onPoiCoordinatesChange,
@@ -202,10 +142,10 @@ function LayerTypeProperties({
   onRouteVertexRemove,
   onRouteVertexChange,
   onShapeVertexChange,
-}: Pick<LayerPropertiesProps, 'layer' | 'assets' | 'onAppearanceChange' | 'onPoiCoordinatesChange' | 'onPoiCustomMarkerChange' | 'onRouteVertexInsert' | 'onRouteVertexRemove' | 'onRouteVertexChange' | 'onShapeVertexChange'>) {
+}: Pick<LayerPropertiesProps, 'documentEpoch' | 'layer' | 'assets' | 'mapMatchingProvider' | 'onApplyMapMatching' | 'onAppearanceChange' | 'onPoiCoordinatesChange' | 'onPoiCustomMarkerChange' | 'onRouteVertexInsert' | 'onRouteVertexRemove' | 'onRouteVertexChange' | 'onShapeVertexChange'>) {
   switch (layer.type) {
     case 'route': {
-      return <RouteLayerProperties layer={layer} onAppearanceChange={onAppearanceChange} onRouteVertexInsert={onRouteVertexInsert} onRouteVertexRemove={onRouteVertexRemove} onRouteVertexChange={onRouteVertexChange} />;
+      return <RouteTypeProperties documentEpoch={documentEpoch} layer={layer} mapMatchingProvider={mapMatchingProvider} onApplyMapMatching={onApplyMapMatching} onAppearanceChange={onAppearanceChange} onRouteVertexInsert={onRouteVertexInsert} onRouteVertexRemove={onRouteVertexRemove} onRouteVertexChange={onRouteVertexChange} />;
     }
     case 'poi': {
       return <PoiLayerProperties layer={layer} assets={assets} onAppearanceChange={onAppearanceChange} onPoiCoordinatesChange={onPoiCoordinatesChange} onPoiCustomMarkerChange={onPoiCustomMarkerChange} />;
@@ -237,6 +177,9 @@ function LayerTypeProperties({
 export function LayerProperties({
   layer,
   assets,
+  documentEpoch,
+  mapMatchingProvider,
+  onApplyMapMatching,
   onRename,
   onOpacityChange,
   onAppearanceChange,
@@ -301,7 +244,7 @@ export function LayerProperties({
         onToggleLock={toggleLayerLock}
         onToggleVisibility={toggleLayerVisibility}
       />
-      <LayerTypeProperties layer={layer} assets={assets} onAppearanceChange={onAppearanceChange} onPoiCoordinatesChange={onPoiCoordinatesChange} onPoiCustomMarkerChange={onPoiCustomMarkerChange} onRouteVertexInsert={onRouteVertexInsert} onRouteVertexRemove={onRouteVertexRemove} onRouteVertexChange={onRouteVertexChange} onShapeVertexChange={onShapeVertexChange} />
+      <LayerTypeProperties documentEpoch={documentEpoch} layer={layer} assets={assets} mapMatchingProvider={mapMatchingProvider} onApplyMapMatching={onApplyMapMatching} onAppearanceChange={onAppearanceChange} onPoiCoordinatesChange={onPoiCoordinatesChange} onPoiCustomMarkerChange={onPoiCustomMarkerChange} onRouteVertexInsert={onRouteVertexInsert} onRouteVertexRemove={onRouteVertexRemove} onRouteVertexChange={onRouteVertexChange} onShapeVertexChange={onShapeVertexChange} />
     </div>
   );
 }
