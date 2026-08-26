@@ -13,6 +13,12 @@ const sharedProps = {
 };
 
 describe('IsochronePanel', () => {
+  it('explains the provider limit for longer travel-time areas', () => {
+    render(<IsochronePanel {...sharedProps} minutes={20} />);
+
+    expect(screen.getByText('Mapbox supports up to 60 minutes. 61–180 minute areas are unavailable with this provider.')).toBeVisible();
+  });
+
   it('marks a fractional duration invalid and gates generation with corrective guidance', () => {
     render(<IsochronePanel {...sharedProps} minutes={12.5} />);
 

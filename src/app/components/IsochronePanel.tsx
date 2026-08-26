@@ -50,6 +50,7 @@ export function IsochronePanel(props: IsochronePanelProps) {
         }} />
         <span>min</span>
       </label>
+      <p className="isochrone-limit-note">Mapbox supports up to 60 minutes. 61–180 minute areas are unavailable with this provider.</p>
       {isInvalidMinutes && <div id="isochrone-duration-error" className="isochrone-error" role="alert">Use a whole number from 5 to 60 minutes.</div>}
       {props.error && <div className="isochrone-error" role="alert">{props.error}</div>}
       <div className="isochrone-actions">

@@ -412,6 +412,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .isochrone-profiles > button[aria-checked="true"] { background: var(--studio-text); color: var(--studio-on-dark); }
 .isochrone-duration { @apply flex items-center gap-1; }
 .isochrone-duration > input { @apply h-8 w-16 px-2 text-right tabular-nums; border: var(--studio-border-width) solid var(--studio-line-strong); border-radius: var(--studio-radius-md); background: var(--studio-surface); }
+.isochrone-limit-note { @apply m-0 max-w-56 text-xs leading-snug; color: var(--studio-text-muted); }
 .isochrone-error { @apply max-w-56 text-xs; color: var(--studio-danger); }
 .isochrone-actions { @apply flex items-center gap-1; }
 .isochrone-actions > button { @apply min-h-10 px-2.5 text-xs; border-radius: var(--studio-radius-md); }
