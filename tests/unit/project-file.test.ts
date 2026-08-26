@@ -2,7 +2,7 @@ import { createInitialProjectDocument } from '../../src/domain/project';
 import { parseProjectFileText } from '../../src/domain/projectFile';
 
 describe('portable project validation', () => {
-  it.each([16, 17, 18])('rejects the obsolete schema-%s format with a reset-oriented message', (schemaVersion) => {
+  it.each([16, 17, 18, 19])('rejects the obsolete schema-%s format with a reset-oriented message', (schemaVersion) => {
     const obsolete = { ...createInitialProjectDocument(), schemaVersion };
 
     expect(() => parseProjectFileText(JSON.stringify(obsolete))).toThrow(
@@ -87,6 +87,24 @@ describe('portable project validation', () => {
       ? parsedShape.provenance.center
       : undefined).not.toBe(shape.provenance.center);
     expect(JSON.stringify(parsedShape)).not.toMatch(/access_token|rawResponse|token/i);
+  });
+
+  it('round-trips detached Mapbox geocoding provenance without credentials or raw responses', () => {
+    const source = createInitialProjectDocument();
+    const poi = source.layers.find(({ type }) => type === 'poi');
+    if (!poi || poi.appearance?.kind !== 'poi') throw new Error('Expected POI fixture.');
+    poi.name = 'Café Central';
+    poi.appearance = { ...poi.appearance, label: poi.name };
+    poi.provenance = {
+      provider: 'mapbox', service: 'geocoding-v6', providerFeatureId: 'address.cafe-central',
+    };
+
+    const parsed = parseProjectFileText(JSON.stringify(source));
+    const parsedPoi = parsed.layers.find(({ id }) => id === poi.id);
+
+    expect(parsedPoi?.provenance).toEqual(poi.provenance);
+    expect(parsedPoi?.provenance).not.toBe(poi.provenance);
+    expect(JSON.stringify(parsedPoi)).not.toMatch(/access_token|rawResponse|token/i);
   });
 
   it('round-trips detached Mapbox directions provenance without credentials or raw responses', () => {

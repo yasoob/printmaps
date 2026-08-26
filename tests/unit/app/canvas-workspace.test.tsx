@@ -62,6 +62,7 @@ const sharedProps = {
   onCreateIsochroneArea: vi.fn(),
   onCreatePoi: vi.fn(),
   onCreatePoiBatch: vi.fn(),
+  onCreateSearchPoi: vi.fn(),
   onCreateRoute: vi.fn(),
   onCreateShape: vi.fn(),
   onAuthoringChange: vi.fn(),

@@ -90,7 +90,7 @@ test('road route becomes editable canonical project geometry and exports offline
   await projectDownload.saveAs(projectPath);
   const project = JSON.parse(await readFile(projectPath, 'utf8'));
   const routeLayer = project.layers.find((layer: { id: string }) => layer.id === 'route-02');
-  expect(project.schemaVersion).toBe(19);
+  expect(project.schemaVersion).toBe(20);
   expect(routeLayer).toMatchObject({
     geometry: { type: 'LineString' },
     provenance: {

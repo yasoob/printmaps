@@ -120,8 +120,7 @@ export function App({ autosaveRepository, directionsProvider, searchProvider }: 
           onCreateDirectionsRoute={project.createDirectionsRoute}
           onCreateAdministrativeArea={project.createAdministrativeArea}
           onCreateAdministrativeAreas={project.createAdministrativeAreas} onCreateIsochroneArea={project.createIsochroneArea}
-          onCreatePoi={project.createPoi}
-          onCreatePoiBatch={project.createPoiBatch}
+          onCreatePoi={project.createPoi} onCreatePoiBatch={project.createPoiBatch} onCreateSearchPoi={project.createSearchPoi}
           onCreateRoute={project.createRoute}
           onCreateShape={project.createShape}
           onAuthoringChange={handleAuthoringChange}

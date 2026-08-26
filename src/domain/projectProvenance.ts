@@ -1,5 +1,6 @@
 import type {
   DirectionsProvenance,
+  GeocodingProvenance,
   IsochroneProvenance,
   LayerType,
   ProviderProvenance,
@@ -91,6 +92,25 @@ function parseDirectionsProvenance(
   };
 }
 
+function parseGeocodingProvenance(
+  provenance: JsonObject,
+  type: LayerType,
+  index: number,
+): GeocodingProvenance {
+  if (type !== 'poi') throw new ProjectFileError(`Layer ${index + 1} geocoding provenance is only valid for POI layers.`);
+  const providerFeatureId = provenance.providerFeatureId;
+  if (
+    typeof providerFeatureId !== 'string'
+    || providerFeatureId.trim() !== providerFeatureId
+    || providerFeatureId.length === 0
+    || [...providerFeatureId].length > 256
+    || /[\p{Cc}\p{Cf}]/u.test(providerFeatureId)
+  ) {
+    throw new ProjectFileError(`Layer ${index + 1} provenance feature ID is invalid.`);
+  }
+  return { provider: 'mapbox', service: 'geocoding-v6', providerFeatureId };
+}
+
 export function parseLayerProvenance(
   value: unknown,
   type: LayerType,
@@ -107,6 +127,9 @@ export function parseLayerProvenance(
   }
   if (provenance.service === 'directions-v5') {
     return parseDirectionsProvenance(provenance, type, index, coordinateCount);
+  }
+  if (provenance.service === 'geocoding-v6') {
+    return parseGeocodingProvenance(provenance, type, index);
   }
   throw new ProjectFileError(`Layer ${index + 1} provenance provider is not supported.`);
 }

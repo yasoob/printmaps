@@ -65,7 +65,7 @@ function createShapeAction(set: ProjectSet): ProjectState['createShape'] {
   });
 }
 
-export function createLayerStructureActions(set: ProjectSet): Pick<ProjectState, 'createAdministrativeArea' | 'createAdministrativeAreas' | 'createDirectionsRoute' | 'createPoi' | 'createPoiBatch' | 'createRoute' | 'createShape' | 'deleteLayer' | 'duplicateLayer' | 'importLayers' | 'moveLayer' | 'replaceLayerFromImport'> {
+export function createLayerStructureActions(set: ProjectSet): Pick<ProjectState, 'createAdministrativeArea' | 'createAdministrativeAreas' | 'createDirectionsRoute' | 'createPoi' | 'createPoiBatch' | 'createSearchPoi' | 'createRoute' | 'createShape' | 'deleteLayer' | 'duplicateLayer' | 'importLayers' | 'moveLayer' | 'replaceLayerFromImport'> {
   return {
     ...createPoiStructureActions(set),
     ...createAdministrativeAreaActions(set),
@@ -195,7 +195,11 @@ export function createLayerPropertyActions(set: ProjectSet): LayerPropertyAction
         state.document,
         state.document.layers.map((candidate) => (
           candidate.id === id
-            ? { ...candidate, geometry: { type: 'Point' as const, coordinates: [longitude, latitude] as [number, number] } }
+            ? {
+                ...candidate,
+                ...(candidate.provenance?.service === 'geocoding-v6' && { provenance: undefined }),
+                geometry: { type: 'Point' as const, coordinates: [longitude, latitude] as [number, number] },
+              }
             : candidate
         )),
       ));

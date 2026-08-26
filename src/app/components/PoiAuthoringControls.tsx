@@ -4,6 +4,7 @@ import { PoiSpreadsheetPanel } from './PoiSpreadsheetPanel';
 
 type PoiAuthoringControlsProps = {
   active: boolean;
+  error?: string | null;
   spreadsheetOpen: boolean;
   spreadsheetTriggerRef: RefObject<HTMLButtonElement | null>;
   onCancel: () => void;
@@ -13,7 +14,7 @@ type PoiAuthoringControlsProps = {
 };
 
 export function PoiAuthoringControls(props: PoiAuthoringControlsProps) {
-  const { active, onCancel, onCancelSpreadsheet, onOpenSpreadsheet, onSubmitSpreadsheet, spreadsheetOpen, spreadsheetTriggerRef } = props;
+  const { active, error, onCancel, onCancelSpreadsheet, onOpenSpreadsheet, onSubmitSpreadsheet, spreadsheetOpen, spreadsheetTriggerRef } = props;
   if (!active) return null;
   if (spreadsheetOpen) {
     return <PoiSpreadsheetPanel onCancel={onCancelSpreadsheet} onSubmit={onSubmitSpreadsheet} />;
@@ -21,6 +22,7 @@ export function PoiAuthoringControls(props: PoiAuthoringControlsProps) {
   return (
     <div className="map-authoring-panel">
       <span role="status" aria-label="POI placement status">Click the map to place a POI</span>
+      {error && <span className="isochrone-error" role="alert">{error}</span>}
       <button ref={spreadsheetTriggerRef} type="button" onClick={onOpenSpreadsheet}>Paste POI list</button>
       <button type="button" onClick={onCancel}>Cancel POI</button>
     </div>

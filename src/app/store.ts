@@ -11,6 +11,7 @@ import {
   type PageOrientation,
   type StandardPagePreset,
   type ProjectDocument,
+  type SearchPoiInput,
 } from '../domain/project';
 import type { RouteAuthoringOptions } from '../domain/routeProfiles';
 import type { PoiSpreadsheetEntry } from '../domain/poiSpreadsheet';
@@ -42,6 +43,7 @@ export type ProjectState = {
   ) => string | null;
   createPoi: (coordinates: readonly [number, number]) => void;
   createPoiBatch: (entries: readonly PoiSpreadsheetEntry[]) => void;
+  createSearchPoi: (input: SearchPoiInput, expectedDocumentEpoch: number) => string | null;
   createRoute: (
     coordinates: readonly (readonly [number, number])[],
     options?: RouteAuthoringOptions,

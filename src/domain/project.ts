@@ -12,7 +12,7 @@ export type {
   ShapeAppearance,
 } from './layerAppearance';
 
-export const PROJECT_SCHEMA_VERSION = 19 as const;
+export const PROJECT_SCHEMA_VERSION = 20 as const;
 export const MAX_MERCATOR_LATITUDE = 85.051129;
 export const MAX_MAP_ZOOM = 22;
 
@@ -72,7 +72,19 @@ export type DirectionsProvenance = {
   durationSeconds: number;
 };
 
-export type ProviderProvenance = IsochroneProvenance | DirectionsProvenance;
+export type GeocodingProvenance = {
+  provider: 'mapbox';
+  service: 'geocoding-v6';
+  providerFeatureId: string;
+};
+
+export type ProviderProvenance = IsochroneProvenance | DirectionsProvenance | GeocodingProvenance;
+
+export type SearchPoiInput = {
+  coordinate: [number, number];
+  label: string;
+  providerFeatureId: string;
+};
 
 export type DirectionsRouteInput = {
   geometry: [number, number][];
@@ -163,6 +175,7 @@ function cloneProviderProvenance(provenance: ProviderProvenance | undefined): Pr
       waypoints: provenance.waypoints.map((position) => [...position] as [number, number]),
     };
   }
+  if (provenance?.service === 'geocoding-v6') return { ...provenance };
 }
 
 export function cloneContentLayer(layer: ContentLayer): ContentLayer {
