@@ -32,7 +32,7 @@ test('Swedish county catalogue creates a durable area with print parity', async 
   }
 
   const savePromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Save' }).click();
+  await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
   const save = await savePromise;
   const savePath = testInfo.outputPath('sweden-county.printmap.json');
   await save.saveAs(savePath);

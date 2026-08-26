@@ -34,7 +34,7 @@ test('Portuguese district and autonomous-region catalogue creates a durable area
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-geometry', /admin-pt-30:/);
 
   const savePromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Save' }).click();
+  await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
   const save = await savePromise;
   const savePath = testInfo.outputPath('portugal-region.printmap.json');
   await save.saveAs(savePath);

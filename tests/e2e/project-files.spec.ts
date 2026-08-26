@@ -21,7 +21,7 @@ test('Download project saves the current portable versioned JSON', async ({ cont
   await page.getByRole('combobox', { name: 'Map language' }).selectOption('de');
 
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Save' }).click();
+  await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe('vienna-field-guide.printmap.json');
 
@@ -49,21 +49,21 @@ test('Download project saves the current portable versioned JSON', async ({ cont
   ]);
 });
 
-test('Save and Open restore the current project as a fresh history root', async ({ page }, testInfo) => {
+test('Project download and open restore the current project as a fresh history root', async ({ page }, testInfo) => {
   await page.goto('/');
   await page.getByRole('textbox', { name: 'Bearing' }).fill('35');
   await page.getByRole('textbox', { name: 'Bearing' }).press('Tab');
   await page.getByRole('checkbox', { name: 'Show roads' }).uncheck();
 
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Save' }).click();
+  await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
   const download = await downloadPromise;
   const projectPath = testInfo.outputPath('saved-project.printmap.json');
   await download.saveAs(projectPath);
 
   await page.getByRole('button', { name: 'Portrait' }).click();
   const chooserPromise = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Open', exact: true }).click();
+  await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Open project' }).click();
   const chooser = await chooserPromise;
   await chooser.setFiles(projectPath);
 
@@ -71,7 +71,7 @@ test('Save and Open restore the current project as a fresh history root', async 
   await expect(page.getByRole('checkbox', { name: 'Show roads' })).not.toBeChecked();
   await expect(page.getByRole('button', { name: 'Landscape' })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
-  await expect(page.getByRole('button', { name: 'Open', exact: true })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Project' })).toBeFocused();
 });
 
 test('opens a validated portable project as a focused fresh history root', async ({ page }) => {
@@ -90,7 +90,7 @@ test('opens a validated portable project as a focused fresh history root', async
   alpineProject.layers.find((layer: { type: string }) => layer.type === 'basemap').name = 'Night Ink basemap';
 
   const chooserPromise = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Open', exact: true }).click();
+  await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Open project' }).click();
   const chooser = await chooserPromise;
   await chooser.setFiles({
     name: 'alpine-poster.printmap.json',
@@ -126,7 +126,7 @@ test('opens a validated portable project as a focused fresh history root', async
   );
   await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Redo' })).toBeDisabled();
-  await expect(page.getByRole('button', { name: 'Open', exact: true })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Project' })).toBeFocused();
 });
 
 test('rejects invalid project files without replacing work and allows a retry', async ({ page }) => {
@@ -160,7 +160,7 @@ test('rejects invalid project files without replacing work and allows a retry', 
     },
   ]) {
     const chooserPromise = page.waitForEvent('filechooser');
-    await page.getByRole('button', { name: 'Open', exact: true }).click();
+    await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Open project' }).click();
     const chooser = await chooserPromise;
     await chooser.setFiles(invalidFile.file);
 
@@ -168,22 +168,25 @@ test('rejects invalid project files without replacing work and allows a retry', 
     await expect(page.getByRole('button', { name: 'Vienna field guide' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Portrait' })).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByRole('button', { name: 'Undo' })).toBeEnabled();
-    await expect(page.getByRole('button', { name: 'Open', exact: true })).toBeFocused();
+    await expect(page.getByRole('button', { name: 'Project' })).toBeFocused();
   }
 
   const retryChooserPromise = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Open', exact: true }).click();
+  await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Open project' }).click();
   const retryChooser = await retryChooserPromise;
   await retryChooser.setFiles(path.resolve('tests/fixtures/alpine-poster.printmap.json'));
   await expect(page.getByRole('button', { name: 'Alpine poster' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Open', exact: true })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Project' })).toBeFocused();
 });
 
 test('imports supported GeoJSON as one undoable editable layer batch', async ({ page }) => {
   await page.goto('/');
 
   const chooserPromise = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Import' }).click();
+  const project = page.getByRole('button', { name: 'Project' });
+  await project.click();
+  await page.getByRole('menuitem', { name: 'Import map data' }).click();
+  await expect(project).toHaveAttribute('aria-expanded', 'false');
   const chooser = await chooserPromise;
   await chooser.setFiles(path.resolve('tests/fixtures/import/supported.geojson'));
 
@@ -314,7 +317,7 @@ test('contains import review focus and restores it after cancelling a dropped ba
   await page.keyboard.press('Escape');
 
   await expect(dialog).not.toBeVisible();
-  await expect(page.getByRole('button', { name: 'Import' })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Project' })).toBeFocused();
   await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
 });
 

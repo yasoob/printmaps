@@ -1,4 +1,4 @@
-import { Eye, EyeOff, GripVertical, Layers3, Lock, MapPin, PanelLeftClose, Route, Search, Shapes, Unlock, X } from 'lucide-react';
+import { Eye, EyeOff, GripVertical, Layers3, Lock, MapPin, PanelLeftClose, Route, Shapes, Unlock, X } from 'lucide-react';
 import { memo, type Dispatch, type RefObject, type SetStateAction } from 'react';
 import type { ContentLayer, LayerType } from '../../domain/project';
 import { ProjectAutosaveStatus } from '../../storage/ProjectAutosaveUi';
@@ -135,7 +135,6 @@ export const LayersSidebar = memo(function LayersSidebar(props: LayersSidebarPro
           {activePanel === 'layers' ? <X size={15} /> : <PanelLeftClose size={15} />}
         </button>
       </div>
-      <label className="panel-search"><Search size={14} aria-hidden="true" /><input aria-label="Filter layers" placeholder="Filter layers" /></label>
       <ul className="layer-tree" aria-label="Map layers">
         {layers.map((layer, index) => (
           <LayerRow
@@ -151,7 +150,7 @@ export const LayersSidebar = memo(function LayersSidebar(props: LayersSidebarPro
           />
         ))}
       </ul>
-      <div className="sidebar-footer"><span>{layers.length} layers</span><ProjectAutosaveStatus autosave={autosave} /></div>
+      <div className="sidebar-footer"><ProjectAutosaveStatus autosave={autosave} /></div>
     </aside>
   );
 }, isSameLayersSidebarProps);

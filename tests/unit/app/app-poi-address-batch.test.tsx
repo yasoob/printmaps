@@ -19,7 +19,7 @@ describe('POI spreadsheet address geocoding', () => {
       });
     render(<App autosaveRepository={null} searchProvider={{ search }} />);
 
-    await user.click(screen.getByRole('button', { name: 'Pin (P)' }));
+    await user.click(screen.getByRole('button', { name: 'Place (P)' }));
     await user.click(screen.getByRole('button', { name: 'Paste POI list' }));
     await user.click(screen.getByRole('radio', { name: 'Addresses' }));
     await user.type(

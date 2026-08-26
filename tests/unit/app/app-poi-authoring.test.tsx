@@ -19,7 +19,7 @@ describe('POI authoring', () => {
     });
     render(<App autosaveRepository={null} searchProvider={{ search }} />);
 
-    await user.click(screen.getByRole('button', { name: 'Pin (P)' }));
+    await user.click(screen.getByRole('button', { name: 'Place (P)' }));
     const input = screen.getByRole('combobox', { name: 'Search places and addresses' });
     await user.type(input, 'Café Central');
     await user.click(screen.getByRole('button', { name: 'Search locations' }));
@@ -50,7 +50,7 @@ describe('POI authoring', () => {
     });
     render(<App autosaveRepository={null} searchProvider={{ search }} />);
 
-    await user.click(screen.getByRole('button', { name: 'Pin (P)' }));
+    await user.click(screen.getByRole('button', { name: 'Place (P)' }));
     const input = screen.getByRole('combobox', { name: 'Search places and addresses' });
     await user.type(input, 'Long address');
     await user.click(screen.getByRole('button', { name: 'Search locations' }));
@@ -69,7 +69,7 @@ describe('POI authoring', () => {
     });
     render(<App autosaveRepository={null} searchProvider={{ search }} />);
 
-    await user.click(screen.getByRole('button', { name: 'Pin (P)' }));
+    await user.click(screen.getByRole('button', { name: 'Place (P)' }));
     const input = screen.getByRole('combobox', { name: 'Search places and addresses' });
     await user.type(input, 'Rejected place');
     await user.click(screen.getByRole('button', { name: 'Search locations' }));
@@ -77,7 +77,7 @@ describe('POI authoring', () => {
 
     expect(screen.getByText('That search result could not be added. Choose another result or place the POI on the map.')).toHaveAttribute('role', 'alert');
     expect(screen.getByRole('status', { name: 'POI placement status' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Pin (P)' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Place (P)' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.queryByRole('button', { name: 'Select Rejected place' })).not.toBeInTheDocument();
   });
 
@@ -88,7 +88,7 @@ describe('POI authoring', () => {
     const search = vi.fn<SearchProvider['search']>(() => pendingSearch);
     const { container } = render(<App autosaveRepository={null} searchProvider={{ search }} />);
 
-    await user.click(screen.getByRole('button', { name: 'Pin (P)' }));
+    await user.click(screen.getByRole('button', { name: 'Place (P)' }));
     const input = screen.getByRole('combobox', { name: 'Search places and addresses' });
     await user.type(input, 'Old address');
     await user.click(screen.getByRole('button', { name: 'Search locations' }));
@@ -121,7 +121,7 @@ describe('POI authoring', () => {
     const user = userEvent.setup();
     render(<App autosaveRepository={null} />);
 
-    await user.click(screen.getByRole('button', { name: 'Pin (P)' }));
+    await user.click(screen.getByRole('button', { name: 'Place (P)' }));
     expect(screen.getByRole('button', { name: 'Export' })).toHaveAttribute('title', 'Finish or cancel map authoring before export');
     expect(screen.getByRole('status', { name: 'POI placement status' })).toHaveTextContent('Click the map to place a POI');
 
@@ -143,7 +143,7 @@ describe('POI authoring', () => {
     const user = userEvent.setup();
     render(<App autosaveRepository={null} />);
 
-    await user.click(screen.getByRole('button', { name: 'Pin (P)' }));
+    await user.click(screen.getByRole('button', { name: 'Place (P)' }));
     await user.click(screen.getByRole('button', { name: 'Cancel POI' }));
 
     expect(screen.queryByRole('status', { name: 'POI placement status' })).not.toBeInTheDocument();
@@ -158,7 +158,7 @@ describe('POI authoring', () => {
     const user = userEvent.setup();
     render(<App autosaveRepository={null} />);
 
-    await user.click(screen.getByRole('button', { name: 'Pin (P)' }));
+    await user.click(screen.getByRole('button', { name: 'Place (P)' }));
     await user.click(screen.getByRole('button', { name: 'Paste POI list' }));
 
     const spreadsheet = screen.getByRole('textbox', { name: 'POI spreadsheet rows' });
@@ -187,7 +187,7 @@ describe('POI authoring', () => {
     const user = userEvent.setup();
     render(<App autosaveRepository={null} />);
 
-    await user.click(screen.getByRole('button', { name: 'Pin (P)' }));
+    await user.click(screen.getByRole('button', { name: 'Place (P)' }));
     await user.click(screen.getByRole('button', { name: 'Paste POI list' }));
     await user.click(screen.getByRole('button', { name: 'Cancel list' }));
 

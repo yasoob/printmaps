@@ -35,7 +35,6 @@ describe('editor layer fields', () => {
     }
 
     expect(screen.getByRole('heading', { name: 'Project' })).toHaveFocus();
-    expect(screen.getByText('0 layers')).toBeInTheDocument();
   });
 
   it('normalizes trimmed names and clamped opacity drafts after blur', async () => {

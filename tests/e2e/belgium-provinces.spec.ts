@@ -31,7 +31,7 @@ test('Belgian province catalogue creates a durable area with print parity', asyn
   }
 
   const savePromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Save' }).click();
+  await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
   const save = await savePromise;
   const savePath = testInfo.outputPath('belgium-province.printmap.json');
   await save.saveAs(savePath);

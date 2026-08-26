@@ -126,7 +126,7 @@ describe('autosave modal arbitration', () => {
     await waitFor(() => expect(recoveryDialog).not.toBeInTheDocument());
     expect(screen.queryByRole('dialog', { name: 'Import map data' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Import' })).toHaveFocus());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Project' })).toHaveFocus());
   });
 
   it('rejects an immediate import that settles behind a delayed recovery decision', async () => {

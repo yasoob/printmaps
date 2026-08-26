@@ -63,7 +63,7 @@ export function App({ autosaveRepository, directionsProvider, mapMatchingProvide
   const mobile = useMobilePanels();
   const handleMapDataImported = useCallback(() => setPreviewedLayerId(null), []);
   const mapDataImport = useAppMapDataImport(project.importLayers, project.replaceLayerFromImport, autosave.recoveryDraft !== null || autosave.corrupted, handleMapDataImported);
-  const modal = useAutosaveModalArbitration({ autosave, exportButtonRef, exportOpen, importButtonRef, importOpen: mapDataImport.isImportOpen, mobile, setExportOpen, setImportOpen: mapDataImport.setIsImportOpen });
+  const modal = useAutosaveModalArbitration({ autosave, exportButtonRef, exportOpen, importButtonRef: openButtonRef, importOpen: mapDataImport.isImportOpen, mobile, setExportOpen, setImportOpen: mapDataImport.setIsImportOpen });
   const layers = project.document.layers; const mapPreviewedLayerId = visiblePreviewLayerId(layers, previewedLayerId);
   const selectedLayer = layers.find((layer) => layer.id === project.selectedId) ?? null;
   const isAuthoring = authoringState.documentEpoch === project.documentEpoch && authoringState.active;

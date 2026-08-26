@@ -85,7 +85,7 @@ test('road route becomes editable canonical project geometry and exports offline
   await page.getByRole('button', { name: 'Redo' }).click();
 
   const projectDownloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Save' }).click();
+  await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
   const projectDownload = await projectDownloadPromise;
   const projectPath = test.info().outputPath('road-route.printmap.json');
   await projectDownload.saveAs(projectPath);

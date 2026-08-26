@@ -160,6 +160,7 @@ async function responseTextWithinLimit(response: Response, maximumBytes: number)
 
 async function fetchJson(url: string, maximumBytes: number, signal?: AbortSignal): Promise<unknown> {
   const response = await fetch(url, { signal });
+  signal?.throwIfAborted();
   if (!response.ok) fail(`Boundary data could not be loaded (${response.status}).`);
   const text = await responseTextWithinLimit(response, maximumBytes);
   try {

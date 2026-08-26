@@ -1,5 +1,6 @@
 import { FileUp } from 'lucide-react';
 import { useCallback, useEffect, type RefObject } from 'react';
+import { createPortal } from 'react-dom';
 import type { ProjectDocument } from '../../domain/project';
 import type { LayerReplacementRequest, MapDataImportCommit } from '../hooks/useAppMapDataImport';
 import { useMapDataDrop } from '../hooks/useMapDataDrop';
@@ -16,10 +17,36 @@ type GeoJsonImportButtonProps = {
   startImportWork: () => number | null;
   isOpen: boolean;
   replacementRequest: LayerReplacementRequest | null;
+  restoreFocusRef?: RefObject<HTMLButtonElement | null>;
   onOpenChange: (isOpen: boolean) => void;
   onImport: (commit: MapDataImportCommit) => boolean;
-  presentation?: 'trigger' | 'headless';
+  presentation?: 'trigger' | 'headless' | 'menuitem';
+  triggerContainer?: HTMLElement | null;
 };
+
+function ImportTrigger({
+  buttonRef,
+  isDisabled,
+  onClick,
+  presentation,
+  triggerContainer,
+}: {
+  buttonRef: RefObject<HTMLButtonElement | null>;
+  isDisabled: boolean;
+  onClick: () => void;
+  presentation: NonNullable<GeoJsonImportButtonProps['presentation']>;
+  triggerContainer?: HTMLElement | null;
+}) {
+  if (presentation === 'headless') return null;
+  const isMenuItem = presentation === 'menuitem';
+  const trigger = (
+    <button ref={buttonRef} className={isMenuItem ? undefined : 'quiet-button'} role={isMenuItem ? 'menuitem' : undefined} type="button" disabled={isDisabled} onClick={onClick}>
+      <FileUp size={14} /> {isMenuItem ? 'Import map data' : 'Import'}
+    </button>
+  );
+  if (!isMenuItem) return trigger;
+  return triggerContainer ? createPortal(trigger, triggerContainer) : null;
+}
 
 export function GeoJsonImportButton({
   isDisabled,
@@ -31,9 +58,11 @@ export function GeoJsonImportButton({
   startImportWork,
   isOpen,
   replacementRequest,
+  restoreFocusRef,
   onOpenChange,
   onImport,
   presentation = 'trigger',
+  triggerContainer,
 }: GeoJsonImportButtonProps) {
   const {
     batch,
@@ -63,7 +92,7 @@ export function GeoJsonImportButton({
     onOpenChange,
     sourceDocument,
     startImportWork,
-    triggerRef: buttonRef,
+    triggerRef: restoreFocusRef ?? buttonRef,
   });
   useEffect(() => {
     if (replacementRequest) chooseReplacementFile(replacementRequest.target, replacementRequest.trigger);
@@ -88,11 +117,7 @@ export function GeoJsonImportButton({
         accept=".geojson,.gpx,.kml,application/geo+json,application/gpx+xml,application/vnd.google-earth.kml+xml"
         onChange={handleInputChange}
       />
-      {presentation === 'trigger' && (
-        <button ref={buttonRef} className="quiet-button" type="button" disabled={isDisabled || isReading || isWorkActive} onClick={chooseImportFiles}>
-          <FileUp size={14} /> Import
-        </button>
-      )}
+      <ImportTrigger buttonRef={buttonRef} isDisabled={isDisabled || isReading || isWorkActive} onClick={chooseImportFiles} presentation={presentation} triggerContainer={triggerContainer} />
       {status && (
         <div
           className={`project-file-status${status.kind === 'error' ? ' is-error' : ''}`}

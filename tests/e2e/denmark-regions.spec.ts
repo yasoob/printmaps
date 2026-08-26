@@ -30,7 +30,7 @@ test('Danish region catalogue creates a durable area with print parity', async (
   await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/denmark-region-catalogue-20260826.png' });
 
   const savePromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Save' }).click();
+  await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
   const save = await savePromise;
   const savePath = testInfo.outputPath('denmark-region.printmap.json');
   await save.saveAs(savePath);

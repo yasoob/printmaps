@@ -37,7 +37,7 @@ test('generated worldwide catalogue lazily creates a durable Japanese region', a
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-geometry', /admin-jp-26:/);
 
   const savePromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Save' }).click();
+  await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
   const save = await savePromise;
   const savePath = testInfo.outputPath('japan-region.printmap.json');
   await save.saveAs(savePath);
@@ -84,7 +84,7 @@ test('generated worldwide catalogue lazily creates a durable country', async ({ 
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-geometry', /admin-ind:/);
 
   const savePromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Save' }).click();
+  await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
   const save = await savePromise;
   const savePath = testInfo.outputPath('india-country.printmap.json');
   await save.saveAs(savePath);

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('initial editor search, live scale, title history, and direct file actions work together', async ({ page }, testInfo) => {
+test('initial editor search, live scale, title history, and Project actions work together', async ({ page }, testInfo) => {
   await page.route('https://api.mapbox.com/search/geocode/v6/forward**', async (route) => {
     await route.fulfill({
       contentType: 'application/json',
@@ -50,11 +50,15 @@ test('initial editor search, live scale, title history, and direct file actions 
   await page.getByRole('button', { name: 'Zoom in' }).click();
   await expect(scale).not.toHaveAttribute('aria-label', initialScale!);
 
-  await expect(page.getByRole('button', { name: 'Open', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Save' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Import' })).toBeVisible();
+  const project = page.getByRole('button', { name: 'Project' });
+  await expect(project).toBeVisible();
   await expect(page.getByRole('button', { name: 'Export' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Share' })).toHaveCount(0);
+  await project.click();
+  await expect(page.getByRole('menuitem', { name: 'Open project' })).toBeVisible();
+  await expect(page.getByRole('menuitem', { name: 'Download project' })).toBeVisible();
+  await expect(page.getByRole('menuitem', { name: 'Import map data' })).toBeVisible();
+  await page.keyboard.press('Escape');
   await page.screenshot({ path: testInfo.outputPath('editor-shell-actions.png') });
 });
 
@@ -68,9 +72,10 @@ test('Backspace deletes a selected content layer but never hijacks text editing'
   await page.keyboard.press('Control+z');
   await expect(page.getByRole('button', { name: 'Select Coffee stop' })).toBeVisible();
 
-  const filter = page.getByRole('textbox', { name: 'Filter layers' });
-  await filter.fill('Coffee');
-  await filter.press('Backspace');
+  await page.getByRole('button', { name: 'Vienna field guide' }).click();
+  const title = page.getByRole('textbox', { name: 'Project title' });
+  await title.fill('Coffee');
+  await title.press('Backspace');
   await expect(page.getByRole('button', { name: 'Select Coffee stop' })).toBeVisible();
 });
 

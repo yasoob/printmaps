@@ -20,14 +20,14 @@ test('POI placement can be cancelled, undone, redone, and exported as vector con
   await expect(mapReady.or(mapFallback)).toBeVisible({ timeout: 20_000 });
   test.skip(await mapFallback.isVisible(), 'This browser fixture has no WebGL 2 renderer, so map authoring cannot be exercised.');
 
-  await page.getByRole('button', { name: 'Pin (P)' }).click();
+  await page.getByRole('button', { name: 'Place (P)' }).click();
   await expect(page.getByRole('status', { name: 'POI placement status' })).toContainText('Click the map to place a POI');
   await expect(page.getByRole('button', { name: 'Export' })).toBeDisabled();
   await page.getByRole('button', { name: 'Cancel POI' }).click();
   await expect(page.getByRole('button', { name: 'Select (V)' })).toBeFocused();
   await expect(page.getByRole('button', { name: 'Select POI 01' })).toHaveCount(0);
 
-  await page.getByRole('button', { name: 'Pin (P)' }).click();
+  await page.getByRole('button', { name: 'Place (P)' }).click();
   const canvas = page.locator('.maplibregl-canvas');
   const canvasBox = await canvas.boundingBox();
   const frameBox = await page.locator('.print-frame').boundingBox();
@@ -97,7 +97,7 @@ test('pasted address rows become one durable geocoded POI batch', async ({ page 
 
   await page.goto('/');
   await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
-  await page.getByRole('button', { name: 'Pin (P)' }).click();
+  await page.getByRole('button', { name: 'Place (P)' }).click();
   await page.getByRole('button', { name: 'Paste POI list' }).click();
   await page.getByRole('radio', { name: 'Addresses' }).click();
   await page.getByRole('textbox', { name: 'POI spreadsheet rows' }).fill(
@@ -112,7 +112,7 @@ test('pasted address rows become one durable geocoded POI batch', async ({ page 
   expect(queries).toEqual(['Herrengasse 14, Vienna', 'Museumsplatz 1, Vienna']);
 
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
   const download = await downloadPromise;
   const projectPath = testInfo.outputPath('geocoded-pois.printmap.json');
   await download.saveAs(projectPath);
@@ -144,7 +144,7 @@ test('pasted POI rows create one responsive undoable batch', async ({ page }) =>
   await expect(mapReady.or(mapFallback)).toBeVisible({ timeout: 20_000 });
   test.skip(await mapFallback.isVisible(), 'This browser fixture has no WebGL 2 renderer, so batch POIs cannot be verified on the map.');
 
-  await page.getByRole('button', { name: 'Pin (P)' }).click();
+  await page.getByRole('button', { name: 'Place (P)' }).click();
   await page.getByRole('button', { name: 'Paste POI list' }).click();
   const spreadsheet = page.getByRole('textbox', { name: 'POI spreadsheet rows' });
   await expect(spreadsheet).toBeFocused();
@@ -168,7 +168,7 @@ test('pasted POI rows create one responsive undoable batch', async ({ page }) =>
   await expect(secondPoi).toBeVisible();
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole('button', { name: 'Pin (P)' }).click();
+  await page.getByRole('button', { name: 'Place (P)' }).click();
   await page.getByRole('button', { name: 'Paste POI list' }).click();
   const panel = page.locator('.poi-spreadsheet-panel');
   await expect(panel).toBeVisible();

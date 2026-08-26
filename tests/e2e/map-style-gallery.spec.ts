@@ -51,7 +51,7 @@ test('chooses original map presets through the responsive thumbnail gallery', as
   await expect(map).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
 
   const projectDownloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Save' }).click();
+  await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
   const projectDownload = await projectDownloadPromise;
   const projectPath = await projectDownload.path();
   expect(projectPath).not.toBeNull();

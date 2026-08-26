@@ -39,7 +39,7 @@ test('Vienna municipality selection and merging preserve source credit through p
   await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/vienna-district-merge-20260826.png' });
 
   const projectPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Save' }).click();
+  await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
   const projectDownload = await projectPromise;
   const projectPath = testInfo.outputPath('vienna-district.printmap.json');
   await projectDownload.saveAs(projectPath);
@@ -224,7 +224,7 @@ test('Swiss canton catalogue creates a durable area with print parity', async ({
   }
 
   const savePromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Save' }).click();
+  await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
   const save = await savePromise;
   const savePath = testInfo.outputPath('switzerland-canton.printmap.json');
   await save.saveAs(savePath);
@@ -353,7 +353,7 @@ test('German, Polish, Czech, Hungarian, Slovak and Austrian region catalogues cr
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-appearance', /admin-at-3-at-9:[^|]*:true/);
 
   const savePromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Save' }).click();
+  await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
   const save = await savePromise;
   const savePath = testInfo.outputPath('administrative-area.printmap.json');
   await save.saveAs(savePath);
@@ -430,7 +430,7 @@ test('Tyrol keeps both disconnected parts through live map, save, and layered SV
   }
 
   const savePromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Save' }).click();
+  await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
   const save = await savePromise;
   const savePath = testInfo.outputPath('tyrol.printmap.json');
   await save.saveAs(savePath);

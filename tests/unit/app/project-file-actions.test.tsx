@@ -10,20 +10,53 @@ vi.mock('../../../src/app/components/projectDownload', () => ({ downloadProjectD
 
 import { ProjectFileActions } from '../../../src/app/components/ProjectFileActions';
 
-describe('direct project file actions', () => {
+describe('project file actions', () => {
   beforeEach(() => downloadProjectDocument.mockReset());
 
-  it('exposes direct Open and Save buttons without a project dropdown or archive action', async () => {
+  it('keeps infrequent file commands in one clearly named Project menu', async () => {
     const user = userEvent.setup();
-    render(<ProjectFileActions document={createInitialProjectDocument()} onOpen={vi.fn()} />);
+    render(
+      <ProjectFileActions document={createInitialProjectDocument()} onOpen={vi.fn()}>
+        <button type="button" role="menuitem">Import map data</button>
+      </ProjectFileActions>,
+    );
 
-    expect(screen.getByRole('button', { name: 'Open' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
-    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /ZIP|archive/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Open' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
+    const trigger = screen.getByRole('button', { name: 'Project' });
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
 
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(trigger);
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+    const openProject = screen.getByRole('menuitem', { name: 'Open project' });
+    const downloadProject = screen.getByRole('menuitem', { name: 'Download project' });
+    const importMapData = screen.getByRole('menuitem', { name: 'Import map data' });
+    expect(openProject).toHaveFocus();
+    await user.keyboard('{ArrowDown}');
+    expect(downloadProject).toHaveFocus();
+    await user.keyboard('{End}');
+    expect(importMapData).toHaveFocus();
+    await user.keyboard('{Home}');
+    expect(openProject).toHaveFocus();
+    await user.keyboard('{Escape}');
+    expect(trigger).toHaveFocus();
+
+    await user.click(trigger);
+    await user.click(openProject);
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    expect(trigger).toHaveFocus();
+
+    await user.click(trigger);
+    await user.click(importMapData);
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    expect(trigger).toHaveFocus();
+
+    await user.click(trigger);
+    await user.click(downloadProject);
     expect(downloadProjectDocument).toHaveBeenCalledOnce();
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
   });
 
   it('opens a selected project file and reports an actionable save failure', async () => {
@@ -39,9 +72,10 @@ describe('direct project file actions', () => {
     await waitFor(() => expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ title: 'Opened map' })));
 
     downloadProjectDocument.mockImplementationOnce(() => { throw new Error('Browser storage is unavailable.'); });
-    const save = screen.getByRole('button', { name: 'Save' });
-    await user.click(save);
+    const trigger = screen.getByRole('button', { name: 'Project' });
+    await user.click(trigger);
+    await user.click(screen.getByRole('menuitem', { name: 'Download project' }));
     expect(screen.getByRole('alert', { name: 'Project save status' })).toHaveTextContent('Browser storage is unavailable');
-    expect(save).toHaveFocus();
+    expect(trigger).toHaveFocus();
   });
 });

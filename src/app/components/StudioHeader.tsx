@@ -85,20 +85,24 @@ export const StudioHeader = memo(function StudioHeader({
         <button className="icon-button" type="button" aria-label="Redo" title="Redo" disabled={!project.canRedo} onClick={project.redo}><Redo2 size={15} /></button>
       </div>
       <div className="document-actions">
-        <ProjectFileActions document={project.document} openButtonRef={openButtonRef} onOpen={onOpen} />
-        <GeoJsonImportButton
-          buttonRef={importButtonRef}
-          isDisabled={importDisabled}
-          documentEpoch={project.documentEpoch}
-          finishImportWork={finishImportWork}
-          isOpen={importOpen}
-          isWorkActive={isImportWorkActive}
-          onImport={onImport}
-          onOpenChange={onImportOpenChange}
-          replacementRequest={replacementRequest}
-          sourceDocument={project.document}
-          startImportWork={startImportWork}
-        />
+        <ProjectFileActions document={project.document} openButtonRef={openButtonRef} onOpen={onOpen}>
+          {(menuContainer) => <GeoJsonImportButton
+            buttonRef={importButtonRef}
+            isDisabled={importDisabled}
+            documentEpoch={project.documentEpoch}
+            finishImportWork={finishImportWork}
+            isOpen={importOpen}
+            isWorkActive={isImportWorkActive}
+            onImport={onImport}
+            onOpenChange={onImportOpenChange}
+            replacementRequest={replacementRequest}
+            restoreFocusRef={openButtonRef}
+            sourceDocument={project.document}
+            startImportWork={startImportWork}
+            presentation="menuitem"
+            triggerContainer={menuContainer}
+          />}
+        </ProjectFileActions>
         <button ref={exportButtonRef} className="primary-button" type="button" disabled={exportDisabled} title={exportDisabled ? 'Finish or cancel map authoring before export' : undefined} onClick={onExport}><Download size={14} /><span>Export</span></button>
       </div>
     </header>

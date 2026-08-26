@@ -123,17 +123,18 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .project-file-actions { @apply relative flex items-center gap-1; }
 .project-title:hover, .quiet-button:hover, .icon-button:hover { background: var(--studio-field); }
 .project-file-menu {
-  @apply absolute left-0 top-full z-[80] mt-1 grid min-w-56 p-1;
+  @apply absolute right-0 top-full z-[80] mt-1 grid min-w-56 p-1;
   border: var(--studio-border-width) solid var(--studio-line-strong);
   border-radius: var(--studio-radius-md);
   background: var(--studio-surface-raised);
 }
-.project-file-menu > button {
+.project-file-menu button {
   @apply flex min-h-9 w-full items-center gap-2 rounded px-2.5 text-left;
   color: var(--studio-text-strong);
   font-size: var(--studio-font-control);
 }
-.project-file-menu > button:hover, .project-file-menu > button:focus-visible { background: var(--studio-field); }
+.project-file-menu button:hover, .project-file-menu button:focus-visible { background: var(--studio-field); }
+.project-file-import-slot { display: contents; }
 .icon-button {
   @apply inline-grid place-items-center;
   width: var(--studio-control-height);
@@ -192,6 +193,13 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 .layer-row:hover { background: var(--studio-hover); }
 .layer-row.is-selected { border-left-color: var(--studio-accent); background: var(--studio-accent-soft); }
+.layer-lock, .layer-drag { opacity: 0; }
+.layer-row:hover .layer-lock,
+.layer-row:hover .layer-drag,
+.layer-row.is-selected .layer-lock,
+.layer-row.is-selected .layer-drag,
+.layer-lock:focus-visible,
+.layer-drag:focus-visible { opacity: 1; }
 .layer-select {
   @apply flex min-w-0 items-center gap-2 px-0.5 text-left;
   height: 1.875rem;
@@ -330,13 +338,14 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .maplibregl-ctrl-bottom-left { bottom: 3px; left: 4px; }
 .mobile-panel-actions, .mobile-panel-backdrop, .mobile-drawer-close { display: none; }
 .tool-palette {
-  @apply absolute bottom-[18px] left-1/2 flex -translate-x-1/2 items-center p-1;
+  @apply absolute bottom-[18px] left-1/2 z-50 flex -translate-x-1/2 items-center p-1;
   height: 2.75rem;
   border: var(--studio-border-width) solid var(--studio-line-strong);
   border-radius: var(--studio-radius-lg);
   background: var(--studio-surface-raised);
 }
 .tool-slot { @apply flex items-center; }
+.tool-more { @apply relative; }
 .tool-separator { @apply mx-1.5 h-5 w-px; background: var(--studio-line); }
 .tool-separator.is-mobile-only { display: none; }
 .tool-button {
@@ -349,6 +358,22 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .tool-button:hover { background: var(--studio-field); }
 .tool-button.is-active { color: var(--studio-accent-strong); background: var(--studio-accent-soft); }
 .tool-label { display: none; }
+.tool-more-menu {
+  @apply absolute right-0 z-30 grid min-w-40 p-1;
+  bottom: calc(100% + 5.75rem);
+  border: var(--studio-border-width) solid var(--studio-line-strong);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface-raised);
+}
+.tool-more-menu button {
+  @apply flex min-h-10 items-center gap-2 rounded px-2.5 text-left;
+  color: var(--studio-text-strong);
+  font-size: var(--studio-font-control);
+}
+.tool-more-menu button:hover, .tool-more-menu button:focus-visible { background: var(--studio-field); }
+.tool-more-menu button:disabled,
+.tool-more-menu button[aria-disabled="true"] { cursor: default; opacity: 0.38; }
+.tool-more-menu kbd { @apply ml-auto; color: var(--studio-text-muted); font-size: var(--studio-font-meta); }
 .shape-editing-toolbar {
   @apply absolute left-1/2 z-20 flex -translate-x-1/2 items-center overflow-hidden;
   bottom: 4.5rem;
@@ -1263,7 +1288,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   .brand-block { @apply min-w-0; }
   .project-title { @apply max-w-[116px]; }
   .project-file-menu { min-width: min(16rem, calc(100vw - 16px - var(--studio-safe-left) - var(--studio-safe-right))); }
-  .project-file-menu > button { min-height: 2.75rem; }
+  .project-file-menu button { min-height: 2.75rem; }
   .document-actions { @apply min-w-0; }
   .primary-button { @apply px-2; }
 
@@ -1352,7 +1377,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
     height: 3.25rem;
     left: calc(50% + (var(--studio-safe-left) - var(--studio-safe-right)) / 2);
     max-width: calc(100vw - 16px - var(--studio-safe-left) - var(--studio-safe-right));
-    overflow-x: auto;
+    overflow: visible;
     scrollbar-width: none;
   }
   .tool-button {

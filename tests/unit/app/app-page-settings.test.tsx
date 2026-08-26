@@ -27,12 +27,15 @@ describe('editor page settings and tools', () => {
     expect(screen.queryByRole('checkbox', { name: 'Include map attribution' })).not.toBeInTheDocument();
 
     const select = screen.getByRole('button', { name: 'Select (V)' });
-    const pan = screen.getByRole('button', { name: 'Pan (H)' });
     expect(select).toHaveAttribute('aria-pressed', 'true');
-    expect(pan).toHaveAttribute('aria-pressed', 'false');
+    const more = screen.getByRole('button', { name: 'More map tools' });
+    await user.click(more);
+    const pan = screen.getByRole('menuitemradio', { name: /Pan/ });
+    expect(pan).toHaveAttribute('aria-checked', 'false');
     await user.click(pan);
     expect(select).toHaveAttribute('aria-pressed', 'false');
-    expect(pan).toHaveAttribute('aria-pressed', 'true');
+    await user.click(more);
+    expect(screen.getByRole('menuitemradio', { name: /Pan/ })).toHaveAttribute('aria-checked', 'true');
 
     expect(screen.queryByRole('button', { name: 'Page 1' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Add page' })).not.toBeInTheDocument();
@@ -185,24 +188,27 @@ describe('editor map detail and page commands', () => {
     const user = userEvent.setup();
     render(<App />);
     const lock = screen.getByRole('switch', { name: 'Lock map area' });
-    const fit = screen.getByRole('button', { name: 'Fit page (Shift+1)' });
-    const pan = screen.getByRole('button', { name: 'Pan (H)' });
+    const more = screen.getByRole('button', { name: 'More map tools' });
     const map = screen.getByTestId('map-canvas');
 
     expect(lock).not.toBeChecked();
-    expect(fit).toBeEnabled();
-    expect(pan).toBeEnabled();
+    await user.click(more);
+    expect(screen.getByRole('menuitem', { name: /Fit page/ })).toBeEnabled();
+    expect(screen.getByRole('menuitemradio', { name: /Pan/ })).toBeEnabled();
+    await user.click(more);
     expect(map).toHaveAttribute('data-map-area-locked', 'false');
 
     await user.click(lock);
 
     expect(lock).toBeChecked();
-    expect(fit).toBeDisabled();
-    expect(pan).toBeDisabled();
+    await user.click(more);
+    expect(screen.getByRole('menuitem', { name: /Fit page/ })).toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByRole('menuitemradio', { name: /Pan/ })).toHaveAttribute('aria-disabled', 'true');
     expect(map).toHaveAttribute('data-map-area-locked', 'true');
     await user.click(screen.getByRole('button', { name: 'Undo' }));
     expect(lock).not.toBeChecked();
-    expect(fit).toBeEnabled();
+    await user.click(more);
+    expect(screen.getByRole('menuitem', { name: /Fit page/ })).toBeEnabled();
     expect(map).toHaveAttribute('data-map-area-locked', 'false');
   });
 
@@ -348,12 +354,15 @@ describe('editor map detail and page commands', () => {
   it('fits the page without changing the persistent tool', async () => {
     const user = userEvent.setup();
     render(<App />);
-    const pan = screen.getByRole('button', { name: 'Pan (H)' });
+    const more = screen.getByRole('button', { name: 'More map tools' });
     const map = screen.getByTestId('map-canvas');
     expect(map).toHaveAttribute('data-fit-request', '0');
-    await user.click(pan);
-    await user.click(screen.getByRole('button', { name: 'Fit page (Shift+1)' }));
-    expect(pan).toHaveAttribute('aria-pressed', 'true');
+    await user.click(more);
+    await user.click(screen.getByRole('menuitemradio', { name: /Pan/ }));
+    await user.click(more);
+    await user.click(screen.getByRole('menuitem', { name: /Fit page/ }));
+    await user.click(more);
+    expect(screen.getByRole('menuitemradio', { name: /Pan/ })).toHaveAttribute('aria-checked', 'true');
     expect(map).toHaveAttribute('data-fit-request', '1');
   });
 });

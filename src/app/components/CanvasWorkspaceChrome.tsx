@@ -1,5 +1,5 @@
-import { Frame, Hand, Layers3, MapPin, MousePointer2, Route, Shapes, SlidersHorizontal } from 'lucide-react';
-import type { ComponentProps, Dispatch, RefObject, SetStateAction } from 'react';
+import { Ellipsis, Frame, Hand, Layers3, MapPin, MousePointer2, Route, Shapes, SlidersHorizontal } from 'lucide-react';
+import { useEffect, useRef, useState, type ComponentProps, type Dispatch, type RefObject, type SetStateAction } from 'react';
 import type { ShapeEditMode } from '../../map/ShapeVertexEditing';
 import type { MobilePanel } from '../hooks/useMobilePanels';
 import { MapScale } from './MapScale';
@@ -7,14 +7,13 @@ import { PoiAuthoringControls } from './PoiAuthoringControls';
 import { RouteDrawingPanel } from './RouteDrawingPanel';
 import { ShapeDrawingPanel } from './ShapeDrawingPanel';
 import { ShapeEditingToolbar } from './ShapeEditingToolbar';
+import { focusFirstMenuItem, navigateMenu } from './menuKeyboard';
 
 const tools = [
   { id: 'select', label: 'Select', mobileLabel: 'Select', shortcut: 'V', icon: MousePointer2 },
-  { id: 'pan', label: 'Pan', mobileLabel: 'Pan', shortcut: 'H', icon: Hand },
-  { id: 'route', label: 'Route', mobileLabel: 'Route', shortcut: 'R', icon: Route, groupStart: true },
-  { id: 'pin', label: 'Pin', mobileLabel: 'Pin', shortcut: 'P', icon: MapPin },
+  { id: 'pin', label: 'Place', mobileLabel: 'Place', shortcut: 'P', icon: MapPin },
+  { id: 'route', label: 'Route', mobileLabel: 'Route', shortcut: 'R', icon: Route },
   { id: 'shape', label: 'Area', mobileLabel: 'Area', shortcut: 'S', icon: Shapes },
-  { id: 'frame', label: 'Fit page', mobileLabel: 'Fit', shortcut: 'Shift+1', icon: Frame, command: true, groupStart: true, mobileGroupStart: true },
 ];
 
 type SelectedShapeControls = {
@@ -49,6 +48,31 @@ export function CanvasWorkspaceChrome({
   activePanel, activeTool, camera, layersTriggerRef, onActivateTool, onFitPage, onOpenPanel,
   poiPanelProps, propertiesTriggerRef, routePanelProps, selectToolRef, selectedShape, shapePanelProps,
 }: CanvasWorkspaceChromeProps) {
+  const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
+  const moreButtonRef = useRef<HTMLButtonElement>(null);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!isMoreOpen) return;
+    focusFirstMenuItem(moreMenuRef.current);
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!moreRef.current?.contains(event.target as Node)) setIsMoreOpen(false);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsMoreOpen(false);
+        moreButtonRef.current?.focus();
+        return;
+      }
+      navigateMenu(event, moreMenuRef.current);
+    };
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isMoreOpen]);
   return (
     <>
       <div className="mobile-panel-actions" aria-label="Editor panels">
@@ -56,15 +80,25 @@ export function CanvasWorkspaceChrome({
         <button ref={propertiesTriggerRef} type="button" aria-label="Open properties" aria-controls="properties-panel" aria-expanded={activePanel === 'properties'} onClick={() => onOpenPanel('properties')}><SlidersHorizontal size={15} /><span>Properties</span></button>
       </div>
       <nav className="tool-palette" aria-label="Map tools">
-        {tools.map(({ id, label, mobileLabel, shortcut, icon: Icon, command, groupStart, mobileGroupStart }) => (
+        {tools.map(({ id, label, mobileLabel, shortcut, icon: Icon }) => (
           <div className="tool-slot" key={id}>
-            {groupStart && <span className={`tool-separator${mobileGroupStart ? ' is-mobile-only' : ''}`} aria-hidden="true" />}
-            <button ref={id === 'select' ? selectToolRef : undefined} className={`tool-button${!command && activeTool === id ? ' is-active' : ''}`} type="button" aria-label={`${label} (${shortcut})`} aria-pressed={command ? undefined : activeTool === id} title={`${label} · ${shortcut}`} disabled={camera.locked && (id === 'pan' || id === 'frame')} onClick={() => command ? onFitPage() : onActivateTool(id)}>
+            <button ref={id === 'select' ? selectToolRef : undefined} className={`tool-button${activeTool === id ? ' is-active' : ''}`} type="button" aria-label={`${label} (${shortcut})`} aria-pressed={activeTool === id} title={`${label} · ${shortcut}`} onClick={() => onActivateTool(id)}>
               <Icon size={17} strokeWidth={1.8} />
               <span className="tool-label" aria-hidden="true">{mobileLabel}</span>
             </button>
           </div>
         ))}
+        <div ref={moreRef} className="tool-slot tool-more">
+          <span className="tool-separator" aria-hidden="true" />
+          <button ref={moreButtonRef} className={`tool-button${activeTool === 'pan' ? ' is-active' : ''}`} type="button" aria-label="More map tools" aria-expanded={isMoreOpen} aria-haspopup="menu" title="More map tools" onClick={() => setIsMoreOpen((current) => !current)}>
+            <Ellipsis size={18} strokeWidth={1.8} />
+            <span className="tool-label" aria-hidden="true">More</span>
+          </button>
+          {isMoreOpen && <div ref={moreMenuRef} className="tool-more-menu" role="menu" aria-label="More map tools">
+            <button type="button" role="menuitemradio" aria-checked={activeTool === 'pan'} aria-disabled={camera.locked} onClick={() => { if (camera.locked) return; onActivateTool('pan'); setIsMoreOpen(false); moreButtonRef.current?.focus(); }}><Hand size={16} />Pan <kbd>H</kbd></button>
+            <button type="button" role="menuitem" aria-disabled={camera.locked} onClick={() => { if (camera.locked) return; onFitPage(); setIsMoreOpen(false); moreButtonRef.current?.focus(); }}><Frame size={16} />Fit page <kbd>⇧1</kbd></button>
+          </div>}
+        </div>
       </nav>
       <SelectedShapeEditControls {...selectedShape} isActive={activeTool === 'select'} />
       {activeTool === 'route' && <RouteDrawingPanel {...routePanelProps} />}

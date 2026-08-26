@@ -266,7 +266,8 @@ describe('straight route authoring', () => {
 
     await user.click(screen.getByRole('button', { name: 'Route (R)' }));
     await user.click(screen.getByRole('button', { name: 'Map route point 1' }));
-    await user.click(screen.getByRole('button', { name: 'Pan (H)' }));
+    await user.click(screen.getByRole('button', { name: 'More map tools' }));
+    await user.click(screen.getByRole('menuitemradio', { name: /Pan/ }));
     await user.click(screen.getByRole('button', { name: 'Route (R)' }));
 
     expect(screen.getByRole('status', { name: 'Route drawing status' })).toHaveTextContent('Click the map to add route points');

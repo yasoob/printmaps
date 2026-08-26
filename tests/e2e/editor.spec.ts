@@ -117,7 +117,8 @@ test('desktop commands, orientation, reorder, and overflow menu work in a real b
   await expect(page.getByRole('textbox', { name: 'Pitch' })).toHaveValue('40');
 
   await expect(page.locator('[data-fit-request="0"]')).toBeVisible();
-  await page.getByRole('button', { name: 'Fit page (Shift+1)' }).click();
+  await page.getByRole('button', { name: 'More map tools' }).click();
+  await page.getByRole('menuitem', { name: /Fit page/ }).click();
   await expect(page.locator('[data-fit-request="1"][data-camera-fit-request="1"]')).toBeVisible();
 
   const routeHandle = page.getByRole('button', { name: 'Reorder Route 01' });
@@ -164,8 +165,9 @@ test('browser location centers the map and map-area lock gates movement commands
   const lock = page.getByRole('switch', { name: 'Lock map area' });
   await lock.check();
   await expect(map).toHaveAttribute('data-map-area-locked', 'true');
-  await expect(page.getByRole('button', { name: 'Pan (H)' })).toBeDisabled();
-  await expect(page.getByRole('button', { name: 'Fit page (Shift+1)' })).toBeDisabled();
+  await page.getByRole('button', { name: 'More map tools' }).click();
+  await expect(page.getByRole('menuitemradio', { name: /Pan/ })).toHaveAttribute('aria-disabled', 'true');
+  await expect(page.getByRole('menuitem', { name: /Fit page/ })).toHaveAttribute('aria-disabled', 'true');
   await expect(page.getByRole('button', { name: 'Use my location' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Zoom in' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Zoom out' })).toBeDisabled();

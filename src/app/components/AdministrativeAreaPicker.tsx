@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useReducer, useState } from 'react';
 import {
   ADMINISTRATIVE_AREAS,
   VIENNA_DISTRICT_LICENSE_URL,
@@ -14,6 +14,7 @@ import {
   type GeneratedAdministrativeIndex,
 } from '../../domain/generatedAdministrativeCatalogue';
 import { Checkbox } from './UiControls';
+import { INITIAL_REGION_PICKER_STATE, reduceRegionPicker } from './regionPickerState';
 
 type AdministrativeAreaPickerProps = Readonly<{
   onAdd: (area: AdministrativeArea) => void;
@@ -111,27 +112,19 @@ function CountryAreaPicker({ onAdd }: Pick<AdministrativeAreaPickerProps, 'onAdd
 }
 
 function RegionAreaPicker({ onMerge }: Pick<AdministrativeAreaPickerProps, 'onMerge'>) {
-  const [countryCode, setCountryCode] = useState<AdministrativeCountryCode>('AUT');
-  const [query, setQuery] = useState('');
-  const [selectedIds, setSelectedIds] = useState<AdministrativeAreaId[]>([]);
-  const [error, setError] = useState('');
-  const [catalogue, setCatalogue] = useState<GeneratedAdministrativeIndex | null>(null);
-  const [isCatalogueUnavailable, setIsCatalogueUnavailable] = useState(false);
-  const [loaded, setLoaded] = useState<{ countryCode: string; regions: readonly AdministrativeArea[] } | null>(null);
-  const [loadStatus, setLoadStatus] = useState<CatalogueLoadStatus>({
-    text: 'Loading worldwide region catalogue…',
-  });
+  const [state, dispatch] = useReducer(reduceRegionPicker, INITIAL_REGION_PICKER_STATE);
+  const { catalogue, countryCode, error, isCatalogueUnavailable, loaded, loadStatus, query, selectedIds } = state;
   const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
 
   useEffect(() => {
     const controller = new AbortController();
     void loadGeneratedAdministrativeIndex(controller.signal).then((index) => {
-      if (!controller.signal.aborted) setCatalogue(index);
+      if (!controller.signal.aborted) dispatch({ type: 'catalogue-loaded', catalogue: index });
     }).catch((loadError: unknown) => {
       if (controller.signal.aborted) return;
-      setIsCatalogueUnavailable(true);
-      setLoadStatus({
-        text: `Worldwide catalogue unavailable. Using bundled regions. ${loadError instanceof Error ? loadError.message : ''}`.trim(),
+      dispatch({
+        type: 'catalogue-unavailable',
+        message: `Worldwide catalogue unavailable. Using bundled regions. ${loadError instanceof Error ? loadError.message : ''}`.trim(),
       });
     });
     return () => controller.abort();
@@ -144,16 +137,18 @@ function RegionAreaPicker({ onMerge }: Pick<AdministrativeAreaPickerProps, 'onMe
     const controller = new AbortController();
     void loadGeneratedAdministrativeShard(country, catalogue.sourceVersion, controller.signal).then((shard) => {
       if (controller.signal.aborted) return;
-      setLoaded({ countryCode, regions: shard.regions });
-      setLoadStatus({
+      dispatch({
+        type: 'shard-loaded',
         countryCode,
-        text: `${shard.regions.length} ${country.name} ${shard.regions.length === 1 ? 'region' : 'regions'} loaded.`,
+        regions: shard.regions,
+        message: `${shard.regions.length} ${country.name} ${shard.regions.length === 1 ? 'region' : 'regions'} loaded.`,
       });
     }).catch((loadError: unknown) => {
       if (!controller.signal.aborted) {
-        setLoadStatus({
+        dispatch({
+          type: 'shard-unavailable',
           countryCode,
-          text: `${country.name} boundaries unavailable. ${loadError instanceof Error ? loadError.message : 'Try again.'}`,
+          message: `${country.name} boundaries unavailable. ${loadError instanceof Error ? loadError.message : 'Try again.'}`,
         });
       }
     });
@@ -177,23 +172,18 @@ function RegionAreaPicker({ onMerge }: Pick<AdministrativeAreaPickerProps, 'onMe
       <label>Country <select aria-label="Region country" value={countryCode} onChange={(event) => {
         const nextCountryCode = event.target.value;
         const nextCountry = countryOptions.find(({ id }) => id === nextCountryCode);
-        setCountryCode(nextCountryCode);
-        setLoaded(null);
-        setLoadStatus({
+        dispatch({
+          type: 'country-changed',
           countryCode: nextCountryCode,
-          text: `Loading ${nextCountry?.name ?? nextCountryCode} boundaries…`,
+          countryName: nextCountry?.name ?? nextCountryCode,
         });
-        setQuery('');
-        setSelectedIds([]);
-        setError('');
       }}>{countryOptions.map((country) => <option key={country.id} value={country.id}>{country.name}</option>)}</select></label>
-      <label className="administrative-filter">Search <input type="search" aria-label={`Filter ${selectedCountryName} regions`} value={query} onChange={(event) => setQuery(event.currentTarget.value)} /></label>
+      <label className="administrative-filter">Search <input type="search" aria-label={`Filter ${selectedCountryName} regions`} value={query} onChange={(event) => dispatch({ type: 'query-changed', query: event.currentTarget.value })} /></label>
       <fieldset className="administrative-region-options" aria-busy={displayedLoadStatus.startsWith('Loading')}>
         <legend>{selectedCountryName} regions</legend>
         {filteredAreas.map((area) => (
           <Checkbox key={area.id} isChecked={selectedIdSet.has(area.id)} label={area.name} onCheckedChange={(isChecked) => {
-            setError('');
-            setSelectedIds((current) => isChecked ? [...current, area.id] : current.filter((candidate) => candidate !== area.id));
+            dispatch({ type: 'selection-changed', id: area.id, isChecked });
           }} />
         ))}
       </fieldset>
@@ -202,7 +192,7 @@ function RegionAreaPicker({ onMerge }: Pick<AdministrativeAreaPickerProps, 'onMe
       <RegionCoverage catalogue={catalogue} regionCount={countryOptions.length} />
       <span className="authoring-source">{selectedCountryName} · Natural Earth</span>
       <button type="button" disabled={selectedAreas.length === 0} onClick={() => {
-        if (!onMerge(selectedAreas)) setError('Choose connected single-part regions, or add multi-part regions separately.');
+        if (!onMerge(selectedAreas)) dispatch({ type: 'merge-failed', message: 'Choose connected single-part regions, or add multi-part regions separately.' });
       }}>{selectedIds.length > 1 ? `Merge ${selectedIds.length} selected areas` : 'Add selected area'}</button>
       {error && <span className="administrative-region-error" role="alert" aria-label="Administrative area status">{error}</span>}
     </>

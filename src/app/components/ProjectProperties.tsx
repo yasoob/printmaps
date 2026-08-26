@@ -193,7 +193,7 @@ export function ProjectProperties({
         </div>
         <PropertyRow label="Orientation"><div className="segmented"><button className={page.orientation === 'landscape' ? 'is-active' : undefined} type="button" aria-pressed={page.orientation === 'landscape'} onClick={() => onOrientationChange('landscape')}>Landscape</button><button className={page.orientation === 'portrait' ? 'is-active' : undefined} type="button" aria-pressed={page.orientation === 'portrait'} onClick={() => onOrientationChange('portrait')}>Portrait</button></div></PropertyRow>
       </InspectorAccordion>
-      <InspectorAccordion isDefaultExpanded storageKey={`${PROJECT_DISCLOSURE_PREFIX}:map-style`} summary={`${MAP_STYLE_PRESET_LABELS[style.preset]} · ${MAP_LANGUAGE_LABELS[style.language]} · ${style.textScalePercent}%`} title="Map style">
+      <InspectorAccordion isDefaultExpanded={false} storageKey={`${PROJECT_DISCLOSURE_PREFIX}:map-style`} summary={`${MAP_STYLE_PRESET_LABELS[style.preset]} · ${MAP_LANGUAGE_LABELS[style.language]} · ${style.textScalePercent}%`} title="Map style">
         <MapStyleGallery selectedPreset={style.preset} onSelect={onStyleChange} />
         <PropertyRow label="Language"><select aria-label="Map language" value={style.language} onChange={(event) => onLanguageChange(event.target.value as MapLanguage)}><option value="local">Local names</option><option value="en">English</option><option value="de">German</option><option value="fr">French</option><option value="it">Italian</option><option value="es">Spanish</option><option value="zh">Chinese</option></select></PropertyRow>
         <PropertyRow label="Text scale"><TextScaleField key={`text-scale-${style.textScalePercent}`} value={style.textScalePercent} onCommit={onTextScaleChange} /></PropertyRow>

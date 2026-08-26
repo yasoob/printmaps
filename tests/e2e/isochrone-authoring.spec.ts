@@ -71,7 +71,7 @@ test('travel-time area becomes one durable editable and exportable project layer
   expect(isochroneRequests).toBe(1);
 
   const savePromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Save' }).click();
+  await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
   const save = await savePromise;
   const projectPath = testInfo.outputPath('cycling-isochrone.printmap.json');
   await save.saveAs(projectPath);

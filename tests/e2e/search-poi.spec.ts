@@ -31,7 +31,7 @@ test('searched address becomes one durable editable and exportable POI', async (
   await expect(mapReady.or(mapFallback)).toBeVisible({ timeout: 20_000 });
   test.skip(await mapFallback.isVisible(), 'The Chromium fixture has no WebGL 2 renderer.');
 
-  await page.getByRole('button', { name: 'Pin (P)' }).click();
+  await page.getByRole('button', { name: 'Place (P)' }).click();
   const search = page.getByRole('combobox', { name: 'Search places and addresses' });
   await search.fill('Café Central');
   await page.getByRole('button', { name: 'Search locations' }).click();
@@ -44,7 +44,7 @@ test('searched address becomes one durable editable and exportable POI', async (
   expect(searchRequests).toBe(1);
 
   const savePromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Save' }).click();
+  await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
   const save = await savePromise;
   const projectPath = test.info().outputPath('searched-poi.printmap.json');
   await save.saveAs(projectPath);

@@ -68,7 +68,7 @@ test('autosaves to IndexedDB and requires explicit recover or discard choices', 
   expect(await page.evaluate(() => document.body.scrollWidth)).toBeLessThanOrEqual(390);
   await page.getByRole('button', { name: 'Discard draft' }).click();
   await expect(dialog).not.toBeVisible();
-  await expect(page.getByRole('button', { name: 'Open', exact: true })).toBeFocused({ timeout: 15_000 });
+  await expect(page.getByRole('button', { name: 'Project' })).toBeFocused({ timeout: 15_000 });
   await page.getByRole('button', { name: 'Open properties' }).click();
   await expect(page.getByRole('button', { name: 'Landscape' })).toHaveAttribute('aria-pressed', 'true');
   await page.keyboard.press('Escape');

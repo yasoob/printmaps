@@ -24,22 +24,22 @@ describe('studio header project actions', () => {
     expect(screen.getByRole('button', { name: 'Vienna field guide' })).toBeInTheDocument();
   });
 
-  it('keeps direct Open, Save, Import, and Export actions without Share', async () => {
+  it('keeps file commands under Project and leaves Export as the primary action', async () => {
     const user = userEvent.setup();
     render(<App />);
 
-    expect(screen.getByRole('button', { name: 'Open' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
-    const importButton = screen.getByRole('button', { name: 'Import' });
-    expect(importButton).toBeInTheDocument();
-    await user.tab();
-    while (document.activeElement !== importButton) await user.tab();
-    expect(importButton).toHaveFocus();
+    expect(screen.queryByRole('button', { name: 'Open' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Import' })).not.toBeInTheDocument();
+    const project = screen.getByRole('button', { name: 'Project' });
+    await user.click(project);
+    expect(screen.getByRole('menuitem', { name: 'Open project' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Download project' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Import map data' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Export' })).toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: 'Search places and addresses' })).toBeInTheDocument();
     expect(screen.getByLabelText(/^Map scale:/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '1:20,000' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Share/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Project file menu' })).not.toBeInTheDocument();
   });
 });

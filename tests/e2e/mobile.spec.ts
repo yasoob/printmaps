@@ -252,14 +252,28 @@ test('mobile Export action gives its icon balanced spacing', async ({ page }) =>
   await expectBalancedHorizontalSpacing(button, button.locator('svg'), button.locator('span'));
 });
 
-test('mobile map palette names tools and separates the view command', async ({ page }) => {
+test('mobile map palette prioritizes creation tools and moves navigation commands under More', async ({ page }) => {
+  test.setTimeout(60_000);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
 
   const toolbar = page.getByRole('navigation', { name: 'Map tools' });
-  await expect(toolbar.locator('.tool-label')).toHaveText(['Select', 'Pan', 'Route', 'Pin', 'Area', 'Fit']);
-  await expect(toolbar.locator('.tool-separator')).toHaveCount(2);
+  await expect(toolbar).toBeVisible({ timeout: 20_000 });
+  await expect(toolbar.locator('.tool-label')).toHaveText(['Select', 'Place', 'Route', 'Area', 'More']);
+  await expect(toolbar.locator('.tool-separator')).toHaveCount(1);
   expect(await toolbar.locator('.tool-label').first().evaluate((element) => Number(getComputedStyle(element).fontSize.replace('px', '')))).toBeGreaterThanOrEqual(11);
+
+  const more = toolbar.getByRole('button', { name: 'More map tools' });
+  await more.click();
+  await expect(more).toHaveAttribute('aria-expanded', 'true');
+  const moreMenu = page.getByRole('menu', { name: 'More map tools' });
+  await expect(moreMenu).toBeVisible();
+  await expect(moreMenu).toContainText('Pan');
+  await expect(moreMenu).toContainText('Fit page');
+  await expectNoOverlap(moreMenu, page.locator('.map-scale'));
+  await expectNoOverlap(moreMenu, page.locator('.maplibregl-ctrl-bottom-left'));
+  await expectNoOverlap(moreMenu, page.locator('.maplibregl-ctrl-bottom-right'));
+  await more.click();
 
   await toolbar.getByRole('button', { name: 'Route (R)' }).click();
   const routePath = page.getByRole('radiogroup', { name: 'Route path' });
@@ -284,7 +298,7 @@ test('mobile map palette names tools and separates the view command', async ({ p
 
 
 test('mobile authoring panels and native map controls stay usable and disjoint', async ({ page }) => {
-  for (const tool of ['Pin (P)', 'Area (S)']) {
+  for (const tool of ['Place (P)', 'Area (S)']) {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/');
     await page.getByRole('button', { name: tool }).click();
@@ -331,7 +345,7 @@ test('mobile navigation buttons use full touch targets', async ({ page }) => {
     const panelButtons = page.locator('.mobile-panel-actions button');
     const toolButtons = page.locator('.tool-palette .tool-button');
     await expect(panelButtons).toHaveCount(2);
-    await expect(toolButtons).toHaveCount(6);
+    await expect(toolButtons).toHaveCount(5);
     await expectFullTouchTargets(panelButtons);
     await expectFullTouchTargets(toolButtons);
     if (width === 390) {
