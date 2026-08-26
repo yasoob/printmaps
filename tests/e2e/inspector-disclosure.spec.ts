@@ -7,7 +7,9 @@ const disclosureKeys = [
   'map-details',
   'provider-services',
   'technical-export',
-].map((section) => `print-map-studio:inspector:project:${section}`);
+].map((section) => `print-map-studio:inspector:project:${section}`).concat(
+  'print-map-studio:inspector:layer:route-advanced',
+);
 
 const isHeadlessWebGlDiagnostic = (message: string) => message.includes('GPU stall due to ReadPixels');
 
@@ -70,6 +72,15 @@ test('project inspector progressively discloses advanced controls on desktop and
   await expect(details).toContainText('6 of 7 visible');
   await page.getByRole('button', { name: 'Select Route 01' }).click();
   await expect(page.getByText('Layer properties')).toHaveCount(0);
+  const advanced = page.getByRole('button', { name: /Advanced/ });
+  await expect(advanced).toHaveAttribute('aria-expanded', 'false');
+  await expect(advanced).toContainText('Vertices · Elevation profile');
+  await expect(page.getByRole('combobox', { name: 'Route vertex' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Generate elevation profile' })).toHaveCount(0);
+  if (testInfo.project.name === 'chromium') await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/route-advanced-disclosure-20260826.png' });
+  await advanced.click();
+  await expect(page.getByRole('combobox', { name: 'Route vertex' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Generate elevation profile' })).toBeVisible();
   expect(await page.locator('.property-section').evaluateAll((elements) => elements.map((element) => getComputedStyle(element).borderTopWidth))).toEqual(expect.arrayContaining(['0px']));
   expect(await page.locator('.property-section').evaluateAll((elements) => elements.every((element) => getComputedStyle(element).borderTopWidth === '0px'))).toBe(true);
   const layerMenu = page.getByRole('button', { name: 'Layer menu' });
@@ -85,7 +96,6 @@ test('project inspector progressively discloses advanced controls on desktop and
   await expect(layerLockSwitch).toBeChecked();
   await layerLockSwitch.uncheck();
   await expect(page.getByRole('checkbox', { name: 'Show travel-mode marker' })).toHaveClass(/studio-checkbox-native/);
-  if (testInfo.project.name === 'chromium') await page.screenshot({ path: 'docs/screenshots/latest-desktop.png' });
   await page.locator('.maplibregl-canvas').click({ position: { x: 80, y: 80 } });
   const restoredCamera = page.getByRole('button', { name: /Camera & location/ });
   await expect(restoredCamera).toHaveAttribute('aria-expanded', 'true');

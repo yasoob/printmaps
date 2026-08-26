@@ -109,6 +109,7 @@ test('a selected straight route drags a Terra Draw midpoint as one undoable edit
 
   const route = page.getByRole('button', { name: 'Select Route 01' });
   await route.click();
+  await page.getByRole('button', { name: /Advanced/ }).click();
   const vertexSelect = page.getByRole('combobox', { name: 'Route vertex' });
   await expect(vertexSelect.locator('option')).toHaveCount(4);
   const canvasBox = await page.locator('.maplibregl-canvas').boundingBox();

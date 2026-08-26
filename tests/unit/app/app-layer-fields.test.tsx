@@ -92,6 +92,7 @@ describe('editor layer fields', () => {
 describe('editor content appearance and POI geometry fields', () => {
   beforeEach(() => {
     exportMocks.exporter = null;
+    window.localStorage.removeItem('print-map-studio:inspector:layer:route-advanced');
   });
 
   it('commits route color and width as separate undoable appearance edits', async () => {
@@ -121,6 +122,7 @@ describe('editor content appearance and POI geometry fields', () => {
     render(<App />);
 
     await user.click(screen.getByRole('button', { name: 'Select Route 01' }));
+    await user.click(screen.getByRole('button', { name: /Advanced/ }));
     await user.selectOptions(screen.getByRole('combobox', { name: 'Route vertex' }), '1');
     const longitude = screen.getByRole('textbox', { name: 'Route vertex longitude' });
     const latitude = screen.getByRole('textbox', { name: 'Route vertex latitude' });
@@ -145,6 +147,7 @@ describe('editor content appearance and POI geometry fields', () => {
     render(<App />);
 
     await user.click(screen.getByRole('button', { name: 'Select Route 01' }));
+    await user.click(screen.getByRole('button', { name: /Advanced/ }));
     await user.selectOptions(screen.getByRole('combobox', { name: 'Route vertex' }), '1');
     const longitude = screen.getByRole('textbox', { name: 'Route vertex longitude' });
     const map = screen.getByTestId('map-canvas');
@@ -163,6 +166,7 @@ describe('editor content appearance and POI geometry fields', () => {
     render(<App />);
 
     await user.click(screen.getByRole('button', { name: 'Select Route 01' }));
+    await user.click(screen.getByRole('button', { name: /Advanced/ }));
     const vertex = screen.getByRole('combobox', { name: 'Route vertex' });
     await user.selectOptions(vertex, '1');
     await user.click(screen.getByRole('button', { name: 'Insert route vertex after selected' }));

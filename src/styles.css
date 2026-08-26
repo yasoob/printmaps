@@ -544,6 +544,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 .inspector-accordion-content { @apply px-4 pb-3; }
 .property-section { @apply px-4 pb-3 pt-3; border-top: 0; }
+.inspector-accordion-content > .property-section { padding-left: 0; padding-right: 0; }
 .property-section + .property-section { padding-top: 0.875rem; }
 .property-section h3 { @apply mb-2 mt-0 font-semibold; font-size: var(--studio-font-label); }
 .property-row {

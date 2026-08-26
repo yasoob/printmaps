@@ -250,6 +250,7 @@ test('route vertex coordinates update the live map, history, portable project, a
 
   await page.getByRole('button', { name: 'Select Route 01' }).click();
   const initialPath = await downloadRouteSvgPath(page, testInfo.outputPath('route-before.layered.svg'));
+  await page.getByRole('button', { name: /Advanced/ }).click();
   await page.getByRole('combobox', { name: 'Route vertex' }).selectOption('1');
   const longitude = page.getByRole('textbox', { name: 'Route vertex longitude' });
   const latitude = page.getByRole('textbox', { name: 'Route vertex latitude' });
@@ -298,6 +299,7 @@ test('route vertices insert, remove, and drag directly on the map as one history
   test.skip(await mapFallback.isVisible(), 'This browser fixture has no WebGL 2 renderer, so direct map editing cannot be exercised.');
 
   await page.getByRole('button', { name: 'Select Route 01' }).click();
+  await page.getByRole('button', { name: /Advanced/ }).click();
   const handles = page.getByRole('button', { name: /Drag route vertex/ });
   await expect(handles).toHaveCount(4);
   await page.getByRole('button', { name: 'Insert route vertex after selected' }).click();

@@ -58,13 +58,26 @@ function shapeWithHole(): ContentLayer {
 describe('layer appearance draft boundaries', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.localStorage.removeItem('print-map-studio:inspector:layer:route-advanced');
   });
 
-  it('offers an elevation-profile workflow for a route layer', () => {
+  it('keeps route vertices and elevation behind a collapsed Advanced section', async () => {
+    const user = userEvent.setup();
     render(<LayerProperties layer={route(4)} {...actions} />);
 
-    expect(screen.getByRole('button', { name: 'Generate elevation profile' })).toBeInTheDocument();
-    expect(screen.getByText('Copernicus DEM GLO-90 via Open-Meteo')).toBeInTheDocument();
+    const advanced = screen.getByRole('button', { name: /Advanced/ });
+    expect(advanced).toHaveAttribute('aria-expanded', 'false');
+    expect(advanced).toHaveTextContent('Vertices · Elevation profile');
+    expect(screen.queryByRole('combobox', { name: 'Route vertex' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Generate elevation profile' })).not.toBeInTheDocument();
+
+    await user.click(advanced);
+
+    expect(advanced).toHaveAttribute('aria-expanded', 'true');
+    expect(advanced).not.toHaveTextContent('Vertices · Elevation profile');
+    expect(screen.getByRole('combobox', { name: 'Route vertex' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Generate elevation profile' })).toBeVisible();
+    expect(screen.getByText('Copernicus DEM GLO-90 via Open-Meteo')).toBeVisible();
   });
 
   it('disables imported-data replacement for a locked layer and focuses the first available menu action', async () => {

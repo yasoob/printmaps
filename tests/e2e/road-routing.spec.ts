@@ -76,6 +76,7 @@ test('road route becomes editable canonical project geometry and exports offline
   await expect(page.getByText('9.2 km · 22 min · 2 waypoints')).toBeVisible();
   expect(directionRequests).toBe(1);
 
+  await page.getByRole('button', { name: /Advanced/ }).click();
   const firstLongitude = page.getByRole('textbox', { name: 'Route vertex longitude' });
   const originalLongitude = Number(await firstLongitude.inputValue());
   await firstLongitude.fill(String(originalLongitude + 0.001));

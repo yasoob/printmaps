@@ -12,7 +12,7 @@ import { ElevationProfilePanel } from './ElevationProfilePanel';
 import { LayerIdentityProperties } from './LayerIdentityProperties';
 import { MultiPartGeometryStatus } from './MultiPartGeometryStatus';
 import { PoiAppearanceControls } from './PoiAppearanceControls';
-import { PropertyRow, PropertySection } from './PropertyControls';
+import { InspectorAccordion, PropertyRow, PropertySection } from './PropertyControls';
 import { RouteVertexControls } from './RouteVertexControls';
 import { ShapeVertexControls } from './ShapeVertexControls';
 import { Checkbox, Switch } from './UiControls';
@@ -144,7 +144,12 @@ function RouteLayerProperties({
       </PropertySection>
       <DirectionsProvenanceSummary layer={layer} />
       {layer.geometry?.type === 'LineString' && (
-        <>
+        <InspectorAccordion
+          isDefaultExpanded={false}
+          storageKey="print-map-studio:inspector:layer:route-advanced"
+          summary="Vertices · Elevation profile"
+          title="Advanced"
+        >
           <PropertySection title="Vertices">
             <RouteVertexControls key={layer.id} coordinates={layer.geometry.coordinates} disabled={layer.locked || !layer.visible} onChange={onRouteVertexChange} onInsert={onRouteVertexInsert} onRemove={onRouteVertexRemove} />
           </PropertySection>
@@ -156,7 +161,7 @@ function RouteLayerProperties({
               routeColor={layer.appearance.color}
             />
           </PropertySection>
-        </>
+        </InspectorAccordion>
       )}
     </>
   );

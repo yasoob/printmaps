@@ -41,6 +41,7 @@ test('a selected route generates an attributed elevation profile with SVG, PNG, 
   await page.goto('/');
   await expect(page.locator('[data-map-ready="true"]').or(page.getByText('Map preview unavailable'))).toBeVisible({ timeout: 20_000 });
   await page.getByRole('button', { name: 'Select Route 01' }).click();
+  await page.getByRole('button', { name: /Advanced/ }).click();
   await page.getByRole('button', { name: 'Generate elevation profile' }).click();
 
   const chart = page.getByRole('img', { name: 'Route 01 elevation profile' });
