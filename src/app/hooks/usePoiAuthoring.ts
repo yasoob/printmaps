@@ -15,7 +15,7 @@ type UsePoiAuthoringOptions = {
   setActiveTool: Dispatch<SetStateAction<string>>;
   onAuthoringChange: (documentEpoch: number, isActive: boolean) => void;
   onCreatePoi: (coordinates: readonly [number, number]) => void;
-  onCreatePoiBatch: (entries: readonly PoiSpreadsheetEntry[]) => void;
+  onCreatePoiBatch: (entries: readonly PoiSpreadsheetEntry[], expectedDocumentEpoch?: number) => void;
   onCreateSearchPoi: (input: SearchPoiInput, expectedDocumentEpoch: number) => string | null;
 };
 
@@ -72,7 +72,7 @@ export function usePoiAuthoring(options: UsePoiAuthoringOptions) {
       finish();
     },
     submitSpreadsheet: (entries: readonly PoiSpreadsheetEntry[]) => {
-      onCreatePoiBatch(entries);
+      onCreatePoiBatch(entries, documentEpoch);
       finish();
     },
   };

@@ -3,6 +3,7 @@ import { useStore } from 'zustand';
 import type { ContentLayer, ProjectDocument } from '../domain/project';
 import type { PreviewPngExporter } from '../export/previewPng';
 import type { DirectionsProvider, SearchProvider } from '../services/mapbox/contracts';
+import { createMapboxSearchProvider } from '../services/mapbox/search';
 import { createIndexedDbAutosaveRepository, type AutosaveRepository } from '../storage/autosave';
 import {
   ProjectAutosaveDialogs,
@@ -26,6 +27,10 @@ type AppProps = {
   directionsProvider?: DirectionsProvider;
   searchProvider?: SearchProvider;
 };
+
+const defaultSearchProvider = createMapboxSearchProvider({
+  token: import.meta.env.VITE_MAPBOX_PUBLIC_ACCESS,
+});
 
 function visiblePreviewLayerId(layers: readonly ContentLayer[], previewedLayerId: string | null) {
   if (previewedLayerId === null) return null;
@@ -116,7 +121,7 @@ export function App({ autosaveRepository, directionsProvider, searchProvider }: 
           onLayerSelect={project.selectLayer} onCameraViewportChange={project.setCameraViewport} onRouteGeometryChange={project.replaceRouteGeometry}
           onLocate={mapLocation.locate}
           onShapeGeometryChange={project.setShapeGeometry}
-          directionsProvider={directionsProvider} searchProvider={searchProvider}
+          directionsProvider={directionsProvider} searchProvider={searchProvider ?? defaultSearchProvider}
           onCreateDirectionsRoute={project.createDirectionsRoute}
           onCreateAdministrativeArea={project.createAdministrativeArea}
           onCreateAdministrativeAreas={project.createAdministrativeAreas} onCreateIsochroneArea={project.createIsochroneArea}

@@ -1,12 +1,15 @@
 import type { RefObject } from 'react';
 import type { PoiSpreadsheetEntry } from '../../domain/poiSpreadsheet';
+import type { SearchProvider } from '../../services/mapbox/contracts';
 import { PoiSpreadsheetPanel } from './PoiSpreadsheetPanel';
 
 type PoiAuthoringControlsProps = {
   active: boolean;
+  documentEpoch: number;
   error?: string | null;
   spreadsheetOpen: boolean;
   spreadsheetTriggerRef: RefObject<HTMLButtonElement | null>;
+  searchProvider?: SearchProvider;
   onCancel: () => void;
   onCancelSpreadsheet: () => void;
   onOpenSpreadsheet: () => void;
@@ -14,10 +17,10 @@ type PoiAuthoringControlsProps = {
 };
 
 export function PoiAuthoringControls(props: PoiAuthoringControlsProps) {
-  const { active, error, onCancel, onCancelSpreadsheet, onOpenSpreadsheet, onSubmitSpreadsheet, spreadsheetOpen, spreadsheetTriggerRef } = props;
+  const { active, documentEpoch, error, onCancel, onCancelSpreadsheet, onOpenSpreadsheet, onSubmitSpreadsheet, searchProvider, spreadsheetOpen, spreadsheetTriggerRef } = props;
   if (!active) return null;
   if (spreadsheetOpen) {
-    return <PoiSpreadsheetPanel onCancel={onCancelSpreadsheet} onSubmit={onSubmitSpreadsheet} />;
+    return <PoiSpreadsheetPanel documentEpoch={documentEpoch} onCancel={onCancelSpreadsheet} onSubmit={onSubmitSpreadsheet} searchProvider={searchProvider} />;
   }
   return (
     <div className="map-authoring-panel">

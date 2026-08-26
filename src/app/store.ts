@@ -42,7 +42,7 @@ export type ProjectState = {
     expectedDocumentEpoch: number,
   ) => string | null;
   createPoi: (coordinates: readonly [number, number]) => void;
-  createPoiBatch: (entries: readonly PoiSpreadsheetEntry[]) => void;
+  createPoiBatch: (entries: readonly PoiSpreadsheetEntry[], expectedDocumentEpoch?: number) => void;
   createSearchPoi: (input: SearchPoiInput, expectedDocumentEpoch: number) => string | null;
   createRoute: (
     coordinates: readonly (readonly [number, number])[],

@@ -93,7 +93,7 @@ function searchUrl(request: SearchRequest): URL {
   url.searchParams.set('q', request.query.trim().slice(0, MAX_QUERY_LENGTH));
   const boundedLimit = Math.min(MAX_RESULTS, Math.max(1, request.limit ?? MAX_RESULTS));
   url.searchParams.set('limit', String(boundedLimit));
-  url.searchParams.set('autocomplete', 'true');
+  url.searchParams.set('autocomplete', request.autocomplete === false ? 'false' : 'true');
   url.searchParams.set('types', 'address,street,place,locality,neighborhood,postcode');
   if (request.proximity && isValidPosition(request.proximity[0], request.proximity[1])) {
     url.searchParams.set('proximity', request.proximity.join(','));

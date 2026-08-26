@@ -18,6 +18,15 @@ function validSearchInput(input: SearchPoiInput) {
     && !/[\p{Cc}\p{Cf}]/u.test(input.providerFeatureId);
 }
 
+function isValidProviderFeatureId(value: string | undefined) {
+  return value === undefined || (
+    value.trim() === value
+    && value.length > 0
+    && [...value].length <= MAX_PROVIDER_FEATURE_ID_CHARACTERS
+    && !/[\p{Cc}\p{Cf}]/u.test(value)
+  );
+}
+
 function nextPoiIdentity(usedIds: Set<string>): { id: string; number: number } {
   let number = 0;
   let id: string;
@@ -90,14 +99,16 @@ export function createPoiStructureActions(set: ProjectSet): PoiStructureActions 
       });
       return createdId;
     },
-    createPoiBatch: (entries) => set((state) => {
+    createPoiBatch: (entries, expectedDocumentEpoch) => set((state) => {
       if (
-        entries.length === 0
+        (expectedDocumentEpoch !== undefined && state.documentEpoch !== expectedDocumentEpoch)
+        || entries.length === 0
         || entries.length > MAX_POI_SPREADSHEET_ROWS
         || entries.some((entry) => (
           !entry.name
           || !isPoiLabelValid(entry.name)
           || !isValidPosition(entry.coordinates[0], entry.coordinates[1])
+          || !isValidProviderFeatureId(entry.providerFeatureId)
         ))
       ) return state;
 
@@ -106,6 +117,11 @@ export function createPoiStructureActions(set: ProjectSet): PoiStructureActions 
       const usedIds = new Set(state.document.layers.map((layer) => layer.id));
       const createdPois = entries.map((entry) => {
         const identity = nextPoiIdentity(usedIds);
+        const provenance = entry.providerFeatureId ? {
+          provider: 'mapbox' as const,
+          service: 'geocoding-v6' as const,
+          providerFeatureId: entry.providerFeatureId,
+        } : undefined;
         return {
           id: identity.id,
           name: entry.name,
@@ -118,6 +134,7 @@ export function createPoiStructureActions(set: ProjectSet): PoiStructureActions 
             type: 'Point' as const,
             coordinates: [...entry.coordinates] as [number, number],
           },
+          ...(provenance && { provenance }),
         };
       });
       const layers = [...state.document.layers];

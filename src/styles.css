@@ -446,6 +446,10 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .poi-spreadsheet-heading { @apply flex items-baseline justify-between gap-3; }
 .poi-spreadsheet-heading strong { color: var(--studio-text); font-size: var(--studio-font-label); }
 .poi-spreadsheet-heading span { color: var(--studio-text-subtle); font-size: var(--studio-font-meta); }
+.poi-spreadsheet-mode { @apply m-0 flex items-center gap-3 border-0 p-0; }
+.poi-spreadsheet-mode legend { @apply sr-only; }
+.poi-spreadsheet-mode label { @apply inline-flex h-8 items-center gap-1.5; color: var(--studio-text); }
+.poi-spreadsheet-mode input { accent-color: var(--studio-text-strong); }
 .poi-spreadsheet-panel > label { @apply font-medium; color: var(--studio-text); font-size: var(--studio-font-meta); }
 .poi-spreadsheet-panel textarea {
   @apply w-full resize-y px-2 py-1.5 outline-none;
@@ -462,6 +466,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .poi-spreadsheet-panel textarea:focus { border-color: var(--studio-accent); }
 .poi-spreadsheet-panel textarea[aria-invalid="true"] { border-color: var(--studio-danger); }
 .poi-spreadsheet-panel > p { @apply m-0; color: var(--studio-danger); font-size: var(--studio-font-meta); }
+.poi-spreadsheet-panel > p[role="status"] { color: var(--studio-text-subtle); }
 .poi-spreadsheet-actions { @apply flex justify-end gap-2; }
 .poi-spreadsheet-actions button { @apply h-7 px-2.5; border-radius: var(--studio-radius-md); }
 .poi-spreadsheet-actions button:not(.primary-button):hover { background: var(--studio-field); }
@@ -1294,6 +1299,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
     max-height: calc(100dvh - 8rem - var(--studio-safe-top) - var(--studio-safe-bottom));
   }
   .poi-spreadsheet-heading { @apply items-start; }
+  .poi-spreadsheet-mode label { min-height: 2.75rem; }
   .poi-spreadsheet-panel textarea { min-height: 5.5rem; max-height: 22dvh; }
   .maplibregl-ctrl-bottom-left,
   .maplibregl-ctrl-bottom-right,

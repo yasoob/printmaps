@@ -8,6 +8,7 @@ export interface ProviderRequestControl {
 }
 
 export interface SearchRequest extends ProviderRequestControl {
+  readonly autocomplete?: boolean;
   readonly query: string;
   readonly limit?: number;
   readonly proximity?: ProviderCoordinate;

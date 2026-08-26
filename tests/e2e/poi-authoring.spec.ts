@@ -68,6 +68,68 @@ test('POI placement can be cancelled, undone, redone, and exported as vector con
   expect(consoleProblems).toEqual([]);
 });
 
+test('pasted address rows become one durable geocoded POI batch', async ({ page }, testInfo) => {
+  test.setTimeout(60_000);
+  const consoleProblems: string[] = [];
+  const queries: string[] = [];
+  page.on('pageerror', (error) => { consoleProblems.push(error.message); });
+  page.on('console', (message) => {
+    if ((message.type() === 'error' || message.type() === 'warning') && !isHeadlessWebGlDiagnostic(message.text())) {
+      consoleProblems.push(message.text());
+    }
+  });
+  await page.route('https://api.mapbox.com/search/geocode/v6/forward**', async (route) => {
+    const query = new URL(route.request().url()).searchParams.get('q') ?? '';
+    queries.push(query);
+    const isCafe = query.startsWith('Herrengasse');
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        type: 'FeatureCollection',
+        features: [{
+          id: isCafe ? 'address.cafe' : 'address.museum',
+          geometry: { type: 'Point', coordinates: isCafe ? [16.365, 48.2105] : [16.3599, 48.2034] },
+          properties: { full_address: isCafe ? 'Café Central, Vienna' : 'MuseumsQuartier, Vienna' },
+        }],
+      }),
+    });
+  });
+
+  await page.goto('/');
+  await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
+  await page.getByRole('button', { name: 'Pin (P)' }).click();
+  await page.getByRole('button', { name: 'Paste POI list' }).click();
+  await page.getByRole('radio', { name: 'Addresses' }).click();
+  await page.getByRole('textbox', { name: 'POI spreadsheet rows' }).fill(
+    'Name\tAddress\nCafé Central\tHerrengasse 14, Vienna\nMuseum Quarter\tMuseumsplatz 1, Vienna',
+  );
+  await page.getByRole('button', { name: 'Find and add POIs' }).click();
+
+  const firstPoi = page.getByRole('button', { name: 'Select Café Central' });
+  const secondPoi = page.getByRole('button', { name: 'Select Museum Quarter' });
+  await expect(firstPoi).toHaveAttribute('aria-current', 'true');
+  await expect(secondPoi).toBeVisible();
+  expect(queries).toEqual(['Herrengasse 14, Vienna', 'Museumsplatz 1, Vienna']);
+
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  const download = await downloadPromise;
+  const projectPath = testInfo.outputPath('geocoded-pois.printmap.json');
+  await download.saveAs(projectPath);
+  const project = JSON.parse(await readFile(projectPath, 'utf8'));
+  const pois = project.layers.filter(({ id }: { id: string }) => ['poi-01', 'poi-02'].includes(id));
+  expect(pois).toMatchObject([
+    { name: 'Café Central', geometry: { coordinates: [16.365, 48.2105] }, provenance: { provider: 'mapbox', service: 'geocoding-v6', providerFeatureId: 'address.cafe' } },
+    { name: 'Museum Quarter', geometry: { coordinates: [16.3599, 48.2034] }, provenance: { provider: 'mapbox', service: 'geocoding-v6', providerFeatureId: 'address.museum' } },
+  ]);
+
+  await page.screenshot({ path: 'docs/screenshots/batch-address-geocoding-20260826.png' });
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(firstPoi).toHaveCount(0);
+  await expect(secondPoi).toHaveCount(0);
+  expect(consoleProblems).toEqual([]);
+});
+
 test('pasted POI rows create one responsive undoable batch', async ({ page }) => {
   const consoleProblems: string[] = [];
   page.on('pageerror', (error) => { consoleProblems.push(error.message); });

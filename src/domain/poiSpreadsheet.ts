@@ -4,10 +4,18 @@ import { isPoiLabelValid, MAX_POI_LABEL_CHARACTERS } from './poiMarkers';
 export type PoiSpreadsheetEntry = {
   name: string;
   coordinates: [number, number];
+  providerFeatureId?: string;
+};
+
+export type PoiAddressSpreadsheetEntry = {
+  name: string;
+  address: string;
 };
 
 export const MAX_POI_SPREADSHEET_ROWS = 300;
+export const MAX_POI_ADDRESS_ROWS = 25;
 export const MAX_POI_SPREADSHEET_CHARACTERS = 64_000;
+const MAX_POI_ADDRESS_CHARACTERS = 160;
 const DECIMAL_NUMBER = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/iu;
 
 function coordinateValue(value: string, bounds: readonly [number, number], label: string, row: number): number {
@@ -50,5 +58,33 @@ export function parsePoiSpreadsheet(value: string): PoiSpreadsheetEntry[] {
         coordinateValue(latitude, [-MAX_MERCATOR_LATITUDE, MAX_MERCATOR_LATITUDE], 'latitude', rowNumber),
       ],
     };
+  });
+}
+
+export function parsePoiAddressSpreadsheet(value: string): PoiAddressSpreadsheetEntry[] {
+  if (value.length > MAX_POI_SPREADSHEET_CHARACTERS) {
+    throw new Error(`Paste ${MAX_POI_SPREADSHEET_CHARACTERS.toLocaleString('en-US')} characters or fewer.`);
+  }
+  const rows = value.split(/\r?\n/u).filter((row) => row.trim());
+  const dataRows = rows[0]?.toLowerCase() === 'name\taddress' ? rows.slice(1) : rows;
+  if (dataRows.length === 0) throw new Error('Paste at least one POI row.');
+  if (dataRows.length > MAX_POI_ADDRESS_ROWS) {
+    throw new Error(`Address lookup supports ${MAX_POI_ADDRESS_ROWS} rows or fewer at a time.`);
+  }
+  return dataRows.map((row, index) => {
+    const rowNumber = index + 1;
+    const columns = row.split('\t');
+    if (columns.length !== 2) {
+      throw new Error(`Spreadsheet row ${rowNumber} must contain Name and Address columns.`);
+    }
+    const name = columns[0].trim();
+    if (!name || !isPoiLabelValid(name)) {
+      throw new Error(`Spreadsheet row ${rowNumber} name must be 1–${MAX_POI_LABEL_CHARACTERS} characters without control characters.`);
+    }
+    const address = columns[1].trim();
+    if (!address || [...address].length > MAX_POI_ADDRESS_CHARACTERS || /[\p{Cc}\p{Cf}]/u.test(address)) {
+      throw new Error(`Spreadsheet row ${rowNumber} address must be 1–${MAX_POI_ADDRESS_CHARACTERS} characters without control characters.`);
+    }
+    return { name, address };
   });
 }
