@@ -5,6 +5,16 @@ import { createInitialProjectDocument } from '../../../src/domain/project';
 
 vi.mock('../../../src/map/MapCanvas', async () => import('./MapCanvasMock'));
 
+it('keeps Area source choices concise without weakening their accessible names', async () => {
+  const user = userEvent.setup();
+  render(<App autosaveRepository={null} />);
+  await user.click(screen.getByRole('button', { name: 'Area (S)' }));
+
+  expect(screen.getByRole('tab', { name: 'Find administrative area' })).toHaveTextContent('Boundaries');
+  expect(screen.getByRole('tab', { name: 'Draw custom area' })).toHaveTextContent('Draw');
+  expect(screen.getByRole('tab', { name: 'Travel time' })).toHaveTextContent('Travel time');
+});
+
 it('uses roving arrow, Home, and End selection in the Shape tablist', async () => {
   const user = userEvent.setup();
   render(<App autosaveRepository={null} />);

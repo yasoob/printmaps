@@ -404,7 +404,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   border-radius: var(--studio-radius-md);
   background: var(--studio-surface);
 }
-.shape-mode-tabs > button { @apply flex min-h-10 items-center gap-1.5 px-2.5 py-1.5 text-xs leading-tight; }
+.shape-mode-tabs > button { @apply flex min-h-10 items-center gap-1.5 whitespace-nowrap px-2.5 py-1.5 text-xs leading-tight; }
 .shape-mode-tabs > button + button { border-left: var(--studio-border-width) solid var(--studio-line); }
 .shape-mode-tabs > button[aria-selected="true"] { background: var(--studio-text); color: var(--studio-on-dark); }
 .isochrone-panel { @apply flex flex-wrap items-center justify-center gap-2; }

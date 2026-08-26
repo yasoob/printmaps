@@ -298,6 +298,19 @@ test('mobile authoring panels and native map controls stay usable and disjoint',
     await expectNoOverlap(panel, page.locator('.maplibregl-ctrl-bottom-left'));
     await expectNoOverlap(panel, page.locator('.maplibregl-ctrl-bottom-right'));
     await expectNoOverlap(page.locator('.map-scale'), page.locator('.maplibregl-ctrl-bottom-right'));
+    if (tool === 'Area (S)') {
+      const tabs = page.getByRole('tablist', { name: 'Shape source' });
+      await expect(tabs.getByRole('tab', { name: 'Find administrative area' })).toHaveText('Boundaries');
+      await expect(tabs.getByRole('tab', { name: 'Draw custom area' })).toHaveText('Draw');
+      await expect(tabs.getByRole('tab', { name: 'Travel time' })).toHaveText('Travel time');
+      const sourceTabs = await tabs.getByRole('tab').all();
+      for (const tab of sourceTabs) {
+        const box = await tab.boundingBox();
+        expect(box).not.toBeNull();
+        expect(box!.height).toBeLessThanOrEqual(44);
+      }
+      await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/mobile-area-source-tabs-20260826.png' });
+    }
   }
 });
 

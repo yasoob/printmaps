@@ -31,11 +31,11 @@ function ShapeModeTabs({ mode, onChange }: Readonly<{
 }>) {
   return (
     <div className="shape-mode-tabs" role="tablist" aria-label="Shape source" onKeyDown={handleShapeModeKeyDown}>
-      <button type="button" role="tab" aria-selected={mode === 'administrative'} tabIndex={mode === 'administrative' ? 0 : -1} onClick={() => onChange('administrative')}>
-        <MapPinned aria-hidden="true" size={15} /> Find administrative area
+      <button type="button" role="tab" aria-label="Find administrative area" aria-selected={mode === 'administrative'} tabIndex={mode === 'administrative' ? 0 : -1} onClick={() => onChange('administrative')}>
+        <MapPinned aria-hidden="true" size={15} /> Boundaries
       </button>
-      <button type="button" role="tab" aria-selected={mode === 'draw'} tabIndex={mode === 'draw' ? 0 : -1} onClick={() => onChange('draw')}>
-        <PencilRuler aria-hidden="true" size={15} /> Draw custom area
+      <button type="button" role="tab" aria-label="Draw custom area" aria-selected={mode === 'draw'} tabIndex={mode === 'draw' ? 0 : -1} onClick={() => onChange('draw')}>
+        <PencilRuler aria-hidden="true" size={15} /> Draw
       </button>
       <button type="button" role="tab" aria-selected={mode === 'isochrone'} tabIndex={mode === 'isochrone' ? 0 : -1} onClick={() => onChange('isochrone')}>
         <Clock3 aria-hidden="true" size={15} /> Travel time
