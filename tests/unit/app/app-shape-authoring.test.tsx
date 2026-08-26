@@ -186,6 +186,22 @@ it('exposes every Belgian province through the region country selector', async (
   expect(screen.getByText('Belgium · Natural Earth')).toBeInTheDocument();
 });
 
+it('exposes every Dutch province through the region country selector', async () => {
+  const user = userEvent.setup();
+  render(<App autosaveRepository={null} />);
+
+  await user.click(screen.getByRole('button', { name: 'Area (S)' }));
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Administrative level' }), 'region');
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Region country' }), 'NLD');
+
+  const regions = screen.getByRole('group', { name: 'Netherlands regions' });
+  expect(within(regions).getAllByRole('checkbox')).toHaveLength(12);
+  expect(within(regions).getByRole('checkbox', { name: 'North Holland' })).toBeInTheDocument();
+  expect(within(regions).getByRole('checkbox', { name: 'South Holland' })).toBeInTheDocument();
+  expect(within(regions).getByRole('checkbox', { name: 'Utrecht' })).toBeInTheDocument();
+  expect(screen.getByText('Netherlands · Natural Earth')).toBeInTheDocument();
+});
+
 it('filters the active region catalogue without losing hidden selections', async () => {
   const user = userEvent.setup();
   render(<App autosaveRepository={null} />);
