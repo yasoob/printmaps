@@ -250,6 +250,22 @@ it('exposes every Lithuanian county through the region country selector', async 
   expect(screen.getByText('Lithuania · Natural Earth')).toBeInTheDocument();
 });
 
+it('exposes every Estonian county through the region country selector', async () => {
+  const user = userEvent.setup();
+  render(<App autosaveRepository={null} />);
+
+  await user.click(screen.getByRole('button', { name: 'Area (S)' }));
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Administrative level' }), 'region');
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Region country' }), 'EST');
+
+  const regions = screen.getByRole('group', { name: 'Estonia regions' });
+  expect(within(regions).getAllByRole('checkbox')).toHaveLength(15);
+  expect(within(regions).getByRole('checkbox', { name: 'Harju' })).toBeInTheDocument();
+  expect(within(regions).getByRole('checkbox', { name: 'Pärnu' })).toBeInTheDocument();
+  expect(within(regions).getByRole('checkbox', { name: 'Saare' })).toBeInTheDocument();
+  expect(screen.getByText('Estonia · Natural Earth')).toBeInTheDocument();
+});
+
 it('filters the active region catalogue without losing hidden selections', async () => {
   const user = userEvent.setup();
   render(<App autosaveRepository={null} />);

@@ -80,6 +80,7 @@ describe('bundled administrative areas', () => {
       { id: 'BEL', name: 'Belgium' },
       { id: 'NLD', name: 'Netherlands' },
       { id: 'DNK', name: 'Denmark' },
+      { id: 'EST', name: 'Estonia' },
       { id: 'SWE', name: 'Sweden' },
       { id: 'LTU', name: 'Lithuania' },
       { id: 'DEU', name: 'Germany' },
