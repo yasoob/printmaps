@@ -6,17 +6,18 @@ import { exportMocks } from './exportMocks';
 
 vi.mock('../../../src/map/MapCanvas', async () => import('./MapCanvasMock'));
 
+const ONE_PIXEL_PNG = Uint8Array.from(
+  atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='),
+  (character) => character.codePointAt(0) ?? 0,
+);
+
 async function verifyLayeredSvgDownload() {
   const user = userEvent.setup();
-  const pngBytes = Uint8Array.from(
-    atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='),
-    (character) => character.codePointAt(0) ?? 0,
-  );
   const source = document.createElement('canvas');
   source.width = 1;
   source.height = 1;
   exportMocks.exporter = vi.fn().mockResolvedValue({
-    blob: new Blob([pngBytes], { type: 'image/png' }),
+    blob: new Blob([ONE_PIXEL_PNG], { type: 'image/png' }),
     width: 1,
     height: 1,
     surface: source,
@@ -406,7 +407,7 @@ describe('editor export', () => {
       measureText: vi.fn(() => ({ width: 80 })),
     } as unknown as CanvasRenderingContext2D);
     vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation((callback) => {
-      callback(new Blob(['png'], { type: 'image/png' }));
+      callback(new Blob([ONE_PIXEL_PNG], { type: 'image/png' }));
     });
     vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:preview');
     vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});

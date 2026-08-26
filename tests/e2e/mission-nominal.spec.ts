@@ -68,7 +68,7 @@ test('nominal design, author, import, persist, reopen, and export workflow', asy
   await page.getByRole('textbox', { name: 'Route width' }).press('Tab');
   await expect(mapCanvas).toHaveAttribute('data-map-layer-order', /route-02/);
 
-  await page.locator('input[accept^=".geojson"]').setInputFiles(path.resolve('tests/fixtures/import/supported.geojson'));
+  await page.locator('input[accept^=".geojson"][multiple]').setInputFiles(path.resolve('tests/fixtures/import/supported.geojson'));
   await expect(page.getByRole('status', { name: 'Map data import status' }))
     .toHaveText('Imported 3 GeoJSON layers. Undo removes the whole import.');
   await expect(page.getByRole('button', { name: 'Select Café Central' })).toBeVisible();

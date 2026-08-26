@@ -44,8 +44,11 @@ export function pngPhysicalResolutionChunk(dpi: number): Uint8Array {
 }
 
 function isPngSignature(bytes: Uint8Array): boolean {
-  return bytes.length >= PNG_SIGNATURE_LENGTH
-    && PNG_SIGNATURE.every((byte, index) => bytes[index] === byte);
+  if (bytes.length < PNG_SIGNATURE_LENGTH) return false;
+  for (let index = 0; index < PNG_SIGNATURE_LENGTH; index += 1) {
+    if (bytes[index] !== PNG_SIGNATURE[index]) return false;
+  }
+  return true;
 }
 
 function chunkType(bytes: Uint8Array, offset: number): string {

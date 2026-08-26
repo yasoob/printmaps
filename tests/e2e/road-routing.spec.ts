@@ -57,7 +57,7 @@ test('road route becomes editable canonical project geometry and exports offline
   const roadPath = page.getByRole('radio', { name: 'Road', exact: true });
   await roadPath.click();
   await expect(roadPath).toHaveAttribute('aria-checked', 'true');
-  await expect(page.getByRole('status', { name: 'Route drawing status' })).toContainText('Road route');
+  await expect(page.getByRole('status', { name: 'Route drawing status' })).toContainText('Click the map to add route points');
   const search = page.getByRole('combobox', { name: 'Search places and addresses' });
   await search.fill('Vienna West');
   await page.getByRole('button', { name: 'Search locations' }).click();

@@ -66,7 +66,7 @@ export function ProfileRouteSource({ localRoute, onReadingChange, onReadingStart
       });
   };
 
-  const useSelectedRoute = () => {
+  const handleUseSelectedRoute = () => {
     selectionRef.current += 1;
     setFileError(null);
     setIsReading(false);
@@ -80,7 +80,7 @@ export function ProfileRouteSource({ localRoute, onReadingChange, onReadingStart
       <strong>{localRoute ? `${localRoute.name} · ${localRoute.filename}` : 'Selected map route'}</strong>
       <div>
         <button className="quiet-button" type="button" disabled={isReading} onClick={() => fileInputRef.current?.click()}><FileUp aria-hidden="true" size={14} />{isReading ? 'Reading…' : 'Choose file'}</button>
-        {localRoute && <button className="quiet-button" type="button" onClick={useSelectedRoute}><RotateCcw aria-hidden="true" size={14} />Use selected map route</button>}
+        {localRoute && <button className="quiet-button" type="button" onClick={handleUseSelectedRoute}><RotateCcw aria-hidden="true" size={14} />Use selected map route</button>}
       </div>
       <input
         ref={fileInputRef}
