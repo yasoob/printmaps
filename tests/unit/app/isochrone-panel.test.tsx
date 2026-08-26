@@ -19,6 +19,14 @@ describe('IsochronePanel', () => {
     expect(screen.getByText('Mapbox supports up to 60 minutes. 61–180 minute areas are unavailable with this provider.')).toBeVisible();
   });
 
+  it('associates the provider limit with the travel-time input', () => {
+    render(<IsochronePanel {...sharedProps} minutes={20} />);
+
+    expect(screen.getByRole('spinbutton', { name: 'Travel time in minutes' })).toHaveAccessibleDescription(
+      'Mapbox supports up to 60 minutes. 61–180 minute areas are unavailable with this provider.',
+    );
+  });
+
   it('marks a fractional duration invalid and gates generation with corrective guidance', () => {
     render(<IsochronePanel {...sharedProps} minutes={12.5} />);
 

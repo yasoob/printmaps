@@ -44,13 +44,13 @@ export function IsochronePanel(props: IsochronePanelProps) {
       </div>
       <label className="isochrone-duration">
         <span>Travel time</span>
-        <input type="number" aria-label="Travel time in minutes" aria-describedby={isInvalidMinutes ? 'isochrone-duration-error' : undefined} aria-invalid={isInvalidMinutes} min={5} max={60} step={5} value={props.minutes} onChange={(event) => {
+        <input type="number" aria-label="Travel time in minutes" aria-describedby={isInvalidMinutes ? 'isochrone-duration-limit isochrone-duration-error' : 'isochrone-duration-limit'} aria-invalid={isInvalidMinutes} min={5} max={60} step={5} value={props.minutes} onChange={(event) => {
           const minutes = event.currentTarget.valueAsNumber;
           props.onMinutesChange(Number.isFinite(minutes) ? minutes : 0);
         }} />
         <span>min</span>
       </label>
-      <p className="isochrone-limit-note">Mapbox supports up to 60 minutes. 61–180 minute areas are unavailable with this provider.</p>
+      <p id="isochrone-duration-limit" className="isochrone-limit-note">Mapbox supports up to 60 minutes. 61–180 minute areas are unavailable with this provider.</p>
       {isInvalidMinutes && <div id="isochrone-duration-error" className="isochrone-error" role="alert">Use a whole number from 5 to 60 minutes.</div>}
       {props.error && <div className="isochrone-error" role="alert">{props.error}</div>}
       <div className="isochrone-actions">
