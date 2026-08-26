@@ -77,6 +77,7 @@ describe('bundled administrative areas', () => {
   it('exposes a small sourced country catalogue with closed bounded polygons', () => {
     expect(ADMINISTRATIVE_AREAS.filter(({ level }) => level === 'country').map(({ id, name }) => ({ id, name }))).toEqual([
       { id: 'AUT', name: 'Austria' },
+      { id: 'BEL', name: 'Belgium' },
       { id: 'DEU', name: 'Germany' },
       { id: 'CHE', name: 'Switzerland' },
       { id: 'HUN', name: 'Hungary' },

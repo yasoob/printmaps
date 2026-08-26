@@ -4,6 +4,7 @@ import { AUSTRIA_ADMIN_1_REGIONS } from '../data/austriaAdmin1';
 import { AUSTRIA_TYROL_REGION } from '../data/austriaTyrol';
 import { SLOVAKIA_ADMIN_1_REGIONS } from '../data/slovakiaAdmin1';
 import { VIENNA_DISTRICTS } from '../data/viennaDistricts';
+import { BELGIUM_COUNTRY_AREA, BELGIUM_REGION_AREAS } from './belgiumAdministrativeAreas';
 import { CZECHIA_COUNTRY_AREA, CZECHIA_REGION_AREAS } from './czechiaAdministrativeAreas';
 import { GERMANY_COUNTRY_AREA, GERMANY_REGION_AREAS } from './germanyAdministrativeAreas';
 import { HUNGARY_REGION_AREAS } from './hungaryAdministrativeAreas';
@@ -11,13 +12,12 @@ import { POLAND_COUNTRY_AREA, POLAND_REGION_AREAS } from './polandAdministrative
 import { SWITZERLAND_COUNTRY_AREA, SWITZERLAND_REGION_AREAS } from './switzerlandAdministrativeAreas';
 
 export type AdministrativeAreaId =
-  | 'AUT' | 'CHE' | 'CZE' | 'DEU' | 'HUN' | 'POL' | 'SVK'
+  | 'AUT' | 'BEL' | 'CHE' | 'CZE' | 'DEU' | 'HUN' | 'POL' | 'SVK'
   | 'AT-1' | 'AT-2' | 'AT-3' | 'AT-4' | 'AT-5' | 'AT-6' | 'AT-7' | 'AT-8' | 'AT-9'
-  | (typeof CZECHIA_REGION_AREAS)[number]['id'] | (typeof GERMANY_REGION_AREAS)[number]['id'] | (typeof HUNGARY_REGION_AREAS)[number]['id']
-  | (typeof POLAND_REGION_AREAS)[number]['id'] | (typeof SLOVAKIA_ADMIN_1_REGIONS)[number]['id'] | (typeof SWITZERLAND_REGION_AREAS)[number]['id']
+  | (typeof BELGIUM_REGION_AREAS)[number]['id'] | (typeof CZECHIA_REGION_AREAS)[number]['id'] | (typeof GERMANY_REGION_AREAS)[number]['id'] | (typeof HUNGARY_REGION_AREAS)[number]['id'] | (typeof POLAND_REGION_AREAS)[number]['id'] | (typeof SLOVAKIA_ADMIN_1_REGIONS)[number]['id'] | (typeof SWITZERLAND_REGION_AREAS)[number]['id']
   | (typeof VIENNA_DISTRICTS)[number]['id'];
 
-export type AdministrativeCountryCode = Extract<AdministrativeAreaId, 'AUT' | 'CHE' | 'CZE' | 'DEU' | 'HUN' | 'POL' | 'SVK'>;
+export type AdministrativeCountryCode = Extract<AdministrativeAreaId, 'AUT' | 'BEL' | 'CHE' | 'CZE' | 'DEU' | 'HUN' | 'POL' | 'SVK'>;
 
 export type AdministrativeArea = Readonly<{
   countryCode: AdministrativeCountryCode;
@@ -113,7 +113,7 @@ export const ADMINISTRATIVE_AREAS: readonly AdministrativeArea[] = [
       [16.979667, 48.123497],
     ]] },
   },
-  GERMANY_COUNTRY_AREA,
+  BELGIUM_COUNTRY_AREA, GERMANY_COUNTRY_AREA,
   SWITZERLAND_COUNTRY_AREA,
   {
     countryCode: 'HUN',
@@ -153,7 +153,7 @@ export const ADMINISTRATIVE_AREAS: readonly AdministrativeArea[] = [
     ]] },
   },
   ...austriaRegionAreas,
-  ...CZECHIA_REGION_AREAS,
+  ...BELGIUM_REGION_AREAS, ...CZECHIA_REGION_AREAS,
   ...GERMANY_REGION_AREAS,
   ...HUNGARY_REGION_AREAS,
   ...POLAND_REGION_AREAS,
