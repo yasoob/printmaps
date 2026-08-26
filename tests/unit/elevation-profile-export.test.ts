@@ -124,6 +124,15 @@ describe('elevation profile exports', () => {
     expect(text).not.toContain('0.05098 0.47451 0.780392 RG 2.5 w');
   });
 
+  it('applies a selected print-safe font across SVG and PDF exports', async () => {
+    const svg = serializeElevationProfileSvg(profile, 'Alpine Route', { fontFamily: 'serif' });
+    expect(svg).toContain('font-family="Georgia,Times New Roman,serif"');
+
+    const pdf = await createElevationProfilePdf(profile, 'Alpine Route', { fontFamily: 'serif' });
+    const text = new TextDecoder().decode(await pdf.arrayBuffer());
+    expect(text).toContain('/BaseFont /Times-Roman');
+  });
+
   it('keeps marker, font-size, and fill-color choices consistent across vector exports', async () => {
     const options = {
       fillColor: '#f2b84b',

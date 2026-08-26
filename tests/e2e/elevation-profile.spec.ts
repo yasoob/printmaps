@@ -72,6 +72,8 @@ test('a selected route generates an attributed elevation profile with SVG, PNG, 
   await page.getByLabel('Profile gradient color').fill('#ffffff');
   await expect(chart.locator('.elevation-area')).toHaveCSS('fill', /elevation-fill-gradient/);
   await page.getByLabel('Elevation marker color').fill('#7c3aed');
+  await page.getByRole('combobox', { name: 'Profile font' }).selectOption('serif');
+  await expect(chart.locator('.elevation-marker-label').first()).toHaveCSS('font-family', /Georgia/);
   await page.getByRole('spinbutton', { name: 'Profile font size' }).fill('71');
   await expect(page.getByRole('button', { name: 'Download elevation SVG' })).toBeDisabled();
   await page.getByRole('spinbutton', { name: 'Profile font size' }).fill('56');
@@ -86,7 +88,7 @@ test('a selected route generates an attributed elevation profile with SVG, PNG, 
   await expect(chart.locator('.elevation-marker-label')).toHaveCount(2);
   if (testInfo.project.name === 'chromium') {
     await profileSource.scrollIntoViewIfNeeded();
-    await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/elevation-profile-file-source-20260826.png' });
+    await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/elevation-profile-font-20260826.png' });
   }
 
   const svgBytes = await downloadFormat(page, 'Download elevation SVG', testInfo.outputPath('route-01.elevation.svg'));
@@ -101,6 +103,7 @@ test('a selected route generates an attributed elevation profile with SVG, PNG, 
   expect(svg).toContain('data-elevation-markers="true"');
   expect(svg).toContain('fill="#7c3aed"');
   expect(svg).toContain('font-size="56"');
+  expect(svg).toContain('font-family="Georgia,Times New Roman,serif"');
   expect(svg).toContain('data-grid-axis="vertical"');
   expect(svg).not.toContain('data-grid-axis="horizontal"');
   expect(svg).toContain('data-profile-fill="true"');
@@ -123,6 +126,7 @@ test('a selected route generates an attributed elevation profile with SVG, PNG, 
   expect(pdfText).toContain('% elevation markers');
   expect(pdfText).toContain('0.486275 0.227451 0.929412 rg');
   expect(pdfText).toContain('BT /F1 16.8 Tf');
+  expect(pdfText).toContain('/BaseFont /Times-Roman');
   expect(pdfText).not.toContain('% grid horizontal');
   expect(pdfText).toContain('% profile fill');
   expect(pdfText).toContain(' mi | ascent ');

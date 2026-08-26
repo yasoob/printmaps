@@ -9,9 +9,11 @@ import {
   createElevationProfileLayout,
   createElevationProfileMarkers,
   createElevationProfilePng,
+  elevationProfileFontStack,
   elevationProfileMarkerTextAnchor,
   formatElevationProfileSummary,
   serializeElevationProfileSvg,
+  type ElevationProfileFontFamily,
   type ElevationProfileUnits,
 } from '../../export/elevationProfile';
 import { createElevationProfilePdf } from '../../export/elevationProfilePdf';
@@ -62,6 +64,7 @@ type ProfileChartOptions = Readonly<{
   fillColor: string;
   gradientColor: string;
   markerColor: string;
+  fontFamily: ElevationProfileFontFamily;
   fontSize: number;
   showCurve: boolean;
   showElevationMarkers: boolean;
@@ -76,13 +79,13 @@ function ProfileChart({ profile, routeName, options }: {
   routeName: string;
   options: ProfileChartOptions;
 }) {
-  const { printWidthMm, units, curveColor, fillColor, gradientColor, markerColor, fontSize, showCurve, showElevationMarkers, showFill, showGradient, showHorizontalGrid, showVerticalGrid } = options;
+  const { printWidthMm, units, curveColor, fillColor, gradientColor, markerColor, fontFamily, fontSize, showCurve, showElevationMarkers, showFill, showGradient, showHorizontalGrid, showVerticalGrid } = options;
   const layout = createElevationProfileLayout(profile, undefined, undefined, { units });
   const linePath = layout.points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ');
   const areaPath = `${linePath} L ${layout.plot.left + layout.plot.width} ${layout.plot.top + layout.plot.height} L ${layout.plot.left} ${layout.plot.top + layout.plot.height} Z`;
   const markers = createElevationProfileMarkers(profile, layout, units);
   return (
-    <svg className="elevation-chart" data-print-width-mm={printWidthMm} viewBox={`0 0 ${layout.width} ${layout.height}`} role="img" aria-label={`${routeName} elevation profile`}>
+    <svg className="elevation-chart" data-print-width-mm={printWidthMm} style={{ fontFamily: elevationProfileFontStack(fontFamily) }} viewBox={`0 0 ${layout.width} ${layout.height}`} role="img" aria-label={`${routeName} elevation profile`}>
       {showGradient && <defs><linearGradient className="elevation-fill-gradient" id="elevation-fill-gradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={fillColor} /><stop offset="1" stopColor={gradientColor} /></linearGradient></defs>}
       <rect width={layout.width} height={layout.height} />
       {showVerticalGrid && <g className="elevation-grid elevation-grid-vertical">{layout.distanceTicks.map((tick) => <line key={`distance-${tick.x}`} x1={tick.x} y1={layout.plot.top} x2={tick.x} y2={layout.plot.top + layout.plot.height} />)}</g>}
@@ -96,7 +99,7 @@ function ProfileChart({ profile, routeName, options }: {
             return (
               <g key={marker.index}>
                 <circle cx={point.x} cy={point.y} r="8" style={{ fill: markerColor }} />
-                <text className="elevation-marker-label" x={point.x} y={point.y - 14} textAnchor={elevationProfileMarkerTextAnchor({ pointX: point.x, label: marker.label, fontSize, plot: layout.plot })} style={{ fill: markerColor, fontSize: `${fontSize}px` }}>{marker.label}</text>
+                <text className="elevation-marker-label" x={point.x} y={point.y - 14} textAnchor={elevationProfileMarkerTextAnchor({ pointX: point.x, label: marker.label, fontSize, plot: layout.plot })} style={{ fill: markerColor, fontFamily: elevationProfileFontStack(fontFamily), fontSize: `${fontSize}px` }}>{marker.label}</text>
               </g>
             );
           })}
@@ -140,6 +143,7 @@ function ElevationProfileReady({
   const [fillColor, setFillColor] = useState('#dceeff');
   const [gradientColor, setGradientColor] = useState('#ffffff');
   const [markerColor, setMarkerColor] = useState('#7c3aed');
+  const [fontFamily, setFontFamily] = useState<ElevationProfileFontFamily>('sans');
   const [fontSize, setFontSize] = useState(40);
   const [fontSizeDraft, setFontSizeDraft] = useState('40');
   const [printWidthMm, setPrintWidthMm] = useState(150);
@@ -156,7 +160,7 @@ function ElevationProfileReady({
   const parsedPrintWidth = Number(printWidthDraft);
   const isPrintWidthInvalid = !isBoundedInteger(parsedPrintWidth, 50, 300);
   const summary = formatElevationProfileSummary(profile, units);
-  const renderOptions = { printWidthMm, units, curveColor, fillColor, gradientColor, markerColor, fontSize, showCurve, showElevationMarkers, showFill, showGradient, showHorizontalGrid, showVerticalGrid } as const;
+  const renderOptions = { printWidthMm, units, curveColor, fillColor, gradientColor, markerColor, fontFamily, fontSize, showCurve, showElevationMarkers, showFill, showGradient, showHorizontalGrid, showVerticalGrid } as const;
   const runExport = async (format: 'svg' | 'png' | 'pdf') => {
     setExporting(true);
     setExportError(null);
@@ -192,6 +196,7 @@ function ElevationProfileReady({
         <label className="elevation-color-row"><span>Fill</span><input type="color" aria-label="Profile fill color" value={fillColor} onInput={(event) => setFillColor(event.currentTarget.value)} /></label>
         <label className="elevation-color-row"><span>Gradient</span><input type="color" aria-label="Profile gradient color" value={gradientColor} disabled={!showGradient} onInput={(event) => setGradientColor(event.currentTarget.value)} /></label>
         <label className="elevation-color-row"><span>Markers</span><input type="color" aria-label="Elevation marker color" value={markerColor} onInput={(event) => setMarkerColor(event.currentTarget.value)} /></label>
+        <label className="elevation-select-row"><span>Font</span><select aria-label="Profile font" value={fontFamily} onChange={(event) => setFontFamily(event.currentTarget.value as ElevationProfileFontFamily)}><option value="sans">Sans serif</option><option value="serif">Serif</option><option value="mono">Monospace</option></select></label>
         <label className="elevation-number-row"><span>Font size</span><input type="number" min="20" max="70" step="1" aria-label="Profile font size" aria-describedby="profile-font-size-range" aria-invalid={isFontSizeInvalid || undefined} value={fontSizeDraft} onChange={(event) => {
           const value = event.currentTarget.value;
           const parsed = Number(value);

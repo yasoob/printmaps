@@ -83,6 +83,29 @@ describe('ElevationProfilePanel local route source', () => {
   });
 });
 
+describe('ElevationProfilePanel print-safe fonts', () => {
+  it('lets the user choose a print-safe profile font', async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <ElevationProfilePanel
+        coordinates={[[16, 48], [16.1, 48.1]]}
+        routeName="Alpine Route"
+        loadProfile={vi.fn(async () => profile)}
+      />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Generate elevation profile' }));
+
+    const font = screen.getByRole('combobox', { name: 'Profile font' });
+    await user.selectOptions(font, 'serif');
+
+    expect(container.querySelector('.elevation-chart')).toHaveStyle({ fontFamily: 'Georgia,Times New Roman,serif' });
+    const markerLabel = container.querySelector('.elevation-marker-label');
+    expect(markerLabel).toHaveStyle({ fontFamily: 'Georgia,Times New Roman,serif' });
+    expect(markerLabel?.getAttribute('style')).toContain('font-family');
+    expect(font).toHaveValue('serif');
+  });
+});
+
 describe('ElevationProfilePanel', () => {
   it('generates an inspectable attributed profile for the selected route', async () => {
     const user = userEvent.setup();

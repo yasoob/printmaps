@@ -747,6 +747,15 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 .elevation-number-row input[aria-invalid="true"] { border-color: var(--studio-danger); }
 .elevation-number-row small { color: var(--studio-text-muted); }
+.elevation-select-row { @apply grid min-h-7 grid-cols-[1fr_8rem] items-center gap-2; }
+.elevation-select-row select {
+  @apply min-w-0 px-1.5;
+  height: 1.75rem;
+  border: var(--studio-border-width) solid var(--studio-line-strong);
+  border-radius: var(--studio-radius-xs);
+  background: var(--studio-surface);
+  color: var(--studio-text-strong);
+}
 .elevation-option-grid { @apply grid grid-cols-2 gap-x-2; }
 .elevation-option-grid label:first-child { @apply col-span-2; }
 .elevation-chart {
@@ -760,7 +769,6 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .elevation-area { fill: var(--studio-accent-soft); }
 .elevation-line { fill: none; stroke: var(--studio-accent-strong); stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }
 .elevation-marker-label {
-  font-family: Inter, Arial, sans-serif;
   font-weight: 600;
   paint-order: stroke;
   stroke: var(--studio-surface);

@@ -45,12 +45,19 @@ function pdfCircleCommands(x: number, y: number, radius: number): readonly strin
   ];
 }
 
+function pdfBaseFont(fontFamily: ElevationProfileRenderOptions['fontFamily']): string {
+  if (fontFamily === 'serif') return 'Times-Roman';
+  if (fontFamily === 'mono') return 'Courier';
+  return 'Helvetica';
+}
+
 export async function createElevationProfilePdf(
   profile: ElevationProfile,
   title: string,
   options: ElevationProfileRenderOptions = {},
 ): Promise<Blob> {
   const resolved = resolveElevationProfileRenderOptions(options);
+  const pdfFont = pdfBaseFont(resolved.fontFamily);
   const pageWidth = resolved.printWidthMm * POINTS_PER_MM;
   const pageHeight = resolved.printWidthMm / 2 * POINTS_PER_MM;
   const width = PDF_WIDTH_MM * POINTS_PER_MM;
@@ -148,7 +155,7 @@ export async function createElevationProfilePdf(
     ['<< /Type /Pages /Kids [3 0 R] /Count 1 >>'],
     [`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${format(pageWidth)} ${format(pageHeight)}] /Resources << /Font << /F1 5 0 R >>${resolved.showGradient ? ' /Shading << /Sh1 7 0 R >>' : ''} >> /Contents 4 0 R >>`],
     streamObject('', content),
-    ['<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>'],
+    [`<< /Type /Font /Subtype /Type1 /BaseFont /${pdfFont} /Encoding /WinAnsiEncoding >>`],
     [`<< /Title ${pdfString(`${title} elevation profile`)} /Creator (Print Map Studio) /Subject (Attributed route elevation profile.) >>`],
   ];
   if (resolved.showGradient) {
