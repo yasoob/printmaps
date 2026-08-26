@@ -283,6 +283,24 @@ test('mobile map palette names tools and separates the view command', async ({ p
 });
 
 
+test('mobile authoring panels and native map controls stay usable and disjoint', async ({ page }) => {
+  for (const tool of ['Pin (P)', 'Area (S)']) {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/');
+    await page.getByRole('button', { name: tool }).click();
+
+    const panel = page.locator('.map-authoring-panel');
+    const zoomButtons = page.locator('.maplibregl-ctrl-group button');
+    const attributionButton = page.locator('.maplibregl-ctrl-attrib-button');
+    await expectFullTouchTargets(zoomButtons);
+    await expectFullTouchTargets(attributionButton);
+    await expectNoOverlap(panel, page.locator('.map-scale'));
+    await expectNoOverlap(panel, page.locator('.maplibregl-ctrl-bottom-left'));
+    await expectNoOverlap(panel, page.locator('.maplibregl-ctrl-bottom-right'));
+    await expectNoOverlap(page.locator('.map-scale'), page.locator('.maplibregl-ctrl-bottom-right'));
+  }
+});
+
 test('mobile navigation buttons use full touch targets', async ({ page }) => {
   const consoleErrors: string[] = [];
   const pageErrors: string[] = [];
