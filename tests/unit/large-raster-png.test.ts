@@ -45,25 +45,68 @@ function joined(chunks: readonly Uint8Array[]): Uint8Array {
   return output;
 }
 
+function crc32(parts: readonly Uint8Array[]): number {
+  let crc = 0xFF_FF_FF_FF;
+  for (const bytes of parts) {
+    for (const byte of bytes) {
+      crc ^= byte;
+      for (let bit = 0; bit < 8; bit += 1) crc = (crc >>> 1) ^ (0xED_B8_83_20 & -(crc & 1));
+    }
+  }
+  return (crc ^ 0xFF_FF_FF_FF) >>> 0;
+}
+
+function decodedPngChunk(type: string, data: Uint8Array) {
+  switch (type) {
+    case 'IHDR': {
+      const header = new DataView(data.buffer, data.byteOffset, data.byteLength);
+      return { width: header.getUint32(0), height: header.getUint32(4) };
+    }
+    case 'pHYs': {
+      const physical = new DataView(data.buffer, data.byteOffset, data.byteLength);
+      return { physicalDensity: physical.getUint32(0) };
+    }
+    case 'IDAT': {
+      return { idat: data };
+    }
+    default: {
+      return {};
+    }
+  }
+}
+
 function pngDetails(bytes: Uint8Array) {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const decoder = new TextDecoder();
   const idat: Uint8Array[] = [];
   let width = 0;
   let height = 0;
+  let physicalDensity: number | undefined;
+  let physicalDensityY: number | undefined;
+  let physicalUnit: number | undefined;
+  let physicalCrcValid: boolean | undefined;
+  const chunkTypes: string[] = [];
   let offset = 8;
   while (offset < bytes.length) {
     const length = view.getUint32(offset);
-    const type = decoder.decode(bytes.subarray(offset + 4, offset + 8));
+    const typeBytes = bytes.subarray(offset + 4, offset + 8);
+    const type = decoder.decode(typeBytes);
     const data = bytes.subarray(offset + 8, offset + 8 + length);
-    if (type === 'IHDR') {
-      const header = new DataView(data.buffer, data.byteOffset, data.byteLength);
-      width = header.getUint32(0);
-      height = header.getUint32(4);
-    } else if (type === 'IDAT') idat.push(data);
+    chunkTypes.push(type);
+    const decoded = decodedPngChunk(type, data);
+    if (decoded.width !== undefined) width = decoded.width;
+    if (decoded.height !== undefined) height = decoded.height;
+    if (decoded.physicalDensity !== undefined) {
+      physicalDensity = decoded.physicalDensity;
+      const physical = new DataView(data.buffer, data.byteOffset, data.byteLength);
+      physicalDensityY = physical.getUint32(4);
+      physicalUnit = physical.getUint8(8);
+      physicalCrcValid = view.getUint32(offset + 8 + length) === crc32([typeBytes, data]);
+    }
+    if (decoded.idat) idat.push(decoded.idat);
     offset += length + 12;
   }
-  return { width, height, idat };
+  return { width, height, idat, physicalDensity, physicalDensityY, physicalUnit, physicalCrcValid, chunkTypes };
 }
 
 async function inflate(chunks: readonly Uint8Array[]): Promise<Uint8Array> {
@@ -137,6 +180,30 @@ describe('large streamed PNG', () => {
     expect(writable.close).toHaveBeenCalledOnce();
     expect(writable.abort).not.toHaveBeenCalled();
     expect(result).toMatchObject({ width: 100, height: 100, bytesWritten: bytes.length });
+  });
+
+  it('embeds 300 DPI metadata in the streamed PNG', async () => {
+    installPixelCanvasMock();
+    const { chunks, writable } = memoryWritable();
+
+    await createLargeRasterPng({
+      preflight: streamingPreflight(),
+      writable,
+      renderTile: async ({ region }) => {
+        const surface = document.createElement('canvas');
+        surface.width = region.width;
+        surface.height = region.height;
+        return surface;
+      },
+    });
+
+    const png = pngDetails(joined(chunks));
+    expect(png.physicalDensity).toBe(11_811);
+    expect(png.physicalDensityY).toBe(11_811);
+    expect(png.physicalUnit).toBe(1);
+    expect(png.physicalCrcValid).toBe(true);
+    expect(png.chunkTypes.slice(0, 3)).toEqual(['IHDR', 'pHYs', 'IDAT']);
+    expect(png.chunkTypes.filter((type) => type === 'pHYs')).toHaveLength(1);
   });
 
   it('balances strip heights so the final strip is not a tiny remainder', () => {

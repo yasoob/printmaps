@@ -225,6 +225,18 @@ async function verifyNativeTileProgressCancellation() {
   expect(downloadClick).not.toHaveBeenCalled();
 }
 
+async function verifyPngMetadataDisclosure() {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await user.click(screen.getByRole('button', { name: 'Export' }));
+  const dialog = screen.getByRole('dialog', { name: 'Export map' });
+  await user.click(within(dialog).getByRole('button', { name: 'Technical details' }));
+
+  expect(dialog).toHaveTextContent('PNG embeds 300 DPI physical-resolution metadata');
+  expect(dialog).not.toHaveTextContent('physical-resolution metadata is not embedded');
+}
+
 describe('editor export', () => {
   beforeEach(() => {
     exportMocks.exporter = null;
@@ -246,7 +258,7 @@ describe('editor export', () => {
     expect(dialog).toBeInTheDocument();
     expect(download).toHaveFocus();
     expect(dialog).toHaveTextContent('3508 × 2480 px — 300 DPI pixel target');
-    expect(dialog).toHaveTextContent('PNG physical-resolution metadata is not embedded');
+    expect(dialog).toHaveTextContent('PNG embeds 300 DPI physical-resolution metadata');
     expect(dialog).toHaveTextContent('renders bounded map regions at their target pixel dimensions');
     expect(dialog).not.toHaveTextContent('resamples the current browser render');
 
@@ -256,6 +268,8 @@ describe('editor export', () => {
     expect(dialog).not.toBeInTheDocument();
     expect(trigger).toHaveFocus();
   });
+
+  it('discloses embedded 300 DPI metadata for PNG output', verifyPngMetadataDisclosure);
 
   it('presents PNG as one file without exposing internal tile delivery choices', async () => {
     const user = userEvent.setup();
@@ -280,7 +294,7 @@ describe('editor export', () => {
     expect(within(formats).getByRole('radio', { name: /PNG/ })).toHaveAttribute('aria-checked', 'true');
     expect(within(formats).getByRole('radio', { name: /Layered SVG/ })).toHaveAttribute('aria-checked', 'false');
     expect(within(dialog).getByRole('button', { name: 'Download PNG' })).toHaveFocus();
-    expect(within(dialog).getByText('PNG physical-resolution metadata is not embedded.')).not.toBeVisible();
+    expect(within(dialog).getByText('PNG embeds 300 DPI physical-resolution metadata.')).not.toBeVisible();
 
     await user.click(within(formats).getByRole('radio', { name: /Layered SVG/ }));
     expect(within(formats).getByRole('radio', { name: /Layered SVG/ })).toHaveAttribute('aria-checked', 'true');

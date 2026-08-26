@@ -5,6 +5,9 @@ import {
   type RasterProgress,
   type RasterTileRenderRequest,
 } from './rasterCompositor';
+import { embedPngPhysicalResolution } from './pngPhysicalResolution';
+
+const PRINT_PNG_DPI = 300;
 
 type SharedPrintSizePngOptions = Readonly<{
   preflight: ExportPreflightResult;
@@ -45,8 +48,14 @@ function encodePng(
           reject(abortError());
           return;
         }
-        if (blob) resolve({ blob, width, height, surface });
-        else reject(new Error('The browser could not create the print-size PNG file.'));
+        if (!blob) {
+          reject(new Error('The browser could not create the print-size PNG file.'));
+          return;
+        }
+        void embedPngPhysicalResolution(blob, PRINT_PNG_DPI).then((metadataBlob) => {
+          if (signal?.aborted === true) reject(abortError());
+          else resolve({ blob: metadataBlob, width, height, surface });
+        }).catch(() => reject(new Error('The browser could not create the print-size PNG file.')));
       }, 'image/png');
     } catch {
       reject(new Error('The browser could not create the print-size PNG file.'));

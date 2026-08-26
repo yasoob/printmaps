@@ -1,3 +1,5 @@
+import { pngPhysicalResolutionChunk } from './pngPhysicalResolution';
+
 export type LargeRasterWritable = Readonly<{
   write: (chunk: Uint8Array) => void | PromiseLike<void>;
   close: () => void | PromiseLike<void>;
@@ -87,6 +89,7 @@ export class StreamingPngWriter {
   async start(width: number, height: number): Promise<void> {
     await this.#write(PNG_SIGNATURE);
     await this.#write(pngChunk('IHDR', headerData(width, height)));
+    await this.#write(pngPhysicalResolutionChunk(300));
   }
 
   async row(bytes: Uint8Array): Promise<void> {

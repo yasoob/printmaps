@@ -140,7 +140,7 @@ function ExportTechnicalDetails({ busy, expanded, onToggle, preflight, selectedF
         {selectedFormat === 'png' ? (
           <>
             {preflight.estimates && <p>Estimated peak memory {formatBytes(preflight.estimates.peakBytes)}.</p>}
-            <p>PNG physical-resolution metadata is not embedded.</p>
+            <p>PNG embeds 300 DPI physical-resolution metadata.</p>
             <p>The PNG renderer renders bounded map regions at their target pixel dimensions from the live vector map style instead of enlarging the browser preview.</p>
           </>
         ) : (

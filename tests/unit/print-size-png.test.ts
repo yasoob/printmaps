@@ -2,6 +2,23 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { planExportPreflight } from '../../src/export/preflight';
 import { createPrintSizePng } from '../../src/export/printSizePng';
 
+const ONE_PIXEL_PNG = Uint8Array.from(
+  atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='),
+  (character) => character.codePointAt(0) ?? 0,
+);
+
+function physicalDensity(bytes: Uint8Array): number | undefined {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const decoder = new TextDecoder();
+  let offset = 8;
+  while (offset < bytes.length) {
+    const length = view.getUint32(offset);
+    const type = decoder.decode(bytes.subarray(offset + 4, offset + 8));
+    if (type === 'pHYs') return view.getUint32(offset + 8);
+    offset += length + 12;
+  }
+}
+
 async function verifyNativeTileComposition() {
   const drawImage = vi.fn();
   const fillRect = vi.fn();
@@ -17,7 +34,7 @@ async function verifyNativeTileComposition() {
     set textBaseline(_value: CanvasTextBaseline) {},
   } as unknown as CanvasRenderingContext2D);
   vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation((callback) => {
-    callback(new Blob(['png'], { type: 'image/png' }));
+    callback(new Blob([ONE_PIXEL_PNG], { type: 'image/png' }));
   });
   const preflight = planExportPreflight({
     format: 'png',
@@ -83,6 +100,35 @@ async function verifyNativeTileComposition() {
   );
 }
 
+async function verifyPhysicalMetadata() {
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+    drawImage: vi.fn(),
+  } as unknown as CanvasRenderingContext2D);
+  vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation((callback) => {
+    callback(new Blob([ONE_PIXEL_PNG], { type: 'image/png' }));
+  });
+  const source = document.createElement('canvas');
+  source.width = 1;
+  source.height = 1;
+  const preflight = planExportPreflight({
+    format: 'png',
+    page: { widthMm: 25.4, heightMm: 25.4 },
+    dpi: 300,
+    attributions: ['© OpenStreetMap contributors'],
+    basemap: 'raster',
+    vectorOverlays: true,
+    cancellationSupported: true,
+  });
+
+  const result = await createPrintSizePng({
+    source: { blob: new Blob([ONE_PIXEL_PNG]), width: 1, height: 1, surface: source },
+    preflight,
+  });
+  const bytes = new Uint8Array(await result.blob.arrayBuffer());
+
+  expect(physicalDensity(bytes)).toBe(11_811);
+}
+
 describe('print-size PNG composition', () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -90,13 +136,15 @@ describe('print-size PNG composition', () => {
 
   it('composes native target-resolution tiles without resampling a browser preview', verifyNativeTileComposition);
 
+  it('embeds 300 DPI metadata in the composed PNG', verifyPhysicalMetadata);
+
   it('composes the preflight tile plan and reports monotonic progress', async () => {
     const drawImage = vi.fn();
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
       drawImage,
     } as unknown as CanvasRenderingContext2D);
     vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation((callback) => {
-      callback(new Blob(['png'], { type: 'image/png' }));
+      callback(new Blob([ONE_PIXEL_PNG], { type: 'image/png' }));
     });
     const source = document.createElement('canvas');
     source.width = 50;
@@ -170,7 +218,7 @@ describe('print-size PNG composition', () => {
     await vi.waitFor(() => expect(finishEncoding).toBeDefined());
 
     controller.abort();
-    finishEncoding?.(new Blob(['png'], { type: 'image/png' }));
+    finishEncoding?.(new Blob([ONE_PIXEL_PNG], { type: 'image/png' }));
 
     await expect(result).rejects.toMatchObject({
       name: 'AbortError',

@@ -37,6 +37,16 @@ const readNativeExportStages = (page: Page) => page.evaluate(() => (
     .__nativeExportStages ?? []
 ));
 
+function pngPhysicalDensity(bytes: Buffer): number | undefined {
+  let offset = 8;
+  while (offset + 12 <= bytes.length) {
+    const length = bytes.readUInt32BE(offset);
+    const type = bytes.toString('ascii', offset + 4, offset + 8);
+    if (type === 'pHYs' && length === 9) return bytes.readUInt32BE(offset + 8);
+    offset += length + 12;
+  }
+}
+
 async function downloadPng(page: Page, dialog: Locator): Promise<Download> {
   const download = page.waitForEvent('download');
   await dialog.getByRole('button', { name: 'Download PNG' }).click();
@@ -270,7 +280,7 @@ test('export downloads the current print frame as PNG on desktop and mobile', as
     const dialog = page.getByRole('dialog', { name: 'Export map' });
     await expect(dialog).toBeVisible();
     await expect(dialog).toContainText('3508 × 2480 px — 300 DPI pixel target');
-    await expect(dialog).toContainText('PNG physical-resolution metadata is not embedded');
+    await expect(dialog).toContainText('PNG embeds 300 DPI physical-resolution metadata');
     await expect(dialog).toContainText('renders bounded map regions at their target pixel dimensions');
     await expect(dialog).not.toContainText('resamples the current browser render');
     const dialogBox = await dialog.boundingBox();
@@ -295,6 +305,7 @@ test('export downloads the current print frame as PNG on desktop and mobile', as
       const pngHeight = png.readUInt32BE(20);
       expect(pngWidth).toBe(3508);
       expect(pngHeight).toBe(2480);
+      expect(pngPhysicalDensity(png)).toBe(11_811);
       const pixelEvidence = await page.evaluate(async (encoded) => {
       const image = new Image();
       image.src = `data:image/png;base64,${encoded}`;
@@ -390,7 +401,7 @@ test('export downloads the current print frame as PNG on desktop and mobile', as
   await page.getByRole('button', { name: 'Export' }).click();
   const customDialog = page.getByRole('dialog', { name: 'Export map' });
   await expect(customDialog).toContainText('236 × 709 px — 300 DPI pixel target');
-  await expect(customDialog).toContainText('PNG physical-resolution metadata is not embedded');
+  await expect(customDialog).toContainText('PNG embeds 300 DPI physical-resolution metadata');
   const customDownload = await downloadPng(page, customDialog);
   const customPath = testInfo.outputPath('vienna-field-guide-custom-small.png');
   await customDownload.saveAs(customPath);
