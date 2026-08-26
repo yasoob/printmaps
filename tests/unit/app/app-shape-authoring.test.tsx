@@ -282,6 +282,22 @@ it('exposes every Portuguese district and autonomous region through the region c
   expect(screen.getByText('Portugal · Natural Earth')).toBeInTheDocument();
 });
 
+it('exposes every Spanish province and autonomous city through the region country selector', async () => {
+  const user = userEvent.setup();
+  render(<App autosaveRepository={null} />);
+
+  await user.click(screen.getByRole('button', { name: 'Area (S)' }));
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Administrative level' }), 'region');
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Region country' }), 'ESP');
+
+  const regions = screen.getByRole('group', { name: 'Spain regions' });
+  expect(within(regions).getAllByRole('checkbox')).toHaveLength(52);
+  expect(within(regions).getByRole('checkbox', { name: 'Community of Madrid' })).toBeInTheDocument();
+  expect(within(regions).getByRole('checkbox', { name: 'Balearic Islands' })).toBeInTheDocument();
+  expect(within(regions).getByRole('checkbox', { name: 'Ceuta' })).toBeInTheDocument();
+  expect(screen.getByText('Spain · Natural Earth')).toBeInTheDocument();
+});
+
 it('filters the active region catalogue without losing hidden selections', async () => {
   const user = userEvent.setup();
   render(<App autosaveRepository={null} />);

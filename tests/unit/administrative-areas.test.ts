@@ -89,6 +89,7 @@ describe('bundled administrative areas', () => {
       { id: 'CZE', name: 'Czechia' },
       { id: 'POL', name: 'Poland' },
       { id: 'PRT', name: 'Portugal' },
+      { id: 'ESP', name: 'Spain' },
       { id: 'SVK', name: 'Slovakia' },
     ]);
 

@@ -14,10 +14,11 @@ import { LITHUANIA_COUNTRY_AREA, LITHUANIA_REGION_AREAS } from './lithuaniaAdmin
 import { NETHERLANDS_COUNTRY_AREA, NETHERLANDS_REGION_AREAS } from './netherlandsAdministrativeAreas';
 import { POLAND_COUNTRY_AREA, POLAND_REGION_AREAS } from './polandAdministrativeAreas';
 import { PORTUGAL_COUNTRY_AREA, PORTUGAL_REGION_AREAS } from './portugalAdministrativeAreas';
+import { SPAIN_COUNTRY_AREA, SPAIN_REGION_AREAS } from './spainAdministrativeAreas';
 import { SWITZERLAND_COUNTRY_AREA, SWITZERLAND_REGION_AREAS } from './switzerlandAdministrativeAreas';
 import { SWEDEN_COUNTRY_AREA, SWEDEN_REGION_AREAS } from './swedenAdministrativeAreas';
 
-export type AdministrativeCountryCode = 'AUT' | 'BEL' | 'CHE' | 'CZE' | 'DEU' | 'DNK' | 'EST' | 'HUN' | 'LTU' | 'NLD' | 'POL' | 'PRT' | 'SVK' | 'SWE';
+export type AdministrativeCountryCode = 'AUT' | 'BEL' | 'CHE' | 'CZE' | 'DEU' | 'DNK' | 'ESP' | 'EST' | 'HUN' | 'LTU' | 'NLD' | 'POL' | 'PRT' | 'SVK' | 'SWE';
 // Area IDs come from bounded external catalogues and municipality sources. Keep runtime validation authoritative
 // instead of expanding every imported region ID into one compiler-heavy union as the catalogue grows.
 export type AdministrativeAreaId = string;
@@ -137,6 +138,7 @@ export const ADMINISTRATIVE_AREAS: readonly AdministrativeArea[] = [
   CZECHIA_COUNTRY_AREA,
   POLAND_COUNTRY_AREA,
   PORTUGAL_COUNTRY_AREA,
+  SPAIN_COUNTRY_AREA,
   {
     countryCode: 'SVK',
     id: 'SVK',
@@ -160,7 +162,7 @@ export const ADMINISTRATIVE_AREAS: readonly AdministrativeArea[] = [
   ...DENMARK_REGION_AREAS, ...ESTONIA_REGION_AREAS,
   ...GERMANY_REGION_AREAS,
   ...HUNGARY_REGION_AREAS, ...LITHUANIA_REGION_AREAS,
-  ...NETHERLANDS_REGION_AREAS, ...POLAND_REGION_AREAS, ...PORTUGAL_REGION_AREAS,
+  ...NETHERLANDS_REGION_AREAS, ...POLAND_REGION_AREAS, ...PORTUGAL_REGION_AREAS, ...SPAIN_REGION_AREAS,
   ...slovakiaRegionAreas, ...SWEDEN_REGION_AREAS,
   ...SWITZERLAND_REGION_AREAS,
   ...viennaMunicipalAreas,
@@ -257,8 +259,7 @@ function mergeMunicipalityPolygons(areas: readonly PolygonAdministrativeArea[]):
     const polygons = areas.map(({ geometry }) => geometry.coordinates.map((ring) => (
       ring.map(([longitude, latitude]) => [longitude, latitude] as [number, number])
     )) as ClippingPolygon);
-    const [first, ...remaining] = polygons;
-    const merged = unionPolygons(first, ...remaining);
+    const merged = unionPolygons(polygons[0], ...polygons.slice(1));
     if (merged.length !== 1) return;
     const [exterior, ...holes] = merged[0];
     if (!exterior) return;
@@ -291,8 +292,7 @@ function administrativeAreaSelection(ids: readonly string[]): AdministrativeArea
   const uniqueIds = [...new Set(ids)];
   if (uniqueIds.length === 0 || uniqueIds.length !== ids.length) return;
   const areas = uniqueIds.map((id) => administrativeAreaById(id));
-  const level = areas[0]?.level;
-  const countryCode = areas[0]?.countryCode;
+  const level = areas[0]?.level, countryCode = areas[0]?.countryCode;
   if (!countryCode || (level !== 'region' && level !== 'municipality')
     || areas.some((area) => !area || area.level !== level || area.countryCode !== countryCode)) return;
   return { areas: areas as AdministrativeArea[], level };
