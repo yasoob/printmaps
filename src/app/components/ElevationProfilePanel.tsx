@@ -15,6 +15,8 @@ import {
   type ElevationProfileUnits,
 } from '../../export/elevationProfile';
 import { createElevationProfilePdf } from '../../export/elevationProfilePdf';
+import { ElevationProfileRequestControls } from './ElevationProfileRequestControls';
+import { ProfileRouteSource, type LocalProfileRoute } from './ProfileRouteSource';
 import { Checkbox } from './UiControls';
 
 type Position = readonly [number, number];
@@ -235,9 +237,24 @@ export function ElevationProfilePanel({
   loadProfile = loadElevationProfile,
 }: ElevationProfilePanelProps) {
   const [state, setState] = useState<PanelState>({ status: 'idle' });
+  const [localRoute, setLocalRoute] = useState<LocalProfileRoute | null>(null);
+  const [isReadingRoute, setIsReadingRoute] = useState(false);
   const requestRef = useRef<AbortController | null>(null);
+  const activeCoordinates = localRoute?.coordinates ?? coordinates;
+  const activeRouteName = localRoute?.name ?? routeName;
 
   useEffect(() => () => requestRef.current?.abort(), []);
+
+  const resetProfile = () => {
+    requestRef.current?.abort();
+    requestRef.current = null;
+    setState({ status: 'idle' });
+  };
+
+  const changeProfileSource = (route: LocalProfileRoute | null) => {
+    resetProfile();
+    setLocalRoute(route);
+  };
 
   const generate = async () => {
     const controller = new AbortController();
@@ -245,7 +262,7 @@ export function ElevationProfilePanel({
     requestRef.current = controller;
     setState({ status: 'loading' });
     try {
-      const profile = await loadProfile(coordinates, { signal: controller.signal });
+      const profile = await loadProfile(activeCoordinates, { signal: controller.signal });
       if (!controller.signal.aborted) setState({ status: 'ready', profile });
     } catch (error) {
       if (!controller.signal.aborted) setState({ status: 'error', message: errorMessage(error) });
@@ -262,15 +279,9 @@ export function ElevationProfilePanel({
 
   return (
     <div className="elevation-profile-panel" aria-busy={state.status === 'loading'}>
-      {(state.status === 'idle' || state.status === 'error') && (
-        <button className="quiet-button" type="button" onClick={() => void generate()}>Generate elevation profile</button>
-      )}
-      {state.status === 'loading' && (
-        <button className="quiet-button" type="button" aria-label="Cancel elevation profile request" onClick={cancelRequest}>Cancel terrain request</button>
-      )}
-      {state.status === 'loading' && <span role="status">Sampling up to 100 route points from the terrain model.</span>}
-      {state.status === 'error' && <p role="alert">{state.message}</p>}
-      {state.status === 'ready' && <ElevationProfileReady profile={state.profile} routeName={routeName} routeColor={routeColor} />}
+      <ProfileRouteSource localRoute={localRoute} onReadingChange={setIsReadingRoute} onReadingStart={resetProfile} onSourceChange={changeProfileSource} />
+      <ElevationProfileRequestControls isReadingRoute={isReadingRoute} onCancel={cancelRequest} onGenerate={() => void generate()} state={state} />
+      {state.status === 'ready' && <ElevationProfileReady profile={state.profile} routeName={activeRouteName} routeColor={routeColor} />}
       <small>Up to 100 sampled route coordinates are sent to Open-Meteo only when you generate a profile.</small>
       <a href="https://open-meteo.com/en/docs/elevation-api" target="_blank" rel="noreferrer">{ELEVATION_SOURCE_LABEL}</a>
     </div>

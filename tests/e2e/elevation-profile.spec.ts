@@ -42,9 +42,18 @@ test('a selected route generates an attributed elevation profile with SVG, PNG, 
   await expect(page.locator('[data-map-ready="true"]').or(page.getByText('Map preview unavailable'))).toBeVisible({ timeout: 20_000 });
   await page.getByRole('button', { name: 'Select Route 01' }).click();
   await page.getByRole('button', { name: /Advanced/ }).click();
+  await page.getByLabel('Profile route file').setInputFiles({
+    name: 'danube-profile.gpx',
+    mimeType: 'application/gpx+xml',
+    buffer: Buffer.from('<?xml version="1.0"?><gpx xmlns="http://www.topografix.com/GPX/1/1" version="1.1" creator="e2e"><rte><name>Danube profile route</name><rtept lat="48.2" lon="16.3"/><rtept lat="48.4" lon="16.5"/></rte></gpx>'),
+  });
+  const profileSource = page.getByRole('group', { name: 'Profile route source' });
+  await expect(profileSource).toContainText('Danube profile route · danube-profile.gpx');
+  await expect(page.getByRole('button', { name: 'Select Route 01' })).toHaveCount(1);
+  await expect(page.getByRole('button', { name: 'Select Danube profile route' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Generate elevation profile' }).click();
 
-  const chart = page.getByRole('img', { name: 'Route 01 elevation profile' });
+  const chart = page.getByRole('img', { name: 'Danube profile route elevation profile' });
   await expect(chart).toBeVisible();
   expect(requestedSamples).toBeGreaterThanOrEqual(2);
   expect(requestedSamples).toBeLessThanOrEqual(100);
@@ -76,8 +85,8 @@ test('a selected route generates an attributed elevation profile with SVG, PNG, 
   await expect(chart.locator('.elevation-markers circle')).toHaveCount(2);
   await expect(chart.locator('.elevation-marker-label')).toHaveCount(2);
   if (testInfo.project.name === 'chromium') {
-    await travelEstimates.scrollIntoViewIfNeeded();
-    await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/elevation-profile-travel-estimates-20260826.png' });
+    await profileSource.scrollIntoViewIfNeeded();
+    await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/elevation-profile-file-source-20260826.png' });
   }
 
   const svgBytes = await downloadFormat(page, 'Download elevation SVG', testInfo.outputPath('route-01.elevation.svg'));
@@ -135,6 +144,6 @@ test('a selected route generates an attributed elevation profile with SVG, PNG, 
   const mobileGenerate = page.getByRole('button', { name: 'Generate elevation profile' });
   await expect(mobileGenerate).toBeVisible();
   await mobileGenerate.click();
-  await expect(chart).toBeVisible();
+  await expect(page.getByRole('img', { name: 'Route 01 elevation profile' })).toBeVisible();
   expect(consoleProblems).toEqual([]);
 });

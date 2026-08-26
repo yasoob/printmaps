@@ -699,6 +699,20 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .elevation-profile-panel > [role="status"] { line-height: 1.35; }
 .elevation-profile-panel > [role="alert"] { @apply m-0; color: var(--studio-danger); line-height: 1.35; }
 .elevation-profile-panel > a { color: var(--studio-accent-strong); line-height: 1.35; }
+.elevation-profile-source { @apply grid gap-1 p-2; border-radius: var(--studio-radius-sm); background: var(--studio-field); }
+.elevation-profile-source > span { color: var(--studio-text-muted); }
+.elevation-profile-source > strong { color: var(--studio-text-strong); font-weight: 600; overflow-wrap: anywhere; }
+.elevation-profile-source > div { @apply flex flex-wrap gap-1; }
+.elevation-profile-source .quiet-button {
+  @apply inline-flex flex-1 items-center justify-center gap-1 px-2;
+  min-height: var(--studio-control-height);
+  border: var(--studio-border-width) solid var(--studio-line-strong);
+  border-radius: var(--studio-radius-sm);
+  background: var(--studio-surface);
+  color: var(--studio-text-secondary);
+}
+.elevation-profile-source .quiet-button:hover { background: var(--studio-field); }
+.elevation-profile-source .quiet-button:disabled { @apply cursor-default; color: var(--studio-text-subtle); }
 .elevation-profile-ready { @apply grid gap-2; }
 .elevation-profile-ready > [role="alert"] { @apply m-0; color: var(--studio-danger); line-height: 1.35; }
 .elevation-settings {

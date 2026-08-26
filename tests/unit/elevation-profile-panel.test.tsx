@@ -57,6 +57,32 @@ describe('ElevationProfilePanel travel estimates', () => {
   });
 });
 
+describe('ElevationProfilePanel local route source', () => {
+  it('switches the profile source between the selected route and one local route file', async () => {
+    const user = userEvent.setup();
+    const loadProfile = vi.fn(async () => profile);
+    render(
+      <ElevationProfilePanel
+        coordinates={[[16, 48], [16.1, 48.1]]}
+        routeName="Selected route"
+        loadProfile={loadProfile}
+      />,
+    );
+    const gpx = new File([`<?xml version="1.0"?><gpx xmlns="http://www.topografix.com/GPX/1/1" version="1.1" creator="test"><rte><name>Uploaded route</name><rtept lat="48.2" lon="16.3"/><rtept lat="48.4" lon="16.5"/></rte></gpx>`], 'uploaded.gpx', { type: 'application/gpx+xml' });
+
+    await user.upload(screen.getByLabelText('Profile route file'), gpx);
+    expect(await screen.findByText('Uploaded route · uploaded.gpx')).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Generate elevation profile' }));
+    expect(loadProfile).toHaveBeenLastCalledWith([[16.3, 48.2], [16.5, 48.4]], expect.objectContaining({ signal: expect.any(AbortSignal) }));
+    expect(await screen.findByRole('img', { name: 'Uploaded route elevation profile' })).toBeVisible();
+
+    await user.click(screen.getByRole('button', { name: 'Use selected map route' }));
+    await user.click(screen.getByRole('button', { name: 'Generate elevation profile' }));
+    expect(loadProfile).toHaveBeenLastCalledWith([[16, 48], [16.1, 48.1]], expect.objectContaining({ signal: expect.any(AbortSignal) }));
+    expect(await screen.findByRole('img', { name: 'Selected route elevation profile' })).toBeVisible();
+  });
+});
+
 describe('ElevationProfilePanel', () => {
   it('generates an inspectable attributed profile for the selected route', async () => {
     const user = userEvent.setup();
