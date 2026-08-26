@@ -10,7 +10,7 @@ import { CZECHIA_COUNTRY_AREA, CZECHIA_REGION_AREAS } from './czechiaAdministrat
 import { DENMARK_COUNTRY_AREA, DENMARK_REGION_AREAS } from './denmarkAdministrativeAreas';
 import { ESTONIA_COUNTRY_AREA, ESTONIA_REGION_AREAS } from './estoniaAdministrativeAreas';
 import { FINLAND_COUNTRY_AREA, FINLAND_REGION_AREAS } from './finlandAdministrativeAreas';
-import { GERMANY_COUNTRY_AREA, GERMANY_REGION_AREAS } from './germanyAdministrativeAreas';
+import { GERMANY_COUNTRY_AREA, GERMANY_REGION_AREAS } from './germanyAdministrativeAreas'; import { GREECE_COUNTRY_AREA, GREECE_REGION_AREAS } from './greeceAdministrativeAreas';
 import { HUNGARY_REGION_AREAS } from './hungaryAdministrativeAreas';
 import { ITALY_COUNTRY_AREA, ITALY_REGION_AREAS } from './italyAdministrativeAreas';
 import { LITHUANIA_COUNTRY_AREA, LITHUANIA_REGION_AREAS } from './lithuaniaAdministrativeAreas';
@@ -21,7 +21,7 @@ import { SPAIN_COUNTRY_AREA, SPAIN_REGION_AREAS } from './spainAdministrativeAre
 import { SWITZERLAND_COUNTRY_AREA, SWITZERLAND_REGION_AREAS } from './switzerlandAdministrativeAreas';
 import { SWEDEN_COUNTRY_AREA, SWEDEN_REGION_AREAS } from './swedenAdministrativeAreas';
 // Keep runtime validation authoritative instead of expanding imported region IDs into compiler-heavy unions.
-export type AdministrativeCountryCode = 'AUT' | 'BEL' | 'BGR' | 'CHE' | 'CZE' | 'DEU' | 'DNK' | 'ESP' | 'EST' | 'FIN' | 'HUN' | 'ITA' | 'LTU' | 'NLD' | 'POL' | 'PRT' | 'SVK' | 'SWE';
+export type AdministrativeCountryCode = 'AUT' | 'BEL' | 'BGR' | 'CHE' | 'CZE' | 'DEU' | 'DNK' | 'ESP' | 'EST' | 'FIN' | 'GRC' | 'HUN' | 'ITA' | 'LTU' | 'NLD' | 'POL' | 'PRT' | 'SVK' | 'SWE';
 export type AdministrativeAreaId = string;
 
 export type AdministrativeArea = Readonly<{
@@ -117,7 +117,7 @@ export const ADMINISTRATIVE_AREAS: readonly AdministrativeArea[] = [
       [16.979667, 48.123497],
     ]] },
   },
-  BELGIUM_COUNTRY_AREA, BULGARIA_COUNTRY_AREA, NETHERLANDS_COUNTRY_AREA, DENMARK_COUNTRY_AREA, ESTONIA_COUNTRY_AREA, FINLAND_COUNTRY_AREA, ITALY_COUNTRY_AREA, SWEDEN_COUNTRY_AREA, LITHUANIA_COUNTRY_AREA, GERMANY_COUNTRY_AREA, SWITZERLAND_COUNTRY_AREA,
+  BELGIUM_COUNTRY_AREA, BULGARIA_COUNTRY_AREA, NETHERLANDS_COUNTRY_AREA, DENMARK_COUNTRY_AREA, ESTONIA_COUNTRY_AREA, FINLAND_COUNTRY_AREA, ITALY_COUNTRY_AREA, SWEDEN_COUNTRY_AREA, LITHUANIA_COUNTRY_AREA, GERMANY_COUNTRY_AREA, GREECE_COUNTRY_AREA, SWITZERLAND_COUNTRY_AREA,
   {
     countryCode: 'HUN',
     id: 'HUN',
@@ -160,7 +160,7 @@ export const ADMINISTRATIVE_AREAS: readonly AdministrativeArea[] = [
   ...austriaRegionAreas,
   ...BELGIUM_REGION_AREAS, ...BULGARIA_REGION_AREAS, ...CZECHIA_REGION_AREAS,
   ...DENMARK_REGION_AREAS, ...ESTONIA_REGION_AREAS, ...FINLAND_REGION_AREAS,
-  ...GERMANY_REGION_AREAS, ...HUNGARY_REGION_AREAS, ...ITALY_REGION_AREAS, ...LITHUANIA_REGION_AREAS,
+  ...GERMANY_REGION_AREAS, ...GREECE_REGION_AREAS, ...HUNGARY_REGION_AREAS, ...ITALY_REGION_AREAS, ...LITHUANIA_REGION_AREAS,
   ...NETHERLANDS_REGION_AREAS, ...POLAND_REGION_AREAS, ...PORTUGAL_REGION_AREAS, ...SPAIN_REGION_AREAS,
   ...slovakiaRegionAreas, ...SWEDEN_REGION_AREAS,
   ...SWITZERLAND_REGION_AREAS,
