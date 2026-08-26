@@ -232,6 +232,26 @@ const expectContained = async (container: Locator, children: Locator) => {
   }
 };
 
+const expectBalancedHorizontalSpacing = async (button: Locator, icon: Locator, label: Locator) => {
+  const [buttonBox, iconBox, labelBox] = await Promise.all([
+    button.boundingBox(), icon.boundingBox(), label.boundingBox(),
+  ]);
+  expect(buttonBox).not.toBeNull();
+  expect(iconBox).not.toBeNull();
+  expect(labelBox).not.toBeNull();
+  expect(iconBox!.x - buttonBox!.x).toBeGreaterThanOrEqual(12);
+  expect(labelBox!.x - (iconBox!.x + iconBox!.width)).toBeGreaterThanOrEqual(8);
+  expect((buttonBox!.x + buttonBox!.width) - (labelBox!.x + labelBox!.width)).toBeGreaterThanOrEqual(12);
+};
+
+test('mobile Export action gives its icon balanced spacing', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+
+  const button = page.getByRole('button', { name: 'Export' });
+  await expectBalancedHorizontalSpacing(button, button.locator('svg'), button.locator('span'));
+});
+
 test('mobile navigation buttons use full touch targets', async ({ page }) => {
   const consoleErrors: string[] = [];
   const pageErrors: string[] = [];

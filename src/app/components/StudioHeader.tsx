@@ -99,7 +99,7 @@ export const StudioHeader = memo(function StudioHeader({
           sourceDocument={project.document}
           startImportWork={startImportWork}
         />
-        <button ref={exportButtonRef} className="primary-button" type="button" disabled={exportDisabled} title={exportDisabled ? 'Finish or cancel map authoring before export' : undefined} onClick={onExport}><Download size={14} /> Export</button>
+        <button ref={exportButtonRef} className="primary-button" type="button" disabled={exportDisabled} title={exportDisabled ? 'Finish or cancel map authoring before export' : undefined} onClick={onExport}><Download size={14} /><span>Export</span></button>
       </div>
     </header>
   );
