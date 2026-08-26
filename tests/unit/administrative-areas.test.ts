@@ -78,6 +78,7 @@ describe('bundled administrative areas', () => {
     expect(ADMINISTRATIVE_AREAS.filter(({ level }) => level === 'country').map(({ id, name }) => ({ id, name }))).toEqual([
       { id: 'AUT', name: 'Austria' },
       { id: 'BEL', name: 'Belgium' },
+      { id: 'BGR', name: 'Bulgaria' },
       { id: 'NLD', name: 'Netherlands' },
       { id: 'DNK', name: 'Denmark' },
       { id: 'EST', name: 'Estonia' },

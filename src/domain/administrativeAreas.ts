@@ -5,6 +5,7 @@ import { AUSTRIA_TYROL_REGION } from '../data/austriaTyrol';
 import { SLOVAKIA_ADMIN_1_REGIONS } from '../data/slovakiaAdmin1';
 import { VIENNA_DISTRICTS } from '../data/viennaDistricts';
 import { BELGIUM_COUNTRY_AREA, BELGIUM_REGION_AREAS } from './belgiumAdministrativeAreas';
+import { BULGARIA_COUNTRY_AREA, BULGARIA_REGION_AREAS } from './bulgariaAdministrativeAreas';
 import { CZECHIA_COUNTRY_AREA, CZECHIA_REGION_AREAS } from './czechiaAdministrativeAreas';
 import { DENMARK_COUNTRY_AREA, DENMARK_REGION_AREAS } from './denmarkAdministrativeAreas';
 import { ESTONIA_COUNTRY_AREA, ESTONIA_REGION_AREAS } from './estoniaAdministrativeAreas';
@@ -18,7 +19,7 @@ import { PORTUGAL_COUNTRY_AREA, PORTUGAL_REGION_AREAS } from './portugalAdminist
 import { SPAIN_COUNTRY_AREA, SPAIN_REGION_AREAS } from './spainAdministrativeAreas';
 import { SWITZERLAND_COUNTRY_AREA, SWITZERLAND_REGION_AREAS } from './switzerlandAdministrativeAreas';
 import { SWEDEN_COUNTRY_AREA, SWEDEN_REGION_AREAS } from './swedenAdministrativeAreas';
-export type AdministrativeCountryCode = 'AUT' | 'BEL' | 'CHE' | 'CZE' | 'DEU' | 'DNK' | 'ESP' | 'EST' | 'FIN' | 'HUN' | 'LTU' | 'NLD' | 'POL' | 'PRT' | 'SVK' | 'SWE';
+export type AdministrativeCountryCode = 'AUT' | 'BEL' | 'BGR' | 'CHE' | 'CZE' | 'DEU' | 'DNK' | 'ESP' | 'EST' | 'FIN' | 'HUN' | 'LTU' | 'NLD' | 'POL' | 'PRT' | 'SVK' | 'SWE';
 // Area IDs come from bounded external catalogues and municipality sources. Keep runtime validation authoritative
 // instead of expanding every imported region ID into one compiler-heavy union as the catalogue grows.
 export type AdministrativeAreaId = string;
@@ -117,7 +118,7 @@ export const ADMINISTRATIVE_AREAS: readonly AdministrativeArea[] = [
       [16.979667, 48.123497],
     ]] },
   },
-  BELGIUM_COUNTRY_AREA, NETHERLANDS_COUNTRY_AREA, DENMARK_COUNTRY_AREA, ESTONIA_COUNTRY_AREA, FINLAND_COUNTRY_AREA, SWEDEN_COUNTRY_AREA, LITHUANIA_COUNTRY_AREA, GERMANY_COUNTRY_AREA, SWITZERLAND_COUNTRY_AREA,
+  BELGIUM_COUNTRY_AREA, BULGARIA_COUNTRY_AREA, NETHERLANDS_COUNTRY_AREA, DENMARK_COUNTRY_AREA, ESTONIA_COUNTRY_AREA, FINLAND_COUNTRY_AREA, SWEDEN_COUNTRY_AREA, LITHUANIA_COUNTRY_AREA, GERMANY_COUNTRY_AREA, SWITZERLAND_COUNTRY_AREA,
   {
     countryCode: 'HUN',
     id: 'HUN',
@@ -158,7 +159,7 @@ export const ADMINISTRATIVE_AREAS: readonly AdministrativeArea[] = [
     ]] },
   },
   ...austriaRegionAreas,
-  ...BELGIUM_REGION_AREAS, ...CZECHIA_REGION_AREAS,
+  ...BELGIUM_REGION_AREAS, ...BULGARIA_REGION_AREAS, ...CZECHIA_REGION_AREAS,
   ...DENMARK_REGION_AREAS, ...ESTONIA_REGION_AREAS, ...FINLAND_REGION_AREAS,
   ...GERMANY_REGION_AREAS, ...HUNGARY_REGION_AREAS, ...LITHUANIA_REGION_AREAS,
   ...NETHERLANDS_REGION_AREAS, ...POLAND_REGION_AREAS, ...PORTUGAL_REGION_AREAS, ...SPAIN_REGION_AREAS,
@@ -171,8 +172,7 @@ export function administrativeAreaById(id: string): AdministrativeArea | undefin
   return ADMINISTRATIVE_AREAS.find((area) => area.id === id);
 }
 
-const positionKey = ([longitude, latitude]: readonly [number, number]) => `${longitude},${latitude}`;
-type BoundaryEdge = readonly [[number, number], [number, number]];
+const positionKey = ([longitude, latitude]: readonly [number, number]) => `${longitude},${latitude}`; type BoundaryEdge = readonly [[number, number], [number, number]];
 
 function addRingEdges(edges: Map<string, BoundaryEdge>, ring: readonly (readonly [number, number])[]) {
   for (let index = 1; index < ring.length; index += 1) {
