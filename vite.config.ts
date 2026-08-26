@@ -13,5 +13,9 @@ export default defineConfig({
     setupFiles: './tests/setup.ts',
     include: ['tests/unit/**/*.test.{ts,tsx}'],
     css: true,
+    pool: 'forks',
+    maxWorkers: 1,
+    fileParallelism: false,
+    execArgv: ['--max-old-space-size=768'],
   },
 });

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useLayoutEffect, useState } from 'react';
 
 function hasFiles(event: DragEvent): boolean {
   return [...(event.dataTransfer?.types ?? [])].includes('Files');
@@ -13,7 +13,7 @@ type MapDataDropOptions = {
 export function useMapDataDrop({ isDisabled, isOpen, onFiles }: MapDataDropOptions) {
   const [isDragActive, setIsDragActive] = useState(false);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (isDisabled || isOpen) return;
     const handleDragEnter = (event: DragEvent) => {
       if (!hasFiles(event)) return;

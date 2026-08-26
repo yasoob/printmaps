@@ -3,11 +3,11 @@
 ## Product layout
 
 - Dense Figma-like editor, not a marketing page.
-- 44px flat top bar with product title, project title, save/share/export actions.
+- 44px flat top bar with product title, inline project title, and concise direct Open, Save, Import, and Export actions. Do not add Share or a File menu/archive action.
 - 240px left sidebar: search/filter, flat Layers list, visibility/lock controls and direct drag handles. The current document has one print frame, so do not show a `Page 1` collection hierarchy.
 - Full-bleed map canvas in the center with a subtle neutral pasteboard and white print-frame overlay.
 - 304–320px right sidebar: when selection is empty, show Project properties; when a layer is selected, show Layer properties.
-- Compact floating toolbar centered near the bottom, inspired by Atlas.co: selection, pan, route, pin, shape, text, fit. It may use a 1px border and solid surface but no decorative shadow.
+- Compact floating toolbar centered near the bottom, inspired by Atlas.co: selection, pan, route, pin, area, and fit. It may use a 1px border and solid surface but no decorative shadow.
 - Status/zoom controls stay quiet and secondary.
 
 ## Felt-inspired sidebar reference
@@ -49,8 +49,8 @@ Use the supplied Felt sidebar as a quality reference for calm density, not as br
 - Use one component language for Button (primary/secondary/ghost/destructive), IconButton, Field, Select, Checkbox/Switch, Accordion, Dialog, Menu, and Status. All variants share the same height, radius, typography, border, hover, focus, disabled, and busy behavior.
 - Keep chrome neutral with one blue interaction accent. Reserve red/green for error/success and content colors for map data. Borders and surface shifts establish hierarchy; avoid decorative color blocks, gradients, and shadows.
 - Export is a choice flow, not four competing footer actions: choose PNG/SVG/PDF from equal format options, show a concise page/output summary, hide memory/metadata caveats under `Technical details`, and provide `Cancel` plus one format-specific primary action in a consistent footer. Busy state becomes focused progress with cancellation.
-- Consolidate secondary document commands when the top bar becomes crowded; preserve one obvious primary Export action.
-- Background autosave is the save contract. Do not show a top-bar `Save` action that implies unsaved work. Portable persistence is an explicit download workflow under the project/File menu, labeled `Download project` and `Download project archive` rather than `Save` / `Save ZIP`. Keep `Open project` in the same menu; the top bar should expose only frequent contextual actions and the primary map Export.
+- Keep the direct document action set limited to Open, Save, Import, and the primary Export action; solve crowding responsively rather than reintroducing Share, a File menu, or an archive-download action.
+- Background autosave is the authoritative persistence contract. The direct top-bar `Save` action explicitly downloads the current validated portable project; it is not an unsaved-state indicator and must not imply that autosave is pending. Open accepts supported portable project files, Import adds map data, and Export produces map output.
 
 ## Component-library decision
 

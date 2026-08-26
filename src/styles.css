@@ -22,6 +22,18 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   outline-offset: -1px;
 }
 
+.startup-error {
+  @apply mx-auto grid h-full max-w-md place-content-center gap-3 px-6 text-center;
+  color: var(--studio-text-secondary);
+}
+.startup-error h1 { @apply m-0 text-lg font-semibold; color: var(--studio-text-strong); }
+.startup-error p { @apply m-0 text-sm; line-height: 1.5; }
+.startup-error button {
+  @apply mx-auto min-h-10 cursor-pointer rounded px-4 text-sm font-medium;
+  background: var(--studio-text);
+  color: var(--studio-on-dark);
+}
+
 .studio-shell {
   @apply grid h-full w-full;
   grid-template: var(--studio-topbar-height) minmax(0, 1fr) / var(--studio-left-panel-width) minmax(420px, 1fr) var(--studio-right-panel-width);
@@ -39,7 +51,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .brand-block, .document-actions, .history-actions { @apply flex items-center gap-1; }
 .document-actions { @apply justify-end; }
 .project-file-status {
-  @apply pointer-events-none fixed z-[90] max-w-sm px-3 py-2 text-xs;
+  @apply pointer-events-none fixed z-[90] flex max-w-sm items-center gap-2 px-3 py-2 text-xs;
   top: calc(var(--studio-topbar-height) + var(--studio-safe-top) + 4px);
   right: calc(8px + var(--studio-safe-right));
   width: min(24rem, calc(100vw - 16px - var(--studio-safe-left) - var(--studio-safe-right)));
@@ -48,6 +60,16 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   background: var(--studio-surface);
   color: var(--studio-text-strong);
 }
+.project-file-status > span { @apply min-w-0 flex-1; }
+.project-file-status-dismiss {
+  @apply grid shrink-0 place-items-center;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin: -0.375rem -0.375rem -0.375rem 0;
+  border-radius: var(--studio-radius-sm);
+  color: currentColor;
+}
+.project-file-status-dismiss:hover { background: var(--studio-hover); }
 .project-file-status.is-error {
   border-color: var(--studio-danger);
   color: var(--studio-danger);
@@ -72,9 +94,33 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .brand-name { @apply mx-1.5 text-xs font-semibold tracking-tight; }
 .top-divider { @apply h-4 w-px; background: var(--studio-line); }
 .project-title, .icon-button, .quiet-button, .primary-button, .tool-button { @apply cursor-pointer; }
+.icon-button:disabled,
+.quiet-button:disabled,
+.primary-button:disabled,
+.tool-button:disabled {
+  cursor: default;
+  opacity: 0.38;
+}
+.icon-button:disabled:hover,
+.quiet-button:disabled:hover { background: transparent; }
 .project-file-menu-wrap { @apply relative min-w-0; }
 .project-title { @apply flex max-w-full items-center gap-1 rounded px-2 py-1.5 text-xs font-medium; }
 .project-title span { @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap; }
+.project-title-pencil { opacity: 0; transition: opacity 120ms ease; }
+.project-title:hover .project-title-pencil,
+.project-title:focus-visible .project-title-pencil { opacity: 1; }
+.project-title-input {
+  width: min(14rem, 28vw);
+  height: var(--studio-control-height);
+  border: var(--studio-border-width) solid var(--studio-focus);
+  border-radius: var(--studio-radius-sm);
+  background: var(--studio-field);
+  padding: 0 0.5rem;
+  color: var(--studio-text-strong);
+  font-size: var(--studio-font-control);
+  font-weight: 600;
+}
+.project-file-actions { @apply relative flex items-center gap-1; }
 .project-title:hover, .quiet-button:hover, .icon-button:hover { background: var(--studio-field); }
 .project-file-menu {
   @apply absolute left-0 top-full z-[80] mt-1 grid min-w-56 p-1;
@@ -171,6 +217,44 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 
 .canvas-region { @apply relative min-h-0 min-w-0 overflow-hidden; background: var(--studio-canvas); }
+.location-search {
+  @apply absolute left-1/2 z-40 -translate-x-1/2;
+  top: 0.625rem;
+  width: min(25rem, calc(100% - 2rem));
+}
+.location-search-form {
+  @apply flex items-center gap-2 px-3;
+  height: 2.375rem;
+  border: var(--studio-border-width) solid var(--studio-line-strong);
+  border-radius: var(--studio-radius-lg);
+  background: var(--studio-surface);
+}
+.location-search-form > svg { @apply shrink-0; color: var(--studio-text-muted); }
+.location-search-form input {
+  @apply min-w-0 flex-1 bg-transparent text-xs outline-none;
+  color: var(--studio-text-strong);
+}
+.location-search-form button { @apply inline-grid h-7 w-7 shrink-0 place-items-center rounded; }
+.location-search-form button:hover:not(:disabled) { background: var(--studio-field); }
+.location-search-results {
+  @apply mt-1 grid overflow-hidden py-1;
+  border: var(--studio-border-width) solid var(--studio-line-strong);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface-raised);
+}
+.location-search-results > button {
+  @apply min-h-9 px-3 text-left text-xs;
+  color: var(--studio-text-strong);
+}
+.location-search-results > button:hover,
+.location-search-results > button[aria-selected="true"] { background: var(--studio-field); }
+.location-search-status {
+  @apply mt-1 px-3 py-2 text-xs;
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface-raised);
+  color: var(--studio-text-muted);
+}
+.location-search-status.is-error { color: var(--studio-danger); }
 .canvas-surface { container-type: size; }
 .canvas-surface, .map-root { @apply absolute inset-0; }
 .map-root { background: var(--studio-map-fallback); }
@@ -263,6 +347,20 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 .tool-button:hover { background: var(--studio-field); }
 .tool-button.is-active { color: var(--studio-accent-strong); background: var(--studio-accent-soft); }
+.shape-editing-toolbar {
+  @apply absolute left-1/2 z-20 flex -translate-x-1/2 items-center overflow-hidden;
+  bottom: 4.5rem;
+  border: var(--studio-border-width) solid var(--studio-line-strong);
+  border-radius: var(--studio-radius-lg);
+  background: var(--studio-surface-raised);
+}
+.shape-editing-toolbar > button {
+  @apply flex min-h-10 items-center gap-1.5 px-3 text-xs font-medium;
+  color: var(--studio-text-secondary);
+}
+.shape-editing-toolbar > button + button { border-left: var(--studio-border-width) solid var(--studio-line); }
+.shape-editing-toolbar > button:hover { background: var(--studio-field); }
+.shape-editing-toolbar > button[aria-pressed="true"] { background: var(--studio-text); color: var(--studio-on-dark); }
 .map-authoring-panel {
   @apply absolute left-1/2 z-10 flex -translate-x-1/2 flex-wrap items-center justify-center gap-2 px-2 py-1.5;
   bottom: 4.5rem;
@@ -276,6 +374,49 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 .map-authoring-panel > label { @apply flex items-center gap-1 whitespace-nowrap; }
 .map-authoring-panel > label > select { min-width: 5.25rem; }
+.authoring-option-group { @apply flex items-center gap-1.5 border-0 p-0; }
+.authoring-option-group legend { @apply mr-1 text-[10px] font-medium uppercase tracking-wide; color: var(--studio-text-muted); }
+.authoring-segmented {
+  @apply flex items-center overflow-hidden;
+  border: var(--studio-border-width) solid var(--studio-line-strong);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface);
+}
+.authoring-segmented > button {
+  @apply inline-grid h-7 min-w-7 place-items-center px-1.5;
+  color: var(--studio-text-secondary);
+}
+.authoring-segmented > button + button { border-left: var(--studio-border-width) solid var(--studio-line); }
+.authoring-segmented > button:hover { background: var(--studio-field); }
+.authoring-segmented > button[aria-checked="true"] { background: var(--studio-text); color: var(--studio-on-dark); }
+.shape-authoring-panel { max-width: min(46rem, calc(100% - 1rem)); }
+.shape-mode-tabs {
+  @apply flex items-center;
+  border: var(--studio-border-width) solid var(--studio-line-strong);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface);
+}
+.shape-mode-tabs > button { @apply flex min-h-10 items-center gap-1.5 px-2.5 py-1.5 text-xs leading-tight; }
+.shape-mode-tabs > button + button { border-left: var(--studio-border-width) solid var(--studio-line); }
+.shape-mode-tabs > button[aria-selected="true"] { background: var(--studio-text); color: var(--studio-on-dark); }
+.isochrone-panel { @apply flex flex-wrap items-center justify-center gap-2; }
+.isochrone-hint { @apply m-0 text-xs; color: var(--studio-text-muted); }
+.isochrone-center { @apply flex min-w-32 flex-col px-2 py-1; border-left: var(--studio-border-width) solid var(--studio-line); }
+.isochrone-center > span,
+.isochrone-duration > span:first-child { @apply text-[10px] font-medium uppercase tracking-wide; color: var(--studio-text-muted); }
+.isochrone-center > strong { @apply max-w-44 truncate text-xs font-medium; color: var(--studio-text); }
+.isochrone-center > small { @apply text-[10px] tabular-nums; color: var(--studio-text-muted); }
+.isochrone-profiles { @apply flex overflow-hidden; border: var(--studio-border-width) solid var(--studio-line-strong); border-radius: var(--studio-radius-md); }
+.isochrone-profiles > button { @apply flex min-h-10 items-center gap-1 px-2 text-xs; }
+.isochrone-profiles > button + button { border-left: var(--studio-border-width) solid var(--studio-line); }
+.isochrone-profiles > button[aria-checked="true"] { background: var(--studio-text); color: var(--studio-on-dark); }
+.isochrone-duration { @apply flex items-center gap-1; }
+.isochrone-duration > input { @apply h-8 w-16 px-2 text-right tabular-nums; border: var(--studio-border-width) solid var(--studio-line-strong); border-radius: var(--studio-radius-md); background: var(--studio-surface); }
+.isochrone-error { @apply max-w-56 text-xs; color: var(--studio-danger); }
+.isochrone-actions { @apply flex items-center gap-1; }
+.isochrone-actions > button { @apply min-h-10 px-2.5 text-xs; border-radius: var(--studio-radius-md); }
+.isochrone-actions > button:not(.primary-button):hover { background: var(--studio-field); }
+.shape-drawing-hint { color: var(--studio-text-muted); }
 .administrative-region-options {
   @apply grid grid-cols-2 gap-x-3 gap-y-1 border-0 p-1;
   width: min(22rem, calc(100vw - 2rem));
@@ -287,7 +428,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .administrative-region-error { color: var(--studio-danger); font-size: var(--studio-font-meta); }
 .map-authoring-panel > span { @apply whitespace-nowrap px-1; }
 .map-authoring-panel > button:not(.primary-button) {
-  @apply h-7 px-2;
+  @apply inline-flex h-7 items-center gap-1 px-2;
   border-radius: var(--studio-radius-md);
 }
 .map-authoring-panel > button:not(.primary-button):hover { background: var(--studio-field); }
@@ -324,16 +465,23 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .poi-spreadsheet-actions { @apply flex justify-end gap-2; }
 .poi-spreadsheet-actions button { @apply h-7 px-2.5; border-radius: var(--studio-radius-md); }
 .poi-spreadsheet-actions button:not(.primary-button):hover { background: var(--studio-field); }
-.canvas-status {
-  @apply absolute bottom-2.5 right-2.5 flex items-center px-1;
-  height: 1.625rem;
-  border: var(--studio-border-width) solid var(--studio-line-strong);
-  border-radius: var(--studio-radius-md);
+.map-scale {
+  @apply absolute bottom-3 right-3 z-30;
+  height: 0.5rem;
+  border-right: 1px solid color-mix(in srgb, var(--studio-text-strong) 82%, transparent);
+  border-bottom: 2px solid color-mix(in srgb, var(--studio-text-strong) 82%, transparent);
+  border-left: 1px solid color-mix(in srgb, var(--studio-text-strong) 82%, transparent);
+  color: var(--studio-text-strong);
+  pointer-events: none;
+}
+.map-scale span {
+  @apply absolute bottom-full left-1/2 -translate-x-1/2 whitespace-nowrap px-1 py-0.5;
+  border-radius: var(--studio-radius-xs);
   background: var(--studio-surface);
   font-size: 0.625rem;
+  font-weight: 600;
+  line-height: 1;
 }
-.canvas-status button { @apply h-[22px] px-1.5; color: var(--studio-text-secondary); }
-.canvas-status span { @apply h-3 w-px; background: var(--studio-line); }
 
 .properties-title { @apply relative flex items-center justify-between py-2 pl-4 pr-3; min-height: 3.75rem; }
 .properties-title h2 { @apply m-0 text-sm font-semibold; }
@@ -628,17 +776,66 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .route-vertex-actions button:hover:not(:disabled) { background: var(--studio-field); }
 .route-vertex-actions button:disabled { @apply cursor-default; color: var(--studio-text-subtle); }
 .route-vertex-hint { @apply mt-1 block; color: var(--studio-text-muted); line-height: 1.35; }
-.route-vertex-marker {
-  width: 1.5rem;
-  height: 1.5rem;
+.route-vertex-marker,
+.shape-vertex-marker,
+.shape-midpoint-marker,
+.shape-transform-marker {
+  touch-action: none;
+  user-select: none;
+}
+.route-vertex-marker,
+.shape-vertex-marker {
+  width: 1.25rem;
+  height: 1.25rem;
   padding: 0;
   border: 3px solid var(--studio-accent-strong);
   border-radius: 50%;
   background: var(--studio-surface);
   cursor: grab;
 }
-.route-vertex-marker:active { cursor: grabbing; }
-.route-vertex-marker:focus-visible { outline: 2px solid var(--studio-focus); outline-offset: 2px; }
+.route-vertex-marker:active,
+.shape-vertex-marker:active { cursor: grabbing; }
+.shape-midpoint-marker {
+  width: 0.875rem;
+  height: 0.875rem;
+  padding: 0;
+  border: 2px solid var(--studio-surface);
+  border-radius: 50%;
+  background: var(--studio-accent-strong);
+  box-shadow: 0 0 0 1px var(--studio-accent-strong);
+  cursor: copy;
+}
+.route-vertex-marker:focus-visible,
+.shape-vertex-marker:focus-visible,
+.shape-midpoint-marker:focus-visible { outline: 2px solid var(--studio-focus); outline-offset: 2px; }
+.shape-transform-marker {
+  width: 1.125rem;
+  height: 1.125rem;
+  padding: 0;
+  border: 2px solid var(--studio-accent-strong);
+  border-radius: 0.1875rem;
+  background: var(--studio-surface);
+  cursor: nwse-resize;
+}
+.shape-transform-marker.is-top-right,
+.shape-transform-marker.is-bottom-left { cursor: nesw-resize; }
+.shape-transform-marker.is-move {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  cursor: move;
+}
+.shape-transform-marker.is-move::before,
+.shape-transform-marker.is-move::after {
+  content: '';
+  position: absolute;
+  inset: 50% auto auto 50%;
+  background: var(--studio-accent-strong);
+  transform: translate(-50%, -50%);
+}
+.shape-transform-marker.is-move::before { width: 0.625rem; height: 2px; }
+.shape-transform-marker.is-move::after { width: 2px; height: 0.625rem; }
+.shape-transform-marker:focus-visible { outline: 2px solid var(--studio-focus); outline-offset: 2px; }
 .layer-menu {
   @apply absolute right-2 top-11 z-50 grid min-w-36 p-1;
   border: var(--studio-border-width) solid var(--studio-line-hover);
@@ -848,6 +1045,73 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 .export-dialog > .export-dialog-actions > button:not(.primary-button):hover { background: var(--studio-field); }
 
+@media (pointer: coarse) {
+  .route-vertex-marker,
+  .shape-vertex-marker,
+  .shape-midpoint-marker,
+  .shape-transform-marker,
+  .shape-transform-marker.is-move {
+    width: 44px;
+    height: 44px;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    box-shadow: none;
+  }
+  .route-vertex-marker::before,
+  .shape-vertex-marker::before,
+  .shape-midpoint-marker::before,
+  .shape-transform-marker::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    box-sizing: border-box;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+  }
+
+  .route-vertex-marker::before,
+  .shape-vertex-marker::before {
+    width: 20px;
+    height: 20px;
+    border: 3px solid var(--studio-accent-strong);
+    border-radius: 50%;
+    background: var(--studio-surface);
+  }
+  .shape-midpoint-marker::before {
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--studio-surface);
+    border-radius: 50%;
+    outline: 1px solid var(--studio-accent-strong);
+    background: var(--studio-accent-strong);
+  }
+  .shape-transform-marker::before {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--studio-accent-strong);
+    border-radius: 3px;
+    background: var(--studio-surface);
+  }
+  .shape-transform-marker.is-move::before {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+  }
+  .shape-transform-marker.is-move::after {
+    content: '+';
+    width: 24px;
+    height: 24px;
+    color: var(--studio-accent-strong);
+    background: transparent;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 22px;
+    text-align: center;
+  }
+}
+
 @media (max-width: 420px) {
   .export-format-option { @apply px-2; }
   .export-format-option small { font-size: var(--studio-font-meta); }
@@ -903,8 +1167,8 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 
 @media (max-width: 899px) {
   .studio-shell { grid-template: calc(var(--studio-topbar-height) + var(--studio-safe-top)) minmax(0, 1fr) / minmax(0, 1fr); }
-  .history-actions, .quiet-button, .canvas-status { @apply hidden; }
-  .document-actions .project-share-button,
+  .history-actions, .quiet-button { @apply hidden; }
+  .document-actions .quiet-button,
   .document-actions > .primary-button {
     @apply inline-flex px-2;
     height: 2.75rem;
@@ -979,6 +1243,10 @@ button:focus-visible, input:focus-visible, select:focus-visible {
     scrollbar-width: none;
   }
   .tool-palette::-webkit-scrollbar { display: none; }
+  .shape-editing-toolbar {
+    bottom: calc(max(14px, var(--studio-safe-bottom)) + 3.5rem);
+    left: calc(50% + (var(--studio-safe-left) - var(--studio-safe-right)) / 2);
+  }
   .map-authoring-panel {
     bottom: calc(max(14px, var(--studio-safe-bottom)) + 3.5rem);
     max-width: calc(100vw - 16px - var(--studio-safe-left) - var(--studio-safe-right));
@@ -1020,6 +1288,11 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   .print-frame {
     width: min(86cqw, calc(64cqh * var(--studio-page-ratio, 1.4142857)));
   }
+}
+
+@media (max-width: 560px) {
+  .project-title, .top-divider { display: none; }
+  .location-search { top: 3.5rem; width: calc(100% - 1rem); }
 }
 
 @media (forced-colors: active) {

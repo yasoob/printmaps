@@ -1,5 +1,6 @@
 import type { Map as MapLibreMap } from 'maplibre-gl';
-import type { ContentLayer } from '../domain/project';
+import { sampleArc } from '../domain/routeArcGeometry';
+import type { ContentLayer, LayerGeometry, ShapeGeometry } from '../domain/project';
 
 const SOURCE_PREFIX = 'studio-source-';
 const WORLD_MASK_RING: [number, number][] = [
@@ -11,13 +12,18 @@ export function mapContentSourceId(id: string, role?: string): string {
   return `${SOURCE_PREFIX}${encodedContentId(id)}${role ? `:${role}` : ''}`;
 }
 
-export function mapGeometryForLayer(layer: ContentLayer): NonNullable<ContentLayer['geometry']> {
-  const geometry = layer.geometry;
-  if (
-    (geometry?.type === 'Polygon' || geometry?.type === 'MultiPolygon')
+type GeoJsonGeometry = Exclude<LayerGeometry, { type: 'Arc' }>;
+
+function isInvertedShape(layer: ContentLayer, geometry: LayerGeometry | undefined): geometry is ShapeGeometry {
+  return (geometry?.type === 'Polygon' || geometry?.type === 'MultiPolygon')
     && layer.appearance?.kind === 'shape'
-    && layer.appearance.invert
-  ) {
+    && layer.appearance.invert;
+}
+
+export function mapGeometryForLayer(layer: ContentLayer): GeoJsonGeometry {
+  const geometry = layer.geometry;
+  if (geometry?.type === 'Arc') return { type: 'LineString', coordinates: sampleArc(geometry) };
+  if (isInvertedShape(layer, geometry)) {
     const polygons = geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates;
     if (polygons.some((polygon) => polygon.length === 0)) {
       throw new Error(`Shape layer "${layer.id}" contains an empty polygon.`);
@@ -36,7 +42,7 @@ export function addMapContentSource(
   map: MapLibreMap,
   id: string,
   layer: ContentLayer,
-  geometry: NonNullable<ContentLayer['geometry']>,
+  geometry: GeoJsonGeometry,
 ) {
   map.addSource(id, {
     type: 'geojson',

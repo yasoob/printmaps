@@ -1,4 +1,6 @@
 import type { Map as MapLibreMap, PointLike } from 'maplibre-gl';
+import { queryMapContentFeature } from './MapContentHitTesting';
+import { createRouteArcOverlay } from './MapRouteArcOverlay';
 import type { ContentLayer } from '../domain/project';
 import { decodeCustomMarkerImage, type CustomMarkerAsset, type DecodedCustomMarkerImage } from '../domain/customMarkerAssets';
 import {
@@ -205,6 +207,7 @@ export function createMapLibreContentAdapter(
   let cachedGeometry = '';
   let isCleanupPending = false;
   const markerImages = createMarkerImageRegistry(map, options.decodeImage ?? decodeCustomMarkerImage);
+  const routeArcs = createRouteArcOverlay(map);
 
   const layerSnapshot = (layers: ContentLayer[], contentRevision?: object) => {
     if (contentRevision !== undefined && contentRevision === cachedContentRevision) {
@@ -212,9 +215,10 @@ export function createMapLibreContentAdapter(
     }
     const visibleLayers = visibleContentLayers(layers);
     const structure = contentStructure(visibleLayers);
-    const geometry = visibleLayers.map((layer) => (
-      `${layer.id}:${JSON.stringify(layer.geometry?.coordinates)}`
-    )).join('|');
+    const geometry = visibleLayers.map((layer) => {
+      const positions = layer.geometry?.type === 'Arc' ? layer.geometry.anchors : layer.geometry?.coordinates;
+      return `${layer.id}:${JSON.stringify(positions)}`;
+    }).join('|');
     if (contentRevision !== undefined) {
       cachedContentRevision = contentRevision;
       cachedVisibleLayers = visibleLayers;
@@ -239,6 +243,7 @@ export function createMapLibreContentAdapter(
       if (!isCleanupPending && nextStructure === rendered.structure) {
         markerImages.prune(visibleLayers);
         updateRenderedContent(map, visibleLayers, state);
+        if (!routeArcs.sync(state)) throw new Error('Route arc synchronization failed');
         updateContainerState(container, state, visibleLayers, geometry);
         return 'synced';
       }
@@ -246,11 +251,13 @@ export function createMapLibreContentAdapter(
       if (!cleanup()) throw new Error('Map content cleanup incomplete');
       markerImages.prune(visibleLayers);
       addRenderedContent(map, visibleLayers, state, rendered);
+      if (!routeArcs.sync(state)) throw new Error('Route arc synchronization failed');
       rendered.structure = nextStructure;
       updateContainerState(container, state, visibleLayers, geometry);
       return 'synced';
     } catch (error) {
       cleanup();
+      routeArcs.sync({ layers: [], selectedId: null, previewedId: null });
       markContainerFailure(container, error);
       return 'failed';
     }
@@ -259,9 +266,13 @@ export function createMapLibreContentAdapter(
   return {
     sync,
     hitTest: (point) => {
+      if (!Array.isArray(point) && 'x' in point && 'y' in point) {
+        const arcLayerId = routeArcs.hitTest(point);
+        if (arcLayerId) return arcLayerId;
+      }
       if (rendered.hitTestLayerIds.length === 0) return null;
       try {
-        const feature = map.queryRenderedFeatures(point, { layers: rendered.hitTestLayerIds })[0];
+        const feature = queryMapContentFeature(map, rendered.hitTestLayerIds, point);
         const hitLayerId = typeof feature?.properties?.layerId === 'string' ? feature.properties.layerId : null;
         delete container.dataset.mapContentError;
         return hitLayerId;
@@ -271,6 +282,7 @@ export function createMapLibreContentAdapter(
       }
     },
     setExportVisibility: (isVisible) => {
+      if (!routeArcs.setExportVisibility(isVisible)) return false;
       const changed: string[] = [];
       const visibility = isVisible ? 'visible' : 'none';
       try {
@@ -280,6 +292,7 @@ export function createMapLibreContentAdapter(
         }
         return true;
       } catch {
+        routeArcs.setExportVisibility(!isVisible);
         const rollbackVisibility = isVisible ? 'none' : 'visible';
         for (const id of changed) {
           try {
@@ -294,6 +307,7 @@ export function createMapLibreContentAdapter(
     destroy: () => {
       const cleaned = cleanup();
       markerImages.destroy();
+      routeArcs.destroy();
       return cleaned;
     },
   };

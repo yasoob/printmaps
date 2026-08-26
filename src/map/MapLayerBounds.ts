@@ -1,3 +1,4 @@
+import { sampleArc } from '../domain/routeArcGeometry';
 import { MAX_MERCATOR_LATITUDE, type ContentLayer } from '../domain/project';
 
 export type MapBounds = [[number, number], [number, number]];
@@ -8,6 +9,7 @@ function geometryCoordinates(layer: ContentLayer): readonly (readonly [number, n
   if (!geometry) return [];
   switch (geometry.type) {
     case 'Point': { return [geometry.coordinates]; }
+    case 'Arc': { return sampleArc(geometry, 48); }
     case 'LineString': { return geometry.coordinates; }
     case 'Polygon': { return geometry.coordinates.flat(); }
     case 'MultiPolygon': { return geometry.coordinates.flat(MULTIPOLYGON_FLAT_DEPTH); }

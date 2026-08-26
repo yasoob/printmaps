@@ -1,7 +1,9 @@
+import type { ArcGeometry } from './routeArcGeometry';
 import { createDefaultLayerAppearance, type LayerAppearance } from './layerAppearance';
 import type { CustomMarkerAsset } from './customMarkerAssets';
 import { MAP_STYLE_PRESET_LABELS, type MapStylePreset } from './mapStylePresets';
 
+export type { ArcGeometry } from './routeArcGeometry';
 export { createDefaultLayerAppearance } from './layerAppearance';
 export type {
   LayerAppearance,
@@ -10,7 +12,7 @@ export type {
   ShapeAppearance,
 } from './layerAppearance';
 
-export const PROJECT_SCHEMA_VERSION = 17 as const;
+export const PROJECT_SCHEMA_VERSION = 18 as const;
 export const MAX_MERCATOR_LATITUDE = 85.051129;
 export const MAX_MAP_ZOOM = 22;
 
@@ -53,7 +55,24 @@ export type PolygonGeometry = { type: 'Polygon'; coordinates: [number, number][]
 export type MultiPolygonGeometry = { type: 'MultiPolygon'; coordinates: [number, number][][][] };
 export type ShapeGeometry = PolygonGeometry | MultiPolygonGeometry;
 
+export type IsochroneProvenance = {
+  provider: 'mapbox';
+  service: 'isochrone-v1';
+  center: [number, number];
+  profile: 'driving' | 'cycling' | 'walking';
+  minutes: number;
+};
+
+export type IsochroneAreaInput = {
+  center: [number, number];
+  geometry: ShapeGeometry;
+  label: string;
+  profile: IsochroneProvenance['profile'];
+  minutes: number;
+};
+
 export type LayerGeometry =
+  | ArcGeometry
   | ShapeGeometry
   | { type: 'Point'; coordinates: [number, number] }
   | { type: 'LineString'; coordinates: [number, number][] };
@@ -67,6 +86,7 @@ export type ContentLayer = {
   opacity: number;
   appearance?: LayerAppearance;
   geometry?: LayerGeometry;
+  provenance?: IsochroneProvenance;
 };
 
 export type ProjectDocument = {
@@ -116,10 +136,24 @@ export function mapStyleBasemapName(preset: MapStylePreset): string {
 
 export function cloneContentLayer(layer: ContentLayer): ContentLayer {
   const appearance = layer.appearance ? { ...layer.appearance } : undefined;
+  const provenance = layer.provenance ? {
+    ...layer.provenance,
+    center: [...layer.provenance.center] as [number, number],
+  } : undefined;
   const base = { ...layer };
   delete base.appearance;
-  const copy = appearance ? { ...base, appearance } : base;
+  delete base.provenance;
+  const copy = { ...base, ...(appearance && { appearance }), ...(provenance && { provenance }) };
   if (!layer.geometry) return copy;
+  if (layer.geometry.type === 'Arc') {
+    return {
+      ...copy,
+      geometry: {
+        type: 'Arc',
+        anchors: layer.geometry.anchors.map((position) => [...position]) as ArcGeometry['anchors'],
+      },
+    };
+  }
   if (layer.geometry.type === 'Point') {
     return { ...copy, geometry: { ...layer.geometry, coordinates: [...layer.geometry.coordinates] } };
   }

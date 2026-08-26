@@ -104,7 +104,7 @@ describe('autosave modal arbitration', () => {
     await waitFor(() => expect(exportTrigger).toHaveFocus());
   });
 
-  it('preempts an open import review when a delayed recovery decision arrives', async () => {
+  it('preempts an open import review and restores its trigger after a delayed recovery decision', async () => {
     const user = userEvent.setup();
     const { repository, resolveLoad } = createDelayedDraftRepository();
     const { container } = render(<App autosaveRepository={repository} />);

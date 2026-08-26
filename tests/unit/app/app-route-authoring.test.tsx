@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../../../src/app/App';
 import { createInitialProjectDocument } from '../../../src/domain/project';
@@ -6,23 +6,48 @@ import { createInitialProjectDocument } from '../../../src/domain/project';
 vi.mock('../../../src/map/MapCanvas', async () => import('./MapCanvasMock'));
 
 describe('straight route authoring', () => {
+  it('uses roving arrow, Home, and End selection in route radio groups', async () => {
+    const user = userEvent.setup();
+    render(<App autosaveRepository={null} />);
+    await user.click(screen.getByRole('button', { name: 'Route (R)' }));
+
+    const path = screen.getByRole('radiogroup', { name: 'Route path' });
+    const straight = within(path).getByRole('radio', { name: 'Straight' });
+    const arc = within(path).getByRole('radio', { name: 'Arc' });
+    expect(straight).toHaveAttribute('tabindex', '0');
+    expect(arc).toHaveAttribute('tabindex', '-1');
+    straight.focus();
+    await user.keyboard('{ArrowRight}');
+    expect(arc).toHaveFocus();
+    expect(arc).toHaveAttribute('aria-checked', 'true');
+    await user.keyboard('{Home}');
+    expect(straight).toHaveFocus();
+
+    const markers = screen.getByRole('radiogroup', { name: 'Travel mode marker' });
+    const none = within(markers).getByRole('radio', { name: 'No travel marker' });
+    const ship = within(markers).getByRole('radio', { name: 'Ship travel marker' });
+    none.focus();
+    await user.keyboard('{ArrowLeft}');
+    expect(ship).toHaveFocus();
+    expect(ship).toHaveAttribute('aria-checked', 'true');
+    await user.keyboard('{Home}');
+    expect(none).toHaveFocus();
+  });
+
   it('authors an arc with a travel profile and printable mode marker', async () => {
     const user = userEvent.setup();
     render(<App autosaveRepository={null} />);
 
     await user.click(screen.getByRole('button', { name: 'Route (R)' }));
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Route line shape' }), 'arc');
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Route travel profile' }), 'air');
-    await user.click(screen.getByRole('checkbox', { name: 'Show travel-mode marker' }));
+    expect(screen.queryByRole('combobox', { name: 'Route line shape' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('radio', { name: 'Arc' }));
+    await user.click(screen.getByRole('radio', { name: 'Air travel marker' }));
     await user.click(screen.getByRole('button', { name: 'Map route point 1' }));
+    expect(screen.getByRole('status', { name: 'Route drawing status' })).toHaveTextContent('1 point');
     await user.click(screen.getByRole('button', { name: 'Map route point 2' }));
 
-    expect(screen.getByRole('status', { name: 'Route drawing status' })).toHaveTextContent('Arc route · Air · 2 points');
-    const draftGeometry = screen.getByTestId('map-canvas').dataset.layerGeometry ?? '';
-    expect(draftGeometry.match(/route-draft:/)?.input).not.toContain('route-draft:[[16.31,48.19],[16.4,48.24]]');
-
-    await user.click(screen.getByRole('button', { name: 'Finish route' }));
-
+    expect(screen.queryByRole('status', { name: 'Route drawing status' })).not.toBeInTheDocument();
+    expect(screen.getByTestId('map-canvas').dataset.layerGeometry).toContain('route-02:[[16.31,48.19],[16.4,48.24]]');
     expect(screen.getByRole('combobox', { name: 'Route travel profile' })).toHaveValue('air');
     expect(screen.getByRole('checkbox', { name: 'Show travel-mode marker' })).toBeChecked();
   });

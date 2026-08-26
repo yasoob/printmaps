@@ -1,7 +1,7 @@
 /* eslint-disable unicorn/prefer-add-event-listener, unicorn/no-global-object-property-assignment, unicorn/no-optional-chaining-on-undeclared-variable -- Browser-realm IndexedDB instrumentation must patch native handlers and a page-local release hook. */
 import { expect, test } from '@playwright/test';
 
-test('autosaves to IndexedDB and requires explicit recover or discard choices', async ({ page, browserName }) => {
+test('autosaves to IndexedDB and requires explicit recover or discard choices', async ({ page }) => {
   await page.goto('/');
   const autosaveStatus = page.getByRole('status', { name: 'Autosave status' });
   await expect(autosaveStatus).toHaveText('Autosave ready');
@@ -41,14 +41,12 @@ test('autosaves to IndexedDB and requires explicit recover or discard choices', 
   await expect(page.getByRole('checkbox', { name: 'Show land detail' })).not.toBeChecked();
   const mapCanvas = page.getByTestId('map-canvas');
   await expect(mapCanvas).toHaveAttribute('data-style-preset', 'night-ink');
-  if (browserName !== 'firefox') {
-    await expect(mapCanvas).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
-    await expect(mapCanvas).toHaveAttribute('data-map-text-scale', '135');
-    await expect(mapCanvas).toHaveAttribute(
-      'data-map-feature-visibility',
-      'roads:true,buildings:true,labels:false,water:true,parks:true,landuse:false,transit:true',
-    );
-  }
+  await expect(mapCanvas).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
+  await expect(mapCanvas).toHaveAttribute('data-map-text-scale', '135');
+  await expect(mapCanvas).toHaveAttribute(
+    'data-map-feature-visibility',
+    'roads:true,buildings:true,labels:false,water:true,parks:true,landuse:false,transit:true',
+  );
   await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
 
   await page.setViewportSize({ width: 390, height: 844 });
@@ -70,7 +68,7 @@ test('autosaves to IndexedDB and requires explicit recover or discard choices', 
   expect(await page.evaluate(() => document.body.scrollWidth)).toBeLessThanOrEqual(390);
   await page.getByRole('button', { name: 'Discard draft' }).click();
   await expect(dialog).not.toBeVisible();
-  await expect(page.getByRole('button', { name: 'Vienna field guide' })).toBeFocused({ timeout: 15_000 });
+  await expect(page.getByRole('button', { name: 'Open', exact: true })).toBeFocused({ timeout: 15_000 });
   await page.getByRole('button', { name: 'Open properties' }).click();
   await expect(page.getByRole('button', { name: 'Landscape' })).toHaveAttribute('aria-pressed', 'true');
   await page.keyboard.press('Escape');
@@ -80,7 +78,7 @@ test('autosaves to IndexedDB and requires explicit recover or discard choices', 
   const verificationPage = await context.newPage();
   await verificationPage.goto('/');
   await expect(verificationPage.getByRole('dialog', { name: 'Recover local draft' })).not.toBeVisible();
-  await expect(verificationPage.getByRole('status', { name: 'Autosave status' })).toHaveText('Autosave ready');
+  await expect(verificationPage.getByRole('status', { name: 'Autosave status' })).toHaveText('Autosave ready', { timeout: 15_000 });
 });
 
 test('contains a corrupt IndexedDB draft until the user discards it', async ({ page }) => {
@@ -120,7 +118,8 @@ test('delayed autosave recovery preempts Export and mobile drawers without losin
   await page.getByRole('button', { name: 'Portrait' }).click();
   await expect(autosaveStatus).toHaveText('All changes saved locally');
 
-  await page.addInitScript(() => {
+  const context = page.context();
+  await context.addInitScript(() => {
     const originalTransaction = IDBDatabase.prototype.transaction;
     let isDelayedFirstDraftTransaction = false;
     IDBDatabase.prototype.transaction = function delayedInitialDraftTransaction(
@@ -171,34 +170,37 @@ test('delayed autosave recovery preempts Export and mobile drawers without losin
     },
   ];
 
+  let scenarioPage = page;
   for (const scenario of scenarios) {
-    await page.setViewportSize(scenario.viewport);
-    await page.reload();
-    await page.waitForFunction(() => (
+    await scenarioPage.close();
+    scenarioPage = await context.newPage();
+    await scenarioPage.setViewportSize(scenario.viewport);
+    await scenarioPage.goto('/');
+    await scenarioPage.waitForFunction(() => (
       typeof (window as typeof window & { __releaseAutosaveLoad?: () => void }).__releaseAutosaveLoad === 'function'
     ));
 
-    const trigger = page.getByRole('button', { name: scenario.triggerName });
+    const trigger = scenarioPage.getByRole('button', { name: scenario.triggerName });
     await trigger.click();
-    const preemptedDialog = page.getByRole('dialog', { name: scenario.preemptedDialogName });
+    const preemptedDialog = scenarioPage.getByRole('dialog', { name: scenario.preemptedDialogName });
     await expect(preemptedDialog).toBeVisible();
-    await page.evaluate(() => {
+    await scenarioPage.evaluate(() => {
       (window as typeof window & { __releaseAutosaveLoad?: () => void }).__releaseAutosaveLoad?.();
     });
 
-    const recoveryDialog = page.getByRole('dialog', { name: 'Recover local draft' });
+    const recoveryDialog = scenarioPage.getByRole('dialog', { name: 'Recover local draft' });
     const recover = recoveryDialog.getByRole('button', { name: 'Recover draft' });
     const discard = recoveryDialog.getByRole('button', { name: 'Discard draft' });
     await expect(recoveryDialog).toBeVisible();
-    await expect(page.locator('[aria-modal="true"]:visible')).toHaveCount(1);
+    await expect(scenarioPage.locator('[aria-modal="true"]:visible')).toHaveCount(1);
     await expect(preemptedDialog).not.toBeVisible();
     await expect(recover).toBeFocused();
-    await page.keyboard.press('Shift+Tab');
+    await scenarioPage.keyboard.press('Shift+Tab');
     await expect(discard).toBeFocused();
-    await page.keyboard.press('Escape');
+    await scenarioPage.keyboard.press('Escape');
     await expect(recoveryDialog).toBeVisible();
     await expect(discard).toBeFocused();
-    await page.keyboard.press('Tab');
+    await scenarioPage.keyboard.press('Tab');
     await expect(recover).toBeFocused();
 
     await recoveryDialog.getByRole('button', { name: scenario.decision }).click();

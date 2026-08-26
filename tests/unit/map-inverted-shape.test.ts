@@ -9,6 +9,7 @@ function mapHarness() {
   const queryRenderedFeatures = vi.fn(() => []);
   const map = {
     isStyleLoaded: () => true,
+    addControl: vi.fn(),
     addSource: (id: string, source: unknown) => sources.set(id, source),
     getSource: (id: string) => sources.get(id),
     removeSource: (id: string) => sources.delete(id),

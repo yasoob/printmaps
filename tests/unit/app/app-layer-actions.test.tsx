@@ -1,13 +1,30 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../../../src/app/App';
 import { exportMocks } from './exportMocks';
 
 vi.mock('../../../src/map/MapCanvas', async () => import('./MapCanvasMock'));
 
+function stubMobileViewport() {
+  vi.stubGlobal('matchMedia', vi.fn((query: string) => ({
+    matches: query === '(max-width: 899px)' || query === '(prefers-reduced-motion: reduce)',
+    media: query,
+    onchange: null,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })));
+}
+
 describe('editor layer actions', () => {
   beforeEach(() => {
     exportMocks.exporter = null;
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('covers redo, list locking, property toggles, duplication, and deletion focus', async () => {
@@ -45,6 +62,73 @@ describe('editor layer actions', () => {
     await user.click(screen.getByRole('button', { name: 'Layer menu' }));
     await user.click(screen.getByRole('menuitem', { name: 'Delete layer' }));
     expect(screen.getByRole('button', { name: 'Select City center' })).toHaveFocus();
+  });
+
+  it('restores focus to the replacement layer menu after duplicating inside the properties drawer', async () => {
+    stubMobileViewport();
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: 'Select Route 01' }));
+    await user.click(screen.getByRole('button', { name: 'Open properties' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Close properties' })).toHaveFocus());
+    await user.click(screen.getByRole('button', { name: 'Layer menu' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Duplicate layer' }));
+
+    expect(screen.getByRole('heading', { name: 'Route 01 copy' })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Layer menu' })).toHaveFocus());
+  });
+
+  it('uses the current layer order when deleting through a memoized properties menu', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: 'Select Coffee stop' }));
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Reorder Coffee stop' }), {
+      altKey: true,
+      key: 'ArrowDown',
+    });
+    await user.click(screen.getByRole('button', { name: 'Layer menu' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Delete layer' }));
+
+    expect(screen.getByRole('button', { name: 'Select Paper basemap' })).toHaveFocus();
+  });
+
+  it('deletes the selected editable layer with Backspace or Delete without hijacking fields', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    const city = screen.getByRole('button', { name: 'Select City center' });
+    await user.click(city);
+    await user.keyboard('{Backspace}');
+    expect(screen.queryByRole('button', { name: 'Select City center' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeEnabled();
+
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    await user.click(screen.getByRole('button', { name: 'Select City center' }));
+    const name = screen.getByRole('textbox', { name: 'Layer name' });
+    await user.click(name);
+    await user.keyboard('{Backspace}');
+    expect(screen.getByRole('button', { name: 'Select City center' })).toBeInTheDocument();
+    await user.keyboard('r');
+    await user.tab();
+
+    await user.click(screen.getByRole('button', { name: 'Select City center' }));
+    await user.keyboard('{Delete}');
+    expect(screen.queryByRole('button', { name: 'Select City center' })).not.toBeInTheDocument();
+  });
+
+  it('does not delete a selected locked layer with Backspace or Delete', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: 'Lock City center' }));
+    const city = screen.getByRole('button', { name: 'Select City center' });
+    await user.click(city);
+    await user.keyboard('{Backspace}{Delete}');
+
+    expect(city).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'City center' })).toBeInTheDocument();
   });
 
   it('keeps destructive layer actions in the compact layer menu', async () => {

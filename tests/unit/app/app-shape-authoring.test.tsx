@@ -5,12 +5,31 @@ import { createInitialProjectDocument } from '../../../src/domain/project';
 
 vi.mock('../../../src/map/MapCanvas', async () => import('./MapCanvasMock'));
 
+it('uses roving arrow, Home, and End selection in the Shape tablist', async () => {
+  const user = userEvent.setup();
+  render(<App autosaveRepository={null} />);
+  await user.click(screen.getByRole('button', { name: 'Area (S)' }));
+
+  const administrative = screen.getByRole('tab', { name: 'Find administrative area' });
+  const draw = screen.getByRole('tab', { name: 'Draw custom area' });
+  expect(administrative).toHaveAttribute('tabindex', '0');
+  expect(draw).toHaveAttribute('tabindex', '-1');
+  administrative.focus();
+  await user.keyboard('{ArrowRight}');
+  expect(screen.getByRole('tab', { name: 'Draw custom area' })).toHaveFocus();
+  expect(screen.getByRole('tab', { name: 'Draw custom area' })).toHaveAttribute('aria-selected', 'true');
+  await user.keyboard('{Home}');
+  expect(screen.getByRole('tab', { name: 'Find administrative area' })).toHaveFocus();
+  await user.keyboard('{End}');
+  expect(screen.getByRole('tab', { name: 'Travel time' })).toHaveFocus();
+});
+
 describe('polygon authoring', () => {
   it('adds one sourced Vienna municipal district as a fitted undoable shape', async () => {
     const user = userEvent.setup();
     render(<App autosaveRepository={null} />);
 
-    await user.click(screen.getByRole('button', { name: 'Shape (S)' }));
+    await user.click(screen.getByRole('button', { name: 'Area (S)' }));
     await user.selectOptions(screen.getByRole('combobox', { name: 'Administrative level' }), 'municipality');
     const district = screen.getByRole('combobox', { name: 'Vienna district' });
     expect(within(district).getAllByRole('option')).toHaveLength(23);
@@ -35,7 +54,9 @@ describe('polygon authoring', () => {
     const user = userEvent.setup();
     render(<App autosaveRepository={null} />);
 
-    await user.click(screen.getByRole('button', { name: 'Shape (S)' }));
+    await user.click(screen.getByRole('button', { name: 'Area (S)' }));
+    expect(screen.getByRole('tab', { name: 'Find administrative area' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.queryByRole('button', { name: 'Finish area' })).not.toBeInTheDocument();
     const areaSelect = screen.getByRole('combobox', { name: 'Administrative area' });
     await user.selectOptions(areaSelect, 'AUT');
     await user.click(screen.getByRole('button', { name: 'Add administrative area' }));
@@ -55,7 +76,7 @@ describe('polygon authoring', () => {
     const user = userEvent.setup();
     render(<App autosaveRepository={null} />);
 
-    await user.click(screen.getByRole('button', { name: 'Shape (S)' }));
+    await user.click(screen.getByRole('button', { name: 'Area (S)' }));
     await user.selectOptions(screen.getByRole('combobox', { name: 'Administrative level' }), 'region');
     await user.click(screen.getByRole('checkbox', { name: 'Lower Austria' }));
     await user.click(screen.getByRole('checkbox', { name: 'Vienna' }));
@@ -74,7 +95,7 @@ describe('polygon authoring', () => {
     const user = userEvent.setup();
     render(<App autosaveRepository={null} />);
 
-    await user.click(screen.getByRole('button', { name: 'Shape (S)' }));
+    await user.click(screen.getByRole('button', { name: 'Area (S)' }));
     await user.selectOptions(screen.getByRole('combobox', { name: 'Administrative level' }), 'region');
     await user.click(screen.getByRole('checkbox', { name: 'Tyrol' }));
     await user.click(screen.getByRole('button', { name: 'Add selected area' }));
@@ -91,7 +112,7 @@ describe('polygon authoring', () => {
     const user = userEvent.setup();
     render(<App autosaveRepository={null} />);
 
-    await user.click(screen.getByRole('button', { name: 'Shape (S)' }));
+    await user.click(screen.getByRole('button', { name: 'Area (S)' }));
     await user.selectOptions(screen.getByRole('combobox', { name: 'Administrative level' }), 'region');
     await user.click(screen.getByRole('checkbox', { name: 'Burgenland' }));
     await user.click(screen.getByRole('checkbox', { name: 'Vorarlberg' }));
@@ -100,7 +121,7 @@ describe('polygon authoring', () => {
     expect(screen.getByRole('alert', { name: 'Administrative area status' })).toHaveTextContent(
       'Choose connected single-part regions, or add Tyrol separately.',
     );
-    expect(screen.getByRole('button', { name: 'Cancel shape' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Cancel area' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Select Burgenland + Vorarlberg' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
 
@@ -114,45 +135,47 @@ describe('polygon authoring', () => {
     const user = userEvent.setup();
     render(<App autosaveRepository={null} />);
 
-    await user.click(screen.getByRole('button', { name: 'Shape (S)' }));
+    await user.click(screen.getByRole('button', { name: 'Area (S)' }));
+    await user.click(screen.getByRole('tab', { name: 'Draw custom area' }));
     expect(screen.getByRole('button', { name: 'Export' })).toBeDisabled();
-    const finish = screen.getByRole('button', { name: 'Finish shape' });
-    expect(screen.getByRole('status', { name: 'Shape drawing status' })).toHaveTextContent('0 vertices');
+    const finish = screen.getByRole('button', { name: 'Finish area' });
+    expect(screen.getByRole('status', { name: 'Area drawing status' })).toHaveTextContent('0 vertices');
     expect(finish).toBeDisabled();
 
     await user.click(screen.getByRole('button', { name: 'Map route point 1' }));
     await user.click(screen.getByRole('button', { name: 'Map route point 2' }));
-    expect(screen.getByRole('status', { name: 'Shape drawing status' })).toHaveTextContent('2 vertices');
+    expect(screen.getByRole('status', { name: 'Area drawing status' })).toHaveTextContent('2 vertices');
     expect(finish).toBeDisabled();
     expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-layer-state', expect.stringContaining('shape-draft'));
 
     await user.click(screen.getByRole('button', { name: 'Map shape point 3' }));
-    expect(screen.getByRole('status', { name: 'Shape drawing status' })).toHaveTextContent('3 vertices');
+    expect(screen.getByRole('status', { name: 'Area drawing status' })).toHaveTextContent('3 vertices');
     expect(finish).toBeEnabled();
 
     await user.click(finish);
-    expect(screen.getByRole('button', { name: 'Select Shape 01' })).toHaveAttribute('aria-current', 'true');
-    expect(screen.getByRole('heading', { name: 'Shape 01' })).toBeInTheDocument();
-    expect(screen.queryByRole('status', { name: 'Shape drawing status' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Select Area 01' })).toHaveAttribute('aria-current', 'true');
+    expect(screen.getByRole('heading', { name: 'Area 01' })).toBeInTheDocument();
+    expect(screen.queryByRole('status', { name: 'Area drawing status' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Select (V)' })).toHaveFocus();
     expect(screen.getByRole('button', { name: 'Export' })).toBeEnabled();
 
     await user.click(screen.getByRole('button', { name: 'Undo' }));
-    expect(screen.queryByRole('button', { name: 'Select Shape 01' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Select Area 01' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Redo' }));
-    expect(screen.getByRole('button', { name: 'Select Shape 01' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Select Area 01' })).toBeInTheDocument();
   });
 
   it('cancels an unfinished shape without changing project history', async () => {
     const user = userEvent.setup();
     render(<App autosaveRepository={null} />);
 
-    await user.click(screen.getByRole('button', { name: 'Shape (S)' }));
+    await user.click(screen.getByRole('button', { name: 'Area (S)' }));
+    await user.click(screen.getByRole('tab', { name: 'Draw custom area' }));
     await user.click(screen.getByRole('button', { name: 'Map route point 1' }));
-    await user.click(screen.getByRole('button', { name: 'Cancel shape' }));
+    await user.click(screen.getByRole('button', { name: 'Cancel area' }));
 
-    expect(screen.queryByRole('status', { name: 'Shape drawing status' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Select Shape 01' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('status', { name: 'Area drawing status' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Select Area 01' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Select (V)' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: 'Select (V)' })).toHaveFocus();
@@ -163,14 +186,15 @@ describe('polygon authoring', () => {
     const user = userEvent.setup();
     render(<App autosaveRepository={null} />);
 
-    await user.click(screen.getByRole('button', { name: 'Shape (S)' }));
+    await user.click(screen.getByRole('button', { name: 'Area (S)' }));
+    await user.click(screen.getByRole('tab', { name: 'Draw custom area' }));
     const repeatedPoint = screen.getByRole('button', { name: 'Map route point 1' });
     await user.click(repeatedPoint);
     await user.click(repeatedPoint);
     await user.click(repeatedPoint);
 
-    expect(screen.getByRole('status', { name: 'Shape drawing status' })).toHaveTextContent('3 vertices');
-    expect(screen.getByRole('button', { name: 'Finish shape' })).toBeDisabled();
+    expect(screen.getByRole('status', { name: 'Area drawing status' })).toHaveTextContent('3 vertices');
+    expect(screen.getByRole('button', { name: 'Finish area' })).toBeDisabled();
     expect(screen.getByTestId('map-canvas')).not.toHaveAttribute('data-layer-state', expect.stringContaining('shape-draft:true'));
     expect(screen.getByRole('button', { name: 'Export' })).toBeDisabled();
   });
@@ -178,9 +202,10 @@ describe('polygon authoring', () => {
   it('does not restore an abandoned shape draft after another project opens', async () => {
     const user = userEvent.setup();
     const { container } = render(<App autosaveRepository={null} />);
-    await user.click(screen.getByRole('button', { name: 'Shape (S)' }));
+    await user.click(screen.getByRole('button', { name: 'Area (S)' }));
+    await user.click(screen.getByRole('tab', { name: 'Draw custom area' }));
     await user.click(screen.getByRole('button', { name: 'Map route point 1' }));
-    expect(screen.getByRole('status', { name: 'Shape drawing status' })).toHaveTextContent('1 vertex');
+    expect(screen.getByRole('status', { name: 'Area drawing status' })).toHaveTextContent('1 vertex');
     const opened = createInitialProjectDocument();
     opened.id = 'opened-project';
     opened.title = 'Opened project';
@@ -192,9 +217,10 @@ describe('polygon authoring', () => {
     });
 
     expect(await screen.findByRole('button', { name: 'Opened project' })).toBeInTheDocument();
-    expect(screen.queryByRole('status', { name: 'Shape drawing status' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('status', { name: 'Area drawing status' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Export' })).toBeEnabled();
-    await user.click(screen.getByRole('button', { name: 'Shape (S)' }));
-    expect(screen.getByRole('status', { name: 'Shape drawing status' })).toHaveTextContent('0 vertices');
+    await user.click(screen.getByRole('button', { name: 'Area (S)' }));
+    await user.click(screen.getByRole('tab', { name: 'Draw custom area' }));
+    expect(screen.getByRole('status', { name: 'Area drawing status' })).toHaveTextContent('0 vertices');
   });
 });

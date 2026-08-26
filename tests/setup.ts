@@ -19,11 +19,13 @@ const testStorage: Storage = {
   setItem: (key, value) => { storedValues.set(key, value); },
 };
 
-Object.defineProperty(window, 'localStorage', {
-  configurable: true,
-  value: testStorage,
-});
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'localStorage', {
+    configurable: true,
+    value: testStorage,
+  });
 
-beforeEach(() => {
-  for (const key of inspectorPreferenceKeys) window.localStorage.setItem(key, 'open');
-});
+  beforeEach(() => {
+    for (const key of inspectorPreferenceKeys) window.localStorage.setItem(key, 'open');
+  });
+}

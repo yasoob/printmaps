@@ -108,9 +108,9 @@ describe('GeoJSON import document isolation', () => {
     });
 
     await user.click(await screen.findByRole('button', { name: 'Close map data import' }));
-    expect(screen.getByRole('button', { name: 'Import' })).toBeDisabled();
+    expect(importInput).toBeDisabled();
     await act(async () => { finishReads?.(pointGeoJson); });
-    expect(screen.getByRole('button', { name: 'Import' })).toBeEnabled();
+    expect(importInput).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
   });
 
@@ -208,7 +208,7 @@ describe('GeoJSON import document isolation', () => {
     fireEvent.change(importInput, {
       target: { files: [fileWithText('slow.geojson', slowText, 'application/geo+json')] },
     });
-    expect(screen.getByRole('button', { name: 'Import' })).toBeDisabled();
+    expect(importInput).toBeDisabled();
 
     const opened = createInitialProjectDocument();
     opened.id = 'opened-project';
@@ -223,14 +223,14 @@ describe('GeoJSON import document isolation', () => {
       },
     });
     expect(await screen.findByRole('button', { name: 'Opened while importing' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Import' })).toBeDisabled();
+    expect(importInput).toBeDisabled();
 
     await act(async () => { finishImport?.(pointGeoJson); });
 
     expect(screen.queryByRole('button', { name: 'Select Slow café' })).not.toBeInTheDocument();
     expect(screen.queryByRole('status', { name: 'Map data import status' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Import' })).toBeEnabled();
+    expect(importInput).toBeEnabled();
   });
 
   it('clears a completed import status when a document is opened later', async () => {

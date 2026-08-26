@@ -36,10 +36,10 @@ describe('editor page dimensions', () => {
     expect(preset).toHaveValue('A4');
     expect(undo).toBeDisabled();
 
-    await user.clear(field);
-    await user.type(field, nextValue);
+    await user.click(field);
+    fireEvent.change(field, { target: { value: nextValue } });
     expect(undo).toBeDisabled();
-    await user.tab();
+    fireEvent.blur(field);
     expect(field).toHaveValue(nextValue);
     expect(preset).toHaveValue('Custom');
     expect(map).toHaveAttribute('data-page-size', expectedSize);

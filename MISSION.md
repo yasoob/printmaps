@@ -17,7 +17,7 @@ The mission is complete only when all of the following are true:
 7. GPX, KML and GeoJSON fixtures import locally and appear as editable content layers.
 8. Project save/open/autosave works locally through IndexedDB and portable JSON/ZIP download/upload.
 9. PNG, PDF and layered SVG exports are generated client-side. Large raster export uses tiled/strip rendering with preflight guards and cancellation.
-10. Every implemented UI interaction has automated behavioral coverage at the appropriate level: Testing Library for deterministic component/store behavior and Playwright for real map, browser, focus, pointer, keyboard, responsive, download, and persistence flows. E2E tests exercise the complete nominal flow in Chromium, Firefox and WebKit.
+10. Every implemented UI interaction has automated behavioral coverage at the appropriate level: Testing Library for deterministic component/store behavior and Playwright for real map, focus, pointer, keyboard, responsive, download, and persistence flows. Chromium is the sole browser acceptance target. Firefox and WebKit are excluded unless the project owner explicitly requests a run.
 11. Export tests assert dimensions and named SVG groups.
 12. A 390px smoke test has no body horizontal overflow, and the browser console is clean in nominal desktop/mobile flows.
 13. `docs/FINDINGS.md` records evidence, open limitations and exact verification output. `docs/COMPLETE.md` is created only after every gate passes and includes commands, output summaries and the final commit SHA.
@@ -51,7 +51,7 @@ This product is not deployed and has no compatibility obligation to earlier deve
 3. Select one highest-value unresolved vertical slice.
 4. Follow strict RED → GREEN → REFACTOR: write one falsifiable test first and run it to observe the expected failure.
 5. Implement the smallest complete slice. Add or update tests for **every UI interaction introduced or changed** in that slice, including pointer, keyboard, selection/focus, disabled/error, and responsive behavior where applicable.
-6. Use strict targeted verification for every feature slice: run only the exact RED/GREEN unit or component tests for changed behavior, lint, typecheck, React Doctor, and the single impacted Chromium interaction flow. Do not run the full unit suite, full Chromium suite, Firefox, or WebKit as a per-feature gate. Batch the full unit suite, build, audit, and full Chromium suite after five verified slices or at a major milestone. Run Firefox and WebKit only at the final completion/release gate or for a specifically browser-dependent defect.
+6. Use strict targeted verification for every feature slice: run only the exact named RED/GREEN unit or component test for changed behavior, cheap static checks when relevant, and at most the single impacted Chromium test. Do not run a complete test file when one named test is sufficient. Do not run the full unit or Chromium suite during iteration. Batch broader unit/build/Chromium checks only at a major milestone. Never run Firefox or WebKit unless the project owner explicitly asks.
    - Export tests must not perform the same full-resolution download at multiple responsive viewports. Use lightweight/small raster fixtures for layout and interaction checks, keep one real A4 300-DPI acceptance export, and keep the large multi-region export for milestone gates. Measure one-save render, composition, encoding, and download timings separately; do not report a multi-export suite duration as one-save latency.
 7. Capture the UI at 1440×900 when visible behavior or layout changes, and at 390×844 when responsive behavior changes. For nonvisual slices, retain the last verified screenshots rather than recapturing identical UI.
 8. Update `docs/FINDINGS.md` with evidence, screenshot path when changed, and unresolved risks.
@@ -62,7 +62,7 @@ This product is not deployed and has no compatibility obligation to earlier deve
 
 - Never commit `.env.local` or the supplied public token.
 - Never ship a secret Mapbox token; only browser-safe public tokens are supported.
-- Keep the provider and map renderer behind interfaces because Mapbox display terms remain a tracked product risk.
+- Keep the provider and map renderer behind interfaces for testability and fallback behavior. The project owner has confirmed full permission for the intended Mapbox search, routing, map-matching, persistence and export workflows, so provider terms are no longer an implementation gate; public-token safety, provenance, attribution, error handling and bounded requests remain engineering requirements.
 - No gradients and no decorative drop shadows.
 - Do not claim fully vector basemaps: layered SVG/PDF keeps user overlays vector while the basemap may be raster.
 - Do not claim CMYK/PDF-X or editable PSD type.
@@ -70,7 +70,7 @@ This product is not deployed and has no compatibility obligation to earlier deve
 - Bound subprocesses and clean them up.
 - Every implemented UI interaction must be covered while it is implemented; do not defer interaction tests to a later cleanup phase.
 - Complexity must be progressively disclosed: inspector accordions show primary controls first, advanced sections stay collapsed with useful summaries, interface text remains readable, and every dialog/action uses the shared visual hierarchy defined in `docs/UI_BRIEF.md`. Accordion summaries appear only while collapsed; expanded headers show only the title, with the chevron aligned to that title.
-- Autosave is the canonical save behavior. Portable project files are explicit downloads in the project/File menu and must not appear as misleading top-bar Save controls.
+- Autosave is the canonical persistence behavior. Keep direct top-bar Open, Save, Import and Export actions; Save is precisely an explicit portable-project download, never an unsaved-state or pending-autosave indicator. Do not reintroduce Share, a File menu or an archive-download action.
 - UI chrome follows the Felt-inspired cohesion rules in `docs/UI_BRIEF.md`: muted neutral surfaces, minimal structural borders, consistent Lucide iconography, one shared dark checked control with a white tick, one shared switch, and restrained use of accent color.
 - Map style breadth is delivered through the original/open preset-gallery contract in `docs/UI_BRIEF.md`; external editor assets and proprietary tile services are research references only and never production dependencies.
 - Borders are state or structure, never decoration. Interior inspector and modal grouping defaults to spacing, typography, alignment, and subtle surface contrast; each retained divider requires a concrete hierarchy or state justification.

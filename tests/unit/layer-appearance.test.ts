@@ -83,7 +83,41 @@ describe('canonical layer appearance', () => {
     expect(route[0].paint).toMatchObject({ 'line-color': '#112233', 'line-width': 8 });
     expect(poi[0].paint).toMatchObject({ 'circle-color': '#445566', 'circle-radius': 12 });
     expect(shape[0].paint).toMatchObject({ 'fill-color': '#abcdef' });
-    expect(shape[1].paint).toMatchObject({ 'line-color': '#123456', 'line-width': 5 });
+    expect(shape[2].paint).toMatchObject({ 'line-color': '#123456', 'line-width': 5 });
+  });
+
+  it('preserves configured feature colors while selection adds non-color emphasis', () => {
+    const selected = { selectedId: 'shape', previewedId: null };
+    const route = mapLayerDescriptors(layer('route', {
+      kind: 'route', color: '#112233', width: 8, travelProfile: 'car', showTravelModeIcon: false,
+    }), { selectedId: 'route', previewedId: null });
+    const poi = mapLayerDescriptors(layer('poi', {
+      kind: 'poi', color: '#445566', size: 24, markerShape: 'circle', markerSymbol: 'none', label: '',
+    }), { selectedId: 'poi', previewedId: null });
+    const shape = mapLayerDescriptors(layer('shape', {
+      kind: 'shape', fillColor: '#abcdef', strokeColor: '#123456', strokeWidth: 5, invert: false,
+    }), selected);
+
+    expect(route[0].paint).toMatchObject({ 'line-color': '#112233', 'line-width': 10 });
+    expect(poi[0].paint).toMatchObject({ 'circle-color': '#445566', 'circle-radius': 14 });
+    expect(shape[0].paint).toMatchObject({ 'fill-color': '#abcdef' });
+    expect(shape[1].paint).toMatchObject({ 'line-color': '#006fc9', 'line-opacity': 0 });
+    expect(shape[2].paint).toMatchObject({ 'line-color': '#123456', 'line-width': 6 });
+  });
+
+  it('adds a visible hover halo beneath a shape without replacing its configured colors', () => {
+    const shape = mapLayerDescriptors(layer('shape', {
+      kind: 'shape', fillColor: '#abcdef', strokeColor: '#123456', strokeWidth: 5, invert: false,
+    }), { selectedId: null, previewedId: 'shape' });
+
+    expect(shape).toHaveLength(3);
+    expect(shape[0].paint).toMatchObject({ 'fill-color': '#abcdef' });
+    expect(shape[1].paint).toMatchObject({
+      'line-color': '#006fc9',
+      'line-opacity': 0.9,
+      'line-width': 11,
+    });
+    expect(shape[2].paint).toMatchObject({ 'line-color': '#123456', 'line-width': 5 });
   });
 
   it('renders a POI marker shape, semantic symbol, and label as live map layers', () => {

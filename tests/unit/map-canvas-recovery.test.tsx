@@ -23,6 +23,7 @@ const mocks = vi.hoisted(() => ({
   mapCount: 0,
   autoLoad: true,
   autoRender: true,
+
   synchronousLoad: false,
   throwOnFirstCleanup: false,
   styleErrorBeforeLoad: false,
@@ -84,6 +85,7 @@ vi.mock('maplibre-gl', () => {
     }
     getCanvas() { return document.createElement('canvas'); } getContainer() { return document.createElement('div'); }
     getStyle() { return { layers: [] }; }
+    loaded() { return false; }
     setLayoutProperty() {} triggerRepaint() {}
     fitBounds(...arguments_: unknown[]) { mocks.mapFitBounds(...arguments_); }
     easeTo(options: unknown) { mocks.mapEaseTo(options); }
@@ -238,8 +240,7 @@ function resetHarness() {
   mocks.mapRemove.mockReset();
   mocks.mapJumpTo.mockReset();
   mocks.mapFitBounds.mockReset();
-  mocks.mapCenter = { lng: 16.3725, lat: 48.2084 };
-  mocks.mapZoom = 11.2;
+  mocks.mapCenter = { lng: 16.3725, lat: 48.2084 }; mocks.mapZoom = 11.2;
   mocks.mapCreateOptions = [];
 
   mocks.mapHandlers = []; mocks.activeAdapterIds.clear(); mocks.activeMapIds.clear();

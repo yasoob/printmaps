@@ -75,6 +75,21 @@ describe('layered SVG print scene', () => {
     })).toBe(svgText);
   });
 
+  it('exports a canonical Arc as one vector quadratic instead of sampled line segments', () => {
+    const project = createInitialProjectDocument();
+    project.layers[0].geometry = { type: 'Arc', anchors: [[16.326, 48.194], [16.429, 48.226]] };
+
+    const svgDocument = parseSvg(serializePrintScene(project, {
+      basemap: { dataUri: onePixelPng, pixelWidth: 1, pixelHeight: 1 },
+      attribution: '© OpenStreetMap contributors',
+      project: projector,
+    }));
+    const path = requiredElement(svgDocument, '[data-layer-id="route-01"] > path').getAttribute('d') ?? '';
+
+    expect(path).toContain(' Q ');
+    expect(path).not.toContain(' L ');
+  });
+
   it('preserves custom physical dimensions exactly in millimetres and the viewBox', () => {
     const project = createInitialProjectDocument();
     project.page.widthMm = 215.9000001;
@@ -157,6 +172,9 @@ describe('layered SVG print scene', () => {
     expect(shape.getAttribute('stroke-width')).toBe('0.75');
   });
 
+});
+
+describe('layered SVG print scene validation', () => {
   it('rejects missing or malformed required raster and attribution assets', () => {
     const project = createInitialProjectDocument();
     const validOptions = {
@@ -192,7 +210,7 @@ describe('layered SVG print scene', () => {
     expect(() => serializePrintScene(project, options)).toThrow('invalid page point');
     project.layers[0].geometry = undefined;
     expect(() => serializePrintScene(project, { ...options, project: projector }))
-      .toThrow('missing valid LineString geometry');
+      .toThrow('missing valid LineString or Arc geometry');
   });
 
   it('rejects duplicate layer IDs, invalid opacity, unsafe paint, and invalid page dimensions', () => {

@@ -3,6 +3,8 @@ import { PROVIDER_RESPONSE_USE_REQUIRES_TERMS_REVIEW } from './terms';
 import type { ProviderBoundResponse } from './terms';
 import { validatePublicBrowserToken } from './token';
 
+const MAX_JSON_RESPONSE_BYTES = 1_000_000;
+
 export interface MapboxRequestOptions {
   readonly endpoint: string | URL;
   readonly fetch?: typeof globalThis.fetch;
@@ -43,16 +45,44 @@ function validateMapboxApiEndpoint(endpoint: string | URL): URL {
   return url;
 }
 
-export async function requestMapboxJson<T>(options: MapboxRequestOptions): Promise<MapboxJsonResponse<T>> {
-  const url = validateMapboxApiEndpoint(options.endpoint);
-  const token = validatePublicBrowserToken(options.token);
-  url.searchParams.set('access_token', token);
-  const fetchImplementation = options.fetch ?? globalThis.fetch;
-  let fetchResponse: Response;
+async function readBoundedJson<T>(response: Response, signal?: AbortSignal): Promise<T> {
+  if (!response.body) return response.json() as Promise<T>;
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let byteLength = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    throwIfRequestAborted(signal);
+    if (done) break;
+    byteLength += value.byteLength;
+    if (byteLength > MAX_JSON_RESPONSE_BYTES) {
+      await reader.cancel();
+      throw new MapboxProviderError(
+        'RESPONSE_INVALID',
+        'Mapbox returned a response that was too large to process safely.',
+        { status: response.status },
+      );
+    }
+    chunks.push(value);
+  }
+  const bytes = new Uint8Array(byteLength);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return JSON.parse(new TextDecoder().decode(bytes)) as T;
+}
+
+async function fetchMapboxResponse(
+  fetchImplementation: typeof globalThis.fetch,
+  url: URL,
+  signal?: AbortSignal,
+): Promise<Response> {
   try {
-    fetchResponse = await fetchImplementation(url.href, { signal: options.signal });
+    return await fetchImplementation(url.href, { signal });
   } catch (error) {
-    if (options.signal?.aborted || (error instanceof DOMException && error.name === 'AbortError')) {
+    if (signal?.aborted || (error instanceof DOMException && error.name === 'AbortError')) {
       throw new MapboxProviderError(
         'REQUEST_ABORTED',
         'The provider request was cancelled because it became stale.',
@@ -72,21 +102,41 @@ export async function requestMapboxJson<T>(options: MapboxRequestOptions): Promi
       { cause: error },
     );
   }
+}
+
+async function parseMapboxResponse<T>(response: Response, signal?: AbortSignal): Promise<T> {
+  const declaredLength = Number(response.headers.get('Content-Length'));
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_JSON_RESPONSE_BYTES) {
+    await response.body?.cancel();
+    throw new MapboxProviderError(
+      'RESPONSE_INVALID',
+      'Mapbox returned a response that was too large to process safely.',
+      { status: response.status },
+    );
+  }
+  try {
+    return await readBoundedJson<T>(response, signal);
+  } catch (error) {
+    throwIfRequestAborted(signal, error);
+    if (error instanceof MapboxProviderError) throw error;
+    throw new MapboxProviderError(
+      'RESPONSE_INVALID',
+      'Mapbox returned a response that was not valid JSON. Try the request again.',
+      { cause: error, status: response.status },
+    );
+  }
+}
+
+export async function requestMapboxJson<T>(options: MapboxRequestOptions): Promise<MapboxJsonResponse<T>> {
+  const url = validateMapboxApiEndpoint(options.endpoint);
+  const token = validatePublicBrowserToken(options.token);
+  url.searchParams.set('access_token', token);
+  const fetchResponse = await fetchMapboxResponse(options.fetch ?? globalThis.fetch, url, options.signal);
   throwIfRequestAborted(options.signal);
   if (!fetchResponse.ok) {
     throw createMapboxHttpError(fetchResponse);
   }
-  let data: T;
-  try {
-    data = await fetchResponse.json() as T;
-  } catch (error) {
-    throwIfRequestAborted(options.signal, error);
-    throw new MapboxProviderError(
-      'RESPONSE_INVALID',
-      'Mapbox returned a response that was not valid JSON. Try the request again.',
-      { cause: error, status: fetchResponse.status },
-    );
-  }
+  const data = await parseMapboxResponse<T>(fetchResponse, options.signal);
   throwIfRequestAborted(options.signal);
   return { data, useBoundary: PROVIDER_RESPONSE_USE_REQUIRES_TERMS_REVIEW };
 }

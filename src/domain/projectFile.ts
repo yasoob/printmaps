@@ -1,6 +1,7 @@
 import {
   PROJECT_SCHEMA_VERSION,
   type ContentLayer,
+  type IsochroneProvenance,
   type LayerGeometry,
   type LayerType,
   type MapLanguage,
@@ -24,6 +25,7 @@ const PAGE_PRESETS = new Set<PagePreset>(['A4', 'A3', 'Letter', 'Custom']);
 const PAGE_ORIENTATIONS = new Set<PageOrientation>(['landscape', 'portrait']);
 const MAP_STYLE_PRESETS = new Set<MapStylePreset>(MAP_STYLE_PRESET_DEFINITIONS.map(({ id }) => id));
 const MAP_LANGUAGES = new Set<MapLanguage>(['local', 'en', 'de', 'fr', 'it', 'es', 'zh']);
+const ISOCHRONE_PROFILES = new Set<IsochroneProvenance['profile']>(['driving', 'cycling', 'walking']);
 type JsonObject = Record<string, unknown>;
 
 function isCurrentSchemaVersion(value: unknown): value is ProjectDocument['schemaVersion'] {
@@ -99,7 +101,7 @@ function layerAppearanceAt(
   return appearance;
 }
 
-const EXPECTED_GEOMETRY = { route: 'LineString', poi: 'Point', basemap: null } as const;
+const EXPECTED_GEOMETRY = { poi: 'Point', basemap: null } as const;
 
 function layerTypeAt(value: unknown, index: number): LayerType {
   if (typeof value !== 'string' || !LAYER_TYPES.has(value as LayerType)) {
@@ -116,6 +118,49 @@ function layerOpacityAt(value: unknown, index: number): number {
   return opacity;
 }
 
+function isLayerGeometryAllowed(type: LayerType, geometry: LayerGeometry) {
+  if (type === 'shape') return geometry.type === 'Polygon' || geometry.type === 'MultiPolygon';
+  if (type === 'route') return geometry.type === 'LineString' || geometry.type === 'Arc';
+  return geometry.type === EXPECTED_GEOMETRY[type];
+}
+
+function expectedGeometryLabel(type: LayerType) {
+  if (type === 'shape') return 'Polygon or MultiPolygon';
+  if (type === 'route') return 'LineString or Arc';
+  return EXPECTED_GEOMETRY[type] ?? 'no';
+}
+
+function provenanceAt(
+  value: unknown,
+  type: LayerType,
+  index: number,
+  coordinateCount: { value: number },
+): IsochroneProvenance | undefined {
+  if (value === undefined) return;
+  if (type !== 'shape') throw new ProjectFileError(`Layer ${index + 1} provenance is only valid for Area layers.`);
+  const provenance = objectAt(value, `Layer ${index + 1} provenance`);
+  if (provenance.provider !== 'mapbox' || provenance.service !== 'isochrone-v1') {
+    throw new ProjectFileError(`Layer ${index + 1} provenance provider is not supported.`);
+  }
+  const centerGeometry = geometryAt(
+    { type: 'Point', coordinates: provenance.center },
+    `Layer ${index + 1} provenance center`,
+    coordinateCount,
+  );
+  if (centerGeometry.type !== 'Point') throw new ProjectFileError(`Layer ${index + 1} provenance center is invalid.`);
+  if (!ISOCHRONE_PROFILES.has(provenance.profile as IsochroneProvenance['profile'])) {
+    throw new ProjectFileError(`Layer ${index + 1} provenance travel profile is not supported.`);
+  }
+  const minutes = finiteNumber(provenance.minutes, `Layer ${index + 1} provenance minutes`);
+  if (!Number.isSafeInteger(minutes) || minutes < 5 || minutes > 60) {
+    throw new ProjectFileError(`Layer ${index + 1} provenance minutes must be a whole number from 5 to 60.`);
+  }
+  return {
+    provider: 'mapbox', service: 'isochrone-v1', center: centerGeometry.coordinates,
+    profile: provenance.profile as IsochroneProvenance['profile'], minutes,
+  };
+}
+
 function validatedLayerGeometry(
   value: unknown,
   type: LayerType,
@@ -124,15 +169,9 @@ function validatedLayerGeometry(
 ): LayerGeometry | undefined {
   if (value === undefined) return;
   const geometry = geometryAt(value, `Layer ${index + 1}`, coordinateCount);
-  const isGeometryAllowed = type === 'shape'
-    ? geometry.type === 'Polygon' || geometry.type === 'MultiPolygon'
-    : geometry.type === EXPECTED_GEOMETRY[type as Exclude<LayerType, 'shape'>];
-  if (isGeometryAllowed) return geometry;
+  if (isLayerGeometryAllowed(type, geometry)) return geometry;
   const layerLabel = type === 'poi' ? 'POI' : `${type[0].toUpperCase()}${type.slice(1)}`;
-  const expectedLabel = type === 'shape'
-    ? 'Polygon or MultiPolygon'
-    : EXPECTED_GEOMETRY[type as Exclude<LayerType, 'shape'>] ?? 'no';
-  throw new ProjectFileError(`${layerLabel} layers may only contain ${expectedLabel} geometry.`);
+  throw new ProjectFileError(`${layerLabel} layers may only contain ${expectedGeometryLabel(type)} geometry.`);
 }
 
 function layerAt(
@@ -151,6 +190,7 @@ function layerAt(
   const type = layerTypeAt(layer.type, index);
   const appearance = layerAppearanceAt(layer, type, index, context.assets);
   const geometry = validatedLayerGeometry(layer.geometry, type, index, context.coordinateCount);
+  const provenance = provenanceAt(layer.provenance, type, index, context.coordinateCount);
   return {
     id,
     name: nonEmptyString(layer.name, `Layer ${index + 1} name`),
@@ -160,6 +200,7 @@ function layerAt(
     opacity: layerOpacityAt(layer.opacity, index),
     ...optionalAppearance(appearance),
     ...(geometry && { geometry }),
+    ...(provenance && { provenance }),
   };
 }
 
@@ -234,7 +275,7 @@ function currentDocumentAt(value: unknown): ProjectDocument {
   const root = objectAt(value, 'Project file');
   const schemaVersion = root.schemaVersion;
   if (!isCurrentSchemaVersion(schemaVersion)) {
-    if (typeof schemaVersion === 'number' && schemaVersion >= 1 && schemaVersion <= 16) {
+    if (typeof schemaVersion === 'number' && schemaVersion >= 1 && schemaVersion <= 17) {
       throw new ProjectFileError(
         `Schema version ${schemaVersion} is obsolete. Start a new project or reopen a current Print Map Studio file.`,
       );

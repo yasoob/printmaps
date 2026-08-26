@@ -5,15 +5,12 @@ import { buildRouteCoordinates } from '../../src/domain/routeProfiles';
 import { mapLayerDescriptors } from '../../src/map/MapContentLayerRendering';
 
 describe('expert route geometry', () => {
-  it('expands an arc between waypoints while preserving exact endpoints', () => {
-    const waypoints = [[-0.1276, 51.5072], [139.6917, 35.6895]] as const;
+  it('keeps an arc as canonical endpoint anchors without sampled subdivisions', () => {
+    const waypoints = [[16.3, 48.2], [16.5, 48.2]] as const;
 
     const coordinates = buildRouteCoordinates(waypoints, 'arc');
 
-    expect(coordinates.length).toBeGreaterThan(waypoints.length);
-    expect(coordinates[0]).toEqual(waypoints[0]);
-    expect(coordinates.at(-1)).toEqual(waypoints[1]);
-    expect(coordinates[Math.floor(coordinates.length / 2)]?.[1]).toBeGreaterThan(60);
+    expect(coordinates).toEqual(waypoints);
   });
 
   it('creates an arc route with its selected travel profile and printable marker state', () => {
@@ -34,13 +31,12 @@ describe('expert route geometry', () => {
       travelProfile: 'air',
       showTravelModeIcon: true,
     });
-    expect(route?.geometry?.type).toBe('LineString');
-    if (route?.geometry?.type !== 'LineString') throw new Error('Route geometry unavailable');
-    expect(route.geometry.coordinates.length).toBeGreaterThan(waypoints.length);
+    expect(route?.geometry).toEqual({ type: 'Arc', anchors: waypoints });
   });
 
   it('renders an enabled travel profile as a centered live-map marker', () => {
     const route = createInitialProjectDocument().layers[0];
+    route.geometry = { type: 'Arc', anchors: [[16.3, 48.2], [16.5, 48.2]] };
     route.appearance = {
       kind: 'route',
       color: '#d9363e',
@@ -63,8 +59,8 @@ describe('expert route geometry', () => {
   it.each([
     ['antipodal', [[0, 0], [180, 0]]],
     ['near-antipodal', [[0, 0], [179.999999, 0]]],
-  ] as const)('refuses an unstable %s arc segment', (_label, waypoints) => {
-    expect(buildRouteCoordinates(waypoints, 'arc')).toEqual([]);
+  ] as const)('keeps valid %s endpoint anchors without geometric interpolation', (_label, waypoints) => {
+    expect(buildRouteCoordinates(waypoints, 'arc')).toEqual(waypoints);
   });
 
   it.each([

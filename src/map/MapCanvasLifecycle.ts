@@ -1,12 +1,11 @@
 import type { Dispatch, SetStateAction } from 'react';
 import { AttributionControl, NavigationControl, type Map as MapLibreMap } from 'maplibre-gl';
-import { capturePrintFramePng, type PreviewPngExporter } from '../export/previewPng';
+import type { PreviewPngExporter } from '../export/previewPng';
 import { createMapLibreContentAdapter, type MapContentAdapter, type MapContentState } from './MapContentAdapter';
-import { captureBasemapOnly } from './MapExportCapture';
-import { createNativePrintTileRenderer } from './NativePrintTileRenderer';
 import type { CameraSettings } from '../domain/project';
 import { createInteractiveMap } from './MapCanvasFactory';
 import type { CameraViewportChangeMode } from './MapCameraViewport';
+import { createLifecycleExportPreview, type LifecycleExportReferences } from './MapLifecycleExport';
 
 export type MapError = {
   kind: 'content' | 'renderer' | 'style';
@@ -17,10 +16,23 @@ export type ContentError = MapError & {
   source: 'sync' | 'hit-test';
 };
 
+const MAP_STARTUP_TIMEOUT_MS = 12_000;
+
+type MapLifecycleState = {
+  isDisposed: boolean;
+  isStyleLoaded: boolean;
+  startupTimeout: number | null;
+};
+
+function clearStartupTimeout(state: MapLifecycleState): void {
+  if (state.startupTimeout === null) return;
+  window.clearTimeout(state.startupTimeout);
+  state.startupTimeout = null;
+}
+
 type MutableReference<T> = { current: T };
 
-type LifecycleReferences = {
-  availableExporter: MutableReference<PreviewPngExporter | null>;
+type LifecycleReferences = LifecycleExportReferences & {
   backgroundClick: MutableReference<() => void>;
   cameraViewportChange: MutableReference<((center: readonly [number, number], zoom: number, mode: CameraViewportChangeMode) => void) | undefined>;
   cameraViewportChangeMode: MutableReference<CameraViewportChangeMode>;
@@ -30,6 +42,7 @@ type LifecycleReferences = {
   contentState: MutableReference<MapContentState>;
   contentSyncDeferred: MutableReference<boolean>;
   exporterChange: MutableReference<((exporter: PreviewPngExporter | null) => void) | undefined>;
+  ignoreNextMapClick: MutableReference<boolean>;
   layerSelect: MutableReference<(id: string) => void>;
   mapClick: MutableReference<((coordinate: [number, number]) => void) | undefined>;
   map: MutableReference<MapLibreMap | null>; mapFailed: MutableReference<boolean>;
@@ -45,41 +58,6 @@ export type MapLifecycleOptions = {
   styleUrl: string;
 };
 
-function waitForMapRender(map: MapLibreMap, signal?: AbortSignal): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (signal?.aborted) {
-      reject(new DOMException('Export cancelled.', 'AbortError'));
-      return;
-    }
-    const cleanup = () => {
-      clearTimeout(timeout);
-      map.off('render', handleRender);
-      map.off('error', handleRendererError);
-      signal?.removeEventListener('abort', handleAbort);
-    };
-    const finish = (error?: unknown) => {
-      cleanup();
-      if (error) reject(error);
-      else resolve();
-    };
-    const handleRender = () => finish();
-    const handleRendererError = (event?: { error?: unknown }) => finish(
-      event?.error instanceof Error
-        ? event.error
-        : new Error('The map renderer failed while preparing the export.'),
-    );
-    const handleAbort = () => finish(new DOMException('Export cancelled.', 'AbortError'));
-    const timeout = setTimeout(() => finish(new Error('The map renderer timed out while preparing the export.')), 1000);
-    signal?.addEventListener('abort', handleAbort, { once: true });
-    try {
-      map.once('render', handleRender);
-      map.once('error', handleRendererError);
-      map.triggerRepaint();
-    } catch (error) {
-      finish(error);
-    }
-  });
-}
 
 function createAttributionController(container: HTMLDivElement) {
   let isInitialized = false;
@@ -125,56 +103,24 @@ function createAttributionController(container: HTMLDivElement) {
 
 function createMapEventHandlers(
   map: MapLibreMap,
-  state: { isStyleLoaded: boolean },
+  state: MapLifecycleState,
   options: MapLifecycleOptions,
   initializeAttribution: () => void,
 ) {
   const { references, handleContentSyncResult, setContentError, setMapError } = options;
-  const exportPreview: PreviewPngExporter = async (exportOptions) => {
-    const printFrame = references.container.current?.parentElement?.querySelector<HTMLElement>('.print-frame');
-    if (!printFrame) throw new Error('The print frame is not ready to export.');
-    const attribution = references.container.current
-      ?.querySelector<HTMLElement>('.maplibregl-ctrl-attrib-inner')
-      ?.textContent ?? '';
-    const capture = (isAttributionIncluded: boolean) => capturePrintFramePng(
-      map.getCanvas(),
-      printFrame,
-      attribution,
-      {
-        projectToCanvas: (coordinate) => map.project([coordinate[0], coordinate[1]]),
-        isAttributionIncluded,
-      },
-    );
-    if (exportOptions?.content !== 'basemap') return capture(true);
-
-    return captureBasemapOnly(
-      references.contentAdapter.current,
-      () => capture(false),
-      (signal) => waitForMapRender(map, signal),
-      {
-        onRestoreFailure: () => {
-          references.mapFailed.current = true;
-          references.contentReady.current = false;
-          references.container.current?.removeAttribute('data-map-ready');
-          references.availableExporter.current = null;
-          references.exporterChange.current?.(null);
-          setMapError((error) => error ?? {
-            kind: 'renderer',
-            message: 'The map renderer could not restore content after export. Reload the page and retry.',
-          });
-        },
-        signal: exportOptions.signal,
-      },
-    );
-  };
-  exportPreview.createPrintTileRenderer = createNativePrintTileRenderer(map, {
-    resolvePrintFrame: () => references.container.current?.parentElement?.querySelector<HTMLElement>('.print-frame'),
-    resolveLayers: () => references.contentState.current.layers,
-    resolveAssets: () => references.contentState.current.assets ?? {},
-    isSourceReady: () => !references.mapFailed.current && references.contentReady.current
-      && references.map.current === map && references.availableExporter.current === exportPreview,
+  const exportPreview = createLifecycleExportPreview(map, references, () => {
+    references.mapFailed.current = true;
+    references.contentReady.current = false;
+    references.container.current?.removeAttribute('data-map-ready');
+    references.availableExporter.current = null;
+    references.exporterChange.current?.(null);
+    setMapError((error) => error ?? {
+      kind: 'renderer',
+      message: 'The map renderer could not restore content after export. Reload the page and retry.',
+    });
   });
   const handleLoad = () => {
+    if (state.isDisposed || state.isStyleLoaded) return;
     state.isStyleLoaded = true;
     const container = references.container.current;
     if (!container) return;
@@ -182,14 +128,16 @@ function createMapEventHandlers(
     if (!isStyleSynchronized) return;
     references.contentAdapter.current = createMapLibreContentAdapter(map, container);
     handleContentSyncResult(references.contentAdapter.current.sync(references.contentState.current));
+    map.triggerRepaint();
   };
   const handleIdle = () => {
-    if (references.mapFailed.current) return;
+    if (state.isDisposed || references.mapFailed.current) return;
     initializeAttribution();
     if (references.contentSyncDeferred.current && references.contentAdapter.current) {
       handleContentSyncResult(references.contentAdapter.current.sync(references.contentState.current));
     }
     if (!references.contentReady.current) return;
+    clearStartupTimeout(state);
     if (references.availableExporter.current !== exportPreview) {
       references.availableExporter.current = exportPreview;
       references.exporterChange.current?.(exportPreview);
@@ -197,6 +145,7 @@ function createMapEventHandlers(
     references.container.current?.setAttribute('data-map-ready', 'true');
   };
   const handleMoveEnd = () => {
+    if (state.isDisposed) return;
     const center = map.getCenter();
     const longitude = Math.abs(center.lng) <= 180
       ? center.lng
@@ -206,6 +155,11 @@ function createMapEventHandlers(
     references.cameraViewportChange.current?.([longitude, center.lat], map.getZoom(), mode);
   };
   const handleClick = (event: { point: Parameters<MapContentAdapter['hitTest']>[0]; lngLat: { lng: number; lat: number } }) => {
+    if (state.isDisposed) return;
+    if (references.ignoreNextMapClick.current) {
+      references.ignoreNextMapClick.current = false;
+      return;
+    }
     if (references.mapClick.current) return references.mapClick.current([event.lngLat.lng, event.lngLat.lat]);
     const adapter = references.contentAdapter.current;
     if (!adapter) return references.backgroundClick.current();
@@ -222,6 +176,8 @@ function createMapEventHandlers(
     if (hitLayerId) references.layerSelect.current(hitLayerId); else references.backgroundClick.current();
   };
   const handleError = () => {
+    if (state.isDisposed) return;
+    clearStartupTimeout(state);
     references.mapFailed.current = true;
     references.container.current?.removeAttribute('data-map-ready');
     if (references.availableExporter.current === exportPreview) {
@@ -240,7 +196,26 @@ function createMapEventHandlers(
       });
     }
   };
-  return { exportPreview, handleClick, handleError, handleIdle, handleLoad, handleMoveEnd };
+  const handleLoadTimeout = () => {
+    state.startupTimeout = null;
+    if (state.isDisposed || references.mapFailed.current) return;
+    references.mapFailed.current = true;
+    references.container.current?.removeAttribute('data-map-ready');
+    setMapError({
+      kind: 'style',
+      message: 'The map style timed out while loading. Check your connection and retry.',
+    });
+  };
+  return {
+    dispose: () => { state.isDisposed = true; clearStartupTimeout(state); },
+    exportPreview,
+    handleClick,
+    handleError,
+    handleIdle,
+    handleLoad,
+    handleLoadTimeout,
+    handleMoveEnd,
+  };
 }
 
 function retryCleanup(action: () => void) {
@@ -265,6 +240,7 @@ function cleanupMap(
     references.availableExporter.current = null;
     references.exporterChange.current?.(null);
   }
+  handlers.dispose();
   attribution.destroy();
   retryCleanup(() => map.off('load', handlers.handleLoad));
   retryCleanup(() => map.off('idle', handlers.handleIdle));
@@ -282,12 +258,16 @@ function cleanupMap(
 }
 
 function installMapLifecycle(map: MapLibreMap, options: MapLifecycleOptions) {
-  const container = options.references.container.current!, attribution = createAttributionController(container), state = { isStyleLoaded: false };
+  const container = options.references.container.current!;
+  const attribution = createAttributionController(container);
+  const state: MapLifecycleState = { isDisposed: false, isStyleLoaded: false, startupTimeout: null };
   options.references.mapFailed.current = false;
   const handlers = createMapEventHandlers(map, state, options, attribution.initialize);
   map.addControl(new NavigationControl({ showCompass: false }), 'bottom-right'); map.addControl(new AttributionControl({ compact: true }), 'bottom-left');
   attribution.listen();
+  state.startupTimeout = window.setTimeout(handlers.handleLoadTimeout, MAP_STARTUP_TIMEOUT_MS);
   map.once('load', handlers.handleLoad);
+  if (map.loaded()) queueMicrotask(handlers.handleLoad);
   map.on('idle', handlers.handleIdle);
   map.on('drag', attribution.handleDrag);
   map.on('error', handlers.handleError);

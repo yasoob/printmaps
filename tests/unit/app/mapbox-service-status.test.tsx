@@ -6,7 +6,7 @@ import type { MapboxConnectionProbe } from '../../../src/services/mapbox/configu
 
 describe('Mapbox deployment status', () => {
   it('shows actionable public-token and origin guidance when deployment configuration is missing', () => {
-    render(<MapboxServiceStatus token={undefined} origin="https://studio.example.test" />);
+    render(<MapboxServiceStatus token={null} origin="https://studio.example.test" />);
 
     const alert = screen.getByRole('alert');
     expect(alert).toHaveTextContent('Mapbox services unavailable');

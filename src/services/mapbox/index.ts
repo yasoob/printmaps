@@ -2,6 +2,9 @@ export type {
   DirectionsProvider,
   DirectionsRequest,
   DirectionsResponse,
+  IsochroneProvider,
+  IsochroneRequest,
+  IsochroneResponse,
   MapMatchingProvider,
   MapMatchingRequest,
   MapMatchingResponse,
@@ -15,6 +18,7 @@ export type {
   SearchResponse,
   SearchResult,
 } from './contracts';
+export { createMapboxIsochroneProvider } from './isochrone';
 export { MapboxProviderError } from './errors';
 export type { MapboxProviderErrorCode } from './errors';
 export { requestMapboxJson } from './request';

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 export type MobilePanel = 'layers' | 'properties';
 
@@ -16,15 +16,21 @@ export function useMobilePanels() {
   const projectTitleRef = useRef<HTMLButtonElement>(null);
   const focusTimerRef = useRef<number | null>(null);
   const activePanel = isMobileViewport ? mobilePanel : null;
+  const activePanelRef = useRef(activePanel);
+  const isMobileViewportRef = useRef(isMobileViewport);
+  useLayoutEffect(() => {
+    activePanelRef.current = activePanel;
+    isMobileViewportRef.current = isMobileViewport;
+  }, [activePanel, isMobileViewport]);
 
-  const getPanelElements = (panel: MobilePanel) => {
+  const getPanelElements = useCallback((panel: MobilePanel) => {
     const panelElement = panel === 'layers' ? layersPanelRef.current : propertiesPanelRef.current;
     return panelElement
       ? [...panelElement.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])')]
       : [];
-  };
+  }, []);
 
-  const scheduleFocus = (callback: () => void, delay = 180) => {
+  const scheduleFocus = useCallback((callback: () => void, delay = 180) => {
     if (focusTimerRef.current !== null) window.clearTimeout(focusTimerRef.current);
     const reducedMotion = typeof window.matchMedia === 'function'
       && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -33,31 +39,31 @@ export function useMobilePanels() {
       if (document.querySelector('.recovery-dialog')) return;
       callback();
     }, reducedMotion ? 0 : delay);
-  };
+  }, []);
 
-  const closePanel = (panel: MobilePanel | null = activePanel, shouldRestoreFocus = true) => {
+  const closePanel = useCallback((panel: MobilePanel | null = activePanelRef.current, shouldRestoreFocus = true) => {
     if (focusTimerRef.current !== null) {
       window.clearTimeout(focusTimerRef.current);
       focusTimerRef.current = null;
     }
     setMobilePanel(null);
-    if (shouldRestoreFocus && panel && isMobileViewport) {
+    if (shouldRestoreFocus && panel && isMobileViewportRef.current) {
       scheduleFocus(() => (panel === 'layers' ? layersTriggerRef.current : propertiesTriggerRef.current)?.focus(), 32);
     }
-  };
+  }, [scheduleFocus]);
 
-  const openPanel = (panel: MobilePanel) => {
-    if (!isMobileViewport) return;
-    if (activePanel === panel) {
+  const openPanel = useCallback((panel: MobilePanel) => {
+    if (!isMobileViewportRef.current) return;
+    if (activePanelRef.current === panel) {
       closePanel(panel);
       return;
     }
     setMobilePanel(panel);
     scheduleFocus(() => getPanelElements(panel)[0]?.focus());
-  };
+  }, [closePanel, getPanelElements, scheduleFocus]);
 
-  const handlePanelKeyDown = (event: React.KeyboardEvent<HTMLElement>, panel: MobilePanel) => {
-    if (activePanel !== panel) return;
+  const handlePanelKeyDown = useCallback((event: React.KeyboardEvent<HTMLElement>, panel: MobilePanel) => {
+    if (activePanelRef.current !== panel) return;
     if (event.key === 'Escape') {
       event.preventDefault();
       closePanel(panel);
@@ -75,7 +81,7 @@ export function useMobilePanels() {
       event.preventDefault();
       focusable[0]?.focus();
     }
-  };
+  }, [closePanel, getPanelElements]);
 
   useEffect(() => {
     if (typeof window.matchMedia !== 'function') return;

@@ -34,4 +34,22 @@ describe('design token discipline', () => {
     expect(components).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(/);
     expect(iconComponents).not.toMatch(/[↑↓←→▲▼▶◀‹›]|•••/);
   });
+
+  it('keeps search results and map scale flat without decorative shadows', () => {
+    const styles = read('src/styles.css');
+    const flatSelectors = [
+      '.location-search-form',
+      '.location-search-results',
+      '.map-scale',
+      '.map-scale span',
+    ];
+    const flatRules = flatSelectors.map((selector) => {
+      const start = styles.indexOf(`${selector} {`);
+      expect(start, `missing ${selector} rule`).toBeGreaterThanOrEqual(0);
+      const end = styles.indexOf('}', start);
+      return styles.slice(start, end + 1);
+    }).join('\n');
+
+    expect(flatRules).not.toMatch(/box-shadow|drop-shadow|text-shadow/);
+  });
 });

@@ -1,99 +1,47 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createInitialProjectDocument } from '../../../src/domain/project';
 
-const { downloadProjectArchive, downloadProjectDocument } = vi.hoisted(() => ({
-  downloadProjectArchive: vi.fn(),
+const { downloadProjectDocument } = vi.hoisted(() => ({
   downloadProjectDocument: vi.fn(),
 }));
 
-vi.mock('../../../src/app/components/projectDownload', () => ({
-  downloadProjectArchive,
-  downloadProjectDocument,
-}));
+vi.mock('../../../src/app/components/projectDownload', () => ({ downloadProjectDocument }));
 
-import { ProjectFileMenu } from '../../../src/app/components/ProjectFileActions';
+import { ProjectFileActions } from '../../../src/app/components/ProjectFileActions';
 
-describe('portable project file menu', () => {
-  beforeEach(() => {
-    downloadProjectArchive.mockReset();
-    downloadProjectDocument.mockReset();
+describe('direct project file actions', () => {
+  beforeEach(() => downloadProjectDocument.mockReset());
+
+  it('exposes direct Open and Save buttons without a project dropdown or archive action', async () => {
+    const user = userEvent.setup();
+    render(<ProjectFileActions document={createInitialProjectDocument()} onOpen={vi.fn()} />);
+
+    expect(screen.getByRole('button', { name: 'Open' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /ZIP|archive/i })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    expect(downloadProjectDocument).toHaveBeenCalledOnce();
   });
 
-  it('groups open and portable downloads under one keyboard-accessible project menu', async () => {
+  it('opens a selected project file and reports an actionable save failure', async () => {
     const user = userEvent.setup();
-    render(
-      <ProjectFileMenu
-        document={createInitialProjectDocument()}
-        onOpen={vi.fn()}
-        title="Vienna field guide"
-      />,
-    );
+    const onOpen = vi.fn();
+    const project = { ...createInitialProjectDocument(), title: 'Opened map' };
+    const { container } = render(<ProjectFileActions document={project} onOpen={onOpen} />);
+    const input = container.querySelector<HTMLInputElement>('input[type="file"]')!;
 
-    const trigger = screen.getByRole('button', { name: 'Vienna field guide' });
-    expect(trigger).toHaveAttribute('aria-haspopup', 'menu');
-    expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Save ZIP' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
-
-    trigger.focus();
-    await user.keyboard('{ArrowDown}');
-
-    const menu = screen.getByRole('menu', { name: 'Project file menu' });
-    expect(menu).toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: 'Open project' })).toHaveFocus();
-    const downloadProject = screen.getByRole('menuitem', { name: 'Download project' });
-    const downloadArchive = screen.getByRole('menuitem', { name: 'Download project archive' });
-    await user.keyboard('{ArrowDown}');
-    expect(downloadProject).toHaveFocus();
-    await user.keyboard('{End}');
-    expect(downloadArchive).toHaveFocus();
-    await user.keyboard('{Home}');
-    expect(screen.getByRole('menuitem', { name: 'Open project' })).toHaveFocus();
-    await user.keyboard('{ArrowUp}');
-    expect(downloadArchive).toHaveFocus();
-
-    await user.keyboard('{Escape}');
-    expect(menu).not.toBeInTheDocument();
-    expect(trigger).toHaveFocus();
-
-    await user.keyboard(' ');
-    expect(screen.getByRole('menu', { name: 'Project file menu' })).toBeInTheDocument();
-    await user.click(trigger.querySelector('span')!);
-    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
-
-    await user.click(trigger);
-    await user.click(document.body);
-    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
-  });
-
-  it('reports an actionable archive guard failure and clears it after a successful retry', async () => {
-    const user = userEvent.setup();
-    downloadProjectArchive.mockImplementationOnce(() => {
-      throw new Error('The generated project ZIP is larger than 10 MB. Remove project content before saving.');
+    fireEvent.change(input, {
+      target: { files: [new File([JSON.stringify(project)], 'opened.printmap.json', { type: 'application/json' })] },
     });
-    render(
-      <ProjectFileMenu
-        document={createInitialProjectDocument()}
-        onOpen={vi.fn()}
-        title="Vienna field guide"
-      />,
-    );
+    await waitFor(() => expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ title: 'Opened map' })));
 
-    const trigger = screen.getByRole('button', { name: 'Vienna field guide' });
-    await user.click(trigger);
-    await user.click(screen.getByRole('menuitem', { name: 'Download project archive' }));
-
-    expect(screen.getByRole('alert', { name: 'Project save status' })).toHaveTextContent(
-      'Remove project content before saving',
-    );
-    expect(trigger).toHaveFocus();
-
-    await user.click(trigger);
-    await user.click(screen.getByRole('menuitem', { name: 'Download project archive' }));
-
-    expect(downloadProjectArchive).toHaveBeenCalledTimes(2);
-    expect(screen.queryByRole('alert', { name: 'Project save status' })).not.toBeInTheDocument();
-    expect(trigger).toHaveFocus();
+    downloadProjectDocument.mockImplementationOnce(() => { throw new Error('Browser storage is unavailable.'); });
+    const save = screen.getByRole('button', { name: 'Save' });
+    await user.click(save);
+    expect(screen.getByRole('alert', { name: 'Project save status' })).toHaveTextContent('Browser storage is unavailable');
+    expect(save).toHaveFocus();
   });
 });

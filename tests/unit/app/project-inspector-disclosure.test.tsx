@@ -11,7 +11,6 @@ const disclosureKeys = [
   'camera-location',
   'map-details',
   'provider-services',
-  'technical-export',
 ].map((section) => `print-map-studio:inspector:project:${section}`);
 
 describe('project inspector disclosure', () => {
@@ -32,7 +31,7 @@ describe('project inspector disclosure', () => {
     const camera = screen.getByRole('button', { name: /Camera & location/ });
     const details = screen.getByRole('button', { name: /Map details/ });
     const services = screen.getByRole('button', { name: /Provider services/ });
-    const technical = screen.getByRole('button', { name: /Output settings/ });
+
 
     expect(page).toHaveAttribute('aria-expanded', 'true');
     expect(page).not.toHaveTextContent('A4 landscape · 297 × 210 mm');
@@ -43,7 +42,7 @@ describe('project inspector disclosure', () => {
     expect(details).toHaveAttribute('aria-expanded', 'false');
     expect(details).toHaveTextContent('7 of 7 visible');
     expect(services).toHaveAttribute('aria-expanded', 'false');
-    expect(technical).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('button', { name: /Output settings/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('textbox', { name: 'Bearing' })).not.toBeInTheDocument();
     expect(screen.queryByRole('checkbox', { name: 'Show roads' })).not.toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();

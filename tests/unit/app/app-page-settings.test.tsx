@@ -22,15 +22,9 @@ describe('editor page settings and tools', () => {
     expect(screen.getByRole('checkbox', { name: 'Show roads' })).toBeChecked();
     expect(screen.getByRole('checkbox', { name: 'Show buildings' })).toBeChecked();
     expect(screen.getByRole('checkbox', { name: 'Show labels' })).toBeChecked();
-    const exportResolution = screen.getByRole('combobox', { name: 'Export resolution' });
-    expect(exportResolution).toHaveValue('Format-specific');
-    expect(exportResolution).toBeDisabled();
-    const attribution = screen.getByRole('checkbox', { name: 'Include map attribution' });
-    expect(attribution).toBeChecked();
-    expect(attribution).toBeDisabled();
-    const mapboxAlert = screen.getByRole('alert');
-    expect(mapboxAlert).toHaveTextContent('Mapbox services unavailable');
-    expect(mapboxAlert).toHaveTextContent('VITE_MAPBOX_PUBLIC_ACCESS');
+    expect(screen.queryByRole('button', { name: /Output settings/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Export resolution' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: 'Include map attribution' })).not.toBeInTheDocument();
 
     const select = screen.getByRole('button', { name: 'Select (V)' });
     const pan = screen.getByRole('button', { name: 'Pan (H)' });

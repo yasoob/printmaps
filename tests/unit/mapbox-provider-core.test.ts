@@ -107,6 +107,59 @@ describe('Mapbox request primitive', () => {
       message: expect.stringContaining('valid JSON'),
     }));
   });
+});
+
+describe('Mapbox response limits', () => {
+  it.each([
+    ['missing', undefined],
+    ['lying', '2'],
+  ])('stops an oversized streaming response with %s Content-Length before JSON parsing', async (_label, contentLength) => {
+    const cancel = vi.fn();
+    let pulls = 0;
+    const body = new ReadableStream<Uint8Array>({
+      cancel,
+      pull(controller) {
+        pulls += 1;
+        controller.enqueue(new Uint8Array(600_000));
+        if (pulls === 3) controller.close();
+      },
+    });
+    const response = new Response(body, {
+      headers: contentLength === undefined ? undefined : { 'Content-Length': contentLength },
+    });
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(response);
+
+    await expect(requestMapboxJson({
+      endpoint: 'https://api.mapbox.com/search/searchbox/v1/suggest?q=Vienna',
+      fetch: fetcher,
+      token: 'pk.fake-public-segment.fake-signature',
+    })).rejects.toEqual(expect.objectContaining<Partial<MapboxProviderError>>({
+      code: 'RESPONSE_INVALID',
+      message: expect.stringContaining('too large'),
+    }));
+    expect(pulls).toBeLessThanOrEqual(3);
+    expect(cancel).toHaveBeenCalledOnce();
+  });
+
+  it('rejects a declared oversized response without reading its body', async () => {
+    const cancel = vi.fn();
+    const response = new Response(new ReadableStream<Uint8Array>({ cancel }), {
+      headers: { 'Content-Length': '2000000' },
+    });
+
+    await expect(requestMapboxJson({
+      endpoint: 'https://api.mapbox.com/search/searchbox/v1/suggest?q=Vienna',
+      fetch: vi.fn<typeof fetch>().mockResolvedValue(response),
+      token: 'pk.fake-public-segment.fake-signature',
+    })).rejects.toMatchObject({ code: 'RESPONSE_INVALID' });
+    expect(cancel).toHaveBeenCalledOnce();
+  });
+});
+
+describe('Mapbox request failure normalization', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
 
   it('normalizes other fetch failures without exposing implementation errors', async () => {
     vi.spyOn(window.navigator, 'onLine', 'get').mockReturnValue(true);
@@ -159,12 +212,17 @@ describe('Mapbox request primitive', () => {
 
   it('normalizes cancellation after response arrival before JSON completion', async () => {
     const controller = new AbortController();
-    let resolveJson!: (value: { id: string }) => void;
-    const jsonPromise = new Promise<{ id: string }>((resolve) => {
-      resolveJson = resolve;
-    });
-    const response = new Response('{}', { status: 200 });
-    const json = vi.spyOn(response, 'json').mockReturnValue(jsonPromise);
+    let finishBody!: () => void;
+    const encoder = new TextEncoder();
+    const response = new Response(new ReadableStream<Uint8Array>({
+      start(streamController) {
+        streamController.enqueue(encoder.encode('{"id":"'));
+        finishBody = () => {
+          streamController.enqueue(encoder.encode('stale-place"}'));
+          streamController.close();
+        };
+      },
+    }), { status: 200 });
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(response);
 
     const request = requestMapboxJson({
@@ -174,10 +232,10 @@ describe('Mapbox request primitive', () => {
       token: 'pk.fake-public-segment.fake-signature',
     });
     await vi.waitFor(() => {
-      expect(json).toHaveBeenCalledOnce();
+      expect(fetcher).toHaveBeenCalledOnce();
     });
     controller.abort();
-    resolveJson({ id: 'stale-place' });
+    finishBody();
 
     await expect(request).rejects.toEqual(expect.objectContaining<Partial<MapboxProviderError>>({
       code: 'REQUEST_ABORTED',

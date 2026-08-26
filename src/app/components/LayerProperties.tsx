@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useCallback, useLayoutEffect, useRef, useState } from 'react';
 import type { ContentLayer, LayerAppearance, RouteAppearance, ShapeAppearance } from '../../domain/project';
 import type { CustomMarkerAsset } from '../../domain/customMarkerAssets';
 import {
@@ -8,13 +8,19 @@ import {
 } from '../../domain/routeProfiles';
 import { CoordinateField } from './CoordinateField';
 import { ElevationProfilePanel } from './ElevationProfilePanel';
-import { LayerMenu } from './LayerMenu';
+import { LayerIdentityProperties } from './LayerIdentityProperties';
 import { MultiPartGeometryStatus } from './MultiPartGeometryStatus';
 import { PoiAppearanceControls } from './PoiAppearanceControls';
 import { PropertyRow, PropertySection } from './PropertyControls';
 import { RouteVertexControls } from './RouteVertexControls';
 import { ShapeVertexControls } from './ShapeVertexControls';
 import { Checkbox, Switch } from './UiControls';
+
+function useStableEvent<Arguments extends unknown[], Result>(callback: (...arguments_: Arguments) => Result) {
+  const callbackRef = useRef(callback);
+  useLayoutEffect(() => { callbackRef.current = callback; }, [callback]);
+  return useCallback((...arguments_: Arguments) => callbackRef.current(...arguments_), []);
+}
 
 type LayerPropertiesProps = {
   layer: ContentLayer;
@@ -83,7 +89,7 @@ function PoiCoordinateControls({
   );
 }
 
-function ShapeAppearanceControls({
+const ShapeAppearanceControls = memo(function ShapeAppearanceControls({
   appearance,
   onChange,
 }: {
@@ -120,7 +126,7 @@ function ShapeAppearanceControls({
       <Switch aria-label="Invert shape fill" isChecked={appearance.invert} label="Invert outside area" onCheckedChange={(isChecked) => onChange({ ...appearance, invert: isChecked })} />
     </>
   );
-}
+}, (previous, next) => previous.appearance === next.appearance);
 
 function RouteLayerProperties({
   layer,
@@ -206,7 +212,7 @@ function LayerTypeProperties({
           </PropertySection>
           {layer.geometry?.type === 'Polygon' && (
             <PropertySection title="Vertices">
-              <ShapeVertexControls key={layer.id} coordinates={layer.geometry.coordinates} onChange={onShapeVertexChange} />
+              <ShapeVertexControls key={layer.id} coordinates={layer.geometry.coordinates} disabled={layer.locked || !layer.visible} onChange={onShapeVertexChange} />
             </PropertySection>
           )}
           {layer.geometry?.type === 'MultiPolygon' && (
@@ -262,19 +268,32 @@ export function LayerProperties({
     setOpacityEdit({ source: clampedOpacity, value: String(clampedOpacity) });
     onOpacityChange(clampedOpacity);
   };
+  const deleteLayer = useStableEvent(onDelete);
+  const duplicateLayer = useStableEvent(onDuplicate);
+  const replaceLayer = useStableEvent(onReplace);
+  const toggleLayerLock = useStableEvent(onToggleLock);
+  const toggleLayerVisibility = useStableEvent(onToggleVisibility);
+  const changeNameDraft = useStableEvent((value: string) => setNameEdit({ source: layer.name, value }));
+  const changeOpacityDraft = useStableEvent((value: string) => setOpacityEdit({ source: layer.opacity, value }));
+  const commitNameDraft = useStableEvent(commitName);
+  const commitOpacityDraft = useStableEvent(commitOpacity);
 
   return (
     <div className="properties-panel">
-      <div className="properties-title">
-        <h2>{layer.name}</h2>
-        <LayerMenu onReplace={onReplace} onDuplicate={onDuplicate} onDelete={onDelete} replaceDisabled={layer.type === 'basemap' || layer.locked} />
-      </div>
-      <PropertySection title="Layer">
-        <PropertyRow label="Name"><input aria-label="Layer name" value={nameDraft} onChange={(event) => setNameEdit({ source: layer.name, value: event.target.value })} onBlur={commitName} /></PropertyRow>
-        <PropertyRow label="Opacity"><label className="number-field"><input aria-label="Layer opacity" value={opacityDraft} onChange={(event) => setOpacityEdit({ source: layer.opacity, value: event.target.value })} onBlur={commitOpacity} /><small>%</small></label></PropertyRow>
-        <PropertyRow label="Visible"><Switch aria-label="Toggle layer visibility" isChecked={layer.visible} label="Layer visibility" labelHidden onCheckedChange={() => onToggleVisibility()} /></PropertyRow>
-        <PropertyRow label="Locked"><Switch aria-label="Toggle layer lock" isChecked={layer.locked} label="Layer lock" labelHidden onCheckedChange={() => onToggleLock()} /></PropertyRow>
-      </PropertySection>
+      <LayerIdentityProperties
+        layer={layer}
+        nameDraft={nameDraft}
+        opacityDraft={opacityDraft}
+        onDelete={deleteLayer}
+        onDuplicate={duplicateLayer}
+        onNameChange={changeNameDraft}
+        onNameCommit={commitNameDraft}
+        onOpacityChange={changeOpacityDraft}
+        onOpacityCommit={commitOpacityDraft}
+        onReplace={replaceLayer}
+        onToggleLock={toggleLayerLock}
+        onToggleVisibility={toggleLayerVisibility}
+      />
       <LayerTypeProperties layer={layer} assets={assets} onAppearanceChange={onAppearanceChange} onPoiCoordinatesChange={onPoiCoordinatesChange} onPoiCustomMarkerChange={onPoiCustomMarkerChange} onRouteVertexInsert={onRouteVertexInsert} onRouteVertexRemove={onRouteVertexRemove} onRouteVertexChange={onRouteVertexChange} onShapeVertexChange={onShapeVertexChange} />
     </div>
   );

@@ -1,11 +1,35 @@
 import { createProjectStore } from '../../src/app/store';
-import { createInitialProjectDocument } from '../../src/domain/project';
+import { createInitialProjectDocument, type ShapeGeometry } from '../../src/domain/project';
 
-const shapeGeometry = (store: ReturnType<typeof createProjectStore>, id: string) => (
-  store.getState().document.layers.find((layer) => layer.id === id)?.geometry
-);
+const shapeGeometry = (store: ReturnType<typeof createProjectStore>, id: string): ShapeGeometry | undefined => {
+  const geometry = store.getState().document.layers.find((layer) => layer.id === id)?.geometry;
+  return geometry?.type === 'Polygon' || geometry?.type === 'MultiPolygon' ? geometry : undefined;
+};
 
 describe('shape vertex store edits', () => {
+  it('replaces a complete shape geometry as one guarded undoable edit', () => {
+    const store = createProjectStore(createInitialProjectDocument());
+    const initial = shapeGeometry(store, 'area-center');
+    const translated = {
+      type: 'Polygon' as const,
+      coordinates: [[
+        [16.36, 48.2], [16.43, 48.2], [16.43, 48.24], [16.36, 48.24], [16.36, 48.2],
+      ]] as [number, number][][],
+    };
+
+    store.getState().setShapeGeometry('area-center', translated);
+    expect(shapeGeometry(store, 'area-center')).toEqual(translated);
+    expect(store.getState().canUndo).toBe(true);
+    store.getState().undo();
+    expect(shapeGeometry(store, 'area-center')).toEqual(initial);
+    store.getState().redo();
+    expect(shapeGeometry(store, 'area-center')).toEqual(translated);
+
+    store.getState().toggleLayerLock('area-center');
+    store.getState().setShapeGeometry('area-center', initial as typeof translated);
+    expect(shapeGeometry(store, 'area-center')).toEqual(translated);
+  });
+
   it('moves the first shape vertex and its closing coordinate as one undoable edit', () => {
     const store = createProjectStore(createInitialProjectDocument());
 

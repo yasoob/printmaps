@@ -434,7 +434,7 @@ describe('project store layer imports', () => {
     const created = layerState(store).find((layer) => layer.id === 'shape-01');
     expect(created).toMatchObject({
       id: 'shape-01',
-      name: 'Shape 01',
+      name: 'Area 01',
       type: 'shape',
       geometry: { type: 'Polygon', coordinates: [[...vertices, vertices[0]]] },
     });

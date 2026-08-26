@@ -5,6 +5,7 @@ import { PropertyRow } from './PropertyControls';
 
 type ShapeVertexControlsProps = {
   coordinates: readonly (readonly (readonly [number, number])[])[];
+  disabled?: boolean;
   onChange: (
     ringIndex: number,
     vertexIndex: number,
@@ -22,7 +23,7 @@ function optionKeys<T>(items: readonly T[], serialize: (item: T) => string) {
   });
 }
 
-export function ShapeVertexControls({ coordinates, onChange }: ShapeVertexControlsProps) {
+export function ShapeVertexControls({ coordinates, disabled = false, onChange }: ShapeVertexControlsProps) {
   const [ringSelection, setRingSelection] = useState(0);
   const [vertexSelection, setVertexSelection] = useState(0);
   const ringIndex = Math.min(ringSelection, Math.max(0, coordinates.length - 1));
@@ -33,6 +34,7 @@ export function ShapeVertexControls({ coordinates, onChange }: ShapeVertexContro
     <PropertyRow label="Ring">
       <select
         aria-label="Shape ring"
+        disabled={disabled}
         value={ringIndex}
         onChange={(event) => {
           setRingSelection(Number(event.target.value));
@@ -74,14 +76,14 @@ export function ShapeVertexControls({ coordinates, onChange }: ShapeVertexContro
     <>
       {ringSelector}
       <PropertyRow label="Vertex">
-        <select aria-label="Shape vertex" value={vertexIndex} onChange={(event) => setVertexSelection(Number(event.target.value))}>
+        <select aria-label="Shape vertex" disabled={disabled} value={vertexIndex} onChange={(event) => setVertexSelection(Number(event.target.value))}>
           {vertexOptions.map((option) => (
             <option key={option.key} value={option.value}>Vertex {option.value + 1}</option>
           ))}
         </select>
       </PropertyRow>
-      <CoordinateField key={`shape-longitude-${ringIndex}-${vertexIndex}-${selectedCoordinates[0]}`} ariaLabel="Shape vertex longitude" label="Longitude" minimum={-180} maximum={180} value={selectedCoordinates[0]} validate={(longitude) => preservesDistinctVertices([longitude, selectedCoordinates[1]])} validationMessage={distinctVertexMessage} onCommit={(longitude) => onChange(ringIndex, vertexIndex, [longitude, selectedCoordinates[1]])} />
-      <CoordinateField key={`shape-latitude-${ringIndex}-${vertexIndex}-${selectedCoordinates[1]}`} ariaLabel="Shape vertex latitude" label="Latitude" minimum={-90} maximum={90} value={selectedCoordinates[1]} validate={(latitude) => preservesDistinctVertices([selectedCoordinates[0], latitude])} validationMessage={distinctVertexMessage} onCommit={(latitude) => onChange(ringIndex, vertexIndex, [selectedCoordinates[0], latitude])} />
+      <CoordinateField key={`shape-longitude-${ringIndex}-${vertexIndex}-${selectedCoordinates[0]}`} ariaLabel="Shape vertex longitude" label="Longitude" minimum={-180} maximum={180} value={selectedCoordinates[0]} disabled={disabled} validate={(longitude) => preservesDistinctVertices([longitude, selectedCoordinates[1]])} validationMessage={distinctVertexMessage} onCommit={(longitude) => onChange(ringIndex, vertexIndex, [longitude, selectedCoordinates[1]])} />
+      <CoordinateField key={`shape-latitude-${ringIndex}-${vertexIndex}-${selectedCoordinates[1]}`} ariaLabel="Shape vertex latitude" label="Latitude" minimum={-90} maximum={90} value={selectedCoordinates[1]} disabled={disabled} validate={(latitude) => preservesDistinctVertices([selectedCoordinates[0], latitude])} validationMessage={distinctVertexMessage} onCommit={(latitude) => onChange(ringIndex, vertexIndex, [selectedCoordinates[0], latitude])} />
     </>
   );
 }

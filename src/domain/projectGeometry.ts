@@ -1,8 +1,10 @@
+import { createArcGeometry } from './routeArcGeometry';
 import { MAX_MERCATOR_LATITUDE, type LayerGeometry } from './project';
 
 export function geometryPositionCount(geometry: LayerGeometry | undefined): number {
   if (!geometry) return 0;
   if (geometry.type === 'Point') return 1;
+  if (geometry.type === 'Arc') return 2;
   if (geometry.type === 'LineString') return geometry.coordinates.length;
   if (geometry.type === 'Polygon') {
     return geometry.coordinates.reduce((total, ring) => total + ring.length, 0);
@@ -79,6 +81,21 @@ function polygonCoordinatesAt(
   });
 }
 
+function arcGeometryAt(
+  value: unknown,
+  label: string,
+  coordinateCount: CoordinateCounter,
+  options: GeometryParserOptions,
+) {
+  if (!Array.isArray(value) || value.length !== 2) options.fail('Arc geometry needs exactly two anchors.');
+  const anchors = value.map((position, index) => positionAt(
+    position, `${label} Arc anchor ${index + 1}`, coordinateCount, options,
+  ));
+  const arc = createArcGeometry(anchors);
+  if (!arc) options.fail('Arc geometry anchors must be distinct and unambiguous.');
+  return arc;
+}
+
 export function parseLayerGeometry(
   value: unknown,
   label: string,
@@ -89,6 +106,7 @@ export function parseLayerGeometry(
   if (geometry.type === 'Point') {
     return { type: 'Point', coordinates: positionAt(geometry.coordinates, `${label} Point`, coordinateCount, options) };
   }
+  if (geometry.type === 'Arc') return arcGeometryAt(geometry.anchors, label, coordinateCount, options);
   if (geometry.type === 'LineString') {
     if (!Array.isArray(geometry.coordinates) || geometry.coordinates.length < 2) {
       options.fail('LineString geometry needs at least two positions.');

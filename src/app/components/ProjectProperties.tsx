@@ -216,10 +216,6 @@ export function ProjectProperties({
       <InspectorAccordion isDefaultExpanded={false} storageKey={`${PROJECT_DISCLOSURE_PREFIX}:provider-services`} summary="Public-token status and compliance" title="Provider services">
         <MapboxServiceStatus />
       </InspectorAccordion>
-      <InspectorAccordion isDefaultExpanded={false} storageKey={`${PROJECT_DISCLOSURE_PREFIX}:technical-export`} summary="Format-specific · Attribution included" title="Output settings">
-        <PropertyRow label="Resolution"><select aria-label="Export resolution" value="Format-specific" disabled><option>Format-specific</option></select></PropertyRow>
-        <Checkbox isChecked disabled readOnly label="Include map attribution" />
-      </InspectorAccordion>
     </div>
   );
 }

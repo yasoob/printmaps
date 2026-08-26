@@ -2,11 +2,11 @@ import { createInitialProjectDocument } from '../../src/domain/project';
 import { parseProjectFileText } from '../../src/domain/projectFile';
 
 describe('portable project validation', () => {
-  it('rejects the obsolete schema-16 format with a reset-oriented message', () => {
-    const obsolete = { ...createInitialProjectDocument(), schemaVersion: 16 };
+  it.each([16, 17])('rejects the obsolete schema-%s format with a reset-oriented message', (schemaVersion) => {
+    const obsolete = { ...createInitialProjectDocument(), schemaVersion };
 
     expect(() => parseProjectFileText(JSON.stringify(obsolete))).toThrow(
-      'Schema version 16 is obsolete. Start a new project or reopen a current Print Map Studio file.',
+      `Schema version ${schemaVersion} is obsolete. Start a new project or reopen a current Print Map Studio file.`,
     );
   });
 
@@ -55,6 +55,38 @@ describe('portable project validation', () => {
       : undefined).not.toBe(shape.geometry.coordinates[0]);
   });
 
+  it('round-trips detached canonical Arc route geometry', () => {
+    const source = createInitialProjectDocument();
+    const route = source.layers.find(({ type }) => type === 'route');
+    if (!route) throw new Error('Expected route fixture.');
+    route.geometry = { type: 'Arc', anchors: [[179, 10], [-179, 12]] };
+
+    const parsed = parseProjectFileText(JSON.stringify(source));
+    const parsedRoute = parsed.layers.find(({ type }) => type === 'route');
+
+    expect(parsedRoute?.geometry).toEqual(route.geometry);
+    expect(parsedRoute?.geometry).not.toBe(route.geometry);
+  });
+
+  it('round-trips detached Mapbox isochrone provenance without credentials or raw responses', () => {
+    const source = createInitialProjectDocument();
+    const shape = source.layers.find(({ type }) => type === 'shape');
+    if (!shape || shape.appearance?.kind !== 'shape') throw new Error('Expected shape fixture.');
+    shape.name = '15 min walking area';
+    shape.appearance = { ...shape.appearance, label: shape.name };
+    shape.provenance = {
+      provider: 'mapbox', service: 'isochrone-v1', center: [16.3725, 48.2084], profile: 'walking', minutes: 15,
+    };
+
+    const parsed = parseProjectFileText(JSON.stringify(source));
+    const parsedShape = parsed.layers.find(({ id }) => id === shape.id);
+
+    expect(parsedShape?.provenance).toEqual(shape.provenance);
+    expect(parsedShape?.provenance).not.toBe(shape.provenance);
+    expect(parsedShape?.provenance?.center).not.toBe(shape.provenance.center);
+    expect(JSON.stringify(parsedShape)).not.toMatch(/access_token|rawResponse|token/i);
+  });
+
   it('preserves a current portable project custom basemap layer name', () => {
     const source = createInitialProjectDocument();
     source.style = { ...source.style, preset: 'night-ink', textScalePercent: 100 };
@@ -88,6 +120,9 @@ describe('portable project validation', () => {
     );
   });
 
+});
+
+describe('portable project rejection', () => {
   it.each([
     ['malformed JSON', '{', 'not valid JSON'],
     ['a non-object root', 'null', 'must be a JSON object'],
@@ -142,7 +177,21 @@ describe('portable project validation', () => {
         ...createInitialProjectDocument().layers[0],
         geometry: { type: 'Point', coordinates: [16.3, 48.2] },
       }],
-    }), 'Route layers may only contain LineString geometry'],
+    }), 'Route layers may only contain LineString or Arc geometry'],
+    ['an Arc with one anchor', JSON.stringify({
+      ...createInitialProjectDocument(),
+      layers: [{
+        ...createInitialProjectDocument().layers[0],
+        geometry: { type: 'Arc', anchors: [[16.3, 48.2]] },
+      }],
+    }), 'Arc geometry needs exactly two anchors'],
+    ['an Arc with duplicate anchors', JSON.stringify({
+      ...createInitialProjectDocument(),
+      layers: [{
+        ...createInitialProjectDocument().layers[0],
+        geometry: { type: 'Arc', anchors: [[16.3, 48.2], [16.3, 48.2]] },
+      }],
+    }), 'Arc geometry anchors must be distinct and unambiguous'],
     ['standard preset dimensions that are not canonical', JSON.stringify({
       ...createInitialProjectDocument(),
       page: { preset: 'A4', widthMm: 300, heightMm: 210, orientation: 'landscape' },

@@ -45,6 +45,7 @@ vi.mock('maplibre-gl', () => {
       (mocks.mapHandlers[event] ??= []).push(callback);
       if (event === 'load') queueMicrotask(callback);
     }
+    loaded() { return false; }
     remove() {}
     setLayoutProperty(...arguments_: unknown[]) { mocks.setLayoutProperty(...arguments_); }
     triggerRepaint() {}

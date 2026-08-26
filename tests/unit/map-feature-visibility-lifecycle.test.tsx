@@ -48,6 +48,7 @@ vi.mock('maplibre-gl', () => {
       (this.handlers[event] ??= []).push(callback);
       if (event === 'load') queueMicrotask(callback);
     }
+    loaded() { return false; }
     remove() {}
     setLayoutProperty(layerId: string, property: string, value: unknown) {
       if (property === 'visibility') mocks.visibilityUpdates.push([this.mapIndex, layerId, value]);

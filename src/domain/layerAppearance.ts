@@ -31,6 +31,7 @@ export type ShapeAppearance = {
   strokeColor: string;
   strokeWidth: number;
   invert: boolean;
+  label?: string;
 };
 export type LayerAppearance = RouteAppearance | PoiAppearance | ShapeAppearance;
 export type AppearanceLayerType = LayerAppearance['kind'] | 'basemap';
@@ -107,7 +108,13 @@ function isShapeAppearanceValid(appearance: ShapeAppearance): boolean {
     && Number.isFinite(appearance.strokeWidth)
     && appearance.strokeWidth >= 0.5
     && appearance.strokeWidth <= 12
-    && typeof appearance.invert === 'boolean';
+    && typeof appearance.invert === 'boolean'
+    && (appearance.label === undefined || (
+      typeof appearance.label === 'string'
+      && appearance.label.trim() === appearance.label
+      && !hasPoiLabelControlCharacter(appearance.label)
+      && [...appearance.label].length <= MAX_POI_LABEL_CHARACTERS
+    ));
 }
 
 export function canonicalLayerAppearance(
@@ -195,6 +202,17 @@ function poiAppearanceAt(appearance: JsonObject, label: string, fail: Fail): Poi
   };
 }
 
+function optionalShapeLabel(value: unknown, label: string, fail: Fail) {
+  if (value === undefined) return {};
+  if (typeof value !== 'string'
+    || value.trim() !== value
+    || hasPoiLabelControlCharacter(value)
+    || [...value].length > MAX_POI_LABEL_CHARACTERS) {
+    fail(`${label} shape label must be a trimmed text value of ${MAX_POI_LABEL_CHARACTERS} characters or fewer.`);
+  }
+  return { label: value };
+}
+
 export function parseLayerAppearance(
   value: unknown,
   type: AppearanceLayerType,
@@ -222,5 +240,6 @@ export function parseLayerAppearance(
     strokeColor: colorValue(appearance.strokeColor, `${label} shape outline color`, fail),
     strokeWidth,
     invert: appearance.invert,
+    ...optionalShapeLabel(appearance.label, label, fail),
   };
 }

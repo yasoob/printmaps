@@ -8,10 +8,7 @@ test('reviewed map-data batches apply bounded styling before one-step import', a
     if (message.type() === 'error') consoleProblems.push(message.text());
   });
   await page.goto('/');
-  const chooserPromise = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Import' }).click();
-  const chooser = await chooserPromise;
-  await chooser.setFiles([
+  await page.locator('input[accept^=".geojson"]').setInputFiles([
     path.resolve('tests/fixtures/import/supported.geojson'),
     path.resolve('tests/fixtures/import/wave2/namespaced.kml'),
   ]);

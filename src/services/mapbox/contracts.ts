@@ -27,6 +27,23 @@ export interface SearchProvider {
   search(request: SearchRequest): Promise<SearchResponse>;
 }
 
+export interface IsochroneRequest extends ProviderRequestControl {
+  readonly center: ProviderCoordinate;
+  readonly minutes: number;
+  readonly profile: ProviderTravelProfile;
+}
+
+export interface IsochroneResponse extends ProviderBoundResponse {
+  readonly geometry: {
+    readonly type: 'Polygon';
+    readonly coordinates: readonly (readonly ProviderCoordinate[])[];
+  };
+}
+
+export interface IsochroneProvider {
+  isochrone(request: IsochroneRequest): Promise<IsochroneResponse>;
+}
+
 export interface DirectionsRequest extends ProviderRequestControl {
   readonly waypoints: readonly ProviderCoordinate[];
   readonly profile: ProviderTravelProfile;

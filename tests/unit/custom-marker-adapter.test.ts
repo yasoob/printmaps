@@ -31,6 +31,7 @@ describe('custom marker map image lifecycle', () => {
     const repaint = vi.fn();
     const map = {
       isStyleLoaded: () => true,
+      addControl: vi.fn(),
       hasImage: (id: string) => images.has(id),
       addImage: (id: string) => { images.add(id); },
       removeImage: (id: string) => { images.delete(id); },
@@ -75,6 +76,7 @@ describe('custom marker map image lifecycle', () => {
     const repaint = vi.fn();
     const map = {
       isStyleLoaded: () => true,
+      addControl: vi.fn(),
       hasImage: (id: string) => images.has(id),
       addImage: (id: string) => { images.add(id); },
       removeImage: (id: string) => { images.delete(id); },

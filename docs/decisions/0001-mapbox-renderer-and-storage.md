@@ -1,6 +1,6 @@
 # ADR 0001: Mapbox renderer, token and response-storage boundary
 
-- Status: Accepted
+- Status: Accepted, amended after project-owner permission confirmation
 - Date: 2026-08-23
 
 ## Context
@@ -9,13 +9,15 @@ Print Map Studio is a static browser application with an existing MapLibre rende
 
 Mapbox documents public tokens as client-side credentials, recommends least privilege, and says a URL-restricted token works only for requests from allowed URLs.[1] Mapbox also says temporary Geocoding results cannot be cached, while permanent storage requires a valid credit card or enterprise contract.[3] The Map Matching API currently requires its results to be displayed on a Mapbox map using a Mapbox library or SDK.[4]
 
+On 2026-08-24, the project owner confirmed full permission for the intended Mapbox search, routing, map-matching, persistence and export workflows. That authorization removes the contractual gate below; token safety, provenance, request bounds and graceful fallback remain required engineering controls.
+
 ## Decision
 
 1. The open editor, MapLibre renderer, imports, straight geometry tools, persistence and exports remain available without Mapbox.
-2. Mapbox-backed search, directions-derived durable content and map matching stay disabled until their complete workflow uses a compliant Mapbox display path or written Mapbox approval explicitly permits the intended MapLibre display/export use.
-3. If Mapbox-backed map matching is enabled, the interactive renderer will switch to Mapbox GL JS behind the existing map-adapter boundary. Open-only projects may continue to use MapLibre.
-4. Temporary Geocoding or Search responses will not enter the canonical project, IndexedDB autosave or portable files. Durable provider coordinates require an explicitly permanent request, deployment eligibility and provenance recorded in the canonical document.
-5. Mapbox content will not be silently incorporated into the independent PNG, PDF or layered SVG paths. Any future provider-backed export requires a separate terms and attribution review.
+2. Mapbox-backed address search, directions and map matching may be implemented immediately as one complete workflow behind the existing provider/map-adapter boundaries.
+3. The implementation may use Mapbox GL JS where required while open-only projects continue to use MapLibre.
+4. Selected search results and snapped route geometry may enter the canonical project, IndexedDB autosave and portable files. Store only the durable data needed by the project, record provider provenance and never serialize credentials or raw diagnostic responses.
+5. Provider-derived route geometry may participate in PNG, PDF and layered SVG exports with the same visual and attribution contract as other canonical routes. Export code must remain deterministic and must not depend on a live provider response after the route is committed.
 
 ## Browser token setup
 
@@ -27,7 +29,7 @@ Mapbox documents public tokens as client-side credentials, recommends least priv
 
 ## Consequences
 
-This decision resolves the renderer/storage gate without pretending that a valid token grants broader contractual permission. The current open-map editor remains useful and exportable, deployment errors are visible and testable, and later search/routing work has a hard fail-closed boundary instead of leaking temporary provider data into durable projects.
+The open-map editor remains useful without Mapbox, while an authorized Mapbox-backed workflow can now provide address search and road-snapped routes. Provider failures remain visible and recoverable; credentials stay outside projects; committed route geometry remains locally editable, portable and exportable.
 
 ## Sources
 

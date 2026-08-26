@@ -58,7 +58,9 @@ describe('GeoJSON import', () => {
     const source = JSON.parse(supportedFixture) as {
       features: Array<{ geometry: { coordinates: unknown } }>;
     };
-    expect(layers[0].geometry?.coordinates).not.toBe(source.features[0].geometry.coordinates);
+    const importedGeometry = layers[0].geometry;
+    if (!importedGeometry || importedGeometry.type === 'Arc') throw new Error('Expected imported GeoJSON geometry.');
+    expect(importedGeometry.coordinates).not.toBe(source.features[0].geometry.coordinates);
   });
 
   it('accepts one Feature as the root and supplies a safe fallback name', () => {

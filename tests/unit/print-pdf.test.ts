@@ -15,6 +15,15 @@ function jpegCapture(): PreviewPng {
   };
 }
 
+function linearCapture(): PreviewPng {
+  const capture = jpegCapture();
+  capture.projectToFrame = ([longitude, latitude]) => ({
+    x: (longitude + 180) / 360,
+    y: (85 - latitude) / 170,
+  });
+  return capture;
+}
+
 async function pdfText(document = createInitialProjectDocument()): Promise<string> {
   const pdf = await createPrintPdf(document, jpegCapture());
   return new TextDecoder('latin1').decode(await pdf.arrayBuffer());
@@ -43,6 +52,20 @@ describe('print PDF', () => {
     expect(text).toContain('/OFF [8 0 R]');
     expect(text).toContain('% Vector layer: Route 01');
     expect(text).toContain('/OC /Layer0 BDC');
+  });
+
+  it('exports a canonical Arc with a cubic Bézier command instead of line segments', async () => {
+    const document = createInitialProjectDocument();
+    document.layers[0].geometry = { type: 'Arc', anchors: [[16.326, 48.194], [16.429, 48.226]] };
+
+    const pdf = await createPrintPdf(document, linearCapture());
+    const text = new TextDecoder('latin1').decode(await pdf.arrayBuffer());
+    const routeStart = text.indexOf('% Vector layer: Route 01');
+    const routeEnd = text.indexOf('EMC', routeStart);
+    const routeCommands = text.slice(routeStart, routeEnd);
+
+    expect(routeCommands).toMatch(/\d+(?:\.\d+)? \d+(?:\.\d+)? \d+(?:\.\d+)? \d+(?:\.\d+)? \d+(?:\.\d+)? \d+(?:\.\d+)? c/);
+    expect(routeCommands).not.toMatch(/\d+(?:\.\d+)? \d+(?:\.\d+)? l/);
   });
 
   it('applies canonical basemap opacity to the raster image', async () => {

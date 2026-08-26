@@ -22,6 +22,33 @@ describe('route vertex structure history', () => {
     });
   });
 
+  it('inserts a dragged map coordinate as one undoable route edit', () => {
+    const store = createProjectStore(createInitialProjectDocument());
+
+    store.getState().insertRouteVertex('route-01', 0, [16.34, 48.2]);
+
+    expect(routeGeometry(store)).toEqual({
+      type: 'LineString',
+      coordinates: [[16.326, 48.194], [16.34, 48.2], [16.353, 48.205], [16.391, 48.215], [16.429, 48.226]],
+    });
+    expect(store.getState().past).toHaveLength(1);
+  });
+
+  it('replaces all Terra Draw anchors as one undoable geometry transaction', () => {
+    const store = createProjectStore(createInitialProjectDocument());
+    const anchors = [[16.3, 48.1], [16.4, 48.3], [16.5, 48.2]] as const;
+
+    store.getState().replaceRouteGeometry('route-01', anchors);
+
+    expect(routeGeometry(store)).toEqual({ type: 'LineString', coordinates: anchors });
+    expect(store.getState().past).toHaveLength(1);
+    store.getState().undo();
+    expect(routeGeometry(store)).toEqual({
+      type: 'LineString',
+      coordinates: [[16.326, 48.194], [16.353, 48.205], [16.391, 48.215], [16.429, 48.226]],
+    });
+  });
+
   it('removes one route vertex without allowing a route below two positions', () => {
     const store = createProjectStore(createInitialProjectDocument());
 

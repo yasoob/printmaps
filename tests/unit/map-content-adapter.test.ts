@@ -44,6 +44,7 @@ function createMapHarness({
     Array.isArray(configuredCalls) ? configuredCalls.includes(call) : configuredCalls === call
   );
   const map = {
+    addControl: vi.fn(),
     isStyleLoaded: () => {
       if (failIsStyleLoaded) throw new Error('isStyleLoaded failure');
       return styleLoaded;
@@ -122,11 +123,11 @@ describe('MapLibre content adapter', () => {
     });
 
     expect(adapter.setExportVisibility(false)).toBe(true);
-    expect(layoutUpdates).toHaveLength(3);
+    expect(layoutUpdates).toHaveLength(4);
     expect(layoutUpdates.every(([, property, value]) => property === 'visibility' && value === 'none')).toBe(true);
     expect(adapter.setExportVisibility(true)).toBe(true);
-    expect(layoutUpdates.slice(3)).toHaveLength(3);
-    expect(layoutUpdates.slice(3).every(([, property, value]) => property === 'visibility' && value === 'visible')).toBe(true);
+    expect(layoutUpdates.slice(4)).toHaveLength(4);
+    expect(layoutUpdates.slice(4).every(([, property, value]) => property === 'visibility' && value === 'visible')).toBe(true);
   });
 
   it('reports content sync as deferred while the style is not loaded', () => {
@@ -174,8 +175,8 @@ describe('MapLibre content adapter', () => {
     });
 
     expect(sources).toHaveLength(2);
-    expect(layers).toHaveLength(3);
-    expect(new Set(layers.keys())).toHaveLength(3);
+    expect(layers).toHaveLength(4);
+    expect(new Set(layers.keys())).toHaveLength(4);
   });
 
   it('applies zero shape opacity to both the fill and outline', () => {
@@ -215,9 +216,9 @@ describe('MapLibre content adapter', () => {
     expect(adapter.sync({ layers: [route, poi], selectedId: 'route', previewedId: 'poi' })).toBe('synced');
     expect([...layers.values()]).toEqual(renderedLayers);
     expect(paintUpdates).toEqual(expect.arrayContaining([
-      ['studio-layer-5:route:main', 'line-color', '#006fc9'],
+      ['studio-layer-5:route:main', 'line-color', '#d9363e'],
       ['studio-layer-5:route:main', 'line-width', 6],
-      ['studio-layer-3:poi:main', 'circle-color', '#006fc9'],
+      ['studio-layer-3:poi:main', 'circle-color', '#0d78b5'],
       ['studio-layer-3:poi:main', 'circle-radius', 9],
     ]));
   });
@@ -305,6 +306,7 @@ describe('MapLibre content adapter', () => {
     expect([...layers.keys()]).toEqual([
       'studio-layer-10:bottom-poi:main',
       'studio-layer-12:middle-shape:fill',
+      'studio-layer-12:middle-shape:hover-halo',
       'studio-layer-12:middle-shape:line',
       'studio-layer-9:top-route:main',
     ]);
@@ -336,7 +338,7 @@ describe('MapLibre content adapter recovery', () => {
       selectedId: null,
       previewedId: null,
     })).toBe('synced');
-    expect(layers).toHaveLength(2);
+    expect(layers).toHaveLength(3);
     expect(sources).toHaveLength(1);
     adapter.destroy();
     expect(layers).toHaveLength(0);

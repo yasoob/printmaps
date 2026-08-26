@@ -33,7 +33,7 @@ export function commitDocument(state: ProjectState, document: ProjectDocument) {
   };
 }
 
-export function createDocumentActions(set: ProjectSet): Pick<ProjectState, 'openDocument' | 'undo' | 'redo'> {
+export function createDocumentActions(set: ProjectSet): Pick<ProjectState, 'openDocument' | 'setProjectTitle' | 'undo' | 'redo'> {
   return {
     openDocument: (storedDocument) => {
       const openedDocument = copyDocument(storedDocument);
@@ -47,6 +47,11 @@ export function createDocumentActions(set: ProjectSet): Pick<ProjectState, 'open
         canRedo: false,
       }));
     },
+    setProjectTitle: (title) => set((state) => {
+      const normalizedTitle = title.trim().slice(0, 120);
+      if (!normalizedTitle || normalizedTitle === state.document.title) return state;
+      return commitDocument(state, { ...state.document, title: normalizedTitle });
+    }),
     undo: () => set((state) => {
       const previous = state.past.at(-1);
       if (!previous) return state;

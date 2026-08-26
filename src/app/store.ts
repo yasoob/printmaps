@@ -3,6 +3,7 @@ import {
   createInitialProjectDocument,
   type ContentLayer,
   type LayerAppearance,
+  type IsochroneAreaInput,
   type MapLanguage,
   type MapFeatureVisibilityCategory,
   type MapStylePreset,
@@ -20,6 +21,7 @@ import { createLayerPropertyActions, createLayerStructureActions } from './store
 import { createPageActions } from './storePageActions';
 import { createShapeGeometryActions } from './storeShapeActions';
 import { createStyleActions } from './storeStyleActions';
+import { createIsochroneActions } from './storeIsochroneActions';
 
 export type ProjectState = {
   document: ProjectDocument;
@@ -31,6 +33,7 @@ export type ProjectState = {
   canRedo: boolean;
   createAdministrativeArea: (id: AdministrativeAreaId | string) => string | null;
   createAdministrativeAreas: (ids: readonly (AdministrativeAreaId | string)[]) => string | null;
+  createIsochroneArea: (input: IsochroneAreaInput, expectedDocumentEpoch: number) => string | null;
   createPoi: (coordinates: readonly [number, number]) => void;
   createPoiBatch: (entries: readonly PoiSpreadsheetEntry[]) => void;
   createRoute: (
@@ -41,9 +44,10 @@ export type ProjectState = {
   deleteLayer: (id: string) => void;
   duplicateLayer: (id: string) => void;
   importLayers: (layers: readonly ContentLayer[], documentEpoch: number, sourceDocument: ProjectDocument) => boolean;
-  insertRouteVertex: (id: string, vertexIndex: number) => void;
+  insertRouteVertex: (id: string, vertexIndex: number, coordinate?: readonly [number, number]) => void;
   moveLayer: (id: string, toIndex: number) => void;
   openDocument: (document: ProjectDocument) => void;
+  setProjectTitle: (title: string) => void;
   renameLayer: (id: string, name: string) => void;
   replaceLayerFromImport: (id: string, layer: ContentLayer, documentEpoch: number, sourceDocument: ProjectDocument) => boolean;
   selectLayer: (id: string | null) => void;
@@ -58,6 +62,7 @@ export type ProjectState = {
   setPoiCoordinates: (id: string, coordinates: readonly [number, number]) => void;
   setPoiCustomMarker: (id: string, asset: CustomMarkerAsset | null) => void;
   setRouteVertex: (id: string, vertexIndex: number, coordinates: readonly [number, number]) => void;
+  setShapeGeometry: (id: string, geometry: import('../domain/project').ShapeGeometry) => void;
   setShapeVertex: (id: string, ringIndex: number, vertexIndex: number, coordinates: readonly [number, number]) => void;
   setLayerOpacity: (id: string, opacity: number) => void;
   setMapStyle: (preset: MapStylePreset) => void;
@@ -69,6 +74,7 @@ export type ProjectState = {
   undo: () => void;
   redo: () => void;
   removeRouteVertex: (id: string, vertexIndex: number) => void;
+  replaceRouteGeometry: (id: string, coordinates: readonly (readonly [number, number])[]) => void;
 };
 
 export function createProjectStore(
@@ -84,6 +90,7 @@ export function createProjectStore(
     canRedo: false,
     ...createCameraActions(set),
     ...createLayerStructureActions(set),
+    ...createIsochroneActions(set),
     ...createLayerPropertyActions(set),
     ...createShapeGeometryActions(set),
     ...createPageActions(set),

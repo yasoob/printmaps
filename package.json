@@ -10,14 +10,25 @@
     "lint": "eslint .",
     "doctor": "react-doctor . --no-score --blocking warning --no-telemetry",
     "test": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a -s '-screen 0 1440x900x24 +extension GLX +render -noreset' npm run test:e2e:release",
+    "test:e2e:release": "playwright test --project=chromium --workers=1 --shard=1/3 && playwright test --project=chromium --workers=1 --shard=2/3 && playwright test --project=chromium --workers=1 --shard=3/3",
+    "test:e2e:all-browsers": "npm run test:e2e:release && playwright test --project=firefox --workers=1 --shard=1/3 && playwright test --project=firefox --workers=1 --shard=2/3 && playwright test --project=firefox --workers=1 --shard=3/3 && playwright test --project=webkit --workers=1 --shard=1/3 && playwright test --project=webkit --workers=1 --shard=2/3 && playwright test --project=webkit --workers=1 --shard=3/3",
+    "test:e2e:focused": "LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a -s '-screen 0 1440x900x24 +extension GLX +render -noreset' playwright test --project=chromium --workers=1"
   },
   "dependencies": {
+    "@deck.gl/core": "^9.3.10",
+    "@deck.gl/layers": "^9.3.10",
+    "@deck.gl/mapbox": "^9.3.10",
+    "@luma.gl/core": "^9.3.5",
+    "@luma.gl/engine": "^9.3.5",
+    "@math.gl/web-mercator": "^4.1.0",
     "fflate": "^0.8.3",
     "lucide-react": "^1.33.0",
     "maplibre-gl": "^6.4.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
+    "terra-draw": "^1.32.3",
+    "terra-draw-maplibre-gl-adapter": "^1.4.1",
     "zustand": "^5.0.15"
   },
   "devDependencies": {
@@ -39,6 +50,7 @@
     "jsdom": "^30.0.1",
     "playwright": "^1.62.1",
     "react-doctor": "^0.9.12",
+    "react-scan": "^0.5.7",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.67.0",

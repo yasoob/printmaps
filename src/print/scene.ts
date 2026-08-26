@@ -1,3 +1,4 @@
+import { arcControlPosition, arcPoint } from '../domain/routeArcGeometry';
 import type { ContentLayer, LayerGeometry, LayerType, ProjectDocument } from '../domain/project';
 import { fitAttributionFontSize } from '../domain/projectAttributions';
 import { ROUTE_TRAVEL_PROFILE_MARKERS } from '../domain/routeProfiles';
@@ -31,8 +32,8 @@ export class PrintSceneError extends Error {
   }
 }
 
-const expectedGeometry: Readonly<Record<Exclude<LayerType, 'basemap'>, LayerGeometry['type']>> = {
-  route: 'LineString',
+const expectedGeometry: Readonly<Record<Exclude<LayerType, 'basemap'>, string>> = {
+  route: 'LineString or Arc',
   poi: 'Point',
   shape: 'Polygon',
 };
@@ -186,6 +187,7 @@ function routeTravelModeMarker(
 }
 
 function isGeometryMatchingLayer(layer: ContentLayer, geometry: LayerGeometry | undefined): boolean {
+  if (layer.type === 'route') return geometry?.type === 'LineString' || geometry?.type === 'Arc';
   if (layer.type === 'shape') return geometry?.type === 'Polygon' || geometry?.type === 'MultiPolygon';
   if (layer.type === 'basemap') return false;
   return geometry?.type === expectedGeometry[layer.type];
@@ -213,6 +215,14 @@ function geometryElement(
       point,
       style,
     });
+  }
+  if (geometry.type === 'Arc') {
+    const start = projectCoordinate(geometry.anchors[0], layer, options, { width, height });
+    const control = projectCoordinate(arcControlPosition(geometry), layer, options, { width, height });
+    const end = projectCoordinate(geometry.anchors[1], layer, options, { width, height });
+    const midpoint = projectCoordinate(arcPoint(geometry, 0.5), layer, options, { width, height });
+    const commands = `M ${pointText(start)} Q ${pointText(control)} ${pointText(end)}`;
+    return `<path d="${commands}" fill="none" ${stroke} stroke-linecap="round"/>${routeTravelModeMarker(layer, [midpoint], style.stroke)}`;
   }
   if (geometry.type === 'LineString') {
     if (geometry.coordinates.length < 2) {
@@ -291,11 +301,9 @@ function validateSceneInputs(document: ProjectDocument, options: PrintSceneOptio
   if (!options || typeof options.project !== 'function') {
     throw new PrintSceneError('A coordinate-to-page-point projector is required.');
   }
-  const width = document.page.widthMm;
-  const height = document.page.heightMm;
+  const width = document.page.widthMm, height = document.page.heightMm;
   validateBasemap(options.basemap);
-  const attribution = requiredAttribution(options);
-  const layers = validatedLayers(document.layers);
+  const attribution = requiredAttribution(options), layers = validatedLayers(document.layers);
   return { width, height, attribution, ...splitLayers(layers) };
 }
 
@@ -305,16 +313,13 @@ function validateSceneInputs(document: ProjectDocument, options: PrintSceneOptio
  */
 export function serializePrintScene(document: ProjectDocument, options: PrintSceneOptions): string {
   const { width, height, attribution, basemapLayer, vectorLayers } = validateSceneInputs(document, options);
-  const widthText = formatDimension(width);
-  const heightText = formatDimension(height);
-  const metadata = options.metadata?.replaceAll(/\s+/g, ' ').trim();
+  const widthText = formatDimension(width), heightText = formatDimension(height), metadata = options.metadata?.replaceAll(/\s+/g, ' ').trim();
 
   const basemapGroup = `<g ${layerGroupAttributes(basemapLayer, 'raster-basemap')}><title>${escapeXml(basemapLayer.name)}</title><image href="${escapeXml(options.basemap.dataUri)}" x="0" y="0" width="${widthText}" height="${heightText}" preserveAspectRatio="xMidYMid slice" data-pixel-width="${options.basemap.pixelWidth}" data-pixel-height="${options.basemap.pixelHeight}"/></g>`;
   const vectorGroups = vectorLayers.map((layer) => (
     `<g ${layerGroupAttributes(layer, 'vector-overlay')}><title>${escapeXml(layer.name)}</title>${geometryElement(layer, options, { assets: document.assets, width, height })}</g>`
   ));
-  const attributionHeight = Math.min(5, height);
-  const attributionY = height - attributionHeight;
+  const attributionHeight = Math.min(5, height), attributionY = height - attributionHeight;
   const attributionFontSize = fitAttributionFontSize(attribution, Math.max(0.1, width - 4), 2.5);
   const attributionGroup = `<g id="attribution" data-scene-role="attribution" data-layer-name="Attribution" clip-path="url(#page-clip)"><title>Attribution</title><rect x="0" y="${formatNumber(attributionY)}" width="${widthText}" height="${formatNumber(attributionHeight)}" fill="#ffffff" opacity="0.88"/><text x="2" y="${formatNumber(height - attributionHeight / 2)}" fill="#111827" font-family="sans-serif" font-size="${formatNumber(attributionFontSize)}" dominant-baseline="middle">${escapeXml(attribution)}</text></g>`;
 

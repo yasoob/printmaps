@@ -1,3 +1,4 @@
+import { arcControlPosition, arcPoint, type ArcGeometry } from '../domain/routeArcGeometry';
 import type { ContentLayer } from '../domain/project';
 import { POI_MARKER_SYMBOL_GLYPHS } from '../domain/poiMarkers';
 import { ROUTE_TRAVEL_PROFILE_MARKERS } from '../domain/routeProfiles';
@@ -88,26 +89,15 @@ function poiMarkerCommands(point: FramePoint, radius: number, shape: 'circle' | 
   ].join('\n');
 }
 
-function routeCommands(
-  layer: ContentLayer,
-  coordinates: readonly (readonly [number, number])[],
-  context: ProjectionContext,
-): string {
-  if (coordinates.length < 2) throw new Error(`Route layer "${layer.name}" has no printable line.`);
-  const appearance = layer.appearance?.kind === 'route'
+function routeAppearance(layer: ContentLayer) {
+  return layer.appearance?.kind === 'route'
     ? layer.appearance
-    : {
-      color: '#d9363e',
-      width: 4,
-      travelProfile: 'car' as const,
-      showTravelModeIcon: false,
-    };
-  const path = coordinates.map((coordinate, index) => (
-    `${pointText(project(coordinate, context))} ${index === 0 ? 'm' : 'l'}`
-  )).join('\n');
-  const line = `${colorComponents(appearance.color)} RG\n${formatNumber(appearance.width * 0.3 * POINTS_PER_MM)} w\n1 J\n1 j\n${path}\nS`;
-  if (!appearance.showTravelModeIcon) return line;
-  const point = project(coordinates[Math.floor((coordinates.length - 1) / 2)], context);
+    : { color: '#d9363e', width: 4, travelProfile: 'car' as const, showTravelModeIcon: false };
+}
+
+function routeMarkerCommands(layer: ContentLayer, point: FramePoint) {
+  const appearance = routeAppearance(layer);
+  if (!appearance.showTravelModeIcon) return '';
   const label = ROUTE_TRAVEL_PROFILE_MARKERS[appearance.travelProfile];
   const radius = 4 * POINTS_PER_MM;
   const textX = point.x - label.length * 1.35;
@@ -128,7 +118,42 @@ function routeCommands(
     'ET',
     'Q',
   ].join('\n');
-  return `${line}\n${marker}`;
+  return marker;
+}
+
+function routeCommands(
+  layer: ContentLayer,
+  coordinates: readonly (readonly [number, number])[],
+  context: ProjectionContext,
+): string {
+  if (coordinates.length < 2) throw new Error(`Route layer "${layer.name}" has no printable line.`);
+  const appearance = routeAppearance(layer);
+  const path = coordinates.map((coordinate, index) => (
+    `${pointText(project(coordinate, context))} ${index === 0 ? 'm' : 'l'}`
+  )).join('\n');
+  const line = `${colorComponents(appearance.color)} RG\n${formatNumber(appearance.width * 0.3 * POINTS_PER_MM)} w\n1 J\n1 j\n${path}\nS`;
+  const point = project(coordinates[Math.floor((coordinates.length - 1) / 2)], context);
+  const marker = routeMarkerCommands(layer, point);
+  return marker ? `${line}\n${marker}` : line;
+}
+
+function arcRouteCommands(layer: ContentLayer, geometry: ArcGeometry, context: ProjectionContext): string {
+  const appearance = routeAppearance(layer);
+  const start = project(geometry.anchors[0], context);
+  const control = project(arcControlPosition(geometry), context);
+  const end = project(geometry.anchors[1], context);
+  const firstControl = {
+    x: start.x + (control.x - start.x) * 2 / 3,
+    y: start.y + (control.y - start.y) * 2 / 3,
+  };
+  const secondControl = {
+    x: end.x + (control.x - end.x) * 2 / 3,
+    y: end.y + (control.y - end.y) * 2 / 3,
+  };
+  const path = `${pointText(start)} m\n${pointText(firstControl)} ${pointText(secondControl)} ${pointText(end)} c`;
+  const line = `${colorComponents(appearance.color)} RG\n${formatNumber(appearance.width * 0.3 * POINTS_PER_MM)} w\n1 J\n1 j\n${path}\nS`;
+  const marker = routeMarkerCommands(layer, project(arcPoint(geometry, 0.5), context));
+  return marker ? `${line}\n${marker}` : line;
 }
 
 function poiCommands(
@@ -197,6 +222,29 @@ function shapeCommands(
   return `${paint}\n% Inverted shape fill\n${pagePath}\n${path}\nf*\n% Shape boundary outline\n${path}\nS`;
 }
 
+function routeLayerCommands(layer: ContentLayer, context: ProjectionContext) {
+  if (layer.geometry?.type === 'Arc') return arcRouteCommands(layer, layer.geometry, context);
+  if (layer.geometry?.type === 'LineString') return routeCommands(layer, layer.geometry.coordinates, context);
+}
+
+function poiLayerCommands(layer: ContentLayer, context: ProjectionContext) {
+  if (layer.geometry?.type === 'Point') return poiCommands(layer, layer.geometry.coordinates, context);
+}
+
+function shapeLayerCommands(layer: ContentLayer, context: ProjectionContext) {
+  if (layer.geometry?.type !== 'Polygon' && layer.geometry?.type !== 'MultiPolygon') return;
+  const rings = layer.geometry.type === 'Polygon'
+    ? layer.geometry.coordinates
+    : layer.geometry.coordinates.flat();
+  return shapeCommands(layer, rings, context);
+}
+
+function commandsForLayer(layer: ContentLayer, context: ProjectionContext) {
+  if (layer.type === 'route') return routeLayerCommands(layer, context);
+  if (layer.type === 'poi') return poiLayerCommands(layer, context);
+  return shapeLayerCommands(layer, context);
+}
+
 export function pdfVectorCommands(
   layer: ContentLayer,
   capture: ProjectedCapture,
@@ -205,17 +253,7 @@ export function pdfVectorCommands(
 ): string {
   if (layer.type === 'basemap' || !layer.geometry) return '';
   const context = { capture, width, height };
-  if (layer.type === 'route' && layer.geometry.type === 'LineString') {
-    return routeCommands(layer, layer.geometry.coordinates, context);
-  }
-  if (layer.type === 'poi' && layer.geometry.type === 'Point') {
-    return poiCommands(layer, layer.geometry.coordinates, context);
-  }
-  if (layer.type === 'shape' && (layer.geometry.type === 'Polygon' || layer.geometry.type === 'MultiPolygon')) {
-    const rings = layer.geometry.type === 'Polygon'
-      ? layer.geometry.coordinates
-      : layer.geometry.coordinates.flat();
-    return shapeCommands(layer, rings, context);
-  }
+  const commands = commandsForLayer(layer, context);
+  if (commands !== undefined) return commands;
   throw new Error(`Layer "${layer.name}" has geometry that cannot be represented in the PDF.`);
 }

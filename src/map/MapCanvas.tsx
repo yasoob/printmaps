@@ -1,9 +1,11 @@
 import type { CSSProperties } from 'react';
 import type { CustomMarkerAsset } from '../domain/customMarkerAssets';
-import type { CameraSettings, ContentLayer, MapFeatureVisibility, MapLanguage, MapStylePreset, PageSettings } from '../domain/project';
+import type { CameraSettings, ContentLayer, MapFeatureVisibility, MapLanguage, MapStylePreset, PageSettings, ShapeGeometry } from '../domain/project';
 import type { PreviewPngExporter } from '../export/previewPng';
 import type { MapBounds } from './MapLayerBounds';
 import type { CameraViewportChangeMode } from './MapCameraViewport';
+import type { ShapeEditMode } from './ShapeVertexEditing';
+import type { RouteAuthoring } from './useTerraDrawRoutes';
 import { mapLocationRequestDiagnostic, resolveMapLocationRequest, type MapLocationRequest } from './MapLocationRequest';
 import { useMapCanvasController } from './useMapCanvasController';
 
@@ -17,10 +19,13 @@ type MapCanvasProps = {
   assets: Record<string, CustomMarkerAsset>;
   selectedId: string | null;
   previewedId: string | null;
+  shapeEditMode?: ShapeEditMode;
   onLayerSelect: (id: string) => void;
   onCameraViewportChange?: (center: readonly [number, number], zoom: number, mode: CameraViewportChangeMode) => void;
   onMapClick?: (coordinate: [number, number]) => void;
-  onRouteVertexChange?: (id: string, vertexIndex: number, coordinate: readonly [number, number]) => void;
+  onRouteGeometryChange?: (id: string, coordinates: readonly (readonly [number, number])[]) => void;
+  routeAuthoring?: RouteAuthoring;
+  onShapeGeometryChange?: (id: string, geometry: ShapeGeometry) => void;
   onBackgroundClick: () => void;
   onExporterChange?: (exporter: PreviewPngExporter | null) => void;
   fitRequest?: number;
@@ -45,6 +50,7 @@ const DEFAULT_FEATURE_VISIBILITY: MapFeatureVisibility = {
 };
 const resolveFeatureVisibility = (visibility?: MapFeatureVisibility) => visibility ?? DEFAULT_FEATURE_VISIBILITY;
 const resolveMapLanguage = (language?: MapLanguage) => language ?? 'local';
+const resolveShapeEditMode = (mode?: ShapeEditMode): ShapeEditMode => mode ?? 'transform';
 
 export function MapCanvas({
   camera = { bearing: 0, center: [16.3725, 48.2084], locked: false, pitch: 0, zoom: 11.2 },
@@ -56,10 +62,13 @@ export function MapCanvas({
   assets,
   selectedId,
   previewedId,
+  shapeEditMode,
   onLayerSelect,
   onCameraViewportChange,
   onMapClick,
-  onRouteVertexChange,
+  onRouteGeometryChange,
+  routeAuthoring,
+  onShapeGeometryChange,
   onBackgroundClick,
   onExporterChange,
   fitRequest = 0,
@@ -91,9 +100,12 @@ export function MapCanvas({
     onLayerSelect,
     onCameraViewportChange,
     onMapClick,
-    onRouteVertexChange,
+    onRouteGeometryChange,
+    routeAuthoring,
+    onShapeGeometryChange,
     previewedId,
     selectedId,
+    shapeEditMode: resolveShapeEditMode(shapeEditMode),
     contentRevision,
   });
 

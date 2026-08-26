@@ -1,3 +1,4 @@
+import { createArcGeometry } from '../domain/routeArcGeometry';
 import { canonicalLayerAppearance } from '../domain/layerAppearance';
 import { cloneContentLayer, createDefaultLayerAppearance, type ContentLayer } from '../domain/project';
 import { isValidPosition } from '../domain/routeGeometry';
@@ -9,7 +10,7 @@ import { createPoiStructureActions } from './storePoiActions';
 import { createAdministrativeAreaActions } from './storeAdministrativeAreaActions';
 import { createRouteGeometryActions } from './storeRouteGeometryActions';
 import { createReplaceLayerFromImportAction } from './storeImportReplacementAction';
-type LayerPropertyActions = Pick<ProjectState, 'insertRouteVertex' | 'removeRouteVertex' | 'renameLayer' | 'selectLayer' | 'setLayerAppearance' | 'setLayerOpacity' | 'setPoiCoordinates' | 'setPoiCustomMarker' | 'setRouteVertex' | 'toggleLayerVisibility' | 'toggleLayerLock'>;
+type LayerPropertyActions = Pick<ProjectState, 'insertRouteVertex' | 'removeRouteVertex' | 'renameLayer' | 'replaceRouteGeometry' | 'selectLayer' | 'setLayerAppearance' | 'setLayerOpacity' | 'setPoiCoordinates' | 'setPoiCustomMarker' | 'setRouteVertex' | 'toggleLayerVisibility' | 'toggleLayerLock'>;
 
 function isCanonicalCustomMarkerAsset(asset: CustomMarkerAsset): boolean {
   try {
@@ -41,6 +42,10 @@ function createRouteAction(set: ProjectSet): ProjectState['createRoute'] {
     const routeCoordinates = buildRouteCoordinates(coordinates, options.lineShape);
     if (routeCoordinates.length < 2
       || routeCoordinates.some(([longitude, latitude]) => !isValidPosition(longitude, latitude))) return state;
+    const geometry = options.lineShape === 'arc'
+      ? createArcGeometry(routeCoordinates)
+      : { type: 'LineString' as const, coordinates: routeCoordinates };
+    if (!geometry) return state;
     const defaultAppearance = createDefaultLayerAppearance('route');
     if (defaultAppearance?.kind !== 'route') return state;
     const route = {
@@ -55,10 +60,7 @@ function createRouteAction(set: ProjectSet): ProjectState['createRoute'] {
         travelProfile: options.travelProfile,
         showTravelModeIcon: options.showTravelModeIcon,
       },
-      geometry: {
-        type: 'LineString' as const,
-        coordinates: routeCoordinates,
-      },
+      geometry,
     };
     const layers = [...state.document.layers];
     const basemapIndex = layers.findIndex((layer) => layer.type === 'basemap');
@@ -87,7 +89,7 @@ function createShapeAction(set: ProjectSet): ProjectState['createShape'] {
     if (!last || last[0] !== ring[0][0] || last[1] !== ring[0][1]) ring.push([...ring[0]]);
     const shape = {
       id,
-      name: `Shape ${String(shapeNumber).padStart(2, '0')}`,
+      name: `Area ${String(shapeNumber).padStart(2, '0')}`,
       type: 'shape' as const,
       visible: true,
       locked: false,

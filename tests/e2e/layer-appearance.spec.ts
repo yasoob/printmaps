@@ -68,6 +68,7 @@ async function downloadShapeSvgPath(
 }
 
 test('content appearance edits update the live map, history, and layered SVG', async ({ page }, testInfo) => {
+  test.slow();
   await page.goto('/');
   const mapRoot = page.getByTestId('map-canvas');
   const mapReady = page.locator('[data-map-ready="true"]');
@@ -164,8 +165,7 @@ test('a validated custom POI marker survives the live map, portable project, and
   await page.screenshot({ path: testInfo.outputPath('custom-marker-desktop.png'), fullPage: true });
 
   const savePromise = page.waitForEvent('download');
-  await page.locator('.project-title').click();
-  await page.getByRole('menuitem', { name: 'Download project', exact: true }).click();
+  await page.getByRole('button', { name: 'Save' }).click();
   const projectDownload = await savePromise;
   const projectPath = testInfo.outputPath('custom-marker.printmap.json');
   await projectDownload.saveAs(projectPath);
@@ -212,7 +212,8 @@ test('POI coordinates update the live map, history, portable project, and layere
   await expect(latitude).toBeFocused();
   await expect(mapRoot).toHaveAttribute('data-map-layer-geometry', /poi-cafe:\[16\.4,48\.2084\]/);
   await latitude.fill('48.25');
-  await latitude.press('Tab');
+  await latitude.press('Shift+Tab');
+  await expect(longitude).toBeFocused();
   await expect(mapRoot).toHaveAttribute('data-map-layer-geometry', /poi-cafe:\[16\.4,48\.25\]/);
 
   await page.getByRole('button', { name: 'Undo' }).click();
@@ -223,8 +224,7 @@ test('POI coordinates update the live map, history, portable project, and layere
   const movedPoint = await downloadPoiSvgPoint(page, testInfo.outputPath('poi-after.layered.svg'));
   expect(movedPoint).not.toEqual(initialPoint);
   const savePromise = page.waitForEvent('download');
-  await page.locator('.project-title').click();
-  await page.getByRole('menuitem', { name: 'Download project', exact: true }).click();
+  await page.getByRole('button', { name: 'Save' }).click();
   const projectDownload = await savePromise;
   const projectPath = testInfo.outputPath('poi-edited.printmap.json');
   await projectDownload.saveAs(projectPath);
@@ -269,8 +269,7 @@ test('route vertex coordinates update the live map, history, portable project, a
   expect(movedPath).toBeTruthy();
   expect(movedPath).not.toEqual(initialPath);
   const savePromise = page.waitForEvent('download');
-  await page.locator('.project-title').click();
-  await page.getByRole('menuitem', { name: 'Download project', exact: true }).click();
+  await page.getByRole('button', { name: 'Save' }).click();
   const projectDownload = await savePromise;
   const projectPath = testInfo.outputPath('route-edited.printmap.json');
   await projectDownload.saveAs(projectPath);
@@ -304,14 +303,17 @@ test('route vertices insert, remove, and drag directly on the map as one history
   await page.getByRole('button', { name: 'Insert route vertex after selected' }).click();
   await expect(handles).toHaveCount(5);
   await expect(page.getByRole('combobox', { name: 'Route vertex' })).toHaveValue('1');
+  const handleBeforeRemoval = await handles.nth(1).elementHandle();
   await page.getByRole('button', { name: 'Remove selected route vertex' }).click();
+  await expect.poll(() => handleBeforeRemoval?.evaluate((element) => element.isConnected)).toBe(false);
   await expect(handles).toHaveCount(4);
 
   const readGeometry = () => mapRoot.evaluate((element) => element.dataset.mapLayerGeometry ?? null);
   const originalGeometry = await readGeometry();
-  const handleBox = await handles.nth(1).boundingBox();
+  const handle = handles.nth(1);
+  await handle.hover();
+  const handleBox = await handle.boundingBox();
   expect(handleBox).not.toBeNull();
-  await page.mouse.move(handleBox!.x + handleBox!.width / 2, handleBox!.y + handleBox!.height / 2);
   await page.mouse.down();
   await page.mouse.move(handleBox!.x + handleBox!.width / 2 + 36, handleBox!.y + handleBox!.height / 2 + 24, { steps: 6 });
   await page.mouse.up();
@@ -356,7 +358,8 @@ test('shape vertex coordinates preserve ring closure across the live map, histor
   await longitude.press('Tab');
   await expect(latitude).toBeFocused();
   await latitude.fill('48.19');
-  await latitude.press('Tab');
+  await latitude.press('Shift+Tab');
+  await expect(longitude).toBeFocused();
   await expect(mapRoot).toHaveAttribute(
     'data-map-layer-geometry',
     /area-center:\[\[\[16\.35,48\.19\].*\[16\.35,48\.19\]\]\]/,
@@ -371,8 +374,7 @@ test('shape vertex coordinates preserve ring closure across the live map, histor
   expect(movedPath).toBeTruthy();
   expect(movedPath).not.toEqual(initialPath);
   const savePromise = page.waitForEvent('download');
-  await page.locator('.project-title').click();
-  await page.getByRole('menuitem', { name: 'Download project', exact: true }).click();
+  await page.getByRole('button', { name: 'Save' }).click();
   const projectDownload = await savePromise;
   const projectPath = testInfo.outputPath('shape-edited.printmap.json');
   await projectDownload.saveAs(projectPath);

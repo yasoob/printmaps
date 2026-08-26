@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const isFirefoxDisplayEnabled = process.env.PRINTMAP_FIREFOX_HEADED === '1';
+
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
@@ -36,7 +38,24 @@ export default defineConfig({
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } } },
-    { name: 'firefox', use: { ...devices['Desktop Firefox'], viewport: { width: 1440, height: 900 } } },
+    {
+      name: 'firefox',
+      use: {
+        ...devices['Desktop Firefox'],
+        headless: !isFirefoxDisplayEnabled,
+        ...(isFirefoxDisplayEnabled && {
+          launchOptions: {
+            firefoxUserPrefs: {
+              'gfx.webrender.all': true,
+              'layers.acceleration.force-enabled': true,
+              'webgl.disabled': false,
+              'webgl.force-enabled': true,
+            },
+          },
+        }),
+        viewport: { width: 1440, height: 900 },
+      },
+    },
     { name: 'webkit', use: { ...devices['Desktop Safari'], viewport: { width: 1440, height: 900 } } },
   ],
 });

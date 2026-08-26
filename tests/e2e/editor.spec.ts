@@ -1,8 +1,9 @@
 import { expect, test } from '@playwright/test';
 
-const isHeadlessWebGlDiagnostic = (message: string) => (
+const isExpectedWebGlDiagnostic = (message: string, browserName: string) => (
   message.includes('GPU stall due to ReadPixels')
   || message.includes('AllowWebgl2:false restricts context creation on this system')
+  || (browserName === 'firefox' && message.includes('WebGL context was lost.'))
 );
 
 test('desktop editor switches between project and layer properties', async ({ page, browserName }, testInfo) => {
@@ -13,7 +14,7 @@ test('desktop editor switches between project and layer properties', async ({ pa
     consoleProblems.push(error.message);
   });
   page.on('console', (message) => {
-    if ((message.type() === 'error' || message.type() === 'warning') && !isHeadlessWebGlDiagnostic(message.text())) {
+    if ((message.type() === 'error' || message.type() === 'warning') && !isExpectedWebGlDiagnostic(message.text(), browserName)) {
       consoleProblems.push(message.text());
     }
   });
@@ -28,43 +29,38 @@ test('desktop editor switches between project and layer properties', async ({ pa
   await expect(page.getByRole('complementary', { name: 'Properties sidebar' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Project' })).toBeVisible();
   await expect(page.getByRole('navigation', { name: 'Map tools' })).toBeVisible();
-  if (browserName !== 'firefox') {
-    await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
-  }
+  await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
 
   await page.getByRole('button', { name: 'Select Route 01' }).click();
   await expect(page.getByRole('heading', { name: 'Route 01' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Select Route 01' })).toHaveAttribute('aria-current', 'true');
 
-  if (browserName !== 'firefox') {
-    await page.locator('.maplibregl-canvas').click({ position: { x: 80, y: 80 } });
-    await expect(page.getByRole('heading', { name: 'Project' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Select Route 01' })).not.toHaveAttribute('aria-current', 'true');
-    await page.getByRole('textbox', { name: 'Bearing' }).fill('35');
-    await page.getByRole('textbox', { name: 'Pitch' }).fill('40');
-    await page.getByRole('textbox', { name: 'Pitch' }).press('Tab');
-    await page.getByRole('textbox', { name: 'Text scale' }).fill('125');
-    await page.getByRole('checkbox', { name: 'Show roads' }).uncheck();
-    const style = page.getByRole('radio', { name: /^Night Ink:/ });
-    await style.focus();
-    await style.click();
-    const map = page.getByTestId('map-canvas');
-    await expect(map).toHaveAttribute('data-style-preset', 'night-ink');
-    await expect(map).not.toHaveAttribute('data-map-ready', 'true');
-    releasePositronStyle();
-    await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
-    await expect(map).toHaveAttribute('data-map-bearing', '35');
-    await expect(map).toHaveAttribute('data-map-pitch', '40');
-    await expect(map).toHaveAttribute('data-map-text-scale', '125');
-    await expect(map).toHaveAttribute('data-map-feature-visibility', 'roads:false,buildings:true,labels:true,water:true,parks:true,landuse:true,transit:true');
-  }
+  await page.locator('.maplibregl-canvas').click({ position: { x: 80, y: 80 } });
+  await expect(page.getByRole('heading', { name: 'Project' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Select Route 01' })).not.toHaveAttribute('aria-current', 'true');
+  await page.getByRole('textbox', { name: 'Bearing' }).fill('35');
+  await page.getByRole('textbox', { name: 'Pitch' }).fill('40');
+  await page.getByRole('textbox', { name: 'Pitch' }).press('Tab');
+  await page.getByRole('textbox', { name: 'Text scale' }).fill('125');
+  await page.getByRole('checkbox', { name: 'Show roads' }).uncheck();
+  const style = page.getByRole('radio', { name: /^Night Ink:/ });
+  await style.focus();
+  await style.click();
+  const map = page.getByTestId('map-canvas');
+  await expect(map).toHaveAttribute('data-style-preset', 'night-ink');
+  await expect(map).not.toHaveAttribute('data-map-ready', 'true');
+  releasePositronStyle();
+  await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
+  await expect(map).toHaveAttribute('data-map-bearing', '35');
+  await expect(map).toHaveAttribute('data-map-pitch', '40');
+  await expect(map).toHaveAttribute('data-map-text-scale', '125');
+  await expect(map).toHaveAttribute('data-map-feature-visibility', 'roads:false,buildings:true,labels:true,water:true,parks:true,landuse:true,transit:true');
 
   await page.screenshot({ path: testInfo.outputPath('editor-desktop.png'), fullPage: true });
   expect(consoleProblems).toEqual([]);
 });
 
-test('map content overlays preview on list hover and select from the canvas', async ({ page, browserName }) => {
-  test.skip(browserName === 'firefox', 'Firefox fixture intentionally exercises the WebGL fallback path.');
+test('map content overlays preview on list hover and select from the canvas', async ({ page }) => {
   await page.goto('/');
   const mapRoot = page.getByTestId('map-canvas');
   await expect(mapRoot).toHaveAttribute('data-map-layer-order', 'route-01,poi-cafe,area-center', { timeout: 20_000 });
@@ -74,6 +70,9 @@ test('map content overlays preview on list hover and select from the canvas', as
   await expect(page.getByRole('heading', { name: 'Project' })).toBeVisible();
   await page.getByRole('button', { name: 'Select Route 01' }).hover();
   await expect(mapRoot).toHaveAttribute('data-previewed-layer', 'route-01');
+  await page.getByRole('button', { name: 'Select City center' }).hover();
+  await expect(mapRoot).toHaveAttribute('data-previewed-layer', 'area-center');
+  await expect(mapRoot).toHaveAttribute('data-selected-layer', '');
 
   const mapBox = await mapRoot.boundingBox();
   expect(mapBox).not.toBeNull();
@@ -90,8 +89,7 @@ test('map content overlays preview on list hover and select from the canvas', as
   await expect(mapRoot).toHaveAttribute('data-map-layer-order', 'area-center,poi-cafe');
 });
 
-test('desktop commands, orientation, reorder, and overflow menu work in a real browser', async ({ page, browserName }) => {
-  test.skip(browserName === 'firefox', 'Firefox fixture intentionally exercises the WebGL fallback path.');
+test('desktop commands, orientation, reorder, and overflow menu work in a real browser', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
 
@@ -145,11 +143,10 @@ test('desktop commands, orientation, reorder, and overflow menu work in a real b
 });
 
 test('browser location centers the map and map-area lock gates movement commands', async ({ context, page, browserName }) => {
-  test.skip(browserName === 'firefox', 'Firefox fixture intentionally exercises the WebGL fallback path.');
   const consoleProblems: string[] = [];
   page.on('pageerror', (error) => { consoleProblems.push(error.message); });
   page.on('console', (message) => {
-    if ((message.type() === 'error' || message.type() === 'warning') && !isHeadlessWebGlDiagnostic(message.text())) {
+    if ((message.type() === 'error' || message.type() === 'warning') && !isExpectedWebGlDiagnostic(message.text(), browserName)) {
       consoleProblems.push(message.text());
     }
   });
@@ -181,19 +178,23 @@ test('browser location centers the map and map-area lock gates movement commands
   expect(consoleProblems).toEqual([]);
 });
 
-test('style loading failure shows a recoverable map status', async ({ page, browserName }) => {
-  test.skip(browserName === 'firefox', 'Firefox fixture intentionally exercises the WebGL fallback path.');
-  await page.route('**/styles/paper.json', (route) => route.abort());
+test('style loading failure shows a recoverable map status', async ({ page }) => {
+  let confirmStyleAbort: (() => void) | undefined;
+  const styleAbort = new Promise<void>((resolve) => { confirmStyleAbort = resolve; });
+  await page.route('**/styles/paper.json', async (route) => {
+    await route.abort();
+    confirmStyleAbort?.();
+  });
 
   await page.goto('/');
+  await styleAbort;
 
   const mapStatus = page.getByLabel('Map canvas').getByRole('status');
-  await expect(mapStatus).toContainText('Map preview unavailable');
+  await expect(mapStatus).toContainText('Map preview unavailable', { timeout: 20_000 });
   await expect(mapStatus).toContainText('style');
 });
 
-test('switches open map styles and recovers after a selected style fails', async ({ page, browserName }) => {
-  test.skip(browserName === 'firefox', 'Firefox fixture intentionally exercises the WebGL fallback path.');
+test('switches open map styles and recovers after a selected style fails', async ({ page }) => {
   await page.route('**/styles/night-ink.json', (route) => route.abort());
   await page.goto('/');
   await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
@@ -212,11 +213,10 @@ test('switches open map styles and recovers after a selected style fails', async
 });
 
 test('applies Coastal, translated labels, and expanded map detail controls', async ({ page, browserName }) => {
-  test.skip(browserName === 'firefox', 'Firefox fixture intentionally exercises the WebGL fallback path.');
   const consoleProblems: string[] = [];
   page.on('pageerror', (error) => { consoleProblems.push(error.message); });
   page.on('console', (message) => {
-    if ((message.type() === 'error' || message.type() === 'warning') && !isHeadlessWebGlDiagnostic(message.text())) {
+    if ((message.type() === 'error' || message.type() === 'warning') && !isExpectedWebGlDiagnostic(message.text(), browserName)) {
       consoleProblems.push(message.text());
     }
   });

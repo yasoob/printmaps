@@ -1,16 +1,34 @@
 import { readFile } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
 
-const isHeadlessWebGlDiagnostic = (message: string) => (
+const isExpectedWebGlDiagnostic = (message: string, browserName: string) => (
   message.includes('GPU stall due to ReadPixels')
   || message.includes('AllowWebgl2:false restricts context creation on this system')
+  || (browserName === 'firefox' && message.includes('WEBGL_debug_renderer_info is deprecated in Firefox'))
 );
 
-test('expert arc route authoring is undoable and exports a travel-mode marker', async ({ page }, testInfo) => {
+const mercatorY = (latitude: number) => (
+  (180 - 180 / Math.PI * Math.log(Math.tan(Math.PI / 4 + latitude * Math.PI / 360))) / 360
+);
+
+function projectInitialMapCoordinate(
+  coordinate: readonly [number, number],
+  width: number,
+  height: number,
+) {
+  const worldSize = 512 * 2 ** 11.2;
+  const [centerLongitude, centerLatitude] = [16.3725, 48.2084];
+  return {
+    x: width / 2 + (coordinate[0] - centerLongitude) / 360 * worldSize,
+    y: height / 2 + (mercatorY(coordinate[1]) - mercatorY(centerLatitude)) * worldSize,
+  };
+}
+
+test('expert arc route authoring is undoable and exports a travel-mode marker', async ({ page, browserName }, testInfo) => {
   const consoleProblems: string[] = [];
   page.on('pageerror', (error) => { consoleProblems.push(error.message); });
   page.on('console', (message) => {
-    if ((message.type() === 'error' || message.type() === 'warning') && !isHeadlessWebGlDiagnostic(message.text())) {
+    if ((message.type() === 'error' || message.type() === 'warning') && !isExpectedWebGlDiagnostic(message.text(), browserName)) {
       consoleProblems.push(message.text());
     }
   });
@@ -22,9 +40,8 @@ test('expert arc route authoring is undoable and exports a travel-mode marker', 
 
   await page.getByRole('button', { name: 'Route (R)' }).click();
   await expect(page.getByRole('button', { name: 'Export' })).toBeDisabled();
-  await page.getByRole('combobox', { name: 'Route line shape' }).selectOption('arc');
-  await page.getByRole('combobox', { name: 'Route travel profile' }).selectOption('air');
-  await page.getByRole('checkbox', { name: 'Show travel-mode marker' }).check();
+  await page.getByRole('radio', { name: 'Arc', exact: true }).click();
+  await page.getByRole('radio', { name: 'Air travel marker' }).click();
   await expect(page.getByRole('status', { name: 'Route drawing status' })).toContainText('0 points');
   const canvas = page.locator('.maplibregl-canvas');
   const canvasBox = await canvas.boundingBox();
@@ -38,14 +55,11 @@ test('expert arc route authoring is undoable and exports a travel-mode marker', 
   await canvas.click({ position: point(0.3) });
   await expect(page.getByRole('status', { name: 'Route drawing status' })).toContainText('1 point');
   await canvas.click({ position: point(0.7) });
-  await expect(page.getByRole('status', { name: 'Route drawing status' })).toContainText('Arc route · Air · 2 points');
-  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-order', /route-draft/);
-  await page.screenshot({ path: testInfo.outputPath('expert-route-desktop.png'), fullPage: true });
-
-  await page.getByRole('button', { name: 'Finish route' }).click();
-  await expect(page.getByRole('button', { name: 'Export' })).toBeEnabled();
   const createdRoute = page.getByRole('button', { name: 'Select Route 02' });
   await expect(createdRoute).toHaveAttribute('aria-current', 'true');
+  await page.screenshot({ path: testInfo.outputPath('expert-route-desktop.png'), fullPage: true });
+
+  await expect(page.getByRole('button', { name: 'Export' })).toBeEnabled();
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-order', /route-02/);
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-appearance', /route-02:[^|]*:air:true/);
   await expect(page.getByRole('combobox', { name: 'Route travel profile' })).toHaveValue('air');
@@ -66,6 +80,9 @@ test('expert arc route authoring is undoable and exports a travel-mode marker', 
   const svg = await readFile(outputPath, 'utf8');
   expect(svg).toContain('data-layer-name="Route 02"');
   expect(svg).toMatch(/data-layer-id="route-02"[^>]*>[\s\S]*?<path /);
+  const routePath = svg.match(/data-layer-id="route-02"[^>]*>[\s\S]*?<path[^>]*d="([^"]+)"/)?.[1];
+  expect(routePath).toContain(' Q ');
+  expect(routePath).not.toContain(' L ');
   expect(svg).toContain('data-route-travel-profile="air"');
   expect(svg).toContain('>AIR</text>');
   await page.getByRole('dialog', { name: 'Export map' }).getByRole('button', { name: 'Close export' }).click();
@@ -81,4 +98,33 @@ test('expert arc route authoring is undoable and exports a travel-mode marker', 
   expect(await page.evaluate(() => document.body.scrollWidth - document.body.clientWidth)).toBe(0);
   await page.getByRole('button', { name: 'Cancel route' }).click();
   expect(consoleProblems).toEqual([]);
+});
+
+test('a selected straight route drags a Terra Draw midpoint as one undoable edit', async ({ page }) => {
+  await page.goto('/');
+  const mapReady = page.locator('[data-map-ready="true"]');
+  const mapFallback = page.getByText('Map preview unavailable');
+  await expect(mapReady.or(mapFallback)).toBeVisible({ timeout: 20_000 });
+  test.skip(await mapFallback.isVisible(), 'This browser fixture has no WebGL 2 renderer, so route point editing cannot be exercised.');
+
+  const route = page.getByRole('button', { name: 'Select Route 01' });
+  await route.click();
+  const vertexSelect = page.getByRole('combobox', { name: 'Route vertex' });
+  await expect(vertexSelect.locator('option')).toHaveCount(4);
+  const canvasBox = await page.locator('.maplibregl-canvas').boundingBox();
+  expect(canvasBox).not.toBeNull();
+  const midpoint = projectInitialMapCoordinate(
+    [(16.326 + 16.353) / 2, (48.194 + 48.205) / 2],
+    canvasBox!.width,
+    canvasBox!.height,
+  );
+  await page.mouse.move(canvasBox!.x + midpoint.x, canvasBox!.y + midpoint.y);
+  await page.mouse.down();
+  await page.mouse.move(canvasBox!.x + midpoint.x, canvasBox!.y + midpoint.y + 30, { steps: 5 });
+  await page.mouse.up();
+
+  await expect(route).toHaveAttribute('aria-current', 'true');
+  await expect(vertexSelect.locator('option')).toHaveCount(5);
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(vertexSelect.locator('option')).toHaveCount(4);
 });

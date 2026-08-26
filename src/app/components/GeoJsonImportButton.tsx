@@ -18,6 +18,7 @@ type GeoJsonImportButtonProps = {
   replacementRequest: LayerReplacementRequest | null;
   onOpenChange: (isOpen: boolean) => void;
   onImport: (commit: MapDataImportCommit) => boolean;
+  presentation?: 'trigger' | 'headless';
 };
 
 export function GeoJsonImportButton({
@@ -32,6 +33,7 @@ export function GeoJsonImportButton({
   replacementRequest,
   onOpenChange,
   onImport,
+  presentation = 'trigger',
 }: GeoJsonImportButtonProps) {
   const {
     batch,
@@ -82,12 +84,15 @@ export function GeoJsonImportButton({
         hidden
         multiple
         type="file"
+        disabled={isDisabled || isReading || isWorkActive}
         accept=".geojson,.gpx,.kml,application/geo+json,application/gpx+xml,application/vnd.google-earth.kml+xml"
         onChange={handleInputChange}
       />
-      <button ref={buttonRef} className="quiet-button" type="button" disabled={isDisabled || isReading || isWorkActive} onClick={chooseImportFiles}>
-        <FileUp size={14} /> Import
-      </button>
+      {presentation === 'trigger' && (
+        <button ref={buttonRef} className="quiet-button" type="button" disabled={isDisabled || isReading || isWorkActive} onClick={chooseImportFiles}>
+          <FileUp size={14} /> Import
+        </button>
+      )}
       {status && (
         <div
           className={`project-file-status${status.kind === 'error' ? ' is-error' : ''}`}

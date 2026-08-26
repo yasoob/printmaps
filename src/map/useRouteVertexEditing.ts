@@ -20,6 +20,7 @@ export function useRouteVertexEditing({
 }: RouteVertexEditingOptions) {
   const routeVertexChange = useRef(onRouteVertexChange);
   const pendingFocus = useRef<{ layerId: string; vertexIndex: number } | null>(null);
+  const canCommit = typeof onRouteVertexChange === 'function';
   useLayoutEffect(() => {
     routeVertexChange.current = onRouteVertexChange;
   }, [onRouteVertexChange]);
@@ -27,7 +28,7 @@ export function useRouteVertexEditing({
   useEffect(() => {
     const activeMap = map.current;
     const selectedLayer = layers.find((layer) => layer.id === selectedId);
-    if (!activeMap || !selectedLayer || !onRouteVertexChange) {
+    if (!activeMap || !selectedLayer || !canCommit) {
       pendingFocus.current = null;
       return;
     }
@@ -50,5 +51,5 @@ export function useRouteVertexEditing({
       }
       editing();
     };
-  }, [layers, map, onRouteVertexChange, selectedId, stylePreset]);
+  }, [canCommit, layers, map, selectedId, stylePreset]);
 }

@@ -1,5 +1,5 @@
 import { Eye, EyeOff, GripVertical, Layers3, Lock, MapPin, PanelLeftClose, Route, Search, Shapes, Unlock } from 'lucide-react';
-import type { Dispatch, RefObject, SetStateAction } from 'react';
+import { memo, type Dispatch, type RefObject, type SetStateAction } from 'react';
 import type { ContentLayer, LayerType } from '../../domain/project';
 import { ProjectAutosaveStatus } from '../../storage/ProjectAutosaveUi';
 import type { ProjectAutosaveState } from '../../storage/useProjectAutosave';
@@ -19,7 +19,37 @@ type LayerRowProps = {
   closePanel: (panel?: MobilePanel | null, shouldRestoreFocus?: boolean) => void;
 };
 
-function LayerRow({ layer, index, layers, project, activePanel, draggedLayerIdRef, setPreviewedLayerId, closePanel }: LayerRowProps) {
+function hasSameLayerRowView(previous: ContentLayer, next: ContentLayer) {
+  return previous.id === next.id
+    && previous.type === next.type
+    && previous.name === next.name
+    && previous.visible === next.visible
+    && previous.locked === next.locked;
+}
+
+function haveSameLayerRows(previous: readonly ContentLayer[], next: readonly ContentLayer[]) {
+  return previous.length === next.length
+    && previous.every((layer, index) => {
+      const nextLayer = next[index];
+      return nextLayer ? hasSameLayerRowView(layer, nextLayer) : false;
+    });
+}
+
+function isSameLayerRowProps(previous: LayerRowProps, next: LayerRowProps) {
+  return hasSameLayerRowView(previous.layer, next.layer)
+    && previous.index === next.index
+    && previous.activePanel === next.activePanel
+    && previous.draggedLayerIdRef === next.draggedLayerIdRef
+    && previous.setPreviewedLayerId === next.setPreviewedLayerId
+    && previous.closePanel === next.closePanel
+    && (previous.project.selectedId === previous.layer.id) === (next.project.selectedId === next.layer.id)
+    && previous.project.selectLayer === next.project.selectLayer
+    && previous.project.moveLayer === next.project.moveLayer
+    && previous.project.toggleLayerVisibility === next.project.toggleLayerVisibility
+    && previous.project.toggleLayerLock === next.project.toggleLayerLock;
+}
+
+const LayerRow = memo(function LayerRow({ layer, index, layers, project, activePanel, draggedLayerIdRef, setPreviewedLayerId, closePanel }: LayerRowProps) {
   const Icon = layerIcons[layer.type];
   const isSelected = project.selectedId === layer.id;
   const clearPreview = () => setPreviewedLayerId((current) => current === layer.id ? null : current);
@@ -61,7 +91,7 @@ function LayerRow({ layer, index, layers, project, activePanel, draggedLayerIdRe
       ><GripVertical size={13} /></button>
     </li>
   );
-}
+}, isSameLayerRowProps);
 
 type LayersSidebarProps = Omit<LayerRowProps, 'layer' | 'index'> & {
   autosave: ProjectAutosaveState;
@@ -69,16 +99,49 @@ type LayersSidebarProps = Omit<LayerRowProps, 'layer' | 'index'> & {
   onKeyDown: (event: React.KeyboardEvent<HTMLElement>, panel: MobilePanel) => void;
 };
 
-export function LayersSidebar(props: LayersSidebarProps) {
+function hasSameLayersSidebarActions(previous: LayersSidebarProps, next: LayersSidebarProps) {
+  return previous.closePanel === next.closePanel
+    && previous.onKeyDown === next.onKeyDown
+    && previous.project.selectLayer === next.project.selectLayer
+    && previous.project.moveLayer === next.project.moveLayer
+    && previous.project.toggleLayerVisibility === next.project.toggleLayerVisibility
+    && previous.project.toggleLayerLock === next.project.toggleLayerLock;
+}
+
+function isSameLayersSidebarProps(previous: LayersSidebarProps, next: LayersSidebarProps) {
+  return previous.activePanel === next.activePanel
+    && haveSameLayerRows(previous.layers, next.layers)
+    && previous.panelRef === next.panelRef
+    && previous.draggedLayerIdRef === next.draggedLayerIdRef
+    && previous.setPreviewedLayerId === next.setPreviewedLayerId
+    && previous.autosave.status === next.autosave.status
+    && previous.autosave.statusKind === next.autosave.statusKind
+    && previous.project.selectedId === next.project.selectedId
+    && hasSameLayersSidebarActions(previous, next);
+}
+
+export const LayersSidebar = memo(function LayersSidebar(props: LayersSidebarProps) {
   const { activePanel, autosave, closePanel, layers, panelRef, onKeyDown } = props;
   return (
     <aside ref={panelRef} id="layers-panel" className={`left-sidebar${activePanel === 'layers' ? ' is-mobile-open' : ''}`} aria-label="Layers sidebar" role={activePanel === 'layers' ? 'dialog' : undefined} aria-modal={activePanel === 'layers' ? true : undefined} inert={activePanel === 'properties'} onKeyDown={(event) => onKeyDown(event, 'layers')}>
       <div className="panel-header"><span>Layers</span><button className="icon-button" type="button" aria-label="Collapse layers" onClick={() => closePanel('layers')}><PanelLeftClose size={15} /></button></div>
       <label className="panel-search"><Search size={14} aria-hidden="true" /><input aria-label="Filter layers" placeholder="Filter layers" /></label>
       <ul className="layer-tree" aria-label="Map layers">
-        {layers.map((layer, index) => <LayerRow {...props} key={layer.id} layer={layer} index={index} />)}
+        {layers.map((layer, index) => (
+          <LayerRow
+            key={layer.id}
+            activePanel={props.activePanel}
+            closePanel={props.closePanel}
+            draggedLayerIdRef={props.draggedLayerIdRef}
+            index={index}
+            layer={layer}
+            layers={layers}
+            project={props.project}
+            setPreviewedLayerId={props.setPreviewedLayerId}
+          />
+        ))}
       </ul>
       <div className="sidebar-footer"><span>{layers.length} layers</span><ProjectAutosaveStatus autosave={autosave} /></div>
     </aside>
   );
-}
+}, isSameLayersSidebarProps);

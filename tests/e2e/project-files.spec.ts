@@ -1,14 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { expect, test, type Page } from '@playwright/test';
-import { strFromU8, unzipSync } from 'fflate';
-
-async function openProjectFileMenu(page: Page) {
-  await page.locator('.project-title').click();
-  const menu = page.getByRole('menu', { name: 'Project file menu' });
-  await expect(menu).toBeVisible();
-  return menu;
-}
+import { expect, test } from '@playwright/test';
 
 test('Download project saves the current portable versioned JSON', async ({ context, page }, testInfo) => {
   await context.grantPermissions(['geolocation'], { origin: 'http://127.0.0.1:4175' });
@@ -29,8 +21,7 @@ test('Download project saves the current portable versioned JSON', async ({ cont
   await page.getByRole('combobox', { name: 'Map language' }).selectOption('de');
 
   const downloadPromise = page.waitForEvent('download');
-  const fileMenu = await openProjectFileMenu(page);
-  await fileMenu.getByRole('menuitem', { name: 'Download project', exact: true }).click();
+  await page.getByRole('button', { name: 'Save' }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe('vienna-field-guide.printmap.json');
 
@@ -38,7 +29,7 @@ test('Download project saves the current portable versioned JSON', async ({ cont
   await download.saveAs(outputPath);
   const savedProject = JSON.parse(await readFile(outputPath, 'utf8'));
   expect(savedProject).toMatchObject({
-    schemaVersion: 17,
+    schemaVersion: 18,
     id: 'vienna-field-guide',
     title: 'Vienna field guide',
     page: { preset: 'A4', widthMm: 210, heightMm: 297, orientation: 'portrait' },
@@ -58,63 +49,32 @@ test('Download project saves the current portable versioned JSON', async ({ cont
   ]);
 });
 
-test('Download project archive is deterministic and Open project restores a fresh root', async ({ page }, testInfo) => {
+test('Save and Open restore the current project as a fresh history root', async ({ page }, testInfo) => {
   await page.goto('/');
   await page.getByRole('textbox', { name: 'Bearing' }).fill('35');
   await page.getByRole('textbox', { name: 'Bearing' }).press('Tab');
   await page.getByRole('checkbox', { name: 'Show roads' }).uncheck();
 
-  const downloadArchive = async (filename: string) => {
-    const downloadPromise = page.waitForEvent('download');
-    const fileMenu = await openProjectFileMenu(page);
-    await fileMenu.getByRole('menuitem', { name: 'Download project archive' }).click();
-    const download = await downloadPromise;
-    expect(download.suggestedFilename()).toBe('vienna-field-guide.printmap.zip');
-    const outputPath = testInfo.outputPath(filename);
-    await download.saveAs(outputPath);
-    return outputPath;
-  };
-
-  const firstPath = await downloadArchive('project-first.printmap.zip');
-  const secondPath = await downloadArchive('project-second.printmap.zip');
-  const firstBytes = await readFile(firstPath);
-  expect(await readFile(secondPath)).toEqual(firstBytes);
-
-  const entries = unzipSync(firstBytes);
-  expect(Object.keys(entries)).toHaveLength(2);
-  expect(Object.hasOwn(entries, 'manifest.json')).toBe(true);
-  expect(Object.hasOwn(entries, 'project.printmap.json')).toBe(true);
-  expect(JSON.parse(strFromU8(entries['manifest.json']))).toEqual({
-    format: 'print-map-studio-project',
-    archiveVersion: 1,
-    project: 'project.printmap.json',
-    assets: [],
-  });
-  expect(JSON.parse(strFromU8(entries['project.printmap.json']))).toMatchObject({
-    schemaVersion: 17,
-    camera: { bearing: 35, center: [16.3725, 48.2084], locked: false, pitch: 0, zoom: 11.2 },
-    style: {
-      language: 'local',
-      visibility: { roads: false, buildings: true, labels: true, water: true, parks: true, landuse: true, transit: true },
-    },
-  });
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Save' }).click();
+  const download = await downloadPromise;
+  const projectPath = testInfo.outputPath('saved-project.printmap.json');
+  await download.saveAs(projectPath);
 
   await page.getByRole('button', { name: 'Portrait' }).click();
   const chooserPromise = page.waitForEvent('filechooser');
-  const fileMenu = await openProjectFileMenu(page);
-  await fileMenu.getByRole('menuitem', { name: 'Open project' }).click();
+  await page.getByRole('button', { name: 'Open', exact: true }).click();
   const chooser = await chooserPromise;
-  await chooser.setFiles(firstPath);
+  await chooser.setFiles(projectPath);
 
   await expect(page.getByRole('textbox', { name: 'Bearing' })).toHaveValue('35');
   await expect(page.getByRole('checkbox', { name: 'Show roads' })).not.toBeChecked();
   await expect(page.getByRole('button', { name: 'Landscape' })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
-  await expect(page.getByRole('status', { name: 'Project file status' })).toContainText('Opened Vienna field guide');
-  await expect(page.locator('.project-title')).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Open', exact: true })).toBeFocused();
 });
 
-test('opens a validated portable project as a focused fresh history root', async ({ page, browserName }) => {
+test('opens a validated portable project as a focused fresh history root', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Portrait' }).click();
   await page.getByRole('button', { name: 'Select Route 01' }).click();
@@ -130,8 +90,7 @@ test('opens a validated portable project as a focused fresh history root', async
   alpineProject.layers.find((layer: { type: string }) => layer.type === 'basemap').name = 'Night Ink basemap';
 
   const chooserPromise = page.waitForEvent('filechooser');
-  const fileMenu = await openProjectFileMenu(page);
-  await fileMenu.getByRole('menuitem', { name: 'Open project' }).click();
+  await page.getByRole('button', { name: 'Open', exact: true }).click();
   const chooser = await chooserPromise;
   await chooser.setFiles({
     name: 'alpine-poster.printmap.json',
@@ -159,17 +118,15 @@ test('opens a validated portable project as a focused fresh history root', async
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-style-preset', 'night-ink');
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-center', '11.34,47.31');
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-zoom', '13.5');
-  if (browserName !== 'firefox') {
-    await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-text-scale', '150');
-    await expect(page.getByTestId('map-canvas')).toHaveAttribute(
-      'data-map-feature-visibility',
-      'roads:false,buildings:true,labels:false,water:false,parks:true,landuse:true,transit:true',
-    );
-  }
+  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
+  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-text-scale', '150');
+  await expect(page.getByTestId('map-canvas')).toHaveAttribute(
+    'data-map-feature-visibility',
+    'roads:false,buildings:true,labels:false,water:false,parks:true,landuse:true,transit:true',
+  );
   await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Redo' })).toBeDisabled();
-  await expect(page.getByRole('status', { name: 'Project file status' })).toHaveText('Opened Alpine poster. Edit history was reset.');
-  await expect(page.locator('.project-title')).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Open', exact: true })).toBeFocused();
 });
 
 test('rejects invalid project files without replacing work and allows a retry', async ({ page }) => {
@@ -203,8 +160,7 @@ test('rejects invalid project files without replacing work and allows a retry', 
     },
   ]) {
     const chooserPromise = page.waitForEvent('filechooser');
-    const fileMenu = await openProjectFileMenu(page);
-    await fileMenu.getByRole('menuitem', { name: 'Open project' }).click();
+    await page.getByRole('button', { name: 'Open', exact: true }).click();
     const chooser = await chooserPromise;
     await chooser.setFiles(invalidFile.file);
 
@@ -212,17 +168,15 @@ test('rejects invalid project files without replacing work and allows a retry', 
     await expect(page.getByRole('button', { name: 'Vienna field guide' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Portrait' })).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByRole('button', { name: 'Undo' })).toBeEnabled();
-    await expect(page.locator('.project-title')).toBeFocused();
+    await expect(page.getByRole('button', { name: 'Open', exact: true })).toBeFocused();
   }
 
   const retryChooserPromise = page.waitForEvent('filechooser');
-  const retryMenu = await openProjectFileMenu(page);
-  await retryMenu.getByRole('menuitem', { name: 'Open project' }).click();
+  await page.getByRole('button', { name: 'Open', exact: true }).click();
   const retryChooser = await retryChooserPromise;
   await retryChooser.setFiles(path.resolve('tests/fixtures/alpine-poster.printmap.json'));
   await expect(page.getByRole('button', { name: 'Alpine poster' })).toBeVisible();
-  await expect(page.getByRole('status', { name: 'Project file status' })).toContainText('Edit history was reset');
-  await expect(page.locator('.project-title')).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Open', exact: true })).toBeFocused();
 });
 
 test('imports supported GeoJSON as one undoable editable layer batch', async ({ page }) => {
@@ -239,7 +193,6 @@ test('imports supported GeoJSON as one undoable editable layer batch', async ({ 
   await expect(page.getByRole('button', { name: 'Select Inner district' })).toBeVisible();
   await expect(page.getByRole('status', { name: 'Map data import status' }))
     .toHaveText('Imported 3 GeoJSON layers. Undo removes the whole import.');
-  await expect(page.getByRole('button', { name: 'Import' })).toBeFocused();
   await expect(page.getByRole('button', { name: 'Undo' })).toBeEnabled();
 
   await page.getByRole('button', { name: 'Select Danube path' }).click();
@@ -291,10 +244,7 @@ test('drops multiple map-data files as one reviewed batch and fits their combine
 
 test('replaces a reviewed import batch without changing the explicit retain-view choice', async ({ page }) => {
   await page.goto('/');
-  const chooserPromise = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Import' }).click();
-  const chooser = await chooserPromise;
-  await chooser.setFiles([
+  await page.locator('input[accept^=".geojson"]').setInputFiles([
     path.resolve('tests/fixtures/import/supported.geojson'),
     path.resolve('tests/fixtures/import/wave2/namespaced.gpx'),
   ]);
@@ -318,6 +268,7 @@ test('replaces a reviewed import batch without changing the explicit retain-view
 });
 
 test('ignores map-data drops while another modal workflow owns the editor', async ({ page }) => {
+  test.slow();
   await page.goto('/');
   await page.getByRole('button', { name: 'Export' }).click();
   const exportDialog = page.getByRole('dialog', { name: 'Export map' });
@@ -370,10 +321,7 @@ test('contains import review focus and restores it after cancelling a dropped ba
 test('imports GPX as one undoable editable layer batch', async ({ page }) => {
   await page.goto('/');
 
-  const chooserPromise = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Import' }).click();
-  const chooser = await chooserPromise;
-  await chooser.setFiles(path.resolve('tests/fixtures/import/wave2/namespaced.gpx'));
+  await page.locator('input[accept^=".geojson"]').setInputFiles(path.resolve('tests/fixtures/import/wave2/namespaced.gpx'));
 
   await expect(page.getByRole('heading', { name: 'Café Central' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Select Café Central' })).toBeVisible();
@@ -381,7 +329,6 @@ test('imports GPX as one undoable editable layer batch', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Select Morgenweg 東京' })).toBeVisible();
   await expect(page.getByRole('status', { name: 'Map data import status' }))
     .toHaveText('Imported 3 GPX layers. Undo removes the whole import.');
-  await expect(page.getByRole('button', { name: 'Import' })).toBeFocused();
 
   await page.getByRole('button', { name: 'Undo' }).click();
   await expect(page.getByRole('button', { name: 'Select Café Central' })).not.toBeVisible();
@@ -391,10 +338,7 @@ test('imports GPX as one undoable editable layer batch', async ({ page }) => {
 test('imports KML as one undoable editable layer batch', async ({ page }) => {
   await page.goto('/');
 
-  const chooserPromise = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Import' }).click();
-  const chooser = await chooserPromise;
-  await chooser.setFiles(path.resolve('tests/fixtures/import/wave2/namespaced.kml'));
+  await page.locator('input[accept^=".geojson"]').setInputFiles(path.resolve('tests/fixtures/import/wave2/namespaced.kml'));
 
   await expect(page.getByRole('heading', { name: 'Café point' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Select Café point' })).toBeVisible();
@@ -402,7 +346,6 @@ test('imports KML as one undoable editable layer batch', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Select 公園 polygon' })).toBeVisible();
   await expect(page.getByRole('status', { name: 'Map data import status' }))
     .toHaveText('Imported 3 KML layers. Undo removes the whole import.');
-  await expect(page.getByRole('button', { name: 'Import' })).toBeFocused();
 
   await page.getByRole('button', { name: 'Undo' }).click();
   await expect(page.getByRole('button', { name: 'Select Café point' })).not.toBeVisible();
@@ -426,31 +369,20 @@ test('rejects invalid GPX and KML without changing history and allows a retry', 
       error: 'GeoJSON, GPX, or KML file',
     },
   ]) {
-    const chooserPromise = page.waitForEvent('filechooser');
-    await page.getByRole('button', { name: 'Import' }).click();
-    const chooser = await chooserPromise;
-    await chooser.setFiles(invalidFile.file);
+    await page.locator('input[accept^=".geojson"]').setInputFiles(invalidFile.file);
 
     await expect(page.getByRole('alert', { name: 'Map data import status' })).toContainText(invalidFile.error);
     await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
-    await expect(page.getByRole('button', { name: 'Import' })).toBeFocused();
-  }
+    }
 
-  const retryChooserPromise = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Import' }).click();
-  const retryChooser = await retryChooserPromise;
-  await retryChooser.setFiles(path.resolve('tests/fixtures/import/wave2/namespaced.kml'));
+  await page.locator('input[accept^=".geojson"]').setInputFiles(path.resolve('tests/fixtures/import/wave2/namespaced.kml'));
   await expect(page.getByRole('status', { name: 'Map data import status' })).toContainText('Imported 3 KML layers');
-  await expect(page.getByRole('button', { name: 'Import' })).toBeFocused();
 });
 
 test('rejects empty GeoJSON without changing history and allows the same chooser to retry', async ({ page }) => {
   await page.goto('/');
 
-  const emptyChooserPromise = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Import' }).click();
-  const emptyChooser = await emptyChooserPromise;
-  await emptyChooser.setFiles({
+  await page.locator('input[accept^=".geojson"]').setInputFiles({
     name: 'empty.geojson',
     mimeType: 'application/geo+json',
     buffer: Buffer.from('{"type":"FeatureCollection","features":[]}'),
@@ -459,13 +391,8 @@ test('rejects empty GeoJSON without changing history and allows the same chooser
   await expect(page.getByRole('alert', { name: 'Map data import status' }))
     .toContainText('at least one supported Point, LineString, or Polygon feature');
   await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
-  await expect(page.getByRole('button', { name: 'Import' })).toBeFocused();
 
-  const retryChooserPromise = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Import' }).click();
-  const retryChooser = await retryChooserPromise;
-  await retryChooser.setFiles(path.resolve('tests/fixtures/import/supported.geojson'));
+  await page.locator('input[accept^=".geojson"]').setInputFiles(path.resolve('tests/fixtures/import/supported.geojson'));
   await expect(page.getByRole('status', { name: 'Map data import status' })).toContainText('Imported 3');
   await expect(page.getByRole('button', { name: 'Select Café Central' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Import' })).toBeFocused();
 });

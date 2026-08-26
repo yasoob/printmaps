@@ -1,8 +1,10 @@
 import { useEffect } from 'react';
 import type { CameraSettings, ContentLayer, MapFeatureVisibility, MapLanguage, MapStylePreset } from '../../../src/domain/project';
 import type { MapBounds } from '../../../src/map/MapLayerBounds';
+import type { ShapeEditMode } from '../../../src/map/ShapeVertexEditing';
 import { mapLocationRequestDiagnostic, type MapLocationRequest } from '../../../src/map/MapLocationRequest';
 import { exportMocks } from './exportMocks';
+import type { RouteAuthoring } from '../../../src/map/useTerraDrawRoutes';
 import type { CameraViewportChangeMode } from '../../../src/map/MapCameraViewport';
 
 type MapCanvasMockProps = {
@@ -14,9 +16,11 @@ type MapCanvasMockProps = {
   layers?: ContentLayer[];
   selectedId?: string | null;
   previewedId?: string | null;
+  shapeEditMode?: ShapeEditMode;
   onLayerSelect?: (id: string) => void;
   onCameraViewportChange?: (center: readonly [number, number], zoom: number, mode: CameraViewportChangeMode) => void;
   onMapClick?: (coordinate: [number, number]) => void;
+  routeAuthoring?: RouteAuthoring;
   onBackgroundClick: () => void;
   onExporterChange?: (exporter: typeof exportMocks.exporter) => void;
   fitRequest?: number;
@@ -28,6 +32,8 @@ type MapCanvasMockProps = {
   page?: { preset?: string; widthMm: number; heightMm: number };
 };
 
+const shapeEditModeDiagnostic = (mode?: ShapeEditMode) => mode ?? '';
+
 export function MapCanvas({
   camera = { bearing: 0, center: [16.3725, 48.2084], locked: false, pitch: 0, zoom: 11.2 },
   stylePreset = 'paper',
@@ -37,9 +43,11 @@ export function MapCanvas({
   layers = [],
   selectedId,
   previewedId,
+  shapeEditMode,
   onLayerSelect,
   onCameraViewportChange,
   onMapClick,
+  routeAuthoring,
   onBackgroundClick,
   onExporterChange,
   fitRequest,
@@ -74,17 +82,27 @@ export function MapCanvas({
       data-page-preset={page?.preset}
       data-page-size={page ? `${page.widthMm}x${page.heightMm}` : ''}
       data-layer-state={layers.map(({ appearance, id, visible }) => `${id}:${visible}${appearance?.kind === 'poi' && appearance.customAssetId ? `:custom:${appearance.customAssetId}` : ''}`).join(',')}
-      data-layer-geometry={layers.map(({ geometry, id }) => (
-        geometry ? `${id}:${JSON.stringify(geometry.coordinates)}` : `${id}:none`
-      )).join('|')}
+      data-layer-geometry={layers.map(({ geometry, id }) => {
+        if (!geometry) return `${id}:none`;
+        const positions = geometry.type === 'Arc' ? geometry.anchors : geometry.coordinates;
+        return `${id}:${JSON.stringify(positions)}`;
+      }).join('|')}
       data-selected-layer={selectedId ?? ''}
+      data-shape-edit-mode={shapeEditModeDiagnostic(shapeEditMode)}
       data-previewed-layer={previewedId ?? ''}
     >
       <button type="button" onClick={onBackgroundClick}>Map background</button>
       <button type="button" onClick={() => onCameraViewportChange?.([16.41, 48.23], 13.5, 'history')}>Finish map movement</button>
       <button type="button" onClick={() => onLayerSelect?.('poi-cafe')}>Map Coffee stop</button>
-      <button type="button" onClick={() => onMapClick?.([16.31, 48.19])}>Map route point 1</button>
-      <button type="button" onClick={() => onMapClick?.([16.4, 48.24])}>Map route point 2</button>
+      <button type="button" onClick={() => routeAuthoring?.active
+        ? routeAuthoring.onPreview([[16.31, 48.19]])
+        : onMapClick?.([16.31, 48.19])}>Map route point 1</button>
+      <button type="button" onClick={() => {
+        const coordinates: [number, number][] = [[16.31, 48.19], [16.4, 48.24]];
+        if (!routeAuthoring?.active) onMapClick?.([16.4, 48.24]);
+        else if (routeAuthoring.lineShape === 'arc') routeAuthoring.onFinish(coordinates);
+        else routeAuthoring.onPreview(coordinates);
+      }}>Map route point 2</button>
       <button type="button" onClick={() => onMapClick?.([16.37, 48.21])}>Map POI point</button>
       <button type="button" onClick={() => onMapClick?.([16.36, 48.25])}>Map shape point 3</button>
     </div>

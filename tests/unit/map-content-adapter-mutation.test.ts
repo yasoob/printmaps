@@ -18,6 +18,7 @@ function createMapHarness() {
   const layers = new Map<string, AddedLayer>();
   const map = {
     isStyleLoaded: () => true,
+    addControl: vi.fn(),
     addSource: (id: string, source: AddedSource) => {
       if (sources.has(id)) throw new Error(`Source ${id} already exists`);
       sources.set(id, structuredClone(source));

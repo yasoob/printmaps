@@ -1,21 +1,24 @@
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
+import { discardUnexpectedAutosaveDraft } from './autosave-fixture';
 
-const isHeadlessWebGlDiagnostic = (message: string) => (
+const isExpectedWebGlDiagnostic = (message: string, browserName: string) => (
   message.includes('GPU stall due to ReadPixels')
   || message.includes('AllowWebgl2:false restricts context creation on this system')
+  || (browserName === 'firefox' && message.includes('WebGL context was lost.'))
 );
 
 test('chooses original map presets through the responsive thumbnail gallery', async ({ page }, testInfo) => {
   const consoleProblems: string[] = [];
   page.on('pageerror', (error) => { consoleProblems.push(error.message); });
   page.on('console', (message) => {
-    if ((message.type() === 'error' || message.type() === 'warning') && !isHeadlessWebGlDiagnostic(message.text())) {
+    if ((message.type() === 'error' || message.type() === 'warning') && !isExpectedWebGlDiagnostic(message.text(), testInfo.project.name)) {
       consoleProblems.push(message.text());
     }
   });
 
   await page.goto('/');
+  await discardUnexpectedAutosaveDraft(page);
   const map = page.getByTestId('map-canvas');
   await expect(map).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
   const gallery = page.getByRole('radiogroup', { name: 'Map style presets' });
@@ -47,14 +50,13 @@ test('chooses original map presets through the responsive thumbnail gallery', as
   await expect(map).toHaveAttribute('data-style-preset', 'night-ink');
   await expect(map).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
 
-  await page.getByRole('button', { name: 'Vienna field guide' }).click();
   const projectDownloadPromise = page.waitForEvent('download');
-  await page.getByRole('menuitem', { name: 'Download project', exact: true }).click();
+  await page.getByRole('button', { name: 'Save' }).click();
   const projectDownload = await projectDownloadPromise;
   const projectPath = await projectDownload.path();
   expect(projectPath).not.toBeNull();
   const project = JSON.parse(await readFile(projectPath!, 'utf8'));
-  expect(project).toMatchObject({ schemaVersion: 17, style: { preset: 'night-ink' } });
+  expect(project).toMatchObject({ schemaVersion: 18, style: { preset: 'night-ink' } });
 
   await page.getByRole('button', { name: 'Export' }).click();
   const exportDialog = page.getByRole('dialog', { name: 'Export map' });

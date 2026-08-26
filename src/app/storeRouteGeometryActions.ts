@@ -1,8 +1,8 @@
-import { insertRouteVertex, moveRouteVertex, removeRouteVertex } from '../domain/routeGeometry';
+import { insertRouteVertex, moveRouteVertex, removeRouteVertex, replaceRouteGeometry } from '../domain/routeGeometry';
 import type { ProjectState } from './store';
 import { commitDocument, replaceLayers, type ProjectSet } from './storeDocument';
 
-type RouteGeometryActions = Pick<ProjectState, 'insertRouteVertex' | 'removeRouteVertex' | 'setRouteVertex'>;
+type RouteGeometryActions = Pick<ProjectState, 'insertRouteVertex' | 'removeRouteVertex' | 'replaceRouteGeometry' | 'setRouteVertex'>;
 
 function commitRouteGeometry(
   set: ProjectSet,
@@ -23,15 +23,20 @@ function commitRouteGeometry(
 
 export function createRouteGeometryActions(set: ProjectSet): RouteGeometryActions {
   return {
-    insertRouteVertex: (id, vertexIndex) => commitRouteGeometry(
+    insertRouteVertex: (id, vertexIndex, coordinate) => commitRouteGeometry(
       set,
       id,
-      (layer) => insertRouteVertex(layer, vertexIndex),
+      (layer) => insertRouteVertex(layer, vertexIndex, coordinate),
     ),
     removeRouteVertex: (id, vertexIndex) => commitRouteGeometry(
       set,
       id,
       (layer) => removeRouteVertex(layer, vertexIndex),
+    ),
+    replaceRouteGeometry: (id, coordinates) => commitRouteGeometry(
+      set,
+      id,
+      (layer) => replaceRouteGeometry(layer, coordinates),
     ),
     setRouteVertex: (id, vertexIndex, coordinates) => commitRouteGeometry(
       set,

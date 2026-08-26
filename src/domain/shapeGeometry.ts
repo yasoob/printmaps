@@ -1,4 +1,4 @@
-import type { ContentLayer } from './project';
+import type { ContentLayer, ShapeGeometry } from './project';
 import { isValidPosition } from './routeGeometry';
 
 function isSamePosition(
@@ -43,6 +43,32 @@ function movedRing(
 function hasAtLeastThreeDistinctVertices(ring: readonly (readonly [number, number])[]) {
   const distinctVertices = new Set(ring.slice(0, -1).map((position) => `${position[0]},${position[1]}`));
   return distinctVertices.size >= 3;
+}
+
+function isValidRing(ring: readonly (readonly [number, number])[]): boolean {
+  return isEditableShapeRing(ring)
+    && ring.every(([longitude, latitude]) => isValidPosition(longitude, latitude))
+    && hasAtLeastThreeDistinctVertices(ring);
+}
+
+function isValidShapeGeometry(geometry: ShapeGeometry): boolean {
+  const polygons = geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates;
+  return polygons.length > 0
+    && polygons.every((polygon) => polygon.length > 0 && polygon.every((ring) => isValidRing(ring)));
+}
+
+export function replaceShapeGeometry(
+  layer: ContentLayer | undefined,
+  geometry: ShapeGeometry,
+): ContentLayer | null {
+  if (
+    layer?.type !== 'shape'
+    || (layer.geometry?.type !== 'Polygon' && layer.geometry?.type !== 'MultiPolygon')
+    || layer.geometry.type !== geometry.type
+    || !isValidShapeGeometry(geometry)
+    || JSON.stringify(layer.geometry) === JSON.stringify(geometry)
+  ) return null;
+  return { ...layer, geometry: structuredClone(geometry) };
 }
 
 function isValidVertexInput(vertexIndex: number, longitude: number, latitude: number) {

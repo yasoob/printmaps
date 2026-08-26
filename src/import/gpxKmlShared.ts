@@ -137,7 +137,8 @@ export function createLayer({
   geometry,
   usedIds,
 }: LayerOptions): ContentLayer {
-  const layerTypes: Record<LayerGeometry['type'], LayerType> = {
+  if (geometry.type === 'Arc') throw new Error('Imported data cannot declare project Arc geometry.');
+  const layerTypes: Record<Exclude<LayerGeometry['type'], 'Arc'>, LayerType> = {
     Point: 'poi',
     LineString: 'route',
     Polygon: 'shape',
