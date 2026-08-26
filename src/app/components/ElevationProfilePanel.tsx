@@ -113,6 +113,15 @@ function isBoundedInteger(value: number, minimum: number, maximum: number): bool
   return Number.isSafeInteger(value) && value >= minimum && value <= maximum;
 }
 
+function formatTravelTime(distanceMeters: number, speedKilometersPerHour: number): string {
+  const exactMinutes = (distanceMeters / 1000 / speedKilometersPerHour) * 60;
+  const totalMinutes = Math.round(exactMinutes);
+  if (totalMinutes === 0 && exactMinutes > 0) return '<1 min';
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return [hours > 0 ? `${hours} h` : '', hours === 0 || minutes > 0 ? `${minutes} min` : ''].filter(Boolean).join(' ');
+}
+
 function ElevationProfileReady({
   profile,
   routeName,
@@ -202,6 +211,12 @@ function ElevationProfileReady({
         <span>{summary.elevationRange}</span>
         <span aria-label={`Total ascent ${summary.ascent}`}><ArrowUp aria-hidden="true" size={16} strokeWidth={1.75} />{summary.ascent}</span>
         <span aria-label={`Total descent ${summary.descent}`}><ArrowDown aria-hidden="true" size={16} strokeWidth={1.75} />{summary.descent}</span>
+      </div>
+      <div className="elevation-travel-times" role="group" aria-label="Travel time estimates">
+        <strong>Travel estimates</strong>
+        <div><span>Walking · 5 km/h</span><b>{formatTravelTime(profile.totalDistanceMeters, 5)}</b></div>
+        <div><span>Cycling · 15 km/h</span><b>{formatTravelTime(profile.totalDistanceMeters, 15)}</b></div>
+        <small>Distance-only estimates; terrain, stops, and conditions are not included.</small>
       </div>
       <div className="elevation-downloads">
         <button type="button" disabled={exporting || isFontSizeInvalid || isPrintWidthInvalid} aria-label="Download elevation SVG" onClick={() => void runExport('svg')}>SVG</button>

@@ -756,6 +756,16 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .elevation-metrics { @apply grid grid-cols-2 gap-x-2 gap-y-1; font-variant-numeric: tabular-nums; }
 .elevation-metrics strong { color: var(--studio-text-strong); }
 .elevation-metrics > span[aria-label] { @apply flex items-center gap-1; }
+.elevation-travel-times {
+  @apply grid gap-1 p-2;
+  border-radius: var(--studio-radius-sm);
+  background: var(--studio-field);
+  font-variant-numeric: tabular-nums;
+}
+.elevation-travel-times > strong { color: var(--studio-text-strong); }
+.elevation-travel-times > div { @apply flex items-center justify-between gap-2; }
+.elevation-travel-times > div b { color: var(--studio-text-strong); }
+.elevation-travel-times > small { color: var(--studio-text-muted); line-height: 1.35; }
 .elevation-downloads { @apply grid grid-cols-3 gap-1; }
 .elevation-downloads button {
   min-height: var(--studio-control-height);

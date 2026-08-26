@@ -16,6 +16,47 @@ const profile: ElevationProfile = {
   sourceLabel: 'Copernicus DEM GLO-90 via Open-Meteo',
 };
 
+describe('ElevationProfilePanel travel estimates', () => {
+  it('shows transparent walking and cycling time estimates for the route distance', async () => {
+    const user = userEvent.setup();
+    render(
+      <ElevationProfilePanel
+        coordinates={[[16, 48], [16.1, 48.1]]}
+        routeName="Alpine Route"
+        loadProfile={vi.fn(async () => profile)}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Generate elevation profile' }));
+
+    const estimates = screen.getByRole('group', { name: 'Travel time estimates' });
+    expect(estimates).toHaveTextContent('Walking · 5 km/h4 h');
+    expect(estimates).toHaveTextContent('Cycling · 15 km/h1 h 20 min');
+    expect(estimates).toHaveTextContent('Distance-only estimates; terrain, stops, and conditions are not included.');
+  });
+
+  it('never reports zero minutes for a positive route distance', async () => {
+    const user = userEvent.setup();
+    render(
+      <ElevationProfilePanel
+        coordinates={[[16, 48], [16.001, 48.001]]}
+        routeName="Short Route"
+        loadProfile={vi.fn(async () => ({
+          ...profile,
+          samples: [profile.samples[0], { ...profile.samples[1], distanceMeters: 100 }],
+          totalDistanceMeters: 100,
+        }))}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Generate elevation profile' }));
+
+    const estimates = screen.getByRole('group', { name: 'Travel time estimates' });
+    expect(estimates).toHaveTextContent('Cycling · 15 km/h<1 min');
+    expect(estimates).not.toHaveTextContent('0 min');
+  });
+});
+
 describe('ElevationProfilePanel', () => {
   it('generates an inspectable attributed profile for the selected route', async () => {
     const user = userEvent.setup();

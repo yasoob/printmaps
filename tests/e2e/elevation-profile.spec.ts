@@ -49,6 +49,10 @@ test('a selected route generates an attributed elevation profile with SVG, PNG, 
   expect(requestedSamples).toBeGreaterThanOrEqual(2);
   expect(requestedSamples).toBeLessThanOrEqual(100);
   await expect(page.getByLabel('Elevation summary')).toContainText('km');
+  const travelEstimates = page.getByRole('group', { name: 'Travel time estimates' });
+  await expect(travelEstimates).toContainText('Walking · 5 km/h');
+  await expect(travelEstimates).toContainText('Cycling · 15 km/h');
+  await expect(travelEstimates).toContainText('Distance-only estimates');
   await expect(page.getByText('Copernicus DEM GLO-90 via Open-Meteo')).toBeVisible();
 
   await page.getByRole('radio', { name: 'Imperial' }).check();
@@ -72,8 +76,8 @@ test('a selected route generates an attributed elevation profile with SVG, PNG, 
   await expect(chart.locator('.elevation-markers circle')).toHaveCount(2);
   await expect(chart.locator('.elevation-marker-label')).toHaveCount(2);
   if (testInfo.project.name === 'chromium') {
-    await chart.scrollIntoViewIfNeeded();
-    await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/elevation-profile-curve-toggle-20260826.png' });
+    await travelEstimates.scrollIntoViewIfNeeded();
+    await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/elevation-profile-travel-estimates-20260826.png' });
   }
 
   const svgBytes = await downloadFormat(page, 'Download elevation SVG', testInfo.outputPath('route-01.elevation.svg'));
