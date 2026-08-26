@@ -53,3 +53,51 @@ test('generated worldwide catalogue lazily creates a durable Japanese region', a
   expect(await readFile(svgPath, 'utf8')).toContain('data-layer-name="Kyōto Prefecture"');
   expect(consoleProblems).toEqual([]);
 });
+
+test('generated worldwide catalogue lazily creates a durable country', async ({ page }, testInfo) => {
+  test.setTimeout(60_000);
+  const consoleProblems: string[] = [];
+  page.on('pageerror', (error) => { consoleProblems.push(error.message); });
+  page.on('console', (message) => {
+    if ((message.type() === 'error' || message.type() === 'warning') && !isExpectedWebGlDiagnostic(message.text())) {
+      consoleProblems.push(message.text());
+    }
+  });
+
+  await page.goto('/');
+  await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
+  await page.getByRole('button', { name: 'Area (S)' }).click();
+  const country = page.getByRole('combobox', { name: 'Administrative area' });
+  await expect(country.locator('option')).toHaveCount(258);
+  await country.selectOption('IND');
+  await expect(page.getByRole('status', { name: 'Administrative country status' })).toHaveText('India boundary loaded.');
+  if (testInfo.project.name === 'chromium') {
+    await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/global-india-country-catalogue-20260826.png' });
+  }
+  await page.getByRole('button', { name: 'Add administrative area' }).click();
+
+  const layer = page.getByRole('button', { name: 'Select India' });
+  await expect(layer).toHaveAttribute('aria-current', 'true');
+  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-geometry', /admin-ind:/);
+
+  const savePromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Save' }).click();
+  const save = await savePromise;
+  const savePath = testInfo.outputPath('india-country.printmap.json');
+  await save.saveAs(savePath);
+  const project = JSON.parse(await readFile(savePath, 'utf8'));
+  const savedCountry = project.layers.find(({ id }: { id: string }) => id === 'admin-ind');
+  expect(savedCountry).toMatchObject({ name: 'India' });
+  expect(['Polygon', 'MultiPolygon']).toContain(savedCountry.geometry.type);
+
+  await page.getByRole('button', { name: 'Export' }).click();
+  const exportDialog = page.getByRole('dialog', { name: 'Export map' });
+  await exportDialog.getByRole('radio', { name: /Layered SVG/ }).click();
+  const svgPromise = page.waitForEvent('download');
+  await exportDialog.getByRole('button', { name: 'Download layered SVG' }).click();
+  const svg = await svgPromise;
+  const svgPath = testInfo.outputPath('india-country.layered.svg');
+  await svg.saveAs(svgPath);
+  expect(await readFile(svgPath, 'utf8')).toContain('data-layer-name="India"');
+  expect(consoleProblems).toEqual([]);
+});

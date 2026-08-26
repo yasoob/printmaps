@@ -69,6 +69,83 @@ it('loads a generated country shard and creates an area outside the legacy catal
   }
 });
 
+it('loads a generated country shard and creates a country outside the legacy catalogue', async () => {
+  const user = userEvent.setup();
+  const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+    const url = String(input);
+    if (url.endsWith('/data/administrative/index.json')) {
+      return Response.json({
+        schemaVersion: 1,
+        sourceVersion: 'Natural Earth 5.1.1',
+        countries: [
+          { id: 'AUT', name: 'Austria', bounds: [9, 46, 17, 50], levels: ['country', 'region'], shard: 'countries/AUT.json' },
+          { id: 'JPN', name: 'Japan', bounds: [129, 31, 146, 46], levels: ['country', 'region'], shard: 'countries/JPN.json' },
+        ],
+      });
+    }
+    if (url.endsWith('/data/administrative/countries/JPN.json')) {
+      return Response.json({
+        schemaVersion: 1,
+        country: { id: 'JPN', name: 'Japan', sourceId: 'NE-JPN', geometry: square(135, 34) },
+        regions: [{ id: 'JP-26', name: 'Kyoto', sourceId: 'NE-JP-26', geometry: square(135, 35) }],
+      });
+    }
+    if (url.endsWith('/data/administrative/countries/AUT.json')) {
+      return Response.json({
+        schemaVersion: 1,
+        country: { id: 'AUT', name: 'Austria', sourceId: 'NE-AUT', geometry: square(15, 47) },
+        regions: [{ id: 'AT-9', name: 'Vienna', sourceId: 'NE-AT-9', geometry: square(16, 48) }],
+      });
+    }
+    throw new Error(`Unexpected fetch: ${url}`);
+  });
+
+  try {
+    render(<App autosaveRepository={null} />);
+    await user.click(screen.getByRole('button', { name: 'Area (S)' }));
+    const countries = screen.getByRole('combobox', { name: 'Administrative area' });
+    await waitFor(() => expect(within(countries).getByRole('option', { name: 'Japan' })).toBeInTheDocument());
+    await user.selectOptions(countries, 'JPN');
+
+    expect(await screen.findByRole('status', { name: 'Administrative country status' })).toHaveTextContent('Japan boundary loaded.');
+    await user.click(screen.getByRole('button', { name: 'Add administrative area' }));
+
+    expect(screen.getByRole('button', { name: 'Select Japan' })).toHaveAttribute('aria-current', 'true');
+    expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-fit-layer-id', 'admin-jpn');
+    expect(fetchMock.mock.calls.filter(([request]) => String(request).endsWith('/countries/JPN.json'))).toHaveLength(1);
+  } finally {
+    fetchMock.mockRestore();
+  }
+});
+
+it('does not fall back to bundled country geometry after generated catalogue activation', async () => {
+  const user = userEvent.setup();
+  const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+    const url = String(input);
+    if (url.endsWith('/data/administrative/index.json')) {
+      return Response.json({
+        schemaVersion: 1,
+        sourceVersion: 'Natural Earth 5.1.1',
+        countries: [
+          { id: 'AUT', name: 'Austria', bounds: [9, 46, 17, 50], levels: ['country'], shard: 'countries/AUT.json' },
+        ],
+      });
+    }
+    if (url.endsWith('/data/administrative/countries/AUT.json')) throw new Error('Shard unavailable');
+    throw new Error(`Unexpected fetch: ${url}`);
+  });
+
+  try {
+    render(<App autosaveRepository={null} />);
+    await user.click(screen.getByRole('button', { name: 'Area (S)' }));
+
+    expect(await screen.findByRole('status', { name: 'Administrative country status' })).toHaveTextContent('Austria boundary unavailable. Shard unavailable');
+    expect(screen.getByRole('button', { name: 'Add administrative area' })).toBeDisabled();
+  } finally {
+    fetchMock.mockRestore();
+  }
+});
+
 it('keeps deferred catalogue status and data scoped to the selected country', async () => {
   const user = userEvent.setup();
   const indexResponse = deferred<Response>();
