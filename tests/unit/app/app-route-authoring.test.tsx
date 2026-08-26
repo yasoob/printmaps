@@ -2,6 +2,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../../../src/app/App';
 import { createInitialProjectDocument } from '../../../src/domain/project';
+import type { DirectionsProvider } from '../../../src/services/mapbox/contracts';
 
 vi.mock('../../../src/map/MapCanvas', async () => import('./MapCanvasMock'));
 
@@ -50,6 +51,64 @@ describe('straight route authoring', () => {
     expect(screen.getByTestId('map-canvas').dataset.layerGeometry).toContain('route-02:[[16.31,48.19],[16.4,48.24]]');
     expect(screen.getByRole('combobox', { name: 'Route travel profile' })).toHaveValue('air');
     expect(screen.getByRole('checkbox', { name: 'Show travel-mode marker' })).toBeChecked();
+  });
+
+  it('routes drawn waypoints through Mapbox and commits one canonical road route', async () => {
+    const user = userEvent.setup();
+    const directions = vi.fn<DirectionsProvider['directions']>().mockResolvedValue({
+      routes: [{
+        geometry: [[16.31, 48.19], [16.355, 48.215], [16.4, 48.24]],
+        distanceMeters: 9200,
+        durationSeconds: 1320,
+      }],
+      useBoundary: 'provider-response-use-requires-terms-review',
+    });
+    render(<App autosaveRepository={null} directionsProvider={{ directions }} />);
+
+    await user.click(screen.getByRole('button', { name: 'Route (R)' }));
+    await user.click(screen.getByRole('radio', { name: 'Road' }));
+    await user.click(screen.getByRole('button', { name: 'Map route point 1' }));
+    await user.click(screen.getByRole('button', { name: 'Map route point 2' }));
+    await user.click(screen.getByRole('button', { name: 'Finish route' }));
+
+    expect(directions).toHaveBeenCalledWith(expect.objectContaining({
+      profile: 'driving',
+      waypoints: [[16.31, 48.19], [16.4, 48.24]],
+      signal: expect.any(AbortSignal),
+    }));
+    expect(await screen.findByRole('button', { name: 'Select Route 02' })).toHaveAttribute('aria-current', 'true');
+    expect(screen.getByText('Mapbox Directions')).toBeInTheDocument();
+    expect(screen.getByText('9.2 km · 22 min · 2 waypoints')).toBeInTheDocument();
+    expect(screen.getByTestId('map-canvas').dataset.layerGeometry).toContain(
+      'route-02:[[16.31,48.19],[16.355,48.215],[16.4,48.24]]',
+    );
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(screen.queryByRole('button', { name: 'Select Route 02' })).not.toBeInTheDocument();
+    expect(directions).toHaveBeenCalledTimes(1);
+  });
+
+  it('cancels a pending road route when its waypoints change', async () => {
+    const user = userEvent.setup();
+    let resolve!: (value: Awaited<ReturnType<DirectionsProvider['directions']>>) => void;
+    const pending = new Promise<Awaited<ReturnType<DirectionsProvider['directions']>>>((nextResolve) => { resolve = nextResolve; });
+    const directions = vi.fn<DirectionsProvider['directions']>(() => pending);
+    render(<App autosaveRepository={null} directionsProvider={{ directions }} />);
+
+    await user.click(screen.getByRole('button', { name: 'Route (R)' }));
+    await user.click(screen.getByRole('radio', { name: 'Road' }));
+    await user.click(screen.getByRole('button', { name: 'Map route point 1' }));
+    await user.click(screen.getByRole('button', { name: 'Map route point 2' }));
+    await user.click(screen.getByRole('button', { name: 'Finish route' }));
+    await user.click(screen.getByRole('button', { name: 'Map route point 1' }));
+
+    const signal = directions.mock.calls[0][0].signal;
+    expect(signal?.aborted).toBe(true);
+    resolve({
+      routes: [{ geometry: [[16.31, 48.19], [16.4, 48.24]], distanceMeters: 1, durationSeconds: 1 }],
+      useBoundary: 'provider-response-use-requires-terms-review',
+    });
+    await pending;
+    expect(screen.queryByRole('button', { name: 'Select Route 02' })).not.toBeInTheDocument();
   });
 
   it('finishes two map clicks as one selected undoable route', async () => {

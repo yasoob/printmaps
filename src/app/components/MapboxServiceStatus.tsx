@@ -102,7 +102,7 @@ function ConfiguredMapboxServiceStatus({
         <strong>Mapbox connection ready</strong>
         <p>Mapbox accepted this public token from {origin}.</p>
         <p>This browser connection is ready for provider requests.</p>
-        <p>Search and travel-time Areas are active. Road-routing integration is next.</p>
+        <p>Search, travel-time Areas, and road routing are active.</p>
       </div>
     );
   }

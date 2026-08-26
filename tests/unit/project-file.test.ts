@@ -2,7 +2,7 @@ import { createInitialProjectDocument } from '../../src/domain/project';
 import { parseProjectFileText } from '../../src/domain/projectFile';
 
 describe('portable project validation', () => {
-  it.each([16, 17])('rejects the obsolete schema-%s format with a reset-oriented message', (schemaVersion) => {
+  it.each([16, 17, 18])('rejects the obsolete schema-%s format with a reset-oriented message', (schemaVersion) => {
     const obsolete = { ...createInitialProjectDocument(), schemaVersion };
 
     expect(() => parseProjectFileText(JSON.stringify(obsolete))).toThrow(
@@ -83,8 +83,51 @@ describe('portable project validation', () => {
 
     expect(parsedShape?.provenance).toEqual(shape.provenance);
     expect(parsedShape?.provenance).not.toBe(shape.provenance);
-    expect(parsedShape?.provenance?.center).not.toBe(shape.provenance.center);
+    expect(parsedShape?.provenance?.service === 'isochrone-v1'
+      ? parsedShape.provenance.center
+      : undefined).not.toBe(shape.provenance.center);
     expect(JSON.stringify(parsedShape)).not.toMatch(/access_token|rawResponse|token/i);
+  });
+
+  it('round-trips detached Mapbox directions provenance without credentials or raw responses', () => {
+    const source = createInitialProjectDocument();
+    const route = source.layers.find(({ type }) => type === 'route');
+    if (!route) throw new Error('Expected route fixture.');
+    route.geometry = {
+      type: 'LineString',
+      coordinates: [[16.31, 48.19], [16.355, 48.215], [16.4, 48.24]],
+    };
+    route.provenance = {
+      provider: 'mapbox', service: 'directions-v5',
+      waypoints: [[16.31, 48.19], [16.4, 48.24]], profile: 'driving',
+      distanceMeters: 9200, durationSeconds: 1320,
+    };
+
+    const parsed = parseProjectFileText(JSON.stringify(source));
+    const parsedRoute = parsed.layers.find(({ id }) => id === route.id);
+
+    expect(parsedRoute?.provenance).toEqual(route.provenance);
+    expect(parsedRoute?.provenance).not.toBe(route.provenance);
+    expect(parsedRoute?.provenance?.service === 'directions-v5'
+      ? parsedRoute.provenance.waypoints
+      : undefined).not.toBe(route.provenance.waypoints);
+    expect(JSON.stringify(parsedRoute)).not.toMatch(/access_token|rawResponse|token/i);
+  });
+
+  it('rejects Mapbox directions provenance on non-LineString route geometry', () => {
+    const source = createInitialProjectDocument();
+    const route = source.layers.find(({ type }) => type === 'route');
+    if (!route) throw new Error('Expected route fixture.');
+    route.geometry = { type: 'Arc', anchors: [[16.31, 48.19], [16.4, 48.24]] };
+    route.provenance = {
+      provider: 'mapbox', service: 'directions-v5',
+      waypoints: [[16.31, 48.19], [16.4, 48.24]], profile: 'driving',
+      distanceMeters: 9200, durationSeconds: 1320,
+    };
+
+    expect(() => parseProjectFileText(JSON.stringify(source))).toThrow(
+      'Directions provenance requires LineString route geometry.',
+    );
   });
 
   it('preserves a current portable project custom basemap layer name', () => {

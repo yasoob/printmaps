@@ -42,7 +42,7 @@ describe('Mapbox deployment status', () => {
     expect(container).not.toHaveTextContent(token);
   });
 
-  it('describes active provider workflows without claiming road routing is ready', async () => {
+  it('describes search, travel-time Areas, and road routing as active workflows', async () => {
     const user = userEvent.setup();
     render(
       <MapboxServiceStatus
@@ -57,9 +57,9 @@ describe('Mapbox deployment status', () => {
     const status = await screen.findByRole('status');
     expect(status).toHaveTextContent('This browser connection is ready for provider requests.');
     expect(status).toHaveTextContent(
-      'Search and travel-time Areas are active. Road-routing integration is next.',
+      'Search, travel-time Areas, and road routing are active.',
     );
-    expect(status).not.toHaveTextContent('road routing can use this connection');
+    expect(status).not.toHaveTextContent('integration is next');
   });
 
   it('turns an origin-restriction failure into corrective guidance and permits retry', async () => {

@@ -38,7 +38,7 @@ test('Vienna municipality catalogue preserves source credit through project and 
   await projectDownload.saveAs(projectPath);
   const project = JSON.parse(await readFile(projectPath, 'utf8'));
   const districtLayer = project.layers.find(({ id }: { id: string }) => id === 'admin-at-9-01');
-  expect(project.schemaVersion).toBe(18);
+  expect(project.schemaVersion).toBe(19);
   expect(districtLayer).toMatchObject({ name: 'Innere Stadt', geometry: { type: 'Polygon' }, appearance: { invert: true } });
   expect(districtLayer.geometry.coordinates.flat().length).toBeLessThanOrEqual(500);
 
@@ -219,7 +219,7 @@ test('bundled administrative regions merge without an internal border and retain
   const savePath = testInfo.outputPath('administrative-area.printmap.json');
   await save.saveAs(savePath);
   const savedProject = JSON.parse(await readFile(savePath, 'utf8'));
-  expect(savedProject.schemaVersion).toBe(18);
+  expect(savedProject.schemaVersion).toBe(19);
   const savedArea = savedProject.layers.find(({ id }: { id: string }) => id === 'admin-at-3-at-9');
   expect(savedArea.appearance.invert).toBe(true);
   expect(savedArea.name).toBe('Lower Austria + Vienna');
@@ -297,7 +297,7 @@ test('Tyrol keeps both disconnected parts through live map, save, and layered SV
   await save.saveAs(savePath);
   const savedProject = JSON.parse(await readFile(savePath, 'utf8'));
   const tyrol = savedProject.layers.find(({ id }: { id: string }) => id === 'admin-at-7');
-  expect(savedProject.schemaVersion).toBe(18);
+  expect(savedProject.schemaVersion).toBe(19);
   expect(tyrol.geometry.type).toBe('MultiPolygon');
   expect(tyrol.geometry.coordinates).toHaveLength(2);
 

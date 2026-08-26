@@ -1,7 +1,6 @@
 import {
   PROJECT_SCHEMA_VERSION,
   type ContentLayer,
-  type IsochroneProvenance,
   type LayerGeometry,
   type LayerType,
   type MapLanguage,
@@ -16,6 +15,10 @@ import { parseLayerAppearance, type LayerAppearance } from './layerAppearance';
 import type { CustomMarkerAsset } from './customMarkerAssets';
 import { parseProjectAssets } from './projectAssets';
 import { MAP_STYLE_PRESETS as MAP_STYLE_PRESET_DEFINITIONS } from './mapStylePresets';
+import { ProjectFileError } from './projectFileError';
+import { parseLayerProvenance } from './projectProvenance';
+
+export { ProjectFileError } from './projectFileError';
 
 export const MAX_PROJECT_FILE_BYTES = 10 * 1024 * 1024;
 export const MAX_PROJECT_LAYERS = 1000;
@@ -25,18 +28,10 @@ const PAGE_PRESETS = new Set<PagePreset>(['A4', 'A3', 'Letter', 'Custom']);
 const PAGE_ORIENTATIONS = new Set<PageOrientation>(['landscape', 'portrait']);
 const MAP_STYLE_PRESETS = new Set<MapStylePreset>(MAP_STYLE_PRESET_DEFINITIONS.map(({ id }) => id));
 const MAP_LANGUAGES = new Set<MapLanguage>(['local', 'en', 'de', 'fr', 'it', 'es', 'zh']);
-const ISOCHRONE_PROFILES = new Set<IsochroneProvenance['profile']>(['driving', 'cycling', 'walking']);
 type JsonObject = Record<string, unknown>;
 
 function isCurrentSchemaVersion(value: unknown): value is ProjectDocument['schemaVersion'] {
   return value === PROJECT_SCHEMA_VERSION;
-}
-
-export class ProjectFileError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'ProjectFileError';
-  }
 }
 
 function objectAt(value: unknown, label: string): JsonObject {
@@ -130,37 +125,6 @@ function expectedGeometryLabel(type: LayerType) {
   return EXPECTED_GEOMETRY[type] ?? 'no';
 }
 
-function provenanceAt(
-  value: unknown,
-  type: LayerType,
-  index: number,
-  coordinateCount: { value: number },
-): IsochroneProvenance | undefined {
-  if (value === undefined) return;
-  if (type !== 'shape') throw new ProjectFileError(`Layer ${index + 1} provenance is only valid for Area layers.`);
-  const provenance = objectAt(value, `Layer ${index + 1} provenance`);
-  if (provenance.provider !== 'mapbox' || provenance.service !== 'isochrone-v1') {
-    throw new ProjectFileError(`Layer ${index + 1} provenance provider is not supported.`);
-  }
-  const centerGeometry = geometryAt(
-    { type: 'Point', coordinates: provenance.center },
-    `Layer ${index + 1} provenance center`,
-    coordinateCount,
-  );
-  if (centerGeometry.type !== 'Point') throw new ProjectFileError(`Layer ${index + 1} provenance center is invalid.`);
-  if (!ISOCHRONE_PROFILES.has(provenance.profile as IsochroneProvenance['profile'])) {
-    throw new ProjectFileError(`Layer ${index + 1} provenance travel profile is not supported.`);
-  }
-  const minutes = finiteNumber(provenance.minutes, `Layer ${index + 1} provenance minutes`);
-  if (!Number.isSafeInteger(minutes) || minutes < 5 || minutes > 60) {
-    throw new ProjectFileError(`Layer ${index + 1} provenance minutes must be a whole number from 5 to 60.`);
-  }
-  return {
-    provider: 'mapbox', service: 'isochrone-v1', center: centerGeometry.coordinates,
-    profile: provenance.profile as IsochroneProvenance['profile'], minutes,
-  };
-}
-
 function validatedLayerGeometry(
   value: unknown,
   type: LayerType,
@@ -190,7 +154,10 @@ function layerAt(
   const type = layerTypeAt(layer.type, index);
   const appearance = layerAppearanceAt(layer, type, index, context.assets);
   const geometry = validatedLayerGeometry(layer.geometry, type, index, context.coordinateCount);
-  const provenance = provenanceAt(layer.provenance, type, index, context.coordinateCount);
+  const provenance = parseLayerProvenance(layer.provenance, type, index, context.coordinateCount);
+  if (provenance?.service === 'directions-v5' && geometry?.type !== 'LineString') {
+    throw new ProjectFileError('Directions provenance requires LineString route geometry.');
+  }
   return {
     id,
     name: nonEmptyString(layer.name, `Layer ${index + 1} name`),
@@ -275,7 +242,7 @@ function currentDocumentAt(value: unknown): ProjectDocument {
   const root = objectAt(value, 'Project file');
   const schemaVersion = root.schemaVersion;
   if (!isCurrentSchemaVersion(schemaVersion)) {
-    if (typeof schemaVersion === 'number' && schemaVersion >= 1 && schemaVersion <= 17) {
+    if (typeof schemaVersion === 'number' && schemaVersion >= 1 && schemaVersion < PROJECT_SCHEMA_VERSION) {
       throw new ProjectFileError(
         `Schema version ${schemaVersion} is obsolete. Start a new project or reopen a current Print Map Studio file.`,
       );

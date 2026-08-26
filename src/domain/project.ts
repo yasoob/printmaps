@@ -12,7 +12,7 @@ export type {
   ShapeAppearance,
 } from './layerAppearance';
 
-export const PROJECT_SCHEMA_VERSION = 18 as const;
+export const PROJECT_SCHEMA_VERSION = 19 as const;
 export const MAX_MERCATOR_LATITUDE = 85.051129;
 export const MAX_MAP_ZOOM = 22;
 
@@ -63,6 +63,25 @@ export type IsochroneProvenance = {
   minutes: number;
 };
 
+export type DirectionsProvenance = {
+  provider: 'mapbox';
+  service: 'directions-v5';
+  waypoints: [number, number][];
+  profile: 'driving' | 'cycling' | 'walking';
+  distanceMeters: number;
+  durationSeconds: number;
+};
+
+export type ProviderProvenance = IsochroneProvenance | DirectionsProvenance;
+
+export type DirectionsRouteInput = {
+  geometry: [number, number][];
+  waypoints: [number, number][];
+  profile: DirectionsProvenance['profile'];
+  distanceMeters: number;
+  durationSeconds: number;
+};
+
 export type IsochroneAreaInput = {
   center: [number, number];
   geometry: ShapeGeometry;
@@ -86,7 +105,7 @@ export type ContentLayer = {
   opacity: number;
   appearance?: LayerAppearance;
   geometry?: LayerGeometry;
-  provenance?: IsochroneProvenance;
+  provenance?: ProviderProvenance;
 };
 
 export type ProjectDocument = {
@@ -134,12 +153,21 @@ export function mapStyleBasemapName(preset: MapStylePreset): string {
   return `${MAP_STYLE_PRESET_LABELS[preset]} basemap`;
 }
 
+function cloneProviderProvenance(provenance: ProviderProvenance | undefined): ProviderProvenance | undefined {
+  if (provenance?.service === 'isochrone-v1') {
+    return { ...provenance, center: [...provenance.center] as [number, number] };
+  }
+  if (provenance?.service === 'directions-v5') {
+    return {
+      ...provenance,
+      waypoints: provenance.waypoints.map((position) => [...position] as [number, number]),
+    };
+  }
+}
+
 export function cloneContentLayer(layer: ContentLayer): ContentLayer {
   const appearance = layer.appearance ? { ...layer.appearance } : undefined;
-  const provenance = layer.provenance ? {
-    ...layer.provenance,
-    center: [...layer.provenance.center] as [number, number],
-  } : undefined;
+  const provenance = cloneProviderProvenance(layer.provenance);
   const base = { ...layer };
   delete base.appearance;
   delete base.provenance;

@@ -7,6 +7,7 @@ import {
   type RouteTravelProfile,
 } from '../../domain/routeProfiles';
 import { CoordinateField } from './CoordinateField';
+import { DirectionsProvenanceSummary } from './DirectionsProvenanceSummary';
 import { ElevationProfilePanel } from './ElevationProfilePanel';
 import { LayerIdentityProperties } from './LayerIdentityProperties';
 import { MultiPartGeometryStatus } from './MultiPartGeometryStatus';
@@ -141,6 +142,7 @@ function RouteLayerProperties({
       <PropertySection title="Appearance">
         <RouteAppearanceControls key={`${layer.id}-${layer.appearance.width}`} appearance={layer.appearance} onChange={onAppearanceChange} />
       </PropertySection>
+      <DirectionsProvenanceSummary layer={layer} />
       {layer.geometry?.type === 'LineString' && (
         <>
           <PropertySection title="Vertices">

@@ -58,6 +58,7 @@ const sharedProps = {
   onCameraViewportChange: vi.fn(),
   onCreateAdministrativeArea: vi.fn(),
   onCreateAdministrativeAreas: vi.fn(),
+  onCreateDirectionsRoute: vi.fn(),
   onCreateIsochroneArea: vi.fn(),
   onCreatePoi: vi.fn(),
   onCreatePoiBatch: vi.fn(),

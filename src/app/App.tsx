@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { useStore } from 'zustand';
 import type { ContentLayer, ProjectDocument } from '../domain/project';
 import type { PreviewPngExporter } from '../export/previewPng';
+import type { DirectionsProvider } from '../services/mapbox/contracts';
 import { createIndexedDbAutosaveRepository, type AutosaveRepository } from '../storage/autosave';
 import {
   ProjectAutosaveDialogs,
@@ -22,6 +23,7 @@ import { createProjectStore } from './store';
 
 type AppProps = {
   autosaveRepository?: AutosaveRepository | null;
+  directionsProvider?: DirectionsProvider;
 };
 
 function visiblePreviewLayerId(layers: readonly ContentLayer[], previewedLayerId: string | null) {
@@ -30,7 +32,7 @@ function visiblePreviewLayerId(layers: readonly ContentLayer[], previewedLayerId
   return layer?.visible && layer.geometry ? previewedLayerId : null;
 }
 
-export function App({ autosaveRepository }: AppProps = {}) {
+export function App({ autosaveRepository, directionsProvider }: AppProps = {}) {
   const [projectStore] = useState(() => createProjectStore());
   const [resolvedAutosaveRepository] = useState(() => (
     autosaveRepository === undefined
@@ -59,12 +61,10 @@ export function App({ autosaveRepository }: AppProps = {}) {
   const handleExporterChange = useCallback((exporter: PreviewPngExporter | null) => {
     setMapExporter(exporter ? { run: exporter } : null);
   }, []);
-
   const handleOpenedDocument = useCallback((document: ProjectDocument) => {
     openDocument(document);
     setPreviewedLayerId(null);
   }, [openDocument]);
-
   const handleAuthoringChange = useCallback((documentEpoch: number, isActive: boolean) => {
     setAuthoringState({ documentEpoch, active: isActive });
   }, []);
@@ -98,10 +98,8 @@ export function App({ autosaveRepository }: AppProps = {}) {
           onKeyDown={mobile.handlePanelKeyDown} autosave={autosave}
         />
         <CanvasWorkspace
-          layers={layers}
-          assets={project.document.assets}
-          selectedId={project.selectedId}
-          previewedId={mapPreviewedLayerId}
+          layers={layers} assets={project.document.assets}
+          selectedId={project.selectedId} previewedId={mapPreviewedLayerId}
           page={project.document.page}
           camera={project.document.camera}
           stylePreset={project.document.style.preset}
@@ -117,6 +115,8 @@ export function App({ autosaveRepository }: AppProps = {}) {
           onLayerSelect={project.selectLayer} onCameraViewportChange={project.setCameraViewport} onRouteGeometryChange={project.replaceRouteGeometry}
           onLocate={mapLocation.locate}
           onShapeGeometryChange={project.setShapeGeometry}
+          directionsProvider={directionsProvider}
+          onCreateDirectionsRoute={project.createDirectionsRoute}
           onCreateAdministrativeArea={project.createAdministrativeArea}
           onCreateAdministrativeAreas={project.createAdministrativeAreas} onCreateIsochroneArea={project.createIsochroneArea}
           onCreatePoi={project.createPoi}

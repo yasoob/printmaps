@@ -1,14 +1,14 @@
-import { createArcGeometry } from '../domain/routeArcGeometry';
 import { canonicalLayerAppearance } from '../domain/layerAppearance';
 import { cloneContentLayer, createDefaultLayerAppearance, type ContentLayer } from '../domain/project';
 import { isValidPosition } from '../domain/routeGeometry';
-import { buildRouteCoordinates, DEFAULT_ROUTE_AUTHORING_OPTIONS, isRouteAuthoringOptions } from '../domain/routeProfiles';
 import { validateCustomMarkerAssetCollection, validateStoredCustomMarkerAsset, type CustomMarkerAsset } from '../domain/customMarkerAssets';
 import type { ProjectState } from './store';
 import { commitDocument, replaceLayers, type ProjectSet } from './storeDocument';
 import { createPoiStructureActions } from './storePoiActions';
 import { createAdministrativeAreaActions } from './storeAdministrativeAreaActions';
 import { createRouteGeometryActions } from './storeRouteGeometryActions';
+import { createDirectionsRouteAction } from './storeDirectionsRouteActions';
+import { createRouteAction } from './storeRouteCreationAction';
 import { createReplaceLayerFromImportAction } from './storeImportReplacementAction';
 type LayerPropertyActions = Pick<ProjectState, 'insertRouteVertex' | 'removeRouteVertex' | 'renameLayer' | 'replaceRouteGeometry' | 'selectLayer' | 'setLayerAppearance' | 'setLayerOpacity' | 'setPoiCoordinates' | 'setPoiCustomMarker' | 'setRouteVertex' | 'toggleLayerVisibility' | 'toggleLayerLock'>;
 
@@ -25,51 +25,6 @@ function assetsReferencedBy(layers: ProjectState['document']['layers']): Set<str
   return new Set(layers.flatMap(({ appearance }) => (
     appearance?.kind === 'poi' && appearance.customAssetId ? [appearance.customAssetId] : []
   )));
-}
-
-function createRouteAction(set: ProjectSet): ProjectState['createRoute'] {
-  return (coordinates, options = DEFAULT_ROUTE_AUTHORING_OPTIONS) => set((state) => {
-    const distinctCoordinates = new Set(coordinates.map(([longitude, latitude]) => `${longitude},${latitude}`));
-    if (!isRouteAuthoringOptions(options) || distinctCoordinates.size < 2
-      || coordinates.some(([longitude, latitude]) => !isValidPosition(longitude, latitude))) return state;
-    const usedIds = new Set(state.document.layers.map((layer) => layer.id));
-    let routeNumber = 0;
-    let id: string;
-    do {
-      routeNumber += 1;
-      id = `route-${String(routeNumber).padStart(2, '0')}`;
-    } while (usedIds.has(id));
-    const routeCoordinates = buildRouteCoordinates(coordinates, options.lineShape);
-    if (routeCoordinates.length < 2
-      || routeCoordinates.some(([longitude, latitude]) => !isValidPosition(longitude, latitude))) return state;
-    const geometry = options.lineShape === 'arc'
-      ? createArcGeometry(routeCoordinates)
-      : { type: 'LineString' as const, coordinates: routeCoordinates };
-    if (!geometry) return state;
-    const defaultAppearance = createDefaultLayerAppearance('route');
-    if (defaultAppearance?.kind !== 'route') return state;
-    const route = {
-      id,
-      name: `Route ${String(routeNumber).padStart(2, '0')}`,
-      type: 'route' as const,
-      visible: true,
-      locked: false,
-      opacity: 100,
-      appearance: {
-        ...defaultAppearance,
-        travelProfile: options.travelProfile,
-        showTravelModeIcon: options.showTravelModeIcon,
-      },
-      geometry,
-    };
-    const layers = [...state.document.layers];
-    const basemapIndex = layers.findIndex((layer) => layer.type === 'basemap');
-    layers.splice(basemapIndex === -1 ? layers.length : basemapIndex, 0, route);
-    return {
-      ...commitDocument(state, replaceLayers(state.document, layers)),
-      selectedId: id,
-    };
-  });
 }
 
 function createShapeAction(set: ProjectSet): ProjectState['createShape'] {
@@ -110,10 +65,11 @@ function createShapeAction(set: ProjectSet): ProjectState['createShape'] {
   });
 }
 
-export function createLayerStructureActions(set: ProjectSet): Pick<ProjectState, 'createAdministrativeArea' | 'createAdministrativeAreas' | 'createPoi' | 'createPoiBatch' | 'createRoute' | 'createShape' | 'deleteLayer' | 'duplicateLayer' | 'importLayers' | 'moveLayer' | 'replaceLayerFromImport'> {
+export function createLayerStructureActions(set: ProjectSet): Pick<ProjectState, 'createAdministrativeArea' | 'createAdministrativeAreas' | 'createDirectionsRoute' | 'createPoi' | 'createPoiBatch' | 'createRoute' | 'createShape' | 'deleteLayer' | 'duplicateLayer' | 'importLayers' | 'moveLayer' | 'replaceLayerFromImport'> {
   return {
     ...createPoiStructureActions(set),
     ...createAdministrativeAreaActions(set),
+    createDirectionsRoute: createDirectionsRouteAction(set),
     createRoute: createRouteAction(set),
     createShape: createShapeAction(set),
     replaceLayerFromImport: createReplaceLayerFromImportAction(set),

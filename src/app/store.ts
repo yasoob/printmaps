@@ -2,6 +2,7 @@ import { createStore } from 'zustand/vanilla';
 import {
   createInitialProjectDocument,
   type ContentLayer,
+  type DirectionsRouteInput,
   type LayerAppearance,
   type IsochroneAreaInput,
   type MapLanguage,
@@ -34,6 +35,11 @@ export type ProjectState = {
   createAdministrativeArea: (id: AdministrativeAreaId | string) => string | null;
   createAdministrativeAreas: (ids: readonly (AdministrativeAreaId | string)[]) => string | null;
   createIsochroneArea: (input: IsochroneAreaInput, expectedDocumentEpoch: number) => string | null;
+  createDirectionsRoute: (
+    input: DirectionsRouteInput,
+    options: RouteAuthoringOptions,
+    expectedDocumentEpoch: number,
+  ) => string | null;
   createPoi: (coordinates: readonly [number, number]) => void;
   createPoiBatch: (entries: readonly PoiSpreadsheetEntry[]) => void;
   createRoute: (

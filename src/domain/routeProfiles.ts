@@ -1,6 +1,6 @@
 export const ROUTE_TRAVEL_PROFILES = ['air', 'rail', 'car', 'walk', 'bike', 'ship'] as const;
 export type RouteTravelProfile = typeof ROUTE_TRAVEL_PROFILES[number];
-export type RouteLineShape = 'straight' | 'arc';
+export type RouteLineShape = 'straight' | 'arc' | 'road';
 export type RouteAuthoringOptions = Readonly<{
   lineShape: RouteLineShape;
   travelProfile: RouteTravelProfile;
@@ -16,7 +16,7 @@ export const DEFAULT_ROUTE_AUTHORING_OPTIONS: RouteAuthoringOptions = {
 export function isRouteAuthoringOptions(value: unknown): value is RouteAuthoringOptions {
   if (typeof value !== 'object' || value === null) return false;
   const options = value as Record<string, unknown>;
-  return (options.lineShape === 'straight' || options.lineShape === 'arc')
+  return (['straight', 'arc', 'road'] as const).includes(options.lineShape as RouteLineShape)
     && ROUTE_TRAVEL_PROFILES.includes(options.travelProfile as RouteTravelProfile)
     && typeof options.showTravelModeIcon === 'boolean';
 }
@@ -45,6 +45,6 @@ export function buildRouteCoordinates(
   waypoints: readonly Position[],
   lineShape: RouteLineShape,
 ): [number, number][] {
-  if (lineShape !== 'straight' && lineShape !== 'arc') return [];
+  if (lineShape !== 'straight' && lineShape !== 'arc' && lineShape !== 'road') return [];
   return waypoints.map(([longitude, latitude]) => [longitude, latitude]);
 }
