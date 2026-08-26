@@ -5,6 +5,7 @@ import {
   VIENNA_DISTRICT_SOURCE_URL,
   administrativeAreaById,
   type AdministrativeArea,
+  type AdministrativeCountryCode,
   type AdministrativeAreaId,
 } from '../../domain/administrativeAreas';
 import { Checkbox } from './UiControls';
@@ -14,19 +15,53 @@ type AdministrativeAreaPickerProps = Readonly<{
   onMerge: (ids: readonly AdministrativeAreaId[]) => boolean;
 }>;
 
+const countryAreas = ADMINISTRATIVE_AREAS.filter(({ level }) => level === 'country');
+const regionAreas = ADMINISTRATIVE_AREAS.filter(({ level }) => level === 'region');
+const regionCountries = countryAreas.filter(({ countryCode }) => (
+  regionAreas.some((area) => area.countryCode === countryCode)
+));
+const municipalityAreas = ADMINISTRATIVE_AREAS.filter(({ level }) => level === 'municipality');
+
+function RegionAreaPicker({ onMerge }: Pick<AdministrativeAreaPickerProps, 'onMerge'>) {
+  const [countryCode, setCountryCode] = useState<AdministrativeCountryCode>('AUT');
+  const [selectedIds, setSelectedIds] = useState<AdministrativeAreaId[]>([]);
+  const [error, setError] = useState('');
+  const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const filteredAreas = regionAreas.filter((area) => area.countryCode === countryCode);
+  const selectedCountry = administrativeAreaById(countryCode);
+
+  return (
+    <>
+      <label>Country <select aria-label="Region country" value={countryCode} onChange={(event) => {
+        setCountryCode(event.target.value as AdministrativeCountryCode);
+        setSelectedIds([]);
+        setError('');
+      }}>{regionCountries.map((area) => <option key={area.id} value={area.countryCode}>{area.name}</option>)}</select></label>
+      <fieldset className="administrative-region-options">
+        <legend>{selectedCountry?.name} regions</legend>
+        {filteredAreas.map((area) => (
+          <Checkbox key={area.id} isChecked={selectedIdSet.has(area.id as AdministrativeAreaId)} label={area.name} onCheckedChange={(isChecked) => {
+            setError('');
+            setSelectedIds((current) => isChecked ? [...current, area.id as AdministrativeAreaId] : current.filter((candidate) => candidate !== area.id));
+          }} />
+        ))}
+      </fieldset>
+      <span className="authoring-source">{selectedCountry?.name} · Natural Earth</span>
+      <button type="button" disabled={selectedIds.length === 0} onClick={() => {
+        if (!onMerge(selectedIds)) setError('Choose connected single-part regions, or add Tyrol separately.');
+      }}>{selectedIds.length > 1 ? `Merge ${selectedIds.length} selected areas` : 'Add selected area'}</button>
+      {error && <span className="administrative-region-error" role="alert" aria-label="Administrative area status">{error}</span>}
+    </>
+  );
+}
+
 export function AdministrativeAreaPicker({ onAdd, onMerge }: AdministrativeAreaPickerProps) {
-  const countryAreas = ADMINISTRATIVE_AREAS.filter(({ level }) => level === 'country');
-  const regionAreas = ADMINISTRATIVE_AREAS.filter(({ level }) => level === 'region');
-  const municipalityAreas = ADMINISTRATIVE_AREAS.filter(({ level }) => level === 'municipality');
   const [level, setLevel] = useState<AdministrativeArea['level']>('country');
   const [countryAreaId, setCountryAreaId] = useState<AdministrativeAreaId>(countryAreas[0].id as AdministrativeAreaId);
   const [municipalityQuery, setMunicipalityQuery] = useState('');
   const [selectedMunicipalityIds, setSelectedMunicipalityIds] = useState<AdministrativeAreaId[]>([]);
-  const [selectedRegionIds, setSelectedRegionIds] = useState<AdministrativeAreaId[]>([]);
   const [municipalityError, setMunicipalityError] = useState('');
-  const [regionError, setRegionError] = useState('');
   const selectedMunicipalityIdSet = useMemo(() => new Set(selectedMunicipalityIds), [selectedMunicipalityIds]);
-  const selectedRegionIdSet = useMemo(() => new Set(selectedRegionIds), [selectedRegionIds]);
   const normalizedMunicipalityQuery = municipalityQuery.trim().toLowerCase();
   const filteredMunicipalityAreas = normalizedMunicipalityQuery.length === 0
     ? municipalityAreas
@@ -39,13 +74,7 @@ export function AdministrativeAreaPicker({ onAdd, onMerge }: AdministrativeAreaP
   const mergeMunicipalities = () => {
     if (!onMerge(selectedMunicipalityIds)) setMunicipalityError('Choose connected Vienna districts.');
   };
-  const toggleRegion = (id: AdministrativeAreaId, isChecked: boolean) => {
-    setRegionError('');
-    setSelectedRegionIds((current) => isChecked ? [...current, id] : current.filter((candidate) => candidate !== id));
-  };
-  const mergeRegions = () => {
-    if (!onMerge(selectedRegionIds)) setRegionError('Choose connected single-part regions, or add Tyrol separately.');
-  };
+
 
   return (
     <>
@@ -57,17 +86,7 @@ export function AdministrativeAreaPicker({ onAdd, onMerge }: AdministrativeAreaP
           <button type="button" onClick={() => onAdd(countryAreaId)}>Add administrative area</button>
         </>
       ) : (level === 'region' ? (
-        <>
-          <fieldset className="administrative-region-options">
-            <legend>Regions</legend>
-            {regionAreas.map((area) => (
-              <Checkbox key={area.id} isChecked={selectedRegionIdSet.has(area.id as AdministrativeAreaId)} label={area.name} onCheckedChange={(isChecked) => toggleRegion(area.id as AdministrativeAreaId, isChecked)} />
-            ))}
-          </fieldset>
-          <span className="authoring-source">Austria · Natural Earth</span>
-          <button type="button" disabled={selectedRegionIds.length === 0} onClick={mergeRegions}>{selectedRegionIds.length > 1 ? `Merge ${selectedRegionIds.length} selected areas` : 'Add selected area'}</button>
-          {regionError && <span className="administrative-region-error" role="alert" aria-label="Administrative area status">{regionError}</span>}
-        </>
+        <RegionAreaPicker onMerge={onMerge} />
       ) : (
         <>
           <label className="administrative-filter">Search <input type="search" aria-label="Filter Vienna districts" value={municipalityQuery} onChange={(event) => setMunicipalityQuery(event.currentTarget.value)} /></label>

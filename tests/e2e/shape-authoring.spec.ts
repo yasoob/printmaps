@@ -199,7 +199,7 @@ test('a finished custom area supports point editing, insertion, undo, and explic
   await expect(page.locator('.shape-transform-marker')).toHaveCount(5);
 });
 
-test('bundled administrative regions merge without an internal border and retain print parity', async ({ page }, testInfo) => {
+test('Slovak and Austrian region catalogues create durable areas with print parity', async ({ page }, testInfo) => {
   const consoleProblems: string[] = [];
   page.on('pageerror', (error) => { consoleProblems.push(error.message); });
   page.on('console', (message) => {
@@ -210,7 +210,19 @@ test('bundled administrative regions merge without an internal border and retain
 
   await page.getByRole('button', { name: 'Area (S)' }).click();
   await page.getByRole('combobox', { name: 'Administrative level' }).selectOption('region');
-  await expect(page.getByRole('group', { name: 'Regions' }).getByRole('checkbox')).toHaveCount(9);
+  await page.getByRole('combobox', { name: 'Region country' }).selectOption('SVK');
+  const slovakiaRegions = page.getByRole('group', { name: 'Slovakia regions' });
+  await expect(slovakiaRegions.getByRole('checkbox')).toHaveCount(8);
+  await slovakiaRegions.getByRole('checkbox', { name: 'Bratislava' }).check();
+  await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/slovakia-region-catalogue-20260826.png' });
+  await page.getByRole('button', { name: 'Add selected area' }).click();
+  await expect(page.getByRole('button', { name: 'Select Bratislava' })).toHaveAttribute('aria-current', 'true');
+  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-geometry', /admin-sk-bl:/);
+  await page.getByRole('button', { name: 'Undo' }).click();
+
+  await page.getByRole('button', { name: 'Area (S)' }).click();
+  await page.getByRole('combobox', { name: 'Administrative level' }).selectOption('region');
+  await expect(page.getByRole('group', { name: 'Austria regions' }).getByRole('checkbox')).toHaveCount(9);
   await page.getByRole('checkbox', { name: 'Burgenland' }).check();
   await page.getByRole('checkbox', { name: 'Vorarlberg' }).check();
   await page.getByRole('button', { name: 'Merge 2 selected areas' }).click();
@@ -252,7 +264,7 @@ test('bundled administrative regions merge without an internal border and retain
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole('button', { name: 'Area (S)' }).click();
   await page.getByRole('combobox', { name: 'Administrative level' }).selectOption('region');
-  const regionOptionsBox = await page.getByRole('group', { name: 'Regions' }).boundingBox();
+  const regionOptionsBox = await page.getByRole('group', { name: 'Austria regions' }).boundingBox();
   const panelBox = await page.locator('.map-authoring-panel').boundingBox();
   expect(regionOptionsBox).not.toBeNull();
   expect(regionOptionsBox!.width).toBeGreaterThanOrEqual(300);
@@ -287,7 +299,7 @@ test('Tyrol keeps both disconnected parts through live map, save, and layered SV
 
   await page.getByRole('button', { name: 'Area (S)' }).click();
   await page.getByRole('combobox', { name: 'Administrative level' }).selectOption('region');
-  await expect(page.getByRole('group', { name: 'Regions' }).getByRole('checkbox')).toHaveCount(9);
+  await expect(page.getByRole('group', { name: 'Austria regions' }).getByRole('checkbox')).toHaveCount(9);
   await page.getByRole('checkbox', { name: 'Tyrol' }).check();
   await page.getByRole('button', { name: 'Add selected area' }).click();
   await expect(page.getByRole('button', { name: 'Select Tyrol' })).toHaveAttribute('aria-current', 'true');

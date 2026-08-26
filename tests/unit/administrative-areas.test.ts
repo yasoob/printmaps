@@ -16,6 +16,28 @@ function signedRingArea(ring: readonly (readonly [number, number])[]): number {
   return area / 2;
 }
 
+describe('bundled Slovak administrative regions', () => {
+  it('exposes eight sourced Slovak regions with closed bounded polygons', () => {
+    const regions = ADMINISTRATIVE_AREAS.filter(({ countryCode, level }) => countryCode === 'SVK' && level === 'region');
+
+    expect(regions.map(({ id, name }) => ({ id, name }))).toEqual([
+      { id: 'SK-BL', name: 'Bratislava' },
+      { id: 'SK-TA', name: 'Trnava' },
+      { id: 'SK-TC', name: 'Trenčín' },
+      { id: 'SK-NI', name: 'Nitra' },
+      { id: 'SK-ZI', name: 'Žilina' },
+      { id: 'SK-BC', name: 'Banská Bystrica' },
+      { id: 'SK-PV', name: 'Prešov' },
+      { id: 'SK-KI', name: 'Košice' },
+    ]);
+    expect(regions.every(({ geometry, source }) => (
+      source.includes('downloaded 2026-08-26')
+      && geometry.type === 'Polygon'
+      && geometry.coordinates.every((ring) => ring.length >= 4 && ring.at(-1)?.join(',') === ring[0].join(','))
+    ))).toBe(true);
+  });
+});
+
 describe('bundled administrative areas', () => {
   it('exposes every Vienna municipal district from one bounded attributed source', () => {
     const municipalities = ADMINISTRATIVE_AREAS.filter(({ level }) => level === 'municipality');
@@ -113,6 +135,10 @@ describe('bundled administrative areas', () => {
 
   it('rejects a disconnected region selection instead of treating another exterior as a hole', () => {
     expect(mergeAdministrativeAreas(['AT-1', 'AT-8'])).toBeUndefined();
+  });
+
+  it('rejects region selections that cross country catalogues', () => {
+    expect(mergeAdministrativeAreas(['AT-1', 'SK-BL'])).toBeUndefined();
   });
 
   it('merges adjacent Vienna municipal districts without an internal border', () => {

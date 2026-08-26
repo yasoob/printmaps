@@ -89,6 +89,29 @@ it('matches district names independently of browser locale casing', async () => 
   }
 });
 
+it('switches the region catalogue by country without retaining an incompatible selection', async () => {
+  const user = userEvent.setup();
+  render(<App autosaveRepository={null} />);
+
+  await user.click(screen.getByRole('button', { name: 'Area (S)' }));
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Administrative level' }), 'region');
+  await user.click(screen.getByRole('checkbox', { name: 'Burgenland' }));
+
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Region country' }), 'SVK');
+
+  const regions = screen.getByRole('group', { name: 'Slovakia regions' });
+  expect(within(regions).getAllByRole('checkbox')).toHaveLength(8);
+  expect(within(regions).getByRole('checkbox', { name: 'Bratislava' })).toBeInTheDocument();
+  expect(screen.queryByRole('checkbox', { name: 'Burgenland' })).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Add selected area' })).toBeDisabled();
+
+  await user.click(within(regions).getByRole('checkbox', { name: 'Bratislava' }));
+  await user.click(screen.getByRole('button', { name: 'Add selected area' }));
+
+  expect(screen.getByRole('button', { name: 'Select Bratislava' })).toHaveAttribute('aria-current', 'true');
+  expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-fit-layer-id', 'admin-sk-bl');
+});
+
 describe('polygon authoring', () => {
   it('adds one sourced Vienna municipal district as a fitted undoable shape', async () => {
     const user = userEvent.setup();

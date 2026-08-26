@@ -2,6 +2,7 @@ import { union as unionPolygons, type Polygon as ClippingPolygon } from 'polygon
 import type { LayerGeometry } from './project';
 import { AUSTRIA_ADMIN_1_REGIONS } from '../data/austriaAdmin1';
 import { AUSTRIA_TYROL_REGION } from '../data/austriaTyrol';
+import { SLOVAKIA_ADMIN_1_REGIONS } from '../data/slovakiaAdmin1';
 import { VIENNA_DISTRICTS } from '../data/viennaDistricts';
 
 export type AdministrativeAreaId =
@@ -17,9 +18,13 @@ export type AdministrativeAreaId =
   | 'AT-7'
   | 'AT-8'
   | 'AT-9'
+  | (typeof SLOVAKIA_ADMIN_1_REGIONS)[number]['id']
   | (typeof VIENNA_DISTRICTS)[number]['id'];
 
+export type AdministrativeCountryCode = Extract<AdministrativeAreaId, 'AUT' | 'HUN' | 'SVK'>;
+
 export type AdministrativeArea = Readonly<{
+  countryCode: AdministrativeCountryCode;
   id: string;
   name: string;
   level: 'country' | 'region' | 'municipality';
@@ -31,17 +36,19 @@ type PolygonAdministrativeArea = AdministrativeArea & {
 };
 
 const SOURCE = 'Natural Earth 1:110m Admin 0 Countries (public domain), downloaded 2026-08-23';
-const REGION_SOURCE = 'Natural Earth 1:10m Admin 1 States/Provinces (public domain), downloaded 2026-08-23';
+const AUSTRIA_REGION_SOURCE = 'Natural Earth 1:10m Admin 1 States/Provinces (public domain), downloaded 2026-08-23';
+const SLOVAKIA_REGION_SOURCE = 'Natural Earth 1:10m Admin 1 States/Provinces (public domain), downloaded 2026-08-26';
 const MUNICIPALITY_SOURCE = 'City of Vienna Open Government Data district boundaries (CC BY 3.0 AT), downloaded 2026-08-24 and simplified at 0.00008° tolerance';
 const MUNICIPALITY_SLIVER_AREA_LIMIT = 1e-6;
 const MUNICIPALITY_SLIVER_AREA_RATIO = 1e-4;
 export const VIENNA_DISTRICT_SOURCE_URL = 'https://data.wien.gv.at/daten/geo?service=WFS&request=GetFeature&version=1.1.0&typeName=ogdwien:BEZIRKSGRENZEOGD&srsName=EPSG:4326&outputFormat=json';
 export const VIENNA_DISTRICT_LICENSE_URL = 'https://creativecommons.org/licenses/by/3.0/at/';
 const polygonRegionAreas = AUSTRIA_ADMIN_1_REGIONS.map((region): AdministrativeArea => ({
+  countryCode: 'AUT',
   id: region.id,
   name: region.name,
   level: 'region',
-  source: REGION_SOURCE,
+  source: AUSTRIA_REGION_SOURCE,
   geometry: {
     type: 'Polygon',
     coordinates: region.coordinates.map((ring) => ring.map(([longitude, latitude]) => (
@@ -50,10 +57,11 @@ const polygonRegionAreas = AUSTRIA_ADMIN_1_REGIONS.map((region): AdministrativeA
   },
 }));
 const tyrolArea: AdministrativeArea = {
+  countryCode: 'AUT',
   id: AUSTRIA_TYROL_REGION.id,
   name: AUSTRIA_TYROL_REGION.name,
   level: 'region',
-  source: REGION_SOURCE,
+  source: AUSTRIA_REGION_SOURCE,
   geometry: {
     type: 'MultiPolygon',
     coordinates: AUSTRIA_TYROL_REGION.coordinates.map((polygon) => polygon.map((ring) => ring.map(([longitude, latitude]) => (
@@ -66,7 +74,21 @@ const austriaRegionAreas = [
   tyrolArea,
   ...polygonRegionAreas.slice(6),
 ];
+const slovakiaRegionAreas = SLOVAKIA_ADMIN_1_REGIONS.map((region): AdministrativeArea => ({
+  countryCode: 'SVK',
+  id: region.id,
+  name: region.name,
+  level: 'region',
+  source: SLOVAKIA_REGION_SOURCE,
+  geometry: {
+    type: 'Polygon',
+    coordinates: region.coordinates.map((ring) => ring.map(([longitude, latitude]) => (
+      [longitude, latitude] as [number, number]
+    ))),
+  },
+}));
 const viennaMunicipalAreas = VIENNA_DISTRICTS.map((district): AdministrativeArea => ({
+  countryCode: 'AUT',
   id: district.id,
   name: district.name,
   level: 'municipality',
@@ -81,6 +103,7 @@ const viennaMunicipalAreas = VIENNA_DISTRICTS.map((district): AdministrativeArea
 
 export const ADMINISTRATIVE_AREAS: readonly AdministrativeArea[] = [
   {
+    countryCode: 'AUT',
     id: 'AUT',
     name: 'Austria',
     level: 'country',
@@ -99,6 +122,7 @@ export const ADMINISTRATIVE_AREAS: readonly AdministrativeArea[] = [
     ]] },
   },
   {
+    countryCode: 'HUN',
     id: 'HUN',
     name: 'Hungary',
     level: 'country',
@@ -115,6 +139,7 @@ export const ADMINISTRATIVE_AREAS: readonly AdministrativeArea[] = [
     ]] },
   },
   {
+    countryCode: 'SVK',
     id: 'SVK',
     name: 'Slovakia',
     level: 'country',
@@ -132,6 +157,7 @@ export const ADMINISTRATIVE_AREAS: readonly AdministrativeArea[] = [
     ]] },
   },
   ...austriaRegionAreas,
+  ...slovakiaRegionAreas,
   ...viennaMunicipalAreas,
 ] as const;
 
@@ -264,7 +290,9 @@ function administrativeAreaSelection(ids: readonly string[]): AdministrativeArea
   if (uniqueIds.length === 0 || uniqueIds.length !== ids.length) return;
   const areas = uniqueIds.map((id) => administrativeAreaById(id));
   const level = areas[0]?.level;
-  if ((level !== 'region' && level !== 'municipality') || areas.some((area) => !area || area.level !== level)) return;
+  const countryCode = areas[0]?.countryCode;
+  if (!countryCode || (level !== 'region' && level !== 'municipality')
+    || areas.some((area) => !area || area.level !== level || area.countryCode !== countryCode)) return;
   return { areas: areas as AdministrativeArea[], level };
 }
 
@@ -281,10 +309,11 @@ export function mergeAdministrativeAreas(ids: readonly string[]): Administrative
     : mergeAlignedRings(polygonAreas);
   if (!coordinates) return;
   return {
+    countryCode: selectedAreas[0].countryCode,
     id: selectedAreas.map(({ id }) => id).join('+'),
     name: selectedAreas.map(({ name }) => name).join(' + '),
     level,
-    source: level === 'municipality' ? MUNICIPALITY_SOURCE : REGION_SOURCE,
+    source: selectedAreas[0].source,
     geometry: { type: 'Polygon', coordinates },
   };
 }
