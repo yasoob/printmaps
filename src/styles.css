@@ -702,6 +702,8 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .elevation-profile-source { @apply grid gap-1 p-2; border-radius: var(--studio-radius-sm); background: var(--studio-field); }
 .elevation-profile-source > span { color: var(--studio-text-muted); }
 .elevation-profile-source > strong { color: var(--studio-text-strong); font-weight: 600; overflow-wrap: anywhere; }
+.elevation-profile-source-status { @apply m-0; color: var(--studio-text-muted); line-height: 1.35; }
+.elevation-profile-source-status:empty { @apply sr-only; }
 .elevation-profile-source > div { @apply flex flex-wrap gap-1; }
 .elevation-profile-source .quiet-button {
   @apply inline-flex flex-1 items-center justify-center gap-1 px-2;

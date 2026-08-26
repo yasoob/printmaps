@@ -58,6 +58,30 @@ describe('ElevationProfilePanel travel estimates', () => {
 });
 
 describe('ElevationProfilePanel local route source', () => {
+  it('announces profile route file reading and completion', async () => {
+    const user = userEvent.setup();
+    let finishReading!: (text: string) => void;
+    const fileText = new Promise<string>((resolve) => { finishReading = resolve; });
+    const gpxText = `<?xml version="1.0"?><gpx xmlns="http://www.topografix.com/GPX/1/1" version="1.1" creator="test"><rte><name>Uploaded route</name><rtept lat="48.2" lon="16.3"/><rtept lat="48.4" lon="16.5"/></rte></gpx>`;
+    const gpx = new File([gpxText], 'uploaded.gpx', { type: 'application/gpx+xml' });
+    Object.defineProperty(gpx, 'text', { value: () => fileText });
+    render(
+      <ElevationProfilePanel
+        coordinates={[[16, 48], [16.1, 48.1]]}
+        routeName="Selected route"
+        loadProfile={vi.fn(async () => profile)}
+      />,
+    );
+
+    await user.upload(screen.getByLabelText('Profile route file'), gpx);
+    const readingStatus = screen.getByRole('status');
+    expect(readingStatus).toHaveTextContent('Reading profile route file…');
+    expect(readingStatus.closest('[aria-busy="true"]')).toBeNull();
+
+    finishReading(gpxText);
+    expect(await screen.findByRole('status')).toHaveTextContent('Profile route loaded: Uploaded route.');
+  });
+
   it('switches the profile source between the selected route and one local route file', async () => {
     const user = userEvent.setup();
     const loadProfile = vi.fn(async () => profile);

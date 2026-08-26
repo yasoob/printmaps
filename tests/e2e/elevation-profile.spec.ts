@@ -49,6 +49,7 @@ test('a selected route generates an attributed elevation profile with SVG, PNG, 
   });
   const profileSource = page.getByRole('group', { name: 'Profile route source' });
   await expect(profileSource).toContainText('Danube profile route · danube-profile.gpx');
+  await expect(page.locator('.elevation-profile-source-status')).toHaveText('Profile route loaded: Danube profile route.');
   await expect(page.getByRole('button', { name: 'Select Route 01' })).toHaveCount(1);
   await expect(page.getByRole('button', { name: 'Select Danube profile route' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Generate elevation profile' }).click();
@@ -88,7 +89,7 @@ test('a selected route generates an attributed elevation profile with SVG, PNG, 
   await expect(chart.locator('.elevation-marker-label')).toHaveCount(2);
   if (testInfo.project.name === 'chromium') {
     await profileSource.scrollIntoViewIfNeeded();
-    await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/elevation-profile-font-20260826.png' });
+    await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/elevation-profile-file-status-20260826.png' });
   }
 
   const svgBytes = await downloadFormat(page, 'Download elevation SVG', testInfo.outputPath('route-01.elevation.svg'));

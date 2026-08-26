@@ -74,26 +74,33 @@ export function ProfileRouteSource({ localRoute, onReadingChange, onReadingStart
     onSourceChange(null);
   };
 
+  let statusMessage = '';
+  if (isReading) statusMessage = 'Reading profile route file…';
+  else if (localRoute) statusMessage = `Profile route loaded: ${localRoute.name}.`;
+
   return (
-    <div className="elevation-profile-source" role="group" aria-label="Profile route source" aria-busy={isReading}>
-      <span>Profile route</span>
-      <strong>{localRoute ? `${localRoute.name} · ${localRoute.filename}` : 'Selected map route'}</strong>
-      <div>
-        <button className="quiet-button" type="button" disabled={isReading} onClick={() => fileInputRef.current?.click()}><FileUp aria-hidden="true" size={14} />{isReading ? 'Reading…' : 'Choose file'}</button>
-        {localRoute && <button className="quiet-button" type="button" onClick={handleUseSelectedRoute}><RotateCcw aria-hidden="true" size={14} />Use selected map route</button>}
+    <>
+      <div className="elevation-profile-source" role="group" aria-label="Profile route source" aria-busy={isReading}>
+        <span>Profile route</span>
+        <strong>{localRoute ? `${localRoute.name} · ${localRoute.filename}` : 'Selected map route'}</strong>
+        <div>
+          <button className="quiet-button" type="button" disabled={isReading} onClick={() => fileInputRef.current?.click()}><FileUp aria-hidden="true" size={14} />{isReading ? 'Reading…' : 'Choose file'}</button>
+          {localRoute && <button className="quiet-button" type="button" onClick={handleUseSelectedRoute}><RotateCcw aria-hidden="true" size={14} />Use selected map route</button>}
+        </div>
+        <input
+          ref={fileInputRef}
+          aria-label="Profile route file"
+          accept=".geojson,.gpx,.kml,application/geo+json,application/gpx+xml,application/vnd.google-earth.kml+xml"
+          hidden
+          type="file"
+          onChange={(event) => {
+            chooseFile(event.currentTarget.files?.[0]);
+            event.currentTarget.value = '';
+          }}
+        />
+        {fileError && <p role="alert">{fileError}</p>}
       </div>
-      <input
-        ref={fileInputRef}
-        aria-label="Profile route file"
-        accept=".geojson,.gpx,.kml,application/geo+json,application/gpx+xml,application/vnd.google-earth.kml+xml"
-        hidden
-        type="file"
-        onChange={(event) => {
-          chooseFile(event.currentTarget.files?.[0]);
-          event.currentTarget.value = '';
-        }}
-      />
-      {fileError && <p role="alert">{fileError}</p>}
-    </div>
+      <p className="elevation-profile-source-status" role="status">{statusMessage}</p>
+    </>
   );
 }
