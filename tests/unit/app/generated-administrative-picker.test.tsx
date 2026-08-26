@@ -16,8 +16,12 @@ const square = (west: number, south: number) => ({
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
-  const promise = new Promise<T>((resolvePromise) => { resolve = resolvePromise; });
-  return { promise, resolve };
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, reject, resolve };
 }
 
 it('loads a generated country shard and creates an area outside the legacy catalogue', async () => {
@@ -141,6 +145,65 @@ it('does not fall back to bundled country geometry after generated catalogue act
 
     expect(await screen.findByRole('status', { name: 'Administrative country status' })).toHaveTextContent('Austria boundary unavailable. Shard unavailable');
     expect(screen.getByRole('button', { name: 'Add administrative area' })).toBeDisabled();
+  } finally {
+    fetchMock.mockRestore();
+  }
+});
+
+it('does not fall back to bundled region geometry after generated catalogue activation', async () => {
+  const user = userEvent.setup();
+  const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+    const url = String(input);
+    if (url.endsWith('/data/administrative/index.json')) {
+      return Response.json({
+        schemaVersion: 1,
+        sourceVersion: 'Natural Earth 5.1.1',
+        countries: [
+          { id: 'AUT', name: 'Austria', bounds: [9, 46, 17, 50], levels: ['country', 'region'], shard: 'countries/AUT.json' },
+        ],
+      });
+    }
+    if (url.endsWith('/data/administrative/countries/AUT.json')) throw new Error('Shard unavailable');
+    throw new Error(`Unexpected fetch: ${url}`);
+  });
+
+  try {
+    render(<App autosaveRepository={null} />);
+    await user.click(screen.getByRole('button', { name: 'Area (S)' }));
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Administrative level' }), 'region');
+
+    expect(await screen.findByRole('status', { name: 'Administrative catalogue status' })).toHaveTextContent('Austria boundaries unavailable. Shard unavailable');
+    expect(within(screen.getByRole('group', { name: 'Austria regions' })).queryAllByRole('checkbox')).toHaveLength(0);
+    expect(screen.getByRole('button', { name: 'Add selected area' })).toBeDisabled();
+  } finally {
+    fetchMock.mockRestore();
+  }
+});
+
+it('shows bundled regions only after the generated index is unavailable', async () => {
+  const user = userEvent.setup();
+  const indexResponse = deferred<Response>();
+  const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+    const url = String(input);
+    if (url.endsWith('/data/administrative/index.json')) return indexResponse.promise;
+    return Promise.reject(new Error(`Unexpected fetch: ${url}`));
+  });
+
+  try {
+    render(<App autosaveRepository={null} />);
+    await user.click(screen.getByRole('button', { name: 'Area (S)' }));
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Administrative level' }), 'region');
+
+    const regions = screen.getByRole('group', { name: 'Austria regions' });
+    expect(within(regions).queryAllByRole('checkbox')).toHaveLength(0);
+    expect(screen.getByRole('button', { name: 'Add selected area' })).toBeDisabled();
+
+    await act(async () => indexResponse.reject(new Error('Index unavailable')));
+
+    expect(await screen.findByRole('status', { name: 'Administrative catalogue status' }))
+      .toHaveTextContent('Worldwide catalogue unavailable. Using bundled regions. Index unavailable');
+    await user.click(within(regions).getByRole('checkbox', { name: 'Vienna' }));
+    expect(screen.getByRole('button', { name: 'Add selected area' })).toBeEnabled();
   } finally {
     fetchMock.mockRestore();
   }

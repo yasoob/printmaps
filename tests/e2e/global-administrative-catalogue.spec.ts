@@ -101,3 +101,41 @@ test('generated worldwide catalogue lazily creates a durable country', async ({ 
   expect(await readFile(svgPath, 'utf8')).toContain('data-layer-name="India"');
   expect(consoleProblems).toEqual([]);
 });
+
+test('generated region picker stays fail-closed when the selected shard is unavailable', async ({ page }, testInfo) => {
+  const consoleProblems: string[] = [];
+  page.on('pageerror', (error) => { consoleProblems.push(error.message); });
+  page.on('console', (message) => {
+    if ((message.type() === 'error' || message.type() === 'warning') && !isExpectedWebGlDiagnostic(message.text())) {
+      consoleProblems.push(message.text());
+    }
+  });
+  await page.route('**/data/administrative/index.json', async (route) => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({
+      schemaVersion: 1,
+      sourceVersion: 'Natural Earth 5.1.1',
+      countries: [
+        { id: 'AUT', name: 'Austria', bounds: [9, 46, 17, 50], levels: ['country', 'region'], shard: 'countries/AUT.json' },
+      ],
+    }),
+  }));
+  await page.route('**/data/administrative/countries/AUT.json', async (route) => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({ schemaVersion: 999, country: {}, regions: [] }),
+  }));
+
+  await page.goto('/');
+  await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
+  await page.getByRole('button', { name: 'Area (S)' }).click();
+  await page.getByRole('combobox', { name: 'Administrative level' }).selectOption('region');
+
+  await expect(page.getByRole('status', { name: 'Administrative catalogue status' }))
+    .toHaveText('Austria boundaries unavailable. Austria boundary data version is unsupported.');
+  await expect(page.getByRole('group', { name: 'Austria regions' }).getByRole('checkbox')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Add selected area' })).toBeDisabled();
+  if (testInfo.project.name === 'chromium') {
+    await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/global-region-shard-unavailable-20260826.png' });
+  }
+  expect(consoleProblems).toEqual([]);
+});

@@ -101,6 +101,7 @@ function RegionAreaPicker({ onMerge }: Pick<AdministrativeAreaPickerProps, 'onMe
   const [selectedIds, setSelectedIds] = useState<AdministrativeAreaId[]>([]);
   const [error, setError] = useState('');
   const [catalogue, setCatalogue] = useState<GeneratedAdministrativeIndex | null>(null);
+  const [isCatalogueUnavailable, setIsCatalogueUnavailable] = useState(false);
   const [loaded, setLoaded] = useState<{ countryCode: string; regions: readonly AdministrativeArea[] } | null>(null);
   const [loadStatus, setLoadStatus] = useState<CatalogueLoadStatus>({
     text: 'Loading worldwide region catalogue…',
@@ -112,11 +113,11 @@ function RegionAreaPicker({ onMerge }: Pick<AdministrativeAreaPickerProps, 'onMe
     void loadGeneratedAdministrativeIndex(controller.signal).then((index) => {
       if (!controller.signal.aborted) setCatalogue(index);
     }).catch((loadError: unknown) => {
-      if (!controller.signal.aborted) {
-        setLoadStatus({
-          text: `Worldwide catalogue unavailable. Using bundled regions. ${loadError instanceof Error ? loadError.message : ''}`.trim(),
-        });
-      }
+      if (controller.signal.aborted) return;
+      setIsCatalogueUnavailable(true);
+      setLoadStatus({
+        text: `Worldwide catalogue unavailable. Using bundled regions. ${loadError instanceof Error ? loadError.message : ''}`.trim(),
+      });
     });
     return () => controller.abort();
   }, []);
@@ -145,7 +146,7 @@ function RegionAreaPicker({ onMerge }: Pick<AdministrativeAreaPickerProps, 'onMe
   }, [catalogue, countryCode]);
 
   const fallbackRegions = regionAreas.filter((area) => area.countryCode === countryCode);
-  const activeRegions = loaded?.countryCode === countryCode ? loaded.regions : fallbackRegions;
+  const activeRegions = loaded?.countryCode === countryCode ? loaded.regions : (isCatalogueUnavailable ? fallbackRegions : []);
   const countryOptions = catalogue?.countries.filter(({ levels }) => levels.includes('region'))
     ?? regionCountries.map(({ countryCode: id, name }) => ({ id, name }));
   const selectedCountryName = countryOptions.find(({ id }) => id === countryCode)?.name ?? countryCode;
