@@ -43,5 +43,5 @@ Address-search results now populate canonical road-route waypoints, one-at-a-tim
 
 - A prior browser-preview resample was not native 300-DPI detail. The current PNG path qualifies only because MapLibre rerenders each preflight region at target pixel dimensions and increased source zoom before 1:1 composition.
 - Layered SVG/PDF are not fully vector basemaps and do not match Printmaps' claim of separately editable basemap feature layers.
-- PNG physical-resolution metadata, layered PSD, CMYK/PDF-X, account sharing, custom-image PDF embedding, a broad administrative-boundary database, municipal merging, and arbitrary boundary union are not implemented.
+- PNG physical-resolution metadata, layered PSD, CMYK/PDF-X, account sharing, custom-image PDF embedding, a broad international administrative-boundary database, and arbitrary non-aligned boundary union are not implemented. Connected Vienna municipal districts do support bounded merging.
 - Elevation profiles are not offline or equivalent to the official editor's complete marker/font/gradient and travel-time controls; deployment must respect the selected Open-Meteo service tier and attribution requirements.

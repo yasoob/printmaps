@@ -42,6 +42,43 @@ it('merges selected Vienna districts as one fitted undoable shape', async () => 
   expect(merged).not.toBeInTheDocument();
 });
 
+it('filters Vienna districts by name without losing hidden selections', async () => {
+  const user = userEvent.setup();
+  render(<App autosaveRepository={null} />);
+
+  await user.click(screen.getByRole('button', { name: 'Area (S)' }));
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Administrative level' }), 'municipality');
+  await user.click(screen.getByRole('checkbox', { name: 'Innere Stadt' }));
+  const filter = screen.getByRole('searchbox', { name: 'Filter Vienna districts' });
+
+  await user.type(filter, 'Josef');
+  const districts = screen.getByRole('group', { name: 'Vienna districts' });
+  expect(within(districts).getAllByRole('checkbox')).toHaveLength(1);
+  expect(within(districts).getByRole('checkbox', { name: 'Josefstadt' })).toBeInTheDocument();
+  expect(screen.getByText('1 district selected')).toBeInTheDocument();
+
+  await user.clear(filter);
+  expect(within(districts).getByRole('checkbox', { name: 'Innere Stadt' })).toBeChecked();
+});
+
+it('matches district names independently of browser locale casing', async () => {
+  const localeLowerCase = vi.spyOn(String.prototype, 'toLocaleLowerCase').mockImplementation(function localeSensitiveLowercase(this: string) {
+    return String(this).replaceAll('I', 'ı').replaceAll('İ', 'i').toLowerCase();
+  });
+  const user = userEvent.setup();
+
+  try {
+    render(<App autosaveRepository={null} />);
+    await user.click(screen.getByRole('button', { name: 'Area (S)' }));
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Administrative level' }), 'municipality');
+    await user.type(screen.getByRole('searchbox', { name: 'Filter Vienna districts' }), 'innere');
+
+    expect(screen.getByRole('checkbox', { name: 'Innere Stadt' })).toBeInTheDocument();
+  } finally {
+    localeLowerCase.mockRestore();
+  }
+});
+
 describe('polygon authoring', () => {
   it('adds one sourced Vienna municipal district as a fitted undoable shape', async () => {
     const user = userEvent.setup();

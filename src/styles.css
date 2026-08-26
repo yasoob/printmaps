@@ -425,6 +425,14 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 .administrative-region-options legend { @apply sr-only; }
 .administrative-region-options .studio-checkbox { @apply whitespace-nowrap; }
+.administrative-filter > input {
+  @apply h-8 w-36 px-2 outline-none;
+  border: var(--studio-border-width) solid var(--studio-line-strong);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface);
+  color: var(--studio-text);
+}
+.administrative-filter > input:focus-visible { border-color: var(--studio-accent); }
 .administrative-region-error { color: var(--studio-danger); font-size: var(--studio-font-meta); }
 .map-authoring-panel > span { @apply whitespace-nowrap px-1; }
 .map-authoring-panel > button:not(.primary-button) {
@@ -1292,6 +1300,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
     bottom: calc(max(14px, var(--studio-safe-bottom)) + 4rem);
     max-width: calc(100vw - 16px - var(--studio-safe-left) - var(--studio-safe-right));
   }
+  .administrative-filter > input { min-height: 2.75rem; }
   .poi-spreadsheet-panel {
     bottom: calc(max(14px, var(--studio-safe-bottom)) + 4rem);
     left: calc(50% + (var(--studio-safe-left) - var(--studio-safe-right)) / 2);

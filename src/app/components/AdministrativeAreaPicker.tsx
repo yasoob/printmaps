@@ -20,12 +20,17 @@ export function AdministrativeAreaPicker({ onAdd, onMerge }: AdministrativeAreaP
   const municipalityAreas = ADMINISTRATIVE_AREAS.filter(({ level }) => level === 'municipality');
   const [level, setLevel] = useState<AdministrativeArea['level']>('country');
   const [countryAreaId, setCountryAreaId] = useState<AdministrativeAreaId>(countryAreas[0].id as AdministrativeAreaId);
+  const [municipalityQuery, setMunicipalityQuery] = useState('');
   const [selectedMunicipalityIds, setSelectedMunicipalityIds] = useState<AdministrativeAreaId[]>([]);
   const [selectedRegionIds, setSelectedRegionIds] = useState<AdministrativeAreaId[]>([]);
   const [municipalityError, setMunicipalityError] = useState('');
   const [regionError, setRegionError] = useState('');
   const selectedMunicipalityIdSet = useMemo(() => new Set(selectedMunicipalityIds), [selectedMunicipalityIds]);
   const selectedRegionIdSet = useMemo(() => new Set(selectedRegionIds), [selectedRegionIds]);
+  const normalizedMunicipalityQuery = municipalityQuery.trim().toLowerCase();
+  const filteredMunicipalityAreas = normalizedMunicipalityQuery.length === 0
+    ? municipalityAreas
+    : municipalityAreas.filter(({ name }) => name.toLowerCase().includes(normalizedMunicipalityQuery));
   const selectedCountry = administrativeAreaById(countryAreaId);
   const toggleMunicipality = (id: AdministrativeAreaId, isChecked: boolean) => {
     setMunicipalityError('');
@@ -65,12 +70,14 @@ export function AdministrativeAreaPicker({ onAdd, onMerge }: AdministrativeAreaP
         </>
       ) : (
         <>
+          <label className="administrative-filter">Search <input type="search" aria-label="Filter Vienna districts" value={municipalityQuery} onChange={(event) => setMunicipalityQuery(event.currentTarget.value)} /></label>
           <fieldset className="administrative-region-options">
             <legend>Vienna districts</legend>
-            {municipalityAreas.map((area) => (
+            {filteredMunicipalityAreas.map((area) => (
               <Checkbox key={area.id} isChecked={selectedMunicipalityIdSet.has(area.id as AdministrativeAreaId)} label={area.name} onCheckedChange={(isChecked) => toggleMunicipality(area.id as AdministrativeAreaId, isChecked)} />
             ))}
           </fieldset>
+          <span aria-live="polite">{selectedMunicipalityIds.length} {selectedMunicipalityIds.length === 1 ? 'district' : 'districts'} selected</span>
           <span className="authoring-source"><a aria-label="Vienna district boundaries source" href={VIENNA_DISTRICT_SOURCE_URL} rel="noreferrer" target="_blank">Vienna OGD</a> · <a aria-label="CC BY 3.0 AT license" href={VIENNA_DISTRICT_LICENSE_URL} rel="noreferrer" target="_blank">CC BY 3.0 AT</a></span>
           <button type="button" disabled={selectedMunicipalityIds.length === 0} onClick={mergeMunicipalities}>{selectedMunicipalityIds.length > 1 ? `Merge ${selectedMunicipalityIds.length} selected districts` : 'Add selected district'}</button>
           {municipalityError && <span className="administrative-region-error" role="alert" aria-label="Administrative area status">{municipalityError}</span>}

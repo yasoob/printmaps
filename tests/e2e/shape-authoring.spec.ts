@@ -23,6 +23,12 @@ test('Vienna municipality selection and merging preserve source credit through p
   await expect(districts.getByRole('checkbox')).toHaveCount(23);
   await expect(page.getByRole('link', { name: 'Vienna district boundaries source' })).toHaveAttribute('href', /BEZIRKSGRENZEOGD/);
   await expect(page.getByRole('link', { name: 'CC BY 3.0 AT license' })).toHaveAttribute('href', 'https://creativecommons.org/licenses/by/3.0/at/');
+  const districtFilter = page.getByRole('searchbox', { name: 'Filter Vienna districts' });
+  await districtFilter.fill('Josef');
+  await expect(districts.getByRole('checkbox')).toHaveCount(1);
+  await expect(districts.getByRole('checkbox', { name: 'Josefstadt' })).toBeVisible();
+  await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/vienna-district-filter-20260826.png' });
+  await districtFilter.fill('');
   await page.getByRole('checkbox', { name: 'Innere Stadt' }).check();
   await page.getByRole('checkbox', { name: 'Josefstadt' }).check();
   await page.getByRole('button', { name: 'Merge 2 selected districts' }).click();
@@ -60,7 +66,9 @@ test('Vienna municipality selection and merging preserve source credit through p
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole('button', { name: 'Area (S)' }).click();
   await page.getByRole('combobox', { name: 'Administrative level' }).selectOption('municipality');
-  await expect(page.getByRole('group', { name: 'Vienna districts' }).getByRole('checkbox')).toHaveCount(23);
+  await page.getByRole('searchbox', { name: 'Filter Vienna districts' }).fill('Josef');
+  await expect(page.getByRole('group', { name: 'Vienna districts' }).getByRole('checkbox')).toHaveCount(1);
+  await expect(page.getByRole('searchbox', { name: 'Filter Vienna districts' })).toHaveCSS('min-height', '44px');
   await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/latest-mobile.png' });
   const panel = page.locator('.map-authoring-panel');
   const panelBox = await panel.boundingBox();
