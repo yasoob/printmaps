@@ -18,6 +18,7 @@ export type {
   SearchResponse,
   SearchResult,
 } from './contracts';
+export { createMapboxDirectionsProvider } from './directions';
 export { createMapboxIsochroneProvider } from './isochrone';
 export { MapboxProviderError } from './errors';
 export type { MapboxProviderErrorCode } from './errors';

@@ -42,6 +42,26 @@ describe('Mapbox deployment status', () => {
     expect(container).not.toHaveTextContent(token);
   });
 
+  it('describes active provider workflows without claiming road routing is ready', async () => {
+    const user = userEvent.setup();
+    render(
+      <MapboxServiceStatus
+        token="pk.fake-public-segment.fake-signature"
+        origin="https://studio.example.test"
+        probe={vi.fn<MapboxConnectionProbe>().mockResolvedValue()}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Check Mapbox connection' }));
+
+    const status = await screen.findByRole('status');
+    expect(status).toHaveTextContent('This browser connection is ready for provider requests.');
+    expect(status).toHaveTextContent(
+      'Search and travel-time Areas are active. Road-routing integration is next.',
+    );
+    expect(status).not.toHaveTextContent('road routing can use this connection');
+  });
+
   it('turns an origin-restriction failure into corrective guidance and permits retry', async () => {
     const user = userEvent.setup();
     const probe = vi.fn<MapboxConnectionProbe>()

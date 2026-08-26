@@ -101,7 +101,8 @@ function ConfiguredMapboxServiceStatus({
       <div className="mapbox-service-status is-ready" role="status">
         <strong>Mapbox connection ready</strong>
         <p>Mapbox accepted this public token from {origin}.</p>
-        <p>Provider search and routing remain off until the renderer and storage-use gate is satisfied.</p>
+        <p>This browser connection is ready for provider requests.</p>
+        <p>Search and travel-time Areas are active. Road-routing integration is next.</p>
       </div>
     );
   }
