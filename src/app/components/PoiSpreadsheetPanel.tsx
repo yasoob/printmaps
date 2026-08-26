@@ -25,7 +25,9 @@ function errorMessage(error: unknown) {
 async function geocodeAddressRows(provider: SearchProvider, value: string, signal: AbortSignal) {
   const rows = parsePoiAddressSpreadsheet(value);
   const resolved: PoiSpreadsheetEntry[] = [];
-  for (const [index, row] of rows.entries()) {
+  const resolveRow = async (index: number): Promise<PoiSpreadsheetEntry[]> => {
+    const row = rows[index];
+    if (!row) return resolved;
     const response = await provider.search({ autocomplete: false, query: row.address, limit: 1, signal });
     if (signal.aborted) return [];
     const result = response.results[0];
@@ -35,8 +37,10 @@ async function geocodeAddressRows(provider: SearchProvider, value: string, signa
       coordinates: [...result.center] as [number, number],
       providerFeatureId: result.providerFeatureId,
     });
-  }
-  return resolved;
+    // The input is capped at 25 rows; bounded recursion preserves sequential provider calls without await-in-loop.
+    return resolveRow(index + 1);
+  };
+  return resolveRow(0);
 }
 
 function submitLabel(isAddressMode: boolean, isResolving: boolean) {
