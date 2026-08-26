@@ -25,6 +25,7 @@ export type ElevationProfileRenderOptions = Readonly<{
   gradientColor?: string;
   fontSize?: number;
   markerColor?: string;
+  showCurve?: boolean;
   showElevationMarkers?: boolean;
   showFill?: boolean;
   showGradient?: boolean;
@@ -40,6 +41,7 @@ export type ResolvedElevationProfileRenderOptions = Readonly<{
   gradientColor: string;
   fontSize: number;
   markerColor: string;
+  showCurve: boolean;
   showElevationMarkers: boolean;
   showFill: boolean;
   showGradient: boolean;
@@ -78,6 +80,7 @@ export function resolveElevationProfileRenderOptions(options: ElevationProfileRe
     gradientColor: resolveColor(options.gradientColor, '#ffffff', 'gradient'),
     fontSize: resolveFontSize(options.fontSize),
     markerColor: resolveColor(options.markerColor, '#7c3aed', 'marker'),
+    showCurve: options.showCurve ?? true,
     showElevationMarkers: options.showElevationMarkers ?? true,
     showFill: options.showFill ?? true,
     showGradient: options.showGradient ?? false,
@@ -280,7 +283,8 @@ export function serializeElevationProfileSvg(
   }).join('')}</g>` : '';
   const distanceLabels = layout.distanceTicks.map((tick) => `<text x="${formatElevationProfileNumber(tick.x)}" y="${formatElevationProfileNumber(layout.plot.top + layout.plot.height + 30)}" text-anchor="middle">${escapeXml(tick.label)}</text>`).join('');
   const elevationLabels = layout.elevationTicks.map((tick) => `<text x="${formatElevationProfileNumber(layout.plot.left - 12)}" y="${formatElevationProfileNumber(tick.y + 4)}" text-anchor="end">${escapeXml(tick.label)}</text>`).join('');
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${resolved.printWidthMm}mm" height="${resolved.printWidthMm / 2}mm" viewBox="0 0 ${SVG_WIDTH} ${SVG_HEIGHT}" data-elevation-profile="true" role="img" aria-labelledby="title description"><title id="title">${escapeXml(title)} elevation profile</title><desc id="description">${summary.distance} route with an elevation range of ${summary.elevationRange}. ${escapeXml(profile.sourceLabel)}.</desc><rect width="900" height="450" fill="#ffffff"/><text x="81" y="42" fill="#1e1e1e" font-family="Inter,Arial,sans-serif" font-size="${formatElevationProfileNumber(resolved.fontSize * 0.6)}" font-weight="600">${escapeXml(title)}</text><g stroke="#e5e5e5" stroke-width="1">${verticalGrid}${horizontalGrid}</g>${fill}<path d="${linePath}" fill="none" stroke="${resolved.curveColor}" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>${elevationMarkers}<g fill="#666666" font-family="Inter,Arial,sans-serif" font-size="${formatElevationProfileNumber(resolved.fontSize * 0.35)}">${distanceLabels}${elevationLabels}</g><g fill="#333333" font-family="Inter,Arial,sans-serif" font-size="${formatElevationProfileNumber(resolved.fontSize * 0.375)}"><text x="81" y="400">${summary.distance} · ↑ ${summary.ascent} · ↓ ${summary.descent}</text><text x="819" y="435" text-anchor="end">${escapeXml(profile.sourceLabel)}</text></g></svg>`;
+  const curve = resolved.showCurve ? `<path d="${linePath}" fill="none" stroke="${resolved.curveColor}" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>` : '';
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${resolved.printWidthMm}mm" height="${resolved.printWidthMm / 2}mm" viewBox="0 0 ${SVG_WIDTH} ${SVG_HEIGHT}" data-elevation-profile="true" role="img" aria-labelledby="title description"><title id="title">${escapeXml(title)} elevation profile</title><desc id="description">${summary.distance} route with an elevation range of ${summary.elevationRange}. ${escapeXml(profile.sourceLabel)}.</desc><rect width="900" height="450" fill="#ffffff"/><text x="81" y="42" fill="#1e1e1e" font-family="Inter,Arial,sans-serif" font-size="${formatElevationProfileNumber(resolved.fontSize * 0.6)}" font-weight="600">${escapeXml(title)}</text><g stroke="#e5e5e5" stroke-width="1">${verticalGrid}${horizontalGrid}</g>${fill}${curve}${elevationMarkers}<g fill="#666666" font-family="Inter,Arial,sans-serif" font-size="${formatElevationProfileNumber(resolved.fontSize * 0.35)}">${distanceLabels}${elevationLabels}</g><g fill="#333333" font-family="Inter,Arial,sans-serif" font-size="${formatElevationProfileNumber(resolved.fontSize * 0.375)}"><text x="81" y="400">${summary.distance} · ↑ ${summary.ascent} · ↓ ${summary.descent}</text><text x="819" y="435" text-anchor="end">${escapeXml(profile.sourceLabel)}</text></g></svg>`;
 }
 
 type ElevationPngOptions = ElevationProfileRenderOptions & Readonly<{

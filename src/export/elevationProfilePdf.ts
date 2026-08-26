@@ -118,6 +118,11 @@ export async function createElevationProfilePdf(
       ];
     }),
   ] : [];
+  const curveCommands = resolved.showCurve ? [
+    `${pdfRgb(resolved.curveColor)} RG 2.5 w 1 J 1 j`,
+    ...pointCommands,
+    'S',
+  ] : [];
   const content = asciiBytes([
     'q',
     `${format(pageScale)} 0 0 ${format(pageScale)} 0 0 cm`,
@@ -127,9 +132,7 @@ export async function createElevationProfilePdf(
     ...verticalGridCommands,
     ...horizontalGridCommands,
     ...fillCommands,
-    `${pdfRgb(resolved.curveColor)} RG 2.5 w 1 J 1 j`,
-    ...pointCommands,
-    'S',
+    ...curveCommands,
     ...markerCommands,
     '0.117647 0.117647 0.117647 rg',
     `BT /F1 ${format(pdfFontSize)} Tf`,

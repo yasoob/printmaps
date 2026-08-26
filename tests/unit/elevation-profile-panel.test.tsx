@@ -85,6 +85,15 @@ describe('ElevationProfilePanel', () => {
     expect(container.querySelector('.elevation-grid-vertical')).toBeInTheDocument();
   });
 
+  it('lets the user hide the profile curve without hiding the fill', async () => {
+    const user = userEvent.setup(); const { container } = render(<ElevationProfilePanel coordinates={[[16, 48], [16.1, 48.1]]} routeName="Alpine Route" loadProfile={vi.fn(async () => profile)} />);
+    await user.click(screen.getByRole('button', { name: 'Generate elevation profile' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Curve stroke' }));
+    expect(container.querySelector('.elevation-line')).not.toBeInTheDocument();
+    expect(container.querySelector('.elevation-area')).toBeInTheDocument();
+    expect(screen.getByLabelText('Profile curve color')).toBeDisabled();
+  });
+
   it('previews a custom profile fill color', async () => {
     const user = userEvent.setup();
     const { container } = render(

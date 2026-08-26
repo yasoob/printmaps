@@ -61,6 +61,7 @@ type ProfileChartOptions = Readonly<{
   gradientColor: string;
   markerColor: string;
   fontSize: number;
+  showCurve: boolean;
   showElevationMarkers: boolean;
   showFill: boolean;
   showGradient: boolean;
@@ -73,7 +74,7 @@ function ProfileChart({ profile, routeName, options }: {
   routeName: string;
   options: ProfileChartOptions;
 }) {
-  const { printWidthMm, units, curveColor, fillColor, gradientColor, markerColor, fontSize, showElevationMarkers, showFill, showGradient, showHorizontalGrid, showVerticalGrid } = options;
+  const { printWidthMm, units, curveColor, fillColor, gradientColor, markerColor, fontSize, showCurve, showElevationMarkers, showFill, showGradient, showHorizontalGrid, showVerticalGrid } = options;
   const layout = createElevationProfileLayout(profile, undefined, undefined, { units });
   const linePath = layout.points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ');
   const areaPath = `${linePath} L ${layout.plot.left + layout.plot.width} ${layout.plot.top + layout.plot.height} L ${layout.plot.left} ${layout.plot.top + layout.plot.height} Z`;
@@ -85,7 +86,7 @@ function ProfileChart({ profile, routeName, options }: {
       {showVerticalGrid && <g className="elevation-grid elevation-grid-vertical">{layout.distanceTicks.map((tick) => <line key={`distance-${tick.x}`} x1={tick.x} y1={layout.plot.top} x2={tick.x} y2={layout.plot.top + layout.plot.height} />)}</g>}
       {showHorizontalGrid && <g className="elevation-grid elevation-grid-horizontal">{layout.elevationTicks.map((tick) => <line key={`elevation-${tick.y}`} x1={layout.plot.left} y1={tick.y} x2={layout.plot.left + layout.plot.width} y2={tick.y} />)}</g>}
       {showFill && <path className="elevation-area" d={areaPath} style={{ fill: showGradient ? 'url(#elevation-fill-gradient)' : fillColor }} />}
-      <path className="elevation-line" d={linePath} style={{ stroke: curveColor }} />
+      {showCurve && <path className="elevation-line" d={linePath} style={{ stroke: curveColor }} />}
       {showElevationMarkers && (
         <g className="elevation-markers">
           {markers.map((marker) => {
@@ -132,6 +133,7 @@ function ElevationProfileReady({
   const [fontSizeDraft, setFontSizeDraft] = useState('40');
   const [printWidthMm, setPrintWidthMm] = useState(150);
   const [printWidthDraft, setPrintWidthDraft] = useState('150');
+  const [showCurve, setShowCurve] = useState(true);
   const [showElevationMarkers, setShowElevationMarkers] = useState(true);
   const [showFill, setShowFill] = useState(true);
   const [showGradient, setShowGradient] = useState(false);
@@ -143,7 +145,7 @@ function ElevationProfileReady({
   const parsedPrintWidth = Number(printWidthDraft);
   const isPrintWidthInvalid = !isBoundedInteger(parsedPrintWidth, 50, 300);
   const summary = formatElevationProfileSummary(profile, units);
-  const renderOptions = { printWidthMm, units, curveColor, fillColor, gradientColor, markerColor, fontSize, showElevationMarkers, showFill, showGradient, showHorizontalGrid, showVerticalGrid } as const;
+  const renderOptions = { printWidthMm, units, curveColor, fillColor, gradientColor, markerColor, fontSize, showCurve, showElevationMarkers, showFill, showGradient, showHorizontalGrid, showVerticalGrid } as const;
   const runExport = async (format: 'svg' | 'png' | 'pdf') => {
     setExporting(true);
     setExportError(null);
@@ -175,7 +177,7 @@ function ElevationProfileReady({
           if (isBoundedInteger(parsed, 50, 300)) setPrintWidthMm(parsed);
         }} /><small id="profile-print-width-range">50–300 mm</small></label>
         <div className="elevation-setting-row"><span>Units</span><label><input type="radio" name="elevation-units" checked={units === 'metric'} onChange={() => setUnits('metric')} /> Metric</label><label><input type="radio" name="elevation-units" checked={units === 'imperial'} onChange={() => setUnits('imperial')} /> Imperial</label></div>
-        <label className="elevation-color-row"><span>Curve</span><input type="color" aria-label="Profile curve color" value={curveColor} onInput={(event) => setCustomCurveColor(event.currentTarget.value)} /></label>
+        <label className="elevation-color-row"><span>Curve</span><input type="color" aria-label="Profile curve color" value={curveColor} disabled={!showCurve} onInput={(event) => setCustomCurveColor(event.currentTarget.value)} /></label>
         <label className="elevation-color-row"><span>Fill</span><input type="color" aria-label="Profile fill color" value={fillColor} onInput={(event) => setFillColor(event.currentTarget.value)} /></label>
         <label className="elevation-color-row"><span>Gradient</span><input type="color" aria-label="Profile gradient color" value={gradientColor} disabled={!showGradient} onInput={(event) => setGradientColor(event.currentTarget.value)} /></label>
         <label className="elevation-color-row"><span>Markers</span><input type="color" aria-label="Elevation marker color" value={markerColor} onInput={(event) => setMarkerColor(event.currentTarget.value)} /></label>
@@ -186,6 +188,7 @@ function ElevationProfileReady({
           if (isBoundedInteger(parsed, 20, 70)) setFontSize(parsed);
         }} /><small id="profile-font-size-range">20–70</small></label>
         <div className="elevation-option-grid">
+          <Checkbox isChecked={showCurve} label="Curve stroke" onCheckedChange={setShowCurve} />
           <Checkbox isChecked={showFill} label="Fill below curve" onCheckedChange={setShowFill} />
           <Checkbox isChecked={showGradient} label="Gradient fill" onCheckedChange={setShowGradient} />
           <Checkbox isChecked={showElevationMarkers} label="Elevation markers" onCheckedChange={setShowElevationMarkers} />

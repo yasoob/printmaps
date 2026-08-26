@@ -64,12 +64,16 @@ test('a selected route generates an attributed elevation profile with SVG, PNG, 
   await page.getByRole('spinbutton', { name: 'Profile font size' }).fill('56');
   await expect(page.getByRole('button', { name: 'Download elevation SVG' })).toBeEnabled();
   await page.getByRole('checkbox', { name: 'Horizontal grid' }).uncheck();
+  await page.getByRole('checkbox', { name: 'Curve stroke' }).uncheck();
+  await expect(chart.locator('.elevation-line')).toHaveCount(0);
+  await expect(chart.locator('.elevation-area')).toBeVisible();
+  await expect(page.getByLabel('Profile curve color')).toBeDisabled();
   await expect(page.getByLabel('Elevation summary')).toContainText('mi');
   await expect(chart.locator('.elevation-markers circle')).toHaveCount(2);
   await expect(chart.locator('.elevation-marker-label')).toHaveCount(2);
   if (testInfo.project.name === 'chromium') {
     await chart.scrollIntoViewIfNeeded();
-    await page.screenshot({ path: 'docs/screenshots/latest-desktop.png' });
+    await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/elevation-profile-curve-toggle-20260826.png' });
   }
 
   const svgBytes = await downloadFormat(page, 'Download elevation SVG', testInfo.outputPath('route-01.elevation.svg'));
@@ -77,7 +81,7 @@ test('a selected route generates an attributed elevation profile with SVG, PNG, 
   expect(svg).toContain('data-elevation-profile="true"');
   expect(svg).toContain('width="220mm" height="110mm"');
   expect(svg).toContain('Copernicus DEM GLO-90 via Open-Meteo');
-  expect(svg).toContain('stroke="#2457a6"');
+  expect(svg).not.toContain('stroke="#2457a6"');
   expect(svg).toContain('stop-color="#f2b84b"');
   expect(svg).toContain('fill="url(#elevation-profile-gradient)"');
   expect(svg).toContain('stop-color="#ffffff"');
@@ -101,7 +105,7 @@ test('a selected route generates an attributed elevation profile with SVG, PNG, 
   expect(pdfText).toContain('/ShadingType 2');
   expect(pdfText).toContain('/Sh1 sh');
   expect(pdfText).toContain('Copernicus DEM GLO-90 via Open-Meteo');
-  expect(pdfText).toContain('0.141176 0.341176 0.65098 RG');
+  expect(pdfText).not.toContain('0.141176 0.341176 0.65098 RG');
   expect(pdfText).toContain('% profile fill color 0.94902 0.721569 0.294118');
   expect(pdfText).toContain('% elevation markers');
   expect(pdfText).toContain('0.486275 0.227451 0.929412 rg');

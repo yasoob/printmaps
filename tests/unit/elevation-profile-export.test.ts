@@ -28,6 +28,7 @@ describe('elevation profile exports', () => {
     expect(svg).toContain('20.0 km');
     expect(svg).toContain('Copernicus DEM GLO-90 via Open-Meteo');
     expect(svg).toMatch(/<path[^>]+d="M [^"]+"/);
+    expect(svg).toContain('fill="none" stroke="#0d79c7"');
 
     const pdf = await createElevationProfilePdf(profile, 'Alpine Route');
     const bytes = new Uint8Array(await pdf.arrayBuffer());
@@ -35,6 +36,7 @@ describe('elevation profile exports', () => {
     expect(text.startsWith('%PDF-1.7')).toBe(true);
     expect(text).toContain('/MediaBox [0 0 425.19685 212.598425]');
     expect(text).toContain('Copernicus DEM GLO-90 via Open-Meteo');
+    expect(text).toContain('0.05098 0.47451 0.780392 RG 2.5 w');
   });
 
   it('uses the selected print width for exact SVG and PDF dimensions', async () => {
@@ -104,6 +106,22 @@ describe('elevation profile exports', () => {
     expect(text).toContain('% grid vertical');
     expect(text).not.toContain('% grid horizontal');
     expect(text).not.toContain('% profile fill');
+  });
+
+  it('omits the curve stroke consistently across SVG, PNG, and PDF exports', async () => {
+    const svg = serializeElevationProfileSvg(profile, 'Alpine Route', { showCurve: false });
+    expect(svg).not.toContain('fill="none" stroke="#0d79c7"');
+
+    const rasterize = vi.fn(async (pngSvg: string) => {
+      expect(pngSvg).not.toContain('fill="none" stroke="#0d79c7"');
+      return new Blob(['png'], { type: 'image/png' });
+    });
+    await createElevationProfilePng(profile, 'Alpine Route', { showCurve: false, rasterize });
+    expect(rasterize).toHaveBeenCalledOnce();
+
+    const pdf = await createElevationProfilePdf(profile, 'Alpine Route', { showCurve: false });
+    const text = new TextDecoder().decode(await pdf.arrayBuffer());
+    expect(text).not.toContain('0.05098 0.47451 0.780392 RG 2.5 w');
   });
 
   it('keeps marker, font-size, and fill-color choices consistent across vector exports', async () => {
