@@ -106,6 +106,22 @@ it('exposes every Hungarian first-order division through the region country sele
   expect(screen.getByText('Hungary · Natural Earth')).toBeInTheDocument();
 });
 
+it('exposes every Czech first-order division through the region country selector', async () => {
+  const user = userEvent.setup();
+  render(<App autosaveRepository={null} />);
+
+  await user.click(screen.getByRole('button', { name: 'Area (S)' }));
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Administrative level' }), 'region');
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Region country' }), 'CZE');
+
+  const regions = screen.getByRole('group', { name: 'Czechia regions' });
+  expect(within(regions).getAllByRole('checkbox')).toHaveLength(14);
+  expect(within(regions).getByRole('checkbox', { name: 'Prague' })).toBeInTheDocument();
+  expect(within(regions).getByRole('checkbox', { name: 'South Moravian' })).toBeInTheDocument();
+  expect(within(regions).getByRole('checkbox', { name: 'Moravian-Silesian' })).toBeInTheDocument();
+  expect(screen.getByText('Czechia · Natural Earth')).toBeInTheDocument();
+});
+
 it('filters the active region catalogue without losing hidden selections', async () => {
   const user = userEvent.setup();
   render(<App autosaveRepository={null} />);
