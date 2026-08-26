@@ -5,6 +5,7 @@ import {
   mergeAdministrativeAreas,
 } from '../../src/domain/administrativeAreas';
 import { createInitialProjectDocument } from '../../src/domain/project';
+import { MAX_PROJECT_COORDINATES } from '../../src/domain/projectFile';
 
 function signedRingArea(ring: readonly (readonly [number, number])[]): number {
   let area = 0;
@@ -242,4 +243,43 @@ describe('bundled administrative areas', () => {
     expect(store.getState().document.layers.some(({ id }) => id === createdId)).toBe(false);
     expect(store.getState().canUndo).toBe(false);
   });
+});
+
+it('does not add a generated area beyond aggregate project coordinate capacity', () => {
+  const document = createInitialProjectDocument();
+  document.layers = [
+    {
+      id: 'near-capacity',
+      name: 'Near capacity',
+      type: 'route',
+      visible: true,
+      locked: false,
+      opacity: 100,
+      geometry: {
+        type: 'LineString',
+        coordinates: Array.from(
+          { length: MAX_PROJECT_COORDINATES - 3 },
+          () => [16, 48] as [number, number],
+        ),
+      },
+    },
+    { id: 'basemap', name: 'Basemap', type: 'basemap', visible: true, locked: true, opacity: 100 },
+  ];
+  const store = createProjectStore(document);
+
+  const createdId = store.getState().createAdministrativeArea({
+    countryCode: 'TST',
+    id: 'TST-1',
+    name: 'Generated region',
+    level: 'region',
+    source: 'Generated test data',
+    geometry: {
+      type: 'Polygon',
+      coordinates: [[[10, 48], [11, 48], [11, 49], [10, 48]]],
+    },
+  });
+
+  expect(createdId).toBeNull();
+  expect(store.getState().document.layers).toHaveLength(2);
+  expect(store.getState().canUndo).toBe(false);
 });

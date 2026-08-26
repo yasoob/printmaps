@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type Dispatch, type RefObject, type SetStateAction } from 'react';
-import type { AdministrativeAreaId } from '../../domain/administrativeAreas';
+import type { AdministrativeArea } from '../../domain/administrativeAreas';
 import type { PoiSpreadsheetEntry } from '../../domain/poiSpreadsheet';
 import type { CustomMarkerAsset } from '../../domain/customMarkerAssets';
 import type { CameraSettings, ContentLayer, IsochroneAreaInput, MapFeatureVisibility, MapLanguage, MapStylePreset, PageSettings, SearchPoiInput, ShapeGeometry } from '../../domain/project';
@@ -145,8 +145,8 @@ type CanvasWorkspaceProps = {
   onRouteGeometryChange?: (id: string, coordinates: readonly (readonly [number, number])[]) => void;
   onShapeGeometryChange?: (id: string, geometry: ShapeGeometry) => void;
   onCameraViewportChange: (center: readonly [number, number], zoom: number, mode: CameraViewportChangeMode) => void;
-  onCreateAdministrativeArea: (id: AdministrativeAreaId) => string | null;
-  onCreateAdministrativeAreas: (ids: readonly AdministrativeAreaId[]) => string | null;
+  onCreateAdministrativeArea: (area: AdministrativeArea) => string | null;
+  onCreateAdministrativeAreas: (areas: readonly AdministrativeArea[]) => string | null;
   onCreateDirectionsRoute: CreateDirectionsRoute;
   directionsProvider?: DirectionsProvider;
   searchProvider?: SearchProvider;
@@ -240,13 +240,13 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
   };
   const cancelShape = () => { isochrone.cancel(); exitAuthoring('shape'); };
   const undoShapePoint = () => setStoredShapePoints((points) => points.slice(0, -1));
-  const addAdministrativeArea = (id: AdministrativeAreaId) => {
-    const createdId = onCreateAdministrativeArea(id);
+  const addAdministrativeArea = (area: AdministrativeArea) => {
+    const createdId = onCreateAdministrativeArea(area);
     if (createdId) setFitLayerRequest((current) => ({ id: createdId, request: current.request + 1 }));
     exitAuthoring('shape');
   };
-  const mergeAdministrativeAreas = (ids: readonly AdministrativeAreaId[]) => {
-    const createdId = onCreateAdministrativeAreas(ids);
+  const mergeAdministrativeAreas = (areas: readonly AdministrativeArea[]) => {
+    const createdId = onCreateAdministrativeAreas(areas);
     if (!createdId) return false;
     setFitLayerRequest((current) => ({ id: createdId, request: current.request + 1 }));
     exitAuthoring('shape');

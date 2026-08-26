@@ -1,14 +1,42 @@
-import { administrativeAreaById, mergeAdministrativeAreas, type AdministrativeArea } from '../domain/administrativeAreas';
-import { createDefaultLayerAppearance, type ContentLayer } from '../domain/project';
+import { administrativeAreaById, mergeAdministrativeAreaRecords, mergeAdministrativeAreas, type AdministrativeArea } from '../domain/administrativeAreas';
+import { createDefaultLayerAppearance, type ContentLayer, type ShapeGeometry } from '../domain/project';
+import { parseLayerGeometry, geometryPositionCount } from '../domain/projectGeometry';
+import { MAX_PROJECT_COORDINATES, MAX_PROJECT_LAYERS } from '../domain/projectFile';
 import type { ProjectState } from './store';
 import { commitDocument, replaceLayers, type ProjectSet } from './storeDocument';
+
+function layerPositionCount(layer: ContentLayer): number {
+  const provenancePositions = layer.provenance?.service === 'isochrone-v1'
+    ? 1
+    : (layer.provenance?.service === 'directions-v5' ? layer.provenance.waypoints.length : 0);
+  return geometryPositionCount(layer.geometry) + provenancePositions;
+}
+
+function validatedAreaGeometry(area: AdministrativeArea, existingPositionCount: number): ShapeGeometry | undefined {
+  try {
+    const geometry = parseLayerGeometry(area.geometry, 'Administrative area', { value: existingPositionCount }, {
+      maximumCoordinates: MAX_PROJECT_COORDINATES,
+      fail: (message) => { throw new Error(message); },
+    });
+    if (geometry.type === 'Polygon' || geometry.type === 'MultiPolygon') return geometry;
+  } catch {
+    return undefined;
+  }
+}
 
 function createAreaLayer(set: ProjectSet, resolveArea: () => AdministrativeArea | undefined) {
   return () => {
     let createdId: string | null = null;
     set((state) => {
       const area = resolveArea();
-      if (!area) return state;
+      if (!area || state.document.layers.length >= MAX_PROJECT_LAYERS
+        || area.name.trim() === '' || area.name.length > 200 || area.id.trim() === '') return state;
+      const existingPositionCount = state.document.layers.reduce(
+        (total, layer) => total + layerPositionCount(layer),
+        0,
+      );
+      const geometry = validatedAreaGeometry(area, existingPositionCount);
+      if (!geometry) return state;
       const usedIds = new Set(state.document.layers.map((layer) => layer.id));
       const baseId = `admin-${area.id.toLowerCase().replaceAll('+', '-')}`;
       let id = baseId;
@@ -17,6 +45,7 @@ function createAreaLayer(set: ProjectSet, resolveArea: () => AdministrativeArea 
         id = `${baseId}-${suffix}`;
         suffix += 1;
       }
+      if (id.length > 200) return state;
       createdId = id;
       const layer: ContentLayer = {
         id,
@@ -26,7 +55,7 @@ function createAreaLayer(set: ProjectSet, resolveArea: () => AdministrativeArea 
         locked: false,
         opacity: 28,
         appearance: createDefaultLayerAppearance('shape'),
-        geometry: structuredClone(area.geometry),
+        geometry,
       };
       const layers = [...state.document.layers];
       const basemapIndex = layers.findIndex((candidate) => candidate.type === 'basemap');
@@ -42,7 +71,13 @@ function createAreaLayer(set: ProjectSet, resolveArea: () => AdministrativeArea 
 
 export function createAdministrativeAreaActions(set: ProjectSet): Pick<ProjectState, 'createAdministrativeArea' | 'createAdministrativeAreas'> {
   return {
-    createAdministrativeArea: (areaId) => createAreaLayer(set, () => administrativeAreaById(areaId))(),
-    createAdministrativeAreas: (areaIds) => createAreaLayer(set, () => mergeAdministrativeAreas(areaIds))(),
+    createAdministrativeArea: (area) => createAreaLayer(set, () => (
+      typeof area === 'string' ? administrativeAreaById(area) : area
+    ))(),
+    createAdministrativeAreas: (areas) => createAreaLayer(set, () => {
+      if (areas.every((area): area is string => typeof area === 'string')) return mergeAdministrativeAreas(areas);
+      if (areas.every((area): area is AdministrativeArea => typeof area !== 'string')) return mergeAdministrativeAreaRecords(areas);
+      return;
+    })(),
   };
 }

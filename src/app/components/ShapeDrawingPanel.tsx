@@ -1,6 +1,6 @@
 import { Clock3, MapPinned, PencilRuler } from 'lucide-react';
 import type { ReactNode } from 'react';
-import type { AdministrativeAreaId } from '../../domain/administrativeAreas';
+import type { AdministrativeArea } from '../../domain/administrativeAreas';
 import { AdministrativeAreaPicker } from './AdministrativeAreaPicker';
 import { DrawingPanel } from './RouteDrawingPanel';
 import { didHandleRovingSelection } from './rovingSelection';
@@ -17,8 +17,8 @@ type ShapeDrawingPanelProps = Readonly<{
   canFinish: boolean;
   mode: ShapeAuthoringMode;
   onModeChange: (mode: ShapeAuthoringMode) => void;
-  onAddAdministrativeArea: (id: AdministrativeAreaId) => void;
-  onMergeAdministrativeAreas: (ids: readonly AdministrativeAreaId[]) => boolean;
+  onAddAdministrativeArea: (area: AdministrativeArea) => void;
+  onMergeAdministrativeAreas: (areas: readonly AdministrativeArea[]) => boolean;
   onCancel: () => void;
   onUndo: () => void;
   onFinish: () => void;

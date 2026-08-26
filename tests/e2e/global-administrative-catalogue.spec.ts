@@ -1,0 +1,55 @@
+import { readFile } from 'node:fs/promises';
+import { expect, test } from '@playwright/test';
+
+const isExpectedWebGlDiagnostic = (message: string) => message.includes('GPU stall due to ReadPixels');
+
+test('generated worldwide catalogue lazily creates a durable Japanese region', async ({ page }, testInfo) => {
+  test.setTimeout(60_000);
+  const consoleProblems: string[] = [];
+  page.on('pageerror', (error) => { consoleProblems.push(error.message); });
+  page.on('console', (message) => {
+    if ((message.type() === 'error' || message.type() === 'warning') && !isExpectedWebGlDiagnostic(message.text())) {
+      consoleProblems.push(message.text());
+    }
+  });
+
+  await page.goto('/');
+  await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
+  await page.getByRole('button', { name: 'Area (S)' }).click();
+  await page.getByRole('combobox', { name: 'Administrative level' }).selectOption('region');
+  const country = page.getByRole('combobox', { name: 'Region country' });
+  await expect(country.locator('option')).toHaveCount(251);
+  await country.selectOption('JPN');
+
+  const regions = page.getByRole('group', { name: 'Japan regions' });
+  await expect(page.getByRole('status', { name: 'Administrative catalogue status' })).toHaveText('47 Japan regions loaded.');
+  await expect(regions.getByRole('checkbox')).toHaveCount(47);
+  await regions.getByRole('checkbox', { name: 'Kyōto Prefecture' }).check();
+  await expect(page.getByText('1 region selected')).toBeVisible();
+  await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/global-japan-region-catalogue-20260826.png' });
+  await page.getByRole('button', { name: 'Add selected area' }).click();
+
+  const layer = page.getByRole('button', { name: 'Select Kyōto Prefecture' });
+  await expect(layer).toHaveAttribute('aria-current', 'true');
+  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-geometry', /admin-jp-26:/);
+
+  const savePromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Save' }).click();
+  const save = await savePromise;
+  const savePath = testInfo.outputPath('japan-region.printmap.json');
+  await save.saveAs(savePath);
+  const project = JSON.parse(await readFile(savePath, 'utf8'));
+  const savedRegion = project.layers.find(({ id }: { id: string }) => id === 'admin-jp-26');
+  expect(savedRegion).toMatchObject({ name: 'Kyōto Prefecture', geometry: { type: 'Polygon' } });
+
+  await page.getByRole('button', { name: 'Export' }).click();
+  const exportDialog = page.getByRole('dialog', { name: 'Export map' });
+  await exportDialog.getByRole('radio', { name: /Layered SVG/ }).click();
+  const svgPromise = page.waitForEvent('download');
+  await exportDialog.getByRole('button', { name: 'Download layered SVG' }).click();
+  const svg = await svgPromise;
+  const svgPath = testInfo.outputPath('japan-region.layered.svg');
+  await svg.saveAs(svgPath);
+  expect(await readFile(svgPath, 'utf8')).toContain('data-layer-name="Kyōto Prefecture"');
+  expect(consoleProblems).toEqual([]);
+});

@@ -20,8 +20,8 @@ import { PORTUGAL_COUNTRY_AREA, PORTUGAL_REGION_AREAS } from './portugalAdminist
 import { SPAIN_COUNTRY_AREA, SPAIN_REGION_AREAS } from './spainAdministrativeAreas';
 import { SWITZERLAND_COUNTRY_AREA, SWITZERLAND_REGION_AREAS } from './switzerlandAdministrativeAreas';
 import { SWEDEN_COUNTRY_AREA, SWEDEN_REGION_AREAS } from './swedenAdministrativeAreas';
-// Keep runtime validation authoritative instead of expanding imported region IDs into compiler-heavy unions.
-export type AdministrativeCountryCode = 'AUT' | 'BEL' | 'BGR' | 'CHE' | 'CZE' | 'DEU' | 'DNK' | 'ESP' | 'EST' | 'FIN' | 'GRC' | 'HUN' | 'ITA' | 'LTU' | 'NLD' | 'POL' | 'PRT' | 'SVK' | 'SWE';
+// Generated catalogue IDs are runtime-validated so world coverage does not become a compiler-heavy union.
+export type AdministrativeCountryCode = string;
 export type AdministrativeAreaId = string;
 
 export type AdministrativeArea = Readonly<{
@@ -286,18 +286,17 @@ type MergeableAdministrativeLevel = Extract<AdministrativeArea['level'], 'region
 
 type AdministrativeAreaSelection = { areas: AdministrativeArea[]; level: MergeableAdministrativeLevel };
 
-function administrativeAreaSelection(ids: readonly string[]): AdministrativeAreaSelection | undefined {
-  const uniqueIds = [...new Set(ids)];
-  if (uniqueIds.length === 0 || uniqueIds.length !== ids.length) return;
-  const areas = uniqueIds.map((id) => administrativeAreaById(id));
+function administrativeAreaSelection(areas: readonly AdministrativeArea[]): AdministrativeAreaSelection | undefined {
+  const uniqueIds = new Set(areas.map(({ id }) => id));
+  if (areas.length === 0 || uniqueIds.size !== areas.length) return;
   const level = areas[0]?.level, countryCode = areas[0]?.countryCode;
   if (!countryCode || (level !== 'region' && level !== 'municipality')
-    || areas.some((area) => !area || area.level !== level || area.countryCode !== countryCode)) return;
-  return { areas: areas as AdministrativeArea[], level };
+    || areas.some((area) => area.level !== level || area.countryCode !== countryCode)) return;
+  return { areas: [...areas], level };
 }
 
-export function mergeAdministrativeAreas(ids: readonly string[]): AdministrativeArea | undefined {
-  const selection = administrativeAreaSelection(ids);
+export function mergeAdministrativeAreaRecords(areas: readonly AdministrativeArea[]): AdministrativeArea | undefined {
+  const selection = administrativeAreaSelection(areas);
   if (!selection) return;
   const { areas: selectedAreas, level } = selection;
   if (selectedAreas.length === 1) return selectedAreas[0];
@@ -309,11 +308,13 @@ export function mergeAdministrativeAreas(ids: readonly string[]): Administrative
     : mergeAlignedRings(polygonAreas);
   if (!coordinates) return;
   return {
-    countryCode: selectedAreas[0].countryCode,
-    id: selectedAreas.map(({ id }) => id).join('+'),
-    name: selectedAreas.map(({ name }) => name).join(' + '),
-    level,
-    source: selectedAreas[0].source,
-    geometry: { type: 'Polygon', coordinates },
+    countryCode: selectedAreas[0].countryCode, id: selectedAreas.map(({ id }) => id).join('+'), name: selectedAreas.map(({ name }) => name).join(' + '),
+    level, source: selectedAreas[0].source, geometry: { type: 'Polygon', coordinates },
   };
+}
+
+export function mergeAdministrativeAreas(ids: readonly string[]): AdministrativeArea | undefined {
+  const areas = ids.map((id) => administrativeAreaById(id));
+  if (areas.includes(undefined)) return;
+  return mergeAdministrativeAreaRecords(areas as AdministrativeArea[]);
 }

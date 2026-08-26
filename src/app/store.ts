@@ -17,7 +17,7 @@ import {
 import type { RouteAuthoringOptions } from '../domain/routeProfiles';
 import type { PoiSpreadsheetEntry } from '../domain/poiSpreadsheet';
 import type { CustomMarkerAsset } from '../domain/customMarkerAssets';
-import type { AdministrativeAreaId } from '../domain/administrativeAreas';
+import type { AdministrativeArea, AdministrativeAreaId } from '../domain/administrativeAreas';
 import { copyDocument, createDocumentActions } from './storeDocument';
 import { createCameraActions } from './storeCameraActions';
 import { createLayerPropertyActions, createLayerStructureActions } from './storeLayerActions';
@@ -35,8 +35,8 @@ export type ProjectState = {
   canUndo: boolean;
   canRedo: boolean;
   applyMapMatching: (id: string, input: MapMatchingInput, expectedDocumentEpoch: number) => boolean;
-  createAdministrativeArea: (id: AdministrativeAreaId | string) => string | null;
-  createAdministrativeAreas: (ids: readonly (AdministrativeAreaId | string)[]) => string | null;
+  createAdministrativeArea: (area: AdministrativeAreaId | AdministrativeArea) => string | null;
+  createAdministrativeAreas: (areas: readonly (AdministrativeAreaId | AdministrativeArea)[]) => string | null;
   createIsochroneArea: (input: IsochroneAreaInput, expectedDocumentEpoch: number) => string | null;
   createDirectionsRoute: (
     input: DirectionsRouteInput,
