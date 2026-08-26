@@ -56,7 +56,7 @@ function RegionAreaPicker({ onMerge }: Pick<AdministrativeAreaPickerProps, 'onMe
       <span aria-live="polite">{selectedIds.length} {selectedIds.length === 1 ? 'region' : 'regions'} selected</span>
       <span className="authoring-source">{selectedCountry?.name} · Natural Earth</span>
       <button type="button" disabled={selectedIds.length === 0} onClick={() => {
-        if (!onMerge(selectedIds)) setError('Choose connected single-part regions, or add Tyrol separately.');
+        if (!onMerge(selectedIds)) setError('Choose connected single-part regions, or add multi-part regions separately.');
       }}>{selectedIds.length > 1 ? `Merge ${selectedIds.length} selected areas` : 'Add selected area'}</button>
       {error && <span className="administrative-region-error" role="alert" aria-label="Administrative area status">{error}</span>}
     </>

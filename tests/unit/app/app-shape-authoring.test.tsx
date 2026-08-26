@@ -283,7 +283,7 @@ describe('polygon authoring', () => {
     expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-fit-layer-id', 'admin-at-7');
   });
 
-  it('keeps an incompatible region selection open and explains how to recover', async () => {
+  it('guides disconnected or multi-part region selections without naming one country', async () => {
     const user = userEvent.setup();
     render(<App autosaveRepository={null} />);
 
@@ -294,7 +294,7 @@ describe('polygon authoring', () => {
     await user.click(screen.getByRole('button', { name: 'Merge 2 selected areas' }));
 
     expect(screen.getByRole('alert', { name: 'Administrative area status' })).toHaveTextContent(
-      'Choose connected single-part regions, or add Tyrol separately.',
+      'Choose connected single-part regions, or add multi-part regions separately.',
     );
     expect(screen.getByRole('button', { name: 'Cancel area' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Select Burgenland + Vorarlberg' })).not.toBeInTheDocument();

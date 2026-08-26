@@ -290,7 +290,12 @@ test('German, Polish, Czech, Hungarian, Slovak and Austrian region catalogues cr
   await page.getByRole('checkbox', { name: 'Burgenland' }).check();
   await page.getByRole('checkbox', { name: 'Vorarlberg' }).check();
   await page.getByRole('button', { name: 'Merge 2 selected areas' }).click();
-  await expect(page.getByRole('alert', { name: 'Administrative area status' })).toContainText('connected single-part regions');
+  await expect(page.getByRole('alert', { name: 'Administrative area status' })).toHaveText(
+    'Choose connected single-part regions, or add multi-part regions separately.',
+  );
+  if (testInfo.project.name === 'chromium') {
+    await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/generic-multipart-region-guidance-20260826.png' });
+  }
   await page.getByRole('checkbox', { name: 'Burgenland' }).uncheck();
   await page.getByRole('checkbox', { name: 'Vorarlberg' }).uncheck();
   await page.getByRole('checkbox', { name: 'Lower Austria' }).check();
