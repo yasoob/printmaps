@@ -2,9 +2,80 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../../../src/app/App';
 import { createInitialProjectDocument } from '../../../src/domain/project';
-import type { DirectionsProvider } from '../../../src/services/mapbox/contracts';
+import type { DirectionsProvider, SearchProvider } from '../../../src/services/mapbox/contracts';
 
 vi.mock('../../../src/map/MapCanvas', async () => import('./MapCanvasMock'));
+
+it('adds selected search results as road-route waypoints before provider routing', async () => {
+  const user = userEvent.setup();
+  const directions = vi.fn<DirectionsProvider['directions']>().mockResolvedValue({
+    routes: [{
+      geometry: [[16.31, 48.19], [16.355, 48.215], [16.4, 48.24]],
+      distanceMeters: 9200,
+      durationSeconds: 1320,
+    }],
+    useBoundary: 'provider-response-use-requires-terms-review',
+  });
+  const search = vi.fn<SearchProvider['search']>().mockImplementation(async ({ query }) => ({
+    results: query.includes('West')
+      ? [{ providerFeatureId: 'west', label: 'Vienna West', center: [16.31, 48.19] }]
+      : [{ providerFeatureId: 'east', label: 'Vienna East', center: [16.4, 48.24] }],
+    useBoundary: 'provider-response-use-requires-terms-review',
+  }));
+  render(<App autosaveRepository={null} directionsProvider={{ directions }} searchProvider={{ search }} />);
+
+  await user.click(screen.getByRole('button', { name: 'Route (R)' }));
+  await user.click(screen.getByRole('radio', { name: 'Road' }));
+  const input = screen.getByRole('combobox', { name: 'Search places and addresses' });
+  await user.type(input, 'Vienna West');
+  await user.click(screen.getByRole('button', { name: 'Search locations' }));
+  await user.click(await screen.findByRole('option', { name: 'Vienna West' }));
+  expect(screen.getByRole('status', { name: 'Route drawing status' })).toHaveTextContent('1 point');
+
+  await user.clear(input);
+  await user.type(input, 'Vienna East');
+  await user.click(screen.getByRole('button', { name: 'Search locations' }));
+  await user.click(await screen.findByRole('option', { name: 'Vienna East' }));
+  expect(screen.getByRole('status', { name: 'Route drawing status' })).toHaveTextContent('2 points');
+  await user.click(screen.getByRole('button', { name: 'Finish route' }));
+
+  expect(directions).toHaveBeenCalledWith(expect.objectContaining({
+    profile: 'driving',
+    waypoints: [[16.31, 48.19], [16.4, 48.24]],
+  }));
+  expect(await screen.findByRole('button', { name: 'Select Route 02' })).toHaveAttribute('aria-current', 'true');
+});
+
+it('cancels pending road routing when a searched waypoint is selected', async () => {
+  const user = userEvent.setup();
+  let resolve!: (value: Awaited<ReturnType<DirectionsProvider['directions']>>) => void;
+  const pending = new Promise<Awaited<ReturnType<DirectionsProvider['directions']>>>((nextResolve) => { resolve = nextResolve; });
+  const directions = vi.fn<DirectionsProvider['directions']>(() => pending);
+  const search = vi.fn<SearchProvider['search']>().mockResolvedValue({
+    results: [{ providerFeatureId: 'new', label: 'New waypoint', center: [16.5, 48.3] }],
+    useBoundary: 'provider-response-use-requires-terms-review',
+  });
+  render(<App autosaveRepository={null} directionsProvider={{ directions }} searchProvider={{ search }} />);
+
+  await user.click(screen.getByRole('button', { name: 'Route (R)' }));
+  await user.click(screen.getByRole('radio', { name: 'Road' }));
+  await user.click(screen.getByRole('button', { name: 'Map route point 1' }));
+  await user.click(screen.getByRole('button', { name: 'Map route point 2' }));
+  await user.click(screen.getByRole('button', { name: 'Finish route' }));
+  const input = screen.getByRole('combobox', { name: 'Search places and addresses' });
+  await user.type(input, 'New waypoint');
+  await user.click(screen.getByRole('button', { name: 'Search locations' }));
+  await user.click(await screen.findByRole('option', { name: 'New waypoint' }));
+
+  expect(directions.mock.calls[0][0].signal?.aborted).toBe(true);
+  resolve({
+    routes: [{ geometry: [[16.31, 48.19], [16.4, 48.24]], distanceMeters: 1, durationSeconds: 1 }],
+    useBoundary: 'provider-response-use-requires-terms-review',
+  });
+  await pending;
+  expect(screen.queryByRole('button', { name: 'Select Route 02' })).not.toBeInTheDocument();
+  expect(screen.getByRole('status', { name: 'Route drawing status' })).toHaveTextContent('3 points');
+});
 
 describe('straight route authoring', () => {
   it('uses roving arrow, Home, and End selection in route radio groups', async () => {

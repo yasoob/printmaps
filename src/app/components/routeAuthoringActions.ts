@@ -3,6 +3,18 @@ import { buildRouteCoordinates, type RouteAuthoringOptions } from '../../domain/
 import { countDistinctPoints } from './authoringDraftLayers';
 import { roadProfileFor } from '../hooks/useDirectionsAuthoring';
 
+export const MAX_ROAD_ROUTE_WAYPOINTS = 25;
+
+export function appendRoadSearchWaypoint(
+  points: [number, number][],
+  coordinate: readonly [number, number],
+) {
+  if (points.length >= MAX_ROAD_ROUTE_WAYPOINTS) {
+    return { error: 'Road routes support up to 25 waypoints.', points };
+  }
+  return { error: null, points: [...points, [coordinate[0], coordinate[1]] as [number, number]] };
+}
+
 type RoadDirections = {
   route: (
     waypoints: readonly (readonly [number, number])[],

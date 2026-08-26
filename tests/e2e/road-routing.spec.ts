@@ -19,6 +19,25 @@ test('road route becomes editable canonical project geometry and exports offline
   page.on('console', (message) => {
     if (message.type() === 'error' && !message.text().includes('GPU stall due to ReadPixels')) consoleProblems.push(message.text());
   });
+  await page.route('https://api.mapbox.com/search/geocode/v6/forward**', async (route) => {
+    const query = new URL(route.request().url()).searchParams.get('q') ?? '';
+    const isWest = query.includes('West');
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        type: 'FeatureCollection',
+        features: [{
+          id: isWest ? 'place.vienna-west' : 'place.vienna-east',
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: isWest ? [16.31, 48.19] : [16.4, 48.24] },
+          properties: {
+            name: isWest ? 'Vienna West' : 'Vienna East',
+            place_formatted: 'Austria',
+          },
+        }],
+      }),
+    });
+  });
   await page.route('https://api.mapbox.com/directions/v5/mapbox/**', async (route) => {
     directionRequests += 1;
     const coordinates = providerGeometry(route.request().url());
@@ -39,17 +58,15 @@ test('road route becomes editable canonical project geometry and exports offline
   await roadPath.click();
   await expect(roadPath).toHaveAttribute('aria-checked', 'true');
   await expect(page.getByRole('status', { name: 'Route drawing status' })).toContainText('Road route');
-  const canvas = page.locator('.maplibregl-canvas');
-  const canvasBox = await canvas.boundingBox();
-  const frameBox = await page.locator('.print-frame').boundingBox();
-  expect(canvasBox).not.toBeNull();
-  expect(frameBox).not.toBeNull();
-  const point = (xFraction: number, yFraction: number) => ({
-    x: frameBox!.x - canvasBox!.x + frameBox!.width * xFraction,
-    y: frameBox!.y - canvasBox!.y + frameBox!.height * yFraction,
-  });
-  await canvas.click({ position: point(0.3, 0.6) });
-  await canvas.click({ position: point(0.7, 0.4) });
+  const search = page.getByRole('combobox', { name: 'Search places and addresses' });
+  await search.fill('Vienna West');
+  await page.getByRole('button', { name: 'Search locations' }).click();
+  await page.getByRole('option', { name: 'Vienna West, Austria' }).click();
+  await expect(page.getByRole('status', { name: 'Route drawing status' })).toContainText('1 point');
+  await search.fill('Vienna East');
+  await page.getByRole('button', { name: 'Search locations' }).click();
+  await page.getByRole('option', { name: 'Vienna East, Austria' }).click();
+  await expect(page.getByRole('status', { name: 'Route drawing status' })).toContainText('2 points');
   await page.getByRole('button', { name: 'Finish route' }).click();
 
   await expect.poll(() => directionRequests).toBe(1);
@@ -96,7 +113,7 @@ test('road route becomes editable canonical project geometry and exports offline
   expect(directionRequests).toBe(1);
   await page.getByRole('dialog', { name: 'Export map' }).getByRole('button', { name: 'Close export' }).click();
 
-  await page.screenshot({ path: path.resolve('docs/screenshots/road-routing-20260826.png') });
+  await page.screenshot({ path: path.resolve('docs/screenshots/road-routing-search-20260826.png') });
   expect(await page.evaluate(() => document.body.scrollWidth - document.body.clientWidth)).toBe(0);
   expect(consoleProblems).toEqual([]);
 });

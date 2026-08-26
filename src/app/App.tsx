@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { useStore } from 'zustand';
 import type { ContentLayer, ProjectDocument } from '../domain/project';
 import type { PreviewPngExporter } from '../export/previewPng';
-import type { DirectionsProvider } from '../services/mapbox/contracts';
+import type { DirectionsProvider, SearchProvider } from '../services/mapbox/contracts';
 import { createIndexedDbAutosaveRepository, type AutosaveRepository } from '../storage/autosave';
 import {
   ProjectAutosaveDialogs,
@@ -24,6 +24,7 @@ import { createProjectStore } from './store';
 type AppProps = {
   autosaveRepository?: AutosaveRepository | null;
   directionsProvider?: DirectionsProvider;
+  searchProvider?: SearchProvider;
 };
 
 function visiblePreviewLayerId(layers: readonly ContentLayer[], previewedLayerId: string | null) {
@@ -32,7 +33,7 @@ function visiblePreviewLayerId(layers: readonly ContentLayer[], previewedLayerId
   return layer?.visible && layer.geometry ? previewedLayerId : null;
 }
 
-export function App({ autosaveRepository, directionsProvider }: AppProps = {}) {
+export function App({ autosaveRepository, directionsProvider, searchProvider }: AppProps = {}) {
   const [projectStore] = useState(() => createProjectStore());
   const [resolvedAutosaveRepository] = useState(() => (
     autosaveRepository === undefined
@@ -115,7 +116,7 @@ export function App({ autosaveRepository, directionsProvider }: AppProps = {}) {
           onLayerSelect={project.selectLayer} onCameraViewportChange={project.setCameraViewport} onRouteGeometryChange={project.replaceRouteGeometry}
           onLocate={mapLocation.locate}
           onShapeGeometryChange={project.setShapeGeometry}
-          directionsProvider={directionsProvider}
+          directionsProvider={directionsProvider} searchProvider={searchProvider}
           onCreateDirectionsRoute={project.createDirectionsRoute}
           onCreateAdministrativeArea={project.createAdministrativeArea}
           onCreateAdministrativeAreas={project.createAdministrativeAreas} onCreateIsochroneArea={project.createIsochroneArea}
