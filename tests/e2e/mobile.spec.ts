@@ -198,6 +198,110 @@ const verifyResponsiveTransitions = async (page: Page, toolbar: Locator, mapRead
   }
 };
 
+const expectFullTouchTargets = async (buttons: Locator) => {
+  const buttonList = await buttons.all();
+  expect(buttonList.length).toBeGreaterThan(0);
+  for (const button of buttonList) {
+    const box = await button.boundingBox();
+    expect(Math.round(box?.width ?? 0)).toBeGreaterThanOrEqual(44);
+    expect(Math.round(box?.height ?? 0)).toBeGreaterThanOrEqual(44);
+  }
+};
+
+const expectNoOverlap = async (first: Locator, second: Locator) => {
+  const firstBox = await first.boundingBox();
+  const secondBox = await second.boundingBox();
+  expect(firstBox).not.toBeNull();
+  expect(secondBox).not.toBeNull();
+  const isOverlapping = firstBox!.x < secondBox!.x + secondBox!.width
+    && firstBox!.x + firstBox!.width > secondBox!.x
+    && firstBox!.y < secondBox!.y + secondBox!.height
+    && firstBox!.y + firstBox!.height > secondBox!.y;
+  expect(isOverlapping).toBe(false);
+};
+
+const expectContained = async (container: Locator, children: Locator) => {
+  const containerBox = await container.boundingBox();
+  expect(containerBox).not.toBeNull();
+  const childList = await children.all();
+  for (const child of childList) {
+    const childBox = await child.boundingBox();
+    expect(childBox).not.toBeNull();
+    expect(childBox!.y).toBeGreaterThanOrEqual(containerBox!.y);
+    expect(childBox!.y + childBox!.height).toBeLessThanOrEqual(containerBox!.y + containerBox!.height);
+  }
+};
+
+test('mobile navigation buttons use full touch targets', async ({ page }) => {
+  const consoleErrors: string[] = [];
+  const pageErrors: string[] = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') consoleErrors.push(message.text());
+  });
+  page.on('pageerror', (error) => {
+    pageErrors.push(error.message);
+  });
+
+  for (const width of [390, 320]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto('/');
+
+    const panelButtons = page.locator('.mobile-panel-actions button');
+    const toolButtons = page.locator('.tool-palette .tool-button');
+    await expect(panelButtons).toHaveCount(2);
+    await expect(toolButtons).toHaveCount(6);
+    await expectFullTouchTargets(panelButtons);
+    await expectFullTouchTargets(toolButtons);
+    if (width === 390) {
+      await page.screenshot({ path: 'docs/screenshots/mobile-nav-touch-targets.png' });
+    }
+
+    const toolbar = page.getByRole('navigation', { name: 'Map tools' });
+    const mapScale = page.locator('.map-scale');
+    const mapControls = page.locator('.maplibregl-ctrl-bottom-right');
+    const attribution = page.locator('.maplibregl-ctrl-bottom-left');
+    await expect(mapScale).toBeVisible();
+    await expect(mapControls).toBeVisible({ timeout: 20_000 });
+    await expect(attribution).toBeVisible();
+    await expectNoOverlap(toolbar, mapScale);
+    await expectNoOverlap(toolbar, mapControls);
+    await expectNoOverlap(toolbar, attribution);
+
+    await page.getByRole('button', { name: 'Open properties' }).click();
+    const propertiesDialog = page.getByRole('dialog', { name: 'Properties sidebar' });
+    await expect(propertiesDialog).toBeVisible();
+    await expect(propertiesDialog.getByRole('heading', { name: 'Project' })).toBeVisible();
+    await expectFullTouchTargets(propertiesDialog.getByRole('button'));
+    const orientation = propertiesDialog.locator('.segmented').first();
+    await expectContained(orientation, orientation.getByRole('button'));
+    await page.getByRole('button', { name: 'Close properties' }).click();
+
+    await page.getByRole('button', { name: 'Open layers' }).click();
+    const layersDialog = page.getByRole('dialog', { name: 'Layers sidebar' });
+    await expect(layersDialog).toBeVisible();
+    await expectFullTouchTargets(layersDialog.getByRole('button'));
+    await layersDialog.getByRole('button', { name: 'Select Route 01' }).click();
+
+    await page.getByRole('button', { name: 'Open properties' }).click();
+    await expect(propertiesDialog).toBeVisible();
+    await expect(propertiesDialog.getByRole('heading', { name: 'Route 01' })).toBeVisible();
+    await expectFullTouchTargets(propertiesDialog.getByRole('button'));
+    await expectNoOverlap(
+      propertiesDialog.getByRole('button', { name: 'Close properties' }),
+      propertiesDialog.getByRole('button', { name: 'Layer menu' }),
+    );
+    await page.getByRole('button', { name: 'Close properties' }).click();
+
+    const toolbarBox = await toolbar.boundingBox();
+    expect(toolbarBox?.x).toBeGreaterThanOrEqual(8);
+    expect((toolbarBox?.x ?? 0) + (toolbarBox?.width ?? 0)).toBeLessThanOrEqual(width - 8);
+    expect(await page.evaluate(() => document.body.scrollWidth)).toBeLessThanOrEqual(width);
+  }
+
+  expect(consoleErrors).toEqual([]);
+  expect(pageErrors).toEqual([]);
+});
+
 test('mobile shell exposes accessible drawers and non-overlapping attribution states', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');

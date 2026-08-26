@@ -1220,14 +1220,45 @@ button:focus-visible, input:focus-visible, select:focus-visible {
     left: calc(8px + var(--studio-safe-left));
   }
   .mobile-panel-actions button {
-    @apply inline-flex min-h-9 items-center gap-1.5 px-2.5 font-medium;
+    @apply inline-flex min-h-11 items-center gap-1.5 px-3 font-medium;
+    min-width: 2.75rem;
     border: var(--studio-border-width) solid var(--studio-line-strong);
     border-radius: var(--studio-radius-md);
     background: var(--studio-surface-raised);
     font-size: var(--studio-font-control);
   }
+  .left-sidebar.is-mobile-open .panel-header { min-height: 2.75rem; }
+  .left-sidebar.is-mobile-open .layer-row {
+    grid-template-columns: 2.75rem minmax(0, 1fr) 2.75rem 2.75rem;
+    min-height: 2.75rem;
+  }
+  .left-sidebar.is-mobile-open button,
+  .right-sidebar.is-mobile-open button {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
+  .right-sidebar.is-mobile-open .properties-title { padding-right: 6.5rem; }
+  .right-sidebar.is-mobile-open .properties-title > .icon-button {
+    @apply absolute top-2;
+    right: 3.5rem;
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+  .right-sidebar.is-mobile-open .segmented { height: calc(2.75rem + 2px); }
+  .left-sidebar.is-mobile-open .layer-select,
+  .left-sidebar.is-mobile-open .layer-visibility,
+  .left-sidebar.is-mobile-open .layer-lock,
+  .left-sidebar.is-mobile-open .layer-drag,
+  .left-sidebar.is-mobile-open .icon-button {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+  .left-sidebar.is-mobile-open .layer-select { width: auto; }
   .mobile-drawer-close {
-    @apply absolute right-10 top-2 z-10 grid h-7 w-7 place-items-center;
+    @apply absolute top-2 z-10 grid place-items-center;
+    right: 0.5rem;
+    width: 2.75rem;
+    height: 2.75rem;
     border-radius: var(--studio-radius-sm);
     color: var(--studio-text-secondary);
   }
@@ -1237,30 +1268,36 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 
   .tool-palette {
     bottom: max(14px, var(--studio-safe-bottom));
+    height: 3.25rem;
     left: calc(50% + (var(--studio-safe-left) - var(--studio-safe-right)) / 2);
     max-width: calc(100vw - 16px - var(--studio-safe-left) - var(--studio-safe-right));
     overflow-x: auto;
     scrollbar-width: none;
   }
+  .tool-button { width: 2.75rem; height: 2.75rem; }
   .tool-palette::-webkit-scrollbar { display: none; }
   .shape-editing-toolbar {
-    bottom: calc(max(14px, var(--studio-safe-bottom)) + 3.5rem);
+    bottom: calc(max(14px, var(--studio-safe-bottom)) + 4rem);
     left: calc(50% + (var(--studio-safe-left) - var(--studio-safe-right)) / 2);
   }
   .map-authoring-panel {
-    bottom: calc(max(14px, var(--studio-safe-bottom)) + 3.5rem);
+    bottom: calc(max(14px, var(--studio-safe-bottom)) + 4rem);
     max-width: calc(100vw - 16px - var(--studio-safe-left) - var(--studio-safe-right));
   }
   .poi-spreadsheet-panel {
-    bottom: calc(max(14px, var(--studio-safe-bottom)) + 3.5rem);
+    bottom: calc(max(14px, var(--studio-safe-bottom)) + 4rem);
     left: calc(50% + (var(--studio-safe-left) - var(--studio-safe-right)) / 2);
     width: calc(100vw - 16px - var(--studio-safe-left) - var(--studio-safe-right));
     max-height: calc(100dvh - 8rem - var(--studio-safe-top) - var(--studio-safe-bottom));
   }
   .poi-spreadsheet-heading { @apply items-start; }
   .poi-spreadsheet-panel textarea { min-height: 5.5rem; max-height: 22dvh; }
+  .maplibregl-ctrl-bottom-left,
+  .maplibregl-ctrl-bottom-right,
+  .map-scale {
+    bottom: calc(max(14px, var(--studio-safe-bottom)) + 4rem);
+  }
   .maplibregl-ctrl-bottom-left {
-    bottom: var(--studio-safe-bottom);
     left: calc(4px + var(--studio-safe-left));
   }
   .maplibregl-ctrl-bottom-right { right: calc(10px + var(--studio-safe-right)); }
@@ -1281,7 +1318,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   .maplibregl-ctrl-attrib.maplibregl-compact[open] {
     max-width: min(72vw, 13rem);
     padding-left: 26px !important;
-    transform: translateY(-62px);
+    transform: none;
     font-size: var(--studio-font-meta);
   }
 
