@@ -199,6 +199,53 @@ test('a finished custom area supports point editing, insertion, undo, and explic
   await expect(page.locator('.shape-transform-marker')).toHaveCount(5);
 });
 
+test('Swiss canton catalogue creates a durable area with print parity', async ({ page }, testInfo) => {
+  const consoleProblems: string[] = [];
+  page.on('pageerror', (error) => { consoleProblems.push(error.message); });
+  page.on('console', (message) => {
+    if ((message.type() === 'error' || message.type() === 'warning') && !isHeadlessWebGlDiagnostic(message.text())) {
+      consoleProblems.push(message.text());
+    }
+  });
+  await page.goto('/');
+  await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
+
+  await page.getByRole('button', { name: 'Area (S)' }).click();
+  await page.getByRole('combobox', { name: 'Administrative level' }).selectOption('region');
+  await page.getByRole('combobox', { name: 'Region country' }).selectOption('CHE');
+  const cantons = page.getByRole('group', { name: 'Switzerland regions' });
+  await expect(cantons.getByRole('checkbox')).toHaveCount(26);
+  await cantons.getByRole('checkbox', { name: 'Zürich' }).check();
+  await page.getByRole('button', { name: 'Add selected area' }).click();
+  await expect(page.getByRole('button', { name: 'Select Zürich' })).toHaveAttribute('aria-current', 'true');
+  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-geometry', /admin-ch-zh:/);
+  if (testInfo.project.name === 'chromium') {
+    await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/switzerland-canton-catalogue-20260826.png' });
+  }
+
+  const savePromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Save' }).click();
+  const save = await savePromise;
+  const savePath = testInfo.outputPath('switzerland-canton.printmap.json');
+  await save.saveAs(savePath);
+  const savedProject = JSON.parse(await readFile(savePath, 'utf8'));
+  const canton = savedProject.layers.find(({ id }: { id: string }) => id === 'admin-ch-zh');
+  expect(savedProject.schemaVersion).toBe(21);
+  expect(canton).toMatchObject({ name: 'Zürich', geometry: { type: 'Polygon' } });
+
+  await page.getByRole('button', { name: 'Export' }).click();
+  const exportDialog = page.getByRole('dialog', { name: 'Export map' });
+  await exportDialog.getByRole('radio', { name: /Layered SVG/ }).click();
+  const svgPromise = page.waitForEvent('download');
+  await exportDialog.getByRole('button', { name: 'Download layered SVG' }).click();
+  const svgDownload = await svgPromise;
+  const svgPath = testInfo.outputPath('switzerland-canton.layered.svg');
+  await svgDownload.saveAs(svgPath);
+  const svg = await readFile(svgPath, 'utf8');
+  expect(svg).toContain('data-layer-name="Zürich"');
+  expect(consoleProblems).toEqual([]);
+});
+
 test('German, Polish, Czech, Hungarian, Slovak and Austrian region catalogues create durable areas with print parity', async ({ page }, testInfo) => {
   const consoleProblems: string[] = [];
   page.on('pageerror', (error) => { consoleProblems.push(error.message); });

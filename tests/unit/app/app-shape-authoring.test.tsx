@@ -154,6 +154,22 @@ it('exposes every German federal state through the region country selector', asy
   expect(screen.getByText('Germany · Natural Earth')).toBeInTheDocument();
 });
 
+it('exposes every Swiss canton through the region country selector', async () => {
+  const user = userEvent.setup();
+  render(<App autosaveRepository={null} />);
+
+  await user.click(screen.getByRole('button', { name: 'Area (S)' }));
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Administrative level' }), 'region');
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Region country' }), 'CHE');
+
+  const regions = screen.getByRole('group', { name: 'Switzerland regions' });
+  expect(within(regions).getAllByRole('checkbox')).toHaveLength(26);
+  expect(within(regions).getByRole('checkbox', { name: 'Zürich' })).toBeInTheDocument();
+  expect(within(regions).getByRole('checkbox', { name: 'Geneva' })).toBeInTheDocument();
+  expect(within(regions).getByRole('checkbox', { name: 'Graubünden' })).toBeInTheDocument();
+  expect(screen.getByText('Switzerland · Natural Earth')).toBeInTheDocument();
+});
+
 it('filters the active region catalogue without losing hidden selections', async () => {
   const user = userEvent.setup();
   render(<App autosaveRepository={null} />);
