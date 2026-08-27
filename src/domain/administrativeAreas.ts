@@ -171,87 +171,6 @@ export function administrativeAreaById(id: string): AdministrativeArea | undefin
   return ADMINISTRATIVE_AREAS.find((area) => area.id === id);
 }
 
-const positionKey = ([longitude, latitude]: readonly [number, number]) => `${longitude},${latitude}`; type BoundaryEdge = readonly [[number, number], [number, number]];
-
-function addRingEdges(edges: Map<string, BoundaryEdge>, ring: readonly (readonly [number, number])[]) {
-  for (let index = 1; index < ring.length; index += 1) {
-    const start = ring[index - 1];
-    const end = ring[index];
-    const key = `${positionKey(start)}>${positionKey(end)}`;
-    const reverseKey = `${positionKey(end)}>${positionKey(start)}`;
-    if (!edges.delete(reverseKey)) edges.set(key, [[...start], [...end]]);
-  }
-}
-
-function haveSharedBoundary(left: PolygonAdministrativeArea, right: PolygonAdministrativeArea): boolean {
-  const leftEdges = new Set<string>();
-  for (const ring of left.geometry.coordinates) {
-    for (let index = 1; index < ring.length; index += 1) {
-      leftEdges.add(`${positionKey(ring[index - 1])}>${positionKey(ring[index])}`);
-    }
-  }
-  return right.geometry.coordinates.some((ring) => ring.some((position, index) => (
-    index > 0 && leftEdges.has(`${positionKey(position)}>${positionKey(ring[index - 1])}`)
-  )));
-}
-
-function isConnectedSelection(areas: readonly PolygonAdministrativeArea[]): boolean {
-  const connected = new Set([0]);
-  while (connected.size < areas.length) {
-    const adjacentIndex = areas.findIndex((area, index) => (
-      !connected.has(index)
-      && [...connected].some((candidate) => haveSharedBoundary(areas[candidate], area))
-    ));
-    if (adjacentIndex === -1) return false;
-    connected.add(adjacentIndex);
-  }
-  return true;
-}
-
-function edgeStartingAt(edges: Map<string, BoundaryEdge>, startKey: string): [string, BoundaryEdge] | undefined {
-  for (const [key, edge] of edges) {
-    if (positionKey(edge[0]) === startKey) return [key, edge];
-  }
-}
-
-function reversedRing(ring: readonly [number, number][]): [number, number][] {
-  const reversed: [number, number][] = [];
-  for (let index = ring.length - 1; index >= 0; index -= 1) reversed.push(ring[index]);
-  return reversed;
-}
-
-function mergeAlignedRings(areas: readonly PolygonAdministrativeArea[]): [number, number][][] | undefined {
-  const edges = new Map<string, BoundaryEdge>();
-  for (const area of areas) {
-    for (const ring of area.geometry.coordinates) addRingEdges(edges, ring);
-  }
-
-  const remaining = new Map(edges);
-  const rings: [number, number][][] = [];
-  while (remaining.size > 0) {
-    const firstEntry = remaining.entries().next().value;
-    if (!firstEntry) return;
-    const [firstKey, firstEdge] = firstEntry;
-    remaining.delete(firstKey);
-    const ring: [number, number][] = [[...firstEdge[0]], [...firstEdge[1]]];
-    while (positionKey(ring.at(-1)!) !== positionKey(ring[0])) {
-      const currentKey = positionKey(ring.at(-1)!);
-      const nextEntry = edgeStartingAt(remaining, currentKey);
-      if (!nextEntry) return;
-      remaining.delete(nextEntry[0]);
-      ring.push([...nextEntry[1][1]]);
-      if (ring.length > edges.size + 1) return;
-    }
-    rings.push(ring);
-  }
-  rings.sort((left, right) => Math.abs(ringArea(right)) - Math.abs(ringArea(left)));
-  return rings.map((ring, index) => {
-    const isCounterClockwise = ringArea(ring) > 0;
-    const shouldBeCounterClockwise = index === 0;
-    return isCounterClockwise === shouldBeCounterClockwise ? ring : reversedRing(ring);
-  });
-}
-
 function mergeMunicipalityPolygons(areas: readonly PolygonAdministrativeArea[]): [number, number][][] | undefined {
   try {
     const polygons = areas.map(({ geometry }) => geometry.coordinates.map((ring) => (
@@ -267,6 +186,60 @@ function mergeMunicipalityPolygons(areas: readonly PolygonAdministrativeArea[]):
     );
     const meaningfulHoles = holes.filter((ring) => Math.abs(ringArea(ring)) > sliverAreaLimit);
     return [exterior, ...meaningfulHoles].map((ring) => ring.map(([longitude, latitude]) => [longitude, latitude]));
+  } catch {
+    return undefined;
+  }
+}
+
+function geometryPartCount({ geometry }: AdministrativeArea): number {
+  return unionPolygons(geometry.coordinates).length;
+}
+
+function regionGeometryBounds({ geometry }: AdministrativeArea): [number, number, number, number] {
+  const polygons = geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates;
+  let west = Infinity, south = Infinity, east = -Infinity, north = -Infinity;
+  for (const polygon of polygons) {
+    for (const ring of polygon) {
+      for (const [longitude, latitude] of ring) {
+        west = Math.min(west, longitude);
+        south = Math.min(south, latitude);
+        east = Math.max(east, longitude);
+        north = Math.max(north, latitude);
+      }
+    }
+  }
+  return [west, south, east, north];
+}
+
+function areRegionsConnected(left: AdministrativeArea, right: AdministrativeArea): boolean {
+  const [leftWest, leftSouth, leftEast, leftNorth] = regionGeometryBounds(left);
+  const [rightWest, rightSouth, rightEast, rightNorth] = regionGeometryBounds(right);
+  if (leftEast < rightWest || rightEast < leftWest || leftNorth < rightSouth || rightNorth < leftSouth) return false;
+  return unionPolygons(left.geometry.coordinates, right.geometry.coordinates).length
+    < geometryPartCount(left) + geometryPartCount(right);
+}
+
+function isConnectedRegionSelection(areas: readonly AdministrativeArea[]): boolean {
+  const connected = new Set([0]);
+  while (connected.size < areas.length) {
+    const nextIndex = areas.findIndex((area, index) => (
+      !connected.has(index) && [...connected].some((candidate) => areRegionsConnected(areas[candidate], area))
+    ));
+    if (nextIndex === -1) return false;
+    connected.add(nextIndex);
+  }
+  return true;
+}
+
+function mergeRegionGeometry(areas: readonly AdministrativeArea[]): AdministrativeArea['geometry'] | undefined {
+  try {
+    if (!isConnectedRegionSelection(areas)) return;
+    const geometries = areas.map(({ geometry }) => geometry.coordinates);
+    const merged = unionPolygons(geometries[0], ...geometries.slice(1));
+    if (merged.length === 0) return;
+    return merged.length === 1
+      ? { type: 'Polygon', coordinates: merged[0] }
+      : { type: 'MultiPolygon', coordinates: merged };
   } catch {
     return undefined;
   }
@@ -300,16 +273,18 @@ export function mergeAdministrativeAreaRecords(areas: readonly AdministrativeAre
   if (!selection) return;
   const { areas: selectedAreas, level } = selection;
   if (selectedAreas.length === 1) return selectedAreas[0];
-  if (selectedAreas.some(({ geometry }) => geometry.type !== 'Polygon')) return;
-  const polygonAreas = selectedAreas as PolygonAdministrativeArea[];
-  if (!isConnectedSelection(polygonAreas)) return;
-  const coordinates = level === 'municipality'
-    ? mergeMunicipalityPolygons(polygonAreas)
-    : mergeAlignedRings(polygonAreas);
-  if (!coordinates) return;
+  let geometry: AdministrativeArea['geometry'] | undefined;
+  if (level === 'municipality') {
+    if (selectedAreas.some(({ geometry: candidate }) => candidate.type !== 'Polygon')) return;
+    const coordinates = mergeMunicipalityPolygons(selectedAreas as PolygonAdministrativeArea[]);
+    if (coordinates) geometry = { type: 'Polygon', coordinates };
+  } else {
+    geometry = mergeRegionGeometry(selectedAreas);
+  }
+  if (!geometry) return;
   return {
     countryCode: selectedAreas[0].countryCode, id: selectedAreas.map(({ id }) => id).join('+'), name: selectedAreas.map(({ name }) => name).join(' + '),
-    level, source: selectedAreas[0].source, geometry: { type: 'Polygon', coordinates },
+    level, source: selectedAreas[0].source, geometry,
   };
 }
 

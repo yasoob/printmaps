@@ -2,7 +2,9 @@ import { createProjectStore } from '../../src/app/store';
 import {
   ADMINISTRATIVE_AREAS,
   administrativeAreaById,
+  mergeAdministrativeAreaRecords,
   mergeAdministrativeAreas,
+  type AdministrativeArea,
 } from '../../src/domain/administrativeAreas';
 import { createInitialProjectDocument } from '../../src/domain/project';
 import { MAX_PROJECT_COORDINATES } from '../../src/domain/projectFile';
@@ -15,6 +17,10 @@ function signedRingArea(ring: readonly (readonly [number, number])[]): number {
     area += x1 * y2 - x2 * y1;
   }
   return area / 2;
+}
+
+function generatedArea(id: string, geometry: AdministrativeArea['geometry']): AdministrativeArea {
+  return { countryCode: 'TST', id, name: id, level: 'region', source: 'Generated test data', geometry };
 }
 
 describe('bundled Slovak administrative regions', () => {
@@ -243,6 +249,79 @@ describe('bundled administrative areas', () => {
     expect(store.getState().document.layers.some(({ id }) => id === createdId)).toBe(false);
     expect(store.getState().canUndo).toBe(false);
   });
+});
+
+it('merges an adjacent region into a multipart generated region without losing its island', () => {
+  const multipart: AdministrativeArea = {
+    countryCode: 'TST',
+    id: 'TST-ISLANDS',
+    name: 'Mainland and island',
+    level: 'region',
+    source: 'Generated test data',
+    geometry: {
+      type: 'MultiPolygon',
+      coordinates: [
+        [[[0, 0], [2, 0], [2, 2], [0, 0]]],
+        [[[10, 10], [11, 10], [11, 11], [10, 10]]],
+      ],
+    },
+  };
+  const adjacent: AdministrativeArea = {
+    countryCode: 'TST',
+    id: 'TST-EAST',
+    name: 'East',
+    level: 'region',
+    source: 'Generated test data',
+    geometry: {
+      type: 'Polygon',
+      coordinates: [[[2, 0], [3, 0], [2, 2], [2, 0]]],
+    },
+  };
+
+  const merged = mergeAdministrativeAreaRecords([multipart, adjacent]);
+
+  expect(merged).toMatchObject({
+    id: 'TST-ISLANDS+TST-EAST',
+    name: 'Mainland and island + East',
+    geometry: { type: 'MultiPolygon' },
+  });
+  expect(merged?.geometry.type === 'MultiPolygon' ? merged.geometry.coordinates : []).toHaveLength(2);
+});
+
+it('rejects a disconnected region even when another region bridges multipart components', () => {
+  const multipart = generatedArea('TST-MULTI', {
+    type: 'MultiPolygon',
+    coordinates: [
+      [[[0, 0], [1, 0], [1, 1], [0, 0]]],
+      [[[2, 0], [3, 0], [2, 1], [2, 0]]],
+    ],
+  });
+  const bridge = generatedArea('TST-BRIDGE', {
+    type: 'Polygon',
+    coordinates: [[[1, 0], [2, 0], [2, 1], [1, 1], [1, 0]]],
+  });
+  const disconnected = generatedArea('TST-DISCONNECTED', {
+    type: 'Polygon',
+    coordinates: [[[10, 10], [11, 10], [11, 11], [10, 10]]],
+  });
+
+  expect(mergeAdministrativeAreaRecords([multipart, bridge, disconnected])).toBeUndefined();
+});
+
+it('rejects a disconnected region beside overlapping multipart components', () => {
+  const overlapping = generatedArea('TST-OVERLAPPING', {
+    type: 'MultiPolygon',
+    coordinates: [
+      [[[0, 0], [4, 0], [0, 4], [0, 0]]],
+      [[[0, 0], [4, 0], [0, 4], [0, 0]]],
+    ],
+  });
+  const disconnected = generatedArea('TST-DISCONNECTED', {
+    type: 'Polygon',
+    coordinates: [[[3, 3], [3.5, 3], [3, 3.5], [3, 3]]],
+  });
+
+  expect(mergeAdministrativeAreaRecords([overlapping, disconnected])).toBeUndefined();
 });
 
 it('does not add a generated area beyond aggregate project coordinate capacity', () => {

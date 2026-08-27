@@ -57,6 +57,48 @@ test('generated worldwide catalogue lazily creates a durable Japanese region', a
   expect(consoleProblems).toEqual([]);
 });
 
+test('generated multipart region merges with an adjacent region and keeps every island', async ({ page }, testInfo) => {
+  test.setTimeout(60_000);
+  const consoleProblems: string[] = [];
+  page.on('pageerror', (error) => { consoleProblems.push(error.message); });
+  page.on('console', (message) => {
+    if ((message.type() === 'error' || message.type() === 'warning') && !isExpectedWebGlDiagnostic(message.text())) {
+      consoleProblems.push(message.text());
+    }
+  });
+
+  await page.goto('/');
+  await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
+  await page.getByRole('button', { name: 'Area (S)' }).click();
+  await page.getByRole('combobox', { name: 'Administrative level' }).selectOption('region');
+  await page.getByRole('combobox', { name: 'Region country' }).selectOption('JPN');
+
+  const regions = page.getByRole('group', { name: 'Japan regions' });
+  await expect(page.getByRole('status', { name: 'Administrative catalogue status' })).toHaveText('47 Japan regions loaded.');
+  await regions.getByRole('checkbox', { name: 'Aichi Prefecture' }).check();
+  await regions.getByRole('checkbox', { name: 'Gifu Prefecture' }).check();
+  await page.getByRole('button', { name: 'Merge 2 selected areas' }).click();
+
+  const layerName = 'Aichi Prefecture + Gifu Prefecture';
+  await expect(page.getByRole('button', { name: `Select ${layerName}` })).toHaveAttribute('aria-current', 'true');
+  await page.screenshot({
+    animations: 'disabled',
+    path: 'docs/screenshots/generated-multipart-region-merge-20260826.png',
+  });
+
+  const savePromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Project' }).click();
+  await page.getByRole('menuitem', { name: 'Download project' }).click();
+  const save = await savePromise;
+  const savePath = testInfo.outputPath('japan-multipart-merge.printmap.json');
+  await save.saveAs(savePath);
+  const project = JSON.parse(await readFile(savePath, 'utf8'));
+  const merged = project.layers.find(({ name }: { name: string }) => name === layerName);
+  expect(merged).toMatchObject({ geometry: { type: 'MultiPolygon' } });
+  expect(merged.geometry.coordinates).toHaveLength(2);
+  expect(consoleProblems).toEqual([]);
+});
+
 test('generated worldwide catalogue lazily creates a durable country', async ({ page }, testInfo) => {
   test.setTimeout(60_000);
   const consoleProblems: string[] = [];
