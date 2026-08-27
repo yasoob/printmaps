@@ -31,6 +31,15 @@ function routePositions(layer: ContentLayer): readonly (readonly [number, number
   return null;
 }
 
+function editedRouteLayer(
+  layer: ContentLayer,
+  geometry: NonNullable<ContentLayer['geometry']>,
+): ContentLayer {
+  const updated = { ...layer, geometry };
+  if (updated.provenance?.service === 'map-matching-v5') delete updated.provenance;
+  return updated;
+}
+
 export function replaceRouteGeometry(
   layer: ContentLayer | undefined,
   positions: readonly (readonly [number, number])[],
@@ -49,9 +58,7 @@ export function replaceRouteGeometry(
     ? createArcGeometry(coordinates)
     : { type: 'LineString' as const, coordinates };
   if (!geometry) return null;
-  const updated = { ...layer, geometry };
-  delete updated.provenance;
-  return updated;
+  return editedRouteLayer(layer, geometry);
 }
 
 export function moveRouteVertex(
@@ -90,9 +97,7 @@ export function insertRouteVertex(
   if (!isValidPosition(inserted[0], inserted[1])) return null;
   const coordinates = layer.geometry.coordinates.map((coordinate) => [...coordinate] as [number, number]);
   coordinates.splice(vertexIndex + 1, 0, inserted);
-  const updated = { ...layer, geometry: { type: 'LineString' as const, coordinates } };
-  delete updated.provenance;
-  return updated;
+  return editedRouteLayer(layer, { type: 'LineString', coordinates });
 }
 
 export function removeRouteVertex(
@@ -111,7 +116,5 @@ export function removeRouteVertex(
   const coordinates = layer.geometry.coordinates.map((coordinate) => [...coordinate] as [number, number]);
   coordinates.splice(vertexIndex, 1);
   if (new Set(coordinates.map(([longitude, latitude]) => `${longitude},${latitude}`)).size < 2) return null;
-  const updated = { ...layer, geometry: { type: 'LineString' as const, coordinates } };
-  delete updated.provenance;
-  return updated;
+  return editedRouteLayer(layer, { type: 'LineString', coordinates });
 }

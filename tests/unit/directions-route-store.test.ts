@@ -17,3 +17,17 @@ it('rejects malformed road-route options without mutating history', () => {
   expect(store.getState().document.layers.some(({ provenance }) => provenance?.service === 'directions-v5')).toBe(false);
   expect(store.getState().canUndo).toBe(false);
 });
+
+it('retains directions attribution provenance after a manual route vertex edit', () => {
+  const store = createProjectStore(createInitialProjectDocument());
+  const epoch = store.getState().documentEpoch;
+  const id = store.getState().createDirectionsRoute(input, {
+    lineShape: 'road', travelProfile: 'car', showTravelModeIcon: false,
+  }, epoch);
+
+  store.getState().setRouteVertex(id!, 0, [16.311, 48.19]);
+
+  expect(store.getState().document.layers.find((layer) => layer.id === id)?.provenance).toMatchObject({
+    provider: 'mapbox', service: 'directions-v5', distanceMeters: 9200, durationSeconds: 1320,
+  });
+});
