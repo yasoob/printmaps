@@ -473,6 +473,13 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 .administrative-region-error { color: var(--studio-danger); font-size: var(--studio-font-meta); }
 .map-authoring-panel > span { @apply whitespace-nowrap px-1; }
+.map-authoring-panel > [role="status"][aria-label^="Administrative"] {
+  flex: 1 0 100%;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-align: center;
+  white-space: normal;
+}
 .map-authoring-panel > button:not(.primary-button) {
   @apply inline-flex h-7 items-center gap-1 px-2;
   border-radius: var(--studio-radius-md);

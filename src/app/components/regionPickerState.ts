@@ -5,7 +5,6 @@ export type RegionPickerState = Readonly<{
   catalogue: GeneratedAdministrativeIndex | null;
   countryCode: AdministrativeCountryCode;
   error: string;
-  isCatalogueUnavailable: boolean;
   loaded: { countryCode: string; regions: readonly AdministrativeArea[] } | null;
   loadStatus: Readonly<{ countryCode?: string; text: string }>;
   query: string;
@@ -26,7 +25,6 @@ export const INITIAL_REGION_PICKER_STATE: RegionPickerState = {
   catalogue: null,
   countryCode: 'AUT',
   error: '',
-  isCatalogueUnavailable: false,
   loaded: null,
   loadStatus: { text: 'Loading worldwide region catalogue…' },
   query: '',
@@ -36,7 +34,7 @@ export const INITIAL_REGION_PICKER_STATE: RegionPickerState = {
 export function reduceRegionPicker(state: RegionPickerState, action: RegionPickerAction): RegionPickerState {
   if (action.type === 'catalogue-loaded') return { ...state, catalogue: action.catalogue };
   if (action.type === 'catalogue-unavailable') {
-    return { ...state, isCatalogueUnavailable: true, loadStatus: { text: action.message } };
+    return { ...state, loadStatus: { text: action.message } };
   }
   if (action.type === 'country-changed') {
     return {

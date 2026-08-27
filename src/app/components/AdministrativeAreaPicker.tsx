@@ -48,11 +48,22 @@ function RegionCoverage({ catalogue, regionCount }: Readonly<{
   );
 }
 
-const countryAreas = ADMINISTRATIVE_AREAS.filter(({ level }) => level === 'country');
-const regionAreas = ADMINISTRATIVE_AREAS.filter(({ level }) => level === 'region');
-const regionCountries = countryAreas.filter(({ countryCode }) => (
-  regionAreas.some((area) => area.countryCode === countryCode)
-));
+function regionPresentation(
+  countryOptions: readonly { id: string; name: string }[],
+  countryCode: string,
+) {
+  const countryName = countryOptions.find(({ id }) => id === countryCode)?.name;
+  return countryName ? {
+    filterLabel: `Filter ${countryName} regions`,
+    groupLabel: `${countryName} regions`,
+    sourceLabel: `${countryName} · Natural Earth`,
+  } : {
+    filterLabel: 'Filter regions',
+    groupLabel: 'Regions',
+    sourceLabel: 'Natural Earth worldwide catalogue',
+  };
+}
+
 const municipalityAreas = ADMINISTRATIVE_AREAS.filter(({ level }) => level === 'municipality');
 
 function CountryAreaPicker({ onAdd }: Pick<AdministrativeAreaPickerProps, 'onAdd'>) {
@@ -67,7 +78,7 @@ function CountryAreaPicker({ onAdd }: Pick<AdministrativeAreaPickerProps, 'onAdd
       if (!controller.signal.aborted) setCatalogue(index);
     }).catch((loadError: unknown) => {
       if (!controller.signal.aborted) {
-        setLoadStatus(`Worldwide catalogue unavailable. Using bundled countries. ${loadError instanceof Error ? loadError.message : ''}`.trim());
+        setLoadStatus(`Worldwide catalogue unavailable. Boundaries cannot be added until it is available. ${loadError instanceof Error ? loadError.message : ''}`.trim());
       }
     });
     return () => controller.abort();
@@ -90,14 +101,13 @@ function CountryAreaPicker({ onAdd }: Pick<AdministrativeAreaPickerProps, 'onAdd
     return () => controller.abort();
   }, [catalogue, countryCode]);
 
-  const countryOptions = catalogue?.countries ?? countryAreas.map(({ id, name }) => ({ id, name }));
-  const selectedCountryName = countryOptions.find(({ id }) => id === countryCode)?.name ?? countryCode;
-  const fallbackCountry = catalogue ? undefined : countryAreas.find(({ id }) => id === countryCode);
-  const selectedCountry = loaded?.countryCode === countryCode ? loaded.country : fallbackCountry;
+  const countryOptions = catalogue?.countries ?? [];
+  const selectedCountryName = countryOptions.find(({ id }) => id === countryCode)?.name ?? 'Worldwide countries';
+  const selectedCountry = loaded?.countryCode === countryCode ? loaded.country : undefined;
 
   return (
     <>
-      <label>Area <select aria-label="Administrative area" value={countryCode} onChange={(event) => {
+      <label>Area <select aria-label="Administrative area" disabled={countryOptions.length === 0} value={countryCode} onChange={(event) => {
         const nextCountryCode = event.target.value;
         const nextCountryName = countryOptions.find(({ id }) => id === nextCountryCode)?.name ?? nextCountryCode;
         setCountryCode(nextCountryCode);
@@ -113,7 +123,7 @@ function CountryAreaPicker({ onAdd }: Pick<AdministrativeAreaPickerProps, 'onAdd
 
 function RegionAreaPicker({ onMerge }: Pick<AdministrativeAreaPickerProps, 'onMerge'>) {
   const [state, dispatch] = useReducer(reduceRegionPicker, INITIAL_REGION_PICKER_STATE);
-  const { catalogue, countryCode, error, isCatalogueUnavailable, loaded, loadStatus, query, selectedIds } = state;
+  const { catalogue, countryCode, error, loaded, loadStatus, query, selectedIds } = state;
   const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
 
   useEffect(() => {
@@ -124,7 +134,7 @@ function RegionAreaPicker({ onMerge }: Pick<AdministrativeAreaPickerProps, 'onMe
       if (controller.signal.aborted) return;
       dispatch({
         type: 'catalogue-unavailable',
-        message: `Worldwide catalogue unavailable. Using bundled regions. ${loadError instanceof Error ? loadError.message : ''}`.trim(),
+        message: `Worldwide catalogue unavailable. Boundaries cannot be added until it is available. ${loadError instanceof Error ? loadError.message : ''}`.trim(),
       });
     });
     return () => controller.abort();
@@ -155,11 +165,10 @@ function RegionAreaPicker({ onMerge }: Pick<AdministrativeAreaPickerProps, 'onMe
     return () => controller.abort();
   }, [catalogue, countryCode]);
 
-  const fallbackRegions = regionAreas.filter((area) => area.countryCode === countryCode);
-  const activeRegions = loaded?.countryCode === countryCode ? loaded.regions : (isCatalogueUnavailable ? fallbackRegions : []);
+  const activeRegions = loaded?.countryCode === countryCode ? loaded.regions : [];
   const countryOptions = catalogue?.countries.filter(({ levels }) => levels.includes('region'))
-    ?? regionCountries.map(({ countryCode: id, name }) => ({ id, name }));
-  const selectedCountryName = countryOptions.find(({ id }) => id === countryCode)?.name ?? countryCode;
+    ?? [];
+  const presentation = regionPresentation(countryOptions, countryCode);
   const displayedLoadStatus = displayedCatalogueStatus(catalogue, countryCode, loadStatus);
   const normalizedQuery = query.trim().toLowerCase();
   const filteredAreas = activeRegions.filter((area) => (
@@ -169,7 +178,7 @@ function RegionAreaPicker({ onMerge }: Pick<AdministrativeAreaPickerProps, 'onMe
 
   return (
     <>
-      <label>Country <select aria-label="Region country" value={countryCode} onChange={(event) => {
+      <label>Country <select aria-label="Region country" disabled={countryOptions.length === 0} value={countryCode} onChange={(event) => {
         const nextCountryCode = event.target.value;
         const nextCountry = countryOptions.find(({ id }) => id === nextCountryCode);
         dispatch({
@@ -178,9 +187,9 @@ function RegionAreaPicker({ onMerge }: Pick<AdministrativeAreaPickerProps, 'onMe
           countryName: nextCountry?.name ?? nextCountryCode,
         });
       }}>{countryOptions.map((country) => <option key={country.id} value={country.id}>{country.name}</option>)}</select></label>
-      <label className="administrative-filter">Search <input type="search" aria-label={`Filter ${selectedCountryName} regions`} value={query} onChange={(event) => dispatch({ type: 'query-changed', query: event.currentTarget.value })} /></label>
+      <label className="administrative-filter">Search <input type="search" aria-label={presentation.filterLabel} value={query} onChange={(event) => dispatch({ type: 'query-changed', query: event.currentTarget.value })} /></label>
       <fieldset className="administrative-region-options" aria-busy={displayedLoadStatus.startsWith('Loading')}>
-        <legend>{selectedCountryName} regions</legend>
+        <legend>{presentation.groupLabel}</legend>
         {filteredAreas.map((area) => (
           <Checkbox key={area.id} isChecked={selectedIdSet.has(area.id)} label={area.name} onCheckedChange={(isChecked) => {
             dispatch({ type: 'selection-changed', id: area.id, isChecked });
@@ -190,7 +199,7 @@ function RegionAreaPicker({ onMerge }: Pick<AdministrativeAreaPickerProps, 'onMe
       <span role="status" aria-label="Administrative catalogue status">{displayedLoadStatus}</span>
       <span aria-live="polite">{selectedIds.length} {selectedIds.length === 1 ? 'region' : 'regions'} selected</span>
       <RegionCoverage catalogue={catalogue} regionCount={countryOptions.length} />
-      <span className="authoring-source">{selectedCountryName} · Natural Earth</span>
+      <span className="authoring-source">{presentation.sourceLabel}</span>
       <button type="button" disabled={selectedAreas.length === 0} onClick={() => {
         if (!onMerge(selectedAreas)) dispatch({ type: 'merge-failed', message: 'Choose connected single-part regions, or add multi-part regions separately.' });
       }}>{selectedIds.length > 1 ? `Merge ${selectedIds.length} selected areas` : 'Add selected area'}</button>

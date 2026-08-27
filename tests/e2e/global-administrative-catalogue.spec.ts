@@ -147,7 +147,7 @@ test('generated worldwide catalogue lazily creates a durable country', async ({ 
   expect(consoleProblems).toEqual([]);
 });
 
-test('generated region picker stays fail-closed when the selected shard is unavailable', async ({ page }, testInfo) => {
+test('generated boundary pickers stay fail-closed when the worldwide catalogue is unavailable', async ({ page }, testInfo) => {
   const consoleProblems: string[] = [];
   page.on('pageerror', (error) => { consoleProblems.push(error.message); });
   page.on('console', (message) => {
@@ -157,30 +157,39 @@ test('generated region picker stays fail-closed when the selected shard is unava
   });
   await page.route('**/data/administrative/index.json', async (route) => route.fulfill({
     contentType: 'application/json',
-    body: JSON.stringify({
-      schemaVersion: 1,
-      sourceVersion: 'Natural Earth 5.1.1',
-      countries: [
-        { id: 'AUT', name: 'Austria', bounds: [9, 46, 17, 50], levels: ['country', 'region'], shard: 'countries/AUT.json' },
-      ],
-    }),
-  }));
-  await page.route('**/data/administrative/countries/AUT.json', async (route) => route.fulfill({
-    contentType: 'application/json',
-    body: JSON.stringify({ schemaVersion: 999, country: {}, regions: [] }),
+    body: JSON.stringify({ schemaVersion: 999 }),
   }));
 
   await page.goto('/');
   await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
   await page.getByRole('button', { name: 'Area (S)' }).click();
-  await page.getByRole('combobox', { name: 'Administrative level' }).selectOption('region');
 
-  await expect(page.getByRole('status', { name: 'Administrative catalogue status' }))
-    .toHaveText('Austria boundaries unavailable. Austria boundary data version is unsupported.');
-  await expect(page.getByRole('group', { name: 'Austria regions' }).getByRole('checkbox')).toHaveCount(0);
+  await expect(page.getByRole('status', { name: 'Administrative country status' }))
+    .toHaveText('Worldwide catalogue unavailable. Boundaries cannot be added until it is available. Administrative catalogue version is unsupported.');
+  await expect(page.getByRole('combobox', { name: 'Administrative area' })).toBeDisabled();
+  await expect(page.getByRole('combobox', { name: 'Administrative area' }).locator('option')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Add administrative area' })).toBeDisabled();
+
+  await page.getByRole('combobox', { name: 'Administrative level' }).selectOption('region');
+  const catalogueStatus = page.getByRole('status', { name: 'Administrative catalogue status' });
+  await expect(catalogueStatus)
+    .toHaveText('Worldwide catalogue unavailable. Boundaries cannot be added until it is available. Administrative catalogue version is unsupported.');
+  await expect(page.getByRole('combobox', { name: 'Region country' })).toBeDisabled();
+  await expect(page.getByRole('group', { name: 'Regions' }).getByRole('checkbox')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Add selected area' })).toBeDisabled();
+  const [statusBox, panelBox] = await Promise.all([
+    catalogueStatus.boundingBox(),
+    page.locator('.shape-authoring-panel').boundingBox(),
+  ]);
+  expect(statusBox).not.toBeNull();
+  expect(panelBox).not.toBeNull();
+  expect(statusBox!.x).toBeGreaterThanOrEqual(panelBox!.x);
+  expect(statusBox!.x + statusBox!.width).toBeLessThanOrEqual(panelBox!.x + panelBox!.width);
   if (testInfo.project.name === 'chromium') {
-    await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/global-region-shard-unavailable-20260826.png' });
+    await page.screenshot({
+      animations: 'disabled',
+      path: 'docs/screenshots/generated-catalogue-unavailable-20260827.png',
+    });
   }
   expect(consoleProblems).toEqual([]);
 });

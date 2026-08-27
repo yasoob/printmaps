@@ -9,158 +9,29 @@ import {
 import { createInitialProjectDocument } from '../../src/domain/project';
 import { MAX_PROJECT_COORDINATES } from '../../src/domain/projectFile';
 
-function signedRingArea(ring: readonly (readonly [number, number])[]): number {
-  let area = 0;
-  for (let index = 1; index < ring.length; index += 1) {
-    const [x1, y1] = ring[index - 1];
-    const [x2, y2] = ring[index];
-    area += x1 * y2 - x2 * y1;
-  }
-  return area / 2;
-}
-
 function generatedArea(id: string, geometry: AdministrativeArea['geometry']): AdministrativeArea {
   return { countryCode: 'TST', id, name: id, level: 'region', source: 'Generated test data', geometry };
 }
 
-describe('bundled Slovak administrative regions', () => {
-  it('exposes eight sourced Slovak regions with closed bounded polygons', () => {
-    const regions = ADMINISTRATIVE_AREAS.filter(({ countryCode, level }) => countryCode === 'SVK' && level === 'region');
-
-    expect(regions.map(({ id, name }) => ({ id, name }))).toEqual([
-      { id: 'SK-BL', name: 'Bratislava' },
-      { id: 'SK-TA', name: 'Trnava' },
-      { id: 'SK-TC', name: 'Trenčín' },
-      { id: 'SK-NI', name: 'Nitra' },
-      { id: 'SK-ZI', name: 'Žilina' },
-      { id: 'SK-BC', name: 'Banská Bystrica' },
-      { id: 'SK-PV', name: 'Prešov' },
-      { id: 'SK-KI', name: 'Košice' },
-    ]);
-    expect(regions.every(({ geometry, source }) => (
-      source.includes('downloaded 2026-08-26')
-      && geometry.type === 'Polygon'
-      && geometry.coordinates.every((ring) => ring.length >= 4 && ring.at(-1)?.join(',') === ring[0].join(','))
-    ))).toBe(true);
-  });
-});
-
-describe('bundled administrative areas', () => {
+describe('exceptional bundled Vienna municipalities', () => {
   it('exposes every Vienna municipal district from one bounded attributed source', () => {
-    const municipalities = ADMINISTRATIVE_AREAS.filter(({ level }) => level === 'municipality');
-
-    expect(municipalities).toHaveLength(23);
-    expect(municipalities.map(({ id, name }) => ({ id, name }))).toEqual(expect.arrayContaining([
+    expect(ADMINISTRATIVE_AREAS).toHaveLength(23);
+    expect(ADMINISTRATIVE_AREAS.every(({ level }) => level === 'municipality')).toBe(true);
+    expect(ADMINISTRATIVE_AREAS.map(({ id, name }) => ({ id, name }))).toEqual(expect.arrayContaining([
       { id: 'AT-9-01', name: 'Innere Stadt' },
       { id: 'AT-9-23', name: 'Liesing' },
     ]));
-    expect(municipalities.every(({ source }) => (
+    expect(ADMINISTRATIVE_AREAS.every(({ source }) => (
       source.includes('City of Vienna Open Government Data')
       && source.includes('CC BY 3.0 AT')
       && source.includes('simplified')
     ))).toBe(true);
-    expect(municipalities.every(({ geometry }) => (
+    expect(ADMINISTRATIVE_AREAS.every(({ geometry }) => (
       geometry.type === 'Polygon'
       && geometry.coordinates.every((ring) => ring.length >= 4 && ring.at(-1)?.join(',') === ring[0].join(','))
       && geometry.coordinates.reduce((total, ring) => total + ring.length, 0) <= 500
     ))).toBe(true);
-  });
-
-  it('represents Tyrol as its exact disconnected MultiPolygon geometry', () => {
-    const tyrol = administrativeAreaById('AT-7');
-
-    expect(tyrol).toMatchObject({
-      id: 'AT-7',
-      name: 'Tyrol',
-      level: 'region',
-      geometry: { type: 'MultiPolygon' },
-    });
-    expect(tyrol?.geometry.type === 'MultiPolygon' ? tyrol.geometry.coordinates : []).toHaveLength(2);
-    expect(tyrol?.geometry.type === 'MultiPolygon'
-      ? tyrol.geometry.coordinates.map((polygon) => polygon[0].length)
-      : []).toEqual([332, 102]);
-  });
-
-  it('exposes a small sourced country catalogue with closed bounded polygons', () => {
-    expect(ADMINISTRATIVE_AREAS.filter(({ level }) => level === 'country').map(({ id, name }) => ({ id, name }))).toEqual([
-      { id: 'AUT', name: 'Austria' },
-      { id: 'BEL', name: 'Belgium' },
-      { id: 'BGR', name: 'Bulgaria' },
-      { id: 'NLD', name: 'Netherlands' },
-      { id: 'DNK', name: 'Denmark' },
-      { id: 'EST', name: 'Estonia' },
-      { id: 'FIN', name: 'Finland' },
-      { id: 'ITA', name: 'Italy' },
-      { id: 'SWE', name: 'Sweden' },
-      { id: 'LTU', name: 'Lithuania' },
-      { id: 'DEU', name: 'Germany' }, { id: 'GRC', name: 'Greece' },
-      { id: 'CHE', name: 'Switzerland' },
-      { id: 'HUN', name: 'Hungary' },
-      { id: 'CZE', name: 'Czechia' },
-      { id: 'POL', name: 'Poland' },
-      { id: 'PRT', name: 'Portugal' },
-      { id: 'ESP', name: 'Spain' },
-      { id: 'SVK', name: 'Slovakia' },
-    ]);
-
-    for (const area of ADMINISTRATIVE_AREAS) {
-      if (area.level === 'municipality') continue;
-      expect(area.source).toContain('Natural Earth');
-      const polygons = area.geometry.type === 'Polygon'
-        ? [area.geometry.coordinates]
-        : area.geometry.coordinates;
-      for (const polygon of polygons) {
-        for (const ring of polygon) {
-          expect(ring.length).toBeGreaterThanOrEqual(4);
-          expect(ring.at(-1)).toEqual(ring[0]);
-          expect(ring.every(([longitude, latitude]) => (
-            Number.isFinite(longitude)
-            && Number.isFinite(latitude)
-            && Math.abs(longitude) <= 180
-            && Math.abs(latitude) <= 90
-          ))).toBe(true);
-        }
-      }
-    }
-    expect(administrativeAreaById('missing')).toBeUndefined();
-  });
-
-  it('merges adjacent sourced Austrian regions into one polygon without internal borders', () => {
-    expect(ADMINISTRATIVE_AREAS.filter(({ countryCode, level }) => countryCode === 'AUT' && level === 'region').map(({ id, name }) => ({ id, name }))).toEqual([
-      { id: 'AT-1', name: 'Burgenland' },
-      { id: 'AT-2', name: 'Carinthia' },
-      { id: 'AT-3', name: 'Lower Austria' },
-      { id: 'AT-4', name: 'Upper Austria' },
-      { id: 'AT-5', name: 'Salzburg' },
-      { id: 'AT-6', name: 'Styria' },
-      { id: 'AT-7', name: 'Tyrol' },
-      { id: 'AT-8', name: 'Vorarlberg' },
-      { id: 'AT-9', name: 'Vienna' },
-    ]);
-
-    const lowerAustria = administrativeAreaById('AT-3');
-    const vienna = administrativeAreaById('AT-9');
-    const merged = mergeAdministrativeAreas(['AT-3', 'AT-9']);
-
-    expect(lowerAustria?.geometry.coordinates).toHaveLength(2);
-    expect(vienna?.geometry.coordinates).toHaveLength(1);
-    expect(merged).toMatchObject({
-      name: 'Lower Austria + Vienna',
-      geometry: { type: 'Polygon' },
-    });
-    if (merged?.geometry.type !== 'Polygon') throw new Error('Expected a merged Polygon.');
-    expect(merged.geometry.coordinates).toHaveLength(1);
-    expect(new Set(merged.geometry.coordinates[0].map(String))).toEqual(new Set(lowerAustria?.geometry.coordinates[0].map(String)));
-    expect(signedRingArea(merged.geometry.coordinates[0])).toBeGreaterThan(0);
-    expect(mergeAdministrativeAreas(['AT-3', 'missing'])).toBeUndefined();
-  });
-
-  it('rejects a disconnected region selection instead of treating another exterior as a hole', () => {
-    expect(mergeAdministrativeAreas(['AT-1', 'AT-8'])).toBeUndefined();
-  });
-
-  it('rejects region selections that cross country catalogues', () => {
-    expect(mergeAdministrativeAreas(['AT-1', 'SK-BL'])).toBeUndefined();
+    expect(administrativeAreaById('AUT')).toBeUndefined();
   });
 
   it('merges adjacent Vienna municipal districts without an internal border', () => {
@@ -174,14 +45,14 @@ describe('bundled administrative areas', () => {
     expect(merged?.geometry.type).toBe('Polygon');
     expect(merged?.geometry.coordinates).toHaveLength(1);
     expect(mergeAdministrativeAreas(['AT-9-01', 'AT-9-23'])).toBeUndefined();
-    expect(mergeAdministrativeAreas(['AT-9-01', 'AT-3'])).toBeUndefined();
+    expect(mergeAdministrativeAreas(['AT-9-01', 'missing'])).toBeUndefined();
   });
 
   it('merges representative connected Vienna selections without artificial holes', () => {
     const selections = [
       ['AT-9-02', 'AT-9-20'],
       ['AT-9-16', 'AT-9-17'],
-      ADMINISTRATIVE_AREAS.filter(({ level }) => level === 'municipality').map(({ id }) => id),
+      ADMINISTRATIVE_AREAS.map(({ id }) => id),
     ];
 
     for (const selection of selections) {
@@ -191,98 +62,46 @@ describe('bundled administrative areas', () => {
     }
   });
 
-  it('adds a selected administrative area as one undoable canonical shape', () => {
+  it('adds a Vienna district as one undoable canonical shape', () => {
     const store = createProjectStore(createInitialProjectDocument());
 
-    store.getState().createAdministrativeArea('AUT');
+    store.getState().createAdministrativeArea('AT-9-01');
 
-    const area = store.getState().document.layers.find(({ id }) => id === 'admin-aut');
+    const area = store.getState().document.layers.find(({ id }) => id === 'admin-at-9-01');
     expect(area).toMatchObject({
-      name: 'Austria',
+      name: 'Innere Stadt',
       type: 'shape',
       visible: true,
       locked: false,
       appearance: { kind: 'shape' },
-      geometry: administrativeAreaById('AUT')?.geometry,
+      geometry: administrativeAreaById('AT-9-01')?.geometry,
     });
-    expect(store.getState().selectedId).toBe('admin-aut');
-    expect(store.getState().document.layers.at(-1)?.type).toBe('basemap');
+    expect(store.getState().selectedId).toBe('admin-at-9-01');
     expect(store.getState().canUndo).toBe(true);
 
     store.getState().undo();
-    expect(store.getState().document.layers.some(({ id }) => id === 'admin-aut')).toBe(false);
-    expect(store.getState().selectedId).toBeNull();
-
-    store.getState().createAdministrativeArea('missing');
-    expect(store.getState().canUndo).toBe(false);
-  });
-
-  it('adds Tyrol as a detached canonical MultiPolygon in one undoable edit', () => {
-    const store = createProjectStore(createInitialProjectDocument());
-
-    store.getState().createAdministrativeAreas(['AT-7']);
-
-    const layer = store.getState().document.layers.find(({ id }) => id === 'admin-at-7');
-    expect(layer?.geometry).toMatchObject({ type: 'MultiPolygon' });
-    expect(layer?.geometry?.type === 'MultiPolygon' ? layer.geometry.coordinates : []).toHaveLength(2);
-    expect(layer?.geometry).not.toBe(administrativeAreaById('AT-7')?.geometry);
-    expect(store.getState().selectedId).toBe('admin-at-7');
-    store.getState().undo();
-    expect(store.getState().document.layers.some(({ id }) => id === 'admin-at-7')).toBe(false);
-  });
-
-  it('adds a merged region selection as one canonical layer and one undo step', () => {
-    const store = createProjectStore(createInitialProjectDocument());
-
-    const createdId = store.getState().createAdministrativeAreas(['AT-3', 'AT-9']);
-
-    expect(createdId).toBe('admin-at-3-at-9');
-    const layer = store.getState().document.layers.find(({ id }) => id === createdId);
-    expect(layer).toMatchObject({
-      name: 'Lower Austria + Vienna',
-      type: 'shape',
-      geometry: { type: 'Polygon' },
-    });
-    expect(layer?.geometry?.type === 'Polygon' ? layer.geometry.coordinates : []).toHaveLength(1);
-    expect(store.getState().selectedId).toBe(createdId);
-    store.getState().undo();
-    expect(store.getState().document.layers.some(({ id }) => id === createdId)).toBe(false);
-    expect(store.getState().canUndo).toBe(false);
+    expect(store.getState().document.layers.some(({ id }) => id === 'admin-at-9-01')).toBe(false);
   });
 });
 
 it('merges an adjacent region into a multipart generated region without losing its island', () => {
-  const multipart: AdministrativeArea = {
-    countryCode: 'TST',
-    id: 'TST-ISLANDS',
-    name: 'Mainland and island',
-    level: 'region',
-    source: 'Generated test data',
-    geometry: {
-      type: 'MultiPolygon',
-      coordinates: [
-        [[[0, 0], [2, 0], [2, 2], [0, 0]]],
-        [[[10, 10], [11, 10], [11, 11], [10, 10]]],
-      ],
-    },
-  };
-  const adjacent: AdministrativeArea = {
-    countryCode: 'TST',
-    id: 'TST-EAST',
-    name: 'East',
-    level: 'region',
-    source: 'Generated test data',
-    geometry: {
-      type: 'Polygon',
-      coordinates: [[[2, 0], [3, 0], [2, 2], [2, 0]]],
-    },
-  };
+  const multipart = generatedArea('TST-ISLANDS', {
+    type: 'MultiPolygon',
+    coordinates: [
+      [[[0, 0], [2, 0], [2, 2], [0, 0]]],
+      [[[10, 10], [11, 10], [11, 11], [10, 10]]],
+    ],
+  });
+  const adjacent = generatedArea('TST-EAST', {
+    type: 'Polygon',
+    coordinates: [[[2, 0], [3, 0], [2, 2], [2, 0]]],
+  });
 
   const merged = mergeAdministrativeAreaRecords([multipart, adjacent]);
 
   expect(merged).toMatchObject({
     id: 'TST-ISLANDS+TST-EAST',
-    name: 'Mainland and island + East',
+    name: 'TST-ISLANDS + TST-EAST',
     geometry: { type: 'MultiPolygon' },
   });
   expect(merged?.geometry.type === 'MultiPolygon' ? merged.geometry.coordinates : []).toHaveLength(2);
@@ -346,17 +165,10 @@ it('does not add a generated area beyond aggregate project coordinate capacity',
   ];
   const store = createProjectStore(document);
 
-  const createdId = store.getState().createAdministrativeArea({
-    countryCode: 'TST',
-    id: 'TST-1',
-    name: 'Generated region',
-    level: 'region',
-    source: 'Generated test data',
-    geometry: {
-      type: 'Polygon',
-      coordinates: [[[10, 48], [11, 48], [11, 49], [10, 48]]],
-    },
-  });
+  const createdId = store.getState().createAdministrativeArea(generatedArea('TST-1', {
+    type: 'Polygon',
+    coordinates: [[[10, 48], [11, 48], [11, 49], [10, 48]]],
+  }));
 
   expect(createdId).toBeNull();
   expect(store.getState().document.layers).toHaveLength(2);

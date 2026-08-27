@@ -180,7 +180,7 @@ it('does not fall back to bundled region geometry after generated catalogue acti
   }
 });
 
-it('shows bundled regions only after the generated index is unavailable', async () => {
+it('does not expose superseded bundled boundaries when the worldwide catalogue is unavailable', async () => {
   const user = userEvent.setup();
   const indexResponse = deferred<Response>();
   const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
@@ -192,18 +192,18 @@ it('shows bundled regions only after the generated index is unavailable', async 
   try {
     render(<App autosaveRepository={null} />);
     await user.click(screen.getByRole('button', { name: 'Area (S)' }));
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Administrative level' }), 'region');
-
-    const regions = screen.getByRole('group', { name: 'Austria regions' });
-    expect(within(regions).queryAllByRole('checkbox')).toHaveLength(0);
-    expect(screen.getByRole('button', { name: 'Add selected area' })).toBeDisabled();
-
     await act(async () => indexResponse.reject(new Error('Index unavailable')));
 
+    expect(await screen.findByRole('status', { name: 'Administrative country status' }))
+      .toHaveTextContent('Worldwide catalogue unavailable. Boundaries cannot be added until it is available. Index unavailable');
+    expect(within(screen.getByRole('combobox', { name: 'Administrative area' })).queryAllByRole('option')).toHaveLength(0);
+    expect(screen.getByRole('button', { name: 'Add administrative area' })).toBeDisabled();
+
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Administrative level' }), 'region');
     expect(await screen.findByRole('status', { name: 'Administrative catalogue status' }))
-      .toHaveTextContent('Worldwide catalogue unavailable. Using bundled regions. Index unavailable');
-    await user.click(within(regions).getByRole('checkbox', { name: 'Vienna' }));
-    expect(screen.getByRole('button', { name: 'Add selected area' })).toBeEnabled();
+      .toHaveTextContent('Worldwide catalogue unavailable. Boundaries cannot be added until it is available. Index unavailable');
+    expect(within(screen.getByRole('group', { name: 'Regions' })).queryAllByRole('checkbox')).toHaveLength(0);
+    expect(screen.getByRole('button', { name: 'Add selected area' })).toBeDisabled();
   } finally {
     fetchMock.mockRestore();
   }
@@ -226,7 +226,6 @@ it('keeps deferred catalogue status and data scoped to the selected country', as
     render(<App autosaveRepository={null} />);
     await user.click(screen.getByRole('button', { name: 'Area (S)' }));
     await user.selectOptions(screen.getByRole('combobox', { name: 'Administrative level' }), 'region');
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Region country' }), 'SVK');
 
     await act(async () => indexResponse.resolve(Response.json({
       schemaVersion: 1,
@@ -236,10 +235,16 @@ it('keeps deferred catalogue status and data scoped to the selected country', as
         { id: 'SVK', name: 'Slovakia', bounds: [16, 47, 23, 50], levels: ['country', 'region'], shard: 'countries/SVK.json' },
       ],
     })));
+    const regionCountry = screen.getByRole('combobox', { name: 'Region country' });
+    await waitFor(() => {
+      expect(regionCountry).toBeEnabled();
+      expect(within(regionCountry).getByRole('option', { name: 'Slovakia' })).toHaveValue('SVK');
+    });
+    await user.selectOptions(regionCountry, 'SVK');
     await waitFor(() => expect(fetchMock.mock.calls.some(([request]) => String(request).endsWith('/countries/SVK.json'))).toBe(true));
     expect(screen.getByRole('status', { name: 'Administrative catalogue status' })).toHaveTextContent('Loading Slovakia boundaries…');
 
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Region country' }), 'AUT');
+    await user.selectOptions(regionCountry, 'AUT');
     await waitFor(() => expect(fetchMock.mock.calls.some(([request]) => String(request).endsWith('/countries/AUT.json'))).toBe(true));
     expect(screen.getByRole('status', { name: 'Administrative catalogue status' })).toHaveTextContent('Loading Austria boundaries…');
 
