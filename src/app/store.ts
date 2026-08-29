@@ -10,7 +10,7 @@ import {
   type MapMatchingInput,
   type MapStylePreset,
   type PageOrientation,
-  type StandardPagePreset,
+  type PagePreset,
   type ProjectDocument,
   type SearchPoiInput,
 } from '../domain/project';
@@ -67,7 +67,7 @@ export type ProjectState = {
   setCameraPitch: (pitch: number) => void;
   setPageDimension: (dimension: 'widthMm' | 'heightMm', value: number) => void;
   setPageOrientation: (orientation: PageOrientation) => void;
-  setPagePreset: (preset: StandardPagePreset) => void;
+  setPagePreset: (preset: PagePreset) => void;
   setLayerAppearance: (id: string, appearance: LayerAppearance) => void;
   setPoiCoordinates: (id: string, coordinates: readonly [number, number]) => void;
   setPoiCustomMarker: (id: string, asset: CustomMarkerAsset | null) => void;

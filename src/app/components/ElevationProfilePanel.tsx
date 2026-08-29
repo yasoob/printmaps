@@ -20,6 +20,7 @@ import { createElevationProfilePdf } from '../../export/elevationProfilePdf';
 import { ElevationProfileRequestControls } from './ElevationProfileRequestControls';
 import { ProfileRouteSource, type LocalProfileRoute } from './ProfileRouteSource';
 import { Checkbox } from './UiControls';
+import { InputGroup, InputGroupAddon, InputNumber } from './InputGroup';
 
 type Position = readonly [number, number];
 type ProfileLoader = (
@@ -185,24 +186,24 @@ function ElevationProfileReady({
     <div className="elevation-profile-ready" aria-busy={exporting}>
       <fieldset className="elevation-settings">
         <legend>Profile settings</legend>
-        <label className="elevation-number-row"><span>Print width</span><input type="number" min="50" max="300" step="1" aria-label="Profile print width" aria-describedby="profile-print-width-range" aria-invalid={isPrintWidthInvalid || undefined} value={printWidthDraft} onChange={(event) => {
+        <label className="elevation-number-row"><span>Print width</span><InputGroup><InputNumber min="50" max="300" step="1" aria-label="Profile print width" aria-describedby="profile-print-width-range" aria-invalid={isPrintWidthInvalid || undefined} value={printWidthDraft} onChange={(event) => {
           const value = event.currentTarget.value;
           const parsed = Number(value);
           setPrintWidthDraft(value);
           if (isBoundedInteger(parsed, 50, 300)) setPrintWidthMm(parsed);
-        }} /><small id="profile-print-width-range">50–300 mm</small></label>
+        }} /><InputGroupAddon align="inline-end" enableScrubbing sensitivity={4}>mm</InputGroupAddon></InputGroup><small id="profile-print-width-range">50–300 mm</small></label>
         <div className="elevation-setting-row"><span>Units</span><label><input type="radio" name="elevation-units" checked={units === 'metric'} onChange={() => setUnits('metric')} /> Metric</label><label><input type="radio" name="elevation-units" checked={units === 'imperial'} onChange={() => setUnits('imperial')} /> Imperial</label></div>
         <label className="elevation-color-row"><span>Curve</span><input type="color" aria-label="Profile curve color" value={curveColor} disabled={!showCurve} onInput={(event) => setCustomCurveColor(event.currentTarget.value)} /></label>
         <label className="elevation-color-row"><span>Fill</span><input type="color" aria-label="Profile fill color" value={fillColor} onInput={(event) => setFillColor(event.currentTarget.value)} /></label>
         <label className="elevation-color-row"><span>Gradient</span><input type="color" aria-label="Profile gradient color" value={gradientColor} disabled={!showGradient} onInput={(event) => setGradientColor(event.currentTarget.value)} /></label>
         <label className="elevation-color-row"><span>Markers</span><input type="color" aria-label="Elevation marker color" value={markerColor} onInput={(event) => setMarkerColor(event.currentTarget.value)} /></label>
         <label className="elevation-select-row"><span>Font</span><select aria-label="Profile font" value={fontFamily} onChange={(event) => setFontFamily(event.currentTarget.value as ElevationProfileFontFamily)}><option value="sans">Sans serif</option><option value="serif">Serif</option><option value="mono">Monospace</option></select></label>
-        <label className="elevation-number-row"><span>Font size</span><input type="number" min="20" max="70" step="1" aria-label="Profile font size" aria-describedby="profile-font-size-range" aria-invalid={isFontSizeInvalid || undefined} value={fontSizeDraft} onChange={(event) => {
+        <label className="elevation-number-row"><span>Font size</span><InputGroup><InputNumber min="20" max="70" step="1" aria-label="Profile font size" aria-describedby="profile-font-size-range" aria-invalid={isFontSizeInvalid || undefined} value={fontSizeDraft} onChange={(event) => {
           const value = event.currentTarget.value;
           const parsed = Number(value);
           setFontSizeDraft(value);
           if (isBoundedInteger(parsed, 20, 70)) setFontSize(parsed);
-        }} /><small id="profile-font-size-range">20–70</small></label>
+        }} /><InputGroupAddon align="inline-end" enableScrubbing sensitivity={4}>px</InputGroupAddon></InputGroup><small id="profile-font-size-range">20–70</small></label>
         <div className="elevation-option-grid">
           <Checkbox isChecked={showCurve} label="Curve stroke" onCheckedChange={setShowCurve} />
           <Checkbox isChecked={showFill} label="Fill below curve" onCheckedChange={setShowFill} />

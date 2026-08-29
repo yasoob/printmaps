@@ -9,11 +9,11 @@ test('Download project saves the current portable versioned JSON', async ({ cont
   await page.getByRole('button', { name: 'Use my location' }).click();
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-center', '16.41,48.23');
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-zoom', '14');
-  await page.getByRole('textbox', { name: 'Bearing' }).fill('35');
-  await page.getByRole('textbox', { name: 'Pitch' }).fill('40');
-  await page.getByRole('textbox', { name: 'Pitch' }).press('Tab');
-  await page.getByRole('textbox', { name: 'Text scale' }).fill('125');
-  await page.getByRole('textbox', { name: 'Text scale' }).press('Tab');
+  await page.getByRole('spinbutton', { name: 'Bearing' }).fill('35');
+  await page.getByRole('spinbutton', { name: 'Pitch' }).fill('40');
+  await page.getByRole('spinbutton', { name: 'Pitch' }).press('Tab');
+  await page.getByRole('spinbutton', { name: 'Text scale' }).fill('125');
+  await page.getByRole('spinbutton', { name: 'Text scale' }).press('Tab');
   await page.getByRole('checkbox', { name: 'Show roads' }).uncheck();
   await page.getByRole('checkbox', { name: 'Show water' }).uncheck();
   await page.getByRole('button', { name: 'Portrait' }).click();
@@ -51,8 +51,8 @@ test('Download project saves the current portable versioned JSON', async ({ cont
 
 test('Project download and open restore the current project as a fresh history root', async ({ page }, testInfo) => {
   await page.goto('/');
-  await page.getByRole('textbox', { name: 'Bearing' }).fill('35');
-  await page.getByRole('textbox', { name: 'Bearing' }).press('Tab');
+  await page.getByRole('spinbutton', { name: 'Bearing' }).fill('35');
+  await page.getByRole('spinbutton', { name: 'Bearing' }).press('Tab');
   await page.getByRole('checkbox', { name: 'Show roads' }).uncheck();
 
   const downloadPromise = page.waitForEvent('download');
@@ -67,7 +67,7 @@ test('Project download and open restore the current project as a fresh history r
   const chooser = await chooserPromise;
   await chooser.setFiles(projectPath);
 
-  await expect(page.getByRole('textbox', { name: 'Bearing' })).toHaveValue('35');
+  await expect(page.getByRole('spinbutton', { name: 'Bearing' })).toHaveValue('35');
   await expect(page.getByRole('checkbox', { name: 'Show roads' })).not.toBeChecked();
   await expect(page.getByRole('button', { name: 'Landscape' })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
@@ -103,14 +103,14 @@ test('opens a validated portable project as a focused fresh history root', async
   await expect(page.getByRole('button', { name: 'Select Summit route' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Select Night Ink basemap' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Select Route 01' })).not.toBeVisible();
-  await expect(page.getByRole('textbox', { name: 'Page width' })).toHaveValue('297');
-  await expect(page.getByRole('textbox', { name: 'Page height' })).toHaveValue('420');
-  await expect(page.getByRole('textbox', { name: 'Bearing' })).toHaveValue('-20');
-  await expect(page.getByRole('textbox', { name: 'Pitch' })).toHaveValue('35');
+  await expect(page.getByRole('spinbutton', { name: 'Page width' })).toHaveValue('297');
+  await expect(page.getByRole('spinbutton', { name: 'Page height' })).toHaveValue('420');
+  await expect(page.getByRole('spinbutton', { name: 'Bearing' })).toHaveValue('-20');
+  await expect(page.getByRole('spinbutton', { name: 'Pitch' })).toHaveValue('35');
   await expect(page.getByRole('switch', { name: 'Lock map area' })).toBeChecked();
   await expect(page.getByRole('radio', { name: /^Night Ink:/ })).toHaveAttribute('aria-checked', 'true');
   await expect(page.getByRole('combobox', { name: 'Map language' })).toHaveValue('de');
-  await expect(page.getByRole('textbox', { name: 'Text scale' })).toHaveValue('150');
+  await expect(page.getByRole('spinbutton', { name: 'Text scale' })).toHaveValue('150');
   await expect(page.getByRole('checkbox', { name: 'Show roads' })).not.toBeChecked();
   await expect(page.getByRole('checkbox', { name: 'Show buildings' })).toBeChecked();
   await expect(page.getByRole('checkbox', { name: 'Show labels' })).not.toBeChecked();

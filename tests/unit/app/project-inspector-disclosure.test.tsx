@@ -10,7 +10,6 @@ const disclosureKeys = [
   'map-style',
   'camera-location',
   'map-details',
-  'provider-services',
 ].map((section) => `print-map-studio:inspector:project:${section}`);
 
 describe('project inspector disclosure', () => {
@@ -30,9 +29,6 @@ describe('project inspector disclosure', () => {
     const mapStyle = screen.getByRole('button', { name: /Map style/ });
     const camera = screen.getByRole('button', { name: /Camera & location/ });
     const details = screen.getByRole('button', { name: /Map details/ });
-    const services = screen.getByRole('button', { name: /Provider services/ });
-
-
     expect(page).toHaveAttribute('aria-expanded', 'true');
     expect(page).not.toHaveTextContent('A4 landscape · 297 × 210 mm');
     expect(mapStyle).toHaveAttribute('aria-expanded', 'false');
@@ -41,9 +37,11 @@ describe('project inspector disclosure', () => {
     expect(camera).toHaveTextContent('0° bearing · 0° pitch · Unlocked');
     expect(details).toHaveAttribute('aria-expanded', 'false');
     expect(details).toHaveTextContent('7 of 7 visible');
-    expect(services).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('button', { name: /Provider services/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Check.*connection/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Search places and addresses' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Output settings/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('textbox', { name: 'Bearing' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('spinbutton', { name: 'Bearing' })).not.toBeInTheDocument();
     expect(screen.queryByRole('checkbox', { name: 'Show roads' })).not.toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 
@@ -51,7 +49,7 @@ describe('project inspector disclosure', () => {
     await user.keyboard('{Enter}');
     expect(camera).toHaveAttribute('aria-expanded', 'true');
     expect(camera).not.toHaveTextContent('0° bearing · 0° pitch · Unlocked');
-    expect(screen.getByRole('textbox', { name: 'Bearing' })).toBeInTheDocument();
+    expect(screen.getByRole('spinbutton', { name: 'Bearing' })).toBeInTheDocument();
 
     await user.click(camera);
     expect(camera).toHaveTextContent('0° bearing · 0° pitch · Unlocked');
@@ -68,6 +66,6 @@ describe('project inspector disclosure', () => {
     render(<App />);
 
     expect(screen.getByRole('button', { name: /Camera & location/ })).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByRole('textbox', { name: 'Bearing' })).toBeInTheDocument();
+    expect(screen.getByRole('spinbutton', { name: 'Bearing' })).toBeInTheDocument();
   });
 });

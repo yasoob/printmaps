@@ -3,6 +3,7 @@ import type { ContentLayer } from '../../domain/project';
 import { LayerMenu } from './LayerMenu';
 import { PropertyRow, PropertySection } from './PropertyControls';
 import { Switch } from './UiControls';
+import { InputGroup, InputGroupAddon, InputNumber } from './InputGroup';
 
 type LayerIdentityPropertiesProps = {
   layer: ContentLayer;
@@ -65,7 +66,7 @@ export const LayerIdentityProperties = memo(function LayerIdentityProperties({
       </div>
       <PropertySection title="Layer">
         <PropertyRow label="Name"><input aria-label="Layer name" value={nameDraft} onChange={(event) => onNameChange(event.target.value)} onBlur={onNameCommit} /></PropertyRow>
-        <PropertyRow label="Opacity"><label className="number-field"><input aria-label="Layer opacity" value={opacityDraft} onChange={(event) => onOpacityChange(event.target.value)} onBlur={onOpacityCommit} /><small>%</small></label></PropertyRow>
+        <PropertyRow label="Opacity"><InputGroup><InputNumber aria-label="Layer opacity" min={0} max={100} step={1} value={opacityDraft} onChange={(event) => onOpacityChange(event.target.value)} onBlur={onOpacityCommit} /><InputGroupAddon align="inline-end" enableScrubbing sensitivity={4}>%</InputGroupAddon></InputGroup></PropertyRow>
         <PropertyRow label="Visible"><Switch aria-label="Toggle layer visibility" isChecked={layer.visible} label="Layer visibility" labelHidden onCheckedChange={onToggleVisibility} /></PropertyRow>
         <PropertyRow label="Locked"><Switch aria-label="Toggle layer lock" isChecked={layer.locked} label="Layer lock" labelHidden onCheckedChange={onToggleLock} /></PropertyRow>
       </PropertySection>

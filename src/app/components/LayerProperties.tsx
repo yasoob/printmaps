@@ -10,6 +10,7 @@ import { PropertyRow, PropertySection } from './PropertyControls';
 import { RouteLayerProperties } from './RouteLayerProperties';
 import { ShapeVertexControls } from './ShapeVertexControls';
 import { Switch } from './UiControls';
+import { InputGroup, InputGroupAddon, InputNumber } from './InputGroup';
 
 function useStableEvent<Arguments extends unknown[], Result>(callback: (...arguments_: Arguments) => Result) {
   const callbackRef = useRef(callback);
@@ -83,7 +84,7 @@ const ShapeAppearanceControls = memo(function ShapeAppearanceControls({
     <>
       <PropertyRow label="Fill"><label className="color-field"><input aria-label="Shape fill color" type="color" value={appearance.fillColor} onChange={(event) => onChange({ ...appearance, fillColor: event.target.value })} /></label></PropertyRow>
       <PropertyRow label="Outline"><label className="color-field"><input aria-label="Shape outline color" type="color" value={appearance.strokeColor} onChange={(event) => onChange({ ...appearance, strokeColor: event.target.value })} /></label></PropertyRow>
-      <PropertyRow label="Width"><label className="number-field"><input aria-label="Shape outline width" aria-invalid={isWidthInvalid || undefined} value={widthDraft} onChange={(event) => setWidthEdit({ source: appearance.strokeWidth, value: event.target.value })} onBlur={(event) => commitWidth(event.currentTarget.value)} /><small>px</small></label></PropertyRow>
+      <PropertyRow label="Width"><InputGroup><InputNumber aria-label="Shape outline width" aria-invalid={isWidthInvalid || undefined} min={0.5} max={12} step={0.5} value={widthDraft} onChange={(event) => setWidthEdit({ source: appearance.strokeWidth, value: event.target.value })} onBlur={(event) => commitWidth(event.currentTarget.value)} /><InputGroupAddon align="inline-end" enableScrubbing sensitivity={4}>px</InputGroupAddon></InputGroup></PropertyRow>
       <Switch aria-label="Invert shape fill" isChecked={appearance.invert} label="Invert outside area" onCheckedChange={(isChecked) => onChange({ ...appearance, invert: isChecked })} />
     </>
   );

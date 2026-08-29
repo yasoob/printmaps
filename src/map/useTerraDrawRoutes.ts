@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, type RefObject } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, type RefObject } from 'react';
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { ContentLayer } from '../domain/project';
 import type { RouteLineShape } from '../domain/routeProfiles';
@@ -117,7 +117,7 @@ function useRouteSession(options: TerraDrawRoutesOptions, callbacks: RefObject<R
 
   useEffect(() => {
     if (!lineShape || !options.map) return;
-    const draw = createTerraRouteDraw(options.map, lineShape);
+    const draw = createTerraRouteDraw(options.map, lineShape, isAuthoring);
     const { onRoutePreview } = callbacks.current;
     session.current = sessionFor(draw, isAuthoring, editableRoute, callbacks);
     return () => {
@@ -141,4 +141,9 @@ export function useTerraDrawRoutes(options: TerraDrawRoutesOptions) {
     lastUndoRequest.current = undoRequest;
     session.current?.undo();
   }, [isAuthoring, options.authoring?.undoRequest, session]);
+
+  const updateEditingGeometry = useCallback((coordinates: [number, number][]) => (
+    session.current?.updateGeometry(coordinates) ?? false
+  ), [session]);
+  return { updateEditingGeometry };
 }

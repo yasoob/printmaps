@@ -8,8 +8,8 @@ describe('project camera properties', () => {
   it('commits valid bearing and pitch drafts to the canonical map camera', async () => {
     const user = userEvent.setup();
     render(<App />);
-    const bearing = screen.getByRole('textbox', { name: 'Bearing' });
-    const pitch = screen.getByRole('textbox', { name: 'Pitch' });
+    const bearing = screen.getByRole('spinbutton', { name: 'Bearing' });
+    const pitch = screen.getByRole('spinbutton', { name: 'Pitch' });
     const map = screen.getByTestId('map-canvas');
 
     await user.clear(bearing);
@@ -30,7 +30,7 @@ describe('project camera properties', () => {
   it('marks an out-of-range camera draft invalid and restores the canonical value on blur', async () => {
     const user = userEvent.setup();
     render(<App />);
-    const pitch = screen.getByRole('textbox', { name: 'Pitch' });
+    const pitch = screen.getByRole('spinbutton', { name: 'Pitch' });
 
     await user.clear(pitch);
     await user.type(pitch, '61');
@@ -38,7 +38,7 @@ describe('project camera properties', () => {
     expect(pitch).toHaveAttribute('aria-invalid', 'true');
     expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
     await user.tab();
-    expect(pitch).toHaveValue('0');
+    expect(pitch).toHaveValue(0);
     expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-camera', '16.3725,48.2084,11.2,0,0');
   });
 });

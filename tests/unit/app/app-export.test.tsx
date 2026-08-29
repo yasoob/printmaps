@@ -193,7 +193,7 @@ async function verifyNativeTileProgressCancellation() {
   const downloadClick = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
   render(<App />);
 
-  const width = screen.getByRole('textbox', { name: 'Page width' });
+  const width = screen.getByRole('spinbutton', { name: 'Page width' });
   await user.clear(width);
   await user.type(width, '600');
   await user.tab();
@@ -322,11 +322,11 @@ describe('editor export', () => {
     const user = userEvent.setup();
     render(<App />);
 
-    const width = screen.getByRole('textbox', { name: 'Page width' });
+    const width = screen.getByRole('spinbutton', { name: 'Page width' });
     await user.clear(width);
     await user.type(width, '1');
     await user.tab();
-    const height = screen.getByRole('textbox', { name: 'Page height' });
+    const height = screen.getByRole('spinbutton', { name: 'Page height' });
     await user.clear(height);
     await user.type(height, '1');
     await user.tab();
@@ -342,11 +342,11 @@ describe('editor export', () => {
     const user = userEvent.setup();
     render(<App />);
 
-    const width = screen.getByRole('textbox', { name: 'Page width' });
+    const width = screen.getByRole('spinbutton', { name: 'Page width' });
     await user.clear(width);
     await user.type(width, '1');
     await user.tab();
-    const height = screen.getByRole('textbox', { name: 'Page height' });
+    const height = screen.getByRole('spinbutton', { name: 'Page height' });
     await user.clear(height);
     await user.type(height, '1');
     await user.tab();

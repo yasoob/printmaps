@@ -30,7 +30,7 @@ describe('Terra Draw route hook', () => {
       selectedId,
     }), { initialProps: { selectedId: route.id as string | null } });
 
-    expect(metrics.createDraw).toHaveBeenCalledWith(map, 'arc');
+    expect(metrics.createDraw).toHaveBeenCalledWith(map, 'arc', false);
     expect(metrics.createSession).toHaveBeenCalledWith(expect.objectContaining({
       initial: { id: route.id, coordinates: route.geometry.anchors },
       mode: 'edit',
@@ -60,6 +60,7 @@ describe('Terra Draw route hook', () => {
     }), { initialProps: { undoRequest: 0 } });
     const session = metrics.createSession.mock.results[0].value;
 
+    expect(metrics.createDraw).toHaveBeenCalledWith(map, 'straight', true);
     expect(metrics.createSession).toHaveBeenCalledWith(expect.objectContaining({ mode: 'draw' }));
     rerender({ undoRequest: 1 });
     expect(session.undo).toHaveBeenCalledOnce();

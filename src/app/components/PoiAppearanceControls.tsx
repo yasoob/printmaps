@@ -12,6 +12,7 @@ import {
   type PoiMarkerSymbol,
 } from '../../domain/poiMarkers';
 import { PropertyRow } from './PropertyControls';
+import { InputGroup, InputGroupAddon, InputNumber } from './InputGroup';
 
 type PoiAppearanceControlsProps = {
   appearance: PoiAppearance;
@@ -116,7 +117,7 @@ export function PoiAppearanceControls({ appearance, customAsset, onChange, onCus
   return (
     <>
       <PropertyRow label="Color"><label className="color-field"><input aria-label="POI color" type="color" value={appearance.color} onChange={(event) => onChange({ ...appearance, color: event.target.value })} /></label></PropertyRow>
-      <PropertyRow label="Size"><label className="number-field"><input aria-label="POI marker size" aria-invalid={isSizeInvalid || undefined} value={sizeDraft} onChange={(event) => setSizeEdit({ source: appearance.size, value: event.target.value })} onBlur={(event) => commitSize(event.currentTarget.value)} /><small>px</small></label></PropertyRow>
+      <PropertyRow label="Size"><InputGroup><InputNumber aria-label="POI marker size" aria-invalid={isSizeInvalid || undefined} min={8} max={48} step={1} value={sizeDraft} onChange={(event) => setSizeEdit({ source: appearance.size, value: event.target.value })} onBlur={(event) => commitSize(event.currentTarget.value)} /><InputGroupAddon align="inline-end" enableScrubbing sensitivity={4}>px</InputGroupAddon></InputGroup></PropertyRow>
       <PropertyRow label="Shape"><select aria-label="POI marker shape" value={appearance.markerShape} onChange={(event) => onChange({ ...appearance, markerShape: event.target.value as PoiMarkerShape })}>{POI_MARKER_SHAPES.map((shape) => <option key={shape} value={shape}>{POI_MARKER_SHAPE_LABELS[shape]}</option>)}</select></PropertyRow>
       <PropertyRow label="Symbol"><select aria-label="POI marker symbol" value={appearance.markerSymbol} onChange={(event) => onChange({ ...appearance, markerSymbol: event.target.value as PoiMarkerSymbol })}>{POI_MARKER_SYMBOLS.map((symbol) => <option key={symbol} value={symbol}>{POI_MARKER_SYMBOL_LABELS[symbol]}</option>)}</select></PropertyRow>
       <PropertyRow label="Label"><input aria-label="POI label" aria-invalid={!isPoiLabelValid(labelDraft) || undefined} value={labelDraft} onChange={(event) => setLabelEdit({ source: appearance.label, value: event.target.value })} onBlur={(event) => commitLabel(event.currentTarget.value)} /></PropertyRow>

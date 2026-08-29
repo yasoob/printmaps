@@ -21,7 +21,7 @@ describe('editor page dimensions', () => {
   }) => {
     const user = userEvent.setup();
     render(<App />);
-    const field = screen.getByRole('textbox', { name: fieldName });
+    const field = screen.getByRole('spinbutton', { name: fieldName });
     const preset = screen.getByRole('combobox', { name: 'Page preset' });
     const undo = screen.getByRole('button', { name: 'Undo' });
     const map = screen.getByTestId('map-canvas');
@@ -30,9 +30,12 @@ describe('editor page dimensions', () => {
     await user.clear(field);
     await user.type(field, '-1');
     expect(field).toHaveAttribute('aria-invalid', 'true');
+    await user.clear(field);
+    await user.type(field, '0.01');
+    expect(field).toHaveAttribute('aria-invalid', 'true');
     expect(undo).toBeDisabled();
     await user.click(screen.getByRole('button', { name: 'Vienna field guide' }));
-    expect(field).toHaveValue(originalValue);
+    expect(field).toHaveValue(Number(originalValue));
     expect(preset).toHaveValue('A4');
     expect(undo).toBeDisabled();
 
@@ -40,31 +43,31 @@ describe('editor page dimensions', () => {
     fireEvent.change(field, { target: { value: nextValue } });
     expect(undo).toBeDisabled();
     fireEvent.blur(field);
-    expect(field).toHaveValue(nextValue);
+    expect(field).toHaveValue(Number(nextValue));
     expect(preset).toHaveValue('Custom');
     expect(map).toHaveAttribute('data-page-size', expectedSize);
     expect(undo).toBeEnabled();
 
     await user.click(undo);
-    expect(screen.getByRole('textbox', { name: fieldName })).toHaveValue(originalValue);
+    expect(screen.getByRole('spinbutton', { name: fieldName })).toHaveValue(Number(originalValue));
     expect(preset).toHaveValue('A4');
   });
 
   it('discards a dirty page draft after canonical dimensions change away and back', () => {
     render(<App />);
-    const field = screen.getByRole('textbox', { name: 'Page width' });
+    const field = screen.getByRole('spinbutton', { name: 'Page width' });
     const portrait = screen.getByRole('button', { name: 'Portrait' });
     const landscape = screen.getByRole('button', { name: 'Landscape' });
     const undo = screen.getByRole('button', { name: 'Undo' });
 
     fireEvent.change(field, { target: { value: '240' } });
-    expect(field).toHaveValue('240');
+    expect(field).toHaveValue(240);
     fireEvent.click(portrait);
-    expect(screen.getByRole('textbox', { name: 'Page width' })).toHaveValue('210');
+    expect(screen.getByRole('spinbutton', { name: 'Page width' })).toHaveValue(210);
     fireEvent.click(landscape);
 
-    const restoredField = screen.getByRole('textbox', { name: 'Page width' });
-    expect(restoredField).toHaveValue('297');
+    const restoredField = screen.getByRole('spinbutton', { name: 'Page width' });
+    expect(restoredField).toHaveValue(297);
     fireEvent.blur(restoredField);
     expect(screen.getByRole('combobox', { name: 'Page preset' })).toHaveValue('A4');
     expect(undo).toBeEnabled();
@@ -73,11 +76,11 @@ describe('editor page dimensions', () => {
   it('derives orientation from extreme custom dimensions', async () => {
     const user = userEvent.setup();
     render(<App />);
-    const width = screen.getByRole('textbox', { name: 'Page width' });
+    const width = screen.getByRole('spinbutton', { name: 'Page width' });
     await user.clear(width);
     await user.type(width, '100');
     await user.tab();
-    const height = screen.getByRole('textbox', { name: 'Page height' });
+    const height = screen.getByRole('spinbutton', { name: 'Page height' });
     await user.clear(height);
     await user.type(height, '300');
     await user.tab();

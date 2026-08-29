@@ -33,6 +33,29 @@ describe('portable project validation', () => {
     expect(parsed.layers[0].geometry).not.toBe(source.layers[0].geometry);
   });
 
+  it.each([
+    ['A2', 594, 420],
+    ['A3', 420, 297],
+    ['A4', 297, 210],
+    ['A5', 210, 148],
+    ['A6', 148, 105],
+    ['US Letter', 279.4, 215.9],
+  ] as const)('round-trips the %s page preset with canonical dimensions', (preset, widthMm, heightMm) => {
+    const source = createInitialProjectDocument();
+    source.page = { preset, orientation: 'landscape', widthMm, heightMm };
+
+    expect(parseProjectFileText(JSON.stringify(source)).page).toEqual(source.page);
+  });
+
+  it('normalizes the legacy schema-21 Letter preset to US Letter', () => {
+    const source = createInitialProjectDocument() as unknown as { page: Record<string, unknown> };
+    source.page = { preset: 'Letter', orientation: 'landscape', widthMm: 279.4, heightMm: 215.9 };
+
+    expect(parseProjectFileText(JSON.stringify(source)).page).toEqual({
+      preset: 'US Letter', orientation: 'landscape', widthMm: 279.4, heightMm: 215.9,
+    });
+  });
+
   it('round-trips detached canonical MultiPolygon shape geometry', () => {
     const source = createInitialProjectDocument();
     const shape = source.layers.find(({ type }) => type === 'shape');

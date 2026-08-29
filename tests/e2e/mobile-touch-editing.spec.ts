@@ -86,3 +86,24 @@ test('touch selects and moves area and route geometry directly on the map', asyn
   await expect(map).not.toHaveAttribute('data-map-layer-geometry', routeGeometry!);
   await context.close();
 });
+
+test('touch repositions a selected Place marker through a 44px handle', async ({ browser }, testInfo) => {
+  test.skip(testInfo.project.name !== 'chromium', 'Trusted touch gesture coverage uses Chromium CDP.');
+  const context = await browser.newContext({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
+  const page = await context.newPage();
+  await page.goto('/');
+  const map = page.getByTestId('map-canvas');
+  const fallback = page.getByText('Map preview unavailable');
+  await expect(page.locator('[data-map-ready="true"]').or(fallback)).toBeVisible({ timeout: 20_000 });
+  test.skip(await fallback.isVisible(), 'This browser fixture has no WebGL 2 renderer.');
+
+  const placePoint = await screenPoint(map, [16.3725, 48.2084]);
+  await page.touchscreen.tap(placePoint.x, placePoint.y);
+  await expect(map).toHaveAttribute('data-selected-layer', 'poi-cafe');
+  const originalGeometry = await map.getAttribute('data-map-layer-geometry');
+  const handle = page.getByRole('button', { name: 'Move Coffee stop' });
+  const bounds = await expectTouchTarget(handle);
+  await touchDrag(page, { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 }, { x: 36, y: 24 });
+  await expect(map).not.toHaveAttribute('data-map-layer-geometry', originalGeometry!);
+  await context.close();
+});

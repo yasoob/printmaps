@@ -18,6 +18,7 @@ export type TerraRouteDrawLike = {
   start: () => void;
   stop: () => void;
   undo: () => boolean;
+  updateFeatureGeometry: (id: string | number, geometry: { type: string; coordinates: unknown }) => void;
 };
 
 type RouteSessionOptions = {
@@ -66,11 +67,12 @@ function initializeSession(options: RouteSessionOptions) {
   }
   draw.setMode('select');
   draw.selectFeature(validation.id);
+  return validation.id;
 }
 
 export function createTerraRouteSession(options: RouteSessionOptions) {
   const { draw } = options;
-  initializeSession(options);
+  const editingId = initializeSession(options);
   const handleChange = ((ids: Array<string | number>, _type: string, context?: { origin?: string; target?: string }) => {
     if (context?.origin === 'api' || context?.target === 'properties') return;
     const coordinates = routeCoordinates(draw, ids[0]);
@@ -89,6 +91,17 @@ export function createTerraRouteSession(options: RouteSessionOptions) {
   draw.on('finish', handleFinish);
   return {
     destroy: () => draw.stop(),
+    updateGeometry: (coordinates: Position[]) => {
+      if (editingId === undefined || options.mode !== 'edit') return false;
+      try {
+        draw.updateFeatureGeometry(editingId, {
+          type: 'LineString', coordinates: coordinates.map((coordinate) => [...coordinate]),
+        });
+        return true;
+      } catch {
+        return false;
+      }
+    },
     undo: () => draw.undo(),
   };
 }

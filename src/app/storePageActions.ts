@@ -1,12 +1,7 @@
-import type { PageSettings, StandardPagePreset } from '../domain/project';
+import type { PageSettings } from '../domain/project';
+import { pagePresetDimensions } from '../domain/pagePresets';
 import type { ProjectState } from './store';
 import { commitDocument, type ProjectSet } from './storeDocument';
-
-const PAGE_DIMENSIONS = {
-  A4: [297, 210],
-  A3: [420, 297],
-  Letter: [279.4, 215.9],
-} satisfies Record<StandardPagePreset, [number, number]>;
 
 type PageActions = Pick<ProjectState, 'setPageDimension' | 'setPageOrientation' | 'setPagePreset'>;
 
@@ -46,7 +41,14 @@ export function createPageActions(set: ProjectSet): PageActions {
       });
     }),
     setPagePreset: (preset) => set((state) => {
-      const [longEdge, shortEdge] = PAGE_DIMENSIONS[preset];
+      if (preset === 'Custom') {
+        if (state.document.page.preset === preset) return state;
+        return commitDocument(state, {
+          ...state.document,
+          page: { ...state.document.page, preset },
+        });
+      }
+      const [longEdge, shortEdge] = pagePresetDimensions(preset);
       const widthMm = state.document.page.orientation === 'landscape' ? longEdge : shortEdge;
       const heightMm = state.document.page.orientation === 'landscape' ? shortEdge : longEdge;
       if (

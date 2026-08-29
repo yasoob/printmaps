@@ -19,8 +19,8 @@ test('replaces selected route geometry in place while retaining identity, stylin
   const originalGeometry = await mapRoot.getAttribute('data-map-layer-geometry');
   await page.getByRole('button', { name: 'Select Route 01' }).click();
   await page.getByLabel('Route color').fill('#112233');
-  await page.getByRole('textbox', { name: 'Route width' }).fill('8');
-  await page.getByRole('textbox', { name: 'Route width' }).press('Tab');
+  await page.getByRole('spinbutton', { name: 'Route width' }).fill('8');
+  await page.getByRole('spinbutton', { name: 'Route width' }).press('Tab');
 
   await page.getByRole('button', { name: 'Layer menu' }).click();
   const chooserPromise = page.waitForEvent('filechooser');
@@ -39,7 +39,7 @@ test('replaces selected route geometry in place while retaining identity, stylin
   await expect(page.getByRole('heading', { name: 'Route 01' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Select replacement.geojson' })).toHaveCount(0);
   await expect(page.getByLabel('Route color')).toHaveValue('#112233');
-  await expect(page.getByRole('textbox', { name: 'Route width' })).toHaveValue('8');
+  await expect(page.getByRole('spinbutton', { name: 'Route width' })).toHaveValue('8');
   await expect(mapRoot).toHaveAttribute('data-map-layer-geometry', /route-01:\[\[15\.9,48\.1\],\[16\.1,48\.3\]\]/);
   await expect(mapRoot).toHaveAttribute('data-camera-fit-import', '1');
   await expect(page.getByRole('status', { name: 'Map data import status' }))

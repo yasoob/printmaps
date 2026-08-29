@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type Dispatch, type RefObject, type SetStateAction } from 'react';
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { CustomMarkerAsset } from '../domain/customMarkerAssets';
 import type { CameraSettings, ContentLayer, MapFeatureVisibility, MapLanguage, MapStylePreset, ShapeGeometry } from '../domain/project';
@@ -21,9 +21,11 @@ import { useMapLocationRequest } from './useMapLocationRequest';
 import { useMapCameraSynchronization } from './useMapCameraSynchronization';
 import type { CameraViewportChangeMode } from './MapCameraViewport';
 import { useTerraDrawRoutes, type RouteAuthoring } from './useTerraDrawRoutes';
+import { bringTerraRouteHandlesToFront } from './TerraDrawRouteFactory';
 import { useRouteVertexEditing } from './useRouteVertexEditing';
 import { useShapeTransformEditing } from './useShapeTransformEditing';
 import { useShapeVertexEditing } from './useShapeVertexEditing';
+import { usePointEditing } from './usePointEditing';
 import type { ShapeEditMode } from './ShapeVertexEditing';
 
 const ignoreRouteGeometryChange = () => {};
@@ -47,6 +49,7 @@ type MapCanvasControllerOptions = {
   onLayerSelect: (id: string) => void;
   onCameraViewportChange?: (center: readonly [number, number], zoom: number, mode: CameraViewportChangeMode) => void;
   onMapClick?: (coordinate: [number, number]) => void;
+  onPoiCoordinatesChange?: (id: string, coordinate: readonly [number, number]) => void;
   onRouteGeometryChange?: (id: string, coordinates: readonly (readonly [number, number])[]) => void;
   routeAuthoring?: RouteAuthoring;
   onShapeGeometryChange?: (id: string, geometry: ShapeGeometry) => void;
@@ -91,7 +94,7 @@ function useRouteEditing(options: RouteEditingOptions) {
   const handlePreview = useCallback((id: string, coordinates: [number, number][] | null) => {
     setPreview(coordinates ? { id, coordinates } : null);
   }, []);
-  useTerraDrawRoutes({
+  const terraEditing = useTerraDrawRoutes({
     authoring: guardedAuthoring(options.routeAuthoring, options.ignoreNextMapClickRef),
     layers: options.layers,
     map: options.map,
@@ -99,7 +102,7 @@ function useRouteEditing(options: RouteEditingOptions) {
     onRoutePreview: handlePreview,
     selectedId: options.onRouteGeometryChange ? options.selectedId : null,
   });
-  return displayLayers;
+  return { displayLayers, updateEditingGeometry: terraEditing.updateEditingGeometry };
 }
 
 function useExporterSubscription(
@@ -120,13 +123,39 @@ function clearMapStateAttributes(container: HTMLDivElement | null) {
   container?.removeAttribute('data-map-pitch');
 }
 
+export function scheduleTerraRouteHandleOrder(map: MapLibreMap) {
+  const result = bringTerraRouteHandlesToFront(map);
+  if (result === 'moved' || typeof map.isStyleLoaded !== 'function' || typeof map.once !== 'function') {
+    return result;
+  }
+  const event = map.isStyleLoaded() ? 'render' : 'style.load';
+  map.once(event, () => bringTerraRouteHandlesToFront(map));
+  return result;
+}
+
+function scheduleContentReady(
+  readyMap: MapLibreMap | null,
+  setContentError: Dispatch<SetStateAction<ContentError | null>>,
+  setTerraMap: Dispatch<SetStateAction<MapLibreMap | null>>,
+) {
+  queueMicrotask(() => {
+    setContentError((error) => error?.source === 'sync' ? null : error);
+    if (!readyMap) return;
+    scheduleTerraRouteHandleOrder(readyMap);
+    setTerraMap((current) => current === readyMap ? current : readyMap);
+  });
+}
+
 function useShapeEditing({ layers, map, onShapeGeometryChange, selectedId, shapeEditMode, stylePreset }: Pick<MapCanvasControllerOptions, 'layers' | 'onShapeGeometryChange' | 'selectedId' | 'shapeEditMode' | 'stylePreset'> & { map: RefObject<MapLibreMap | null> }) {
   useShapeVertexEditing({ active: shapeEditMode === 'points', layers, map, onShapeGeometryChange, selectedId, stylePreset });
   useShapeTransformEditing({ active: shapeEditMode === 'transform', layers, map, onShapeGeometryChange, selectedId, stylePreset });
 }
 
 function useAccessibleRouteVertexEditing(options: Pick<MapCanvasControllerOptions,
-  'layers' | 'onRouteGeometryChange' | 'selectedId' | 'stylePreset'> & { map: RefObject<MapLibreMap | null> }) {
+  'layers' | 'onRouteGeometryChange' | 'selectedId' | 'stylePreset'> & {
+    map: RefObject<MapLibreMap | null>;
+    onRoutePreview?: (coordinates: [number, number][]) => boolean;
+  }) {
   const handleChange = useCallback((id: string, vertexIndex: number, coordinate: readonly [number, number]) => {
     const route = options.layers.find((layer) => layer.id === id);
     if (route?.geometry?.type !== 'LineString') return;
@@ -138,6 +167,7 @@ function useAccessibleRouteVertexEditing(options: Pick<MapCanvasControllerOption
   useRouteVertexEditing({
     layers: options.layers, map: options.map,
     onRouteVertexChange: options.onRouteGeometryChange ? handleChange : undefined,
+    onRouteVertexPreview: options.onRoutePreview,
     selectedId: options.selectedId, stylePreset: options.stylePreset,
   });
 }
@@ -159,8 +189,7 @@ export function useMapCanvasController({
   onBackgroundClick,
   onExporterChange,
   onLayerSelect,
-  onCameraViewportChange,
-  onMapClick,
+  onCameraViewportChange, onMapClick, onPoiCoordinatesChange,
   onRouteGeometryChange,
   routeAuthoring,
   onShapeGeometryChange,
@@ -170,7 +199,8 @@ export function useMapCanvasController({
   contentRevision,
 }: MapCanvasControllerOptions) {
   const container = useRef<HTMLDivElement>(null), map = useRef<MapLibreMap | null>(null), contentAdapter = useRef<MapContentAdapter | null>(null), ignoreNextMapClickRef = useRef(false);
-  const [terraMap, setTerraMap] = useState<MapLibreMap | null>(null), displayLayers = useRouteEditing({ ignoreNextMapClickRef, layers, map: terraMap, onRouteGeometryChange, routeAuthoring, selectedId });
+  const [terraMap, setTerraMap] = useState<MapLibreMap | null>(null), routeEditing = useRouteEditing({ ignoreNextMapClickRef, layers, map: terraMap, onRouteGeometryChange, routeAuthoring, selectedId });
+  const { displayLayers } = routeEditing;
   const contentState = useRef<MapContentState>({ layers: displayLayers, assets, selectedId, previewedId, contentRevision }), contentSyncDeferred = useRef(false), contentReady = useRef(false), mapFailed = useRef(false);
   const layerSelect = useRef(onLayerSelect), backgroundClick = useRef(onBackgroundClick), mapClick = useRef(onMapClick);
   const cameraViewportChange = useRef(onCameraViewportChange), cameraState = useRef(camera), exporterChangeRef = useRef(onExporterChange);
@@ -201,11 +231,7 @@ export function useMapCanvasController({
       }));
     } else if (result === 'synced') {
       contentReady.current = true;
-      const readyMap = map.current;
-      queueMicrotask(() => {
-        setContentError((error) => error?.source === 'sync' ? null : error);
-        if (readyMap) setTerraMap((current) => current === readyMap ? current : readyMap);
-      });
+      scheduleContentReady(map.current, setContentError, setTerraMap);
     }
   }, [invalidateExporter]);
 
@@ -264,7 +290,7 @@ export function useMapCanvasController({
     });
   }, [cameraState, handleContentSyncResult, invalidateExporter, resetFeatureVisibility, resetMapLanguage, resetTextScale, stylePreset, synchronizeFeatureVisibility, synchronizeMapLanguage, synchronizeTextScale]);
 
-  useShapeEditing({ layers, map, onShapeGeometryChange, selectedId, shapeEditMode, stylePreset }); useAccessibleRouteVertexEditing({ layers, map, onRouteGeometryChange, selectedId, stylePreset });
+  usePointEditing({ layers, map, onPoiCoordinatesChange, selectedId, stylePreset }); useShapeEditing({ layers, map, onShapeGeometryChange, selectedId, shapeEditMode, stylePreset }); useAccessibleRouteVertexEditing({ layers, map, onRouteGeometryChange, onRoutePreview: routeEditing.updateEditingGeometry, selectedId, stylePreset });
 
   useMapCameraSynchronization({ camera, container, map, stylePreset }); useMapLocationRequest({ container, locationRequest, map, stylePreset });
   useMapFitRequests({ camera, cameraViewportChangeMode, container, fitImportBounds, fitImportRequest, fitLayerId, fitLayerRequest, fitRequest, layers, map });

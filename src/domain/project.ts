@@ -2,6 +2,7 @@ import type { ArcGeometry } from './routeArcGeometry';
 import { createDefaultLayerAppearance, type LayerAppearance } from './layerAppearance';
 import type { CustomMarkerAsset } from './customMarkerAssets';
 import { MAP_STYLE_PRESET_LABELS, type MapStylePreset } from './mapStylePresets';
+import type { PagePreset } from './pagePresets';
 
 export type { ArcGeometry } from './routeArcGeometry';
 export { createDefaultLayerAppearance } from './layerAppearance';
@@ -22,8 +23,7 @@ export function normalizeCameraPrecision(value: number): number {
 
 export type LayerType = 'route' | 'poi' | 'shape' | 'basemap';
 export type PageOrientation = 'landscape' | 'portrait';
-export type PagePreset = 'A4' | 'A3' | 'Letter' | 'Custom';
-export type StandardPagePreset = Exclude<PagePreset, 'Custom'>;
+export type { PagePreset, StandardPagePreset } from './pagePresets';
 export type { MapStylePreset } from './mapStylePresets';
 export type MapLanguage = 'local' | 'en' | 'de' | 'fr' | 'it' | 'es' | 'zh';
 export type MapFeatureVisibilityCategory = 'roads' | 'buildings' | 'labels' | 'water' | 'parks' | 'landuse' | 'transit';

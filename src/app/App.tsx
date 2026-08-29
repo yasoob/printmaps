@@ -123,7 +123,7 @@ export function App({ autosaveRepository, directionsProvider, mapMatchingProvide
           activePanel={modal.mobilePanel}
           layersTriggerRef={mobile.layersTriggerRef}
           propertiesTriggerRef={mobile.propertiesTriggerRef}
-          onLayerSelect={project.selectLayer} onCameraViewportChange={project.setCameraViewport} onRouteGeometryChange={project.replaceRouteGeometry}
+          onLayerSelect={project.selectLayer} onCameraViewportChange={project.setCameraViewport} onPoiCoordinatesChange={project.setPoiCoordinates} onRouteGeometryChange={project.replaceRouteGeometry}
           onLocate={mapLocation.locate}
           onShapeGeometryChange={project.setShapeGeometry}
           directionsProvider={directionsProvider} searchProvider={searchProvider ?? defaultSearchProvider}

@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../../../src/app/App';
 import { exportMocks } from './exportMocks';
@@ -10,15 +10,14 @@ describe('editor page settings and tools', () => {
     exportMocks.exporter = null;
   });
 
-  it('exposes project fields, tool state, and page disclosure accessibly', async () => {
-    const user = userEvent.setup();
+  it('exposes project fields, tool state, and page disclosure accessibly', () => {
     render(<App />);
 
     expect(screen.getByRole('combobox', { name: 'Page preset' })).toBeInTheDocument();
     expect(screen.getByRole('radiogroup', { name: 'Map style presets' })).toBeInTheDocument();
-    expect(screen.getByRole('textbox', { name: 'Bearing' })).toBeInTheDocument();
-    expect(screen.getByRole('textbox', { name: 'Pitch' })).toBeInTheDocument();
-    expect(screen.getByRole('textbox', { name: 'Text scale' })).toBeInTheDocument();
+    expect(screen.getByRole('spinbutton', { name: 'Bearing' })).toBeInTheDocument();
+    expect(screen.getByRole('spinbutton', { name: 'Pitch' })).toBeInTheDocument();
+    expect(screen.getByRole('spinbutton', { name: 'Text scale' })).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: 'Show roads' })).toBeChecked();
     expect(screen.getByRole('checkbox', { name: 'Show buildings' })).toBeChecked();
     expect(screen.getByRole('checkbox', { name: 'Show labels' })).toBeChecked();
@@ -28,14 +27,8 @@ describe('editor page settings and tools', () => {
 
     const select = screen.getByRole('button', { name: 'Select (V)' });
     expect(select).toHaveAttribute('aria-pressed', 'true');
-    const more = screen.getByRole('button', { name: 'More map tools' });
-    await user.click(more);
-    const pan = screen.getByRole('menuitemradio', { name: /Pan/ });
-    expect(pan).toHaveAttribute('aria-checked', 'false');
-    await user.click(pan);
-    expect(select).toHaveAttribute('aria-pressed', 'false');
-    await user.click(more);
-    expect(screen.getByRole('menuitemradio', { name: /Pan/ })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.queryByRole('button', { name: 'More map tools' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Fit page' })).toBeEnabled();
 
     expect(screen.queryByRole('button', { name: 'Page 1' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Add page' })).not.toBeInTheDocument();
@@ -54,13 +47,13 @@ describe('editor page settings and tools', () => {
     await user.click(portrait);
     expect(landscape).toHaveAttribute('aria-pressed', 'false');
     expect(portrait).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('textbox', { name: 'Page width' })).toHaveValue('210');
-    expect(screen.getByRole('textbox', { name: 'Page height' })).toHaveValue('297');
+    expect(screen.getByRole('spinbutton', { name: 'Page width' })).toHaveValue(210);
+    expect(screen.getByRole('spinbutton', { name: 'Page height' })).toHaveValue(297);
     expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-orientation', 'portrait');
 
     await user.click(screen.getByRole('button', { name: 'Undo' }));
     expect(landscape).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('textbox', { name: 'Page width' })).toHaveValue('297');
+    expect(screen.getByRole('spinbutton', { name: 'Page width' })).toHaveValue(297);
     expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-orientation', 'landscape');
 
     await user.click(screen.getByRole('button', { name: 'Redo' }));
@@ -77,15 +70,61 @@ describe('editor page settings and tools', () => {
     await user.selectOptions(preset, 'A3');
 
     expect(preset).toHaveValue('A3');
-    expect(screen.getByRole('textbox', { name: 'Page width' })).toHaveValue('420');
-    expect(screen.getByRole('textbox', { name: 'Page height' })).toHaveValue('297');
+    expect(screen.getByRole('spinbutton', { name: 'Page width' })).toHaveValue(420);
+    expect(screen.getByRole('spinbutton', { name: 'Page height' })).toHaveValue(297);
     expect(map).toHaveAttribute('data-page-preset', 'A3');
     expect(map).toHaveAttribute('data-page-size', '420x297');
 
     await user.click(screen.getByRole('button', { name: 'Undo' }));
     expect(preset).toHaveValue('A4');
-    expect(screen.getByRole('textbox', { name: 'Page width' })).toHaveValue('297');
+    expect(screen.getByRole('spinbutton', { name: 'Page width' })).toHaveValue(297);
     expect(map).toHaveAttribute('data-page-preset', 'A4');
+  });
+
+  it('supports the requested map-size preset catalogue', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const preset = screen.getByRole('combobox', { name: 'Page preset' });
+
+    expect([...preset.querySelectorAll('option')].map((option) => option.textContent)).toEqual([
+      'A2', 'A3', 'A4', 'A5', 'A6', 'US Letter', 'Custom',
+    ]);
+    for (const [value, expectedWidth, expectedHeight] of [
+      ['A2', 594, 420],
+      ['A3', 420, 297],
+      ['A4', 297, 210],
+      ['A5', 210, 148],
+      ['A6', 148, 105],
+      ['US Letter', 279.4, 215.9],
+    ] as const) {
+      await user.selectOptions(preset, value);
+      expect(screen.getByRole('spinbutton', { name: 'Page width' })).toHaveValue(expectedWidth);
+      expect(screen.getByRole('spinbutton', { name: 'Page height' })).toHaveValue(expectedHeight);
+    }
+
+    await user.selectOptions(preset, 'Custom');
+    expect(preset).toHaveValue('Custom');
+    expect(screen.getByRole('spinbutton', { name: 'Page width' })).toHaveValue(279.4);
+    expect(screen.getByRole('spinbutton', { name: 'Page height' })).toHaveValue(215.9);
+  });
+
+  it('scrubs a page dimension through its InputGroup addon as one undoable change', () => {
+    render(<App />);
+    const width = screen.getByRole('spinbutton', { name: 'Page width' });
+    const widthAddon = screen.getByText('W');
+
+    expect(width).toBeValid();
+    expect(width).toHaveAttribute('min', '0.1');
+    expect(width).toHaveAttribute('step', '0.1');
+    fireEvent.pointerDown(widthAddon, { button: 0, clientX: 10, pointerId: 1 });
+    fireEvent.pointerMove(window, { clientX: 18, pointerId: 1 });
+    expect(width).toHaveValue(299);
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
+    fireEvent.pointerUp(window, { clientX: 18, pointerId: 1 });
+
+    expect(screen.getByRole('combobox', { name: 'Page preset' })).toHaveValue('Custom');
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeEnabled();
+    expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-page-size', '299x210');
   });
 });
 
@@ -145,7 +184,7 @@ describe('editor map style controls', () => {
   it('commits global text scale on blur and keeps Undo and Redo synchronized with the canvas', async () => {
     const user = userEvent.setup();
     render(<App />);
-    const textScale = screen.getByRole('textbox', { name: 'Text scale' });
+    const textScale = screen.getByRole('spinbutton', { name: 'Text scale' });
     const undo = screen.getByRole('button', { name: 'Undo' });
     const map = screen.getByTestId('map-canvas');
 
@@ -154,27 +193,27 @@ describe('editor map style controls', () => {
     expect(undo).toBeDisabled();
     await user.tab();
 
-    expect(textScale).toHaveValue('125');
+    expect(textScale).toHaveValue(125);
     expect(map).toHaveAttribute('data-text-scale', '125');
     await user.click(undo);
-    expect(screen.getByRole('textbox', { name: 'Text scale' })).toHaveValue('100');
+    expect(screen.getByRole('spinbutton', { name: 'Text scale' })).toHaveValue(100);
     expect(map).toHaveAttribute('data-text-scale', '100');
     await user.click(screen.getByRole('button', { name: 'Redo' }));
-    expect(screen.getByRole('textbox', { name: 'Text scale' })).toHaveValue('125');
+    expect(screen.getByRole('spinbutton', { name: 'Text scale' })).toHaveValue(125);
     expect(map).toHaveAttribute('data-text-scale', '125');
   });
 
   it('marks an invalid global text scale and restores the canonical value without history', async () => {
     const user = userEvent.setup();
     render(<App />);
-    const textScale = screen.getByRole('textbox', { name: 'Text scale' });
+    const textScale = screen.getByRole('spinbutton', { name: 'Text scale' });
 
     await user.clear(textScale);
     await user.type(textScale, '201');
     expect(textScale).toHaveAttribute('aria-invalid', 'true');
     await user.tab();
 
-    expect(screen.getByRole('textbox', { name: 'Text scale' })).toHaveValue('100');
+    expect(screen.getByRole('spinbutton', { name: 'Text scale' })).toHaveValue(100);
     expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
   });
 });
@@ -188,27 +227,21 @@ describe('editor map detail and page commands', () => {
     const user = userEvent.setup();
     render(<App />);
     const lock = screen.getByRole('switch', { name: 'Lock map area' });
-    const more = screen.getByRole('button', { name: 'More map tools' });
+    const fit = screen.getByRole('button', { name: 'Fit page' });
     const map = screen.getByTestId('map-canvas');
 
     expect(lock).not.toBeChecked();
-    await user.click(more);
-    expect(screen.getByRole('menuitem', { name: /Fit page/ })).toBeEnabled();
-    expect(screen.getByRole('menuitemradio', { name: /Pan/ })).toBeEnabled();
-    await user.click(more);
+    expect(fit).toBeEnabled();
     expect(map).toHaveAttribute('data-map-area-locked', 'false');
 
     await user.click(lock);
 
     expect(lock).toBeChecked();
-    await user.click(more);
-    expect(screen.getByRole('menuitem', { name: /Fit page/ })).toHaveAttribute('aria-disabled', 'true');
-    expect(screen.getByRole('menuitemradio', { name: /Pan/ })).toHaveAttribute('aria-disabled', 'true');
+    expect(fit).toBeDisabled();
     expect(map).toHaveAttribute('data-map-area-locked', 'true');
     await user.click(screen.getByRole('button', { name: 'Undo' }));
     expect(lock).not.toBeChecked();
-    await user.click(more);
-    expect(screen.getByRole('menuitem', { name: /Fit page/ })).toBeEnabled();
+    expect(fit).toBeEnabled();
     expect(map).toHaveAttribute('data-map-area-locked', 'false');
   });
 
@@ -322,7 +355,7 @@ describe('editor map detail and page commands', () => {
   it('keeps the A4 preset and history unchanged when page width is blurred without editing', async () => {
     const user = userEvent.setup();
     render(<App />);
-    const field = screen.getByRole('textbox', { name: 'Page width' });
+    const field = screen.getByRole('spinbutton', { name: 'Page width' });
     const preset = screen.getByRole('combobox', { name: 'Page preset' });
     const undo = screen.getByRole('button', { name: 'Undo' });
 
@@ -336,7 +369,7 @@ describe('editor map detail and page commands', () => {
   it('commits an unchanged valid page dimension as Custom on blur', async () => {
     const user = userEvent.setup();
     render(<App />);
-    const field = screen.getByRole('textbox', { name: 'Page width' });
+    const field = screen.getByRole('spinbutton', { name: 'Page width' });
     const preset = screen.getByRole('combobox', { name: 'Page preset' });
     const undo = screen.getByRole('button', { name: 'Undo' });
 
@@ -354,15 +387,11 @@ describe('editor map detail and page commands', () => {
   it('fits the page without changing the persistent tool', async () => {
     const user = userEvent.setup();
     render(<App />);
-    const more = screen.getByRole('button', { name: 'More map tools' });
     const map = screen.getByTestId('map-canvas');
+    const select = screen.getByRole('button', { name: 'Select (V)' });
     expect(map).toHaveAttribute('data-fit-request', '0');
-    await user.click(more);
-    await user.click(screen.getByRole('menuitemradio', { name: /Pan/ }));
-    await user.click(more);
-    await user.click(screen.getByRole('menuitem', { name: /Fit page/ }));
-    await user.click(more);
-    expect(screen.getByRole('menuitemradio', { name: /Pan/ })).toHaveAttribute('aria-checked', 'true');
+    await user.click(screen.getByRole('button', { name: 'Fit page' }));
+    expect(select).toHaveAttribute('aria-pressed', 'true');
     expect(map).toHaveAttribute('data-fit-request', '1');
   });
 });

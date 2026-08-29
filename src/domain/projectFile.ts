@@ -17,6 +17,7 @@ import { parseProjectAssets } from './projectAssets';
 import { MAP_STYLE_PRESETS as MAP_STYLE_PRESET_DEFINITIONS } from './mapStylePresets';
 import { ProjectFileError } from './projectFileError';
 import { parseLayerProvenance } from './projectProvenance';
+import { PAGE_PRESET_DEFINITIONS, pagePresetDimensions } from './pagePresets';
 
 export { ProjectFileError } from './projectFileError';
 
@@ -24,7 +25,10 @@ export const MAX_PROJECT_FILE_BYTES = 10 * 1024 * 1024;
 export const MAX_PROJECT_LAYERS = 1000;
 export const MAX_PROJECT_COORDINATES = 200_000;
 const LAYER_TYPES = new Set<LayerType>(['route', 'poi', 'shape', 'basemap']);
-const PAGE_PRESETS = new Set<PagePreset>(['A4', 'A3', 'Letter', 'Custom']);
+const PAGE_PRESETS = new Set<PagePreset>([
+  ...PAGE_PRESET_DEFINITIONS.map(({ id }) => id),
+  'Custom',
+]);
 const PAGE_ORIENTATIONS = new Set<PageOrientation>(['landscape', 'portrait']);
 const MAP_STYLE_PRESETS = new Set<MapStylePreset>(MAP_STYLE_PRESET_DEFINITIONS.map(({ id }) => id));
 const MAP_LANGUAGES = new Set<MapLanguage>(['local', 'en', 'de', 'fr', 'it', 'es', 'zh']);
@@ -192,17 +196,13 @@ function pageAt(value: unknown): ProjectDocument['page'] {
     heightMm: positiveNumber(page.heightMm, 'Page height'),
     orientation: orientation as PageOrientation,
   };
-  if (typeof page.preset !== 'string' || !PAGE_PRESETS.has(page.preset as PagePreset)) {
-    throw new ProjectFileError('Page preset must be A4, A3, Letter, or Custom.');
+  const presetValue = page.preset === 'Letter' ? 'US Letter' : page.preset;
+  if (typeof presetValue !== 'string' || !PAGE_PRESETS.has(presetValue as PagePreset)) {
+    throw new ProjectFileError('Page preset must be A2, A3, A4, A5, A6, US Letter, or Custom.');
   }
-  const preset = page.preset as PagePreset;
+  const preset = presetValue as PagePreset;
   if (preset !== 'Custom') {
-    const presetEdges = {
-      A4: [297, 210],
-      A3: [420, 297],
-      Letter: [279.4, 215.9],
-    } as const;
-    const [longEdge, shortEdge] = presetEdges[preset];
+    const [longEdge, shortEdge] = pagePresetDimensions(preset);
     const expectedWidth = orientation === 'landscape' ? longEdge : shortEdge;
     const expectedHeight = orientation === 'landscape' ? shortEdge : longEdge;
     if (base.widthMm !== expectedWidth || base.heightMm !== expectedHeight) {

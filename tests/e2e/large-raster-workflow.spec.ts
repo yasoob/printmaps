@@ -9,8 +9,8 @@ test('oversized raster output remains one PNG and handles picker cancellation', 
   });
   await page.goto('/');
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
-  await page.getByRole('textbox', { name: 'Page width' }).fill('1400');
-  await page.getByRole('textbox', { name: 'Page width' }).press('Tab');
+  await page.getByRole('spinbutton', { name: 'Page width' }).fill('1400');
+  await page.getByRole('spinbutton', { name: 'Page width' }).press('Tab');
   await page.getByRole('button', { name: 'Export' }).click();
 
   const dialog = page.getByRole('dialog', { name: 'Export map' });

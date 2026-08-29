@@ -11,6 +11,7 @@ test('searched address becomes one durable editable and exportable POI', async (
   });
   await page.route('https://api.mapbox.com/search/geocode/v6/forward**', async (route) => {
     searchRequests += 1;
+    expect(new URL(route.request().url()).searchParams.get('access_token')).toMatch(/^pk\./);
     await route.fulfill({
       contentType: 'application/json',
       body: JSON.stringify({
@@ -30,6 +31,8 @@ test('searched address becomes one durable editable and exportable POI', async (
   const mapFallback = page.getByText('Map preview unavailable');
   await expect(mapReady.or(mapFallback)).toBeVisible({ timeout: 20_000 });
   test.skip(await mapFallback.isVisible(), 'The Chromium fixture has no WebGL 2 renderer.');
+  await expect(page.getByRole('button', { name: 'Provider services' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Check.*connection/i })).toHaveCount(0);
 
   await page.getByRole('button', { name: 'Place (P)' }).click();
   const search = page.getByRole('combobox', { name: 'Search places and addresses' });

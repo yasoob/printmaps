@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 const isExpectedWebGlDiagnostic = (message: string, browserName: string) => (
   message.includes('GPU stall due to ReadPixels')
@@ -22,6 +22,57 @@ function projectInitialMapCoordinate(
     x: width / 2 + (coordinate[0] - centerLongitude) / 360 * worldSize,
     y: height / 2 + (mercatorY(coordinate[1]) - mercatorY(centerLatitude)) * worldSize,
   };
+}
+
+type ScreenPoint = { x: number; y: number };
+
+async function handleCenters(page: Page) {
+  return page.getByRole('button', { name: /Drag route vertex/ }).evaluateAll((elements) => (
+    elements.map((element) => {
+      const box = element.getBoundingClientRect();
+      return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    })
+  ));
+}
+
+const midpoint = (first: ScreenPoint, second: ScreenPoint) => ({
+  x: (first.x + second.x) / 2,
+  y: (first.y + second.y) / 2,
+});
+
+async function routeHandlePixels(page: Page, points: Record<string, ScreenPoint>) {
+  const png = await page.screenshot();
+  return page.evaluate(async ({ image, points }) => {
+    const response = await fetch(`data:image/png;base64,${image}`);
+    const bitmap = await createImageBitmap(await response.blob());
+    const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('Canvas pixel inspection is unavailable.');
+    context.drawImage(bitmap, 0, 0);
+    const pixels = context.getImageData(0, 0, bitmap.width, bitmap.height).data;
+    const colorAt = (x: number, y: number) => {
+      const offset = (Math.round(y) * bitmap.width + Math.round(x)) * 4;
+      return [pixels[offset], pixels[offset + 1], pixels[offset + 2]];
+    };
+    return Object.fromEntries(Object.entries(points).map(([name, point]) => {
+      let brightCenter = 0;
+      let redCenter = 0;
+      let redRing = 0;
+      for (let y = -9; y <= 9; y += 1) {
+        for (let x = -9; x <= 9; x += 1) {
+          const distance = Math.hypot(x, y);
+          const color = colorAt(point.x + x, point.y + y);
+          const isRed = color[0] > 145 && color[0] > color[1] * 1.35 && color[0] > color[2] * 1.15;
+          if (distance <= 2.2) {
+            redCenter += Number(isRed);
+            brightCenter += Number(color.every((channel) => channel > 210));
+          }
+          if (distance >= 5.5 && distance <= 9.5) redRing += Number(isRed);
+        }
+      }
+      return [name, { brightCenter, redCenter, redRing }];
+    }));
+  }, { image: png.toString('base64'), points });
 }
 
 test('expert arc route authoring is undoable and exports a travel-mode marker', async ({ page, browserName }, testInfo) => {
@@ -112,6 +163,11 @@ test('a selected straight route drags a Terra Draw midpoint as one undoable edit
   await page.getByRole('button', { name: /Advanced/ }).click();
   const vertexSelect = page.getByRole('combobox', { name: 'Route vertex' });
   await expect(vertexSelect.locator('option')).toHaveCount(4);
+  const mapCanvas = page.getByTestId('map-canvas');
+  const originalGeometry = await mapCanvas.evaluate((element) => (
+    (element as HTMLElement).dataset.mapLayerGeometry
+  ));
+  expect(originalGeometry).toBeTruthy();
   const canvasBox = await page.locator('.maplibregl-canvas').boundingBox();
   expect(canvasBox).not.toBeNull();
   const midpoint = projectInitialMapCoordinate(
@@ -122,10 +178,52 @@ test('a selected straight route drags a Terra Draw midpoint as one undoable edit
   await page.mouse.move(canvasBox!.x + midpoint.x, canvasBox!.y + midpoint.y);
   await page.mouse.down();
   await page.mouse.move(canvasBox!.x + midpoint.x, canvasBox!.y + midpoint.y + 30, { steps: 5 });
+  await expect.poll(() => mapCanvas.evaluate((element) => (
+    (element as HTMLElement).dataset.mapLayerGeometry
+  ))).not.toBe(originalGeometry);
   await page.mouse.up();
 
   await expect(route).toHaveAttribute('aria-current', 'true');
   await expect(vertexSelect.locator('option')).toHaveCount(5);
   await page.getByRole('button', { name: 'Undo' }).click();
   await expect(vertexSelect.locator('option')).toHaveCount(4);
+  await expect(mapCanvas).toHaveAttribute('data-map-layer-geometry', originalGeometry!);
+});
+
+test('accessible route drag moves dependent midpoint handles live above the stroke', async ({ page }) => {
+  await page.goto('/');
+  const mapReady = page.locator('[data-map-ready="true"]');
+  const mapFallback = page.getByText('Map preview unavailable');
+  await expect(mapReady.or(mapFallback)).toBeVisible({ timeout: 20_000 });
+  test.skip(await mapFallback.isVisible(), 'This browser fixture has no WebGL 2 renderer.');
+
+  await page.getByRole('button', { name: 'Select Route 01' }).click();
+  await page.getByRole('button', { name: /Advanced/ }).click();
+  const mapCanvas = page.getByTestId('map-canvas');
+  const originalGeometry = await mapCanvas.getAttribute('data-map-layer-geometry');
+  const before = await handleCenters(page);
+  const dragged = before[1];
+  await page.mouse.move(dragged.x, dragged.y);
+  await page.mouse.down();
+  await page.mouse.move(dragged.x + 96, dragged.y + 72, { steps: 8 });
+  const after = await handleCenters(page);
+  expect(after[1].x).toBeGreaterThan(before[1].x + 90);
+  const pixels = await routeHandlePixels(page, {
+    oldFirst: midpoint(before[0], before[1]),
+    oldSecond: midpoint(before[1], before[2]),
+    newFirst: midpoint(after[0], after[1]),
+    newSecond: midpoint(after[1], after[2]),
+  });
+
+  for (const name of ['newFirst', 'newSecond']) {
+    expect(pixels[name].redRing).toBeGreaterThan(30);
+    expect(pixels[name].brightCenter).toBeGreaterThanOrEqual(9);
+    expect(pixels[name].redCenter).toBeLessThanOrEqual(2);
+  }
+  expect(pixels.oldFirst.redRing).toBeLessThan(10);
+  expect(pixels.oldSecond.redRing).toBeLessThan(10);
+  await page.mouse.up();
+  await expect(mapCanvas).not.toHaveAttribute('data-map-layer-geometry', originalGeometry!);
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(mapCanvas).toHaveAttribute('data-map-layer-geometry', originalGeometry!);
 });

@@ -1,15 +1,16 @@
 import { useRef, useState } from 'react';
-import type { CameraSettings, MapFeatureVisibilityCategory, MapLanguage, MapStylePreset, MapStyleSettings, PageSettings, StandardPagePreset } from '../../domain/project';
-import { MapboxServiceStatus } from './MapboxServiceStatus';
+import type { CameraSettings, MapFeatureVisibilityCategory, MapLanguage, MapStylePreset, MapStyleSettings, PagePreset, PageSettings } from '../../domain/project';
+import { PAGE_PRESET_DEFINITIONS } from '../../domain/pagePresets';
 import { InspectorAccordion, PropertyRow } from './PropertyControls';
 import { GeolocationControl } from './GeolocationControl';
 import { Checkbox, Switch } from './UiControls';
 import { MAP_STYLE_PRESET_LABELS } from '../../domain/mapStylePresets';
 import { MapStyleGallery } from './MapStyleGallery';
+import { InputGroup, InputGroupAddon, InputNumber } from './InputGroup';
 
 function isValidPageDimension(draft: string) {
   const value = Number(draft);
-  return draft.trim() !== '' && Number.isFinite(value) && value > 0;
+  return draft.trim() !== '' && Number.isFinite(value) && value >= 0.1;
 }
 
 type PageDimensionFieldProps = {
@@ -37,11 +38,12 @@ function PageDimensionField({ label, ariaLabel, dimension, value, onCommit }: Pa
   };
 
   return (
-    <label>
-      <span>{label}</span>
-      <input
+    <InputGroup>
+      <InputGroupAddon enableScrubbing sensitivity={0.4}>{label}</InputGroupAddon>
+      <InputNumber
         aria-label={ariaLabel}
-        inputMode="decimal"
+        min={0.1}
+        step={0.1}
         value={draft}
         aria-invalid={!isValidPageDimension(draft)}
         onChange={(event) => {
@@ -50,8 +52,8 @@ function PageDimensionField({ label, ariaLabel, dimension, value, onCommit }: Pa
         }}
         onBlur={commit}
       />
-      <small>mm</small>
-    </label>
+      <InputGroupAddon align="inline-end">mm</InputGroupAddon>
+    </InputGroup>
   );
 }
 
@@ -83,11 +85,13 @@ function CameraField({ field, value, onCommit }: CameraFieldProps) {
   };
 
   return (
-    <label className="number-field">
-      <input
+    <InputGroup>
+      <InputNumber
         aria-label={field === 'bearing' ? 'Bearing' : 'Pitch'}
         aria-invalid={!isValidCameraDraft(field, draft)}
-        inputMode="decimal"
+        min={field === 'bearing' ? -180 : 0}
+        max={field === 'bearing' ? 180 : 60}
+        step={1}
         value={draft}
         onChange={(event) => {
           setDraft(event.target.value);
@@ -95,8 +99,8 @@ function CameraField({ field, value, onCommit }: CameraFieldProps) {
         }}
         onBlur={commit}
       />
-      <small>°</small>
-    </label>
+      <InputGroupAddon align="inline-end" enableScrubbing sensitivity={4}>°</InputGroupAddon>
+    </InputGroup>
   );
 }
 
@@ -117,11 +121,13 @@ function TextScaleField({ value, onCommit }: { value: number; onCommit: (value: 
   };
 
   return (
-    <label className="number-field">
-      <input
+    <InputGroup>
+      <InputNumber
         aria-label="Text scale"
         aria-invalid={!isValid}
-        inputMode="decimal"
+        min={50}
+        max={200}
+        step={5}
         value={draft}
         onChange={(event) => {
           setDraft(event.target.value);
@@ -129,8 +135,8 @@ function TextScaleField({ value, onCommit }: { value: number; onCommit: (value: 
         }}
         onBlur={commit}
       />
-      <small>%</small>
-    </label>
+      <InputGroupAddon align="inline-end" enableScrubbing sensitivity={4}>%</InputGroupAddon>
+    </InputGroup>
   );
 }
 
@@ -147,7 +153,7 @@ type ProjectPropertiesProps = {
   onMapAreaLockChange: (isLocked: boolean) => void;
   onOrientationChange: (orientation: PageSettings['orientation']) => void;
   onPitchChange: (pitch: number) => void;
-  onPresetChange: (preset: StandardPagePreset) => void;
+  onPresetChange: (preset: PagePreset) => void;
   onStyleChange: (preset: MapStylePreset) => void;
   onTextScaleChange: (textScalePercent: number) => void;
 };
@@ -186,7 +192,7 @@ export function ProjectProperties({
     <div className="properties-panel">
       <div className="properties-title"><h2 data-project-heading tabIndex={-1}>Project</h2></div>
       <InspectorAccordion isDefaultExpanded storageKey={`${PROJECT_DISCLOSURE_PREFIX}:page`} summary={`${page.preset} ${page.orientation} · ${page.widthMm} × ${page.heightMm} mm`} title="Page">
-        <PropertyRow label="Preset"><select aria-label="Page preset" value={page.preset} onChange={(event) => onPresetChange(event.target.value as StandardPagePreset)}><option>A4</option><option>A3</option><option>Letter</option><option disabled>Custom</option></select></PropertyRow>
+        <PropertyRow label="Preset"><select aria-label="Page preset" value={page.preset} onChange={(event) => onPresetChange(event.target.value as PagePreset)}>{PAGE_PRESET_DEFINITIONS.map(({ id, label }) => <option key={id} value={id}>{label}</option>)}<option value="Custom">Custom</option></select></PropertyRow>
         <div className="paired-fields">
           <PageDimensionField key={`width-${page.widthMm}-${page.preset}`} label="W" ariaLabel="Page width" dimension="widthMm" value={page.widthMm} onCommit={onDimensionChange} />
           <PageDimensionField key={`height-${page.heightMm}-${page.preset}`} label="H" ariaLabel="Page height" dimension="heightMm" value={page.heightMm} onCommit={onDimensionChange} />
@@ -212,9 +218,6 @@ export function ProjectProperties({
         <Checkbox isChecked={style.visibility.parks} label="Show parks" onCheckedChange={(isChecked) => onFeatureVisibilityChange('parks', isChecked)} />
         <Checkbox isChecked={style.visibility.landuse} label="Show land detail" onCheckedChange={(isChecked) => onFeatureVisibilityChange('landuse', isChecked)} />
         <Checkbox isChecked={style.visibility.transit} label="Show transit" onCheckedChange={(isChecked) => onFeatureVisibilityChange('transit', isChecked)} />
-      </InspectorAccordion>
-      <InspectorAccordion isDefaultExpanded={false} storageKey={`${PROJECT_DISCLOSURE_PREFIX}:provider-services`} summary="Public-token status and compliance" title="Provider services">
-        <MapboxServiceStatus />
       </InspectorAccordion>
     </div>
   );

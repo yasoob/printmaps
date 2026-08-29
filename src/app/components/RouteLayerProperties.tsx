@@ -12,6 +12,7 @@ import { InspectorAccordion, PropertyRow, PropertySection } from './PropertyCont
 import { RouteMapMatchingControl } from './RouteMapMatchingControl';
 import { RouteVertexControls } from './RouteVertexControls';
 import { Checkbox } from './UiControls';
+import { InputGroup, InputGroupAddon, InputNumber } from './InputGroup';
 
 function RouteAppearanceControls({
   appearance,
@@ -36,7 +37,7 @@ function RouteAppearanceControls({
   return (
     <>
       <PropertyRow label="Color"><label className="color-field"><input aria-label="Route color" type="color" value={appearance.color} onChange={(event) => onChange({ ...appearance, color: event.target.value })} /></label></PropertyRow>
-      <PropertyRow label="Width"><label className="number-field"><input aria-label="Route width" aria-invalid={isWidthInvalid || undefined} value={widthDraft} onChange={(event) => setWidthEdit({ source: appearance.width, value: event.target.value })} onBlur={(event) => commitWidth(event.currentTarget.value)} /><small>px</small></label></PropertyRow>
+      <PropertyRow label="Width"><InputGroup><InputNumber aria-label="Route width" aria-invalid={isWidthInvalid || undefined} min={1} max={16} step={0.5} value={widthDraft} onChange={(event) => setWidthEdit({ source: appearance.width, value: event.target.value })} onBlur={(event) => commitWidth(event.currentTarget.value)} /><InputGroupAddon align="inline-end" enableScrubbing sensitivity={4}>px</InputGroupAddon></InputGroup></PropertyRow>
       <PropertyRow label="Profile"><select aria-label="Route travel profile" value={appearance.travelProfile} onChange={(event) => onChange({ ...appearance, travelProfile: event.target.value as RouteTravelProfile })}>{ROUTE_TRAVEL_PROFILES.map((profile) => <option key={profile} value={profile}>{ROUTE_TRAVEL_PROFILE_LABELS[profile]}</option>)}</select></PropertyRow>
       <Checkbox aria-label="Show travel-mode marker" isChecked={appearance.showTravelModeIcon} label="Show mode marker" onCheckedChange={(isChecked) => onChange({ ...appearance, showTravelModeIcon: isChecked })} />
     </>

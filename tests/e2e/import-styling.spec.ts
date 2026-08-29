@@ -49,15 +49,15 @@ test('reviewed map-data batches apply bounded styling before one-step import', a
   await expect(page.getByRole('status', { name: 'Map data import status' }))
     .toHaveText('Imported 2 files as 6 layers. Undo removes the whole import.');
   await expect(page.getByLabel('POI color')).toHaveValue('#445566');
-  await expect(page.getByRole('textbox', { name: 'POI marker size' })).toHaveValue('22');
+  await expect(page.getByRole('spinbutton', { name: 'POI marker size' })).toHaveValue('22');
   await expect(page.getByRole('combobox', { name: 'POI marker shape' })).toHaveValue('diamond');
   await page.getByRole('button', { name: 'Select Río line' }).click();
   await expect(page.getByLabel('Route color')).toHaveValue('#112233');
-  await expect(page.getByRole('textbox', { name: 'Route width' })).toHaveValue('7');
+  await expect(page.getByRole('spinbutton', { name: 'Route width' })).toHaveValue('7');
   await page.getByRole('button', { name: 'Select 公園 polygon' }).click();
   await expect(page.getByLabel('Shape fill color')).toHaveValue('#778899');
   await expect(page.getByLabel('Shape outline color')).toHaveValue('#aabbcc');
-  await expect(page.getByRole('textbox', { name: 'Shape outline width' })).toHaveValue('3');
+  await expect(page.getByRole('spinbutton', { name: 'Shape outline width' })).toHaveValue('3');
 
   await page.getByRole('button', { name: 'Undo' }).click();
   await expect(page.getByRole('button', { name: 'Select Café Central' })).not.toBeVisible();

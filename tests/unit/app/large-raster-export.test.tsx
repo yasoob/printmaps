@@ -24,7 +24,7 @@ vi.mock('../../../src/map/MapCanvas', async () => import('./MapCanvasMock'));
 
 async function setLargeSquare(user: ReturnType<typeof userEvent.setup>) {
   for (const [name, value] of [['Page width', '1330'], ['Page height', '1330']] as const) {
-    const field = screen.getByRole('textbox', { name });
+    const field = screen.getByRole('spinbutton', { name });
     await user.clear(field);
     await user.type(field, value);
     await user.tab();

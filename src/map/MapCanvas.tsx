@@ -23,6 +23,7 @@ type MapCanvasProps = {
   onLayerSelect: (id: string) => void;
   onCameraViewportChange?: (center: readonly [number, number], zoom: number, mode: CameraViewportChangeMode) => void;
   onMapClick?: (coordinate: [number, number]) => void;
+  onPoiCoordinatesChange?: (id: string, coordinate: readonly [number, number]) => void;
   onRouteGeometryChange?: (id: string, coordinates: readonly (readonly [number, number])[]) => void;
   routeAuthoring?: RouteAuthoring;
   onShapeGeometryChange?: (id: string, geometry: ShapeGeometry) => void;
@@ -37,6 +38,7 @@ type MapCanvasProps = {
   orientation?: 'landscape' | 'portrait';
   page?: PageSettings;
   contentRevision?: object;
+  interactionMode?: string;
 };
 
 const DEFAULT_FEATURE_VISIBILITY: MapFeatureVisibility = {
@@ -51,6 +53,7 @@ const DEFAULT_FEATURE_VISIBILITY: MapFeatureVisibility = {
 const resolveFeatureVisibility = (visibility?: MapFeatureVisibility) => visibility ?? DEFAULT_FEATURE_VISIBILITY;
 const resolveMapLanguage = (language?: MapLanguage) => language ?? 'local';
 const resolveShapeEditMode = (mode?: ShapeEditMode): ShapeEditMode => mode ?? 'transform';
+const resolveInteractionMode = (mode?: string) => mode ?? 'select';
 
 export function MapCanvas({
   camera = { bearing: 0, center: [16.3725, 48.2084], locked: false, pitch: 0, zoom: 11.2 },
@@ -66,6 +69,7 @@ export function MapCanvas({
   onLayerSelect,
   onCameraViewportChange,
   onMapClick,
+  onPoiCoordinatesChange,
   onRouteGeometryChange,
   routeAuthoring,
   onShapeGeometryChange,
@@ -80,6 +84,7 @@ export function MapCanvas({
   orientation = 'landscape',
   page,
   contentRevision,
+  interactionMode,
 }: MapCanvasProps) {
   const { container, visibleError } = useMapCanvasController({
     camera,
@@ -100,6 +105,7 @@ export function MapCanvas({
     onLayerSelect,
     onCameraViewportChange,
     onMapClick,
+    onPoiCoordinatesChange,
     onRouteGeometryChange,
     routeAuthoring,
     onShapeGeometryChange,
@@ -111,7 +117,7 @@ export function MapCanvas({
 
   return (
     <div className="canvas-surface" aria-label="Map canvas">
-      <div ref={container} className="map-root" data-testid="map-canvas" data-fit-request={fitRequest} data-fit-layer-id={fitLayerId} data-fit-import-request={fitImportRequest} data-map-area-locked={camera.locked} data-map-location-request={mapLocationRequestDiagnostic(locationRequest)} />
+      <div ref={container} className="map-root" data-testid="map-canvas" data-interaction-mode={resolveInteractionMode(interactionMode)} data-fit-request={fitRequest} data-fit-layer-id={fitLayerId} data-fit-import-request={fitImportRequest} data-map-area-locked={camera.locked} data-map-location-request={mapLocationRequestDiagnostic(locationRequest)} />
       {visibleError && (
         <div className="map-fallback" role="status">
           <div><strong>Map preview unavailable</strong><span>{visibleError.message}</span></div>

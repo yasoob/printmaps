@@ -15,43 +15,22 @@ describe('calm editor defaults', () => {
     expect(screen.queryByText(/^4 layers$/)).not.toBeInTheDocument();
   });
 
-  it('keeps keyboard focus inside More and returns it to the trigger on close', async () => {
+  it('uses Select for feature work and map navigation while keeping Fit page direct', async () => {
     const user = userEvent.setup();
     render(<App autosaveRepository={null} />);
 
-    const more = screen.getByRole('button', { name: 'More map tools' });
-    await user.click(more);
-    const pan = screen.getByRole('menuitemradio', { name: /Pan/ });
-    const fit = screen.getByRole('menuitem', { name: /Fit page/ });
-    expect(pan).toHaveFocus();
-    await user.keyboard('{ArrowDown}');
-    expect(fit).toHaveFocus();
-    await user.keyboard('{Home}');
-    expect(pan).toHaveFocus();
-    await user.keyboard('{End}');
-    expect(fit).toHaveFocus();
-    await user.keyboard('{Escape}');
-    expect(more).toHaveFocus();
-    expect(screen.queryByRole('menu', { name: 'More map tools' })).not.toBeInTheDocument();
-  });
-
-  it('keeps locked More commands discoverable without activating them', async () => {
-    const user = userEvent.setup();
-    render(<App autosaveRepository={null} />);
     const map = screen.getByTestId('map-canvas');
-    await user.click(screen.getByRole('switch', { name: 'Lock map area' }));
-    await user.click(screen.getByRole('button', { name: 'More map tools' }));
-
-    const pan = screen.getByRole('menuitemradio', { name: /Pan/ });
-    const fit = screen.getByRole('menuitem', { name: /Fit page/ });
-    expect(pan).toHaveAttribute('aria-disabled', 'true');
-    expect(pan).toHaveFocus();
-    await user.keyboard('{Enter}');
-    expect(screen.getByRole('menu', { name: 'More map tools' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'More map tools' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Pan/ })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Select (V)' })).toHaveAttribute('aria-pressed', 'true');
-    await user.keyboard('{ArrowDown}');
-    expect(fit).toHaveFocus();
-    await user.keyboard('{Enter}');
-    expect(map).toHaveAttribute('data-fit-request', '0');
+    await user.keyboard('h');
+    expect(map).toHaveAttribute('data-interaction-mode', 'select');
+
+    const fit = screen.getByRole('button', { name: 'Fit page' });
+    await user.click(fit);
+    expect(map).toHaveAttribute('data-fit-request', '1');
+
+    await user.click(screen.getByRole('switch', { name: 'Lock map area' }));
+    expect(fit).toBeDisabled();
   });
 });

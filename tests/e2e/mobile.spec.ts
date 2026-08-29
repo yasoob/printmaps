@@ -244,38 +244,72 @@ const expectBalancedHorizontalSpacing = async (button: Locator, icon: Locator, l
   expect((buttonBox!.x + buttonBox!.width) - (labelBox!.x + labelBox!.width)).toBeGreaterThanOrEqual(12);
 };
 
-test('mobile Export action gives its icon balanced spacing', async ({ page }) => {
+test('mobile Export action keeps balanced content and an even visual inset', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
 
   const button = page.getByRole('button', { name: 'Export' });
   await expectBalancedHorizontalSpacing(button, button.locator('svg'), button.locator('span'));
+  const [buttonBox, topbarBox] = await Promise.all([
+    button.boundingBox(),
+    page.locator('.topbar').boundingBox(),
+  ]);
+  expect(buttonBox).not.toBeNull();
+  expect(topbarBox).not.toBeNull();
+  expect(buttonBox!.height).toBeGreaterThanOrEqual(44);
+  expect(buttonBox!.height).toBe(topbarBox!.height);
+  const surface = await button.evaluate((element) => {
+    const buttonStyle = getComputedStyle(element);
+    const before = getComputedStyle(element, '::before');
+    return {
+      background: buttonStyle.backgroundColor,
+      bottom: before.bottom,
+      content: before.content,
+      top: before.top,
+    };
+  });
+  expect(surface).toMatchObject({
+    background: 'rgba(0, 0, 0, 0)',
+    bottom: '4px',
+    content: '""',
+    top: '4px',
+  });
 });
 
-test('mobile map palette prioritizes creation tools and moves navigation commands under More', async ({ page }) => {
+test('mobile map palette keeps one navigation mode and exposes Fit page directly', async ({ page }) => {
   test.setTimeout(60_000);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
 
   const toolbar = page.getByRole('navigation', { name: 'Map tools' });
   await expect(toolbar).toBeVisible({ timeout: 20_000 });
-  await expect(toolbar.locator('.tool-label')).toHaveText(['Select', 'Place', 'Route', 'Area', 'More']);
-  await expect(toolbar.locator('.tool-separator')).toHaveCount(1);
+  await expect(toolbar.locator('.tool-label')).toHaveText(['Select', 'Place', 'Route', 'Area']);
+  await expect(toolbar.getByRole('button')).toHaveCount(4);
   expect(await toolbar.locator('.tool-label').first().evaluate((element) => Number(getComputedStyle(element).fontSize.replace('px', '')))).toBeGreaterThanOrEqual(11);
+  await expect(page.getByRole('button', { name: 'More map tools' })).toHaveCount(0);
 
-  const more = toolbar.getByRole('button', { name: 'More map tools' });
-  await more.click();
-  await expect(more).toHaveAttribute('aria-expanded', 'true');
-  const moreMenu = page.getByRole('menu', { name: 'More map tools' });
-  await expect(moreMenu).toBeVisible();
-  await expect(moreMenu).toContainText('Pan');
-  await expect(moreMenu).toContainText('Fit page');
-  await expectNoOverlap(moreMenu, page.locator('.map-scale'));
-  await expectNoOverlap(moreMenu, page.locator('.maplibregl-ctrl-bottom-left'));
-  await expectNoOverlap(moreMenu, page.locator('.maplibregl-ctrl-bottom-right'));
-  await more.click();
+  const fit = page.getByRole('button', { name: 'Fit page' });
+  await expect(fit).toBeVisible();
+  const fitBox = await fit.boundingBox();
+  const zoomGroupBox = await page.locator('.maplibregl-ctrl-group').first().boundingBox();
+  expect(fitBox).not.toBeNull();
+  expect(zoomGroupBox).not.toBeNull();
+  expect(fitBox!.width).toBeGreaterThanOrEqual(44);
+  expect(fitBox!.height).toBeGreaterThanOrEqual(44);
+  expect(fitBox!.x).toBe(zoomGroupBox!.x);
+  expect(fitBox!.width).toBe(zoomGroupBox!.width);
+  expect(zoomGroupBox!.y - (fitBox!.y + fitBox!.height)).toBe(8);
+  await expectNoOverlap(fit, page.locator('.maplibregl-ctrl-bottom-right'));
+  await expectNoOverlap(fit, toolbar);
 
   await toolbar.getByRole('button', { name: 'Route (R)' }).click();
+  const authoringFitBox = await fit.boundingBox();
+  const authoringZoomGroupBox = await page.locator('.maplibregl-ctrl-group').first().boundingBox();
+  expect(authoringFitBox).not.toBeNull();
+  expect(authoringZoomGroupBox).not.toBeNull();
+  expect(authoringFitBox!.x).toBe(authoringZoomGroupBox!.x);
+  expect(authoringFitBox!.width).toBe(authoringZoomGroupBox!.width);
+  expect(authoringZoomGroupBox!.y - (authoringFitBox!.y + authoringFitBox!.height)).toBe(8);
   const routePath = page.getByRole('radiogroup', { name: 'Route path' });
   await expect(routePath.getByRole('radio', { name: 'Straight' })).toContainText('Straight');
   await expect(routePath.getByRole('radio', { name: 'Arc' })).toContainText('Arc');
@@ -293,7 +327,6 @@ test('mobile map palette prioritizes creation tools and moves navigation command
 
   await page.setViewportSize({ width: 1440, height: 900 });
   await expect(toolbar.locator('.tool-label:visible')).toHaveCount(0);
-  await expect(toolbar.locator('.tool-separator:visible')).toHaveCount(1);
 });
 
 
@@ -344,10 +377,12 @@ test('mobile navigation buttons use full touch targets', async ({ page }) => {
 
     const panelButtons = page.locator('.mobile-panel-actions button');
     const toolButtons = page.locator('.tool-palette .tool-button');
+    const fitButton = page.getByRole('button', { name: 'Fit page' });
     await expect(panelButtons).toHaveCount(2);
-    await expect(toolButtons).toHaveCount(5);
+    await expect(toolButtons).toHaveCount(4);
     await expectFullTouchTargets(panelButtons);
     await expectFullTouchTargets(toolButtons);
+    await expectFullTouchTargets(fitButton);
     if (width === 390) {
       await page.screenshot({ path: 'docs/screenshots/mobile-nav-touch-targets.png' });
     }

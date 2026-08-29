@@ -388,10 +388,10 @@ test('export downloads the current print frame as PNG on desktop and mobile', as
   }
 
   await page.setViewportSize({ width: 1440, height: 900 });
-  const widthField = page.getByRole('textbox', { name: 'Page width' });
+  const widthField = page.getByRole('spinbutton', { name: 'Page width' });
   await widthField.fill('20');
   await widthField.press('Tab');
-  const heightField = page.getByRole('textbox', { name: 'Page height' });
+  const heightField = page.getByRole('spinbutton', { name: 'Page height' });
   await heightField.fill('60');
   await heightField.press('Tab');
   await expect(page.getByRole('button', { name: 'Portrait' })).toHaveAttribute('aria-pressed', 'true');
@@ -422,10 +422,10 @@ test('large PNG export renders multiple overlapping native map tiles', async ({ 
   test.skip(await mapFallback.isVisible(), 'This browser fixture has no WebGL 2 renderer, so export cannot be exercised.');
   await installNativeExportObserver(page);
 
-  const width = page.getByRole('textbox', { name: 'Page width' });
+  const width = page.getByRole('spinbutton', { name: 'Page width' });
   await width.fill('600');
   await width.press('Tab');
-  const height = page.getByRole('textbox', { name: 'Page height' });
+  const height = page.getByRole('spinbutton', { name: 'Page height' });
   await height.fill('50');
   await height.press('Tab');
   await page.getByRole('button', { name: 'Export' }).click();

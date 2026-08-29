@@ -43,10 +43,10 @@ test('shape handles stay at the coordinates positioned by MapLibre', async ({ pa
   await expect(page.getByRole('heading', { name: 'Project' })).toBeVisible();
   const cameraDisclosure = page.getByRole('button', { name: /Camera & location/ });
   if (await cameraDisclosure.getAttribute('aria-expanded') !== 'true') await cameraDisclosure.click();
-  await page.getByRole('textbox', { name: 'Bearing' }).fill('28');
-  await page.getByRole('textbox', { name: 'Bearing' }).press('Tab');
-  await page.getByRole('textbox', { name: 'Pitch' }).fill('35');
-  await page.getByRole('textbox', { name: 'Pitch' }).press('Tab');
+  await page.getByRole('spinbutton', { name: 'Bearing' }).fill('28');
+  await page.getByRole('spinbutton', { name: 'Bearing' }).press('Tab');
+  await page.getByRole('spinbutton', { name: 'Pitch' }).fill('35');
+  await page.getByRole('spinbutton', { name: 'Pitch' }).press('Tab');
   await expect(map).toHaveAttribute('data-map-bearing', '28');
   await expect(map).toHaveAttribute('data-map-pitch', '35');
   await page.getByRole('button', { name: 'Select City center' }).click();

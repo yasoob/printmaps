@@ -94,6 +94,23 @@ describe('IndexedDB project autosave', () => {
     repository.close();
   });
 
+  it('restores a schema-21 autosave that used the legacy Letter preset ID', async () => {
+    const name = databaseName();
+    const repository = createIndexedDbAutosaveRepository({ databaseName: name });
+    await repository.save(createInitialProjectDocument(), '2026-08-22T10:00:00.000Z');
+    const database = await openDatabase(name);
+    const record = await readCurrentRecord(database);
+    const document = record.document as { page: { preset: string; widthMm: number; heightMm: number; orientation: string } };
+    document.page = { preset: 'Letter', widthMm: 279.4, heightMm: 215.9, orientation: 'landscape' };
+    await replaceCurrentRecord(database, record);
+    database.close();
+
+    await expect(repository.load()).resolves.toMatchObject({
+      document: { page: { preset: 'US Letter', widthMm: 279.4, heightMm: 215.9 } },
+    });
+    repository.close();
+  });
+
   it('rejects corrupt and unsupported records without treating them as projects', async () => {
     const name = databaseName();
     const repository = createIndexedDbAutosaveRepository({ databaseName: name });

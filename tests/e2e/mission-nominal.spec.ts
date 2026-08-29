@@ -42,8 +42,8 @@ test('nominal design, author, import, persist, reopen, and export workflow', asy
   await page.getByRole('radio', { name: /^Sea Glass:/ }).click();
   await expect(mapCanvas).toHaveAttribute('data-style-preset', 'sea-glass');
   await expect(mapCanvas).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
-  const width = page.getByRole('textbox', { name: 'Page width' });
-  const height = page.getByRole('textbox', { name: 'Page height' });
+  const width = page.getByRole('spinbutton', { name: 'Page width' });
+  const height = page.getByRole('spinbutton', { name: 'Page height' });
   await width.fill('20');
   await width.press('Tab');
   await height.fill('60');
@@ -64,8 +64,8 @@ test('nominal design, author, import, persist, reopen, and export workflow', asy
   await canvas.click({ position: routePoint(0.7, 0.65) });
   await page.getByRole('button', { name: 'Finish route' }).click();
   await expect(page.getByRole('button', { name: 'Select Route 02' })).toHaveAttribute('aria-current', 'true');
-  await page.getByRole('textbox', { name: 'Route width' }).fill('6');
-  await page.getByRole('textbox', { name: 'Route width' }).press('Tab');
+  await page.getByRole('spinbutton', { name: 'Route width' }).fill('6');
+  await page.getByRole('spinbutton', { name: 'Route width' }).press('Tab');
   await expect(mapCanvas).toHaveAttribute('data-map-layer-order', /route-02/);
 
   await page.locator('input[accept^=".geojson"][multiple]').setInputFiles(path.resolve('tests/fixtures/import/supported.geojson'));
@@ -80,8 +80,8 @@ test('nominal design, author, import, persist, reopen, and export workflow', asy
   await recovery.getByRole('button', { name: 'Recover draft' }).click();
   await expect(page.getByRole('button', { name: 'Select Route 02' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Select Café Central' })).toBeVisible();
-  await expect(page.getByRole('textbox', { name: 'Page width' })).toHaveValue('20');
-  await expect(page.getByRole('textbox', { name: 'Page height' })).toHaveValue('60');
+  await expect(page.getByRole('spinbutton', { name: 'Page width' })).toHaveValue('20');
+  await expect(page.getByRole('spinbutton', { name: 'Page height' })).toHaveValue('60');
   await expect(mapCanvas).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
 
   const projectDownloadPromise = page.waitForEvent('download');

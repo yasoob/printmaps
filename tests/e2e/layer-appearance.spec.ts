@@ -78,13 +78,13 @@ test('content appearance edits update the live map, history, and layered SVG', a
 
   await page.getByRole('button', { name: 'Select Route 01' }).click();
   await page.getByLabel('Route color').fill('#112233');
-  await page.getByRole('textbox', { name: 'Route width' }).fill('8');
-  await page.getByRole('textbox', { name: 'Route width' }).press('Tab');
+  await page.getByRole('spinbutton', { name: 'Route width' }).fill('8');
+  await page.getByRole('spinbutton', { name: 'Route width' }).press('Tab');
 
   await page.getByRole('button', { name: 'Select Coffee stop' }).click();
   await page.getByLabel('POI color').fill('#445566');
-  await page.getByRole('textbox', { name: 'POI marker size' }).fill('21');
-  await page.getByRole('textbox', { name: 'POI marker size' }).press('Tab');
+  await page.getByRole('spinbutton', { name: 'POI marker size' }).fill('21');
+  await page.getByRole('spinbutton', { name: 'POI marker size' }).press('Tab');
   await page.getByRole('combobox', { name: 'POI marker shape' }).selectOption('diamond');
   await page.getByRole('combobox', { name: 'POI marker symbol' }).selectOption('coffee');
   await page.getByRole('textbox', { name: 'POI label' }).fill('Café Central');
@@ -94,17 +94,17 @@ test('content appearance edits update the live map, history, and layered SVG', a
   await page.getByRole('button', { name: 'Select City center' }).click();
   await page.getByLabel('Shape fill color').fill('#abcdef');
   await page.getByLabel('Shape outline color').fill('#654321');
-  await page.getByRole('textbox', { name: 'Shape outline width' }).fill('3');
-  await page.getByRole('textbox', { name: 'Shape outline width' }).press('Tab');
+  await page.getByRole('spinbutton', { name: 'Shape outline width' }).fill('3');
+  await page.getByRole('spinbutton', { name: 'Shape outline width' }).press('Tab');
   await expect(mapRoot).toHaveAttribute(
     'data-map-layer-appearance',
     'route-01:#112233:8:car:false|poi-cafe:#445566:21:diamond:coffee:Café Central|area-center:#abcdef:#654321:3:false',
   );
 
   await page.getByRole('button', { name: 'Undo' }).click();
-  await expect(page.getByRole('textbox', { name: 'Shape outline width' })).toHaveValue('2');
+  await expect(page.getByRole('spinbutton', { name: 'Shape outline width' })).toHaveValue('2');
   await page.getByRole('button', { name: 'Redo' }).click();
-  await expect(page.getByRole('textbox', { name: 'Shape outline width' })).toHaveValue('3');
+  await expect(page.getByRole('spinbutton', { name: 'Shape outline width' })).toHaveValue('3');
 
   await page.getByRole('button', { name: 'Export' }).click();
   await page.getByRole('dialog', { name: 'Export map' }).getByRole('radio', { name: /Layered SVG/ }).click();
@@ -386,5 +386,40 @@ test('shape vertex coordinates preserve ring closure across the live map, histor
   expect(project.layers.find((layer) => layer.id === 'area-center')?.geometry?.coordinates).toEqual([[
     [16.35, 48.19], [16.395, 48.198], [16.395, 48.22], [16.354, 48.22], [16.35, 48.19],
   ]]);
+  expect(consoleProblems).toEqual([]);
+});
+
+test('selected Place marker drags and nudges as one undoable geometry edit', async ({ page }) => {
+  const consoleProblems: string[] = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') consoleProblems.push(message.text());
+  });
+  page.on('pageerror', (error) => { consoleProblems.push(error.message); });
+  await page.goto('/');
+  const map = page.getByTestId('map-canvas');
+  const fallback = page.getByText('Map preview unavailable');
+  await expect(page.locator('[data-map-ready="true"]').or(fallback)).toBeVisible({ timeout: 20_000 });
+  test.skip(await fallback.isVisible(), 'This browser fixture has no WebGL 2 renderer.');
+
+  await page.getByRole('button', { name: 'Select Coffee stop' }).click();
+  const originalGeometry = await map.getAttribute('data-map-layer-geometry');
+  const handle = page.getByRole('button', { name: 'Move Coffee stop' });
+  await expect(handle).toBeVisible();
+  const bounds = await handle.boundingBox();
+  expect(bounds).not.toBeNull();
+  await page.mouse.move(bounds!.x + bounds!.width / 2, bounds!.y + bounds!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(bounds!.x + bounds!.width / 2 + 36, bounds!.y + bounds!.height / 2 + 24, { steps: 6 });
+  await page.mouse.up();
+
+  await expect(map).not.toHaveAttribute('data-map-layer-geometry', originalGeometry!);
+  await expect(page.getByRole('button', { name: 'Undo' })).toBeEnabled();
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(map).toHaveAttribute('data-map-layer-geometry', originalGeometry!);
+
+  await handle.focus();
+  await handle.press('ArrowRight');
+  await expect(map).not.toHaveAttribute('data-map-layer-geometry', originalGeometry!);
+  await expect(page.getByRole('button', { name: 'Move Coffee stop' })).toBeFocused();
   expect(consoleProblems).toEqual([]);
 });

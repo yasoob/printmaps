@@ -25,8 +25,6 @@ export { MapboxProviderError } from './errors';
 export type { MapboxProviderErrorCode } from './errors';
 export { requestMapboxJson } from './request';
 export type { MapboxJsonResponse, MapboxRequestOptions } from './request';
-export { MAPBOX_CONNECTION_PROBE_ENDPOINT, probeMapboxConnection } from './configuration';
-export type { MapboxConnectionProbe, MapboxConnectionProbeOptions } from './configuration';
 export {
   PROVIDER_RESPONSE_USE_BOUNDARY,
   PROVIDER_RESPONSE_USE_REQUIRES_TERMS_REVIEW,

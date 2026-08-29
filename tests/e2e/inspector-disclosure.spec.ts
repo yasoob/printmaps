@@ -49,12 +49,12 @@ test('project inspector progressively discloses advanced controls on desktop and
   await expect(mapStyle).toContainText('Paper · Local names · 100%');
   await expect(camera).toHaveAttribute('aria-expanded', 'false');
   await expect(details).toHaveAttribute('aria-expanded', 'false');
-  await expect(page.getByRole('textbox', { name: 'Bearing' })).toHaveCount(0);
+  await expect(page.getByRole('spinbutton', { name: 'Bearing' })).toHaveCount(0);
 
   await camera.focus();
   await camera.press('Enter');
   await expect(camera).not.toContainText('0° bearing · 0° pitch · Unlocked');
-  await expect(page.getByRole('textbox', { name: 'Bearing' })).toBeVisible();
+  await expect(page.getByRole('spinbutton', { name: 'Bearing' })).toBeVisible();
   const lockSwitch = page.getByRole('switch', { name: 'Lock map area' });
   await lockSwitch.check();
   await expect.poll(() => lockSwitch.locator('xpath=..').locator('.studio-switch-track').evaluate((element) => getComputedStyle(element).backgroundColor)).toBe('rgb(0, 0, 0)');
@@ -149,4 +149,49 @@ test('project inspector progressively discloses advanced controls on desktop and
   await page.screenshot({ path: testInfo.outputPath('project-inspector-mobile.png'), fullPage: true });
   if (testInfo.project.name === 'chromium') await page.screenshot({ path: 'docs/screenshots/latest-mobile.png' });
   expect(consoleProblems).toEqual([]);
+});
+
+test('sidebar InputGroups scrub constrained numbers and preserve direct editing', async ({ page }) => {
+  await page.goto('/');
+  const width = page.getByRole('spinbutton', { name: 'Page width' });
+  const widthHandle = width.locator('xpath=..').locator('.input-group-addon.is-scrubbable');
+  expect(await width.evaluate((input: HTMLInputElement) => input.checkValidity())).toBe(true);
+  await expect(width).toHaveAttribute('step', '0.1');
+  await expect(widthHandle).toHaveCSS('touch-action', 'none');
+  await width.focus();
+  await width.press('ArrowUp');
+  await expect(width).toHaveValue('297.1');
+  await width.press('Tab');
+  await expect(page.getByRole('combobox', { name: 'Page preset' })).toHaveValue('Custom');
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(width).toHaveValue('297');
+  await expect(page.getByRole('combobox', { name: 'Page preset' })).toHaveValue('A4');
+
+  const handleBox = await widthHandle.boundingBox();
+  expect(handleBox).not.toBeNull();
+  await page.mouse.move(handleBox!.x + handleBox!.width / 2, handleBox!.y + handleBox!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(handleBox!.x + handleBox!.width / 2 + 8, handleBox!.y + handleBox!.height / 2, { steps: 4 });
+  await page.mouse.up();
+
+  await expect(width).toHaveValue('299');
+  await expect(page.getByRole('combobox', { name: 'Page preset' })).toHaveValue('Custom');
+  await width.fill('305');
+  await width.press('Tab');
+  await expect(width).toHaveValue('305');
+  await width.fill('0.01');
+  await expect(width).toHaveAttribute('aria-invalid', 'true');
+  await width.press('Tab');
+  await expect(width).toHaveValue('305');
+
+  await page.getByRole('button', { name: 'Select Route 01' }).click();
+  const routeWidth = page.getByRole('spinbutton', { name: 'Route width' });
+  const routeHandle = routeWidth.locator('xpath=..').locator('.input-group-addon.is-scrubbable');
+  const routeHandleBox = await routeHandle.boundingBox();
+  expect(routeHandleBox).not.toBeNull();
+  await page.mouse.move(routeHandleBox!.x + routeHandleBox!.width / 2, routeHandleBox!.y + routeHandleBox!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(routeHandleBox!.x + routeHandleBox!.width / 2 + 8, routeHandleBox!.y + routeHandleBox!.height / 2, { steps: 4 });
+  await page.mouse.up();
+  await expect(routeWidth).toHaveValue('5');
 });

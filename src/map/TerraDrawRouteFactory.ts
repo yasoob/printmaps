@@ -11,6 +11,27 @@ import type { TerraRouteDrawLike } from './TerraDrawRouteEditing';
 
 const HANDLE_COLOR = '#d9363e';
 const HANDLE_OUTLINE = '#ffffff';
+const ROUTE_EDITOR_PREFIX = 'studio-route-editor';
+
+export type TerraRouteHandleOrder = 'absent' | 'failed' | 'moved';
+
+export function bringTerraRouteHandlesToFront(
+  map: Pick<MapLibreMap, 'getLayer' | 'moveLayer'>,
+): TerraRouteHandleOrder {
+  let didFail = false;
+  let didMove = false;
+  for (const id of [`${ROUTE_EDITOR_PREFIX}-point`, `${ROUTE_EDITOR_PREFIX}-point-marker`]) {
+    try {
+      if (!map.getLayer(id)) continue;
+      map.moveLayer(id);
+      didMove = true;
+    } catch {
+      didFail = true;
+    }
+  }
+  if (didFail) return 'failed';
+  return didMove ? 'moved' : 'absent';
+}
 
 function lineStringMode(lineShape: RouteLineShape) {
   return new TerraDrawLineStringMode({
@@ -65,7 +86,11 @@ function selectMode(lineShape: RouteLineShape) {
   });
 }
 
-export function createTerraRouteDraw(map: MapLibreMap, lineShape: RouteLineShape): TerraRouteDrawLike {
+export function createTerraRouteDraw(
+  map: MapLibreMap,
+  lineShape: RouteLineShape,
+  shouldEnableUndo = true,
+): TerraRouteDrawLike {
   const adapter = new TerraDrawMapLibreGLAdapter({
     map,
     coordinatePrecision: 6,
@@ -73,11 +98,13 @@ export function createTerraRouteDraw(map: MapLibreMap, lineShape: RouteLineShape
     minPixelDragDistance: 3,
     minPixelDragDistanceDrawing: 3,
     minPixelDragDistanceSelecting: 3,
-    prefixId: 'studio-route-editor',
+    prefixId: ROUTE_EDITOR_PREFIX,
   });
   return new TerraDraw({
     adapter,
     modes: [lineStringMode(lineShape), selectMode(lineShape)],
-    undoRedo: { modeLevel: new TerraDrawModeUndoRedo({ maxStackSize: 100 }) },
+    ...(shouldEnableUndo && {
+      undoRedo: { modeLevel: new TerraDrawModeUndoRedo({ maxStackSize: 100 }) },
+    }),
   }) as unknown as TerraRouteDrawLike;
 }

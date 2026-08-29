@@ -1,16 +1,19 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createTerraRouteSession, type TerraRouteDrawLike } from '../../src/map/TerraDrawRouteEditing';
 
-function drawHarness() {
+function drawHarness(generatedId: string | number = 'route-01') {
   const listeners = new Map<string, (...arguments_: never[]) => void>();
   let feature = {
-    id: 'route-01',
+    id: generatedId,
     type: 'Feature' as const,
     properties: { mode: 'linestring' },
     geometry: { type: 'LineString' as const, coordinates: [[0, 0], [1, 1]] },
   };
-  const draw: TerraRouteDrawLike = {
-    addFeatures: vi.fn(() => [{ id: 'route-01', valid: true }]),
+  const updateFeatureGeometry = vi.fn((_id: string | number, geometry: { type: string; coordinates: number[][] }) => {
+    feature = { ...feature, geometry: { type: 'LineString', coordinates: geometry.coordinates } };
+  });
+  const draw = {
+    addFeatures: vi.fn(() => [{ id: generatedId, valid: true }]),
     clear: vi.fn(),
     getSnapshot: vi.fn(() => [feature]),
     on: vi.fn((event, callback) => listeners.set(event, callback as never)),
@@ -19,11 +22,13 @@ function drawHarness() {
     start: vi.fn(),
     stop: vi.fn(),
     undo: vi.fn(() => true),
-  };
+    updateFeatureGeometry,
+  } as unknown as TerraRouteDrawLike;
   return {
     draw,
     emit: (event: string, ...arguments_: unknown[]) => listeners.get(event)?.(...arguments_ as never[]),
     setCoordinates: (coordinates: number[][]) => { feature = { ...feature, geometry: { ...feature.geometry, coordinates } }; },
+    updateFeatureGeometry,
   };
 }
 
@@ -55,6 +60,56 @@ describe('Terra Draw route session', () => {
 
     session.destroy();
     expect(harness.draw.stop).toHaveBeenCalledOnce();
+  });
+
+  it('updates the generated Terra feature id rather than the project route id', () => {
+    const harness = drawHarness('terra-generated-id');
+    const session = createTerraRouteSession({
+      draw: harness.draw,
+      initial: { id: 'project-route-id', coordinates: [[0, 0], [1, 1]] },
+      mode: 'edit',
+      onCommit: vi.fn(),
+      onPreview: vi.fn(),
+    });
+
+    expect(session.updateGeometry([[0, 0], [2, 2]])).toBe(true);
+    expect(harness.draw.selectFeature).toHaveBeenCalledWith('terra-generated-id');
+    expect(harness.updateFeatureGeometry).toHaveBeenCalledWith('terra-generated-id', expect.any(Object));
+  });
+
+  it('does not echo API-originated geometry synchronization into route previews', () => {
+    const harness = drawHarness();
+    const onPreview = vi.fn();
+    const session = createTerraRouteSession({
+      draw: harness.draw,
+      initial: { id: 'project-route-id', coordinates: [[0, 0], [1, 1]] },
+      mode: 'edit',
+      onCommit: vi.fn(),
+      onPreview,
+    });
+
+    session.updateGeometry([[0, 0], [2, 2]]);
+    harness.emit('change', ['route-01'], 'update', { origin: 'api', target: 'geometry' });
+
+    expect(onPreview).not.toHaveBeenCalled();
+  });
+
+  it('updates selected coordinate and midpoint guidance for an external live preview', () => {
+    const harness = drawHarness();
+    const onPreview = vi.fn();
+    const session = createTerraRouteSession({
+      draw: harness.draw,
+      initial: { id: 'route-01', coordinates: [[0, 0], [1, 1], [2, 0]] },
+      mode: 'edit',
+      onCommit: vi.fn(),
+      onPreview,
+    });
+
+    expect(session.updateGeometry([[0, 0], [1, 2], [2, 0]])).toBe(true);
+    expect(harness.updateFeatureGeometry).toHaveBeenCalledWith('route-01', {
+      type: 'LineString', coordinates: [[0, 0], [1, 2], [2, 0]],
+    });
+    expect(onPreview).not.toHaveBeenCalled();
   });
 
   it('excludes Terra Draw’s trailing live coordinate from the canonical authoring preview', () => {

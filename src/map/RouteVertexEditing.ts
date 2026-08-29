@@ -15,6 +15,10 @@ export type RouteVertexMarker = {
 type RouteVertexMap = Pick<MapLibreMap, 'getSource' | 'project' | 'unproject'>;
 
 type MarkerFactory = (element: HTMLElement) => RouteVertexMarker;
+type RouteVertexEditingOptions = {
+  createMarker?: MarkerFactory;
+  onPreview?: (coordinates: [number, number][]) => boolean | void;
+};
 
 export type RouteVertexEditingSession = (() => void) & {
   focusVertex: (vertexIndex: number) => void;
@@ -53,11 +57,22 @@ function didSetRouteSourceGeometry(
   }
 }
 
+function didUpdateGuidance(
+  onPreview: NonNullable<RouteVertexEditingOptions['onPreview']>,
+  coordinates: [number, number][],
+) {
+  try {
+    return onPreview(coordinates) !== false;
+  } catch {
+    return false;
+  }
+}
+
 export function installRouteVertexEditing(
   map: RouteVertexMap,
   layer: ContentLayer,
   onCommit: (vertexIndex: number, coordinate: readonly [number, number]) => void,
-  createMarker: MarkerFactory = createMapLibreMarker,
+  options: RouteVertexEditingOptions = {},
 ): RouteVertexEditingSession {
   if (
     layer.type !== 'route'
@@ -70,16 +85,31 @@ export function installRouteVertexEditing(
     return emptySession;
   }
 
+  const createMarker = options.createMarker ?? createMapLibreMarker;
+  const onPreview = options.onPreview ?? (() => true);
   const canonicalCoordinates = layer.geometry.coordinates.map((coordinate) => [...coordinate] as [number, number]);
   const markers: RouteVertexMarker[] = [];
   let hasUncommittedPreview = false;
+  const restoreCanonicalPreview = () => {
+    const didRestoreSource = didSetRouteSourceGeometry(map, layer.id, canonicalCoordinates)
+      || didSetRouteSourceGeometry(map, layer.id, canonicalCoordinates);
+    const didRestoreGuidance = didUpdateGuidance(onPreview, canonicalCoordinates)
+      || didUpdateGuidance(onPreview, canonicalCoordinates);
+    hasUncommittedPreview = !didRestoreSource || !didRestoreGuidance;
+    return !hasUncommittedPreview;
+  };
   const preview = (vertexIndex: number, coordinate: readonly [number, number]) => {
     const coordinates = canonicalCoordinates.map((candidate, index) => (
       index === vertexIndex ? [coordinate[0], coordinate[1]] as [number, number] : candidate
     ));
-    const didSucceed = didSetRouteSourceGeometry(map, layer.id, coordinates);
-    hasUncommittedPreview ||= didSucceed;
-    return didSucceed;
+    const didUpdateSource = didSetRouteSourceGeometry(map, layer.id, coordinates);
+    const didUpdateTerraGuidance = didUpdateGuidance(onPreview, coordinates);
+    if (!didUpdateSource || !didUpdateTerraGuidance) {
+      restoreCanonicalPreview();
+      return false;
+    }
+    hasUncommittedPreview = true;
+    return true;
   };
 
   for (const [vertexIndex, coordinate] of canonicalCoordinates.entries()) {
@@ -93,15 +123,18 @@ export function installRouteVertexEditing(
     marker.on('drag', () => {
       const { lng, lat } = marker.getLngLat();
       const coordinate = normalizedMapCoordinate(lng, lat);
-      if (coordinate) preview(vertexIndex, coordinate);
+      if (coordinate && !preview(vertexIndex, coordinate)) marker.setLngLat(canonicalCoordinates[vertexIndex]);
     });
     marker.on('dragend', () => {
       const { lng, lat } = marker.getLngLat();
       const nextCoordinate = normalizedMapCoordinate(lng, lat);
-      if (!nextCoordinate || !preview(vertexIndex, nextCoordinate)) {
+      if (!nextCoordinate) {
         marker.setLngLat(coordinate);
-        didSetRouteSourceGeometry(map, layer.id, canonicalCoordinates);
-        hasUncommittedPreview = false;
+        restoreCanonicalPreview();
+        return;
+      }
+      if (!preview(vertexIndex, nextCoordinate)) {
+        marker.setLngLat(coordinate);
         return;
       }
       hasUncommittedPreview = false;
@@ -130,7 +163,7 @@ export function installRouteVertexEditing(
   }
 
   const cleanup = (() => {
-    if (hasUncommittedPreview) didSetRouteSourceGeometry(map, layer.id, canonicalCoordinates);
+    if (hasUncommittedPreview) restoreCanonicalPreview();
     for (const marker of markers) marker.remove();
   }) as RouteVertexEditingSession;
   cleanup.focusVertex = (vertexIndex) => markers[vertexIndex]?.getElement().focus();

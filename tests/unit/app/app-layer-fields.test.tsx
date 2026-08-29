@@ -48,11 +48,11 @@ describe('editor layer fields', () => {
     await user.tab();
     expect(screen.getByRole('textbox', { name: 'Layer name' })).toHaveValue('Route 01');
 
-    const opacity = screen.getByRole('textbox', { name: 'Layer opacity' });
+    const opacity = screen.getByRole('spinbutton', { name: 'Layer opacity' });
     await user.clear(opacity);
     await user.type(opacity, '150');
     await user.tab();
-    expect(screen.getByRole('textbox', { name: 'Layer opacity' })).toHaveValue('100');
+    expect(screen.getByRole('spinbutton', { name: 'Layer opacity' })).toHaveValue(100);
   });
 
   it('preserves spaces while renaming a layer from its property field', async () => {
@@ -77,14 +77,14 @@ describe('editor layer fields', () => {
     render(<App />);
 
     await user.click(screen.getByRole('button', { name: 'Select City center' }));
-    const opacity = screen.getByRole('textbox', { name: 'Layer opacity' });
+    const opacity = screen.getByRole('spinbutton', { name: 'Layer opacity' });
     await user.click(opacity);
     await user.keyboard('{Control>}a{/Control}55');
     await user.tab();
-    expect(opacity).toHaveValue('55');
+    expect(opacity).toHaveValue(55);
 
     await user.click(screen.getByRole('button', { name: 'Undo' }));
-    expect(screen.getByRole('textbox', { name: 'Layer opacity' })).toHaveValue('28');
+    expect(screen.getByRole('spinbutton', { name: 'Layer opacity' })).toHaveValue(28);
   });
 });
 
@@ -100,7 +100,7 @@ describe('editor content appearance and POI geometry fields', () => {
 
     await user.click(screen.getByRole('button', { name: 'Select Route 01' }));
     const color = screen.getByLabelText('Route color');
-    const width = screen.getByRole('textbox', { name: 'Route width' });
+    const width = screen.getByRole('spinbutton', { name: 'Route width' });
 
     fireEvent.change(color, { target: { value: '#123456' } });
     await user.clear(width);
@@ -108,9 +108,9 @@ describe('editor content appearance and POI geometry fields', () => {
     await user.tab();
 
     expect(color).toHaveValue('#123456');
-    expect(width).toHaveValue('8');
+    expect(width).toHaveValue(8);
     await user.click(screen.getByRole('button', { name: 'Undo' }));
-    expect(screen.getByRole('textbox', { name: 'Route width' })).toHaveValue('4');
+    expect(screen.getByRole('spinbutton', { name: 'Route width' })).toHaveValue(4);
     expect(screen.getByLabelText('Route color')).toHaveValue('#123456');
     await user.click(screen.getByRole('button', { name: 'Undo' }));
     expect(screen.getByLabelText('Route color')).toHaveValue('#d9363e');
@@ -256,7 +256,7 @@ describe('editor POI appearance and geometry fields', () => {
 
     await user.click(screen.getByRole('button', { name: 'Select Coffee stop' }));
     const color = screen.getByLabelText('POI color');
-    const size = screen.getByRole('textbox', { name: 'POI marker size' });
+    const size = screen.getByRole('spinbutton', { name: 'POI marker size' });
 
     fireEvent.change(color, { target: { value: '#654321' } });
     await user.clear(size);
@@ -264,9 +264,9 @@ describe('editor POI appearance and geometry fields', () => {
     await user.tab();
 
     expect(color).toHaveValue('#654321');
-    expect(size).toHaveValue('24');
+    expect(size).toHaveValue(24);
     await user.click(screen.getByRole('button', { name: 'Undo' }));
-    expect(screen.getByRole('textbox', { name: 'POI marker size' })).toHaveValue('14');
+    expect(screen.getByRole('spinbutton', { name: 'POI marker size' })).toHaveValue(14);
   });
 
   it('commits POI marker shape, symbol, and label as separate undoable edits', async () => {
@@ -415,7 +415,7 @@ describe('editor layer appearance validation and actions', () => {
     await user.click(screen.getByRole('button', { name: 'Select City center' }));
     const fill = screen.getByLabelText('Shape fill color');
     const stroke = screen.getByLabelText('Shape outline color');
-    const width = screen.getByRole('textbox', { name: 'Shape outline width' });
+    const width = screen.getByRole('spinbutton', { name: 'Shape outline width' });
     const invert = screen.getByRole('switch', { name: 'Invert shape fill' });
 
     fireEvent.change(fill, { target: { value: '#abcdef' } });
@@ -427,12 +427,12 @@ describe('editor layer appearance validation and actions', () => {
 
     expect(fill).toHaveValue('#abcdef');
     expect(stroke).toHaveValue('#123456');
-    expect(width).toHaveValue('5');
+    expect(width).toHaveValue(5);
     expect(invert).toBeChecked();
     await user.click(screen.getByRole('button', { name: 'Undo' }));
     expect(screen.getByRole('switch', { name: 'Invert shape fill' })).not.toBeChecked();
     await user.click(screen.getByRole('button', { name: 'Undo' }));
-    expect(screen.getByRole('textbox', { name: 'Shape outline width' })).toHaveValue('2');
+    expect(screen.getByRole('spinbutton', { name: 'Shape outline width' })).toHaveValue(2);
   });
 
   it.each([
@@ -449,13 +449,13 @@ describe('editor layer appearance validation and actions', () => {
     render(<App />);
 
     await user.click(screen.getByRole('button', { name: `Select ${layerName}` }));
-    const control = screen.getByRole('textbox', { name: controlName });
+    const control = screen.getByRole('spinbutton', { name: controlName });
     await user.clear(control);
     await user.type(control, invalidValue);
     expect(control).toHaveAttribute('aria-invalid', 'true');
     await user.tab();
 
-    expect(control).toHaveValue(canonicalValue);
+    expect(control).toHaveValue(Number(canonicalValue));
     expect(control).not.toHaveAttribute('aria-invalid');
     expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
   });
@@ -465,12 +465,12 @@ describe('editor layer appearance validation and actions', () => {
     render(<App />);
 
     await user.click(screen.getByRole('button', { name: 'Select City center' }));
-    const opacity = screen.getByRole('textbox', { name: 'Layer opacity' });
-    expect(opacity).toHaveValue('28');
+    const opacity = screen.getByRole('spinbutton', { name: 'Layer opacity' });
+    expect(opacity).toHaveValue(28);
 
     await user.clear(opacity);
     await user.tab();
-    expect(opacity).toHaveValue('28');
+    expect(opacity).toHaveValue(28);
   });
 
   it('wires layer edits to undoable editor controls', async () => {

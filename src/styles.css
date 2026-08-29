@@ -224,7 +224,11 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   font-size: var(--studio-font-meta);
 }
 
-.canvas-region { @apply relative min-h-0 min-w-0 overflow-hidden; background: var(--studio-canvas); }
+.canvas-region {
+  @apply relative min-h-0 min-w-0 overflow-hidden;
+  container-type: inline-size;
+  background: var(--studio-canvas);
+}
 .location-search {
   @apply absolute left-1/2 z-40 -translate-x-1/2;
   top: 0.625rem;
@@ -336,6 +340,9 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 .maplibregl-ctrl-bottom-right { bottom: 42px; right: 10px; }
 .maplibregl-ctrl-bottom-left { bottom: 3px; left: 4px; }
+.map-root[data-interaction-mode="select"] .maplibregl-canvas { cursor: default !important; }
+.map-root[data-interaction-mode="select"] .maplibregl-canvas:active { cursor: grabbing !important; }
+.map-root:is([data-interaction-mode="pin"], [data-interaction-mode="route"], [data-interaction-mode="shape"]) .maplibregl-canvas { cursor: crosshair !important; }
 .mobile-panel-actions, .mobile-panel-backdrop, .mobile-drawer-close { display: none; }
 .tool-palette {
   @apply absolute bottom-[18px] left-1/2 z-50 flex -translate-x-1/2 items-center p-1;
@@ -345,9 +352,6 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   background: var(--studio-surface-raised);
 }
 .tool-slot { @apply flex items-center; }
-.tool-more { @apply relative; }
-.tool-separator { @apply mx-1.5 h-5 w-px; background: var(--studio-line); }
-.tool-separator.is-mobile-only { display: none; }
 .tool-button {
   @apply grid place-items-center;
   width: var(--studio-tool-size);
@@ -358,22 +362,23 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .tool-button:hover { background: var(--studio-field); }
 .tool-button.is-active { color: var(--studio-accent-strong); background: var(--studio-accent-soft); }
 .tool-label { display: none; }
-.tool-more-menu {
-  @apply absolute right-0 z-30 grid min-w-40 p-1;
-  bottom: calc(100% + 5.75rem);
-  border: var(--studio-border-width) solid var(--studio-line-strong);
-  border-radius: var(--studio-radius-md);
+.map-fit-control {
+  @apply absolute z-20 grid cursor-pointer place-items-center;
+  right: 20px;
+  bottom: 7.5rem;
+  width: 1.9375rem;
+  height: 1.9375rem;
+  border: var(--studio-border-width) solid var(--studio-line-hover);
+  border-radius: var(--studio-radius-sm);
+  color: var(--studio-text-secondary);
   background: var(--studio-surface-raised);
 }
-.tool-more-menu button {
-  @apply flex min-h-10 items-center gap-2 rounded px-2.5 text-left;
-  color: var(--studio-text-strong);
-  font-size: var(--studio-font-control);
+.map-fit-control:hover { background: var(--studio-field); }
+.map-fit-control:disabled { cursor: default; opacity: .38; }
+@container (max-width: 32rem) {
+  .has-authoring-panel .map-fit-control { bottom: 16.25rem; }
+  .has-authoring-panel .maplibregl-ctrl-bottom-right { bottom: 11.375rem; }
 }
-.tool-more-menu button:hover, .tool-more-menu button:focus-visible { background: var(--studio-field); }
-.tool-more-menu button:disabled,
-.tool-more-menu button[aria-disabled="true"] { cursor: default; opacity: 0.38; }
-.tool-more-menu kbd { @apply ml-auto; color: var(--studio-text-muted); font-size: var(--studio-font-meta); }
 .shape-editing-toolbar {
   @apply absolute left-1/2 z-20 flex -translate-x-1/2 items-center overflow-hidden;
   bottom: 4.5rem;
@@ -633,6 +638,38 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 .number-field small { @apply pr-2; color: var(--studio-text-subtle); font-size: var(--studio-font-meta); }
+.input-group {
+  @apply grid min-w-0 w-full items-center overflow-hidden;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  height: var(--studio-control-height);
+  border: var(--studio-border-width) solid var(--studio-transparent);
+  border-radius: var(--studio-radius-sm);
+  background: var(--studio-field);
+}
+.input-group:hover { border-color: var(--studio-line-hover); }
+.input-group:focus-within { border-color: var(--studio-line-strong); }
+.input-number {
+  @apply min-w-0 w-full border-0 bg-transparent outline-none;
+  height: 100%;
+  padding: 0 0.375rem;
+  font-size: var(--studio-font-label);
+  font-variant-numeric: tabular-nums;
+  appearance: textfield;
+}
+.input-number::-webkit-inner-spin-button,
+.input-number::-webkit-outer-spin-button { margin: 0; appearance: none; }
+.input-group-addon {
+  @apply flex h-full select-none items-center;
+  color: var(--studio-text-subtle);
+  font-size: var(--studio-font-meta);
+  white-space: nowrap;
+}
+.input-group-addon.is-inline-start { padding: 0 0.625rem 0 0.625rem; }
+.input-group-addon.is-inline-end { padding: 0 0.625rem 0 0.375rem; }
+.input-group-addon.is-scrubbable { cursor: ew-resize; touch-action: none; }
+.input-group-addon.is-scrubbable:hover,
+.input-group-addon[data-scrubbing="true"] { color: var(--studio-text-strong); }
+body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !important; }
 .coordinate-field { @apply min-w-0; }
 .coordinate-validation { @apply block pt-1; color: var(--studio-danger); font-size: var(--studio-font-meta); line-height: 1.25; }
 .multi-part-geometry-status {
@@ -647,18 +684,8 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   border-radius: var(--studio-radius-xs);
 }
 .paired-fields { @apply my-1 grid grid-cols-2 gap-1.5; }
-.paired-fields label {
-  @apply grid items-center;
-  grid-template-columns: 1.125rem 1fr 1.5rem;
-  height: var(--studio-control-height);
-  border-radius: var(--studio-radius-sm);
-  color: var(--studio-text-muted);
-  background: var(--studio-field);
-  font-size: var(--studio-font-meta);
-}
-.paired-fields input { @apply min-w-0 w-full border-0 bg-transparent outline-none; font-size: var(--studio-font-label); font-variant-numeric: tabular-nums; }
-.paired-fields label > span { @apply pl-2; }
-.paired-fields small { font-size: 0.5625rem; }
+.paired-fields .input-group-addon.is-inline-start { padding-right: 0.75rem; }
+.paired-fields .input-group-addon.is-inline-end { font-size: 0.5625rem; }
 .segmented { @apply grid grid-cols-2 p-0.5; height: var(--studio-control-height); border-radius: var(--studio-radius-md); background: var(--studio-field); }
 .segmented button { border-radius: var(--studio-radius-xs); color: var(--studio-text-muted); font-size: var(--studio-font-meta); }
 .segmented button.is-active { border: var(--studio-border-width) solid var(--studio-line-hover); color: var(--studio-text); background: var(--studio-surface); }
@@ -718,14 +745,6 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .map-location-status { @apply m-0; color: var(--studio-text-muted); font-size: var(--studio-font-meta); line-height: 1.35; }
 .map-location-status.is-error { color: var(--studio-danger); }
 .map-location-status.is-success { color: var(--studio-success); }
-.mapbox-service-status { @apply grid gap-1.5; color: var(--studio-text-secondary); font-size: var(--studio-font-meta); line-height: 1.35; }
-.mapbox-service-status strong { color: var(--studio-text-strong); font-size: var(--studio-font-label); }
-.mapbox-service-status p { @apply m-0; overflow-wrap: anywhere; }
-.mapbox-service-status code { font-size: inherit; }
-.mapbox-service-status.is-error, .mapbox-service-status.is-error strong { color: var(--studio-danger); }
-.mapbox-service-status.is-ready strong { color: var(--studio-success); }
-.mapbox-service-status .quiet-button { @apply justify-center justify-self-start px-2; border: var(--studio-border-width) solid var(--studio-line-strong); }
-.mapbox-service-status .quiet-button:disabled { @apply cursor-default; color: var(--studio-text-subtle); }
 .elevation-profile-panel { @apply grid gap-2; color: var(--studio-text-secondary); font-size: var(--studio-font-meta); }
 .elevation-profile-panel > .quiet-button {
   @apply inline-flex justify-center px-2;
@@ -773,17 +792,18 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   border-radius: var(--studio-radius-xs);
   background: var(--studio-surface);
 }
-.elevation-number-row { @apply grid min-h-7 grid-cols-[1fr_3.25rem_auto] items-center gap-1.5; }
-.elevation-number-row input {
-  @apply min-w-0 px-1.5 text-right;
+.elevation-number-row { @apply grid min-h-7 grid-cols-[1fr_5.75rem_auto] items-center gap-1.5; }
+.elevation-number-row .input-group {
   height: 1.75rem;
   border: var(--studio-border-width) solid var(--studio-line-strong);
   border-radius: var(--studio-radius-xs);
   background: var(--studio-surface);
-  color: var(--studio-text-strong);
-  font-variant-numeric: tabular-nums;
 }
-.elevation-number-row input[aria-invalid="true"] { border-color: var(--studio-danger); }
+.elevation-number-row .input-number {
+  @apply min-w-0 px-1.5 text-right;
+  color: var(--studio-text-strong);
+}
+.elevation-number-row .input-group:has(input[aria-invalid="true"]) { border-color: var(--studio-danger); }
 .elevation-number-row small { color: var(--studio-text-muted); }
 .elevation-select-row { @apply grid min-h-7 grid-cols-[1fr_8rem] items-center gap-2; }
 .elevation-select-row select {
@@ -887,6 +907,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .route-vertex-actions button:disabled { @apply cursor-default; color: var(--studio-text-subtle); }
 .route-vertex-hint { @apply mt-1 block; color: var(--studio-text-muted); line-height: 1.35; }
 .route-vertex-marker,
+.poi-move-marker,
 .shape-vertex-marker,
 .shape-midpoint-marker,
 .shape-transform-marker {
@@ -905,6 +926,17 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 .route-vertex-marker:active,
 .shape-vertex-marker:active { cursor: grabbing; }
+.poi-move-marker {
+  width: var(--studio-poi-move-size);
+  height: var(--studio-poi-move-size);
+  padding: 0;
+  border: 2px solid var(--studio-accent-strong);
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: 0 0 0 2px var(--studio-surface);
+  cursor: move;
+}
+.poi-move-marker:active { cursor: grabbing; }
 .shape-midpoint-marker {
   width: 0.875rem;
   height: 0.875rem;
@@ -916,6 +948,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   cursor: copy;
 }
 .route-vertex-marker:focus-visible,
+.poi-move-marker:focus-visible,
 .shape-vertex-marker:focus-visible,
 .shape-midpoint-marker:focus-visible { outline: 2px solid var(--studio-focus); outline-offset: 2px; }
 .shape-transform-marker {
@@ -1157,6 +1190,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 
 @media (pointer: coarse) {
   .route-vertex-marker,
+  .poi-move-marker,
   .shape-vertex-marker,
   .shape-midpoint-marker,
   .shape-transform-marker,
@@ -1167,6 +1201,12 @@ button:focus-visible, input:focus-visible, select:focus-visible {
     border-radius: 50%;
     background: transparent;
     box-shadow: none;
+  }
+  .poi-move-marker {
+    width: max(44px, var(--studio-poi-move-size));
+    height: max(44px, var(--studio-poi-move-size));
+    border: 2px solid var(--studio-accent-strong);
+    box-shadow: 0 0 0 2px var(--studio-surface);
   }
   .route-vertex-marker::before,
   .shape-vertex-marker::before,
@@ -1285,7 +1325,24 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   .document-actions > .primary-button {
     @apply inline-flex gap-2 px-3;
     height: 2.75rem;
+    isolation: isolate;
+    position: relative;
+    background: transparent;
   }
+  .document-actions > .primary-button::before {
+    position: absolute;
+    z-index: 0;
+    top: 4px;
+    right: 0;
+    bottom: 4px;
+    left: 0;
+    border-radius: inherit;
+    background: var(--studio-text);
+    content: "";
+  }
+  .document-actions > .primary-button > * { position: relative; z-index: 1; }
+  .document-actions > .primary-button:hover { background: transparent; }
+  .document-actions > .primary-button:hover::before { background: var(--studio-text-strong); }
   .topbar {
     grid-template-columns: minmax(0, 1fr) auto;
     padding-top: var(--studio-safe-top);
@@ -1398,8 +1455,16 @@ button:focus-visible, input:focus-visible, select:focus-visible {
     font-size: 0.6875rem;
     line-height: 0.75rem;
   }
+  .map-fit-control {
+    right: calc(20px + var(--studio-safe-right));
+    bottom: calc(max(14px, var(--studio-safe-bottom)) + 10.75rem);
+    width: 2.875rem;
+    height: 2.875rem;
+  }
+  .canvas-region.has-authoring-panel .map-fit-control {
+    bottom: calc(max(14px, var(--studio-safe-bottom)) + 24.75rem);
+  }
   .tool-palette::-webkit-scrollbar { display: none; }
-  .tool-separator.is-mobile-only { display: block; }
   .shape-editing-toolbar {
     bottom: calc(max(14px, var(--studio-safe-bottom)) + 4rem);
     left: calc(50% + (var(--studio-safe-left) - var(--studio-safe-right)) / 2);

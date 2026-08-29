@@ -30,9 +30,11 @@ type MapCanvasMockProps = {
   locationRequest?: MapLocationRequest;
   orientation?: 'landscape' | 'portrait';
   page?: { preset?: string; widthMm: number; heightMm: number };
+  interactionMode?: string;
 };
 
 const shapeEditModeDiagnostic = (mode?: ShapeEditMode) => mode ?? '';
+const interactionModeDiagnostic = (mode?: string) => mode ?? 'select';
 
 export function MapCanvas({
   camera = { bearing: 0, center: [16.3725, 48.2084], locked: false, pitch: 0, zoom: 11.2 },
@@ -56,6 +58,7 @@ export function MapCanvas({
   locationRequest,
   orientation,
   page,
+  interactionMode,
 }: MapCanvasMockProps) {
   useEffect(() => {
     onExporterChange?.(exportMocks.exporter);
@@ -68,6 +71,7 @@ export function MapCanvas({
   return (
     <div
       data-testid="map-canvas"
+      data-interaction-mode={interactionModeDiagnostic(interactionMode)}
       data-fit-request={fitRequest}
       data-fit-layer-id={fitLayerId ?? ''}
       data-camera-fit-import={fitImportRequest}

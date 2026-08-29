@@ -56,16 +56,16 @@ describe('reviewed map-data batch styling', () => {
     expect(screen.getByRole('button', { name: 'Undo' })).toBeEnabled();
     expect(screen.getByRole('heading', { name: 'Styled point' })).toBeVisible();
     expect(screen.getByLabelText('POI color')).toHaveValue('#445566');
-    expect(screen.getByRole('textbox', { name: 'POI marker size' })).toHaveValue('22');
+    expect(screen.getByRole('spinbutton', { name: 'POI marker size' })).toHaveValue(22);
     expect(screen.getByRole('combobox', { name: 'POI marker shape' })).toHaveValue('diamond');
 
     await user.click(screen.getAllByRole('button', { name: 'Select Styled route' })[0]);
     expect(screen.getByLabelText('Route color')).toHaveValue('#112233');
-    expect(screen.getByRole('textbox', { name: 'Route width' })).toHaveValue('7');
+    expect(screen.getByRole('spinbutton', { name: 'Route width' })).toHaveValue(7);
 
     await user.click(screen.getAllByRole('button', { name: 'Select Styled shape' })[0]);
     expect(screen.getByLabelText('Shape fill color')).toHaveValue('#778899');
     expect(screen.getByLabelText('Shape outline color')).toHaveValue('#aabbcc');
-    expect(screen.getByRole('textbox', { name: 'Shape outline width' })).toHaveValue('3');
+    expect(screen.getByRole('spinbutton', { name: 'Shape outline width' })).toHaveValue(3);
   });
 });

@@ -110,15 +110,15 @@ describe('layer appearance draft boundaries', () => {
   it('does not resurrect an abandoned width draft when canonical history returns to its source value', async () => {
     const user = userEvent.setup();
     const view = render(<LayerProperties layer={route(4)} {...actions} />);
-    const width = screen.getByRole('textbox', { name: 'Route width' });
+    const width = screen.getByRole('spinbutton', { name: 'Route width' });
     await user.clear(width);
     await user.type(width, '8');
 
     view.rerender(<LayerProperties layer={route(6)} {...actions} />);
-    expect(screen.getByRole('textbox', { name: 'Route width' })).toHaveValue('6');
+    expect(screen.getByRole('spinbutton', { name: 'Route width' })).toHaveValue(6);
     view.rerender(<LayerProperties layer={route(4)} {...actions} />);
 
-    expect(screen.getByRole('textbox', { name: 'Route width' })).toHaveValue('4');
+    expect(screen.getByRole('spinbutton', { name: 'Route width' })).toHaveValue(4);
     expect(actions.onAppearanceChange).not.toHaveBeenCalled();
   });
 

@@ -38,10 +38,10 @@ test('desktop editor switches between project and layer properties', async ({ pa
   await page.locator('.maplibregl-canvas').click({ position: { x: 80, y: 80 } });
   await expect(page.getByRole('heading', { name: 'Project' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Select Route 01' })).not.toHaveAttribute('aria-current', 'true');
-  await page.getByRole('textbox', { name: 'Bearing' }).fill('35');
-  await page.getByRole('textbox', { name: 'Pitch' }).fill('40');
-  await page.getByRole('textbox', { name: 'Pitch' }).press('Tab');
-  await page.getByRole('textbox', { name: 'Text scale' }).fill('125');
+  await page.getByRole('spinbutton', { name: 'Bearing' }).fill('35');
+  await page.getByRole('spinbutton', { name: 'Pitch' }).fill('40');
+  await page.getByRole('spinbutton', { name: 'Pitch' }).press('Tab');
+  await page.getByRole('spinbutton', { name: 'Text scale' }).fill('125');
   await page.getByRole('checkbox', { name: 'Show roads' }).uncheck();
   const style = page.getByRole('radio', { name: /^Night Ink:/ });
   await style.focus();
@@ -100,25 +100,24 @@ test('desktop commands, orientation, reorder, and overflow menu work in a real b
 
   await page.getByRole('button', { name: 'Portrait' }).click();
   await expect(page.getByRole('button', { name: 'Portrait' })).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByRole('textbox', { name: 'Page width' })).toHaveValue('210');
-  await expect(page.getByRole('textbox', { name: 'Page height' })).toHaveValue('297');
+  await expect(page.getByRole('spinbutton', { name: 'Page width' })).toHaveValue('210');
+  await expect(page.getByRole('spinbutton', { name: 'Page height' })).toHaveValue('297');
   const portraitBounds = await frame.boundingBox();
   expect(portraitBounds).not.toBeNull();
   expect(portraitBounds!.height).toBeGreaterThan(portraitBounds!.width);
 
-  await page.getByRole('textbox', { name: 'Bearing' }).fill('35');
-  await page.getByRole('textbox', { name: 'Pitch' }).fill('40');
-  await page.getByRole('textbox', { name: 'Pitch' }).press('Tab');
+  await page.getByRole('spinbutton', { name: 'Bearing' }).fill('35');
+  await page.getByRole('spinbutton', { name: 'Pitch' }).fill('40');
+  await page.getByRole('spinbutton', { name: 'Pitch' }).press('Tab');
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-bearing', '35');
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-pitch', '40');
   await page.getByRole('button', { name: 'Undo' }).click();
-  await expect(page.getByRole('textbox', { name: 'Pitch' })).toHaveValue('0');
+  await expect(page.getByRole('spinbutton', { name: 'Pitch' })).toHaveValue('0');
   await page.getByRole('button', { name: 'Redo' }).click();
-  await expect(page.getByRole('textbox', { name: 'Pitch' })).toHaveValue('40');
+  await expect(page.getByRole('spinbutton', { name: 'Pitch' })).toHaveValue('40');
 
   await expect(page.locator('[data-fit-request="0"]')).toBeVisible();
-  await page.getByRole('button', { name: 'More map tools' }).click();
-  await page.getByRole('menuitem', { name: /Fit page/ }).click();
+  await page.getByRole('button', { name: 'Fit page' }).click();
   await expect(page.locator('[data-fit-request="1"][data-camera-fit-request="1"]')).toBeVisible();
 
   const routeHandle = page.getByRole('button', { name: 'Reorder Route 01' });
@@ -165,9 +164,7 @@ test('browser location centers the map and map-area lock gates movement commands
   const lock = page.getByRole('switch', { name: 'Lock map area' });
   await lock.check();
   await expect(map).toHaveAttribute('data-map-area-locked', 'true');
-  await page.getByRole('button', { name: 'More map tools' }).click();
-  await expect(page.getByRole('menuitemradio', { name: /Pan/ })).toHaveAttribute('aria-disabled', 'true');
-  await expect(page.getByRole('menuitem', { name: /Fit page/ })).toHaveAttribute('aria-disabled', 'true');
+  await expect(page.getByRole('button', { name: 'Fit page' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Use my location' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Zoom in' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Zoom out' })).toBeDisabled();
@@ -178,6 +175,64 @@ test('browser location centers the map and map-area lock gates movement commands
   await expect(page.getByRole('button', { name: 'Use my location' })).toBeEnabled();
   await expect(page.getByRole('button', { name: 'Zoom in' })).toBeEnabled();
   expect(consoleProblems).toEqual([]);
+});
+
+test('desktop Fit and Zoom stack stays aligned and clear of route authoring', async ({ page }) => {
+  for (const viewport of [{ width: 1440, height: 900 }, { width: 1024, height: 768 }]) {
+    await page.setViewportSize(viewport);
+    await page.goto('/');
+    await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
+    await page.getByRole('button', { name: 'Route (R)' }).click();
+
+    const fitBox = await page.getByRole('button', { name: 'Fit page' }).boundingBox();
+    const zoomBox = await page.locator('.maplibregl-ctrl-group').first().boundingBox();
+    const panelBox = await page.locator('.route-authoring-panel').boundingBox();
+    expect(fitBox).not.toBeNull();
+    expect(zoomBox).not.toBeNull();
+    expect(panelBox).not.toBeNull();
+    expect(fitBox!.x).toBe(zoomBox!.x);
+    expect(fitBox!.width).toBe(zoomBox!.width);
+    expect(zoomBox!.y - (fitBox!.y + fitBox!.height)).toBe(8);
+    expect(
+      fitBox!.x + fitBox!.width <= panelBox!.x
+      || panelBox!.x + panelBox!.width <= fitBox!.x
+      || fitBox!.y + fitBox!.height <= panelBox!.y
+      || panelBox!.y + panelBox!.height <= fitBox!.y,
+    ).toBe(true);
+    expect(
+      zoomBox!.x + zoomBox!.width <= panelBox!.x
+      || panelBox!.x + panelBox!.width <= zoomBox!.x
+      || zoomBox!.y + zoomBox!.height <= panelBox!.y
+      || panelBox!.y + panelBox!.height <= zoomBox!.y,
+    ).toBe(true);
+  }
+});
+
+test('map cursor reflects selection, dragging, and authoring intent', async ({ page }) => {
+  await page.goto('/');
+  const map = page.getByTestId('map-canvas');
+  await expect(map).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
+  const canvas = map.locator('.maplibregl-canvas');
+
+  await expect(canvas).toHaveCSS('cursor', 'default');
+  await page.getByRole('button', { name: 'Route (R)' }).click();
+  await expect(canvas).toHaveCSS('cursor', 'crosshair');
+  await page.getByRole('button', { name: 'Select (V)' }).click();
+  await expect(canvas).toHaveCSS('cursor', 'default');
+
+  const box = await canvas.boundingBox();
+  expect(box).not.toBeNull();
+  await page.mouse.move(box!.x + 80, box!.y + 80);
+  await page.mouse.down();
+  await page.mouse.move(box!.x + 112, box!.y + 80, { steps: 4 });
+  await expect(canvas).toHaveCSS('cursor', 'grabbing');
+  await page.mouse.up();
+  await expect(canvas).toHaveCSS('cursor', 'default');
+
+  for (const tool of ['Place (P)', 'Area (S)']) {
+    await page.getByRole('button', { name: tool }).click();
+    await expect(canvas).toHaveCSS('cursor', 'crosshair');
+  }
 });
 
 test('style loading failure shows a recoverable map status', async ({ page }) => {
