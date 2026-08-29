@@ -1,7 +1,8 @@
 import type { AdministrativeArea, AdministrativeCountryCode } from './administrativeAreas';
 import { MAX_MERCATOR_LATITUDE, type LayerGeometry } from './project';
+import { publicAssetUrl } from './publicAssetUrl';
 
-const CATALOGUE_ROOT = '/data/administrative';
+const CATALOGUE_ROOT = publicAssetUrl('data/administrative');
 const MAX_INDEX_BYTES = 256_000;
 const MAX_SHARD_BYTES = 20_000_000;
 const MAX_COUNTRIES = 300;

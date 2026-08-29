@@ -509,7 +509,7 @@ describe('MapCanvas content recovery', () => {
     expect([...mocks.activeMapIds]).toEqual([1]);
     expect([...mocks.activeAdapterIds]).toEqual([1]);
     expect(Object.values(mocks.mapHandlers[0]).every((handlers) => handlers.length === 0)).toBe(true);
-    expect(mocks.mapOff).toHaveBeenCalledTimes(12);
+    expect(mocks.mapOff).toHaveBeenCalledTimes(14);
     expect(mocks.mapOff.mock.calls.filter(([event]) => event === 'drag')).toHaveLength(2);
     expect(mocks.mapOff.mock.calls.filter(([event]) => event === 'moveend')).toHaveLength(2);
     expect(mocks.adapterDestroy).toHaveBeenCalledTimes(2);
@@ -521,7 +521,7 @@ describe('MapCanvas content recovery', () => {
     expect(mocks.mapHandlers.every((handlersByEvent) => (
       Object.values(handlersByEvent).every((handlers) => handlers.length === 0)
     ))).toBe(true);
-    expect(mocks.mapOff).toHaveBeenCalledTimes(18);
+    expect(mocks.mapOff).toHaveBeenCalledTimes(21);
     expect(mocks.mapOff.mock.calls.filter(([event]) => event === 'drag')).toHaveLength(3);
     expect(mocks.mapOff.mock.calls.filter(([event]) => event === 'moveend')).toHaveLength(3);
     expect(mocks.adapterDestroy).toHaveBeenCalledTimes(3);

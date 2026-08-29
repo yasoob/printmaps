@@ -1,6 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { createProjectStore } from '../../src/app/store';
-import { AutosaveCorruptionError, type AutosaveRepository } from '../../src/storage/autosave';
+import { parseProjectFileText } from '../../src/domain/projectFile';
+import { AutosaveCorruptionError, type AutosaveDraft, type AutosaveRepository } from '../../src/storage/autosave';
 import { useProjectAutosave } from '../../src/storage/useProjectAutosave';
 
 function repositoryWith(save: AutosaveRepository['save'] = vi.fn().mockResolvedValue(undefined)) {
@@ -17,6 +18,78 @@ async function finishInitialLoad() {
     await Promise.resolve();
   });
 }
+
+describe('project autosave recovery candidate arbitration', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it('does not offer recovery when a remount loads the active document unchanged', async () => {
+    const store = createProjectStore();
+    const poiId = store.getState().createSearchPoi({
+      coordinate: [16.365, 48.2105],
+      label: 'Café Central',
+      providerFeatureId: 'address.cafe-central',
+    }, store.getState().documentEpoch);
+    if (!poiId) throw new Error('Expected searched POI creation.');
+    store.getState().setPoiCoordinates(poiId, [16.4, 48.25]);
+    const activeDocument = store.getState().document;
+    const repository = repositoryWith();
+    repository.load = vi.fn().mockResolvedValue({
+      recordVersion: 1,
+      savedAt: '2026-08-29T19:00:00.000Z',
+      document: parseProjectFileText(JSON.stringify(activeDocument)),
+    });
+
+    const { result } = renderHook(() => useProjectAutosave(store, repository));
+    await finishInitialLoad();
+
+    expect(result.current.recoveryDraft).toBeNull();
+    expect(result.current.status).toBe('Autosave ready');
+    expect(repository.discard).not.toHaveBeenCalled();
+  });
+
+  it('saves a newer edit when an identical startup draft resolves late', async () => {
+    const store = createProjectStore();
+    const startupDocument = parseProjectFileText(JSON.stringify(store.getState().document));
+    let finishLoad: ((draft: AutosaveDraft) => void) | undefined;
+    const repository = repositoryWith();
+    repository.load = vi.fn(() => new Promise<AutosaveDraft>((resolve) => { finishLoad = resolve; }));
+    const { result } = renderHook(() => useProjectAutosave(store, repository));
+
+    act(() => store.getState().setPageOrientation('portrait'));
+    await act(async () => finishLoad?.({
+      recordVersion: 1,
+      savedAt: '2026-08-29T19:00:00.000Z',
+      document: startupDocument,
+    }));
+    await act(async () => vi.advanceTimersByTimeAsync(300));
+
+    expect(result.current.recoveryDraft).toBeNull();
+    expect(repository.save).toHaveBeenCalledWith(expect.objectContaining({
+      page: expect.objectContaining({ orientation: 'portrait' }),
+    }));
+  });
+
+  it('offers recovery when the stored layer order differs', async () => {
+    const store = createProjectStore();
+    const reordered = parseProjectFileText(JSON.stringify(store.getState().document));
+    reordered.layers.reverse();
+    const repository = repositoryWith();
+    repository.load = vi.fn().mockResolvedValue({
+      recordVersion: 1,
+      savedAt: '2026-08-29T19:00:00.000Z',
+      document: reordered,
+    });
+
+    const { result } = renderHook(() => useProjectAutosave(store, repository));
+    await finishInitialLoad();
+
+    expect(result.current.recoveryDraft?.document.layers.map(({ id }) => id)).toEqual(
+      reordered.layers.map(({ id }) => id),
+    );
+    expect(result.current.status).toBe('Local draft found');
+  });
+});
 
 describe('project autosave teardown', () => {
   beforeEach(() => vi.useFakeTimers());

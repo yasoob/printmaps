@@ -4,6 +4,7 @@ import type { PreviewPngExporter } from '../export/previewPng';
 import { createMapLibreContentAdapter, type MapContentAdapter, type MapContentState } from './MapContentAdapter';
 import type { CameraSettings } from '../domain/project';
 import { createInteractiveMap } from './MapCanvasFactory';
+import { armLifecycleDeadline, clearLifecycleDeadline, MAP_READY_TIMEOUT_MS, MAP_STYLE_TIMEOUT_MS, type MapLifecycleDeadlineState } from './MapLifecycleDeadline';
 import type { CameraViewportChangeMode } from './MapCameraViewport';
 import { createLifecycleExportPreview, type LifecycleExportReferences } from './MapLifecycleExport';
 
@@ -15,20 +16,6 @@ export type MapError = {
 export type ContentError = MapError & {
   source: 'sync' | 'hit-test';
 };
-
-const MAP_STARTUP_TIMEOUT_MS = 12_000;
-
-type MapLifecycleState = {
-  isDisposed: boolean;
-  isStyleLoaded: boolean;
-  startupTimeout: number | null;
-};
-
-function clearStartupTimeout(state: MapLifecycleState): void {
-  if (state.startupTimeout === null) return;
-  window.clearTimeout(state.startupTimeout);
-  state.startupTimeout = null;
-}
 
 type MutableReference<T> = { current: T };
 
@@ -103,7 +90,7 @@ function createAttributionController(container: HTMLDivElement) {
 
 function createMapEventHandlers(
   map: MapLibreMap,
-  state: MapLifecycleState,
+  state: MapLifecycleDeadlineState,
   options: MapLifecycleOptions,
   initializeAttribution: () => void,
 ) {
@@ -119,11 +106,24 @@ function createMapEventHandlers(
       message: 'The map renderer could not restore content after export. Reload the page and retry.',
     });
   });
-  const handleLoad = () => {
+  const handleLoadTimeout = () => {
+    state.startupTimeout = null;
+    if (state.isDisposed || references.mapFailed.current) return;
+    references.mapFailed.current = true;
+    references.container.current?.removeAttribute('data-map-ready');
+    setMapError(state.isStyleLoaded
+      ? { kind: 'renderer', message: 'The map preview timed out while preparing. Reload the page and retry.' }
+      : { kind: 'style', message: 'The map style timed out while loading. Check your connection and retry.' });
+  };
+  const handleStyleLoad = () => {
     if (state.isDisposed || state.isStyleLoaded) return;
-    state.isStyleLoaded = true;
-    const container = references.container.current;
-    if (!container) return;
+    state.isStyleLoaded = true; armLifecycleDeadline(state, handleLoadTimeout, MAP_READY_TIMEOUT_MS);
+  };
+  const handleLoad = () => {
+    if (state.isDisposed || state.isMapLoaded) return;
+    if (!state.isStyleLoaded) handleStyleLoad();
+    state.isMapLoaded = true;
+    const container = references.container.current; if (!container) return;
     const isStyleSynchronized = references.synchronizeMapLanguage.current(map) && references.synchronizeTextScale.current(map) && references.synchronizeFeatureVisibility.current(map);
     if (!isStyleSynchronized) return;
     references.contentAdapter.current = createMapLibreContentAdapter(map, container);
@@ -137,7 +137,7 @@ function createMapEventHandlers(
       handleContentSyncResult(references.contentAdapter.current.sync(references.contentState.current));
     }
     if (!references.contentReady.current) return;
-    clearStartupTimeout(state);
+    clearLifecycleDeadline(state);
     if (references.availableExporter.current !== exportPreview) {
       references.availableExporter.current = exportPreview;
       references.exporterChange.current?.(exportPreview);
@@ -177,7 +177,7 @@ function createMapEventHandlers(
   };
   const handleError = () => {
     if (state.isDisposed) return;
-    clearStartupTimeout(state);
+    clearLifecycleDeadline(state);
     references.mapFailed.current = true;
     references.container.current?.removeAttribute('data-map-ready');
     if (references.availableExporter.current === exportPreview) {
@@ -196,18 +196,8 @@ function createMapEventHandlers(
       });
     }
   };
-  const handleLoadTimeout = () => {
-    state.startupTimeout = null;
-    if (state.isDisposed || references.mapFailed.current) return;
-    references.mapFailed.current = true;
-    references.container.current?.removeAttribute('data-map-ready');
-    setMapError({
-      kind: 'style',
-      message: 'The map style timed out while loading. Check your connection and retry.',
-    });
-  };
   return {
-    dispose: () => { state.isDisposed = true; clearStartupTimeout(state); },
+    dispose: () => { state.isDisposed = true; clearLifecycleDeadline(state); },
     exportPreview,
     handleClick,
     handleError,
@@ -215,6 +205,7 @@ function createMapEventHandlers(
     handleLoad,
     handleLoadTimeout,
     handleMoveEnd,
+    handleStyleLoad,
   };
 }
 
@@ -243,6 +234,7 @@ function cleanupMap(
   handlers.dispose();
   attribution.destroy();
   retryCleanup(() => map.off('load', handlers.handleLoad));
+  retryCleanup(() => map.off('style.load', handlers.handleStyleLoad));
   retryCleanup(() => map.off('idle', handlers.handleIdle));
   retryCleanup(() => map.off('drag', attribution.handleDrag));
   retryCleanup(() => map.off('error', handlers.handleError));
@@ -260,13 +252,15 @@ function cleanupMap(
 function installMapLifecycle(map: MapLibreMap, options: MapLifecycleOptions) {
   const container = options.references.container.current!;
   const attribution = createAttributionController(container);
-  const state: MapLifecycleState = { isDisposed: false, isStyleLoaded: false, startupTimeout: null };
+  const state: MapLifecycleDeadlineState = { isDisposed: false, isMapLoaded: false, isStyleLoaded: false, startupTimeout: null };
   options.references.mapFailed.current = false;
   const handlers = createMapEventHandlers(map, state, options, attribution.initialize);
   map.addControl(new NavigationControl({ showCompass: false }), 'bottom-right'); map.addControl(new AttributionControl({ compact: true }), 'bottom-left');
   attribution.listen();
-  state.startupTimeout = window.setTimeout(handlers.handleLoadTimeout, MAP_STARTUP_TIMEOUT_MS);
+  armLifecycleDeadline(state, handlers.handleLoadTimeout, MAP_STYLE_TIMEOUT_MS);
+  map.once('style.load', handlers.handleStyleLoad);
   map.once('load', handlers.handleLoad);
+  if (typeof map.isStyleLoaded === 'function' && map.isStyleLoaded()) queueMicrotask(handlers.handleStyleLoad);
   if (map.loaded()) queueMicrotask(handlers.handleLoad);
   map.on('idle', handlers.handleIdle);
   map.on('drag', attribution.handleDrag);

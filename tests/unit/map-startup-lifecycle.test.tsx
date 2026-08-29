@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   adapterCreate: vi.fn(),
   adapterSync: vi.fn(),
   autoLoad: true,
+  autoStyleLoad: true,
   emitInitialIdle: true,
   handlers: {} as Record<string, Array<(event?: unknown) => void>>,
   isAlreadyLoaded: false,
@@ -42,7 +43,7 @@ vi.mock('maplibre-gl', () => {
     getContainer() { return document.createElement('div'); }
     getStyle() { return { layers: [] }; }
     getZoom() { return 11.2; }
-    isStyleLoaded() { return true; }
+    isStyleLoaded() { return mocks.autoStyleLoad; }
     jumpTo() {}
     loaded() { return mocks.isAlreadyLoaded; }
     off(event: string, callback: (event?: unknown) => void) {
@@ -55,6 +56,7 @@ vi.mock('maplibre-gl', () => {
     once(event: string, callback: (event?: unknown) => void) {
       (mocks.handlers[event] ??= []).push(callback);
       if (event === 'load' && mocks.autoLoad) queueMicrotask(callback);
+      if (event === 'style.load' && mocks.autoStyleLoad) queueMicrotask(callback);
     }
     remove() {}
     setLayoutProperty() {}
@@ -102,6 +104,7 @@ beforeEach(() => {
   mocks.adapterSync.mockReset();
   mocks.adapterSync.mockReturnValue('synced');
   mocks.autoLoad = true;
+  mocks.autoStyleLoad = true;
   mocks.emitInitialIdle = true;
   mocks.handlers = {};
   mocks.isAlreadyLoaded = false;
@@ -189,6 +192,7 @@ it('does not publish an already-loaded map after its queued load is cleaned up',
 
 it('shows an actionable fallback when map startup never loads or errors', async () => {
   mocks.autoLoad = false;
+  mocks.autoStyleLoad = false;
   vi.useFakeTimers();
   render(<MapCanvas {...props} />);
 
@@ -198,13 +202,39 @@ it('shows an actionable fallback when map startup never loads or errors', async 
   expect(screen.getByRole('status')).toHaveTextContent('Check your connection and retry');
 });
 
-it('shows the startup fallback when load succeeds but final idle never arrives', async () => {
+it('shows an actionable fallback when a loaded style never becomes ready', async () => {
+  mocks.autoLoad = false;
   mocks.emitInitialIdle = false;
   vi.useFakeTimers();
   render(<MapCanvas {...props} />);
 
+  await act(async () => {});
+  await act(async () => vi.advanceTimersByTimeAsync(30_000));
+
+  expect(screen.getByRole('status')).toHaveTextContent('timed out while preparing');
+  expect(screen.getByRole('status')).toHaveTextContent('Reload the page and retry');
+});
+
+it('allows a loaded style to become ready after the startup deadline', async () => {
+  mocks.autoLoad = false;
+  mocks.autoStyleLoad = false;
+  mocks.emitInitialIdle = false;
+  vi.useFakeTimers();
+  render(<MapCanvas {...props} />);
+
+  await act(async () => emit('style.load'));
+  expect(mocks.adapterSync).not.toHaveBeenCalled();
   await act(async () => vi.advanceTimersByTimeAsync(12_000));
 
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  await act(async () => {
+    emit('load');
+    await Promise.resolve();
+  });
   expect(mocks.adapterSync).toHaveBeenCalledOnce();
-  expect(screen.getByRole('status')).toHaveTextContent('timed out while loading');
+  await act(async () => {
+    emit('idle');
+    await Promise.resolve();
+  });
+  expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-map-ready', 'true');
 });

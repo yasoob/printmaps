@@ -1,11 +1,25 @@
 import type { StoreApi } from 'zustand';
 import type { ProjectState } from '../app/store';
+import type { ProjectDocument } from '../domain/project';
+import { parseProjectFileText } from '../domain/projectFile';
 import { AutosaveCorruptionError, getAutosaveFailureMessage, type AutosaveDraft, type AutosaveRepository } from './autosave';
 
-type ProjectDocument = ProjectState['document'];
 type AutosavePhase = 'loading' | 'recovery' | 'ready' | 'disabled';
 type RefValue<T> = { current: T };
 type SaveIntent = { document: ProjectDocument; revision: number; isLifecycle: boolean };
+
+function persistedDocumentText(document: ProjectDocument) {
+  try {
+    return JSON.stringify(parseProjectFileText(JSON.stringify(document)));
+  } catch {
+    return null;
+  }
+}
+
+function isSameDocument(left: ProjectDocument, right: ProjectDocument) {
+  const leftText = persistedDocumentText(left);
+  return leftText !== null && leftText === persistedDocumentText(right);
+}
 
 type AutosavePersistenceOptions = {
   repository: AutosaveRepository;
@@ -50,13 +64,17 @@ export class AutosavePersistenceSession {
   constructor(private readonly options: AutosavePersistenceOptions) {}
 
   private async loadDraft() {
-    const { generation, onLoaded, onLoadFailed, pendingDocumentRef, phaseRef, repository } = this.options;
+    const { generation, onLoaded, onLoadFailed, pendingDocumentRef, phaseRef, repository, store } = this.options;
+    const activeDocumentAtStart = store.getState().document;
     try {
-      const draft = await repository.load();
+      const storedDraft = await repository.load();
       if (!this.isActive) return;
-      phaseRef.current = draft ? 'recovery' : 'ready';
-      onLoaded(generation, draft);
-      if (!draft && pendingDocumentRef.current) this.scheduleSave(pendingDocumentRef.current);
+      const recoveryDraft = storedDraft && !isSameDocument(storedDraft.document, activeDocumentAtStart)
+        ? storedDraft
+        : null;
+      phaseRef.current = recoveryDraft ? 'recovery' : 'ready';
+      onLoaded(generation, recoveryDraft);
+      if (!recoveryDraft && pendingDocumentRef.current) this.scheduleSave(pendingDocumentRef.current);
     } catch (error) {
       if (!this.isActive) return;
       const isCorrupted = error instanceof AutosaveCorruptionError;
