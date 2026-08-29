@@ -4,7 +4,7 @@ A client-side map editor for creating print-ready maps with routes, places, area
 
 ## Live site
 
-[https://yasoob.github.io/printmaps/](https://yasoob.github.io/printmaps/)
+[https://printmaps.yasoob.me/](https://printmaps.yasoob.me/)
 
 ## Local development
 
