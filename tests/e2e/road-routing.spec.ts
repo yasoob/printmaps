@@ -101,7 +101,7 @@ test('road route edits semantic waypoints by rerouting and exports offline', asy
   await projectDownload.saveAs(projectPath);
   const project = JSON.parse(await readFile(projectPath, 'utf8'));
   const routeLayer = project.layers.find((layer: { id: string }) => layer.id === 'route-02');
-  expect(project.schemaVersion).toBe(24);
+  expect(project.schemaVersion).toBe(25);
   expect(routeLayer).toMatchObject({
     route: { kind: 'road', closed: false },
     appearance: {

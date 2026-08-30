@@ -148,6 +148,11 @@ const ProjectPropertiesPanel = memo(function ProjectPropertiesPanel({ onLocate }
       onPitchChange={project.setCameraPitch}
       onPresetChange={project.setPagePreset}
       onStyleChange={project.setMapStyle}
+      onStyleAdjustmentChange={project.setMapStyleAdjustment}
+      onStyleColorChange={project.setMapStyleColor}
+      onStyleCustomizationReset={project.resetMapStyleCustomization}
+      onStyleReset={project.resetMapStyle}
+      onStyleToneChange={project.setMapStyleTone}
       onTextScaleChange={project.setMapTextScale}
     />
   );

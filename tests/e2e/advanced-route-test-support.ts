@@ -18,7 +18,7 @@ export function routeLayer(project: ProjectDocument, id = 'route-01') {
 
 export function basicRouteProject(): ProjectDocument {
   return {
-    schemaVersion: 24,
+    schemaVersion: 25,
     id: 'advanced-route-project',
     title: 'Advanced route project',
     page: {
@@ -47,6 +47,7 @@ export function basicRouteProject(): ProjectDocument {
         landuse: true,
         transit: true,
       },
+      customization: { tone: 'balanced', contrast: 50, detail: 50, colors: {} },
     },
     assets: {},
     layers: [

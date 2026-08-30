@@ -17,8 +17,9 @@ Print Map Studio will provide an original visual preset gallery built entirely o
 
 ### Information architecture
 
-1. **Map style cards** — actual canonical presets saved in the project and used by live rendering and print export, presented directly as previews without a separate textual family-filter row.
-2. **Advanced map details** — existing language, text scale, and feature visibility remain independent controls below the gallery.
+1. **Map style cards** — canonical base presets saved in the project and used by live rendering and print export, presented directly as previews without a separate textual family-filter row.
+2. **Quick Tune + semantic colors** — a focused inspector subpage for tone, contrast, detail, and optional overrides of the 11 cartographic roles. Linked colors continue following Quick Tune; overridden colors can be relinked individually.
+3. **Advanced map details** — language, text scale, and feature visibility remain independent controls and survive base-style or customization changes.
 
 The gallery uses a 3-column desktop / 2-column mobile grid. Cards contain deterministic first-party thumbnails, an original preset name, and an accessible selected state. Unselected cards remain visually quiet; the selected card uses one dark outline/check. The grid must not create live MapLibre instances.
 
@@ -70,9 +71,13 @@ These are Print Map Studio concepts, not copies of external style names or palet
 ## Interaction and persistence
 
 - Selecting a card previews immediately and commits one undoable project transaction.
+- Selecting a different base preset clears prior Quick Tune values and color overrides while preserving language, text scale, and visibility.
+- Slider and color-picker input updates render live but coalesce into one undo step per interaction.
+- Reset to Paper remains available both before and inside customization; it restores the Paper base and neutral customization as one undoable change.
+- The customization subpage restores focus to its trigger on Back or Escape and uses reduced-motion-safe directional transitions.
 - Keyboard arrow navigation follows the visual grid; Enter/Space selects; focus and selected state are distinct.
 - Style switching preserves language, text scale, all visibility categories, camera/lock state, content layers, selection, assets, and history invariants.
-- Replace the pre-release schema atomically; obsolete drafts may receive the existing reset guidance.
+- Schema 25 stores tone, contrast, detail, and semantic color overrides. Schema 24 projects migrate with neutral defaults; older drafts retain the existing reset guidance.
 
 ## Verification
 

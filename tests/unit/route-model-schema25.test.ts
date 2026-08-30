@@ -12,10 +12,24 @@ function routeFixture() {
   return { project, route, appearance: route.appearance };
 }
 
-describe('schema-24 route model', () => {
-  it('is current and strictly rejects schema 23', () => {
-    expect(PROJECT_SCHEMA_VERSION).toBe(24);
+describe('schema-25 route model', () => {
+  it('is current, migrates schema 24, and strictly rejects schema 23', () => {
+    expect(PROJECT_SCHEMA_VERSION).toBe(25);
     const project = createInitialProjectDocument();
+    const schema24 = {
+      ...project,
+      schemaVersion: 24,
+      style: {
+        ...project.style,
+        customization: undefined,
+      },
+    };
+    expect(parseProjectFileText(JSON.stringify(schema24)).style.customization).toEqual({
+      tone: 'balanced',
+      contrast: 50,
+      detail: 50,
+      colors: {},
+    });
     expect(() => parseProjectFileText(JSON.stringify({ ...project, schemaVersion: 23 })))
       .toThrow('Schema version 23 is obsolete');
   });
@@ -153,7 +167,7 @@ describe('schema-24 route model', () => {
   });
 });
 
-describe('schema-24 route hardening', () => {
+describe('schema-25 route hardening', () => {
   it('enforces the practical repeat-spacing floor in parsing and runtime validation', () => {
     const { project, appearance } = routeFixture();
     appearance.marker = {

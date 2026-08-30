@@ -35,6 +35,7 @@ function StudioCanvas({ m }: { m: StudioAppModel }) {
       page={m.page}
       pageBoundaryVisible={m.pageBoundaryVisible}
       stylePreset={m.style.preset}
+      styleCustomization={m.style.customization}
       language={m.style.language}
       textScalePercent={m.style.textScalePercent}
       featureVisibility={m.style.visibility}

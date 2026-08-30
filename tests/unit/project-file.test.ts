@@ -10,6 +10,18 @@ describe('portable project validation', () => {
     );
   });
 
+  it('round-trips semantic map style customization', () => {
+    const project = createInitialProjectDocument();
+    project.style.customization = {
+      tone: 'cool',
+      contrast: 72,
+      detail: 38,
+      colors: { water: '#123456', label: '#abcdef' },
+    };
+
+    expect(parseProjectFileText(JSON.stringify(project)).style.customization).toEqual(project.style.customization);
+  });
+
   it('requires an explicit shape invert state in the current schema', () => {
     const source = createInitialProjectDocument();
     const shape = source.layers.find(({ type }) => type === 'shape');
@@ -352,6 +364,30 @@ describe('portable project rejection', () => {
       ...createInitialProjectDocument(),
       style: { ...createInitialProjectDocument().style, textScalePercent: 201 },
     }), 'Map text scale must be between 50 and 200 percent'],
+    ['an unsupported map style tone', JSON.stringify({
+      ...createInitialProjectDocument(),
+      style: {
+        ...createInitialProjectDocument().style,
+        customization: { ...createInitialProjectDocument().style.customization, tone: 'sepia' },
+      },
+    }), 'Map style tone must be cool, balanced, or warm'],
+    ['an out-of-range map style contrast', JSON.stringify({
+      ...createInitialProjectDocument(),
+      style: {
+        ...createInitialProjectDocument().style,
+        customization: { ...createInitialProjectDocument().style.customization, contrast: 101 },
+      },
+    }), 'Map style contrast must be between 0 and 100'],
+    ['an invalid semantic map color', JSON.stringify({
+      ...createInitialProjectDocument(),
+      style: {
+        ...createInitialProjectDocument().style,
+        customization: {
+          ...createInitialProjectDocument().style.customization,
+          colors: { water: 'blue' },
+        },
+      },
+    }), 'Map style water color must be a six-digit hexadecimal color'],
     ['a non-boolean map feature visibility value', JSON.stringify({
       ...createInitialProjectDocument(),
       style: {

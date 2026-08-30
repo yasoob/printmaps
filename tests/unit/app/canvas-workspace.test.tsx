@@ -45,6 +45,7 @@ const sharedProps = {
   assets: {},
   camera: { bearing: 0, center: [16.3725, 48.2084] as [number, number], locked: false, pitch: 0, zoom: 11.2 },
   stylePreset: 'paper' as const,
+  styleCustomization: { tone: 'balanced' as const, contrast: 50, detail: 50, colors: {} },
   language: 'local' as const,
   textScalePercent: 100,
   featureVisibility: { roads: true, buildings: true, labels: true, water: true, parks: true, landuse: true, transit: true },

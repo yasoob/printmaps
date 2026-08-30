@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../../../src/app/App';
 import { exportMocks } from './exportMocks';
@@ -47,5 +47,46 @@ describe('map style preset gallery', () => {
     await user.keyboard('{Enter}');
     expect(graphite).toBeChecked();
     expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-style-preset', 'graphite');
+  });
+
+  it('moves into color customization, keeps linked overrides clear, and returns focus to the main inspector', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    const customize = screen.getByRole('button', { name: /Customize colors/ });
+    await user.click(customize);
+    const heading = screen.getByRole('heading', { name: 'Customize map' });
+    expect(heading).toHaveFocus();
+
+    await user.click(screen.getByRole('button', { name: 'Warm' }));
+    fireEvent.change(screen.getByRole('slider', { name: 'Contrast' }), { target: { value: '72' } });
+    fireEvent.input(screen.getByLabelText('Water color'), { target: { value: '#123456' } });
+    expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-style-customized', 'true');
+    expect(screen.getByLabelText('Reset Water color')).toBeEnabled();
+
+    fireEvent.pointerDown(screen.getByLabelText('Water color'));
+    fireEvent.input(screen.getByLabelText('Water color'), { target: { value: '#654321' } });
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(screen.getByLabelText('Water color')).toHaveValue('#123456');
+
+    await user.click(screen.getByLabelText('Reset Water color'));
+    expect(screen.getByLabelText('Reset Water color')).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Back to project properties' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: /Edit custom palette/ })).toHaveFocus());
+    expect(screen.getByRole('button', { name: /Edit custom palette/ })).toBeVisible();
+  });
+
+  it('can reset the complete map style to Paper from inside the customizer', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('radio', { name: /Night Ink/ }));
+    await user.click(screen.getByRole('button', { name: /Customize colors/ }));
+    await user.click(screen.getByRole('button', { name: 'Warm' }));
+
+    await user.click(screen.getByRole('button', { name: 'Reset to Paper' }));
+
+    expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-style-preset', 'paper');
+    expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-style-customized', 'false');
+    expect(screen.getByRole('button', { name: 'Balanced' })).toHaveAttribute('aria-pressed', 'true');
   });
 });

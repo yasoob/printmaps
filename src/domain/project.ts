@@ -6,6 +6,7 @@ import {
 } from './layerAppearance';
 import type { CustomMarkerAsset } from './customMarkerAssets';
 import { MAP_STYLE_PRESET_LABELS, type MapStylePreset } from './mapStylePresets';
+import { createDefaultMapStyleCustomization, type MapStyleCustomization } from './mapStyleCustomization';
 import type { PagePreset } from './pagePresets';
 import type { RouteMetadata } from './routeMetadata';
 import { cloneContentLayer } from './projectClone';
@@ -27,7 +28,7 @@ export type {
 export { ROUTE_KINDS, type RouteKind, type RouteMetadata } from './routeMetadata';
 export { cloneContentLayer } from './projectClone';
 
-export const PROJECT_SCHEMA_VERSION = 24 as const;
+export const PROJECT_SCHEMA_VERSION = 25 as const;
 export const MAX_MERCATOR_LATITUDE = 85.051129;
 export const MAX_MAP_ZOOM = 22;
 
@@ -63,6 +64,7 @@ export type MapStyleSettings = {
   language: MapLanguage;
   textScalePercent: number;
   visibility: MapFeatureVisibility;
+  customization: MapStyleCustomization;
 };
 
 export type PolygonGeometry = { type: 'Polygon'; coordinates: [number, number][][] };
@@ -189,6 +191,7 @@ const createDefaultMapStyleSettings = (): MapStyleSettings => ({
   language: 'local',
   textScalePercent: 100,
   visibility: createDefaultMapFeatureVisibility(),
+  customization: createDefaultMapStyleCustomization(),
 });
 
 export function mapStyleBasemapName(preset: MapStylePreset): string {

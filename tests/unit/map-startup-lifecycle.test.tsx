@@ -181,6 +181,7 @@ it('does not publish an already-loaded map after its queued load is cleaned up',
     setBasemapExportVisibility: () => true,
     synchronizeFeatureVisibility: { current: () => true },
     synchronizeMapLanguage: { current: () => true },
+    synchronizeStyleCustomization: { current: () => true },
     synchronizeTextScale: { current: () => true },
   };
   const cleanup = startMapLifecycle({

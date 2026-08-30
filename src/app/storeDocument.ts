@@ -26,7 +26,14 @@ export function copyDocument(document: ProjectDocument): ProjectDocument {  retu
     ...document,
     page: { ...document.page },
     camera: { ...document.camera, center: [...document.camera.center] },
-    style: { ...document.style, visibility: { ...document.style.visibility } },
+    style: {
+      ...document.style,
+      visibility: { ...document.style.visibility },
+      customization: {
+        ...document.style.customization,
+        colors: { ...document.style.customization.colors },
+      },
+    },
     assets: Object.fromEntries(Object.entries(document.assets).map(([id, asset]) => [id, { ...asset }])),
     layers: document.layers.map((layer) => cloneContentLayer(layer)),
   };

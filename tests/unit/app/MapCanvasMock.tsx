@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import type { CameraSettings, ContentLayer, MapFeatureVisibility, MapLanguage, MapStylePreset } from '../../../src/domain/project';
+import type { MapStyleCustomization } from '../../../src/domain/mapStyleCustomization';
 import type { MapBounds } from '../../../src/map/MapLayerBounds';
 import type { ShapeEditMode } from '../../../src/map/ShapeVertexEditing';
 import { mapLocationRequestDiagnostic, type MapLocationRequest } from '../../../src/map/MapLocationRequest';
@@ -12,6 +13,7 @@ type MapCanvasMockProps = {
   basemapVisible?: boolean;
   camera?: CameraSettings;
   stylePreset?: MapStylePreset;
+  styleCustomization?: MapStyleCustomization;
   language?: MapLanguage;
   textScalePercent?: number;
   featureVisibility?: MapFeatureVisibility;
@@ -41,11 +43,20 @@ const shapeEditModeDiagnostic = (mode?: ShapeEditMode) => mode ?? '';
 const interactionModeDiagnostic = (mode?: string) => mode ?? 'select';
 const basemapVisibilityDiagnostic = (isVisible?: boolean) => isVisible ?? true;
 const resolvedPageBoundaryVisibility = (isVisible?: boolean) => isVisible ?? true;
+const DEFAULT_STYLE_CUSTOMIZATION: MapStyleCustomization = { tone: 'balanced', contrast: 50, detail: 50, colors: {} };
+const resolveStyleCustomization = (customization?: MapStyleCustomization) => customization ?? DEFAULT_STYLE_CUSTOMIZATION;
+const isStyleCustomized = (customization: MapStyleCustomization) => (
+  Object.keys(customization.colors).length > 0
+  || customization.tone !== 'balanced'
+  || customization.contrast !== 50
+  || customization.detail !== 50
+);
 
 export function MapCanvas({
   basemapVisible,
   camera = { bearing: 0, center: [16.3725, 48.2084], locked: false, pitch: 0, zoom: 11.2 },
   stylePreset = 'paper',
+  styleCustomization,
   language = 'local',
   textScalePercent = 100,
   featureVisibility = { roads: true, buildings: true, labels: true, water: true, parks: true, landuse: true, transit: true },
@@ -88,6 +99,7 @@ export function MapCanvas({
       data-map-area-locked={camera.locked}
       data-map-location-request={mapLocationRequestDiagnostic(locationRequest)}
       data-style-preset={stylePreset}
+      data-style-customized={isStyleCustomized(resolveStyleCustomization(styleCustomization))}
       data-map-language={language}
       data-text-scale={textScalePercent}
       data-map-feature-visibility={`roads:${featureVisibility.roads},buildings:${featureVisibility.buildings},labels:${featureVisibility.labels},water:${featureVisibility.water},parks:${featureVisibility.parks},landuse:${featureVisibility.landuse},transit:${featureVisibility.transit}`}

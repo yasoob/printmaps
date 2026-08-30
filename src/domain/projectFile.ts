@@ -3,8 +3,6 @@ import {
   type ContentLayer,
   type LayerGeometry,
   type LayerType,
-  type MapLanguage,
-  type MapStylePreset,
   type PageOrientation,
   type PagePreset,
   type ProjectDocument,
@@ -14,7 +12,9 @@ import { parseProjectCamera } from './projectCamera';
 import { parseLayerAppearance, type LayerAppearance } from './layerAppearance';
 import type { CustomMarkerAsset } from './customMarkerAssets';
 import { parseProjectAssets } from './projectAssets';
-import { MAP_STYLE_PRESETS as MAP_STYLE_PRESET_DEFINITIONS } from './mapStylePresets';
+import {
+  createDefaultMapStyleCustomization,
+} from './mapStyleCustomization';
 import { ProjectFileError } from './projectFileError';
 import { hasExactlyOneBottomBasemap } from './projectLayerStructure';
 import { parseLayerProvenance, validateProviderGeometry } from './projectProvenance';
@@ -25,6 +25,7 @@ import {
   semanticLegCount,
   semanticRoutePoints,
 } from './routeModel';
+import { parseProjectStyle } from './projectStyleFile';
 
 export { ProjectFileError } from './projectFileError';
 
@@ -37,8 +38,6 @@ const PAGE_PRESETS = new Set<PagePreset>([
   'Custom',
 ]);
 const PAGE_ORIENTATIONS = new Set<PageOrientation>(['landscape', 'portrait']);
-const MAP_STYLE_PRESETS = new Set<MapStylePreset>(MAP_STYLE_PRESET_DEFINITIONS.map(({ id }) => id));
-const MAP_LANGUAGES = new Set<MapLanguage>(['local', 'en', 'de', 'fr', 'it', 'es', 'zh']);
 type JsonObject = Record<string, unknown>;
 
 function isCurrentSchemaVersion(value: unknown): value is ProjectDocument['schemaVersion'] {
@@ -249,35 +248,21 @@ function pageAt(value: unknown): ProjectDocument['page'] {
   return { preset, ...base };
 }
 
-function styleAt(value: unknown): ProjectDocument['style'] {
-  const style = objectAt(value, 'Project style');
-  if (typeof style.preset !== 'string' || !MAP_STYLE_PRESETS.has(style.preset as MapStylePreset)) {
-    throw new ProjectFileError('Map style preset is not supported by this version of Print Map Studio.');
-  }
-  const preset = style.preset as MapStylePreset;
-  if (typeof style.language !== 'string' || !MAP_LANGUAGES.has(style.language as MapLanguage)) {
-    throw new ProjectFileError('Map language must be local, en, de, fr, it, es, or zh.');
-  }
-  const textScalePercent = finiteNumber(style.textScalePercent, 'Map text scale');
-  if (textScalePercent < 50 || textScalePercent > 200) {
-    throw new ProjectFileError('Map text scale must be between 50 and 200 percent.');
-  }
-  const visibility = objectAt(style.visibility, 'Map feature visibility');
+function migrateProjectRoot(root: JsonObject): JsonObject {
+  if (root.schemaVersion !== 24) return root;
+  const style = objectAt(root.style, 'Project style');
   return {
-    preset,
-    language: style.language as MapLanguage,
-    textScalePercent,
-    visibility: {
-      roads: booleanAt(visibility.roads, 'Map road visibility'),
-      buildings: booleanAt(visibility.buildings, 'Map building visibility'), labels: booleanAt(visibility.labels, 'Map label visibility'),
-      water: booleanAt(visibility.water, 'Map water visibility'), parks: booleanAt(visibility.parks, 'Map park visibility'),
-      landuse: booleanAt(visibility.landuse, 'Map land-detail visibility'), transit: booleanAt(visibility.transit, 'Map transit visibility'),
+    ...root,
+    schemaVersion: PROJECT_SCHEMA_VERSION,
+    style: {
+      ...style,
+      customization: createDefaultMapStyleCustomization(),
     },
   };
 }
 
 function currentDocumentAt(value: unknown): ProjectDocument {
-  const root = objectAt(value, 'Project file');
+  const root = migrateProjectRoot(objectAt(value, 'Project file'));
   const schemaVersion = root.schemaVersion;
   if (!isCurrentSchemaVersion(schemaVersion)) {
     if (typeof schemaVersion === 'number' && schemaVersion >= 1 && schemaVersion < PROJECT_SCHEMA_VERSION) {
@@ -311,7 +296,7 @@ function currentDocumentAt(value: unknown): ProjectDocument {
     ...common,
     page: pageAt(root.page),
     camera: parseProjectCamera(root.camera, (message) => { throw new ProjectFileError(message); }),
-    style: styleAt(root.style),
+    style: parseProjectStyle(root.style),
   } satisfies ProjectDocument;
 }
 

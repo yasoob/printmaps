@@ -1,6 +1,7 @@
 import { useState, type CSSProperties } from 'react';
 import type { CustomMarkerAsset } from '../domain/customMarkerAssets';
 import type { CameraSettings, ContentLayer, MapFeatureVisibility, MapLanguage, MapStylePreset, PageSettings, ShapeGeometry } from '../domain/project';
+import { createDefaultMapStyleCustomization, type MapStyleCustomization } from '../domain/mapStyleCustomization';
 import type { PreviewPngExporter } from '../export/previewPng';
 import type { MapBounds } from './MapLayerBounds';
 import type { CameraViewportChangeMode } from './MapCameraViewport';
@@ -14,6 +15,7 @@ type MapCanvasProps = {
   basemapVisible?: boolean;
   camera?: CameraSettings;
   stylePreset?: MapStylePreset;
+  styleCustomization?: MapStyleCustomization;
   language?: MapLanguage;
   textScalePercent?: number;
   featureVisibility?: MapFeatureVisibility;
@@ -61,6 +63,8 @@ const resolveBasemapVisibility = (isVisible?: boolean) => isVisible ?? true;
 const resolveMapLanguage = (language?: MapLanguage) => language ?? 'local';
 const resolveShapeEditMode = (mode?: ShapeEditMode): ShapeEditMode => mode ?? 'transform';
 const resolveInteractionMode = (mode?: string) => mode ?? 'select';
+const DEFAULT_STYLE_CUSTOMIZATION = createDefaultMapStyleCustomization();
+const resolveStyleCustomization = (customization?: MapStyleCustomization) => customization ?? DEFAULT_STYLE_CUSTOMIZATION;
 const printFrameClassName = (orientation: 'landscape' | 'portrait', isVisible?: boolean) => (
   `print-frame is-${orientation}${isVisible === false ? ' is-boundary-hidden' : ''}`
 );
@@ -73,6 +77,7 @@ export function MapCanvas({
   basemapVisible,
   camera = { bearing: 0, center: [16.3725, 48.2084], locked: false, pitch: 0, zoom: 11.2 },
   stylePreset = 'paper',
+  styleCustomization,
   language,
   textScalePercent = 100,
   featureVisibility,
@@ -110,6 +115,7 @@ export function MapCanvas({
     basemapVisible: resolveBasemapVisibility(basemapVisible),
     camera,
     stylePreset,
+    styleCustomization: resolveStyleCustomization(styleCustomization),
     language: resolveMapLanguage(language),
     textScalePercent,
     featureVisibility: resolveFeatureVisibility(featureVisibility),

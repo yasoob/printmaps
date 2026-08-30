@@ -131,7 +131,7 @@ describe('route vertex structure history', () => {
     expect(routeGeometry(store)).toEqual(route.geometry);
   });
 
-  it('keeps schema-24 styles and closure canonical across legacy geometry actions', () => {
+  it('keeps schema-25 styles and closure canonical across legacy geometry actions', () => {
     const document = createInitialProjectDocument();
     const route = document.layers.find((layer) => layer.id === 'route-01')!;
     route.geometry = {

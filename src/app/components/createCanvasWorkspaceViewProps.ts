@@ -101,6 +101,7 @@ function createMapProps(inputs: ViewInputs): ComponentProps<typeof MapCanvas> {
     selectedId: props.selectedId,
     shapeEditMode: inputs.shape.editMode,
     stylePreset: props.stylePreset,
+    styleCustomization: props.styleCustomization,
     textScalePercent: props.textScalePercent,
   };
 }

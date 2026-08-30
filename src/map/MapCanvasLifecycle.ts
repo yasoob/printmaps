@@ -35,7 +35,7 @@ type LifecycleReferences = LifecycleExportReferences & {
   map: MutableReference<MapLibreMap | null>; mapFailed: MutableReference<boolean>;
   resolveExportStyle: (map: MapLibreMap, content: 'basemap' | 'composite') => ReturnType<MapLibreMap['getStyle']>;
   setBasemapExportVisibility: (map: MapLibreMap, override: boolean | null) => boolean;
-  synchronizeFeatureVisibility: MutableReference<(map: MapLibreMap) => boolean>; synchronizeMapLanguage: MutableReference<(map: MapLibreMap) => boolean>; synchronizeTextScale: MutableReference<(map: MapLibreMap) => boolean>;
+  synchronizeFeatureVisibility: MutableReference<(map: MapLibreMap) => boolean>; synchronizeMapLanguage: MutableReference<(map: MapLibreMap) => boolean>; synchronizeStyleCustomization: MutableReference<(map: MapLibreMap) => boolean>; synchronizeTextScale: MutableReference<(map: MapLibreMap) => boolean>;
 };
 
 export type MapLifecycleOptions = {
@@ -126,7 +126,7 @@ function createMapEventHandlers(
     if (!state.isStyleLoaded) handleStyleLoad();
     state.isMapLoaded = true;
     const container = references.container.current; if (!container) return;
-    const isStyleSynchronized = references.synchronizeMapLanguage.current(map) && references.synchronizeTextScale.current(map) && references.synchronizeFeatureVisibility.current(map);
+    const isStyleSynchronized = references.synchronizeStyleCustomization.current(map) && references.synchronizeMapLanguage.current(map) && references.synchronizeTextScale.current(map) && references.synchronizeFeatureVisibility.current(map);
     if (!isStyleSynchronized) return;
     references.contentAdapter.current = createMapLibreContentAdapter(map, container);
     handleContentSyncResult(references.contentAdapter.current.sync(references.contentState.current));

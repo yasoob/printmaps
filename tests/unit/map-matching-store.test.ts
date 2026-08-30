@@ -18,7 +18,7 @@ describe('canonical map-matched routes', () => {
     }, 0);
 
     expect(applied).toBe(true);
-    expect(store.getState().document.schemaVersion).toBe(24);
+    expect(store.getState().document.schemaVersion).toBe(25);
     expect(store.getState().document.layers.find(({ id }) => id === 'route-01')).toMatchObject({
       geometry: { type: 'LineString', coordinates: geometry },
       provenance: {

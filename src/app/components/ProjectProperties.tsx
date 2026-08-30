@@ -1,11 +1,15 @@
 import { useRef, useState } from 'react';
+import { RotateCcw } from 'lucide-react';
 import type { CameraSettings, MapFeatureVisibilityCategory, MapLanguage, MapStylePreset, MapStyleSettings, PagePreset, PageSettings } from '../../domain/project';
+import { isMapStyleCustomized, type MapStyleTone } from '../../domain/mapStyleCustomization';
+import type { MapStyleTokenRole } from '../../domain/mapStylePresets';
 import { PAGE_PRESET_DEFINITIONS } from '../../domain/pagePresets';
 import { InspectorAccordion, PropertyRow } from './PropertyControls';
 import { GeolocationControl } from './GeolocationControl';
 import { Checkbox, Switch } from './UiControls';
 import { MAP_STYLE_PRESET_LABELS } from '../../domain/mapStylePresets';
 import { MapStyleGallery } from './MapStyleGallery';
+import { MapStyleCustomizer, MapStyleCustomizeTrigger } from './MapStyleCustomizer';
 import { InputGroup, InputGroupAddon, InputNumber } from './InputGroup';
 
 function isValidPageDimension(draft: string) {
@@ -164,6 +168,11 @@ type ProjectPropertiesProps = {
   onPitchChange: (pitch: number) => void;
   onPresetChange: (preset: PagePreset) => void;
   onStyleChange: (preset: MapStylePreset) => void;
+  onStyleAdjustmentChange: (adjustment: 'contrast' | 'detail', value: number, mode?: 'history' | 'amend') => void;
+  onStyleColorChange: (role: MapStyleTokenRole, color: string | null, mode?: 'history' | 'amend') => void;
+  onStyleCustomizationReset: () => void;
+  onStyleReset: () => void;
+  onStyleToneChange: (tone: MapStyleTone) => void;
   onTextScaleChange: (textScalePercent: number) => void;
 };
 
@@ -195,12 +204,39 @@ export function ProjectProperties({
   onOrientationChange,
   onPitchChange,
   onPresetChange,
+  onStyleAdjustmentChange,
   onStyleChange,
+  onStyleColorChange,
+  onStyleCustomizationReset,
+  onStyleReset,
+  onStyleToneChange,
   onTextScaleChange,
 }: ProjectPropertiesProps) {
+  const [isStyleCustomizerOpen, setIsStyleCustomizerOpen] = useState(false);
+  const [hasReturnedFromStyle, setHasReturnedFromStyle] = useState(false);
+  const customizeTriggerRef = useRef<HTMLButtonElement>(null);
   const visibleMapDetailCount = Object.values(style.visibility).filter(Boolean).length + Number(pageBoundaryVisible);
+  if (isStyleCustomizerOpen) {
+    return (
+      <MapStyleCustomizer
+        customization={style.customization}
+        preset={style.preset}
+        onAdjustmentChange={onStyleAdjustmentChange}
+        onBack={() => {
+          setHasReturnedFromStyle(true);
+          setIsStyleCustomizerOpen(false);
+          queueMicrotask(() => customizeTriggerRef.current?.focus());
+        }}
+        onColorChange={onStyleColorChange}
+        onReset={onStyleCustomizationReset}
+        onResetMapStyle={onStyleReset}
+        onToneChange={onStyleToneChange}
+      />
+    );
+  }
+  const mapStyleSummary = `${MAP_STYLE_PRESET_LABELS[style.preset]}${isMapStyleCustomized(style.customization) ? ' · Custom' : ''} · ${MAP_LANGUAGE_LABELS[style.language]} · ${style.textScalePercent}%`;
   return (
-    <div className="properties-panel">
+    <div className={`properties-panel inspector-subview${hasReturnedFromStyle ? ' is-back' : ''}`}>
       <div className="properties-title"><h2 data-project-heading tabIndex={-1}>Project</h2></div>
       <InspectorAccordion isDefaultExpanded storageKey={`${PROJECT_DISCLOSURE_PREFIX}:page`} summary={`${page.preset} ${page.orientation} · ${page.widthMm} × ${page.heightMm} mm`} title="Page">
         <PropertyRow label="Preset"><select aria-label="Page preset" value={page.preset} onChange={(event) => onPresetChange(event.target.value as PagePreset)}>{PAGE_PRESET_DEFINITIONS.map(({ id, label }) => <option key={id} value={id}>{label}</option>)}<option value="Custom">Custom</option></select></PropertyRow>
@@ -210,8 +246,22 @@ export function ProjectProperties({
         </div>
         <PropertyRow label="Orientation"><div className="segmented"><button className={page.orientation === 'landscape' ? 'is-active' : undefined} type="button" aria-pressed={page.orientation === 'landscape'} onClick={() => onOrientationChange('landscape')}>Landscape</button><button className={page.orientation === 'portrait' ? 'is-active' : undefined} type="button" aria-pressed={page.orientation === 'portrait'} onClick={() => onOrientationChange('portrait')}>Portrait</button></div></PropertyRow>
       </InspectorAccordion>
-      <InspectorAccordion isDefaultExpanded={false} storageKey={`${PROJECT_DISCLOSURE_PREFIX}:map-style`} summary={`${MAP_STYLE_PRESET_LABELS[style.preset]} · ${MAP_LANGUAGE_LABELS[style.language]} · ${style.textScalePercent}%`} title="Map style">
+      <InspectorAccordion isDefaultExpanded={false} storageKey={`${PROJECT_DISCLOSURE_PREFIX}:map-style`} summary={mapStyleSummary} title="Map style">
         <MapStyleGallery selectedPreset={style.preset} onSelect={onStyleChange} />
+        <MapStyleCustomizeTrigger
+          buttonRef={customizeTriggerRef}
+          customization={style.customization}
+          preset={style.preset}
+          onOpen={() => setIsStyleCustomizerOpen(true)}
+        />
+        <button
+          className="map-style-default-reset"
+          disabled={style.preset === 'paper' && !isMapStyleCustomized(style.customization)}
+          type="button"
+          onClick={onStyleReset}
+        >
+          <RotateCcw aria-hidden="true" size={13} /> Reset to Paper
+        </button>
         <PropertyRow label="Language"><select aria-label="Map language" value={style.language} onChange={(event) => onLanguageChange(event.target.value as MapLanguage)}><option value="local">Local names</option><option value="en">English</option><option value="de">German</option><option value="fr">French</option><option value="it">Italian</option><option value="es">Spanish</option><option value="zh">Chinese</option></select></PropertyRow>
         <PropertyRow label="Text scale"><TextScaleField key={`text-scale-${style.textScalePercent}`} value={style.textScalePercent} onCommit={onTextScaleChange} /></PropertyRow>
       </InspectorAccordion>

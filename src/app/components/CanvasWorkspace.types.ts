@@ -13,6 +13,7 @@ import type {
   SearchPoiInput,
   ShapeGeometry,
 } from "../../domain/project";
+import type { MapStyleCustomization } from "../../domain/mapStyleCustomization";
 import type {
   RouteAuthoringOptions,
   RouteTravelMarker,
@@ -35,6 +36,7 @@ export type CanvasWorkspaceProps = {
   assets: Record<string, CustomMarkerAsset>;
   camera: CameraSettings;
   stylePreset: MapStylePreset;
+  styleCustomization: MapStyleCustomization;
   language: MapLanguage;
   textScalePercent: number;
   featureVisibility: MapFeatureVisibility;

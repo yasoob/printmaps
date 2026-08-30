@@ -18,6 +18,8 @@ import {
   type RouteMarkerAppearance,
   type RouteSegmentStyleOverride,
 } from "../domain/project";
+import type { MapStyleTone } from "../domain/mapStyleCustomization";
+import type { MapStyleTokenRole } from "../domain/mapStylePresets";
 import type {
   RouteAuthoringOptions,
   RouteTravelMarker,
@@ -190,6 +192,19 @@ export type ProjectState = {
   ) => void;
   setLayerOpacity: (id: string, opacity: number) => void;
   setMapStyle: (preset: MapStylePreset) => void;
+  setMapStyleAdjustment: (
+    adjustment: "contrast" | "detail",
+    value: number,
+    mode?: "history" | "amend",
+  ) => void;
+  setMapStyleColor: (
+    role: MapStyleTokenRole,
+    color: string | null,
+    mode?: "history" | "amend",
+  ) => void;
+  setMapStyleTone: (tone: MapStyleTone) => void;
+  resetMapStyle: () => void;
+  resetMapStyleCustomization: () => void;
   setMapLanguage: (language: MapLanguage) => void;
   setMapTextScale: (textScalePercent: number) => void;
   setMapFeatureVisibility: (

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { CustomMarkerAsset } from '../domain/customMarkerAssets';
 import type { CameraSettings, ContentLayer, MapFeatureVisibility, MapLanguage, MapStylePreset, ShapeGeometry } from '../domain/project';
+import type { MapStyleCustomization } from '../domain/mapStyleCustomization';
 import type { PreviewPngExporter } from '../export/previewPng';
 import type { MapContentAdapter, MapContentState } from './MapContentAdapter';
 import {
@@ -13,6 +14,7 @@ import { mapStyleUrl } from './mapStyles';
 import { useMapFeatureVisibility } from './useMapFeatureVisibility';
 import { useMapLanguage } from './useMapLanguage';
 import { useMapTextScale } from './useMapTextScale';
+import { useMapStyleCustomization } from './useMapStyleCustomization';
 import { useMapFitRequests } from './useMapFitRequests';
 import type { MapBounds } from './MapLayerBounds';
 
@@ -37,6 +39,7 @@ type MapCanvasControllerOptions = {
   basemapVisible: boolean;
   camera: CameraSettings;
   stylePreset: MapStylePreset;
+  styleCustomization: MapStyleCustomization;
   language: MapLanguage;
   textScalePercent: number;
   featureVisibility: MapFeatureVisibility;
@@ -188,33 +191,14 @@ function useAccessibleRouteVertexEditing(options: Pick<MapCanvasControllerOption
 }
 
 export function useMapCanvasController({
-  basemapVisible, camera,
-  stylePreset,
-  language,
-  textScalePercent,
-  featureVisibility,
-  fitRequest,
-  fitLayerId,
-  fitLayerRequest,
-  fitImportBounds,
-  fitImportRequest,
-  locationRequest,
-  layers,
-  assets,
-  onBackgroundClick,
-  onExporterChange,
-  onLayerSelect,
+  basemapVisible, camera, stylePreset, styleCustomization, language, textScalePercent, featureVisibility,
+  fitRequest, fitLayerId, fitLayerRequest, fitImportBounds, fitImportRequest, locationRequest,
+  layers, assets,
+  onBackgroundClick, onExporterChange, onLayerSelect,
   onCameraViewportChange, onMapClick, onPoiCoordinatesChange,
-  onRouteEditorError,
-  onRouteGeometryChange,
-  onRouteVertexChange,
-  onRouteVertexInsert,
+  onRouteEditorError, onRouteGeometryChange, onRouteVertexChange, onRouteVertexInsert,
   routeAuthoring, routeDraftEditing,
-  onShapeGeometryChange,
-  previewedId,
-  selectedId,
-  shapeEditMode,
-  contentRevision,
+  onShapeGeometryChange, previewedId, selectedId, shapeEditMode, contentRevision,
 }: MapCanvasControllerOptions) {
   const container = useRef<HTMLDivElement>(null), map = useRef<MapLibreMap | null>(null), contentAdapter = useRef<MapContentAdapter | null>(null), ignoreNextMapClickRef = useRef(false);
   const [terraMap, setTerraMap] = useState<MapLibreMap | null>(null), routeEditing = useRouteEditing({ ignoreNextMapClickRef, layers, map: terraMap, onRouteEditorError, onRouteGeometryChange, routeAuthoring, selectedId });
@@ -231,6 +215,16 @@ export function useMapCanvasController({
     availableExporterRef.current = null;
     exporterChangeRef.current?.(null);
   }, []);
+  const { resetStyleCustomization, synchronizeStyleCustomization } = useMapStyleCustomization({
+    containerRef: container,
+    contentReadyRef: contentReady,
+    customization: styleCustomization,
+    invalidateExporter,
+    mapFailedRef: mapFailed,
+    mapRef: map,
+    preset: stylePreset,
+    setMapError,
+  });
   const { resetTextScale, synchronizeTextScale } = useMapTextScale({ containerRef: container, contentReadyRef: contentReady, invalidateExporter, mapFailedRef: mapFailed, mapRef: map, setMapError, textScalePercent });
   const mapVisibility = useMapFeatureVisibility({ basemapVisible, containerRef: container, contentReadyRef: contentReady, featureVisibility, invalidateExporter, mapFailedRef: mapFailed, mapRef: map, setMapError }), { resetFeatureVisibility, resolveExportStyle, setBasemapExportVisibility, synchronizeFeatureVisibility } = mapVisibility;
   const { resetMapLanguage, synchronizeMapLanguage } = useMapLanguage({ containerRef: container, contentReadyRef: contentReady, invalidateExporter, language, mapFailedRef: mapFailed, mapRef: map, setMapError });
@@ -273,7 +267,7 @@ export function useMapCanvasController({
     contentReady.current = false;
     contentSyncDeferred.current = false;
     clearMapStateAttributes(container.current);
-    resetFeatureVisibility(); resetMapLanguage(); resetTextScale();
+    resetFeatureVisibility(); resetMapLanguage(); resetStyleCustomization(); resetTextScale();
     invalidateExporter();
     queueMicrotask(() => {
       setTerraMap(null);
@@ -301,13 +295,14 @@ export function useMapCanvasController({
         map, mapFailed, resolveExportStyle, setBasemapExportVisibility,
         synchronizeFeatureVisibility: { current: synchronizeFeatureVisibility },
         synchronizeMapLanguage: { current: synchronizeMapLanguage },
+        synchronizeStyleCustomization: { current: synchronizeStyleCustomization },
         synchronizeTextScale: { current: synchronizeTextScale },
       },
       setContentError,
       setMapError,
       styleUrl: mapStyleUrl(stylePreset),
     });
-  }, [cameraState, handleContentSyncResult, invalidateExporter, resetFeatureVisibility, resetMapLanguage, resetTextScale, resolveExportStyle, setBasemapExportVisibility, stylePreset, synchronizeFeatureVisibility, synchronizeMapLanguage, synchronizeTextScale]);
+  }, [cameraState, handleContentSyncResult, invalidateExporter, resetFeatureVisibility, resetMapLanguage, resetStyleCustomization, resetTextScale, resolveExportStyle, setBasemapExportVisibility, stylePreset, synchronizeFeatureVisibility, synchronizeMapLanguage, synchronizeStyleCustomization, synchronizeTextScale]);
 
   usePointEditing({ layers, map, onPoiCoordinatesChange, selectedId, stylePreset }); useShapeEditing({ layers, map, onShapeGeometryChange, selectedId, shapeEditMode, stylePreset }); useAccessibleRouteVertexEditing({ layers, map, onRouteGeometryChange, onRouteVertexChange, onRouteVertexInsert, onRoutePreview: routeEditing.updateEditingGeometry, selectedId, stylePreset }); useDraftRouteEditing(terraMap, routeDraftEditing);
 
