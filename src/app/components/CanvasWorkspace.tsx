@@ -115,11 +115,7 @@ function useCanvasGeometryLayers(
   route: ReturnType<typeof useCanvasRouteAuthoring>,
   shape: ReturnType<typeof useCanvasShapeAuthoring>,
 ) {
-  const isRoadExtensionWithoutPreview = route.preview === null
-    && route.extensionLayerId !== null
-    && route.options.lineShape === "road";
-  const hiddenExtensionLayerId = route.preview !== null
-    && route.extensionLayerId !== null
+  const hiddenExtensionLayerId = route.options.lineShape === "road"
     ? route.extensionLayerId
     : null;
   return useMemo(
@@ -133,7 +129,6 @@ function useCanvasGeometryLayers(
         {
           isClosed: route.isClosed,
           roadPreview: route.preview,
-          showPath: !isRoadExtensionWithoutPreview,
         },
       ),
       ...(shape.mode === "draw"
@@ -158,7 +153,6 @@ function useCanvasGeometryLayers(
       route.preview,
       route.points.length,
       hiddenExtensionLayerId,
-      isRoadExtensionWithoutPreview,
       shape.isochrone.center,
       shape.mode,
       shape.points,

@@ -205,6 +205,7 @@ export function routePanelProps(
     travelMarker: core.travelMarker,
     hasRoadPreview: core.roadPreview?.revision === core.currentDraft.revision
       && core.roadPreview.mode === core.roadTravelMode,
+    showRoadPreview: core.extension === null,
     minimumPointCount: core.extension ? (core.isClosed ? 3 : 2) : 0,
   };
 }

@@ -136,18 +136,20 @@ test('road route edits semantic waypoints by rerouting and exports offline', asy
     const order = await mapCanvas.getAttribute('data-map-layer-order');
     return order?.split(',') ?? [];
   };
-  await expect.poll(layerOrder).toContain('route-02');
-  expect(await layerOrder()).not.toContain('route-draft');
+  await expect.poll(layerOrder).toContain('route-draft');
+  expect(await layerOrder()).not.toContain('route-02');
   await search.fill('Vienna North');
   await page.getByRole('button', { name: 'Search locations' }).click();
   await page.getByRole('option', { name: 'Vienna North, Austria' }).click();
-  await expect.poll(layerOrder).toContain('route-02');
-  expect(await layerOrder()).not.toContain('route-draft');
-
-  await page.getByRole('button', { name: 'Road Preview' }).click();
-  await expect(page.getByText('Road preview updated.')).toBeVisible();
   await expect.poll(layerOrder).toContain('route-draft');
   expect(await layerOrder()).not.toContain('route-02');
+  await expect(page.getByRole('button', { name: 'Road Preview' })).not.toBeVisible();
+  expect(directionRequests).toBe(2);
+
+  await page.getByRole('button', { name: 'Finish route' }).click();
+  await expect(page.getByRole('button', { name: 'Select Route 02' })).toHaveAttribute('aria-current', 'true');
+  await expect.poll(layerOrder).toContain('route-02');
+  expect(await layerOrder()).not.toContain('route-draft');
   expect(directionRequests).toBe(3);
 
   await page.screenshot({ path: test.info().outputPath('road-routing-search.png') });

@@ -51,6 +51,7 @@ export type RouteDrawingPanelProps = Readonly<{
   onPreviewRoad: () => void;
   onRemovePoint: (index: number) => void;
   hasRoadPreview: boolean;
+  showRoadPreview: boolean;
   minimumPointCount: number;
 }>;
 
@@ -207,7 +208,7 @@ export function RouteDrawingPanel(props: RouteDrawingPanelProps) {
         />
       </details>
       <RouteDraftStatus {...props} />
-      {props.lineShape === "road" && props.points.length >= 2 && (
+      {props.showRoadPreview && props.lineShape === "road" && props.points.length >= 2 && (
         <button
           className="route-preview-button"
           type="button"

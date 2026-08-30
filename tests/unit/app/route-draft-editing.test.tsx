@@ -164,7 +164,7 @@ describe("Road draft previews", () => {
       .toHaveTextContent("2 points");
   });
 
-  it("reuses an unchanged extension preview and commits only on Finish", async () => {
+  it("shows semantic Road points during extension and reroutes only on Finish", async () => {
     const user = userEvent.setup();
     const directions = vi.fn<DirectionsProvider["directions"]>()
       .mockImplementation(async ({ waypoints }) =>
@@ -187,16 +187,11 @@ describe("Road draft previews", () => {
 
     await user.click(screen.getByRole("button", { name: "Extend end" }));
     const map = screen.getByTestId("map-canvas");
-    expect(map.dataset.layerGeometry).toContain("route-01:");
-    expect(map.dataset.layerGeometry).not.toContain("route-draft:");
-    await user.click(screen.getByRole("button", { name: "Map route point 3" }));
-    expect(map.dataset.layerGeometry).toContain("route-01:");
-    expect(map.dataset.layerGeometry).not.toContain("route-draft:");
-    await user.click(screen.getByRole("button", { name: "Road Preview" }));
-    await screen.findByText("Road preview updated.");
     expect(map.dataset.layerGeometry).not.toContain("route-01:");
     expect(map.dataset.layerGeometry).toContain("route-draft:");
-    expect(directions).toHaveBeenCalledTimes(2);
+    await user.click(screen.getByRole("button", { name: "Map route point 3" }));
+    expect(screen.queryByRole("button", { name: "Road Preview" }))
+      .not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Finish route" }));
 
     expect(directions).toHaveBeenCalledTimes(2);
