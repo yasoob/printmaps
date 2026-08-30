@@ -13,6 +13,7 @@ import type {
   ProviderTravelProfile,
 } from "../../services/mapbox/contracts";
 import { createMapboxMapMatchingProvider } from "../../services/mapbox/mapMatching";
+import { PropertyRow } from "./PropertyControls";
 
 const defaultProvider = createMapboxMapMatchingProvider({
   token: import.meta.env.VITE_MAPBOX_PUBLIC_ACCESS,
@@ -167,8 +168,7 @@ export function RouteMapMatchingControl({
 
   return (
     <div className="route-map-matching">
-      <label>
-        <span>Travel mode</span>
+      <PropertyRow label="Travel mode">
         <select
           aria-label="Road matching travel mode"
           disabled={disabled || isMatching}
@@ -181,7 +181,7 @@ export function RouteMapMatchingControl({
             </option>
           ))}
         </select>
-      </label>
+      </PropertyRow>
       <button
         className="secondary-action"
         type="button"

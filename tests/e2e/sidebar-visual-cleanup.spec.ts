@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { openAdvanced, waitForMap } from './advanced-route-test-support';
 
 const accordionGeometry = async (page: import('@playwright/test').Page) => page
   .locator('.inspector-accordion h3 > button')
@@ -39,4 +40,24 @@ test('keeps map styles preview-first without duplicate gallery attribution', asy
   await expect(page.getByRole('radiogroup', { name: 'Map style presets' }).getByRole('radio')).toHaveCount(12);
   await expect(page.locator('.map-style-attribution')).toHaveCount(0);
   await expect(page.locator('.maplibregl-ctrl-attrib')).toBeVisible();
+});
+
+test('uses a consistent typography hierarchy in route details', async ({ page }) => {
+  await page.goto('./');
+  await waitForMap(page);
+  await page.getByRole('button', { name: 'Select Route 01' }).click();
+  await openAdvanced(page);
+
+  const fontSize = (selector: string) => page.locator(selector).first()
+    .evaluate((element) => getComputedStyle(element).fontSize);
+
+  await expect(page.getByRole('button', { name: 'Clear leg override' })).toHaveCSS('font-size', '12px');
+  await expect(page.getByRole('combobox', { name: 'Road matching travel mode' })).toHaveCSS('font-size', '12px');
+  expect(await fontSize('.route-map-matching > small')).toBe('11px');
+  expect(await fontSize('.route-vertex-hint')).toBe('11px');
+  expect(await fontSize('.elevation-profile-source')).toBe('11px');
+
+  const sectionHeadingSizes = await page.locator('.inspector-accordion-content > .property-section > h3')
+    .evaluateAll((headings) => headings.map((heading) => getComputedStyle(heading).fontSize));
+  expect(new Set(sectionHeadingSizes)).toEqual(new Set(['12px']));
 });

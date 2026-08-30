@@ -1030,10 +1030,17 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
 }
 .route-map-matching .secondary-action:hover { background: var(--studio-field); }
 .route-map-matching .secondary-action:disabled { @apply cursor-default; color: var(--studio-text-subtle); }
-.route-map-matching > small { color: var(--studio-text-muted); line-height: 1.4; }
-.route-map-matching .provider-provenance-summary { @apply p-2; border-radius: var(--studio-radius-sm); background: var(--studio-field); color: var(--studio-text-secondary); line-height: 1.4; }
-.route-map-matching [role="status"] { color: var(--studio-success); line-height: 1.4; }
-.route-map-matching [role="alert"] { color: var(--studio-danger); line-height: 1.4; }
+.route-map-matching > small { color: var(--studio-text-muted); font-size: var(--studio-font-meta); line-height: 1.4; }
+.route-map-matching .provider-provenance-summary { @apply p-2; border-radius: var(--studio-radius-sm); background: var(--studio-field); color: var(--studio-text-secondary); font-size: var(--studio-font-meta); line-height: 1.4; }
+.route-map-matching [role="status"] { color: var(--studio-success); font-size: var(--studio-font-meta); line-height: 1.4; }
+.route-map-matching [role="alert"] { color: var(--studio-danger); font-size: var(--studio-font-meta); line-height: 1.4; }
+.route-segment-clear {
+  @apply cursor-pointer font-medium;
+  color: var(--studio-text-secondary);
+  font-size: var(--studio-font-label);
+}
+.route-segment-clear:hover:not(:disabled) { color: var(--studio-text); }
+.route-segment-clear:disabled { @apply cursor-default; color: var(--studio-text-subtle); }
 
 .custom-marker-control { @apply mt-2 grid grid-cols-2 gap-1.5; }
 .custom-marker-control .secondary-action {
@@ -1067,7 +1074,7 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
 }
 .route-vertex-actions button:hover:not(:disabled) { background: var(--studio-field); }
 .route-vertex-actions button:disabled { @apply cursor-default; color: var(--studio-text-subtle); }
-.route-vertex-hint { @apply mt-1 block; color: var(--studio-text-muted); line-height: 1.35; }
+.route-vertex-hint { @apply mt-1 block; color: var(--studio-text-muted); font-size: var(--studio-font-meta); line-height: 1.35; }
 .route-vertex-marker,
 .draft-route-point-marker,
 .route-midpoint-marker,

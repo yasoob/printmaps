@@ -280,7 +280,7 @@ export function RouteSegmentControls({
           </select>
         </PropertyRow>
       )}
-      <button type="button" disabled={disabled || override === null} onClick={() => updateOverride(null)}>
+      <button className="route-segment-clear" type="button" disabled={disabled || override === null} onClick={() => updateOverride(null)}>
         Clear leg override
       </button>
     </>
