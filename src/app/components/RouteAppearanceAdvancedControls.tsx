@@ -243,13 +243,14 @@ export function RouteSegmentControls({
             <InputNumber
               aria-label="Route segment width"
               disabled={disabled}
-              min={1}
-              max={16}
+              min={0}
               step={0.5}
               value={override.width}
               onChange={(event) => {
                 const value = Number(event.currentTarget.value);
-                if (Number.isFinite(value) && value >= 1 && value <= 16) updateField('width', value);
+                if (event.currentTarget.value.trim() !== '' && Number.isFinite(value) && value >= 0) {
+                  updateField('width', value);
+                }
               }}
             />
             <InputGroupAddon align="inline-end">px</InputGroupAddon>

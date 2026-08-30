@@ -56,7 +56,7 @@ function commitLabel(replacementLabel: string | null, fileCount: number) {
   return replacementLabel ?? `Import ${fileCount} files`;
 }
 
-function numericStyleIsInvalid(value: string, minimum: number, maximum: number) {
+function numericStyleIsInvalid(value: string, minimum: number, maximum = Infinity) {
   const parsed = Number(value);
   return value.trim() === '' || !Number.isFinite(parsed) || parsed < minimum || parsed > maximum;
 }
@@ -82,7 +82,7 @@ function BatchAppearanceControls({
           <legend>Style imported routes</legend>
           <small>{routeCount} {routeCount === 1 ? 'route' : 'routes'}</small>
           <label>Color <input aria-label="Import route color" type="color" value={appearance.route.color} onChange={(event) => onChange({ ...appearance, route: { ...appearance.route, color: event.target.value } })} /></label>
-          <label>Width <span className="number-field"><input aria-label="Import route width" aria-invalid={numericStyleIsInvalid(appearance.route.width, 1, 16) || undefined} inputMode="decimal" value={appearance.route.width} onChange={(event) => onChange({ ...appearance, route: { ...appearance.route, width: event.target.value } })} /><small>px</small></span></label>
+          <label>Width <span className="number-field"><input aria-label="Import route width" aria-invalid={numericStyleIsInvalid(appearance.route.width, 0) || undefined} inputMode="decimal" value={appearance.route.width} onChange={(event) => onChange({ ...appearance, route: { ...appearance.route, width: event.target.value } })} /><small>px</small></span></label>
         </fieldset>
       )}
       {poiCount > 0 && (

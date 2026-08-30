@@ -126,11 +126,25 @@ describe('schema-24 route model', () => {
     );
 
     appearance.marker = null;
+    appearance.width = 0;
     appearance.segmentStyles = [{ width: 17 }, null, null];
+    expect(parseProjectFileText(JSON.stringify(project)).layers[0].appearance).toMatchObject({
+      width: 0,
+      segmentStyles: [{ width: 17 }, null, null],
+    });
+
+    appearance.segmentStyles = [{ width: -1 }, null, null];
     expect(() => parseProjectFileText(JSON.stringify(project))).toThrow(
-      'width must be between 1 and 16',
+      'width must be zero or greater',
     );
 
+    appearance.segmentStyles = [null, null, null];
+    appearance.width = -1;
+    expect(() => parseProjectFileText(JSON.stringify(project))).toThrow(
+      'route width must be zero or greater',
+    );
+
+    appearance.width = 4;
     const unknown = structuredClone(project) as unknown as {
       layers: { appearance: { segmentStyles: Record<string, unknown>[] } }[];
     };

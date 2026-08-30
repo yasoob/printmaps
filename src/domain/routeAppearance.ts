@@ -90,7 +90,7 @@ function isSegmentStyleValid(override: RouteSegmentStyleOverride | null): boolea
     && keys.every((key) => ['color', 'width', 'strokeStyle'].includes(key))
     && (override.color === undefined || HEX_COLOR.test(override.color))
     && (override.width === undefined || (
-      Number.isFinite(override.width) && override.width >= 1 && override.width <= 16
+      Number.isFinite(override.width) && override.width >= 0
     ))
     && (override.strokeStyle === undefined || ROUTE_STROKE_STYLES.includes(override.strokeStyle));
 }
@@ -98,8 +98,7 @@ function isSegmentStyleValid(override: RouteSegmentStyleOverride | null): boolea
 export function isRouteAppearanceValid(appearance: RouteAppearance): boolean {
   return HEX_COLOR.test(appearance.color)
     && Number.isFinite(appearance.width)
-    && appearance.width >= 1
-    && appearance.width <= 16
+    && appearance.width >= 0
     && ROUTE_STROKE_STYLES.includes(appearance.strokeStyle)
     && isRouteMarkerValid(appearance.marker)
     && appearance.segmentStyles.every((style) => isSegmentStyleValid(style));
@@ -182,7 +181,7 @@ function segmentStyleAt(value: unknown, label: string, fail: Fail): RouteSegment
   if (override.color !== undefined) result.color = colorValue(override.color, `${label} color`, fail);
   if (override.width !== undefined) {
     const width = finiteValue(override.width, `${label} width`, fail);
-    if (width < 1 || width > 16) fail(`${label} width must be between 1 and 16 pixels.`);
+    if (width < 0) fail(`${label} width must be zero or greater.`);
     result.width = width;
   }
   if (override.strokeStyle !== undefined) {
@@ -209,7 +208,7 @@ export function parseRouteAppearance(
     fail,
   );
   const width = finiteValue(appearance.width, `${label} route width`, fail);
-  if (width < 1 || width > 16) fail(`${label} route width must be between 1 and 16 pixels.`);
+  if (width < 0) fail(`${label} route width must be zero or greater.`);
   if (!ROUTE_STROKE_STYLES.includes(appearance.strokeStyle as RouteStrokeStyle)) {
     fail(`${label} route stroke style must be solid or dashed.`);
   }

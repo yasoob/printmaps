@@ -60,6 +60,25 @@ describe('route SVG and PDF parity', () => {
     expect(commands).not.toContain('(SHIP) Tj');
   });
 
+  it('omits zero-width PDF strokes instead of rendering hairlines while retaining markers', () => {
+    const { route } = styledRoute();
+    if (route.appearance?.kind !== 'route') throw new Error('Route fixture unavailable.');
+    route.appearance.width = 0;
+    route.appearance.segmentStyles = [null, null, null];
+    const commands = pdfVectorCommands(route, {
+      blob: new Blob(),
+      height: 1,
+      width: 1,
+      surface: document.createElement('canvas'),
+      projectToFrame: ([longitude, latitude]) => ({ x: longitude / 100, y: latitude / 100 }),
+      referenceLongitude: 0,
+    }, 100, 100);
+
+    expect(commands).not.toContain('% Route leg:');
+    expect(commands).not.toContain('\n0 w\n');
+    expect(commands.match(/% Route pictogram: ship/g)).toHaveLength(4);
+  });
+
   it('orients SVG and PDF pictograms from each output projector tangent', () => {
     const project = createInitialProjectDocument();
     const route = project.layers[0];

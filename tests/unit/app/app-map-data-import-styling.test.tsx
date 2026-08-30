@@ -35,12 +35,12 @@ describe('reviewed map-data batch styling', () => {
     expect(within(dialog).getByRole('group', { name: 'Style imported shapes' })).toBeInTheDocument();
 
     await user.clear(within(dialog).getByRole('textbox', { name: 'Import route width' }));
-    await user.type(within(dialog).getByRole('textbox', { name: 'Import route width' }), '17');
+    await user.type(within(dialog).getByRole('textbox', { name: 'Import route width' }), '-1');
     expect(within(dialog).getByRole('textbox', { name: 'Import route width' })).toHaveAttribute('aria-invalid', 'true');
     expect(commit).toBeDisabled();
 
     await user.clear(within(dialog).getByRole('textbox', { name: 'Import route width' }));
-    await user.type(within(dialog).getByRole('textbox', { name: 'Import route width' }), '7');
+    await user.type(within(dialog).getByRole('textbox', { name: 'Import route width' }), '17');
     fireEvent.change(within(dialog).getByLabelText('Import route color'), { target: { value: '#112233' } });
     await user.clear(within(dialog).getByRole('textbox', { name: 'Import POI marker size' }));
     await user.type(within(dialog).getByRole('textbox', { name: 'Import POI marker size' }), '22');
@@ -61,7 +61,7 @@ describe('reviewed map-data batch styling', () => {
 
     await user.click(screen.getAllByRole('button', { name: 'Select Styled route' })[0]);
     expect(screen.getByLabelText('Route color')).toHaveValue('#112233');
-    expect(screen.getByRole('spinbutton', { name: 'Route width' })).toHaveValue(7);
+    expect(screen.getByRole('spinbutton', { name: 'Route width' })).toHaveValue(17);
 
     await user.click(screen.getAllByRole('button', { name: 'Select Styled shape' })[0]);
     expect(screen.getByLabelText('Shape fill color')).toHaveValue('#778899');

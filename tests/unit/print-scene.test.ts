@@ -178,6 +178,28 @@ describe('layered SVG print scene', () => {
     expect(shape.getAttribute('stroke-width')).toBe('0.75');
   });
 
+  it('exports a zero-width route stroke without hiding its markers', () => {
+    const project = createInitialProjectDocument();
+    const route = project.layers[0];
+    if (route.appearance?.kind !== 'route') throw new Error('Route fixture unavailable.');
+    route.appearance.width = 0;
+    route.appearance.marker = {
+      pictogram: 'walk',
+      placement: { type: 'center' },
+      orientToPath: true,
+      reverseFacing: false,
+    };
+
+    const svgDocument = parseSvg(serializePrintScene(project, {
+      basemap: { dataUri: onePixelPng, pixelWidth: 1, pixelHeight: 1 },
+      attribution: '© OpenStreetMap contributors',
+      project: projector,
+    }));
+    const routeGroup = requiredElement(svgDocument, '[data-layer-id="route-01"]');
+    expect(routeGroup.querySelector(':scope > path')?.getAttribute('stroke-width')).toBe('0');
+    expect(routeGroup.querySelector('[data-route-pictogram="walk"]')).not.toBeNull();
+  });
+
 });
 
 describe('layered SVG print scene validation', () => {

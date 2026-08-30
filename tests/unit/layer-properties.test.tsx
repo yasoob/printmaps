@@ -122,6 +122,31 @@ describe('layer appearance draft boundaries', () => {
     expect(actions.onAppearanceChange).not.toHaveBeenCalled();
   });
 
+  it('accepts zero and does not impose a maximum route width', async () => {
+    const user = userEvent.setup();
+    const view = render(<LayerProperties layer={route(4)} {...actions} />);
+    const width = screen.getByRole('spinbutton', { name: 'Route width' });
+    expect(width).toHaveAttribute('min', '0');
+    expect(width).not.toHaveAttribute('max');
+
+    await user.clear(width);
+    await user.type(width, '0');
+    await user.tab();
+    expect(actions.onAppearanceChange).toHaveBeenLastCalledWith({
+      ...route(4).appearance,
+      width: 0,
+    });
+
+    view.rerender(<LayerProperties layer={route(0)} {...actions} />);
+    await user.clear(screen.getByRole('spinbutton', { name: 'Route width' }));
+    await user.type(screen.getByRole('spinbutton', { name: 'Route width' }), '24');
+    await user.tab();
+    expect(actions.onAppearanceChange).toHaveBeenLastCalledWith({
+      ...route(0).appearance,
+      width: 24,
+    });
+  });
+
   it('selects and edits a polygon hole vertex independently', async () => {
     const user = userEvent.setup();
     render(<LayerProperties layer={shapeWithHole()} {...actions} />);

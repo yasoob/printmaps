@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
 
-test('reviewed map-data batches apply bounded styling before one-step import', async ({ page }, testInfo) => {
+test('reviewed map-data batches apply validated styling before one-step import', async ({ page }, testInfo) => {
   const consoleProblems: string[] = [];
   page.on('pageerror', (error) => { consoleProblems.push(error.message); });
   page.on('console', (message) => {
@@ -18,10 +18,10 @@ test('reviewed map-data batches apply bounded styling before one-step import', a
   await expect(dialog.getByRole('group', { name: 'Style imported POIs' })).toBeVisible();
   await expect(dialog.getByRole('group', { name: 'Style imported shapes' })).toBeVisible();
   const commit = dialog.getByRole('button', { name: 'Import 2 files' });
-  await dialog.getByRole('textbox', { name: 'Import route width' }).fill('17');
+  await dialog.getByRole('textbox', { name: 'Import route width' }).fill('-1');
   await expect(dialog.getByRole('textbox', { name: 'Import route width' })).toHaveAttribute('aria-invalid', 'true');
   await expect(commit).toBeDisabled();
-  await dialog.getByRole('textbox', { name: 'Import route width' }).fill('7');
+  await dialog.getByRole('textbox', { name: 'Import route width' }).fill('17');
   await dialog.getByLabel('Import route color').fill('#112233');
   await dialog.getByRole('textbox', { name: 'Import POI marker size' }).fill('22');
   await dialog.getByRole('combobox', { name: 'Import POI marker shape' }).selectOption('diamond');
@@ -53,7 +53,7 @@ test('reviewed map-data batches apply bounded styling before one-step import', a
   await expect(page.getByRole('combobox', { name: 'POI marker shape' })).toHaveValue('diamond');
   await page.getByRole('button', { name: 'Select Río line' }).click();
   await expect(page.getByLabel('Route color')).toHaveValue('#112233');
-  await expect(page.getByRole('spinbutton', { name: 'Route width' })).toHaveValue('7');
+  await expect(page.getByRole('spinbutton', { name: 'Route width' })).toHaveValue('17');
   await page.getByRole('button', { name: 'Select 公園 polygon' }).click();
   await expect(page.getByLabel('Shape fill color')).toHaveValue('#778899');
   await expect(page.getByLabel('Shape outline color')).toHaveValue('#aabbcc');

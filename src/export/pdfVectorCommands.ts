@@ -125,7 +125,8 @@ function routeCommands(layer: ContentLayer, context: ProjectionContext): string 
   if (!rendered || layer.appearance?.kind !== 'route') {
     throw new Error(`Route layer "${layer.name}" has no printable line.`);
   }
-  const lines = rendered.legs.map((leg) => {
+  const lines = rendered.legs.flatMap((leg) => {
+    if (leg.style.width === 0) return [];
     const width = leg.style.width * 0.3 * POINTS_PER_MM;
     const path = rebasePathLongitudes(leg.path, context.capture.referenceLongitude)
       .map((coordinate, index) => (
@@ -134,7 +135,7 @@ function routeCommands(layer: ContentLayer, context: ProjectionContext): string 
     const dash = leg.style.strokeStyle === 'dashed'
       ? `[${formatNumber(width * 2)} ${formatNumber(width * 1.5)}] 0 d`
       : '[] 0 d';
-    return `% Route leg: ${leg.index}\n${colorComponents(leg.style.color)} RG\n${formatNumber(width)} w\n${dash}\n1 J\n1 j\n${path}\nS`;
+    return [`% Route leg: ${leg.index}\n${colorComponents(leg.style.color)} RG\n${formatNumber(width)} w\n${dash}\n1 J\n1 j\n${path}\nS`];
   });
   const pictogram = layer.appearance.marker?.pictogram;
   const markerAppearance = layer.appearance.marker;

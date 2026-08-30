@@ -16,6 +16,13 @@ function positive(value: number, label: string, fail: Fail): number {
   return value;
 }
 
+function strokeWidth(value: number, label: string, canBeZero: boolean, fail: Fail): number {
+  if (!Number.isFinite(value) || value < 0 || (!canBeZero && value === 0)) {
+    fail(`${label} must be ${canBeZero ? 'a finite non-negative' : 'a finite positive'} number.`);
+  }
+  return value;
+}
+
 export function resolvePrintLayerStyle(
   layer: ContentLayer,
   fail: Fail,
@@ -56,7 +63,7 @@ export function resolvePrintLayerStyle(
   if (!SAFE_PAINT.test(style.fill) || !SAFE_PAINT.test(style.stroke)) {
     fail(`Layer "${layer.id}" contains an unsafe SVG paint value.`);
   }
-  positive(style.strokeWidthMm, `Layer "${layer.id}" stroke width`, fail);
+  strokeWidth(style.strokeWidthMm, `Layer "${layer.id}" stroke width`, layer.type === 'route', fail);
   positive(style.pointRadiusMm, `Layer "${layer.id}" point radius`, fail);
   return style;
 }

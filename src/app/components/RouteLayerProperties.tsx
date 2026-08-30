@@ -55,15 +55,13 @@ function RouteAppearanceControls({
   const isWidthInvalid =
     widthDraft.trim() === "" ||
     !Number.isFinite(widthValue) ||
-    widthValue < 1 ||
-    widthValue > 16;
+    widthValue < 0;
   const commitWidth = (value: string) => {
     const width = Number(value);
     if (
       value.trim() === "" ||
       !Number.isFinite(width) ||
-      width < 1 ||
-      width > 16
+      width < 0
     ) {
       setWidthEdit({
         source: appearance.width,
@@ -93,8 +91,7 @@ function RouteAppearanceControls({
           <InputNumber
             aria-label="Route width"
             aria-invalid={isWidthInvalid || undefined}
-            min={1}
-            max={16}
+            min={0}
             step={0.5}
             value={widthDraft}
             onChange={(event) =>

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { createDefaultRouteAppearance, type RouteAppearance } from '../../../src/domain/project';
@@ -56,6 +56,14 @@ describe('advanced marker and semantic-leg controls', () => {
     expect(changed.mock.calls.at(-1)?.[0].segmentStyles).toEqual([
       null,
       { color: '#d9363e', width: 4, strokeStyle: 'dashed' },
+    ]);
+    const width = screen.getByRole('spinbutton', { name: 'Route segment width' });
+    expect(width).toHaveAttribute('min', '0');
+    expect(width).not.toHaveAttribute('max');
+    fireEvent.change(width, { target: { value: '0' } });
+    expect(changed.mock.calls.at(-1)?.[0].segmentStyles).toEqual([
+      null,
+      { color: '#d9363e', width: 0, strokeStyle: 'dashed' },
     ]);
     await user.click(screen.getByRole('button', { name: 'Clear leg override' }));
     expect(changed.mock.calls.at(-1)?.[0].segmentStyles).toEqual([null, null]);

@@ -454,7 +454,7 @@ describe('editor layer appearance validation and actions', () => {
   });
 
   it.each([
-    ['Route 01', 'Route width', '17', '4'],
+    ['Route 01', 'Route width', '-1', '4'],
     ['Coffee stop', 'POI marker size', '7', '14'],
     ['City center', 'Shape outline width', '13', '2'],
   ])('marks and restores an invalid %s appearance size without changing history', async (
