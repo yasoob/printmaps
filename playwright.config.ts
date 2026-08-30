@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 const isFirefoxDisplayEnabled = process.env.PRINTMAP_FIREFOX_HEADED === '1';
+const editorPort = process.env.PLAYWRIGHT_EDITOR_PORT ?? '4175';
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -8,11 +9,11 @@ export default defineConfig({
   fullyParallel: true,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
-    baseURL: 'http://127.0.0.1:4175/editor/',
+    baseURL: `http://127.0.0.1:${editorPort}/editor/`,
     storageState: {
       cookies: [],
       origins: [{
-        origin: 'http://127.0.0.1:4175',
+        origin: `http://127.0.0.1:${editorPort}`,
         localStorage: [
           'page',
           'map-style',
@@ -30,12 +31,12 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   webServer: {
-    command: 'npm run dev:editor -- --port 4175',
+    command: `npm run dev:editor -- --port ${editorPort}`,
     env: {
       VITE_MAPBOX_PUBLIC_ACCESS: 'pk.fake-public-segment.fake-signature',
       VITE_TEST_INITIAL_PROJECT: 'true',
     },
-    url: 'http://127.0.0.1:4175',
+    url: `http://127.0.0.1:${editorPort}`,
     reuseExistingServer: !process.env.CI,
   },
   projects: [

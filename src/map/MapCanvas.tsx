@@ -11,6 +11,7 @@ import { mapLocationRequestDiagnostic, resolveMapLocationRequest, type MapLocati
 import { useMapCanvasController } from './useMapCanvasController';
 
 type MapCanvasProps = {
+  basemapVisible?: boolean;
   camera?: CameraSettings;
   stylePreset?: MapStylePreset;
   language?: MapLanguage;
@@ -56,6 +57,7 @@ const DEFAULT_FEATURE_VISIBILITY: MapFeatureVisibility = {
   transit: true,
 };
 const resolveFeatureVisibility = (visibility?: MapFeatureVisibility) => visibility ?? DEFAULT_FEATURE_VISIBILITY;
+const resolveBasemapVisibility = (isVisible?: boolean) => isVisible ?? true;
 const resolveMapLanguage = (language?: MapLanguage) => language ?? 'local';
 const resolveShapeEditMode = (mode?: ShapeEditMode): ShapeEditMode => mode ?? 'transform';
 const resolveInteractionMode = (mode?: string) => mode ?? 'select';
@@ -68,6 +70,7 @@ function RouteEditorError({ message }: { message: string | null }) {
 }
 
 export function MapCanvas({
+  basemapVisible,
   camera = { bearing: 0, center: [16.3725, 48.2084], locked: false, pitch: 0, zoom: 11.2 },
   stylePreset = 'paper',
   language,
@@ -104,6 +107,7 @@ export function MapCanvas({
 }: MapCanvasProps) {
   const [routeEditorError, setRouteEditorError] = useState<string | null>(null);
   const { container, visibleError } = useMapCanvasController({
+    basemapVisible: resolveBasemapVisibility(basemapVisible),
     camera,
     stylePreset,
     language: resolveMapLanguage(language),

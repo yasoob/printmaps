@@ -11,6 +11,7 @@ export function createNativePrintTileRenderer(
     resolveAssets: () => Record<string, CustomMarkerAsset>;
     resolveLayers: () => ContentLayer[];
     resolvePrintFrame: () => HTMLElement | null | undefined;
+    resolveStyle?: (content: NonNullable<PrintTileExportPlan['content']>) => ReturnType<MapLibreMap['getStyle']>;
   }>,
 ): (plan: PrintTileExportPlan) => PrintTileRenderer {
   return (plan) => createNativePrintTileExport({
@@ -19,5 +20,6 @@ export function createNativePrintTileRenderer(
     resolveAssets: options.resolveAssets,
     resolveLayers: options.resolveLayers,
     resolvePrintFrame: options.resolvePrintFrame,
+    resolveStyle: options.resolveStyle,
   }, plan);
 }

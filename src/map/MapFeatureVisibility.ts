@@ -66,12 +66,22 @@ function isCategoryVisible(visibility: MapFeatureVisibility, category: MapFeatur
   }
 }
 
+function effectiveLayerVisibility(
+  layer: ControlledLayer,
+  visibility: MapFeatureVisibility,
+  isBasemapVisible: boolean,
+): 'none' | 'visible' {
+  return isBasemapVisible
+    && layer.categories.every((category) => isCategoryVisible(visibility, category))
+    ? layer.originalVisibility
+    : 'none';
+}
+
 export function createMapFeatureVisibilityController(map: FeatureVisibilityMap) {
   const controlledLayers: ControlledLayer[] = [];
   const styleLayers = map.getStyle().layers ?? [];
   for (const layer of styleLayers) {
     const categories = categoriesForLayer(layer);
-    if (categories.length === 0) continue;
     controlledLayers.push({
       categories,
       id: layer.id,
@@ -80,16 +90,32 @@ export function createMapFeatureVisibilityController(map: FeatureVisibilityMap) 
   }
 
   return {
-    apply(visibility: MapFeatureVisibility) {
+    apply(visibility: MapFeatureVisibility, isBasemapVisible = true) {
       for (const layer of controlledLayers) {
         map.setLayoutProperty(
           layer.id,
           'visibility',
-          layer.categories.every((category) => isCategoryVisible(visibility, category))
-            ? layer.originalVisibility
-            : 'none',
+          effectiveLayerVisibility(layer, visibility, isBasemapVisible),
         );
       }
+    },
+    style<T extends ReturnType<FeatureVisibilityMap['getStyle']>>(
+      style: T,
+      visibility: MapFeatureVisibility,
+      isBasemapVisible: boolean,
+    ): T {
+      const output = structuredClone(style);
+      const controlsById = new Map(controlledLayers.map((layer) => [layer.id, layer]));
+      const outputLayers = output.layers ?? [];
+      for (const layer of outputLayers) {
+        const controlled = controlsById.get(layer.id);
+        if (!controlled) continue;
+        layer.layout = {
+          ...layer.layout,
+          visibility: effectiveLayerVisibility(controlled, visibility, isBasemapVisible),
+        };
+      }
+      return output;
     },
   };
 }

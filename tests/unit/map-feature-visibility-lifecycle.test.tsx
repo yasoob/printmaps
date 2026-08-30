@@ -30,6 +30,7 @@ vi.mock('maplibre-gl', () => {
     getStyle() {
       return {
         layers: [
+          { id: 'background', type: 'background' },
           { id: 'road-primary', type: 'line', 'source-layer': 'transportation' },
           { id: 'building', type: 'fill', 'source-layer': 'building' },
           { id: 'city-label', type: 'symbol', 'source-layer': 'place', layout: { 'text-field': ['get', 'name'], 'text-size': 14 } },
@@ -104,6 +105,13 @@ it('applies canonical feature visibility live and again after a style switch', a
   const { rerender } = render(<MapCanvas {...props} featureVisibility={allVisible} />);
 
   await waitFor(() => expect(mocks.visibilityUpdates).toContainEqual([0, 'road-primary', 'visible']));
+  rerender(<MapCanvas {...props} basemapVisible={false} featureVisibility={allVisible} />);
+  await waitFor(() => expect(mocks.visibilityUpdates).toContainEqual([0, 'background', 'none']));
+  expect(screen.getByTestId('map-canvas')).toHaveAttribute(
+    'data-map-feature-visibility',
+    'roads:true,buildings:true,labels:true,water:true,parks:true,landuse:true,transit:true',
+  );
+  expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-map-basemap-visible', 'false');
   rerender(<MapCanvas {...props} featureVisibility={roadsHidden} />);
   await waitFor(() => expect(mocks.visibilityUpdates).toContainEqual([0, 'road-primary', 'none']));
   expect(screen.getByTestId('map-canvas')).toHaveAttribute(

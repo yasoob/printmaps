@@ -66,8 +66,10 @@ function createSearchProps(
 
 function createMapProps(inputs: ViewInputs): ComponentProps<typeof MapCanvas> {
   const props = inputs.props;
+  const basemap = props.layers.find(({ type }) => type === 'basemap');
   return {
     assets: props.assets,
+    basemapVisible: basemap?.visible ?? true,
     camera: props.camera,
     contentRevision: inputs.geometryLayers,
     featureVisibility: props.featureVisibility,

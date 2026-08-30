@@ -30,6 +30,38 @@ describe('map feature visibility controller', () => {
     ]);
   });
 
+  it('hides and restores every basemap style layer as one unit', () => {
+    const setLayoutProperty = vi.fn();
+    const allVisible = { roads: true, buildings: true, labels: true, water: true, parks: true, landuse: true, transit: true };
+    const controller = createMapFeatureVisibilityController({
+      getStyle: () => ({
+        layers: [
+          { id: 'background', type: 'background' },
+          { id: 'roads', type: 'line', 'source-layer': 'transportation' },
+          { id: 'hidden-source', type: 'fill', layout: { visibility: 'none' } },
+        ],
+      }),
+      setLayoutProperty,
+    });
+
+    controller.apply(allVisible, false);
+    controller.apply(allVisible, true);
+
+    expect(setLayoutProperty.mock.calls).toEqual([
+      ['background', 'visibility', 'none'],
+      ['roads', 'visibility', 'none'],
+      ['hidden-source', 'visibility', 'none'],
+      ['background', 'visibility', 'visible'],
+      ['roads', 'visibility', 'visible'],
+      ['hidden-source', 'visibility', 'none'],
+    ]);
+    expect(controller.style({
+      layers: [{ id: 'background', type: 'background', layout: { visibility: 'none' } }],
+    }, allVisible, true)).toEqual({
+      layers: [{ id: 'background', type: 'background', layout: { visibility: 'visible' } }],
+    });
+  });
+
   it('keeps railway and transit infrastructure independent from roads', () => {
     const setLayoutProperty = vi.fn();
     const controller = createMapFeatureVisibilityController({

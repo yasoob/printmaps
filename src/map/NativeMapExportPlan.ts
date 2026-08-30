@@ -15,6 +15,7 @@ export type NativePrintExportSource = Readonly<{
   resolveAssets: () => Record<string, CustomMarkerAsset>;
   resolveLayers: () => ContentLayer[];
   resolvePrintFrame: () => HTMLElement | null | undefined;
+  resolveStyle?: (content: NonNullable<PrintTileExportPlan['content']>) => ReturnType<MapLibreMap['getStyle']>;
 }>;
 
 function requirePrintFrame(source: NativePrintExportSource): HTMLElement {
@@ -63,9 +64,11 @@ export function prepareNativePrintExport(
   const printFrame = requirePrintFrame(source);
   validatePixelDensity(plan);
   validateMultiRegionCamera(source, plan);
-  const currentStyle = plan.content === 'basemap'
-    ? withoutStudioContentLayers(source.map.getStyle())
-    : structuredClone(source.map.getStyle());
+  const content = plan.content ?? 'composite';
+  const resolvedStyle = source.resolveStyle?.(content) ?? source.map.getStyle();
+  const currentStyle = content === 'basemap'
+    ? withoutStudioContentLayers(resolvedStyle)
+    : structuredClone(resolvedStyle);
   validateSymbolBuffer(currentStyle, plan);
   const symbolSafeStyle = plan.symbolsVisible ? currentStyle : withoutBasemapSymbolLayers(currentStyle);
   return {

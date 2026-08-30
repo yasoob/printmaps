@@ -20,6 +20,8 @@ export type LifecycleExportReferences = {
   exporterChange: MutableReference<((exporter: PreviewPngExporter | null) => void) | undefined>;
   map: MutableReference<MapLibreMap | null>;
   mapFailed: MutableReference<boolean>;
+  resolveExportStyle: (map: MapLibreMap, content: 'basemap' | 'composite') => ReturnType<MapLibreMap['getStyle']>;
+  setBasemapExportVisibility: (map: MapLibreMap, override: boolean | null) => boolean;
 };
 
 function waitForMapRender(map: MapLibreMap, signal?: AbortSignal): Promise<void> {
@@ -86,11 +88,16 @@ export function createLifecycleExportPreview(
       references.contentAdapter.current,
       () => capture(false),
       (signal) => waitForMapRender(map, signal),
-      { onRestoreFailure, signal: exportOptions.signal },
+      {
+        onRestoreFailure,
+        setBasemapVisibility: (override) => references.setBasemapExportVisibility(map, override),
+        signal: exportOptions.signal,
+      },
     );
   };
   exportPreview.createPrintTileRenderer = createNativePrintTileRenderer(map, {
     resolvePrintFrame: () => references.container.current?.parentElement?.querySelector<HTMLElement>('.print-frame'),
+    resolveStyle: (content) => references.resolveExportStyle(map, content),
     resolveLayers: () => references.contentState.current.layers,
     resolveAssets: () => references.contentState.current.assets ?? {},
     isSourceReady: () => !references.mapFailed.current

@@ -1,4 +1,5 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
+import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { ContentLayer } from '../../src/domain/project';
 
 const mocks = vi.hoisted(() => ({
@@ -176,6 +177,8 @@ it('does not publish an already-loaded map after its queued load is cleaned up',
     map: { current: null },
     mapClick: { current: undefined },
     mapFailed: { current: false },
+    resolveExportStyle: (map: MapLibreMap) => map.getStyle(),
+    setBasemapExportVisibility: () => true,
     synchronizeFeatureVisibility: { current: () => true },
     synchronizeMapLanguage: { current: () => true },
     synchronizeTextScale: { current: () => true },

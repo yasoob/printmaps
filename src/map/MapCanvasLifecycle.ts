@@ -33,6 +33,8 @@ type LifecycleReferences = LifecycleExportReferences & {
   layerSelect: MutableReference<(id: string) => void>;
   mapClick: MutableReference<((coordinate: [number, number]) => void) | undefined>;
   map: MutableReference<MapLibreMap | null>; mapFailed: MutableReference<boolean>;
+  resolveExportStyle: (map: MapLibreMap, content: 'basemap' | 'composite') => ReturnType<MapLibreMap['getStyle']>;
+  setBasemapExportVisibility: (map: MapLibreMap, override: boolean | null) => boolean;
   synchronizeFeatureVisibility: MutableReference<(map: MapLibreMap) => boolean>; synchronizeMapLanguage: MutableReference<(map: MapLibreMap) => boolean>; synchronizeTextScale: MutableReference<(map: MapLibreMap) => boolean>;
 };
 

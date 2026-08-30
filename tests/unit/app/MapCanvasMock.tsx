@@ -9,6 +9,7 @@ import type { DraftRouteEditing } from '../../../src/map/DraftRouteEditing';
 import type { CameraViewportChangeMode } from '../../../src/map/MapCameraViewport';
 
 type MapCanvasMockProps = {
+  basemapVisible?: boolean;
   camera?: CameraSettings;
   stylePreset?: MapStylePreset;
   language?: MapLanguage;
@@ -38,9 +39,11 @@ type MapCanvasMockProps = {
 
 const shapeEditModeDiagnostic = (mode?: ShapeEditMode) => mode ?? '';
 const interactionModeDiagnostic = (mode?: string) => mode ?? 'select';
+const basemapVisibilityDiagnostic = (isVisible?: boolean) => isVisible ?? true;
 const resolvedPageBoundaryVisibility = (isVisible?: boolean) => isVisible ?? true;
 
 export function MapCanvas({
+  basemapVisible,
   camera = { bearing: 0, center: [16.3725, 48.2084], locked: false, pitch: 0, zoom: 11.2 },
   stylePreset = 'paper',
   language = 'local',
@@ -88,6 +91,7 @@ export function MapCanvas({
       data-map-language={language}
       data-text-scale={textScalePercent}
       data-map-feature-visibility={`roads:${featureVisibility.roads},buildings:${featureVisibility.buildings},labels:${featureVisibility.labels},water:${featureVisibility.water},parks:${featureVisibility.parks},landuse:${featureVisibility.landuse},transit:${featureVisibility.transit}`}
+      data-map-basemap-visible={basemapVisibilityDiagnostic(basemapVisible)}
       data-orientation={orientation}
       data-page-preset={page?.preset}
       data-page-size={page ? `${page.widthMm}x${page.heightMm}` : ''}

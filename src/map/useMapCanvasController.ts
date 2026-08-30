@@ -34,6 +34,7 @@ import { useDraftRouteEditing } from './useDraftRouteEditing';
 const ignoreRouteGeometryChange = () => {};
 
 type MapCanvasControllerOptions = {
+  basemapVisible: boolean;
   camera: CameraSettings;
   stylePreset: MapStylePreset;
   language: MapLanguage;
@@ -187,7 +188,7 @@ function useAccessibleRouteVertexEditing(options: Pick<MapCanvasControllerOption
 }
 
 export function useMapCanvasController({
-  camera,
+  basemapVisible, camera,
   stylePreset,
   language,
   textScalePercent,
@@ -231,7 +232,7 @@ export function useMapCanvasController({
     exporterChangeRef.current?.(null);
   }, []);
   const { resetTextScale, synchronizeTextScale } = useMapTextScale({ containerRef: container, contentReadyRef: contentReady, invalidateExporter, mapFailedRef: mapFailed, mapRef: map, setMapError, textScalePercent });
-  const { resetFeatureVisibility, synchronizeFeatureVisibility } = useMapFeatureVisibility({ containerRef: container, contentReadyRef: contentReady, featureVisibility, invalidateExporter, mapFailedRef: mapFailed, mapRef: map, setMapError });
+  const mapVisibility = useMapFeatureVisibility({ basemapVisible, containerRef: container, contentReadyRef: contentReady, featureVisibility, invalidateExporter, mapFailedRef: mapFailed, mapRef: map, setMapError }), { resetFeatureVisibility, resolveExportStyle, setBasemapExportVisibility, synchronizeFeatureVisibility } = mapVisibility;
   const { resetMapLanguage, synchronizeMapLanguage } = useMapLanguage({ containerRef: container, contentReadyRef: contentReady, invalidateExporter, language, mapFailedRef: mapFailed, mapRef: map, setMapError });
 
   const handleContentSyncResult = useCallback((result: ReturnType<MapContentAdapter['sync']> | undefined) => {
@@ -297,7 +298,7 @@ export function useMapCanvasController({
         ignoreNextMapClick: ignoreNextMapClickRef,
         layerSelect,
         mapClick,
-        map, mapFailed,
+        map, mapFailed, resolveExportStyle, setBasemapExportVisibility,
         synchronizeFeatureVisibility: { current: synchronizeFeatureVisibility },
         synchronizeMapLanguage: { current: synchronizeMapLanguage },
         synchronizeTextScale: { current: synchronizeTextScale },
@@ -306,7 +307,7 @@ export function useMapCanvasController({
       setMapError,
       styleUrl: mapStyleUrl(stylePreset),
     });
-  }, [cameraState, handleContentSyncResult, invalidateExporter, resetFeatureVisibility, resetMapLanguage, resetTextScale, stylePreset, synchronizeFeatureVisibility, synchronizeMapLanguage, synchronizeTextScale]);
+  }, [cameraState, handleContentSyncResult, invalidateExporter, resetFeatureVisibility, resetMapLanguage, resetTextScale, resolveExportStyle, setBasemapExportVisibility, stylePreset, synchronizeFeatureVisibility, synchronizeMapLanguage, synchronizeTextScale]);
 
   usePointEditing({ layers, map, onPoiCoordinatesChange, selectedId, stylePreset }); useShapeEditing({ layers, map, onShapeGeometryChange, selectedId, shapeEditMode, stylePreset }); useAccessibleRouteVertexEditing({ layers, map, onRouteGeometryChange, onRouteVertexChange, onRouteVertexInsert, onRoutePreview: routeEditing.updateEditingGeometry, selectedId, stylePreset }); useDraftRouteEditing(terraMap, routeDraftEditing);
 

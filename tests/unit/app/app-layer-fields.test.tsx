@@ -24,6 +24,17 @@ describe('editor layer fields', () => {
     expect(screen.getByRole('switch', { name: 'Toggle layer visibility' })).not.toBeChecked();
   });
 
+  it('applies basemap visibility to the live viewport', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const map = screen.getByTestId('map-canvas');
+
+    await user.click(screen.getByRole('button', { name: 'Hide Paper basemap' }));
+    expect(map).toHaveAttribute('data-map-basemap-visible', 'false');
+    await user.click(screen.getByRole('button', { name: 'Show Paper basemap' }));
+    expect(map).toHaveAttribute('data-map-basemap-visible', 'true');
+  });
+
   it('keeps the fixed basemap after deleting every editable layer', async () => {
     const user = userEvent.setup();
     render(<App />);

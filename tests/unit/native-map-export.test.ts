@@ -296,8 +296,7 @@ describe('native map export style isolation', () => {
     } as unknown as MapLibreMap;
     const frame = document.createElement('div');
     frame.getBoundingClientRect = () => rect(200, 200, 400, 200);
-    const resolveAssets = vi.fn(() => ({ [hiddenCustomAsset.id]: hiddenCustomAsset }));
-    const resolveLayers = vi.fn(() => [hiddenCustomPoi]);
+    const resolveAssets = vi.fn(() => ({ [hiddenCustomAsset.id]: hiddenCustomAsset })), resolveLayers = vi.fn(() => [hiddenCustomPoi]), resolveStyle = vi.fn(() => sourceMap.getStyle());
 
     createNativePrintTileExport({
       isReady: () => true,
@@ -305,6 +304,7 @@ describe('native map export style isolation', () => {
       resolveAssets,
       resolveLayers,
       resolvePrintFrame: () => frame,
+      resolveStyle,
     }, {
       content: 'basemap',
       output: { width: 4000, height: 2000 },
@@ -313,8 +313,8 @@ describe('native map export style isolation', () => {
       symbolsVisible: true,
     });
 
-    expect(resolveAssets).not.toHaveBeenCalled();
-    expect(resolveLayers).not.toHaveBeenCalled();
+    expect(resolveAssets).not.toHaveBeenCalled(); expect(resolveLayers).not.toHaveBeenCalled();
+    expect(resolveStyle).toHaveBeenCalledWith('basemap');
   });
 });
 
