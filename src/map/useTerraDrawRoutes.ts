@@ -50,6 +50,7 @@ type TerraDrawRoutesOptions = {
   layers: ContentLayer[];
   loadRouteEditor?: () => Promise<typeof import('./TerraDrawRouteFactory')>;
   map: MapLibreMap | null;
+  onEditorError?: (message: string | null) => void;
   onRouteGeometryChange: (id: string, coordinates: readonly (readonly [number, number])[]) => void;
   onRoutePreview: (id: string, coordinates: [number, number][] | null) => void;
   selectedId: string | null;
@@ -59,6 +60,7 @@ type RouteCallbacks = {
   authoringError?: RouteAuthoring['onError'];
   authoringFinish?: RouteAuthoring['onFinish'];
   authoringPreview?: RouteAuthoring['onPreview'];
+  editorError?: TerraDrawRoutesOptions['onEditorError'];
   onRouteGeometryChange: TerraDrawRoutesOptions['onRouteGeometryChange'];
   onRoutePreview: TerraDrawRoutesOptions['onRoutePreview'];
 };
@@ -70,6 +72,7 @@ function editableRouteFor(options: TerraDrawRoutesOptions): EditableRoute | null
   const layer = options.layers.find((candidate) => candidate.id === options.selectedId);
   if (layer?.type !== 'route' || !layer.visible || layer.locked) return null;
   if (layer.geometry?.type !== 'LineString') return null;
+  if (layer.provenance?.service === 'directions-v5') return null;
   return layer;
 }
 
@@ -86,6 +89,7 @@ function useLatestCallbacks(options: TerraDrawRoutesOptions) {
     authoringError: options.authoring?.onError,
     authoringFinish: options.authoring?.onFinish,
     authoringPreview: options.authoring?.onPreview,
+    editorError: options.onEditorError,
     onRouteGeometryChange: options.onRouteGeometryChange,
     onRoutePreview: options.onRoutePreview,
   });
@@ -94,6 +98,7 @@ function useLatestCallbacks(options: TerraDrawRoutesOptions) {
       authoringError: options.authoring?.onError,
       authoringFinish: options.authoring?.onFinish,
       authoringPreview: options.authoring?.onPreview,
+      editorError: options.onEditorError,
       onRouteGeometryChange: options.onRouteGeometryChange,
       onRoutePreview: options.onRoutePreview,
     };
@@ -151,7 +156,10 @@ function useRouteSession(options: TerraDrawRoutesOptions, callbacks: RefObject<R
   const { map } = options;
 
   useEffect(() => {
-    if (!lineShape || !map) return;
+    if (!lineShape || !map) {
+      if (!isAuthoring) callbacks.current.editorError?.(null);
+      return;
+    }
     const { onRoutePreview } = callbacks.current;
     let isCancelled = false;
     let owned: RouteSession | null = null;
@@ -164,9 +172,12 @@ function useRouteSession(options: TerraDrawRoutesOptions, callbacks: RefObject<R
         owned = sessionFor(loaded.createTerraRouteDraw(map, lineShape, isAuthoring), isAuthoring, editableRoute, callbacks);
         session.current = owned;
         if (isAuthoring) callbacks.current.authoringError?.(null);
+        else callbacks.current.editorError?.(null);
       } catch {
         if (!isCancelled && isAuthoring) {
           callbacks.current.authoringError?.('The route editor could not be loaded. Close the Route tool and try again.');
+        } else if (!isCancelled) {
+          callbacks.current.editorError?.('The route editor could not be loaded. Select another layer, then select this route to try again.');
         }
       }
     })();

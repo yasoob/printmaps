@@ -172,7 +172,7 @@ describe('print PDF', () => {
   it('uses canonical route, POI, and shape appearance in vector commands', async () => {
     const document = createInitialProjectDocument();
     document.layers[0].appearance = {
-      kind: 'route', color: '#010203', width: 8, travelProfile: 'car', showTravelModeIcon: false,
+      kind: 'route', color: '#010203', width: 8, travelMarker: null,
     };
     document.layers[1].appearance = {
       kind: 'poi', color: '#abcdef', size: 21, markerShape: 'circle', markerSymbol: 'none', label: '',
@@ -201,19 +201,18 @@ describe('print PDF', () => {
   });
 
 
-  it('prints an enabled route travel-mode marker as vector PDF content', async () => {
+  it('prints an enabled route travel marker as vector PDF content', async () => {
     const document = createInitialProjectDocument();
     document.layers[0].appearance = {
       kind: 'route',
       color: '#d9363e',
       width: 4,
-      travelProfile: 'air',
-      showTravelModeIcon: true,
+      travelMarker: 'air',
     };
 
     const text = await pdfText(document);
 
-    expect(text).toContain('% Route travel profile: air');
+    expect(text).toContain('% Route travel marker: air');
     expect(text).toContain('(AIR) Tj');
   });
 

@@ -106,9 +106,8 @@ export function MapCanvas({
         if (routeAuthoring?.active) routeAuthoring.onPreview(coordinates);
         else onMapClick?.([16.4, 48.24]);
       }}>Map route point 2</button>
-      <button type="button" onClick={() => routeAuthoring?.onPreview([
-        [16.31, 48.19], [16.4, 48.24], [16.46, 48.2],
-      ])}>Map route point 3</button>
+      <button type="button" onClick={() => onMapClick?.([16.46, 48.2])}>Map route point 3</button>
+      <button type="button" onClick={() => onMapClick?.([16.3261, 48.1941])}>Map nearby route anchor</button>
       <button type="button" onClick={() => onMapClick?.([16.37, 48.21])}>Map POI point</button>
       <button type="button" onClick={() => onMapClick?.([16.36, 48.25])}>Map shape point 3</button>
     </div>

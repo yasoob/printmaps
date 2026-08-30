@@ -1,4 +1,4 @@
-import { ROUTE_TRAVEL_PROFILES, type RouteTravelProfile } from './routeProfiles';
+import { ROUTE_TRAVEL_MARKERS, type RouteTravelMarker } from './routeProfiles';
 import {
   hasPoiLabelControlCharacter,
   isPoiLabelValid,
@@ -13,8 +13,7 @@ export type RouteAppearance = {
   kind: 'route';
   color: string;
   width: number;
-  travelProfile: RouteTravelProfile;
-  showTravelModeIcon: boolean;
+  travelMarker: RouteTravelMarker | null;
 };
 export type PoiAppearance = {
   kind: 'poi';
@@ -47,8 +46,7 @@ export function createDefaultLayerAppearance(type: AppearanceLayerType): LayerAp
       kind: 'route',
       color: '#d9363e',
       width: 4,
-      travelProfile: 'car',
-      showTravelModeIcon: false,
+      travelMarker: null,
     };
   }
   if (type === 'poi') {
@@ -87,8 +85,7 @@ function isRouteAppearanceValid(appearance: RouteAppearance): boolean {
     && Number.isFinite(appearance.width)
     && appearance.width >= 1
     && appearance.width <= 16
-    && ROUTE_TRAVEL_PROFILES.includes(appearance.travelProfile)
-    && typeof appearance.showTravelModeIcon === 'boolean';
+    && (appearance.travelMarker === null || ROUTE_TRAVEL_MARKERS.includes(appearance.travelMarker));
 }
 
 function isPoiAppearanceValid(appearance: PoiAppearance): boolean {
@@ -154,18 +151,14 @@ function colorValue(value: unknown, label: string, fail: Fail): string {
 function routeAppearanceAt(appearance: JsonObject, label: string, fail: Fail): RouteAppearance {
   const width = finiteValue(appearance.width, `${label} route width`, fail);
   if (width < 1 || width > 16) fail(`${label} route width must be between 1 and 16 pixels.`);
-  if (!ROUTE_TRAVEL_PROFILES.includes(appearance.travelProfile as RouteTravelProfile)) {
-    fail(`${label} route travel profile is not supported.`);
-  }
-  if (typeof appearance.showTravelModeIcon !== 'boolean') {
-    fail(`${label} route travel-mode marker must be true or false.`);
+  if (appearance.travelMarker !== null && !ROUTE_TRAVEL_MARKERS.includes(appearance.travelMarker as RouteTravelMarker)) {
+    fail(`${label} route travel marker is not supported.`);
   }
   return {
     kind: 'route',
     color: colorValue(appearance.color, `${label} route color`, fail),
     width,
-    travelProfile: appearance.travelProfile as RouteTravelProfile,
-    showTravelModeIcon: appearance.showTravelModeIcon,
+    travelMarker: appearance.travelMarker as RouteTravelMarker | null,
   };
 }
 

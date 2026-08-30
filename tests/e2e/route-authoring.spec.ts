@@ -27,7 +27,7 @@ function projectInitialMapCoordinate(
 type ScreenPoint = { x: number; y: number };
 
 async function handleCenters(page: Page) {
-  return page.getByRole('button', { name: /Drag route vertex/ }).evaluateAll((elements) => (
+  return page.getByRole('button', { name: /Drag route anchor/ }).evaluateAll((elements) => (
     elements.map((element) => {
       const box = element.getBoundingClientRect();
       return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
@@ -133,9 +133,9 @@ test('expert arc route authoring is undoable and exports a travel-mode marker', 
     x: frameBox!.x - canvasBox!.x + frameBox!.width * xFraction,
     y: frameBox!.y - canvasBox!.y + frameBox!.height * yFraction,
   });
-  await canvas.click({ position: point(0.2, 0.2) });
+  await canvas.click({ position: point(0.1, 0.2) });
   await expect(page.getByRole('status', { name: 'Route drawing status' })).toContainText('1 point');
-  await canvas.click({ position: point(0.8, 0.2) });
+  await canvas.click({ position: point(0.9, 0.2) });
   const createdRoute = page.getByRole('button', { name: 'Select Route 02' });
   await expect(createdRoute).not.toBeVisible();
   await expect(page.getByRole('status', { name: 'Route drawing status' })).toContainText('2 points');
@@ -147,9 +147,8 @@ test('expert arc route authoring is undoable and exports a travel-mode marker', 
 
   await expect(page.getByRole('button', { name: 'Export' })).toBeEnabled();
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-order', /route-02/);
-  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-appearance', /route-02:[^|]*:air:true/);
-  await expect(page.getByRole('combobox', { name: 'Route travel profile' })).toHaveValue('air');
-  await expect(page.getByRole('checkbox', { name: 'Show travel-mode marker' })).toBeChecked();
+  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-appearance', /route-02:[^|]*:air/);
+  await expect(page.getByRole('combobox', { name: 'Route travel marker' })).toHaveValue('air');
   await page.getByRole('button', { name: 'Undo' }).click();
   await expect(createdRoute).not.toBeVisible();
   await page.getByRole('button', { name: 'Redo' }).click();
@@ -169,7 +168,7 @@ test('expert arc route authoring is undoable and exports a travel-mode marker', 
   const routePath = svg.match(/data-layer-id="route-02"[^>]*>[\s\S]*?<path[^>]*d="([^"]+)"/)?.[1];
   expect(routePath).toContain(' L ');
   expect(routePath).not.toContain(' Q ');
-  expect(svg).toContain('data-route-travel-profile="air"');
+  expect(svg).toContain('data-route-travel-marker="air"');
   expect(svg).toContain('>AIR</text>');
   await page.getByRole('dialog', { name: 'Export map' }).getByRole('button', { name: 'Close export' }).click();
 
@@ -196,7 +195,7 @@ test('a selected straight route drags a Terra Draw midpoint as one undoable edit
   const route = page.getByRole('button', { name: 'Select Route 01' });
   await route.click();
   await page.getByRole('button', { name: /Advanced/ }).click();
-  const vertexSelect = page.getByRole('combobox', { name: 'Route vertex' });
+  const vertexSelect = page.getByRole('combobox', { name: 'Route anchor' });
   await expect(vertexSelect.locator('option')).toHaveCount(4);
   const mapCanvas = page.getByTestId('map-canvas');
   const originalGeometry = await mapCanvas.evaluate((element) => (
@@ -225,7 +224,7 @@ test('a selected straight route drags a Terra Draw midpoint as one undoable edit
   await expect(mapCanvas).toHaveAttribute('data-map-layer-geometry', originalGeometry!);
 });
 
-test('route editor load failures are announced instead of leaving an inert tool', async ({ page }) => {
+test('route editor load failures are announced instead of leaving completed routes inert', async ({ page }) => {
   await page.route('**/src/map/TerraDrawRouteFactory.ts*', (route) => route.abort('failed'));
   await page.goto('/');
   const mapReady = page.locator('[data-map-ready="true"]');
@@ -233,7 +232,7 @@ test('route editor load failures are announced instead of leaving an inert tool'
   await expect(mapReady.or(mapFallback)).toBeVisible({ timeout: 20_000 });
   test.skip(await mapFallback.isVisible(), 'This browser fixture has no WebGL 2 renderer.');
 
-  await page.getByRole('button', { name: 'Route (R)' }).click();
+  await page.getByRole('button', { name: 'Select Route 01' }).click();
 
   await expect(page.getByRole('alert')).toContainText('The route editor could not be loaded');
 });
@@ -258,12 +257,12 @@ test('a pitch-zero Arc visibly curves and supports accessible one-step edits', a
     x: frameBox!.x - canvasBox!.x + frameBox!.width * xFraction,
     y: frameBox!.y - canvasBox!.y + frameBox!.height * yFraction,
   });
-  await canvas.click({ position: point(0.2, 0.25) });
-  await canvas.click({ position: point(0.8, 0.25) });
+  await canvas.click({ position: point(0.1, 0.25) });
+  await canvas.click({ position: point(0.9, 0.25) });
   await page.getByRole('button', { name: 'Finish route' }).click();
 
   const route = page.getByRole('button', { name: 'Select Route 02' });
-  const vertices = page.getByRole('button', { name: /Drag route vertex/ });
+  const vertices = page.getByRole('button', { name: /Drag route anchor/ });
   const insertHandle = page.getByRole('button', { name: 'Add route vertex between 1 and 2' });
   await expect(vertices).toHaveCount(2);
   await expect(insertHandle).toBeVisible();
@@ -277,30 +276,25 @@ test('a pitch-zero Arc visibly curves and supports accessible one-step edits', a
   const chordMidpoint = midpoint(endpoints[0], endpoints[1]);
   expect(Math.abs(curveMidpoint.y - chordMidpoint.y)).toBeGreaterThan(30);
 
+  const mapCanvas = page.getByTestId('map-canvas');
+  const geometryWithMarker = await mapCanvas.getAttribute('data-map-layer-geometry');
+  await page.getByRole('button', { name: /Advanced/ }).click();
+  await page.getByRole('combobox', { name: 'Route travel marker' }).selectOption('none');
+  await expect(mapCanvas).toHaveAttribute('data-map-layer-geometry', geometryWithMarker!);
   await page.getByRole('button', { name: 'Select Paper basemap' }).click();
   await expect(vertices).toHaveCount(0);
   await page.waitForTimeout(300);
-  const markerPixels = await routePixels(page, { chordMidpoint, curveMidpoint });
-
-  await route.click();
-  await page.getByRole('button', { name: /Advanced/ }).click();
-  await page.getByRole('checkbox', { name: 'Show travel-mode marker' }).uncheck();
-  await page.getByRole('button', { name: 'Select Paper basemap' }).click();
-  await page.waitForTimeout(300);
   const strokePixels = await routePixels(page, { chordMidpoint, curveMidpoint });
-  expect(markerPixels.curveMidpoint.routeRed).toBeGreaterThan(strokePixels.curveMidpoint.routeRed + 20);
-  expect(markerPixels.chordMidpoint.routeRed).toBeLessThan(10);
   expect(strokePixels.curveMidpoint.routeRed).toBeGreaterThan(5);
   expect(strokePixels.chordMidpoint.routeRed).toBeLessThan(10);
 
   await route.click();
-  const mapCanvas = page.getByTestId('map-canvas');
   const originalGeometry = await mapCanvas.getAttribute('data-map-layer-geometry');
-  const secondVertex = page.getByRole('button', { name: 'Drag route vertex 2' });
+  const secondVertex = page.getByRole('button', { name: 'Drag route anchor 2' });
   await secondVertex.focus();
   await secondVertex.press('ArrowDown');
   await expect(mapCanvas).not.toHaveAttribute('data-map-layer-geometry', originalGeometry!);
-  await expect(page.getByRole('button', { name: 'Drag route vertex 2' })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Drag route anchor 2' })).toBeFocused();
   await page.getByRole('button', { name: 'Undo' }).click();
   await expect(mapCanvas).toHaveAttribute('data-map-layer-geometry', originalGeometry!);
 
@@ -313,8 +307,8 @@ test('a pitch-zero Arc visibly curves and supports accessible one-step edits', a
   await page.getByRole('button', { name: 'Undo' }).click();
   await expect(mapCanvas).toHaveAttribute('data-map-layer-geometry', originalGeometry!);
 
-  const longitude = page.getByRole('textbox', { name: 'Route vertex longitude' });
-  const latitude = page.getByRole('textbox', { name: 'Route vertex latitude' });
+  const longitude = page.getByRole('textbox', { name: 'Route anchor longitude' });
+  const latitude = page.getByRole('textbox', { name: 'Route anchor latitude' });
   const nextLongitude = Number(await longitude.inputValue()) + 0.01;
   await longitude.fill(String(nextLongitude));
   await longitude.press('Tab');
@@ -325,8 +319,8 @@ test('a pitch-zero Arc visibly curves and supports accessible one-step edits', a
 
   await page.getByRole('button', { name: 'Add route vertex between 1 and 2' }).click();
   await expect(vertices).toHaveCount(3);
-  await page.getByRole('combobox', { name: 'Route vertex' }).selectOption('1');
-  await page.getByRole('button', { name: 'Remove selected route vertex' }).click();
+  await page.getByRole('combobox', { name: 'Route anchor' }).selectOption('1');
+  await page.getByRole('button', { name: 'Remove selected route anchor' }).click();
   await expect(vertices).toHaveCount(2);
   await page.getByRole('button', { name: 'Undo' }).click();
   await expect(vertices).toHaveCount(3);

@@ -196,7 +196,7 @@ function pageAt(value: unknown): ProjectDocument['page'] {
     heightMm: positiveNumber(page.heightMm, 'Page height'),
     orientation: orientation as PageOrientation,
   };
-  const presetValue = page.preset === 'Letter' ? 'US Letter' : page.preset;
+  const presetValue = page.preset;
   if (typeof presetValue !== 'string' || !PAGE_PRESETS.has(presetValue as PagePreset)) {
     throw new ProjectFileError('Page preset must be A2, A3, A4, A5, A6, US Letter, or Custom.');
   }

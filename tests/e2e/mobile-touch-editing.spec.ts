@@ -80,7 +80,7 @@ test('touch selects and moves area and route geometry directly on the map', asyn
   await page.touchscreen.tap(routePoint.x + 10, routePoint.y);
   await expect(map).toHaveAttribute('data-selected-layer', 'route-01');
   const routeGeometry = await map.getAttribute('data-map-layer-geometry');
-  const routeHandle = page.getByRole('button', { name: 'Drag route vertex 1' });
+  const routeHandle = page.getByRole('button', { name: 'Drag route anchor 1' });
   const routeBounds = await expectTouchTarget(routeHandle);
   await touchDrag(page, { x: routeBounds.x + routeBounds.width / 2, y: routeBounds.y + routeBounds.height / 2 }, { x: 36, y: 24 });
   await expect(map).not.toHaveAttribute('data-map-layer-geometry', routeGeometry!);

@@ -251,9 +251,9 @@ test('route vertex coordinates update the live map, history, portable project, a
   await page.getByRole('button', { name: 'Select Route 01' }).click();
   const initialPath = await downloadRouteSvgPath(page, testInfo.outputPath('route-before.layered.svg'));
   await page.getByRole('button', { name: /Advanced/ }).click();
-  await page.getByRole('combobox', { name: 'Route vertex' }).selectOption('1');
-  const longitude = page.getByRole('textbox', { name: 'Route vertex longitude' });
-  const latitude = page.getByRole('textbox', { name: 'Route vertex latitude' });
+  await page.getByRole('combobox', { name: 'Route anchor' }).selectOption('1');
+  const longitude = page.getByRole('textbox', { name: 'Route anchor longitude' });
+  const latitude = page.getByRole('textbox', { name: 'Route anchor latitude' });
   await longitude.fill('16.4');
   await longitude.press('Tab');
   await expect(latitude).toBeFocused();
@@ -262,9 +262,9 @@ test('route vertex coordinates update the live map, history, portable project, a
   await expect(mapRoot).toHaveAttribute('data-map-layer-geometry', /route-01:\[\[16\.326,48\.194\],\[16\.4,48\.25\]/);
 
   await page.getByRole('button', { name: 'Undo' }).click();
-  await expect(page.getByRole('textbox', { name: 'Route vertex latitude' })).toHaveValue('48.205');
+  await expect(page.getByRole('textbox', { name: 'Route anchor latitude' })).toHaveValue('48.205');
   await page.getByRole('button', { name: 'Redo' }).click();
-  await expect(page.getByRole('textbox', { name: 'Route vertex latitude' })).toHaveValue('48.25');
+  await expect(page.getByRole('textbox', { name: 'Route anchor latitude' })).toHaveValue('48.25');
 
   const movedPath = await downloadRouteSvgPath(page, testInfo.outputPath('route-after.layered.svg'));
   expect(movedPath).toBeTruthy();
@@ -300,13 +300,13 @@ test('route vertices insert, remove, and drag directly on the map as one history
 
   await page.getByRole('button', { name: 'Select Route 01' }).click();
   await page.getByRole('button', { name: /Advanced/ }).click();
-  const handles = page.getByRole('button', { name: /Drag route vertex/ });
+  const handles = page.getByRole('button', { name: /Drag route anchor/ });
   await expect(handles).toHaveCount(4);
-  await page.getByRole('button', { name: 'Insert route vertex after selected' }).click();
+  await page.getByRole('button', { name: 'Insert route anchor after selected' }).click();
   await expect(handles).toHaveCount(5);
-  await expect(page.getByRole('combobox', { name: 'Route vertex' })).toHaveValue('1');
+  await expect(page.getByRole('combobox', { name: 'Route anchor' })).toHaveValue('1');
   const handleBeforeRemoval = await handles.nth(1).elementHandle();
-  await page.getByRole('button', { name: 'Remove selected route vertex' }).click();
+  await page.getByRole('button', { name: 'Remove selected route anchor' }).click();
   await expect.poll(() => handleBeforeRemoval?.evaluate((element) => element.isConnected)).toBe(false);
   await expect(handles).toHaveCount(4);
 
@@ -324,7 +324,7 @@ test('route vertices insert, remove, and drag directly on the map as one history
 
   await page.getByRole('switch', { name: 'Toggle layer lock' }).click();
   await expect(handles).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Insert route vertex after selected' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Insert route anchor after selected' })).toBeDisabled();
   await page.getByRole('switch', { name: 'Toggle layer lock' }).click();
   await expect(handles).toHaveCount(4);
   await handles.first().focus();

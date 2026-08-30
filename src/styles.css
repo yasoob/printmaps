@@ -306,6 +306,14 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 .map-fallback strong { @apply mb-1 block text-xs; color: var(--studio-text); }
 .map-fallback span { @apply block text-xs; }
+.map-route-editor-error {
+  @apply absolute left-1/2 top-2 z-[60] max-w-md -translate-x-1/2 px-3 py-2 text-xs;
+  width: calc(100% - 1rem);
+  border: var(--studio-border-width) solid var(--studio-danger);
+  border-radius: var(--studio-radius-md);
+  color: var(--studio-danger);
+  background: var(--studio-surface);
+}
 .maplibregl-ctrl-group, .maplibregl-ctrl-attrib {
   box-shadow: none !important;
   border: var(--studio-border-width) solid var(--studio-line-hover);
@@ -535,6 +543,25 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .route-progress > button { @apply flex min-h-8 shrink-0 items-center gap-1.5 rounded px-2 text-xs; color: var(--studio-tool-card-accent); }
 .route-progress > button:hover { background: var(--studio-field); }
 .route-progress > button:disabled { cursor: default; opacity: .38; }
+.route-authoring-panel { overflow-y: auto; overscroll-behavior: contain; }
+.route-point-inputs { @apply grid gap-2; }
+.route-coordinate-entry { @apply grid grid-cols-2 gap-2; }
+.route-coordinate-entry > button { @apply col-span-2 min-h-9 rounded px-3 text-xs font-medium; border: var(--studio-border-width) solid var(--studio-line-strong); }
+.route-poi-entry { @apply grid gap-1.5 whitespace-normal; }
+.route-poi-entry > select { @apply h-10 min-w-0 w-full rounded-md px-3 text-xs; border: var(--studio-border-width) solid var(--studio-line-strong); background: var(--studio-surface); }
+.route-point-inputs > button { @apply min-h-9 rounded px-3 text-xs font-medium; border: var(--studio-border-width) solid var(--studio-line-strong); }
+.route-snap-control { @apply flex items-start gap-2 whitespace-normal text-xs leading-snug; }
+.route-point-list { @apply m-0 grid max-h-24 list-decimal gap-1 overflow-y-auto pl-5 text-[10px] tabular-nums; color: var(--studio-text-muted); }
+.route-finish-explanation { @apply text-[10px] leading-snug; color: var(--studio-text-muted); }
+.route-extend-actions { @apply grid grid-cols-2 gap-2; }
+.route-extend-actions > button { @apply min-h-9 rounded px-2 text-xs; border: var(--studio-border-width) solid var(--studio-line-strong); }
+.route-discard-overlay { @apply fixed inset-0 z-[120] grid place-items-center p-4; }
+.route-discard-dialog { @apply z-[121] m-0 grid max-w-sm gap-4 rounded-lg p-5; position: relative; border: var(--studio-border-width) solid var(--studio-line-strong); background: var(--studio-surface-raised); color: var(--studio-text); box-shadow: var(--studio-shadow-lg); }
+.route-discard-dialog h2,
+.route-discard-dialog p { @apply m-0; }
+.route-discard-dialog p { @apply text-sm leading-relaxed; color: var(--studio-text-muted); }
+.route-discard-actions { @apply flex justify-end gap-2; }
+.route-discard-actions > button { @apply min-h-10 rounded px-3 text-xs font-medium; }
 .poi-placement-content { @apply grid gap-1.5 py-1; }
 .poi-placement-content > p { @apply m-0 text-xs leading-relaxed; color: var(--studio-text-muted); }
 .map-authoring-panel > .tool-card-secondary-action {
@@ -1244,6 +1271,11 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
 .export-dialog > .export-dialog-actions > button:not(.primary-button):hover { background: var(--studio-field); }
 
 @media (pointer: coarse) {
+  .route-point-inputs button,
+  .route-point-inputs select,
+  .route-snap-control,
+  .route-discard-actions > button,
+  .route-extend-actions > button { min-height: 44px; }
   .route-vertex-marker,
   .poi-move-marker,
   .shape-vertex-marker,

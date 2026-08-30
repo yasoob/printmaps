@@ -13,14 +13,14 @@ describe('expert route geometry', () => {
     expect(coordinates).toEqual(waypoints);
   });
 
-  it('creates an arc route with its selected travel profile and printable marker state', () => {
+  it('creates an arc route with its selected decorative marker', () => {
     const store = createProjectStore(createInitialProjectDocument());
     const waypoints = [[-0.1276, 51.5072], [139.6917, 35.6895]] as const;
 
     store.getState().createRoute(waypoints, {
       lineShape: 'arc',
-      travelProfile: 'air',
-      showTravelModeIcon: true,
+      roadTravelMode: 'car',
+      travelMarker: 'air',
     });
 
     const route = store.getState().document.layers.find(({ id }) => id === 'route-02');
@@ -28,8 +28,7 @@ describe('expert route geometry', () => {
       kind: 'route',
       color: '#d9363e',
       width: 4,
-      travelProfile: 'air',
-      showTravelModeIcon: true,
+      travelMarker: 'air',
     });
     expect(route?.geometry).toEqual({ type: 'Arc', anchors: waypoints, curvatures: [0.35] });
   });
@@ -41,8 +40,7 @@ describe('expert route geometry', () => {
       kind: 'route',
       color: '#d9363e',
       width: 4,
-      travelProfile: 'air',
-      showTravelModeIcon: true,
+      travelMarker: 'air',
     };
 
     const descriptors = mapLayerDescriptors(route, { selectedId: null, previewedId: null });
@@ -64,9 +62,9 @@ describe('expert route geometry', () => {
   });
 
   it.each([
-    ['unsupported line shape', { lineShape: 'curved', travelProfile: 'air', showTravelModeIcon: true }],
-    ['unsupported travel profile', { lineShape: 'arc', travelProfile: 'rocket', showTravelModeIcon: true }],
-    ['non-boolean marker state', { lineShape: 'arc', travelProfile: 'air', showTravelModeIcon: 'yes' }],
+    ['unsupported line shape', { lineShape: 'curved', roadTravelMode: 'car', travelMarker: 'air' }],
+    ['unsupported road mode', { lineShape: 'arc', roadTravelMode: 'air', travelMarker: 'air' }],
+    ['unsupported marker', { lineShape: 'arc', roadTravelMode: 'car', travelMarker: 'rocket' }],
   ])('rejects $label without changing canonical history', (_label, options) => {
     const store = createProjectStore(createInitialProjectDocument());
 

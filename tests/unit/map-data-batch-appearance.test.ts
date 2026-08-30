@@ -42,7 +42,7 @@ describe('reviewed map-data batch appearance', () => {
 
     expect(styled.map(({ appearance }) => appearance)).toEqual([
       {
-        kind: 'route', color: '#112233', width: 7, travelProfile: 'car', showTravelModeIcon: false,
+        kind: 'route', color: '#112233', width: 7, travelMarker: null,
       },
       {
         kind: 'poi', color: '#445566', size: 22, markerShape: 'diamond', markerSymbol: 'none', label: '', customAssetId: null,

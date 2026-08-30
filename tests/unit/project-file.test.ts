@@ -47,13 +47,13 @@ describe('portable project validation', () => {
     expect(parseProjectFileText(JSON.stringify(source)).page).toEqual(source.page);
   });
 
-  it('normalizes the legacy Letter preset ID within the current schema', () => {
+  it('rejects the legacy Letter preset ID in the current schema', () => {
     const source = createInitialProjectDocument() as unknown as { page: Record<string, unknown> };
     source.page = { preset: 'Letter', orientation: 'landscape', widthMm: 279.4, heightMm: 215.9 };
 
-    expect(parseProjectFileText(JSON.stringify(source)).page).toEqual({
-      preset: 'US Letter', orientation: 'landscape', widthMm: 279.4, heightMm: 215.9,
-    });
+    expect(() => parseProjectFileText(JSON.stringify(source))).toThrow(
+      'Page preset must be A2, A3, A4, A5, A6, US Letter, or Custom.',
+    );
   });
 
   it('round-trips detached canonical MultiPolygon shape geometry', () => {

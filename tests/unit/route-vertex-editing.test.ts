@@ -21,7 +21,7 @@ class FakeMarker implements RouteVertexMarker {
 
 const route: ContentLayer = {
   id: 'route-project-id', name: 'Route', type: 'route', visible: true, locked: false, opacity: 100,
-  appearance: { kind: 'route', color: '#d9363e', width: 4, travelProfile: 'car', showTravelModeIcon: false },
+  appearance: { kind: 'route', color: '#d9363e', width: 4, travelMarker: null },
   geometry: { type: 'LineString', coordinates: [[0, 0], [1, 1], [2, 0]] },
 };
 

@@ -40,7 +40,7 @@ function updateContainerState(
   container.dataset.mapLayerAppearance = visibleLayers.flatMap((layer) => {
     const { appearance } = layer;
     if (appearance?.kind === 'route') {
-      return [`${layer.id}:${appearance.color}:${appearance.width}:${appearance.travelProfile}:${appearance.showTravelModeIcon}`];
+      return [`${layer.id}:${appearance.color}:${appearance.width}:${appearance.travelMarker ?? 'none'}`];
     }
     if (appearance?.kind === 'poi') {
       return [

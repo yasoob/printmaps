@@ -36,11 +36,11 @@ describe('canonical layer appearance', () => {
     const store = createProjectStore(createInitialProjectDocument());
 
     store.getState().setLayerAppearance('route-01', {
-      kind: 'route', color: '#D9363E', width: 4, travelProfile: 'car', showTravelModeIcon: false,
+      kind: 'route', color: '#D9363E', width: 4, travelMarker: null,
     });
 
     expect(store.getState().document.layers[0].appearance).toEqual({
-      kind: 'route', color: '#d9363e', width: 4, travelProfile: 'car', showTravelModeIcon: false,
+      kind: 'route', color: '#d9363e', width: 4, travelMarker: null,
     });
     expect(store.getState().canUndo).toBe(false);
   });
@@ -48,17 +48,17 @@ describe('canonical layer appearance', () => {
   it('assigns editable appearances to every local import format', () => {
     expect(parseGeoJsonText(geoJsonFixture).map(({ appearance }) => appearance)).toEqual([
       { kind: 'poi', color: '#0d78b5', size: 14, markerShape: 'circle', markerSymbol: 'none', label: '', customAssetId: null },
-      { kind: 'route', color: '#d9363e', width: 4, travelProfile: 'car', showTravelModeIcon: false },
+      { kind: 'route', color: '#d9363e', width: 4, travelMarker: null },
       { kind: 'shape', fillColor: '#d18b25', strokeColor: '#d18b25', strokeWidth: 2, invert: false },
     ]);
     expect(parseGpxText(gpxFixture).map(({ appearance }) => appearance)).toEqual([
       { kind: 'poi', color: '#0d78b5', size: 14, markerShape: 'circle', markerSymbol: 'none', label: '', customAssetId: null },
-      { kind: 'route', color: '#d9363e', width: 4, travelProfile: 'car', showTravelModeIcon: false },
-      { kind: 'route', color: '#d9363e', width: 4, travelProfile: 'car', showTravelModeIcon: false },
+      { kind: 'route', color: '#d9363e', width: 4, travelMarker: null },
+      { kind: 'route', color: '#d9363e', width: 4, travelMarker: null },
     ]);
     expect(parseKmlText(kmlFixture).map(({ appearance }) => appearance)).toEqual([
       { kind: 'poi', color: '#0d78b5', size: 14, markerShape: 'circle', markerSymbol: 'none', label: '', customAssetId: null },
-      { kind: 'route', color: '#d9363e', width: 4, travelProfile: 'car', showTravelModeIcon: false },
+      { kind: 'route', color: '#d9363e', width: 4, travelMarker: null },
       { kind: 'shape', fillColor: '#d18b25', strokeColor: '#d18b25', strokeWidth: 2, invert: false },
     ]);
   });
@@ -66,7 +66,7 @@ describe('canonical layer appearance', () => {
   it('maps canonical appearance to live MapLibre paint descriptors', () => {
     const route = mapLayerDescriptors(
       layer('route', {
-        kind: 'route', color: '#112233', width: 8, travelProfile: 'car', showTravelModeIcon: false,
+        kind: 'route', color: '#112233', width: 8, travelMarker: null,
       }),
       highlight,
     );
@@ -89,7 +89,7 @@ describe('canonical layer appearance', () => {
   it('preserves configured feature colors while selection adds non-color emphasis', () => {
     const selected = { selectedId: 'shape', previewedId: null };
     const route = mapLayerDescriptors(layer('route', {
-      kind: 'route', color: '#112233', width: 8, travelProfile: 'car', showTravelModeIcon: false,
+      kind: 'route', color: '#112233', width: 8, travelMarker: null,
     }), { selectedId: 'route', previewedId: null });
     const poi = mapLayerDescriptors(layer('poi', {
       kind: 'poi', color: '#445566', size: 24, markerShape: 'circle', markerSymbol: 'none', label: '',

@@ -150,7 +150,7 @@ describe('native map export camera', () => {
         locked: false,
         opacity: 100,
         appearance: {
-          kind: 'route', color: '#d9363e', width: 4, travelProfile: 'air', showTravelModeIcon: true,
+          kind: 'route', color: '#d9363e', width: 4, travelMarker: 'air',
         },
         geometry: { type: 'LineString', coordinates: [[16.3, 48.2], [16.4, 48.3]] },
       }, hiddenCustomPoi],

@@ -2,7 +2,7 @@ import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { ContentLayer, PoiAppearance } from '../domain/project';
 import type { CustomMarkerAsset } from '../domain/customMarkerAssets';
 import { POI_MARKER_SYMBOL_GLYPHS } from '../domain/poiMarkers';
-import { ROUTE_TRAVEL_PROFILE_MARKERS } from '../domain/routeProfiles';
+import { ROUTE_TRAVEL_MARKER_GLYPHS } from '../domain/routeProfiles';
 import { addMapContentSource, mapContentSourceId, mapGeometryForLayer } from './MapContentGeometry';
 import { customMarkerImageId, encodedContentId, mapContentLayerId } from './MapContentLayerIds';
 import { shapeLayerDescriptors } from './MapShapeLayerRendering';
@@ -28,8 +28,7 @@ const ROUTE_APPEARANCE = {
   kind: 'route',
   color: '#d9363e',
   width: 4,
-  travelProfile: 'car',
-  showTravelModeIcon: false,
+  travelMarker: null,
 } as const;
 const POI_APPEARANCE = {
   kind: 'poi',
@@ -55,7 +54,7 @@ export const visibleContentLayers = (layers: ContentLayer[]) => (
 export const contentStructure = (layers: ContentLayer[]) => layers
   .map((layer) => {
     const routeMarker = layer.appearance?.kind === 'route'
-      ? `:${layer.appearance.travelProfile}:${layer.appearance.showTravelModeIcon}`
+      ? `:${layer.appearance.travelMarker ?? 'none'}`
       : '';
     const poiMarker = layer.appearance?.kind === 'poi'
       ? `:${layer.appearance.markerShape}:${layer.appearance.markerSymbol}:${layer.appearance.label}:${layer.appearance.size}:${layer.appearance.customAssetId ?? ''}`
@@ -77,13 +76,13 @@ const routeLayerDescriptor = (layer: ContentLayer, isHighlighted: boolean) => {
     },
     layout: { 'line-cap': 'round' as const, 'line-join': 'round' as const },
   };
-  if (!appearance.showTravelModeIcon) return [line];
+  if (!appearance.travelMarker) return [line];
   const marker = {
     id: mapContentLayerId(layer.id, 'travel-mode'),
     type: 'symbol' as const,
     layout: {
       'symbol-placement': 'line-center' as const,
-      'text-field': ROUTE_TRAVEL_PROFILE_MARKERS[appearance.travelProfile],
+      'text-field': ROUTE_TRAVEL_MARKER_GLYPHS[appearance.travelMarker],
       'text-font': ['Noto Sans Regular'],
       'text-size': 11,
       'text-allow-overlap': true,

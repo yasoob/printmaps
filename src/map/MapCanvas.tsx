@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+import { useState, type CSSProperties } from 'react';
 import type { CustomMarkerAsset } from '../domain/customMarkerAssets';
 import type { CameraSettings, ContentLayer, MapFeatureVisibility, MapLanguage, MapStylePreset, PageSettings, ShapeGeometry } from '../domain/project';
 import type { PreviewPngExporter } from '../export/previewPng';
@@ -25,6 +25,7 @@ type MapCanvasProps = {
   onMapClick?: (coordinate: [number, number]) => void;
   onPoiCoordinatesChange?: (id: string, coordinate: readonly [number, number]) => void;
   onRouteGeometryChange?: (id: string, coordinates: readonly (readonly [number, number])[]) => void;
+  onRouteVertexChange?: (id: string, vertexIndex: number, coordinate: readonly [number, number]) => void;
   onRouteVertexInsert?: (id: string, segmentIndex: number) => void;
   routeAuthoring?: RouteAuthoring;
   onShapeGeometryChange?: (id: string, geometry: ShapeGeometry) => void;
@@ -56,6 +57,10 @@ const resolveMapLanguage = (language?: MapLanguage) => language ?? 'local';
 const resolveShapeEditMode = (mode?: ShapeEditMode): ShapeEditMode => mode ?? 'transform';
 const resolveInteractionMode = (mode?: string) => mode ?? 'select';
 
+function RouteEditorError({ message }: { message: string | null }) {
+  return message ? <div className="map-route-editor-error" role="alert">{message}</div> : null;
+}
+
 export function MapCanvas({
   camera = { bearing: 0, center: [16.3725, 48.2084], locked: false, pitch: 0, zoom: 11.2 },
   stylePreset = 'paper',
@@ -72,6 +77,7 @@ export function MapCanvas({
   onMapClick,
   onPoiCoordinatesChange,
   onRouteGeometryChange,
+  onRouteVertexChange,
   onRouteVertexInsert,
   routeAuthoring,
   onShapeGeometryChange,
@@ -88,6 +94,7 @@ export function MapCanvas({
   contentRevision,
   interactionMode,
 }: MapCanvasProps) {
+  const [routeEditorError, setRouteEditorError] = useState<string | null>(null);
   const { container, visibleError } = useMapCanvasController({
     camera,
     stylePreset,
@@ -108,7 +115,9 @@ export function MapCanvas({
     onCameraViewportChange,
     onMapClick,
     onPoiCoordinatesChange,
+    onRouteEditorError: setRouteEditorError,
     onRouteGeometryChange,
+    onRouteVertexChange,
     onRouteVertexInsert,
     routeAuthoring,
     onShapeGeometryChange,
@@ -126,6 +135,7 @@ export function MapCanvas({
           <div><strong>Map preview unavailable</strong><span>{visibleError.message}</span></div>
         </div>
       )}
+      <RouteEditorError message={routeEditorError} />
       <div
         className={`print-frame is-${orientation}`}
         style={{

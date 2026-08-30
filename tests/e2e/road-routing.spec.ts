@@ -12,7 +12,7 @@ function providerGeometry(requestUrl: string): [number, number][] {
   return [start, [(start[0] + end[0]) / 2 + 0.003, (start[1] + end[1]) / 2], end];
 }
 
-test('road route becomes editable canonical project geometry and exports offline', async ({ page }) => {
+test('road route edits semantic waypoints by rerouting and exports offline', async ({ page }) => {
   const consoleProblems: string[] = [];
   let directionRequests = 0;
   page.on('pageerror', (error) => { consoleProblems.push(error.message); });
@@ -77,10 +77,11 @@ test('road route becomes editable canonical project geometry and exports offline
   expect(directionRequests).toBe(1);
 
   await page.getByRole('button', { name: /Advanced/ }).click();
-  const firstLongitude = page.getByRole('textbox', { name: 'Route vertex longitude' });
+  const firstLongitude = page.getByRole('textbox', { name: 'Route waypoint longitude' });
   const originalLongitude = Number(await firstLongitude.inputValue());
   await firstLongitude.fill(String(originalLongitude + 0.001));
   await firstLongitude.press('Tab');
+  await expect.poll(() => directionRequests).toBe(2);
   await page.getByRole('button', { name: 'Undo' }).click();
   await page.getByRole('button', { name: 'Redo' }).click();
 
@@ -91,7 +92,7 @@ test('road route becomes editable canonical project geometry and exports offline
   await projectDownload.saveAs(projectPath);
   const project = JSON.parse(await readFile(projectPath, 'utf8'));
   const routeLayer = project.layers.find((layer: { id: string }) => layer.id === 'route-02');
-  expect(project.schemaVersion).toBe(22);
+  expect(project.schemaVersion).toBe(23);
   expect(routeLayer).toMatchObject({
     geometry: { type: 'LineString' },
     provenance: {
@@ -111,7 +112,7 @@ test('road route becomes editable canonical project geometry and exports offline
   const svg = await readFile(svgPath, 'utf8');
   expect(svg).toContain('data-layer-id="route-02"');
   expect(svg).toContain('© Mapbox');
-  expect(directionRequests).toBe(1);
+  expect(directionRequests).toBe(2);
   await page.getByRole('dialog', { name: 'Export map' }).getByRole('button', { name: 'Close export' }).click();
 
   await page.screenshot({ path: path.resolve('docs/screenshots/road-routing-search-20260826.png') });

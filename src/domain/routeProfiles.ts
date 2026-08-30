@@ -1,27 +1,35 @@
-export const ROUTE_TRAVEL_PROFILES = ['air', 'rail', 'car', 'walk', 'bike', 'ship'] as const;
-export type RouteTravelProfile = typeof ROUTE_TRAVEL_PROFILES[number];
+export const ROUTE_TRAVEL_MARKERS = ['air', 'rail', 'car', 'walk', 'bike', 'ship'] as const;
+export type RouteTravelMarker = typeof ROUTE_TRAVEL_MARKERS[number];
+export const ROAD_TRAVEL_MODES = ['car', 'walk', 'bike'] as const;
+export type RoadTravelMode = typeof ROAD_TRAVEL_MODES[number];
 export type RouteLineShape = 'straight' | 'arc' | 'road';
 export type RouteAuthoringOptions = Readonly<{
   lineShape: RouteLineShape;
-  travelProfile: RouteTravelProfile;
-  showTravelModeIcon: boolean;
+  roadTravelMode: RoadTravelMode;
+  travelMarker: RouteTravelMarker | null;
 }>;
 
 export const DEFAULT_ROUTE_AUTHORING_OPTIONS: RouteAuthoringOptions = {
   lineShape: 'straight',
-  travelProfile: 'car',
-  showTravelModeIcon: false,
+  roadTravelMode: 'car',
+  travelMarker: null,
 };
 
 export function isRouteAuthoringOptions(value: unknown): value is RouteAuthoringOptions {
   if (typeof value !== 'object' || value === null) return false;
   const options = value as Record<string, unknown>;
   return (['straight', 'arc', 'road'] as const).includes(options.lineShape as RouteLineShape)
-    && ROUTE_TRAVEL_PROFILES.includes(options.travelProfile as RouteTravelProfile)
-    && typeof options.showTravelModeIcon === 'boolean';
+    && ROAD_TRAVEL_MODES.includes(options.roadTravelMode as RoadTravelMode)
+    && (options.travelMarker === null || ROUTE_TRAVEL_MARKERS.includes(options.travelMarker as RouteTravelMarker));
 }
 
-export const ROUTE_TRAVEL_PROFILE_LABELS: Readonly<Record<RouteTravelProfile, string>> = {
+export const ROAD_TRAVEL_MODE_LABELS: Readonly<Record<RoadTravelMode, string>> = {
+  car: 'Car',
+  walk: 'Walking',
+  bike: 'Cycling',
+};
+
+export const ROUTE_TRAVEL_MARKER_LABELS: Readonly<Record<RouteTravelMarker, string>> = {
   air: 'Air',
   rail: 'Train',
   car: 'Car',
@@ -30,7 +38,7 @@ export const ROUTE_TRAVEL_PROFILE_LABELS: Readonly<Record<RouteTravelProfile, st
   ship: 'Ship',
 };
 
-export const ROUTE_TRAVEL_PROFILE_MARKERS: Readonly<Record<RouteTravelProfile, string>> = {
+export const ROUTE_TRAVEL_MARKER_GLYPHS: Readonly<Record<RouteTravelMarker, string>> = {
   air: 'AIR',
   rail: 'RAIL',
   car: 'CAR',

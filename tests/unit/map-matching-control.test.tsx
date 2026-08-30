@@ -7,7 +7,7 @@ import { PROVIDER_RESPONSE_USE_REQUIRES_TERMS_REVIEW, type MapMatchingProvider }
 
 const route: ContentLayer = {
   id: 'route-01', name: 'Imported walk', type: 'route', visible: true, locked: false, opacity: 100,
-  appearance: { kind: 'route', color: '#d9363e', width: 4, travelProfile: 'walk', showTravelModeIcon: false },
+  appearance: { kind: 'route', color: '#d9363e', width: 4, travelMarker: null },
   geometry: { type: 'LineString', coordinates: [[16.35, 48.2], [16.36, 48.205], [16.37, 48.21]] },
 };
 
@@ -38,6 +38,7 @@ describe('selected route map matching', () => {
     />);
 
     await user.click(screen.getByRole('button', { name: /Advanced/ }));
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Road matching travel mode' }), 'walk');
     await user.click(screen.getByRole('button', { name: 'Snap route to roads' }));
 
     expect(match).toHaveBeenCalledWith({

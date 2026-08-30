@@ -6,6 +6,7 @@ import type { MobilePanel } from '../hooks/useMobilePanels';
 import { useProject, useProjectActions } from '../projectStoreContext';
 import { LayerProperties } from './LayerProperties';
 import { ProjectProperties, type CameraInspectorView } from './ProjectProperties';
+import type { RouteExtensionEndpoint } from './routeAuthoringActions';
 
 type PropertiesSidebarProps = {
   selectedLayer: ContentLayer | null;
@@ -18,6 +19,14 @@ type PropertiesSidebarProps = {
   onKeyDown: (event: React.KeyboardEvent<HTMLElement>, panel: MobilePanel) => void;
   onLocate: (coordinate: [number, number], onApplied: () => void) => void;
   onReplaceLayerData: (layer: ContentLayer, trigger: HTMLElement | null) => void;
+  onBeginRouteExtend?: (layer: ContentLayer, endpoint: RouteExtensionEndpoint, trigger: HTMLButtonElement) => void;
+  directionsRouteEditError?: string | null;
+  directionsRouteEditIsRouting?: boolean;
+  directionsRouteEditWaypoints?: readonly (readonly [number, number])[] | null;
+  onRouteVertexChange?: (id: string, vertexIndex: number, coordinates: readonly [number, number]) => void;
+  onRouteVertexRemove?: (id: string, vertexIndex: number) => void;
+  onRetryDirectionsRouteEdit?: () => void;
+  onCancelDirectionsRouteEdit?: () => void;
 };
 
 function selectedLayerButton() {
@@ -25,7 +34,7 @@ function selectedLayerButton() {
 }
 
 export const PropertiesSidebar = memo(function PropertiesSidebar(props: PropertiesSidebarProps) {
-  const { activePanel, closePanel, mapMatchingProvider, onDeleteSelected, onKeyDown, onLocate, onReplaceLayerData, panelRef, selectedLayer, setPreviewedLayerId } = props;
+  const { activePanel, closePanel, directionsRouteEditError, directionsRouteEditIsRouting, directionsRouteEditWaypoints, mapMatchingProvider, onBeginRouteExtend, onCancelDirectionsRouteEdit, onDeleteSelected, onKeyDown, onLocate, onReplaceLayerData, onRetryDirectionsRouteEdit, onRouteVertexChange, onRouteVertexRemove, panelRef, selectedLayer, setPreviewedLayerId } = props;
   const project = useProjectActions();
   const documentEpoch = useProject((state) => state.documentEpoch);
   const assets = useProject((state) => state.document.assets);
@@ -62,12 +71,27 @@ export const PropertiesSidebar = memo(function PropertiesSidebar(props: Properti
           onRename={(name) => project.renameLayer(selectedLayer.id, name)}
           onOpacityChange={(opacity) => project.setLayerOpacity(selectedLayer.id, opacity)}
           onAppearanceChange={(appearance) => project.setLayerAppearance(selectedLayer.id, appearance)}
+          onBeginRouteExtend={onBeginRouteExtend ? (endpoint, trigger) => {
+            onBeginRouteExtend(selectedLayer, endpoint, trigger);
+            closePanel('properties');
+          } : undefined}
           onArcCurvatureChange={(segmentIndex, curvature) => project.setArcSegmentCurvature(selectedLayer.id, segmentIndex, curvature)}
           onPoiCoordinatesChange={(coordinates) => project.setPoiCoordinates(selectedLayer.id, coordinates)}
           onPoiCustomMarkerChange={(asset) => project.setPoiCustomMarker(selectedLayer.id, asset)}
           onRouteVertexInsert={(vertexIndex) => project.insertRouteVertex(selectedLayer.id, vertexIndex)}
-          onRouteVertexRemove={(vertexIndex) => project.removeRouteVertex(selectedLayer.id, vertexIndex)}
-          onRouteVertexChange={(vertexIndex, coordinates) => project.setRouteVertex(selectedLayer.id, vertexIndex, coordinates)}
+          onRouteVertexRemove={(vertexIndex) => {
+            if (onRouteVertexRemove) onRouteVertexRemove(selectedLayer.id, vertexIndex);
+            else project.removeRouteVertex(selectedLayer.id, vertexIndex);
+          }}
+          onRouteVertexChange={(vertexIndex, coordinates) => {
+            if (onRouteVertexChange) onRouteVertexChange(selectedLayer.id, vertexIndex, coordinates);
+            else project.setRouteVertex(selectedLayer.id, vertexIndex, coordinates);
+          }}
+          directionsRouteEditError={directionsRouteEditError}
+          directionsRouteEditIsRouting={directionsRouteEditIsRouting}
+          directionsRouteEditWaypoints={directionsRouteEditWaypoints}
+          onRetryDirectionsRouteEdit={onRetryDirectionsRouteEdit}
+          onCancelDirectionsRouteEdit={onCancelDirectionsRouteEdit}
           onShapeVertexChange={(ringIndex, vertexIndex, coordinates) => project.setShapeVertex(selectedLayer.id, ringIndex, vertexIndex, coordinates)}
           onToggleVisibility={() => { clearSelectedPreview(); project.toggleLayerVisibility(selectedLayer.id); }}
           onToggleLock={() => project.toggleLayerLock(selectedLayer.id)}

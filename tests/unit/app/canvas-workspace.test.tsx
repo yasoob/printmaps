@@ -62,16 +62,19 @@ const sharedProps = {
   onCreateAdministrativeArea: vi.fn(),
   onCreateAdministrativeAreas: vi.fn(),
   onCreateDirectionsRoute: vi.fn(),
+  onReplaceDirectionsRoute: vi.fn(),
   onCreateIsochroneArea: vi.fn(),
   onCreatePoi: vi.fn(),
   onCreatePoiBatch: vi.fn(),
   onCreateSearchPoi: vi.fn(),
   onCreateRoute: vi.fn(),
+  onReplaceAuthoredRoute: vi.fn(),
   onCreateShape: vi.fn(),
   onAuthoringChange: vi.fn(),
   onBackgroundClick: vi.fn(),
   onExporterChange: vi.fn(),
   openPanel: vi.fn(),
+  routeExtensionRequest: null,
 };
 
 describe('CanvasWorkspace map content', () => {

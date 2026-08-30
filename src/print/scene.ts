@@ -1,7 +1,7 @@
 import { rebasePathLongitudes, sampleArc, sampledPathMidpoint } from '../domain/routeArcGeometry';
 import type { ContentLayer, LayerGeometry, LayerType, ProjectDocument } from '../domain/project';
 import { fitAttributionFontSize } from '../domain/projectAttributions';
-import { ROUTE_TRAVEL_PROFILE_MARKERS } from '../domain/routeProfiles';
+import { ROUTE_TRAVEL_MARKER_GLYPHS } from '../domain/routeProfiles';
 import { resolvePrintLayerStyle } from './layerStyle';
 import { serializePoiMarker } from './poiMarker';
 import type { CustomMarkerAsset } from '../domain/customMarkerAssets';
@@ -177,9 +177,9 @@ function pointText(point: PagePoint): string {
 
 function routeTravelModeMarker(layer: ContentLayer, point: PagePoint, color: string): string {
   const appearance = layer.appearance?.kind === 'route' ? layer.appearance : undefined;
-  if (!appearance?.showTravelModeIcon) return '';
-  const label = ROUTE_TRAVEL_PROFILE_MARKERS[appearance.travelProfile];
-  return `<g data-route-travel-profile="${appearance.travelProfile}" aria-label="${escapeXml(label)} travel-mode marker"><circle cx="${formatNumber(point.x)}" cy="${formatNumber(point.y)}" r="4" fill="${escapeXml(color)}" stroke="#ffffff" stroke-width="0.6"/><text x="${formatNumber(point.x)}" y="${formatNumber(point.y)}" fill="#ffffff" font-family="sans-serif" font-size="1.8" font-weight="700" text-anchor="middle" dominant-baseline="middle">${escapeXml(label)}</text></g>`;
+  if (!appearance?.travelMarker) return '';
+  const label = ROUTE_TRAVEL_MARKER_GLYPHS[appearance.travelMarker];
+  return `<g data-route-travel-marker="${appearance.travelMarker}" aria-label="${escapeXml(label)} travel marker"><circle cx="${formatNumber(point.x)}" cy="${formatNumber(point.y)}" r="4" fill="${escapeXml(color)}" stroke="#ffffff" stroke-width="0.6"/><text x="${formatNumber(point.x)}" y="${formatNumber(point.y)}" fill="#ffffff" font-family="sans-serif" font-size="1.8" font-weight="700" text-anchor="middle" dominant-baseline="middle">${escapeXml(label)}</text></g>`;
 }
 
 function isGeometryMatchingLayer(layer: ContentLayer, geometry: LayerGeometry | undefined): boolean {

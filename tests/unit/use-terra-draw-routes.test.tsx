@@ -85,6 +85,24 @@ describe('Terra Draw route hook', () => {
     ));
   });
 
+  it('announces a completed-route editor load failure', async () => {
+    const onEditorError = vi.fn();
+    const layers = createInitialProjectDocument().layers;
+    renderHook(() => useTerraDrawRoutes({
+      layers,
+      loadRouteEditor: () => Promise.reject(new Error('offline')),
+      map,
+      onEditorError,
+      onRouteGeometryChange: vi.fn(),
+      onRoutePreview: vi.fn(),
+      selectedId: layers[0].id,
+    }));
+
+    await waitFor(() => expect(onEditorError).toHaveBeenCalledWith(
+      'The route editor could not be loaded. Select another layer, then select this route to try again.',
+    ));
+  });
+
   it('keeps the newest session when the selection changes while the editor is still loading', async () => {
     const layers = createInitialProjectDocument().layers;
     const first = layers[0];

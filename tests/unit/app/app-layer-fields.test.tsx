@@ -122,9 +122,9 @@ describe('editor content appearance and POI geometry fields', () => {
 
     await user.click(screen.getByRole('button', { name: 'Select Route 01' }));
     await user.click(screen.getByRole('button', { name: /Advanced/ }));
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Route vertex' }), '1');
-    const longitude = screen.getByRole('textbox', { name: 'Route vertex longitude' });
-    const latitude = screen.getByRole('textbox', { name: 'Route vertex latitude' });
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Route anchor' }), '1');
+    const longitude = screen.getByRole('textbox', { name: 'Route anchor longitude' });
+    const latitude = screen.getByRole('textbox', { name: 'Route anchor latitude' });
     const map = screen.getByTestId('map-canvas');
     expect(longitude).toHaveValue('16.353');
     expect(latitude).toHaveValue('48.205');
@@ -137,7 +137,7 @@ describe('editor content appearance and POI geometry fields', () => {
     expect(latitude).toHaveFocus();
     expect(map).toHaveAttribute('data-layer-geometry', expect.stringContaining('route-01:[[16.326,48.194],[16.4,48.205]'));
     await user.click(screen.getByRole('button', { name: 'Undo' }));
-    expect(screen.getByRole('textbox', { name: 'Route vertex longitude' })).toHaveValue('16.353');
+    expect(screen.getByRole('textbox', { name: 'Route anchor longitude' })).toHaveValue('16.353');
     expect(map).toHaveAttribute('data-layer-geometry', expect.stringContaining('route-01:[[16.326,48.194],[16.353,48.205]'));
   });
 
@@ -147,8 +147,8 @@ describe('editor content appearance and POI geometry fields', () => {
 
     await user.click(screen.getByRole('button', { name: 'Select Route 01' }));
     await user.click(screen.getByRole('button', { name: /Advanced/ }));
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Route vertex' }), '1');
-    const longitude = screen.getByRole('textbox', { name: 'Route vertex longitude' });
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Route anchor' }), '1');
+    const longitude = screen.getByRole('textbox', { name: 'Route anchor longitude' });
     const map = screen.getByTestId('map-canvas');
     await user.clear(longitude);
     await user.type(longitude, '181');
@@ -156,7 +156,7 @@ describe('editor content appearance and POI geometry fields', () => {
     expect(longitude).toHaveAttribute('aria-invalid', 'true');
     expect(map).toHaveAttribute('data-layer-geometry', expect.stringContaining('route-01:[[16.326,48.194],[16.353,48.205]'));
     await user.tab();
-    expect(screen.getByRole('textbox', { name: 'Route vertex longitude' })).toHaveValue('16.353');
+    expect(screen.getByRole('textbox', { name: 'Route anchor longitude' })).toHaveValue('16.353');
     expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
   });
 
@@ -166,21 +166,21 @@ describe('editor content appearance and POI geometry fields', () => {
 
     await user.click(screen.getByRole('button', { name: 'Select Route 01' }));
     await user.click(screen.getByRole('button', { name: /Advanced/ }));
-    const vertex = screen.getByRole('combobox', { name: 'Route vertex' });
+    const vertex = screen.getByRole('combobox', { name: 'Route anchor' });
     await user.selectOptions(vertex, '1');
-    await user.click(screen.getByRole('button', { name: 'Insert route vertex after selected' }));
+    await user.click(screen.getByRole('button', { name: 'Insert route anchor after selected' }));
 
     expect(vertex).toHaveValue('2');
-    expect(vertex).toHaveAccessibleName('Route vertex');
-    expect(screen.getByRole('textbox', { name: 'Route vertex longitude' })).toHaveValue('16.372');
+    expect(vertex).toHaveAccessibleName('Route anchor');
+    expect(screen.getByRole('textbox', { name: 'Route anchor longitude' })).toHaveValue('16.372');
     expect(screen.getByTestId('map-canvas')).toHaveAttribute(
       'data-layer-geometry',
       expect.stringContaining('route-01:[[16.326,48.194],[16.353,48.205],[16.372,48.21]'),
     );
 
-    await user.click(screen.getByRole('button', { name: 'Remove selected route vertex' }));
+    await user.click(screen.getByRole('button', { name: 'Remove selected route anchor' }));
     expect(vertex).toHaveValue('2');
-    expect(screen.getByRole('textbox', { name: 'Route vertex longitude' })).toHaveValue('16.391');
+    expect(screen.getByRole('textbox', { name: 'Route anchor longitude' })).toHaveValue('16.391');
     expect(screen.getByTestId('map-canvas')).toHaveAttribute(
       'data-layer-geometry',
       expect.stringContaining('route-01:[[16.326,48.194],[16.353,48.205],[16.391,48.215]'),
@@ -188,9 +188,9 @@ describe('editor content appearance and POI geometry fields', () => {
 
     await user.click(screen.getByRole('switch', { name: 'Toggle layer visibility' }));
     expect(vertex).toBeDisabled();
-    expect(screen.getByRole('textbox', { name: 'Route vertex longitude' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Insert route vertex after selected' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Remove selected route vertex' })).toBeDisabled();
+    expect(screen.getByRole('textbox', { name: 'Route anchor longitude' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Insert route anchor after selected' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Remove selected route anchor' })).toBeDisabled();
   });
 
   it('moves a shape vertex with live ring closure and history feedback', async () => {
@@ -380,26 +380,20 @@ describe('editor POI appearance and geometry fields', () => {
   });
 });
 
-describe('route travel-profile properties', () => {
-  it('commits profile and marker visibility as separate undoable edits', async () => {
+describe('route travel-marker properties', () => {
+  it('commits the decorative marker as one undoable edit', async () => {
     const user = userEvent.setup();
     render(<App />);
 
     await user.click(screen.getByRole('button', { name: 'Select Route 01' }));
-    const profile = screen.getByRole('combobox', { name: 'Route travel profile' });
-    const marker = screen.getByRole('checkbox', { name: 'Show travel-mode marker' });
-    await user.selectOptions(profile, 'air');
-    await user.click(marker);
+    const marker = screen.getByRole('combobox', { name: 'Route travel marker' });
+    await user.selectOptions(marker, 'air');
 
-    expect(profile).toHaveValue('air');
-    expect(marker).toBeChecked();
+    expect(marker).toHaveValue('air');
     expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-layer-state', expect.stringContaining('route-01:true'));
 
     await user.click(screen.getByRole('button', { name: 'Undo' }));
-    expect(screen.getByRole('checkbox', { name: 'Show travel-mode marker' })).not.toBeChecked();
-    expect(screen.getByRole('combobox', { name: 'Route travel profile' })).toHaveValue('air');
-    await user.click(screen.getByRole('button', { name: 'Undo' }));
-    expect(screen.getByRole('combobox', { name: 'Route travel profile' })).toHaveValue('car');
+    expect(screen.getByRole('combobox', { name: 'Route travel marker' })).toHaveValue('none');
   });
 });
 

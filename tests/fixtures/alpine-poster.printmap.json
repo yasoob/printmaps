@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 22,
+  "schemaVersion": 23,
   "id": "alpine-poster",
   "title": "Alpine poster",
   "page": {
@@ -42,8 +42,7 @@
         "kind": "route",
         "color": "#d9363e",
         "width": 4,
-        "travelProfile": "walk",
-        "showTravelModeIcon": false
+        "travelMarker": null
       },
       "geometry": {
         "type": "LineString",

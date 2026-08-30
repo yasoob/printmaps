@@ -7,11 +7,11 @@ import { commitDocument, hasSameDocumentContent, replaceLayers, type ProjectSet 
 import { createPoiStructureActions } from './storePoiActions';
 import { createAdministrativeAreaActions } from './storeAdministrativeAreaActions';
 import { createRouteGeometryActions } from './storeRouteGeometryActions';
-import { createDirectionsRouteAction } from './storeDirectionsRouteActions';
+import { createDirectionsRouteActions } from './storeDirectionsRouteActions';
 import { createRouteAction } from './storeRouteCreationAction';
 import { createMapMatchingAction } from './storeMapMatchingAction';
 import { createReplaceLayerFromImportAction } from './storeImportReplacementAction';
-type LayerPropertyActions = Pick<ProjectState, 'applyMapMatching' | 'insertRouteVertex' | 'removeRouteVertex' | 'renameLayer' | 'replaceRouteGeometry' | 'selectLayer' | 'setArcSegmentCurvature' | 'setLayerAppearance' | 'setLayerOpacity' | 'setPoiCoordinates' | 'setPoiCustomMarker' | 'setRouteVertex' | 'toggleLayerVisibility' | 'toggleLayerLock'>;
+type LayerPropertyActions = Pick<ProjectState, 'applyMapMatching' | 'insertRouteVertex' | 'removeRouteVertex' | 'renameLayer' | 'replaceAuthoredRoute' | 'replaceRouteGeometry' | 'selectLayer' | 'setArcSegmentCurvature' | 'setLayerAppearance' | 'setLayerOpacity' | 'setPoiCoordinates' | 'setPoiCustomMarker' | 'setRouteVertex' | 'toggleLayerVisibility' | 'toggleLayerLock'>;
 
 function isCanonicalCustomMarkerAsset(asset: CustomMarkerAsset): boolean {
   try {
@@ -66,11 +66,11 @@ function createShapeAction(set: ProjectSet): ProjectState['createShape'] {
   });
 }
 
-export function createLayerStructureActions(set: ProjectSet): Pick<ProjectState, 'createAdministrativeArea' | 'createDirectionsRoute' | 'createPoi' | 'createPoiBatch' | 'createSearchPoi' | 'createRoute' | 'createShape' | 'deleteLayer' | 'duplicateLayer' | 'importLayers' | 'moveLayer' | 'replaceLayerFromImport'> {
+export function createLayerStructureActions(set: ProjectSet): Pick<ProjectState, 'createAdministrativeArea' | 'createDirectionsRoute' | 'replaceDirectionsRoute' | 'createPoi' | 'createPoiBatch' | 'createSearchPoi' | 'createRoute' | 'createShape' | 'deleteLayer' | 'duplicateLayer' | 'importLayers' | 'moveLayer' | 'replaceLayerFromImport'> {
   return {
     ...createPoiStructureActions(set),
     ...createAdministrativeAreaActions(set),
-    createDirectionsRoute: createDirectionsRouteAction(set),
+    ...createDirectionsRouteActions(set),
     createRoute: createRouteAction(set),
     createShape: createShapeAction(set),
     replaceLayerFromImport: createReplaceLayerFromImportAction(set),

@@ -14,8 +14,7 @@ const arcRoute: ContentLayer = {
     kind: 'route',
     color: '#d9363e',
     width: 4,
-    travelProfile: 'air',
-    showTravelModeIcon: true,
+    travelMarker: 'air',
   },
   geometry: {
     type: 'Arc',
@@ -52,14 +51,14 @@ it('exposes Arc coordinates, structure, and per-segment curvature controls', asy
   await user.click(screen.getByRole('button', { name: 'Flip arc direction' }));
   expect(onArcCurvatureChange).toHaveBeenCalledWith(1, 0.4);
 
-  const longitude = screen.getByRole('textbox', { name: 'Route vertex longitude' });
+  const longitude = screen.getByRole('textbox', { name: 'Route anchor longitude' });
   longitude.focus();
   await user.clear(longitude);
   await user.type(longitude, '1.25');
   await user.tab();
   expect(onRouteVertexChange).toHaveBeenCalledWith(0, [1.25, 0]);
-  await user.click(screen.getByRole('button', { name: 'Insert route vertex after selected' }));
+  await user.click(screen.getByRole('button', { name: 'Insert route anchor after selected' }));
   expect(onRouteVertexInsert).toHaveBeenCalledWith(0);
-  await user.click(screen.getByRole('button', { name: 'Remove selected route vertex' }));
+  await user.click(screen.getByRole('button', { name: 'Remove selected route anchor' }));
   expect(onRouteVertexRemove).toHaveBeenCalledWith(1);
 });

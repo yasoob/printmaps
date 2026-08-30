@@ -139,7 +139,7 @@ describe('layered SVG print scene', () => {
     project.layers[0].visible = false;
     project.layers[0].opacity = 37;
     project.layers[0].appearance = {
-      kind: 'route', color: '#010203', width: 8, travelProfile: 'car', showTravelModeIcon: false,
+      kind: 'route', color: '#010203', width: 8, travelMarker: null,
     };
     project.layers[1].appearance = { kind: 'poi', color: '#abcdef', size: 21, markerShape: 'circle', markerSymbol: 'none', label: '' };
     project.layers[2].appearance = {
@@ -233,8 +233,7 @@ describe('layered SVG print scene validation', () => {
       kind: 'route',
       color: 'url(javascript:owned())',
       width: 4,
-      travelProfile: 'car',
-      showTravelModeIcon: false,
+      travelMarker: null,
     };
     expect(() => serializePrintScene(project, options)).toThrow('unsafe SVG paint');
 
@@ -243,15 +242,14 @@ describe('layered SVG print scene validation', () => {
   });
 });
 
-describe('route travel-mode SVG markers', () => {
+describe('route travel SVG markers', () => {
   it('prints an enabled marker inside its named vector layer', () => {
     const project = createInitialProjectDocument();
     project.layers[0].appearance = {
       kind: 'route',
       color: '#d9363e',
       width: 4,
-      travelProfile: 'air',
-      showTravelModeIcon: true,
+      travelMarker: 'air',
     };
 
     const svgDocument = parseSvg(serializePrintScene(project, {
@@ -259,7 +257,7 @@ describe('route travel-mode SVG markers', () => {
       attribution: '© OpenStreetMap contributors',
       project: projector,
     }));
-    const marker = requiredElement(svgDocument, '[data-layer-id="route-01"] [data-route-travel-profile="air"]');
+    const marker = requiredElement(svgDocument, '[data-layer-id="route-01"] [data-route-travel-marker="air"]');
 
     expect(marker.querySelector('circle')).not.toBeNull();
     expect(marker.querySelector('text')?.textContent).toBe('AIR');

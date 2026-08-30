@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { DirectionsRouteInput } from '../../domain/project';
-import type { RouteAuthoringOptions, RouteTravelProfile } from '../../domain/routeProfiles';
+import type { RoadTravelMode, RouteAuthoringOptions } from '../../domain/routeProfiles';
+import type { RouteMutationResult } from '../store';
 import type { DirectionsProvider, ProviderTravelProfile } from '../../services/mapbox/contracts';
 import { MapboxProviderError } from '../../services/mapbox/errors';
 import { createMapboxDirectionsProvider } from '../../services/mapbox/directions';
@@ -9,7 +10,7 @@ const defaultProvider = createMapboxDirectionsProvider({
   token: import.meta.env.VITE_MAPBOX_PUBLIC_ACCESS,
 });
 
-const ROAD_PROFILE: Partial<Record<RouteTravelProfile, ProviderTravelProfile>> = {
+const ROAD_PROFILE: Record<RoadTravelMode, ProviderTravelProfile> = {
   car: 'driving',
   walk: 'walking',
   bike: 'cycling',
@@ -22,7 +23,7 @@ type DirectionsAuthoringOptions = {
     input: DirectionsRouteInput,
     options: RouteAuthoringOptions,
     expectedDocumentEpoch: number,
-  ) => string | null;
+  ) => RouteMutationResult;
   provider?: DirectionsProvider;
 };
 
@@ -36,8 +37,8 @@ function errorMessage(error: unknown) {
     : 'The road route could not be created. Try again.';
 }
 
-export function roadProfileFor(travelProfile: RouteTravelProfile) {
-  return ROAD_PROFILE[travelProfile] ?? null;
+export function roadProfileFor(travelMode: RoadTravelMode) {
+  return ROAD_PROFILE[travelMode];
 }
 
 export function useDirectionsAuthoring(options: DirectionsAuthoringOptions) {
@@ -77,11 +78,7 @@ export function useDirectionsAuthoring(options: DirectionsAuthoringOptions) {
     waypoints: readonly (readonly [number, number])[],
     authoringOptions: RouteAuthoringOptions,
   ) => {
-    const profile = roadProfileFor(authoringOptions.travelProfile);
-    if (!profile) {
-      setRequestError({ lifecycleVersion: lifecycle.version, message: 'Road routing supports Car, Walking, or Cycling.' });
-      return null;
-    }
+    const profile = roadProfileFor(authoringOptions.roadTravelMode);
     controllerRef.current?.abort();
     const controller = new AbortController();
     controllerRef.current = controller;
@@ -98,17 +95,19 @@ export function useDirectionsAuthoring(options: DirectionsAuthoringOptions) {
         || lifecycleRef.current.documentEpoch !== expectedDocumentEpoch) return null;
       const selected = response.routes[0];
       if (!selected) throw new Error('Mapbox did not return a road route. Try different points.');
-      return options.onCreate({
+      const result = options.onCreate({
         geometry: selected.geometry.map(([longitude, latitude]) => [longitude, latitude]),
         waypoints: waypoints.map(([longitude, latitude]) => [longitude, latitude]),
         profile,
         distanceMeters: selected.distanceMeters,
         durationSeconds: selected.durationSeconds,
       }, authoringOptions, expectedDocumentEpoch);
+      if (!result.ok) setRequestError({ lifecycleVersion: lifecycle.version, message: result.error });
+      return result;
     } catch (requestError) {
       if (controller.signal.aborted || requestId !== requestIdRef.current) return null;
       setRequestError({ lifecycleVersion: lifecycle.version, message: errorMessage(requestError) });
-      return null;
+      return { ok: false, error: errorMessage(requestError) } satisfies RouteMutationResult;
     } finally {
       if (requestId === requestIdRef.current) {
         controllerRef.current = null;

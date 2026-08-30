@@ -51,7 +51,9 @@ type MapCanvasControllerOptions = {
   onCameraViewportChange?: (center: readonly [number, number], zoom: number, mode: CameraViewportChangeMode) => void;
   onMapClick?: (coordinate: [number, number]) => void;
   onPoiCoordinatesChange?: (id: string, coordinate: readonly [number, number]) => void;
+  onRouteEditorError?: (message: string | null) => void;
   onRouteGeometryChange?: (id: string, coordinates: readonly (readonly [number, number])[]) => void;
+  onRouteVertexChange?: (id: string, vertexIndex: number, coordinate: readonly [number, number]) => void;
   onRouteVertexInsert?: (id: string, segmentIndex: number) => void;
   routeAuthoring?: RouteAuthoring;
   onShapeGeometryChange?: (id: string, geometry: ShapeGeometry) => void;
@@ -69,7 +71,7 @@ function routePreviewGeometry(layer: ContentLayer, coordinates: [number, number]
 }
 
 type RouteEditingOptions = Pick<MapCanvasControllerOptions,
-  'layers' | 'onRouteGeometryChange' | 'routeAuthoring' | 'selectedId'> & {
+  'layers' | 'onRouteEditorError' | 'onRouteGeometryChange' | 'routeAuthoring' | 'selectedId'> & {
     ignoreNextMapClickRef: RefObject<boolean>;
     map: MapLibreMap | null;
   };
@@ -100,6 +102,7 @@ function useRouteEditing(options: RouteEditingOptions) {
     authoring: guardedAuthoring(options.routeAuthoring, options.ignoreNextMapClickRef),
     layers: options.layers,
     map: options.map,
+    onEditorError: options.onRouteEditorError,
     onRouteGeometryChange: options.onRouteGeometryChange ?? ignoreRouteGeometryChange,
     onRoutePreview: handlePreview,
     selectedId: options.onRouteGeometryChange ? options.selectedId : null,
@@ -154,7 +157,7 @@ function useShapeEditing({ layers, map, onShapeGeometryChange, selectedId, shape
 }
 
 function useAccessibleRouteVertexEditing(options: Pick<MapCanvasControllerOptions,
-  'layers' | 'onRouteGeometryChange' | 'onRouteVertexInsert' | 'selectedId' | 'stylePreset'> & {
+  'layers' | 'onRouteGeometryChange' | 'onRouteVertexChange' | 'onRouteVertexInsert' | 'selectedId' | 'stylePreset'> & {
     map: RefObject<MapLibreMap | null>;
     onRoutePreview?: (coordinates: [number, number][]) => boolean;
   }) {
@@ -169,7 +172,7 @@ function useAccessibleRouteVertexEditing(options: Pick<MapCanvasControllerOption
   }, [options]);
   useRouteVertexEditing({
     layers: options.layers, map: options.map,
-    onRouteVertexChange: options.onRouteGeometryChange ? handleChange : undefined,
+    onRouteVertexChange: options.onRouteVertexChange ?? (options.onRouteGeometryChange ? handleChange : undefined),
     onRouteVertexInsert: options.onRouteVertexInsert,
     onRouteVertexPreview: options.onRoutePreview,
     selectedId: options.selectedId, stylePreset: options.stylePreset,
@@ -194,7 +197,9 @@ export function useMapCanvasController({
   onExporterChange,
   onLayerSelect,
   onCameraViewportChange, onMapClick, onPoiCoordinatesChange,
+  onRouteEditorError,
   onRouteGeometryChange,
+  onRouteVertexChange,
   onRouteVertexInsert,
   routeAuthoring,
   onShapeGeometryChange,
@@ -204,7 +209,7 @@ export function useMapCanvasController({
   contentRevision,
 }: MapCanvasControllerOptions) {
   const container = useRef<HTMLDivElement>(null), map = useRef<MapLibreMap | null>(null), contentAdapter = useRef<MapContentAdapter | null>(null), ignoreNextMapClickRef = useRef(false);
-  const [terraMap, setTerraMap] = useState<MapLibreMap | null>(null), routeEditing = useRouteEditing({ ignoreNextMapClickRef, layers, map: terraMap, onRouteGeometryChange, routeAuthoring, selectedId });
+  const [terraMap, setTerraMap] = useState<MapLibreMap | null>(null), routeEditing = useRouteEditing({ ignoreNextMapClickRef, layers, map: terraMap, onRouteEditorError, onRouteGeometryChange, routeAuthoring, selectedId });
   const { displayLayers } = routeEditing;
   const contentState = useRef<MapContentState>({ layers: displayLayers, assets, selectedId, previewedId, contentRevision }), contentSyncDeferred = useRef(false), contentReady = useRef(false), mapFailed = useRef(false);
   const layerSelect = useRef(onLayerSelect), backgroundClick = useRef(onBackgroundClick), mapClick = useRef(onMapClick);
@@ -295,7 +300,7 @@ export function useMapCanvasController({
     });
   }, [cameraState, handleContentSyncResult, invalidateExporter, resetFeatureVisibility, resetMapLanguage, resetTextScale, stylePreset, synchronizeFeatureVisibility, synchronizeMapLanguage, synchronizeTextScale]);
 
-  usePointEditing({ layers, map, onPoiCoordinatesChange, selectedId, stylePreset }); useShapeEditing({ layers, map, onShapeGeometryChange, selectedId, shapeEditMode, stylePreset }); useAccessibleRouteVertexEditing({ layers, map, onRouteGeometryChange, onRouteVertexInsert, onRoutePreview: routeEditing.updateEditingGeometry, selectedId, stylePreset });
+  usePointEditing({ layers, map, onPoiCoordinatesChange, selectedId, stylePreset }); useShapeEditing({ layers, map, onShapeGeometryChange, selectedId, shapeEditMode, stylePreset }); useAccessibleRouteVertexEditing({ layers, map, onRouteGeometryChange, onRouteVertexChange, onRouteVertexInsert, onRoutePreview: routeEditing.updateEditingGeometry, selectedId, stylePreset });
 
   useMapCameraSynchronization({ camera, container, map, stylePreset }); useMapLocationRequest({ container, locationRequest, map, stylePreset });
   useMapFitRequests({ camera, cameraViewportChangeMode, container, fitImportBounds, fitImportRequest, fitLayerId, fitLayerRequest, fitRequest, layers, map });

@@ -56,7 +56,7 @@ test('selected route matches to roads and remains durable editable and exportabl
   await save.saveAs(projectPath);
   const project = JSON.parse(await readFile(projectPath, 'utf8'));
   const savedRoute = project.layers.find(({ id }: { id: string }) => id === 'route-01');
-  expect(project.schemaVersion).toBe(22);
+  expect(project.schemaVersion).toBe(23);
   expect(savedRoute).toMatchObject({
     geometry: { type: 'LineString', coordinates: matched },
     provenance: {

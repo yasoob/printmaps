@@ -1,5 +1,5 @@
 import { memo, useCallback, useLayoutEffect, useRef, useState } from 'react';
-import type { ContentLayer, LayerAppearance, MapMatchingInput, ShapeAppearance } from '../../domain/project';
+import { MAX_MERCATOR_LATITUDE, type ContentLayer, type LayerAppearance, type MapMatchingInput, type ShapeAppearance } from '../../domain/project';
 import type { CustomMarkerAsset } from '../../domain/customMarkerAssets';
 import type { MapMatchingProvider } from '../../services/mapbox/contracts';
 import { CoordinateField } from './CoordinateField';
@@ -11,6 +11,7 @@ import { RouteLayerProperties } from './RouteLayerProperties';
 import { ShapeVertexControls } from './ShapeVertexControls';
 import { Switch } from './UiControls';
 import { InputGroup, InputGroupAddon, InputNumber } from './InputGroup';
+import type { RouteExtensionEndpoint } from './routeAuthoringActions';
 
 function useStableEvent<Arguments extends unknown[], Result>(callback: (...arguments_: Arguments) => Result) {
   const callbackRef = useRef(callback);
@@ -27,6 +28,12 @@ type LayerPropertiesProps = {
   onRename: (name: string) => void;
   onOpacityChange: (opacity: number) => void;
   onAppearanceChange: (appearance: LayerAppearance) => void;
+  onBeginRouteExtend?: (endpoint: RouteExtensionEndpoint, trigger: HTMLButtonElement) => void;
+  directionsRouteEditError?: string | null;
+  directionsRouteEditIsRouting?: boolean;
+  directionsRouteEditWaypoints?: readonly (readonly [number, number])[] | null;
+  onRetryDirectionsRouteEdit?: () => void;
+  onCancelDirectionsRouteEdit?: () => void;
   onArcCurvatureChange?: (segmentIndex: number, curvature: number) => void;
   onPoiCoordinatesChange: (coordinates: readonly [number, number]) => void;
   onPoiCustomMarkerChange: (asset: CustomMarkerAsset | null) => void;
@@ -47,7 +54,7 @@ function PoiCoordinateControls({
   return (
     <>
       <CoordinateField key={`longitude-${coordinates[0]}`} ariaLabel="POI longitude" label="Longitude" minimum={-180} maximum={180} value={coordinates[0]} onCommit={(longitude) => onChange([longitude, coordinates[1]])} />
-      <CoordinateField key={`latitude-${coordinates[1]}`} ariaLabel="POI latitude" label="Latitude" minimum={-90} maximum={90} value={coordinates[1]} onCommit={(latitude) => onChange([coordinates[0], latitude])} />
+      <CoordinateField key={`latitude-${coordinates[1]}`} ariaLabel="POI latitude" label="Latitude" minimum={-MAX_MERCATOR_LATITUDE} maximum={MAX_MERCATOR_LATITUDE} value={coordinates[1]} onCommit={(latitude) => onChange([coordinates[0], latitude])} />
     </>
   );
 }
@@ -122,14 +129,20 @@ type RouteTypePropertiesProps = {
   mapMatchingProvider: MapMatchingProvider | undefined;
   onApplyMapMatching: LayerPropertiesProps['onApplyMapMatching'];
   onAppearanceChange: LayerPropertiesProps['onAppearanceChange'];
+  onBeginRouteExtend: LayerPropertiesProps['onBeginRouteExtend'];
   onArcCurvatureChange: LayerPropertiesProps['onArcCurvatureChange'];
   onRouteVertexInsert: LayerPropertiesProps['onRouteVertexInsert'];
   onRouteVertexRemove: LayerPropertiesProps['onRouteVertexRemove'];
   onRouteVertexChange: LayerPropertiesProps['onRouteVertexChange'];
+  directionsRouteEditError: LayerPropertiesProps['directionsRouteEditError'];
+  directionsRouteEditIsRouting: LayerPropertiesProps['directionsRouteEditIsRouting'];
+  directionsRouteEditWaypoints: LayerPropertiesProps['directionsRouteEditWaypoints'];
+  onRetryDirectionsRouteEdit: LayerPropertiesProps['onRetryDirectionsRouteEdit'];
+  onCancelDirectionsRouteEdit: LayerPropertiesProps['onCancelDirectionsRouteEdit'];
 };
 
 function RouteTypeProperties(props: RouteTypePropertiesProps) {
-  return <RouteLayerProperties layer={props.layer} {...(props.documentEpoch !== undefined && { documentEpoch: props.documentEpoch })} {...(props.mapMatchingProvider && { mapMatchingProvider: props.mapMatchingProvider })} {...(props.onApplyMapMatching && { onApplyMapMatching: props.onApplyMapMatching })} {...(props.onArcCurvatureChange && { onArcCurvatureChange: props.onArcCurvatureChange })} onAppearanceChange={props.onAppearanceChange} onRouteVertexInsert={props.onRouteVertexInsert} onRouteVertexRemove={props.onRouteVertexRemove} onRouteVertexChange={props.onRouteVertexChange} />;
+  return <RouteLayerProperties layer={props.layer} {...(props.documentEpoch !== undefined && { documentEpoch: props.documentEpoch })} {...(props.mapMatchingProvider && { mapMatchingProvider: props.mapMatchingProvider })} {...(props.onApplyMapMatching && { onApplyMapMatching: props.onApplyMapMatching })} {...(props.onArcCurvatureChange && { onArcCurvatureChange: props.onArcCurvatureChange })} {...(props.onBeginRouteExtend && { onBeginExtend: props.onBeginRouteExtend })} directionsRouteEditError={props.directionsRouteEditError} directionsRouteEditIsRouting={props.directionsRouteEditIsRouting} directionsRouteEditWaypoints={props.directionsRouteEditWaypoints} onRetryDirectionsRouteEdit={props.onRetryDirectionsRouteEdit} onCancelDirectionsRouteEdit={props.onCancelDirectionsRouteEdit} onAppearanceChange={props.onAppearanceChange} onRouteVertexInsert={props.onRouteVertexInsert} onRouteVertexRemove={props.onRouteVertexRemove} onRouteVertexChange={props.onRouteVertexChange} />;
 }
 
 function LayerTypeProperties({
@@ -139,6 +152,7 @@ function LayerTypeProperties({
   onApplyMapMatching,
   assets,
   onAppearanceChange,
+  onBeginRouteExtend,
   onArcCurvatureChange,
   onPoiCoordinatesChange,
   onPoiCustomMarkerChange,
@@ -146,10 +160,15 @@ function LayerTypeProperties({
   onRouteVertexRemove,
   onRouteVertexChange,
   onShapeVertexChange,
-}: Pick<LayerPropertiesProps, 'documentEpoch' | 'layer' | 'assets' | 'mapMatchingProvider' | 'onApplyMapMatching' | 'onAppearanceChange' | 'onArcCurvatureChange' | 'onPoiCoordinatesChange' | 'onPoiCustomMarkerChange' | 'onRouteVertexInsert' | 'onRouteVertexRemove' | 'onRouteVertexChange' | 'onShapeVertexChange'>) {
+  directionsRouteEditError,
+  directionsRouteEditIsRouting,
+  directionsRouteEditWaypoints,
+  onRetryDirectionsRouteEdit,
+  onCancelDirectionsRouteEdit,
+}: Pick<LayerPropertiesProps, 'documentEpoch' | 'layer' | 'assets' | 'mapMatchingProvider' | 'onApplyMapMatching' | 'onAppearanceChange' | 'onBeginRouteExtend' | 'onArcCurvatureChange' | 'onPoiCoordinatesChange' | 'onPoiCustomMarkerChange' | 'onRouteVertexInsert' | 'onRouteVertexRemove' | 'onRouteVertexChange' | 'onShapeVertexChange' | 'directionsRouteEditError' | 'directionsRouteEditIsRouting' | 'directionsRouteEditWaypoints' | 'onRetryDirectionsRouteEdit' | 'onCancelDirectionsRouteEdit'>) {
   switch (layer.type) {
     case 'route': {
-      return <RouteTypeProperties documentEpoch={documentEpoch} layer={layer} mapMatchingProvider={mapMatchingProvider} onApplyMapMatching={onApplyMapMatching} onAppearanceChange={onAppearanceChange} onArcCurvatureChange={onArcCurvatureChange} onRouteVertexInsert={onRouteVertexInsert} onRouteVertexRemove={onRouteVertexRemove} onRouteVertexChange={onRouteVertexChange} />;
+      return <RouteTypeProperties documentEpoch={documentEpoch} layer={layer} mapMatchingProvider={mapMatchingProvider} onApplyMapMatching={onApplyMapMatching} onAppearanceChange={onAppearanceChange} onBeginRouteExtend={onBeginRouteExtend} onArcCurvatureChange={onArcCurvatureChange} onRouteVertexInsert={onRouteVertexInsert} onRouteVertexRemove={onRouteVertexRemove} onRouteVertexChange={onRouteVertexChange} directionsRouteEditError={directionsRouteEditError} directionsRouteEditIsRouting={directionsRouteEditIsRouting} directionsRouteEditWaypoints={directionsRouteEditWaypoints} onRetryDirectionsRouteEdit={onRetryDirectionsRouteEdit} onCancelDirectionsRouteEdit={onCancelDirectionsRouteEdit} />;
     }
     case 'poi': {
       return <PoiLayerProperties layer={layer} assets={assets} onAppearanceChange={onAppearanceChange} onPoiCoordinatesChange={onPoiCoordinatesChange} onPoiCustomMarkerChange={onPoiCustomMarkerChange} />;
@@ -187,6 +206,12 @@ export function LayerProperties({
   onRename,
   onOpacityChange,
   onAppearanceChange,
+  onBeginRouteExtend,
+  directionsRouteEditError,
+  directionsRouteEditIsRouting,
+  directionsRouteEditWaypoints,
+  onRetryDirectionsRouteEdit,
+  onCancelDirectionsRouteEdit,
   onArcCurvatureChange,
   onPoiCoordinatesChange,
   onPoiCustomMarkerChange,
@@ -249,7 +274,7 @@ export function LayerProperties({
         onToggleLock={toggleLayerLock}
         onToggleVisibility={toggleLayerVisibility}
       />
-      <LayerTypeProperties documentEpoch={documentEpoch} layer={layer} assets={assets} mapMatchingProvider={mapMatchingProvider} onApplyMapMatching={onApplyMapMatching} onAppearanceChange={onAppearanceChange} onArcCurvatureChange={onArcCurvatureChange} onPoiCoordinatesChange={onPoiCoordinatesChange} onPoiCustomMarkerChange={onPoiCustomMarkerChange} onRouteVertexInsert={onRouteVertexInsert} onRouteVertexRemove={onRouteVertexRemove} onRouteVertexChange={onRouteVertexChange} onShapeVertexChange={onShapeVertexChange} />
+      <LayerTypeProperties documentEpoch={documentEpoch} layer={layer} assets={assets} mapMatchingProvider={mapMatchingProvider} onApplyMapMatching={onApplyMapMatching} onAppearanceChange={onAppearanceChange} onBeginRouteExtend={onBeginRouteExtend} onArcCurvatureChange={onArcCurvatureChange} onPoiCoordinatesChange={onPoiCoordinatesChange} onPoiCustomMarkerChange={onPoiCustomMarkerChange} onRouteVertexInsert={onRouteVertexInsert} onRouteVertexRemove={onRouteVertexRemove} onRouteVertexChange={onRouteVertexChange} onShapeVertexChange={onShapeVertexChange} directionsRouteEditError={directionsRouteEditError} directionsRouteEditIsRouting={directionsRouteEditIsRouting} directionsRouteEditWaypoints={directionsRouteEditWaypoints} onRetryDirectionsRouteEdit={onRetryDirectionsRouteEdit} onCancelDirectionsRouteEdit={onCancelDirectionsRouteEdit} />
     </div>
   );
 }

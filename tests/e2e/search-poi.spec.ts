@@ -53,7 +53,7 @@ test('searched address becomes one durable editable and exportable POI', async (
   await save.saveAs(projectPath);
   const project = JSON.parse(await readFile(projectPath, 'utf8'));
   const savedPoi = project.layers.find(({ id }: { id: string }) => id === 'poi-01');
-  expect(project.schemaVersion).toBe(22);
+  expect(project.schemaVersion).toBe(23);
   expect(savedPoi).toMatchObject({
     name: 'Café Central, Herrengasse 14, Vienna',
     type: 'poi',

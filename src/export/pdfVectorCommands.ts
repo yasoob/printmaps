@@ -1,7 +1,7 @@
 import { rebasePathLongitudes, sampleArc, sampledPathMidpoint } from '../domain/routeArcGeometry';
 import type { ContentLayer } from '../domain/project';
 import { POI_MARKER_SYMBOL_GLYPHS } from '../domain/poiMarkers';
-import { ROUTE_TRAVEL_PROFILE_MARKERS } from '../domain/routeProfiles';
+import { ROUTE_TRAVEL_MARKER_GLYPHS } from '../domain/routeProfiles';
 import type { PreviewPng } from './previewPng';
 
 const POINTS_PER_MM = 72 / 25.4;
@@ -92,18 +92,18 @@ function poiMarkerCommands(point: FramePoint, radius: number, shape: 'circle' | 
 function routeAppearance(layer: ContentLayer) {
   return layer.appearance?.kind === 'route'
     ? layer.appearance
-    : { color: '#d9363e', width: 4, travelProfile: 'car' as const, showTravelModeIcon: false };
+    : { color: '#d9363e', width: 4, travelMarker: null };
 }
 
 function routeMarkerCommands(layer: ContentLayer, point: FramePoint) {
   const appearance = routeAppearance(layer);
-  if (!appearance.showTravelModeIcon) return '';
-  const label = ROUTE_TRAVEL_PROFILE_MARKERS[appearance.travelProfile];
+  if (!appearance.travelMarker) return '';
+  const label = ROUTE_TRAVEL_MARKER_GLYPHS[appearance.travelMarker];
   const radius = 4 * POINTS_PER_MM;
   const textX = point.x - label.length * 1.35;
   const textY = point.y - 1.8;
   const marker = [
-    `% Route travel profile: ${appearance.travelProfile}`,
+    `% Route travel marker: ${appearance.travelMarker}`,
     'q',
     `${colorComponents(appearance.color)} rg`,
     '1 1 1 RG',

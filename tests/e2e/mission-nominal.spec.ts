@@ -88,7 +88,7 @@ test('nominal design, author, import, persist, reopen, and export workflow', asy
   await projectDownload.saveAs(projectPath);
   const savedProject = JSON.parse(await readFile(projectPath, 'utf8'));
   expect(savedProject).toMatchObject({
-    schemaVersion: 22,
+    schemaVersion: 23,
     page: { widthMm: 20, heightMm: 60, orientation: 'portrait' },
     style: { preset: 'sea-glass' },
   });

@@ -1,7 +1,7 @@
 import { Marker, type Map as MapLibreMap } from 'maplibre-gl';
 import { createArcGeometry, sampleArc } from '../domain/routeArcGeometry';
 import type { ContentLayer } from '../domain/project';
-import { isValidPosition } from '../domain/routeGeometry';
+import { isValidPosition, semanticRoutePointLabel, semanticRoutePositions } from '../domain/routeGeometry';
 import { mapContentSourceId } from './MapContentGeometry';
 
 export type RouteVertexMarker = {
@@ -119,6 +119,7 @@ type VertexMarkerOptions = {
   preview: (vertexIndex: number, coordinate: readonly [number, number]) => boolean;
   previewState: PreviewState;
   restoreCanonicalPreview: () => boolean;
+  layer: ContentLayer;
 };
 
 function addVertexMarkers(options: VertexMarkerOptions) {
@@ -127,8 +128,9 @@ function addVertexMarkers(options: VertexMarkerOptions) {
     element.type = 'button';
     element.className = 'route-vertex-marker';
     element.dataset.routeVertexIndex = String(vertexIndex);
-    element.setAttribute('aria-label', `Drag route vertex ${vertexIndex + 1}`);
-    element.title = `Drag route vertex ${vertexIndex + 1} · Arrow keys nudge`;
+    const pointLabel = semanticRoutePointLabel(options.layer, vertexIndex);
+    element.setAttribute('aria-label', `Drag route ${pointLabel.toLowerCase()}`);
+    element.title = `Drag route ${pointLabel.toLowerCase()} · Arrow keys nudge`;
     const marker = options.createMarker(element).setLngLat(coordinate).addTo(options.map);
     marker.on('drag', () => {
       const { lng, lat } = marker.getLngLat();
@@ -216,9 +218,12 @@ export function installRouteVertexEditing(
 
   const createMarker = options.createMarker ?? createMapLibreMarker;
   const onPreview = options.onPreview ?? (() => true);
-  const canonicalCoordinates = (layer.geometry.type === 'Arc' ? layer.geometry.anchors : layer.geometry.coordinates)
+  const isDirectionsRoute = layer.provenance?.service === 'directions-v5';
+  const canonicalCoordinates = (semanticRoutePositions(layer) ?? [])
     .map((coordinate) => [...coordinate] as [number, number]);
-  const canonicalDisplayCoordinates = displayCoordinates(layer, canonicalCoordinates);
+  const canonicalDisplayCoordinates = isDirectionsRoute
+    ? (layer.geometry.type === 'LineString' ? layer.geometry.coordinates.map((coordinate) => [...coordinate] as [number, number]) : null)
+    : displayCoordinates(layer, canonicalCoordinates);
   if (!canonicalDisplayCoordinates) throw new Error('The selected route cannot be previewed.');
   const markers: RouteVertexMarker[] = [];
   const previewState: PreviewState = { hasUncommitted: false };
@@ -235,6 +240,7 @@ export function installRouteVertexEditing(
     return !previewState.hasUncommitted;
   };
   const preview = (vertexIndex: number, coordinate: readonly [number, number]) => {
+    if (isDirectionsRoute) return true;
     const coordinates = canonicalCoordinates.map((candidate, index) => (
       index === vertexIndex ? [coordinate[0], coordinate[1]] as [number, number] : candidate
     ));
@@ -250,7 +256,7 @@ export function installRouteVertexEditing(
     return true;
   };
   addVertexMarkers({
-    canonicalCoordinates, createMarker, map, markers, onCommit, preview, previewState, restoreCanonicalPreview,
+    canonicalCoordinates, createMarker, layer, map, markers, onCommit, preview, previewState, restoreCanonicalPreview,
   });
   if (layer.geometry.type === 'Arc' && options.onInsert) {
     addArcInsertionMarkers(map, layer.geometry, {

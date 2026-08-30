@@ -178,7 +178,7 @@ describe('reviewed import replacement isolation', () => {
     await user.click(screen.getByRole('button', { name: 'Select Route 01' }));
     const layerName = screen.getByRole('textbox', { name: 'Layer name' });
     await user.click(screen.getByRole('button', { name: /Advanced/ }));
-    const routeLongitude = screen.getByRole('textbox', { name: 'Route vertex longitude' });
+    const routeLongitude = screen.getByRole('textbox', { name: 'Route anchor longitude' });
     await user.click(screen.getByRole('button', { name: 'Layer menu' }));
     await user.click(screen.getByRole('menuitem', { name: 'Replace layer data' }));
     fireEvent.change(importInput, {

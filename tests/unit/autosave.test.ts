@@ -149,7 +149,7 @@ describe('IndexedDB project autosave', () => {
     repository.close();
   });
 
-  it('restores a current-schema autosave that used the legacy Letter preset ID', async () => {
+  it('rejects a current-schema autosave that uses the legacy Letter preset ID', async () => {
     const name = databaseName();
     const repository = createIndexedDbAutosaveRepository({ databaseName: name });
     await repository.save(createInitialProjectDocument(), '2026-08-22T10:00:00.000Z');
@@ -160,9 +160,7 @@ describe('IndexedDB project autosave', () => {
     await replaceCurrentRecord(database, record);
     database.close();
 
-    await expect(repository.load()).resolves.toMatchObject({
-      document: { page: { preset: 'US Letter', widthMm: 279.4, heightMm: 215.9 } },
-    });
+    await expect(repository.load()).rejects.toBeInstanceOf(AutosaveCorruptionError);
     repository.close();
   });
 

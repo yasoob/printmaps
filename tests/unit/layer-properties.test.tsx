@@ -30,7 +30,7 @@ function route(width: number): ContentLayer {
     locked: false,
     opacity: 100,
     appearance: {
-      kind: 'route', color: '#d9363e', width, travelProfile: 'car', showTravelModeIcon: false,
+      kind: 'route', color: '#d9363e', width, travelMarker: null,
     },
     geometry: { type: 'LineString', coordinates: [[0, 0], [1, 1]] },
   };
@@ -68,14 +68,14 @@ describe('layer appearance draft boundaries', () => {
     const advanced = screen.getByRole('button', { name: /Advanced/ });
     expect(advanced).toHaveAttribute('aria-expanded', 'false');
     expect(advanced).toHaveTextContent('Vertices · Elevation profile');
-    expect(screen.queryByRole('combobox', { name: 'Route vertex' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Route anchor' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Generate elevation profile' })).not.toBeInTheDocument();
 
     await user.click(advanced);
 
     expect(advanced).toHaveAttribute('aria-expanded', 'true');
     expect(advanced).not.toHaveTextContent('Vertices · Elevation profile');
-    expect(screen.getByRole('combobox', { name: 'Route vertex' })).toBeVisible();
+    expect(screen.getByRole('combobox', { name: 'Route anchor' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Generate elevation profile' })).toBeVisible();
     expect(screen.getByText('Copernicus DEM GLO-90 via Open-Meteo')).toBeVisible();
   });
@@ -147,5 +147,32 @@ describe('layer appearance draft boundaries', () => {
     expect(screen.queryByRole('combobox', { name: 'Shape vertex' })).not.toBeInTheDocument();
     expect(screen.queryByRole('textbox', { name: 'Shape vertex longitude' })).not.toBeInTheDocument();
     expect(screen.getByText('Close this ring with at least three vertices before editing it.')).toBeInTheDocument();
+  });
+
+  it('does not offer destructive map matching for a Directions route', async () => {
+    const user = userEvent.setup();
+    const directionsRoute = route(4);
+    directionsRoute.provenance = {
+      provider: 'mapbox',
+      service: 'directions-v5',
+      waypoints: [[0, 0], [1, 1]],
+      profile: 'driving',
+      distanceMeters: 100,
+      durationSeconds: 10,
+    };
+    render(
+      <LayerProperties
+        layer={directionsRoute}
+        {...actions}
+        onApplyMapMatching={vi.fn()}
+      />,
+    );
+
+    const advanced = screen.getByRole('button', { name: /Advanced/ });
+    expect(advanced).toHaveTextContent('Waypoints · Elevation profile');
+    await user.click(advanced);
+
+    expect(screen.queryByRole('combobox', { name: 'Road matching travel mode' })).not.toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Route waypoint' })).toBeInTheDocument();
   });
 });
