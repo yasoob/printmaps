@@ -750,7 +750,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .property-section + .property-section { padding-top: 0.875rem; }
 .property-section h3 { @apply mb-2 mt-0 font-semibold; font-size: var(--studio-font-label); }
 .property-note {
-  @apply m-0;
+  @apply m-0 pb-2;
   color: var(--studio-text-muted);
   font-size: var(--studio-font-meta);
   line-height: 1.4;
