@@ -1882,12 +1882,13 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
     translate: none;
     transform: translateX(-50%);
   }
-  .route-authoring-panel[data-mobile-expanded="true"] {
-    top: auto;
+  .canvas-region.has-authoring-panel .route-authoring-panel[data-mobile-expanded="true"] {
+    top: 50%;
     right: auto;
-    bottom: calc(max(14px, var(--studio-safe-bottom)) + 4rem);
-    max-height: none;
-    overflow: visible;
+    bottom: auto;
+    max-height: calc(100dvh - 8rem - var(--studio-safe-top) - var(--studio-safe-bottom));
+    overflow-y: auto;
+    transform: translate(-50%, -50%);
   }
   .route-mobile-settings-toggle {
     @apply min-h-11 items-center justify-center gap-1.5 rounded-md px-3 text-xs font-medium;
