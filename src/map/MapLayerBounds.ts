@@ -36,6 +36,10 @@ export function combinedLayerBounds(layers: readonly ContentLayer[]): MapBounds 
   return [[minimumLongitude, minimumLatitude], [maximumLongitude, maximumLatitude]];
 }
 
+export function visibleLayerBounds(layers: readonly ContentLayer[]): MapBounds | undefined {
+  return combinedLayerBounds(layers.filter(({ opacity, visible }) => visible && opacity > 0));
+}
+
 export function layerBounds(layers: readonly ContentLayer[], layerId: string | null): MapBounds | undefined {
   const layer = layers.find(({ id }) => id === layerId);
   return layer ? combinedLayerBounds([layer]) : undefined;
