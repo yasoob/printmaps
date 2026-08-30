@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
-import { discardUnexpectedAutosaveDraft } from './autosave-fixture';
+import { waitForAutosaveReady } from './autosave-fixture';
 
 const isExpectedWebGlDiagnostic = (message: string, browserName: string) => (
   message.includes('GPU stall due to ReadPixels')
@@ -18,7 +18,7 @@ test('chooses original map presets through the responsive thumbnail gallery', as
   });
 
   await page.goto('/');
-  await discardUnexpectedAutosaveDraft(page);
+  await waitForAutosaveReady(page);
   const map = page.getByTestId('map-canvas');
   await expect(map).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
   const gallery = page.getByRole('radiogroup', { name: 'Map style presets' });

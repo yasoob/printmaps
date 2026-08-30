@@ -32,6 +32,7 @@ export default defineConfig({
     command: 'npm run dev -- --port 4175',
     env: {
       VITE_MAPBOX_PUBLIC_ACCESS: 'pk.fake-public-segment.fake-signature',
+      VITE_TEST_INITIAL_PROJECT: 'true',
     },
     url: 'http://127.0.0.1:4175',
     reuseExistingServer: false,

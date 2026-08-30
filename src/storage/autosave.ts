@@ -22,6 +22,11 @@ export type AutosaveRepository = {
   close: () => void;
 };
 
+export type AutosaveStartup = {
+  document: ProjectDocument;
+  loadError: unknown | null;
+};
+
 export class AutosaveCorruptionError extends Error {
   constructor(message = 'The local autosave is damaged or uses an unsupported version.') {
     super(message);
@@ -184,6 +189,25 @@ export function getAutosaveFailureMessage(reason: unknown) {
     return 'Autosave paused because its local change history is exhausted. Use Save to download a project file, then clear this site’s local data.';
   }
   return 'Autosave is unavailable. Save a project file to keep a portable copy of your work.';
+}
+
+export async function loadAutosavedProject(
+  repository: AutosaveRepository | null,
+  createFallbackDocument: () => ProjectDocument,
+): Promise<AutosaveStartup> {
+  if (!repository) return { document: createFallbackDocument(), loadError: null };
+  try {
+    const draft = await repository.load();
+    return {
+      document: draft?.document ?? createFallbackDocument(),
+      loadError: null,
+    };
+  } catch (loadError) {
+    return {
+      document: createFallbackDocument(),
+      loadError,
+    };
+  }
 }
 
 export function createIndexedDbAutosaveRepository({
