@@ -66,7 +66,7 @@ function createShapeAction(set: ProjectSet): ProjectState['createShape'] {
   });
 }
 
-export function createLayerStructureActions(set: ProjectSet): Pick<ProjectState, 'createAdministrativeArea' | 'createAdministrativeAreas' | 'createDirectionsRoute' | 'createPoi' | 'createPoiBatch' | 'createSearchPoi' | 'createRoute' | 'createShape' | 'deleteLayer' | 'duplicateLayer' | 'importLayers' | 'moveLayer' | 'replaceLayerFromImport'> {
+export function createLayerStructureActions(set: ProjectSet): Pick<ProjectState, 'createAdministrativeArea' | 'createDirectionsRoute' | 'createPoi' | 'createPoiBatch' | 'createSearchPoi' | 'createRoute' | 'createShape' | 'deleteLayer' | 'duplicateLayer' | 'importLayers' | 'moveLayer' | 'replaceLayerFromImport'> {
   return {
     ...createPoiStructureActions(set),
     ...createAdministrativeAreaActions(set),

@@ -60,8 +60,9 @@ test('travel-time area becomes one durable editable and exportable project layer
   await page.getByRole('option', { name: 'Vienna, Austria' }).click();
   await expect(page.locator('.isochrone-center')).toContainText('Vienna, Austria');
   await page.getByRole('radio', { name: 'Cycling' }).click();
-  await page.getByRole('spinbutton', { name: 'Travel time in minutes' }).fill('20');
-  await expect(page.getByText('Mapbox supports up to 60 minutes. 61–180 minute areas are unavailable with this provider.')).toBeVisible();
+  await page.getByRole('slider', { name: 'Travel time in minutes' }).fill('20');
+  await expect(page.getByText('5 min')).toBeVisible();
+  await expect(page.getByText('60 min', { exact: true })).toBeVisible();
   await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/travel-time-provider-limit-20260826.png' });
   await page.getByRole('button', { name: 'Generate area' }).click();
 

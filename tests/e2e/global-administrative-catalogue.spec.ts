@@ -3,6 +3,39 @@ import { expect, test } from '@playwright/test';
 
 const isExpectedWebGlDiagnostic = (message: string) => message.includes('GPU stall due to ReadPixels');
 
+async function selectCountry(page: import('@playwright/test').Page, name: string) {
+  const country = page.getByRole('combobox', { name: 'Country' });
+  await country.fill(name);
+  await page.getByRole('option', { name: `${name} Country`, exact: true }).click();
+}
+
+test('boundary menu stays above map controls and keeps the country selector scrollable', async ({ page }) => {
+  await page.goto('./');
+  await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
+  await page.getByRole('button', { name: 'Area (S)' }).click();
+
+  const stacking = await page.evaluate(() => ({
+    fit: Number(getComputedStyle(document.querySelector('.map-fit-control')!).zIndex),
+    panel: Number(getComputedStyle(document.querySelector('.map-authoring-panel')!).zIndex),
+    scale: Number(getComputedStyle(document.querySelector('.map-scale')!).zIndex),
+  }));
+  expect(stacking.panel).toBeGreaterThan(stacking.fit);
+  expect(stacking.panel).toBeGreaterThan(stacking.scale);
+
+  await page.getByRole('combobox', { name: 'Country' }).click();
+  const content = page.locator('.shadcn-combobox-popup');
+  const viewport = page.locator('.shadcn-combobox-list');
+  const box = await content.boundingBox();
+  expect(box).not.toBeNull();
+  expect(box!.y).toBeGreaterThanOrEqual(0);
+  expect(box!.y + box!.height).toBeLessThanOrEqual(page.viewportSize()!.height);
+  const before = await viewport.evaluate((element) => ({ height: element.clientHeight, scrollHeight: element.scrollHeight, top: element.scrollTop }));
+  expect(before.scrollHeight).toBeGreaterThan(before.height);
+  await content.hover();
+  await page.mouse.wheel(0, 500);
+  await expect.poll(() => viewport.evaluate((element) => element.scrollTop)).toBeGreaterThan(before.top);
+});
+
 test('generated worldwide catalogue lazily creates a durable Japanese region', async ({ page }, testInfo) => {
   test.setTimeout(60_000);
   const consoleProblems: string[] = [];
@@ -16,21 +49,14 @@ test('generated worldwide catalogue lazily creates a durable Japanese region', a
   await page.goto('./');
   await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
   await page.getByRole('button', { name: 'Area (S)' }).click();
-  await page.getByRole('combobox', { name: 'Administrative level' }).selectOption('region');
-  const country = page.getByRole('combobox', { name: 'Region country' });
-  await expect(country.locator('option')).toHaveCount(251);
-  await expect(page.getByText('251 countries have regional boundaries. 7 countries are available at Country level only.')).toBeVisible();
-  await country.selectOption('JPN');
-
-  const regions = page.getByRole('group', { name: 'Japan regions' });
-  await expect(page.getByRole('status', { name: 'Administrative catalogue status' })).toHaveText('47 Japan regions loaded.');
-  await expect(regions.getByRole('checkbox')).toHaveCount(47);
-  await regions.getByRole('checkbox', { name: 'Kyōto Prefecture' }).check();
-  await expect(page.getByText('1 region selected')).toBeVisible();
+  await selectCountry(page, 'Japan');
+  await page.getByRole('combobox', { name: 'Boundary' }).fill('Kyōto Prefecture');
+  await page.getByRole('option', { name: /Kyōto Prefecture/ }).click();
+  await expect(page.getByRole('button', { name: 'Add area' })).toBeEnabled();
   if (testInfo.project.name === 'chromium') {
     await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/global-region-coverage-20260826.png' });
   }
-  await page.getByRole('button', { name: 'Add selected area' }).click();
+  await page.getByRole('button', { name: 'Add area' }).click();
 
   const layer = page.getByRole('button', { name: 'Select Kyōto Prefecture' });
   await expect(layer).toHaveAttribute('aria-current', 'true');
@@ -57,48 +83,6 @@ test('generated worldwide catalogue lazily creates a durable Japanese region', a
   expect(consoleProblems).toEqual([]);
 });
 
-test('generated multipart region merges with an adjacent region and keeps every island', async ({ page }, testInfo) => {
-  test.setTimeout(60_000);
-  const consoleProblems: string[] = [];
-  page.on('pageerror', (error) => { consoleProblems.push(error.message); });
-  page.on('console', (message) => {
-    if ((message.type() === 'error' || message.type() === 'warning') && !isExpectedWebGlDiagnostic(message.text())) {
-      consoleProblems.push(message.text());
-    }
-  });
-
-  await page.goto('./');
-  await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
-  await page.getByRole('button', { name: 'Area (S)' }).click();
-  await page.getByRole('combobox', { name: 'Administrative level' }).selectOption('region');
-  await page.getByRole('combobox', { name: 'Region country' }).selectOption('JPN');
-
-  const regions = page.getByRole('group', { name: 'Japan regions' });
-  await expect(page.getByRole('status', { name: 'Administrative catalogue status' })).toHaveText('47 Japan regions loaded.');
-  await regions.getByRole('checkbox', { name: 'Aichi Prefecture' }).check();
-  await regions.getByRole('checkbox', { name: 'Gifu Prefecture' }).check();
-  await page.getByRole('button', { name: 'Merge 2 selected areas' }).click();
-
-  const layerName = 'Aichi Prefecture + Gifu Prefecture';
-  await expect(page.getByRole('button', { name: `Select ${layerName}` })).toHaveAttribute('aria-current', 'true');
-  await page.screenshot({
-    animations: 'disabled',
-    path: 'docs/screenshots/generated-multipart-region-merge-20260826.png',
-  });
-
-  const savePromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Project' }).click();
-  await page.getByRole('menuitem', { name: 'Download project' }).click();
-  const save = await savePromise;
-  const savePath = testInfo.outputPath('japan-multipart-merge.printmap.json');
-  await save.saveAs(savePath);
-  const project = JSON.parse(await readFile(savePath, 'utf8'));
-  const merged = project.layers.find(({ name }: { name: string }) => name === layerName);
-  expect(merged).toMatchObject({ geometry: { type: 'MultiPolygon' } });
-  expect(merged.geometry.coordinates).toHaveLength(2);
-  expect(consoleProblems).toEqual([]);
-});
-
 test('generated worldwide catalogue lazily creates a durable country', async ({ page }, testInfo) => {
   test.setTimeout(60_000);
   const consoleProblems: string[] = [];
@@ -112,14 +96,12 @@ test('generated worldwide catalogue lazily creates a durable country', async ({ 
   await page.goto('./');
   await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
   await page.getByRole('button', { name: 'Area (S)' }).click();
-  const country = page.getByRole('combobox', { name: 'Administrative area' });
-  await expect(country.locator('option')).toHaveCount(258);
-  await country.selectOption('IND');
-  await expect(page.getByRole('status', { name: 'Administrative country status' })).toHaveText('India boundary loaded.');
+  await selectCountry(page, 'India');
+  await expect(page.getByRole('button', { name: 'Add area' })).toBeEnabled();
   if (testInfo.project.name === 'chromium') {
     await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/global-india-country-catalogue-20260826.png' });
   }
-  await page.getByRole('button', { name: 'Add administrative area' }).click();
+  await page.getByRole('button', { name: 'Add area' }).click();
 
   const layer = page.getByRole('button', { name: 'Select India' });
   await expect(layer).toHaveAttribute('aria-current', 'true');
@@ -164,19 +146,11 @@ test('generated boundary pickers stay fail-closed when the worldwide catalogue i
   await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
   await page.getByRole('button', { name: 'Area (S)' }).click();
 
-  await expect(page.getByRole('status', { name: 'Administrative country status' }))
+  await expect(page.getByRole('status', { name: 'Administrative catalogue status' }))
     .toHaveText('Worldwide catalogue unavailable. Boundaries cannot be added until it is available. Administrative catalogue version is unsupported.');
-  await expect(page.getByRole('combobox', { name: 'Administrative area' })).toBeDisabled();
-  await expect(page.getByRole('combobox', { name: 'Administrative area' }).locator('option')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Add administrative area' })).toBeDisabled();
-
-  await page.getByRole('combobox', { name: 'Administrative level' }).selectOption('region');
   const catalogueStatus = page.getByRole('status', { name: 'Administrative catalogue status' });
-  await expect(catalogueStatus)
-    .toHaveText('Worldwide catalogue unavailable. Boundaries cannot be added until it is available. Administrative catalogue version is unsupported.');
-  await expect(page.getByRole('combobox', { name: 'Region country' })).toBeDisabled();
-  await expect(page.getByRole('group', { name: 'Regions' }).getByRole('checkbox')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Add selected area' })).toBeDisabled();
+  await expect(page.getByRole('combobox', { name: 'Country' })).toBeDisabled();
+  await expect(page.getByRole('combobox', { name: 'Boundary' })).toBeDisabled();
   const [statusBox, panelBox] = await Promise.all([
     catalogueStatus.boundingBox(),
     page.locator('.shape-authoring-panel').boundingBox(),

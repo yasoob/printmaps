@@ -1,255 +1,111 @@
-import { useEffect, useMemo, useReducer, useState } from 'react';
-import {
-  ADMINISTRATIVE_AREAS,
-  VIENNA_DISTRICT_LICENSE_URL,
-  VIENNA_DISTRICT_SOURCE_URL,
-  administrativeAreaById,
-  type AdministrativeArea,
-  type AdministrativeCountryCode,
-  type AdministrativeAreaId,
-} from '../../domain/administrativeAreas';
-import {
-  loadGeneratedAdministrativeIndex,
-  loadGeneratedAdministrativeShard,
-  type GeneratedAdministrativeIndex,
-} from '../../domain/generatedAdministrativeCatalogue';
-import { Checkbox } from './UiControls';
-import { INITIAL_REGION_PICKER_STATE, reduceRegionPicker } from './regionPickerState';
+import { Globe2, LoaderCircle, MapPinned } from 'lucide-react';
+import { useState } from 'react';
+import type { AdministrativeArea } from '../../domain/administrativeAreas';
+import type { GeneratedAdministrativeCountry, GeneratedAdministrativeShard } from '../../domain/generatedAdministrativeCatalogue';
+import { useCountryBoundaryCatalogue } from '../hooks/useCountryBoundaryCatalogue';
+import { ShadcnSingleCombobox } from './ShadcnCombobox';
 
 type AdministrativeAreaPickerProps = Readonly<{
   onAdd: (area: AdministrativeArea) => void;
-  onMerge: (areas: readonly AdministrativeArea[]) => boolean;
+  onCancel: () => void;
 }>;
 
-type CatalogueLoadStatus = Readonly<{ countryCode?: string; text: string }>;
-
-function displayedCatalogueStatus(
-  catalogue: GeneratedAdministrativeIndex | null,
-  countryCode: string,
-  loadStatus: CatalogueLoadStatus,
-): string {
-  const country = catalogue?.countries.find(({ id }) => id === countryCode);
-  if (country && loadStatus.countryCode !== countryCode) return `Loading ${country.name} boundaries…`;
-  return loadStatus.text;
+function boundaryDescription(area: AdministrativeArea) {
+  return area.level === 'country' ? 'Entire country' : 'Region';
 }
 
-function RegionCoverage({ catalogue, regionCount }: Readonly<{
-  catalogue: GeneratedAdministrativeIndex | null;
-  regionCount: number;
+function BoundaryChooser({ onAdd, onCancel, shard }: Readonly<{
+  onAdd: AdministrativeAreaPickerProps['onAdd'];
+  onCancel: AdministrativeAreaPickerProps['onCancel'];
+  shard: GeneratedAdministrativeShard;
 }>) {
-  if (!catalogue) return null;
-  const countryOnlyCount = catalogue.countries.length - regionCount;
-  if (countryOnlyCount <= 0) return null;
-  return (
-    <span className="administrative-coverage">
-      {regionCount} {regionCount === 1 ? 'country has' : 'countries have'} regional boundaries.{' '}
-      {countryOnlyCount} {countryOnlyCount === 1 ? 'country is' : 'countries are'} available at Country level only.
-    </span>
-  );
-}
-
-function regionPresentation(
-  countryOptions: readonly { id: string; name: string }[],
-  countryCode: string,
-) {
-  const countryName = countryOptions.find(({ id }) => id === countryCode)?.name;
-  return countryName ? {
-    filterLabel: `Filter ${countryName} regions`,
-    groupLabel: `${countryName} regions`,
-    sourceLabel: `${countryName} · Natural Earth`,
-  } : {
-    filterLabel: 'Filter regions',
-    groupLabel: 'Regions',
-    sourceLabel: 'Natural Earth worldwide catalogue',
-  };
-}
-
-const municipalityAreas = ADMINISTRATIVE_AREAS.filter(({ level }) => level === 'municipality');
-
-function CountryAreaPicker({ onAdd }: Pick<AdministrativeAreaPickerProps, 'onAdd'>) {
-  const [countryCode, setCountryCode] = useState<AdministrativeCountryCode>('AUT');
-  const [catalogue, setCatalogue] = useState<GeneratedAdministrativeIndex | null>(null);
-  const [loaded, setLoaded] = useState<{ countryCode: string; country: AdministrativeArea } | null>(null);
-  const [loadStatus, setLoadStatus] = useState('Loading worldwide country catalogue…');
-
-  useEffect(() => {
-    const controller = new AbortController();
-    void loadGeneratedAdministrativeIndex(controller.signal).then((index) => {
-      if (!controller.signal.aborted) setCatalogue(index);
-    }).catch((loadError: unknown) => {
-      if (!controller.signal.aborted) {
-        setLoadStatus(`Worldwide catalogue unavailable. Boundaries cannot be added until it is available. ${loadError instanceof Error ? loadError.message : ''}`.trim());
-      }
-    });
-    return () => controller.abort();
-  }, []);
-
-  useEffect(() => {
-    if (!catalogue) return;
-    const country = catalogue.countries.find(({ id }) => id === countryCode);
-    if (!country) return;
-    const controller = new AbortController();
-    void loadGeneratedAdministrativeShard(country, catalogue.sourceVersion, controller.signal).then((shard) => {
-      if (controller.signal.aborted) return;
-      setLoaded({ countryCode, country: shard.country });
-      setLoadStatus(`${country.name} boundary loaded.`);
-    }).catch((loadError: unknown) => {
-      if (!controller.signal.aborted) {
-        setLoadStatus(`${country.name} boundary unavailable. ${loadError instanceof Error ? loadError.message : 'Try again.'}`);
-      }
-    });
-    return () => controller.abort();
-  }, [catalogue, countryCode]);
-
-  const countryOptions = catalogue?.countries ?? [];
-  const selectedCountryName = countryOptions.find(({ id }) => id === countryCode)?.name ?? 'Worldwide countries';
-  const selectedCountry = loaded?.countryCode === countryCode ? loaded.country : undefined;
-
+  const [selectedArea, setSelectedArea] = useState<AdministrativeArea | null>(shard.country);
+  const boundaries = [shard.country, ...shard.regions];
   return (
     <>
-      <label>Area <select aria-label="Administrative area" disabled={countryOptions.length === 0} value={countryCode} onChange={(event) => {
-        const nextCountryCode = event.target.value;
-        const nextCountryName = countryOptions.find(({ id }) => id === nextCountryCode)?.name ?? nextCountryCode;
-        setCountryCode(nextCountryCode);
-        setLoaded(null);
-        setLoadStatus(`Loading ${nextCountryName} boundary…`);
-      }}>{countryOptions.map((country) => <option key={country.id} value={country.id}>{country.name}</option>)}</select></label>
-      <span role="status" aria-label="Administrative country status">{loadStatus}</span>
-      <span className="authoring-source">{selectedCountryName} · Natural Earth</span>
-      <button type="button" disabled={!selectedCountry} onClick={() => { if (selectedCountry) onAdd(selectedCountry); }}>Add administrative area</button>
+      <div className="administrative-combobox-field">
+        <label htmlFor="administrative-boundary">Boundary</label>
+        <ShadcnSingleCombobox
+          description={boundaryDescription}
+          emptyLabel="No matching regions."
+          icon={<MapPinned aria-hidden="true" size={15} />}
+          inputId="administrative-boundary"
+          itemId={(area) => area.id}
+          itemLabel={(area) => area.name}
+          items={boundaries}
+          label="Boundary"
+          placeholder="Entire country or regions…"
+          value={selectedArea}
+          onValueChange={setSelectedArea}
+        />
+      </div>
+      <div className="administrative-picker-footer">
+        <button type="button" aria-label="Cancel area" onClick={onCancel}>Cancel</button>
+        <button className="primary-button" type="button" disabled={!selectedArea} onClick={() => { if (selectedArea) onAdd(selectedArea); }}>Add area</button>
+      </div>
     </>
   );
 }
 
-function RegionAreaPicker({ onMerge }: Pick<AdministrativeAreaPickerProps, 'onMerge'>) {
-  const [state, dispatch] = useReducer(reduceRegionPicker, INITIAL_REGION_PICKER_STATE);
-  const { catalogue, countryCode, error, loaded, loadStatus, query, selectedIds } = state;
-  const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    void loadGeneratedAdministrativeIndex(controller.signal).then((index) => {
-      if (!controller.signal.aborted) dispatch({ type: 'catalogue-loaded', catalogue: index });
-    }).catch((loadError: unknown) => {
-      if (controller.signal.aborted) return;
-      dispatch({
-        type: 'catalogue-unavailable',
-        message: `Worldwide catalogue unavailable. Boundaries cannot be added until it is available. ${loadError instanceof Error ? loadError.message : ''}`.trim(),
-      });
-    });
-    return () => controller.abort();
-  }, []);
-
-  useEffect(() => {
-    if (!catalogue) return;
-    const country = catalogue.countries.find(({ id }) => id === countryCode);
-    if (!country) return;
-    const controller = new AbortController();
-    void loadGeneratedAdministrativeShard(country, catalogue.sourceVersion, controller.signal).then((shard) => {
-      if (controller.signal.aborted) return;
-      dispatch({
-        type: 'shard-loaded',
-        countryCode,
-        regions: shard.regions,
-        message: `${shard.regions.length} ${country.name} ${shard.regions.length === 1 ? 'region' : 'regions'} loaded.`,
-      });
-    }).catch((loadError: unknown) => {
-      if (!controller.signal.aborted) {
-        dispatch({
-          type: 'shard-unavailable',
-          countryCode,
-          message: `${country.name} boundaries unavailable. ${loadError instanceof Error ? loadError.message : 'Try again.'}`,
-        });
-      }
-    });
-    return () => controller.abort();
-  }, [catalogue, countryCode]);
-
-  const activeRegions = loaded?.countryCode === countryCode ? loaded.regions : [];
-  const countryOptions = catalogue?.countries.filter(({ levels }) => levels.includes('region'))
-    ?? [];
-  const presentation = regionPresentation(countryOptions, countryCode);
-  const displayedLoadStatus = displayedCatalogueStatus(catalogue, countryCode, loadStatus);
-  const normalizedQuery = query.trim().toLowerCase();
-  const filteredAreas = activeRegions.filter((area) => (
-    normalizedQuery.length === 0 || area.name.toLowerCase().includes(normalizedQuery)
-  ));
-  const selectedAreas = selectedIds.map((id) => activeRegions.find((area) => area.id === id)).filter((area): area is AdministrativeArea => area !== undefined);
+export function AdministrativeAreaPicker({ onAdd, onCancel }: AdministrativeAreaPickerProps) {
+  const catalogue = useCountryBoundaryCatalogue();
+  const countries = catalogue.state.catalogue?.countries ?? [];
+  const chooseCountry = (country: GeneratedAdministrativeCountry | null) => {
+    if (country) catalogue.selectCountry(country);
+  };
+  const status = catalogue.state.error
+    || (catalogue.state.isLoading ? `Loading ${catalogue.state.country?.name ?? 'countries'}…` : '');
 
   return (
-    <>
-      <label>Country <select aria-label="Region country" disabled={countryOptions.length === 0} value={countryCode} onChange={(event) => {
-        const nextCountryCode = event.target.value;
-        const nextCountry = countryOptions.find(({ id }) => id === nextCountryCode);
-        dispatch({
-          type: 'country-changed',
-          countryCode: nextCountryCode,
-          countryName: nextCountry?.name ?? nextCountryCode,
-        });
-      }}>{countryOptions.map((country) => <option key={country.id} value={country.id}>{country.name}</option>)}</select></label>
-      <label className="administrative-filter">Search <input type="search" aria-label={presentation.filterLabel} value={query} onChange={(event) => dispatch({ type: 'query-changed', query: event.currentTarget.value })} /></label>
-      <fieldset className="administrative-region-options" aria-busy={displayedLoadStatus.startsWith('Loading')}>
-        <legend>{presentation.groupLabel}</legend>
-        {filteredAreas.map((area) => (
-          <Checkbox key={area.id} isChecked={selectedIdSet.has(area.id)} label={area.name} onCheckedChange={(isChecked) => {
-            dispatch({ type: 'selection-changed', id: area.id, isChecked });
-          }} />
-        ))}
-      </fieldset>
-      <span role="status" aria-label="Administrative catalogue status">{displayedLoadStatus}</span>
-      <span aria-live="polite">{selectedIds.length} {selectedIds.length === 1 ? 'region' : 'regions'} selected</span>
-      <RegionCoverage catalogue={catalogue} regionCount={countryOptions.length} />
-      <span className="authoring-source">{presentation.sourceLabel}</span>
-      <button type="button" disabled={selectedAreas.length === 0} onClick={() => {
-        if (!onMerge(selectedAreas)) dispatch({ type: 'merge-failed', message: 'Choose connected single-part regions, or add multi-part regions separately.' });
-      }}>{selectedIds.length > 1 ? `Merge ${selectedIds.length} selected areas` : 'Add selected area'}</button>
-      {error && <span className="administrative-region-error" role="alert" aria-label="Administrative area status">{error}</span>}
-    </>
-  );
-}
-
-export function AdministrativeAreaPicker({ onAdd, onMerge }: AdministrativeAreaPickerProps) {
-  const [level, setLevel] = useState<AdministrativeArea['level']>('country');
-  const [municipalityQuery, setMunicipalityQuery] = useState('');
-  const [selectedMunicipalityIds, setSelectedMunicipalityIds] = useState<AdministrativeAreaId[]>([]);
-  const [municipalityError, setMunicipalityError] = useState('');
-  const selectedMunicipalityIdSet = useMemo(() => new Set(selectedMunicipalityIds), [selectedMunicipalityIds]);
-  const normalizedMunicipalityQuery = municipalityQuery.trim().toLowerCase();
-  const filteredMunicipalityAreas = normalizedMunicipalityQuery.length === 0
-    ? municipalityAreas
-    : municipalityAreas.filter(({ name }) => name.toLowerCase().includes(normalizedMunicipalityQuery));
-  const toggleMunicipality = (id: AdministrativeAreaId, isChecked: boolean) => {
-    setMunicipalityError('');
-    setSelectedMunicipalityIds((current) => isChecked ? [...current, id] : current.filter((candidate) => candidate !== id));
-  };
-  const mergeMunicipalities = () => {
-    const selectedAreas = selectedMunicipalityIds.map((id) => administrativeAreaById(id)).filter((area): area is AdministrativeArea => area !== undefined);
-    if (!onMerge(selectedAreas)) setMunicipalityError('Choose connected Vienna districts.');
-  };
-
-
-  return (
-    <>
-      <label>Level <select aria-label="Administrative level" value={level} onChange={(event) => setLevel(event.target.value as AdministrativeArea['level'])}><option value="country">Country</option><option value="region">Region</option><option value="municipality">Municipality</option></select></label>
-      {level === 'country' ? (
-        <CountryAreaPicker onAdd={onAdd} />
-      ) : (level === 'region' ? (
-        <RegionAreaPicker onMerge={onMerge} />
-      ) : (
-        <>
-          <label className="administrative-filter">Search <input type="search" aria-label="Filter Vienna districts" value={municipalityQuery} onChange={(event) => setMunicipalityQuery(event.currentTarget.value)} /></label>
-          <fieldset className="administrative-region-options">
-            <legend>Vienna districts</legend>
-            {filteredMunicipalityAreas.map((area) => (
-              <Checkbox key={area.id} isChecked={selectedMunicipalityIdSet.has(area.id as AdministrativeAreaId)} label={area.name} onCheckedChange={(isChecked) => toggleMunicipality(area.id as AdministrativeAreaId, isChecked)} />
-            ))}
-          </fieldset>
-          <span aria-live="polite">{selectedMunicipalityIds.length} {selectedMunicipalityIds.length === 1 ? 'district' : 'districts'} selected</span>
-          <span className="authoring-source"><a aria-label="Vienna district boundaries source" href={VIENNA_DISTRICT_SOURCE_URL} rel="noreferrer" target="_blank">Vienna OGD</a> · <a aria-label="CC BY 3.0 AT license" href={VIENNA_DISTRICT_LICENSE_URL} rel="noreferrer" target="_blank">CC BY 3.0 AT</a></span>
-          <button type="button" disabled={selectedMunicipalityIds.length === 0} onClick={mergeMunicipalities}>{selectedMunicipalityIds.length > 1 ? `Merge ${selectedMunicipalityIds.length} selected districts` : 'Add selected district'}</button>
-          {municipalityError && <span className="administrative-region-error" role="alert" aria-label="Administrative area status">{municipalityError}</span>}
-        </>
-      ))}
-    </>
+    <div className="administrative-boundary-picker">
+      <div className="administrative-combobox-field">
+        <label htmlFor="administrative-country">Country</label>
+        <ShadcnSingleCombobox
+          description={() => 'Country'}
+          disabled={!catalogue.state.catalogue}
+          emptyLabel="No matching countries."
+          icon={<Globe2 aria-hidden="true" size={15} />}
+          inputId="administrative-country"
+          itemId={(country) => country.id}
+          itemLabel={(country) => country.name}
+          items={countries}
+          label="Country"
+          placeholder="Choose a country…"
+          value={catalogue.state.country}
+          onValueChange={chooseCountry}
+        />
+      </div>
+      {catalogue.state.shard
+        ? <BoundaryChooser key={catalogue.state.shard.country.id} onAdd={onAdd} onCancel={onCancel} shard={catalogue.state.shard} />
+        : (
+          <>
+            <div className="administrative-combobox-field">
+              <label htmlFor="administrative-boundary">Boundary</label>
+              <ShadcnSingleCombobox
+                description={() => ''}
+                disabled
+                emptyLabel="Choose a country first."
+                icon={<MapPinned aria-hidden="true" size={15} />}
+                inputId="administrative-boundary"
+                itemId={(area: AdministrativeArea) => area.id}
+                itemLabel={(area) => area.name}
+                items={[]}
+                label="Boundary"
+                placeholder={catalogue.state.isLoading ? 'Loading boundaries…' : 'Choose a country first…'}
+                value={null}
+                onValueChange={() => {}}
+              />
+            </div>
+            <div className="administrative-picker-footer">
+              <button type="button" aria-label="Cancel area" onClick={onCancel}>Cancel</button>
+              <button className="primary-button" type="button" disabled>Add area</button>
+            </div>
+          </>
+        )}
+      <span role="status" aria-label="Administrative catalogue status">
+        {catalogue.state.isLoading ? <LoaderCircle className="is-spinning" aria-hidden="true" size={12} /> : null}
+        {status}
+      </span>
+    </div>
   );
 }

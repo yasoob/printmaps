@@ -6,80 +6,6 @@ const isHeadlessWebGlDiagnostic = (message: string) => (
   || message.includes('AllowWebgl2:false restricts context creation on this system')
 );
 
-test('Vienna municipality selection and merging preserve source credit through project and print downloads', async ({ page }, testInfo) => {
-  const consoleProblems: string[] = [];
-  page.on('pageerror', (error) => { consoleProblems.push(error.message); });
-  page.on('console', (message) => {
-    if ((message.type() === 'error' || message.type() === 'warning') && !isHeadlessWebGlDiagnostic(message.text())) {
-      consoleProblems.push(message.text());
-    }
-  });
-  await page.goto('./');
-  await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
-
-  await page.getByRole('button', { name: 'Area (S)' }).click();
-  await page.getByRole('combobox', { name: 'Administrative level' }).selectOption('municipality');
-  const districts = page.getByRole('group', { name: 'Vienna districts' });
-  await expect(districts.getByRole('checkbox')).toHaveCount(23);
-  await expect(page.getByRole('link', { name: 'Vienna district boundaries source' })).toHaveAttribute('href', /BEZIRKSGRENZEOGD/);
-  await expect(page.getByRole('link', { name: 'CC BY 3.0 AT license' })).toHaveAttribute('href', 'https://creativecommons.org/licenses/by/3.0/at/');
-  const districtFilter = page.getByRole('searchbox', { name: 'Filter Vienna districts' });
-  await districtFilter.fill('Josef');
-  await expect(districts.getByRole('checkbox')).toHaveCount(1);
-  await expect(districts.getByRole('checkbox', { name: 'Josefstadt' })).toBeVisible();
-  await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/vienna-district-filter-20260826.png' });
-  await districtFilter.fill('');
-  await page.getByRole('checkbox', { name: 'Innere Stadt' }).check();
-  await page.getByRole('checkbox', { name: 'Josefstadt' }).check();
-  await page.getByRole('button', { name: 'Merge 2 selected districts' }).click();
-  await expect(page.getByRole('button', { name: 'Select Innere Stadt + Josefstadt' })).toHaveAttribute('aria-current', 'true');
-  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-geometry', /admin-at-9-01-at-9-08:/);
-  await page.getByRole('switch', { name: 'Invert shape fill' }).check();
-  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-appearance', /admin-at-9-01-at-9-08:[^|]*:true/);
-  await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/vienna-district-merge-20260826.png' });
-
-  const projectPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
-  const projectDownload = await projectPromise;
-  const projectPath = testInfo.outputPath('vienna-district.printmap.json');
-  await projectDownload.saveAs(projectPath);
-  const project = JSON.parse(await readFile(projectPath, 'utf8'));
-  const districtLayer = project.layers.find(({ id }: { id: string }) => id === 'admin-at-9-01-at-9-08');
-  expect(project.schemaVersion).toBe(21);
-  expect(districtLayer).toMatchObject({ name: 'Innere Stadt + Josefstadt', geometry: { type: 'Polygon' }, appearance: { invert: true } });
-  expect(districtLayer.geometry.coordinates).toHaveLength(1);
-  expect(districtLayer.geometry.coordinates.flat().length).toBeLessThanOrEqual(1000);
-
-  await page.getByRole('button', { name: 'Export' }).click();
-  const dialog = page.getByRole('dialog', { name: 'Export map' });
-  await dialog.getByRole('radio', { name: /Layered SVG/ }).click();
-  const svgPromise = page.waitForEvent('download');
-  await dialog.getByRole('button', { name: 'Download layered SVG' }).click();
-  const svgDownload = await svgPromise;
-  const svgPath = testInfo.outputPath('vienna-district.layered.svg');
-  await svgDownload.saveAs(svgPath);
-  const svg = await readFile(svgPath, 'utf8');
-  expect(svg).toContain('data-layer-name="Innere Stadt + Josefstadt"');
-  expect(svg).toContain('City of Vienna OGD (CC BY 3.0 AT; boundaries simplified)');
-
-  await page.getByRole('button', { name: 'Close export' }).click();
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole('button', { name: 'Area (S)' }).click();
-  await page.getByRole('combobox', { name: 'Administrative level' }).selectOption('municipality');
-  await page.getByRole('searchbox', { name: 'Filter Vienna districts' }).fill('Josef');
-  await expect(page.getByRole('group', { name: 'Vienna districts' }).getByRole('checkbox')).toHaveCount(1);
-  await expect(page.getByRole('searchbox', { name: 'Filter Vienna districts' })).toHaveCSS('min-height', '44px');
-  await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/latest-mobile.png' });
-  const panel = page.locator('.map-authoring-panel');
-  const panelBox = await panel.boundingBox();
-  expect(panelBox).not.toBeNull();
-  expect(panelBox!.x).toBeGreaterThanOrEqual(0);
-  expect(panelBox!.x + panelBox!.width).toBeLessThanOrEqual(390);
-  expect(await page.evaluate(() => document.body.scrollWidth - window.innerWidth)).toBe(0);
-  await page.getByRole('button', { name: 'Cancel area' }).click();
-  expect(consoleProblems).toEqual([]);
-});
-
 test('polygon authoring can be cancelled, undone, redone, and exported as vector content', async ({ page }, testInfo) => {
   const consoleProblems: string[] = [];
   page.on('pageerror', (error) => { consoleProblems.push(error.message); });
@@ -113,11 +39,11 @@ test('polygon authoring can be cancelled, undone, redone, and exported as vector
     x: frameBox!.x - canvasBox!.x + frameBox!.width * xFraction,
     y: frameBox!.y - canvasBox!.y + frameBox!.height * yFraction,
   });
-  await canvas.click({ position: point(0.3, 0.7) });
-  await canvas.click({ position: point(0.5, 0.25) });
+  await canvas.click({ position: point(0.2, 0.2) });
+  await canvas.click({ position: point(0.8, 0.2) });
   await expect(page.getByRole('button', { name: 'Finish area' })).toBeDisabled();
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-order', /shape-draft-outline/);
-  await canvas.click({ position: point(0.72, 0.7) });
+  await canvas.click({ position: point(0.2, 0.5) });
   await expect(page.getByRole('status', { name: 'Area drawing status' })).toContainText('3 vertices');
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-order', /shape-draft/);
 
@@ -167,9 +93,9 @@ test('a finished custom area supports point editing, insertion, undo, and explic
     x: frameBox!.x - canvasBox!.x + frameBox!.width * xFraction,
     y: frameBox!.y - canvasBox!.y + frameBox!.height * yFraction,
   });
-  await canvas.click({ position: point(0.3, 0.7) });
-  await canvas.click({ position: point(0.5, 0.25) });
-  await canvas.click({ position: point(0.72, 0.7) });
+  await canvas.click({ position: point(0.2, 0.2) });
+  await canvas.click({ position: point(0.8, 0.2) });
+  await canvas.click({ position: point(0.2, 0.5) });
   await page.getByRole('button', { name: 'Finish area' }).click();
 
   const editPoints = page.getByRole('button', { name: 'Edit area points' });

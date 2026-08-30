@@ -1,4 +1,4 @@
-import { administrativeAreaById, mergeAdministrativeAreaRecords, mergeAdministrativeAreas, type AdministrativeArea } from '../domain/administrativeAreas';
+import type { AdministrativeArea } from '../domain/administrativeAreas';
 import { createDefaultLayerAppearance, type ContentLayer, type ShapeGeometry } from '../domain/project';
 import { parseLayerGeometry, geometryPositionCount } from '../domain/projectGeometry';
 import { MAX_PROJECT_COORDINATES, MAX_PROJECT_LAYERS } from '../domain/projectFile';
@@ -69,15 +69,8 @@ function createAreaLayer(set: ProjectSet, resolveArea: () => AdministrativeArea 
   };
 }
 
-export function createAdministrativeAreaActions(set: ProjectSet): Pick<ProjectState, 'createAdministrativeArea' | 'createAdministrativeAreas'> {
+export function createAdministrativeAreaActions(set: ProjectSet): Pick<ProjectState, 'createAdministrativeArea'> {
   return {
-    createAdministrativeArea: (area) => createAreaLayer(set, () => (
-      typeof area === 'string' ? administrativeAreaById(area) : area
-    ))(),
-    createAdministrativeAreas: (areas) => createAreaLayer(set, () => {
-      if (areas.every((area): area is string => typeof area === 'string')) return mergeAdministrativeAreas(areas);
-      if (areas.every((area): area is AdministrativeArea => typeof area !== 'string')) return mergeAdministrativeAreaRecords(areas);
-      return;
-    })(),
+    createAdministrativeArea: (area) => createAreaLayer(set, () => area)(),
   };
 }

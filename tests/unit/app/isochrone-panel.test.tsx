@@ -13,24 +13,26 @@ const sharedProps = {
 };
 
 describe('IsochronePanel', () => {
-  it('explains the provider limit for longer travel-time areas', () => {
+  it('shows the supported travel-time range', () => {
     render(<IsochronePanel {...sharedProps} minutes={20} />);
 
-    expect(screen.getByText('Mapbox supports up to 60 minutes. 61–180 minute areas are unavailable with this provider.')).toBeVisible();
+    expect(screen.getByText('5 min')).toBeVisible();
+    expect(screen.getByText('60 min')).toBeVisible();
+    expect(screen.getByRole('slider', { name: 'Travel time in minutes' })).toHaveAttribute('step', '1');
   });
 
   it('associates the provider limit with the travel-time input', () => {
     render(<IsochronePanel {...sharedProps} minutes={20} />);
 
-    expect(screen.getByRole('spinbutton', { name: 'Travel time in minutes' })).toHaveAccessibleDescription(
-      'Mapbox supports up to 60 minutes. 61–180 minute areas are unavailable with this provider.',
+    expect(screen.getByRole('slider', { name: 'Travel time in minutes' })).toHaveAccessibleDescription(
+      'Use a whole number from 5 to 60 minutes.',
     );
   });
 
   it('marks a fractional duration invalid and gates generation with corrective guidance', () => {
     render(<IsochronePanel {...sharedProps} minutes={12.5} />);
 
-    expect(screen.getByRole('spinbutton', { name: 'Travel time in minutes' })).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByRole('slider', { name: 'Travel time in minutes' })).toHaveAttribute('aria-invalid', 'true');
     expect(screen.getByRole('alert')).toHaveTextContent('whole number from 5 to 60 minutes');
     expect(screen.getByRole('button', { name: 'Generate area' })).toBeDisabled();
   });

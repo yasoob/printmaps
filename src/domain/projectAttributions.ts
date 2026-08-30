@@ -2,17 +2,10 @@ import type { ProjectDocument } from './project';
 
 export const BASEMAP_ATTRIBUTION = 'OpenFreeMap · OpenMapTiles · © OpenStreetMap contributors';
 export const MAPBOX_ATTRIBUTION = '© Mapbox';
-export const VIENNA_DISTRICT_ATTRIBUTION = 'City of Vienna OGD (CC BY 3.0 AT; boundaries simplified)';
-
-const VIENNA_DISTRICT_LAYER_ID = /^admin-at-9-(?:0[1-9]|1\d|2[0-3])(?:$|-)/;
-
 export function projectAttributions(document: Pick<ProjectDocument, 'layers'>): string[] {
   const attributions = [BASEMAP_ATTRIBUTION];
   if (document.layers.some(({ provenance }) => provenance?.provider === 'mapbox')) {
     attributions.push(MAPBOX_ATTRIBUTION);
-  }
-  if (document.layers.some(({ id }) => VIENNA_DISTRICT_LAYER_ID.test(id))) {
-    attributions.push(VIENNA_DISTRICT_ATTRIBUTION);
   }
   return attributions;
 }

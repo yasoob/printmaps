@@ -99,13 +99,13 @@ test('expert arc route authoring is undoable and exports a travel-mode marker', 
   const frameBox = await page.locator('.print-frame').boundingBox();
   expect(canvasBox).not.toBeNull();
   expect(frameBox).not.toBeNull();
-  const point = (fraction: number) => ({
-    x: frameBox!.x - canvasBox!.x + frameBox!.width * fraction,
-    y: frameBox!.y - canvasBox!.y + frameBox!.height * fraction,
+  const point = (xFraction: number, yFraction: number) => ({
+    x: frameBox!.x - canvasBox!.x + frameBox!.width * xFraction,
+    y: frameBox!.y - canvasBox!.y + frameBox!.height * yFraction,
   });
-  await canvas.click({ position: point(0.3) });
+  await canvas.click({ position: point(0.2, 0.2) });
   await expect(page.getByRole('status', { name: 'Route drawing status' })).toContainText('1 point');
-  await canvas.click({ position: point(0.7) });
+  await canvas.click({ position: point(0.8, 0.2) });
   const createdRoute = page.getByRole('button', { name: 'Select Route 02' });
   await expect(createdRoute).toHaveAttribute('aria-current', 'true');
   await page.screenshot({ path: testInfo.outputPath('expert-route-desktop.png'), fullPage: true });

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../../../src/app/App';
 import { createInitialProjectDocument } from '../../../src/domain/project';
@@ -34,87 +34,7 @@ it('uses roving arrow, Home, and End selection in the Shape tablist', async () =
   expect(screen.getByRole('tab', { name: 'Travel time' })).toHaveFocus();
 });
 
-it('merges selected Vienna districts as one fitted undoable shape', async () => {
-  const user = userEvent.setup();
-  render(<App autosaveRepository={null} />);
-
-  await user.click(screen.getByRole('button', { name: 'Area (S)' }));
-  await user.selectOptions(screen.getByRole('combobox', { name: 'Administrative level' }), 'municipality');
-  await user.click(screen.getByRole('checkbox', { name: 'Innere Stadt' }));
-  await user.click(screen.getByRole('checkbox', { name: 'Josefstadt' }));
-  await user.click(screen.getByRole('button', { name: 'Merge 2 selected districts' }));
-
-  const merged = screen.getByRole('button', { name: 'Select Innere Stadt + Josefstadt' });
-  expect(merged).toHaveAttribute('aria-current', 'true');
-  expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-fit-layer-id', 'admin-at-9-01-at-9-08');
-  expect(screen.getByRole('button', { name: 'Select (V)' })).toHaveFocus();
-  await user.click(screen.getByRole('button', { name: 'Undo' }));
-  expect(merged).not.toBeInTheDocument();
-});
-
-it('filters Vienna districts by name without losing hidden selections', async () => {
-  const user = userEvent.setup();
-  render(<App autosaveRepository={null} />);
-
-  await user.click(screen.getByRole('button', { name: 'Area (S)' }));
-  await user.selectOptions(screen.getByRole('combobox', { name: 'Administrative level' }), 'municipality');
-  await user.click(screen.getByRole('checkbox', { name: 'Innere Stadt' }));
-  const filter = screen.getByRole('searchbox', { name: 'Filter Vienna districts' });
-
-  await user.type(filter, 'Josef');
-  const districts = screen.getByRole('group', { name: 'Vienna districts' });
-  expect(within(districts).getAllByRole('checkbox')).toHaveLength(1);
-  expect(within(districts).getByRole('checkbox', { name: 'Josefstadt' })).toBeInTheDocument();
-  expect(screen.getByText('1 district selected')).toBeInTheDocument();
-
-  await user.clear(filter);
-  expect(within(districts).getByRole('checkbox', { name: 'Innere Stadt' })).toBeChecked();
-});
-
-it('matches district names independently of browser locale casing', async () => {
-  const localeLowerCase = vi.spyOn(String.prototype, 'toLocaleLowerCase').mockImplementation(function localeSensitiveLowercase(this: string) {
-    return String(this).replaceAll('I', 'ı').replaceAll('İ', 'i').toLowerCase();
-  });
-  const user = userEvent.setup();
-
-  try {
-    render(<App autosaveRepository={null} />);
-    await user.click(screen.getByRole('button', { name: 'Area (S)' }));
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Administrative level' }), 'municipality');
-    await user.type(screen.getByRole('searchbox', { name: 'Filter Vienna districts' }), 'innere');
-
-    expect(screen.getByRole('checkbox', { name: 'Innere Stadt' })).toBeInTheDocument();
-  } finally {
-    localeLowerCase.mockRestore();
-  }
-});
-
 describe('polygon authoring', () => {
-  it('adds one sourced Vienna municipal district as a fitted undoable shape', async () => {
-    const user = userEvent.setup();
-    render(<App autosaveRepository={null} />);
-
-    await user.click(screen.getByRole('button', { name: 'Area (S)' }));
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Administrative level' }), 'municipality');
-    const districts = screen.getByRole('group', { name: 'Vienna districts' });
-    expect(within(districts).getAllByRole('checkbox')).toHaveLength(23);
-    await user.click(within(districts).getByRole('checkbox', { name: 'Innere Stadt' }));
-    expect(screen.getByRole('link', { name: 'Vienna district boundaries source' })).toHaveAttribute(
-      'href', expect.stringContaining('BEZIRKSGRENZEOGD'),
-    );
-    expect(screen.getByRole('link', { name: 'CC BY 3.0 AT license' })).toHaveAttribute(
-      'href', 'https://creativecommons.org/licenses/by/3.0/at/',
-    );
-    await user.click(screen.getByRole('button', { name: 'Add selected district' }));
-
-    const layer = screen.getByRole('button', { name: 'Select Innere Stadt' });
-    expect(layer).toHaveAttribute('aria-current', 'true');
-    expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-fit-layer-id', 'admin-at-9-01');
-    expect(screen.getByRole('button', { name: 'Select (V)' })).toHaveFocus();
-    await user.click(screen.getByRole('button', { name: 'Undo' }));
-    expect(layer).not.toBeInTheDocument();
-  });
-
   it('finishes three map clicks as one selected undoable shape', async () => {
     const user = userEvent.setup();
     render(<App autosaveRepository={null} />);
