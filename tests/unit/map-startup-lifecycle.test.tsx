@@ -142,6 +142,18 @@ it('initializes content when the map loaded before its lifecycle listener attach
   expect(mocks.adapterSync).toHaveBeenCalledOnce();
 });
 
+it('hides the page boundary without removing its layout frame', async () => {
+  const view = render(<MapCanvas {...props} pageBoundaryVisible />);
+  await act(async () => {});
+  const frame = view.container.querySelector('.print-frame');
+
+  expect(frame).not.toHaveClass('is-boundary-hidden');
+  view.rerender(<MapCanvas {...props} pageBoundaryVisible={false} />);
+
+  expect(frame).toHaveClass('is-boundary-hidden');
+  expect(frame).not.toHaveAttribute('hidden');
+});
+
 it('does not publish an already-loaded map after its queued load is cleaned up', async () => {
   mocks.autoLoad = false;
   mocks.emitInitialIdle = false;

@@ -290,6 +290,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   border: var(--studio-border-width) solid var(--studio-frame-ring);
 }
 .print-frame::after { inset: 0; border-color: var(--studio-frame-inner); }
+.print-frame.is-boundary-hidden { visibility: hidden; }
 .page-label {
   @apply absolute px-1.5 py-1;
   top: -23px;

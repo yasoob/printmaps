@@ -41,6 +41,7 @@ export type CanvasWorkspaceProps = {
   selectedId: string | null;
   previewedId: string | null;
   page: PageSettings;
+  pageBoundaryVisible: boolean;
   documentEpoch: number;
   importFitRequest: { bounds?: MapBounds; request: number };
   locationRequest?: MapLocationRequest;

@@ -74,6 +74,7 @@ export type ReplaceRouteDraftRequest = {
 export type ProjectState = {
   document: ProjectDocument;
   documentEpoch: number;
+  pageBoundaryVisible: boolean;
   selectedId: string | null;
   past: ProjectDocument[];
   future: ProjectDocument[];
@@ -152,6 +153,7 @@ export type ProjectState = {
   setMapAreaLocked: (isLocked: boolean) => void;
   setCameraPitch: (pitch: number) => void;
   setPageDimension: (dimension: "widthMm" | "heightMm", value: number) => void;
+  setPageBoundaryVisible: (isVisible: boolean) => void;
   setPageOrientation: (orientation: PageOrientation) => void;
   setPagePreset: (preset: PagePreset) => void;
   setLayerAppearance: (id: string, appearance: LayerAppearance) => void;
@@ -211,11 +213,15 @@ export function createProjectStore(
   return createStore<ProjectState>((set) => ({
     document: copyDocument(initialDocument),
     documentEpoch: 0,
+    pageBoundaryVisible: true,
     selectedId: null,
     past: [],
     future: [],
     canUndo: false,
     canRedo: false,
+    setPageBoundaryVisible: (isVisible) => set((state) => (
+      state.pageBoundaryVisible === isVisible ? state : { pageBoundaryVisible: isVisible }
+    )),
     ...createCameraActions(set),
     ...createLayerStructureActions(set),
     ...createIsochroneActions(set),

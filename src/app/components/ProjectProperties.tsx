@@ -150,6 +150,7 @@ export type CameraInspectorView = Pick<CameraSettings, 'bearing' | 'locked' | 'p
 type ProjectPropertiesProps = {
   documentEpoch: number;
   page: PageSettings;
+  pageBoundaryVisible: boolean;
   camera: CameraInspectorView;
   style: MapStyleSettings;
   onBearingChange: (bearing: number) => void;
@@ -158,6 +159,7 @@ type ProjectPropertiesProps = {
   onLanguageChange: (language: MapLanguage) => void;
   onLocate: (coordinate: [number, number], onApplied: () => void) => void;
   onMapAreaLockChange: (isLocked: boolean) => void;
+  onPageBoundaryVisibilityChange: (isVisible: boolean) => void;
   onOrientationChange: (orientation: PageSettings['orientation']) => void;
   onPitchChange: (pitch: number) => void;
   onPresetChange: (preset: PagePreset) => void;
@@ -183,18 +185,20 @@ export function ProjectProperties({
   style,
   onBearingChange,
   page,
+  pageBoundaryVisible,
   onDimensionChange,
   onFeatureVisibilityChange,
   onLanguageChange,
   onLocate,
   onMapAreaLockChange,
+  onPageBoundaryVisibilityChange,
   onOrientationChange,
   onPitchChange,
   onPresetChange,
   onStyleChange,
   onTextScaleChange,
 }: ProjectPropertiesProps) {
-  const visibleMapDetailCount = Object.values(style.visibility).filter(Boolean).length;
+  const visibleMapDetailCount = Object.values(style.visibility).filter(Boolean).length + Number(pageBoundaryVisible);
   return (
     <div className="properties-panel">
       <div className="properties-title"><h2 data-project-heading tabIndex={-1}>Project</h2></div>
@@ -217,7 +221,8 @@ export function ProjectProperties({
         <Switch isChecked={camera.locked} label="Lock map area" onCheckedChange={onMapAreaLockChange} />
         <GeolocationControl key={`${documentEpoch}-${String(camera.locked)}`} locked={camera.locked} requestScope={documentEpoch} onLocate={onLocate} />
       </InspectorAccordion>
-      <InspectorAccordion isDefaultExpanded={false} storageKey={`${PROJECT_DISCLOSURE_PREFIX}:map-details`} summary={`${visibleMapDetailCount} of 7 visible`} title="Map details">
+      <InspectorAccordion isDefaultExpanded={false} storageKey={`${PROJECT_DISCLOSURE_PREFIX}:map-details`} summary={`${visibleMapDetailCount} of 8 visible`} title="Map details">
+        <Checkbox isChecked={pageBoundaryVisible} label="Show page boundary" onCheckedChange={onPageBoundaryVisibilityChange} />
         <Checkbox isChecked={style.visibility.roads} label="Show roads" onCheckedChange={(isChecked) => onFeatureVisibilityChange('roads', isChecked)} />
         <Checkbox isChecked={style.visibility.buildings} label="Show buildings" onCheckedChange={(isChecked) => onFeatureVisibilityChange('buildings', isChecked)} />
         <Checkbox isChecked={style.visibility.labels} label="Show labels" onCheckedChange={(isChecked) => onFeatureVisibilityChange('labels', isChecked)} />

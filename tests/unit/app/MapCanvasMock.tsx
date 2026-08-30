@@ -32,11 +32,13 @@ type MapCanvasMockProps = {
   locationRequest?: MapLocationRequest;
   orientation?: 'landscape' | 'portrait';
   page?: { preset?: string; widthMm: number; heightMm: number };
+  pageBoundaryVisible?: boolean;
   interactionMode?: string;
 };
 
 const shapeEditModeDiagnostic = (mode?: ShapeEditMode) => mode ?? '';
 const interactionModeDiagnostic = (mode?: string) => mode ?? 'select';
+const resolvedPageBoundaryVisibility = (isVisible?: boolean) => isVisible ?? true;
 
 export function MapCanvas({
   camera = { bearing: 0, center: [16.3725, 48.2084], locked: false, pitch: 0, zoom: 11.2 },
@@ -61,6 +63,7 @@ export function MapCanvas({
   locationRequest,
   orientation,
   page,
+  pageBoundaryVisible,
   interactionMode,
 }: MapCanvasMockProps) {
   useEffect(() => {
@@ -88,6 +91,7 @@ export function MapCanvas({
       data-orientation={orientation}
       data-page-preset={page?.preset}
       data-page-size={page ? `${page.widthMm}x${page.heightMm}` : ''}
+      data-page-boundary-visible={resolvedPageBoundaryVisibility(pageBoundaryVisible)}
       data-layer-state={layers.map(({ appearance, id, visible }) => `${id}:${visible}${appearance?.kind === 'poi' && appearance.customAssetId ? `:custom:${appearance.customAssetId}` : ''}`).join(',')}
       data-layer-geometry={layers.map(({ geometry, id }) => {
         if (!geometry) return `${id}:none`;

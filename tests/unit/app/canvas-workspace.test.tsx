@@ -52,6 +52,7 @@ const sharedProps = {
   documentEpoch: 0,
   importFitRequest: { request: 0 },
   page: { preset: 'A4', widthMm: 297, heightMm: 210, orientation: 'landscape' } as const,
+  pageBoundaryVisible: true,
   activePanel: null,
   layersTriggerRef: createRef<HTMLButtonElement>(),
   propertiesTriggerRef: createRef<HTMLButtonElement>(),

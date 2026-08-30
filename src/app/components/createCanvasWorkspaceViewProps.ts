@@ -94,6 +94,7 @@ function createMapProps(inputs: ViewInputs): ComponentProps<typeof MapCanvas> {
     onShapeGeometryChange: props.onShapeGeometryChange,
     orientation: props.page.orientation,
     page: props.page,
+    pageBoundaryVisible: props.pageBoundaryVisible,
     previewedId: props.previewedId,
     selectedId: props.selectedId,
     shapeEditMode: inputs.shape.editMode,

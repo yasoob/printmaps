@@ -41,6 +41,7 @@ type MapCanvasProps = {
   locationRequest?: MapLocationRequest;
   orientation?: 'landscape' | 'portrait';
   page?: PageSettings;
+  pageBoundaryVisible?: boolean;
   contentRevision?: object;
   interactionMode?: string;
 };
@@ -58,6 +59,9 @@ const resolveFeatureVisibility = (visibility?: MapFeatureVisibility) => visibili
 const resolveMapLanguage = (language?: MapLanguage) => language ?? 'local';
 const resolveShapeEditMode = (mode?: ShapeEditMode): ShapeEditMode => mode ?? 'transform';
 const resolveInteractionMode = (mode?: string) => mode ?? 'select';
+const printFrameClassName = (orientation: 'landscape' | 'portrait', isVisible?: boolean) => (
+  `print-frame is-${orientation}${isVisible === false ? ' is-boundary-hidden' : ''}`
+);
 
 function RouteEditorError({ message }: { message: string | null }) {
   return message ? <div className="map-route-editor-error" role="alert">{message}</div> : null;
@@ -94,6 +98,7 @@ export function MapCanvas({
   locationRequest,
   orientation = 'landscape',
   page,
+  pageBoundaryVisible,
   contentRevision,
   interactionMode,
 }: MapCanvasProps) {
@@ -141,7 +146,7 @@ export function MapCanvas({
       )}
       <RouteEditorError message={routeEditorError} />
       <div
-        className={`print-frame is-${orientation}`}
+        className={printFrameClassName(orientation, pageBoundaryVisible)}
         style={{
           aspectRatio: page ? `${page.widthMm} / ${page.heightMm}` : undefined,
           '--studio-page-ratio': page ? page.widthMm / page.heightMm : 297 / 210,

@@ -36,7 +36,7 @@ describe('project inspector disclosure', () => {
     expect(camera).toHaveAttribute('aria-expanded', 'false');
     expect(camera).toHaveTextContent('0° bearing · 0° pitch · Unlocked');
     expect(details).toHaveAttribute('aria-expanded', 'false');
-    expect(details).toHaveTextContent('7 of 7 visible');
+    expect(details).toHaveTextContent('8 of 8 visible');
     expect(screen.queryByRole('button', { name: /Provider services/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Check.*connection/i })).not.toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: 'Search places and addresses' })).toBeInTheDocument();

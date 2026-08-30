@@ -33,6 +33,7 @@ function StudioCanvas({ m }: { m: StudioAppModel }) {
       selectedId={m.selectedId}
       previewedId={m.mapPreviewedLayerId}
       page={m.page}
+      pageBoundaryVisible={m.pageBoundaryVisible}
       stylePreset={m.style.preset}
       language={m.style.language}
       textScalePercent={m.style.textScalePercent}

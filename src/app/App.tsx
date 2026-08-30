@@ -174,6 +174,7 @@ function useStudioAppModel(props: StudioAppProps) {
   const layers = useProject((state) => state.document.layers);
   const assets = useProject((state) => state.document.assets);
   const page = useProject((state) => state.document.page);
+  const pageBoundaryVisible = useProject((state) => state.pageBoundaryVisible);
   const style = useProject((state) => state.document.style);
   const selectedId = useProject((state) => state.selectedId);
   const documentEpoch = useProject((state) => state.documentEpoch);
@@ -264,7 +265,7 @@ function useStudioAppModel(props: StudioAppProps) {
     exportButtonRef, handleAuthoringChange, handleDeleteKeyDown, handleOpenedDocument,
     importButtonRef, isAuthoring, layers, mapDataImport, mapExporter,
     mapLayers: directions.mapLayers, mapLocation, mapMatchingProvider,
-    mapPreviewedLayerId, mobile, modal, openButtonRef, openExport, page, project,
+    mapPreviewedLayerId, mobile, modal, openButtonRef, openExport, page, pageBoundaryVisible, project,
     routeExtensionRequest, searchProvider, selectedId, selectedLayer,
     setPreviewedLayerId, setRouteExtensionRequest, style,
     changeRouteVertex: directions.changeRouteVertex,

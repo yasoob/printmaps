@@ -121,6 +121,7 @@ const ProjectPropertiesPanel = memo(function ProjectPropertiesPanel({ onLocate }
   const documentEpoch = useProject((state) => state.documentEpoch);
   const style = useProject((state) => state.document.style);
   const page = useProject((state) => state.document.page);
+  const pageBoundaryVisible = useProject((state) => state.pageBoundaryVisible);
   const bearing = useProject((state) => state.document.camera.bearing);
   const pitch = useProject((state) => state.document.camera.pitch);
   const locked = useProject((state) => state.document.camera.locked);
@@ -135,12 +136,14 @@ const ProjectPropertiesPanel = memo(function ProjectPropertiesPanel({ onLocate }
       documentEpoch={documentEpoch}
       style={style}
       page={page}
+      pageBoundaryVisible={pageBoundaryVisible}
       onBearingChange={project.setCameraBearing}
       onDimensionChange={project.setPageDimension}
       onFeatureVisibilityChange={project.setMapFeatureVisibility}
       onLanguageChange={project.setMapLanguage}
       onLocate={onLocate}
       onMapAreaLockChange={project.setMapAreaLocked}
+      onPageBoundaryVisibilityChange={project.setPageBoundaryVisible}
       onOrientationChange={project.setPageOrientation}
       onPitchChange={project.setCameraPitch}
       onPresetChange={project.setPagePreset}
