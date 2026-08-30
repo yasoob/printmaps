@@ -101,7 +101,7 @@ function ExportOutputSummary({ document, preflight, selectedFormat }: Readonly<{
     <section className="export-output-summary" aria-labelledby="export-output-title">
       <span id="export-output-title">Output</span>
       <strong>{pageLabel} · {document.page.widthMm} × {document.page.heightMm} mm</strong>
-      <p>{selectedFormat === 'svg' ? 'Raster basemap · named vector overlays' : 'Exact-page PDF · named vector overlays'}</p>
+      <p>{selectedFormat === 'svg' ? 'Raster basemap · named vector overlays' : '300 DPI lossless basemap · named vector overlays'}</p>
     </section>
   );
 }
@@ -144,7 +144,9 @@ function ExportTechnicalDetails({ busy, expanded, onToggle, preflight, selectedF
             <p>The PNG renderer renders bounded map regions at their target pixel dimensions from the live vector map style instead of enlarging the browser preview.</p>
           </>
         ) : (
-          <p>{selectedFormat === 'svg' ? 'Layered SVG' : 'The exact-page PDF'} embeds a raster basemap while route, POI, and shape remain named vector overlays.</p>
+          <p>{selectedFormat === 'svg'
+            ? 'Layered SVG embeds a raster basemap while route, POI, and shape remain named vector overlays.'
+            : 'The exact-page PDF losslessly embeds bounded native-detail basemap regions at a 300 DPI pixel target while route, POI, and shape remain named vector overlays.'}</p>
         )}
       </div>
     </section>

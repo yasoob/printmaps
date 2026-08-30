@@ -14,7 +14,7 @@ type Estimates = NonNullable<ExportPreflightResult['estimates']>;
 const ESTIMATED_TILE_PLAN_RECORD_BYTES = 256;
 
 function estimatedOutputBytes(format: ExportFormat, rgbaBytes: number): number {
-  if (format === 'pdf') return Math.ceil(rgbaBytes * 1.05 + 1024 * 1024);
+  if (format === 'pdf') return Math.ceil(rgbaBytes * (3 / 4) * 1.01 + 1024 * 1024);
   if (format === 'layered-svg') return Math.ceil(rgbaBytes * 1.4 + 256 * 1024);
   return Math.ceil(rgbaBytes * 1.05);
 }
@@ -39,9 +39,10 @@ export function estimateMemory(
   const sharedPeakBytes = peakTileRgbaBytes + tilePlanBytes;
   const streaming = planStreamingPngStrips(dimensions.widthPx, dimensions.heightPx, contentHeight);
   const streamingWorkingBytes = streaming.stripBytes + dimensions.widthPx * 8 + 1024 * 1024;
-  const peakBytes = sharedPeakBytes + (request.rasterDelivery === 'streaming-png'
-    ? streamingWorkingBytes
-    : rgbaBytes + encodedOutputBytes);
+  let bufferedOutputBytes = rgbaBytes + encodedOutputBytes;
+  if (request.rasterDelivery === 'streaming-png') bufferedOutputBytes = streamingWorkingBytes;
+  else if (request.format === 'pdf') bufferedOutputBytes = encodedOutputBytes;
+  const peakBytes = sharedPeakBytes + bufferedOutputBytes;
   const estimates = { rgbaBytes, peakTileRgbaBytes, encodedOutputBytes, peakBytes };
   const values = [rgbaBytes, peakTileRgbaBytes, encodedOutputBytes, tilePlanBytes, peakBytes];
   if (values.some((value) => !Number.isSafeInteger(value))) {

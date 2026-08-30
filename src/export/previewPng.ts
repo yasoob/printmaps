@@ -17,10 +17,12 @@ export type PrintTileRenderRequest = Readonly<{
 export type PrintTileRenderer = (request: PrintTileRenderRequest) => Promise<HTMLCanvasElement>;
 
 export type PrintTileExportPlan = Readonly<{
+  content?: 'composite' | 'basemap';
   output: PrintTileRenderRequest['output'];
   pixelsPerMillimetre: number;
   regions: readonly PrintTileRenderRequest['region'][];
   signal?: AbortSignal;
+  symbolBufferPx?: number;
   symbolsVisible: boolean;
 }>;
 

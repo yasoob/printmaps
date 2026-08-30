@@ -3,7 +3,7 @@ import { memo, type Dispatch, type RefObject, type SetStateAction } from 'react'
 import type { ContentLayer, LayerType } from '../../domain/project';
 import { ProjectAutosaveStatus } from '../../storage/ProjectAutosaveUi';
 import type { ProjectAutosaveState } from '../../storage/useProjectAutosave';
-import type { ProjectState } from '../store';
+import { useProject, useProjectActions } from '../projectStoreContext';
 import type { MobilePanel } from '../hooks/useMobilePanels';
 
 const layerIcons: Record<LayerType, typeof Route> = { route: Route, poi: MapPin, shape: Shapes, basemap: Layers3 };
@@ -12,7 +12,7 @@ type LayerRowProps = {
   layer: ContentLayer;
   index: number;
   layers: ContentLayer[];
-  project: ProjectState;
+  isSelected: boolean;
   activePanel: MobilePanel | null;
   draggedLayerIdRef: RefObject<string | null>;
   setPreviewedLayerId: Dispatch<SetStateAction<string | null>>;
@@ -27,51 +27,39 @@ function hasSameLayerRowView(previous: ContentLayer, next: ContentLayer) {
     && previous.locked === next.locked;
 }
 
-function haveSameLayerRows(previous: readonly ContentLayer[], next: readonly ContentLayer[]) {
-  return previous.length === next.length
-    && previous.every((layer, index) => {
-      const nextLayer = next[index];
-      return nextLayer ? hasSameLayerRowView(layer, nextLayer) : false;
-    });
-}
-
 function isSameLayerRowProps(previous: LayerRowProps, next: LayerRowProps) {
   return hasSameLayerRowView(previous.layer, next.layer)
     && previous.index === next.index
+    && previous.isSelected === next.isSelected
     && previous.activePanel === next.activePanel
     && previous.draggedLayerIdRef === next.draggedLayerIdRef
     && previous.setPreviewedLayerId === next.setPreviewedLayerId
-    && previous.closePanel === next.closePanel
-    && (previous.project.selectedId === previous.layer.id) === (next.project.selectedId === next.layer.id)
-    && previous.project.selectLayer === next.project.selectLayer
-    && previous.project.moveLayer === next.project.moveLayer
-    && previous.project.toggleLayerVisibility === next.project.toggleLayerVisibility
-    && previous.project.toggleLayerLock === next.project.toggleLayerLock;
+    && previous.closePanel === next.closePanel;
 }
 
-const LayerRow = memo(function LayerRow({ layer, index, layers, project, activePanel, draggedLayerIdRef, setPreviewedLayerId, closePanel }: LayerRowProps) {
+const LayerRow = memo(function LayerRow({ layer, index, layers, isSelected, activePanel, draggedLayerIdRef, setPreviewedLayerId, closePanel }: LayerRowProps) {
+  const { moveLayer, selectLayer, toggleLayerLock, toggleLayerVisibility } = useProjectActions();
   const Icon = layerIcons[layer.type];
-  const isSelected = project.selectedId === layer.id;
   const clearPreview = () => setPreviewedLayerId((current) => current === layer.id ? null : current);
   const select = () => {
-    project.selectLayer(layer.id);
+    selectLayer(layer.id);
     if (activePanel === 'layers') closePanel('layers');
   };
   const reorderByKeyboard = (event: React.KeyboardEvent<HTMLButtonElement>) => {
     if (!(event.altKey && (event.key === 'ArrowUp' || event.key === 'ArrowDown'))) return;
     event.preventDefault();
-    project.moveLayer(layer.id, index + (event.key === 'ArrowUp' ? -1 : 1));
+    moveLayer(layer.id, index + (event.key === 'ArrowUp' ? -1 : 1));
   };
 
   return (
     <li className={`layer-row${isSelected ? ' is-selected' : ''}`} onMouseEnter={() => setPreviewedLayerId(layer.visible && layer.geometry ? layer.id : null)} onMouseLeave={clearPreview}>
-      <button className="layer-visibility" type="button" aria-label={`${layer.visible ? 'Hide' : 'Show'} ${layer.name}`} onClick={() => { clearPreview(); project.toggleLayerVisibility(layer.id); }}>
+      <button className="layer-visibility" type="button" aria-label={`${layer.visible ? 'Hide' : 'Show'} ${layer.name}`} onClick={() => { clearPreview(); toggleLayerVisibility(layer.id); }}>
         {layer.visible ? <Eye size={13} /> : <EyeOff size={13} />}
       </button>
       <button className="layer-select" type="button" data-layer-select={layer.id} aria-current={isSelected ? 'true' : undefined} onClick={select} aria-label={`Select ${layer.name}`}>
         <Icon size={14} /><span>{layer.name}</span>
       </button>
-      <button className="layer-lock" type="button" aria-label={`${layer.locked ? 'Unlock' : 'Lock'} ${layer.name}`} onClick={() => project.toggleLayerLock(layer.id)}>
+      <button className="layer-lock" type="button" aria-label={`${layer.locked ? 'Unlock' : 'Lock'} ${layer.name}`} onClick={() => toggleLayerLock(layer.id)}>
         {layer.locked ? <Lock size={12} /> : <Unlock size={12} />}
       </button>
       <button
@@ -84,7 +72,7 @@ const LayerRow = memo(function LayerRow({ layer, index, layers, project, activeP
         onDragStart={() => { draggedLayerIdRef.current = layer.id; }}
         onDragOver={(event) => event.preventDefault()}
         onDrop={() => {
-          if (draggedLayerIdRef.current) project.moveLayer(draggedLayerIdRef.current, layers.findIndex((candidate) => candidate.id === layer.id));
+          if (draggedLayerIdRef.current) moveLayer(draggedLayerIdRef.current, layers.findIndex((candidate) => candidate.id === layer.id));
           draggedLayerIdRef.current = null;
         }}
         onDragEnd={() => { draggedLayerIdRef.current = null; }}
@@ -93,19 +81,23 @@ const LayerRow = memo(function LayerRow({ layer, index, layers, project, activeP
   );
 }, isSameLayerRowProps);
 
-type LayersSidebarProps = Omit<LayerRowProps, 'layer' | 'index'> & {
+type LayersSidebarProps = {
+  layers: ContentLayer[];
+  activePanel: MobilePanel | null;
+  draggedLayerIdRef: RefObject<string | null>;
+  setPreviewedLayerId: Dispatch<SetStateAction<string | null>>;
+  closePanel: (panel?: MobilePanel | null, shouldRestoreFocus?: boolean) => void;
   autosave: ProjectAutosaveState;
   panelRef: RefObject<HTMLElement | null>;
   onKeyDown: (event: React.KeyboardEvent<HTMLElement>, panel: MobilePanel) => void;
 };
 
-function hasSameLayersSidebarActions(previous: LayersSidebarProps, next: LayersSidebarProps) {
-  return previous.closePanel === next.closePanel
-    && previous.onKeyDown === next.onKeyDown
-    && previous.project.selectLayer === next.project.selectLayer
-    && previous.project.moveLayer === next.project.moveLayer
-    && previous.project.toggleLayerVisibility === next.project.toggleLayerVisibility
-    && previous.project.toggleLayerLock === next.project.toggleLayerLock;
+function haveSameLayerRows(previous: readonly ContentLayer[], next: readonly ContentLayer[]) {
+  return previous.length === next.length
+    && previous.every((layer, index) => {
+      const nextLayer = next[index];
+      return nextLayer ? hasSameLayerRowView(layer, nextLayer) : false;
+    });
 }
 
 function isSameLayersSidebarProps(previous: LayersSidebarProps, next: LayersSidebarProps) {
@@ -114,14 +106,15 @@ function isSameLayersSidebarProps(previous: LayersSidebarProps, next: LayersSide
     && previous.panelRef === next.panelRef
     && previous.draggedLayerIdRef === next.draggedLayerIdRef
     && previous.setPreviewedLayerId === next.setPreviewedLayerId
+    && previous.closePanel === next.closePanel
+    && previous.onKeyDown === next.onKeyDown
     && previous.autosave.status === next.autosave.status
-    && previous.autosave.statusKind === next.autosave.statusKind
-    && previous.project.selectedId === next.project.selectedId
-    && hasSameLayersSidebarActions(previous, next);
+    && previous.autosave.statusKind === next.autosave.statusKind;
 }
 
 export const LayersSidebar = memo(function LayersSidebar(props: LayersSidebarProps) {
   const { activePanel, autosave, closePanel, layers, panelRef, onKeyDown } = props;
+  const selectedId = useProject((state) => state.selectedId);
   return (
     <aside ref={panelRef} id="layers-panel" className={`left-sidebar${activePanel === 'layers' ? ' is-mobile-open' : ''}`} aria-label="Layers sidebar" role={activePanel === 'layers' ? 'dialog' : undefined} aria-modal={activePanel === 'layers' ? true : undefined} inert={activePanel === 'properties'} onKeyDown={(event) => onKeyDown(event, 'layers')}>
       <div className="panel-header">
@@ -143,9 +136,9 @@ export const LayersSidebar = memo(function LayersSidebar(props: LayersSidebarPro
             closePanel={props.closePanel}
             draggedLayerIdRef={props.draggedLayerIdRef}
             index={index}
+            isSelected={selectedId === layer.id}
             layer={layer}
             layers={layers}
-            project={props.project}
             setPreviewedLayerId={props.setPreviewedLayerId}
           />
         ))}

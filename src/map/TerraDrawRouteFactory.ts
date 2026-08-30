@@ -8,30 +8,10 @@ import { TerraDrawMapLibreGLAdapter } from 'terra-draw-maplibre-gl-adapter';
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { RouteLineShape } from '../domain/routeProfiles';
 import type { TerraRouteDrawLike } from './TerraDrawRouteEditing';
+import { ROUTE_EDITOR_PREFIX } from './TerraDrawRouteHandles';
 
 const HANDLE_COLOR = '#d9363e';
 const HANDLE_OUTLINE = '#ffffff';
-const ROUTE_EDITOR_PREFIX = 'studio-route-editor';
-
-export type TerraRouteHandleOrder = 'absent' | 'failed' | 'moved';
-
-export function bringTerraRouteHandlesToFront(
-  map: Pick<MapLibreMap, 'getLayer' | 'moveLayer'>,
-): TerraRouteHandleOrder {
-  let didFail = false;
-  let didMove = false;
-  for (const id of [`${ROUTE_EDITOR_PREFIX}-point`, `${ROUTE_EDITOR_PREFIX}-point-marker`]) {
-    try {
-      if (!map.getLayer(id)) continue;
-      map.moveLayer(id);
-      didMove = true;
-    } catch {
-      didFail = true;
-    }
-  }
-  if (didFail) return 'failed';
-  return didMove ? 'moved' : 'absent';
-}
 
 function lineStringMode(lineShape: RouteLineShape) {
   return new TerraDrawLineStringMode({

@@ -140,10 +140,17 @@ function TextScaleField({ value, onCommit }: { value: number; onCommit: (value: 
   );
 }
 
+/**
+ * The inspector renders orientation controls only. Centre and zoom are excluded
+ * deliberately: they are written at pointer rate while panning, and subscribing
+ * to them here would re-render the inspector on every frame of a map drag.
+ */
+export type CameraInspectorView = Pick<CameraSettings, 'bearing' | 'locked' | 'pitch'>;
+
 type ProjectPropertiesProps = {
   documentEpoch: number;
   page: PageSettings;
-  camera: CameraSettings;
+  camera: CameraInspectorView;
   style: MapStyleSettings;
   onBearingChange: (bearing: number) => void;
   onDimensionChange: (dimension: 'widthMm' | 'heightMm', value: number) => void;

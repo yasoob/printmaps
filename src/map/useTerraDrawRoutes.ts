@@ -2,8 +2,41 @@ import { useCallback, useEffect, useLayoutEffect, useRef, type RefObject } from 
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { ContentLayer } from '../domain/project';
 import type { RouteLineShape } from '../domain/routeProfiles';
-import { createTerraRouteDraw } from './TerraDrawRouteFactory';
+import type { createTerraRouteDraw } from './TerraDrawRouteFactory';
 import { createTerraRouteSession } from './TerraDrawRouteEditing';
+
+// Concurrent editor sessions share one in-flight import instead of racing
+// separate requests for the same chunk.
+// Concurrent editor sessions share one in-flight import instead of racing
+// separate requests for the same chunk. A failed fetch is never cached, so the
+// next activation retries.
+const terraRouteDraw: { module: Promise<typeof import('./TerraDrawRouteFactory')> | null } = { module: null };
+
+async function importRouteEditor() {
+  try {
+    return await import('./TerraDrawRouteFactory');
+  } catch (error) {
+    terraRouteDraw.module = null;
+    throw error;
+  }
+}
+
+const loadTerraRouteDraw = () => (terraRouteDraw.module ??= importRouteEditor());
+
+/**
+ * Warms the route editor chunk before the tool is activated. Route clicks are
+ * handled by terra-draw alone, so a click landing before the chunk arrives is
+ * dropped; fetching on hover/focus closes that window.
+ */
+export function preloadRouteEditor() {
+  void (async () => {
+    try {
+      await loadTerraRouteDraw();
+    } catch {
+      // Warm-up is best effort; the activating effect reports the real attempt.
+    }
+  })();
+}
 
 export type RouteAuthoring = {
   active: boolean;
@@ -114,18 +147,37 @@ function useRouteSession(options: TerraDrawRoutesOptions, callbacks: RefObject<R
   const isAuthoring = options.authoring?.active === true;
   const editableRoute = editableRouteFor(options);
   const lineShape = isAuthoring ? options.authoring?.lineShape : routeLineShape(editableRoute);
+  const { map } = options;
 
   useEffect(() => {
-    if (!lineShape || !options.map) return;
-    const draw = createTerraRouteDraw(options.map, lineShape, isAuthoring);
+    if (!lineShape || !map) return;
     const { onRoutePreview } = callbacks.current;
-    session.current = sessionFor(draw, isAuthoring, editableRoute, callbacks);
+    let isCancelled = false;
+    let owned: RouteSession | null = null;
+    // terra-draw only matters once a route is being drawn or edited, so the
+    // editor is fetched at that point rather than shipped with the first paint.
+    void (async () => {
+      // A fetch failure leaves the tool inert rather than raising an unhandled
+      // rejection; the uncached loader retries on the next activation.
+      let loaded: typeof import('./TerraDrawRouteFactory');
+      try {
+        loaded = await loadTerraRouteDraw();
+      } catch {
+        return;
+      }
+      if (isCancelled) return;
+      owned = sessionFor(loaded.createTerraRouteDraw(map, lineShape, isAuthoring), isAuthoring, editableRoute, callbacks);
+      session.current = owned;
+    })();
     return () => {
-      session.current?.destroy();
-      session.current = null;
+      // Only this run's session is torn down: a later run may already have
+      // published its own session to the ref while this one was still loading.
+      isCancelled = true;
+      owned?.destroy();
+      if (session.current === owned) session.current = null;
       if (editableRoute) onRoutePreview(editableRoute.id, null);
     };
-  }, [callbacks, editableRoute, isAuthoring, lineShape, options.map]);
+  }, [callbacks, editableRoute, isAuthoring, lineShape, map]);
 
   return { isAuthoring, session };
 }

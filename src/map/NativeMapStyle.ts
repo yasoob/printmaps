@@ -82,6 +82,15 @@ export function withoutBasemapSymbolLayers<T extends ReturnType<MapLibreMap['get
   return filtered;
 }
 
+export function withoutStudioContentLayers<T extends ReturnType<MapLibreMap['getStyle']>>(style: T): T {
+  const filtered = structuredClone(style);
+  const mutable = filtered as T & { layers?: MutableStyleLayer[] };
+  if (mutable.layers) {
+    mutable.layers = mutable.layers.filter((layer) => !isStudioContentLayer(layer));
+  }
+  return filtered;
+}
+
 export function hasVisibleBasemapSymbolLayers(style: ReturnType<MapLibreMap['getStyle']>): boolean {
   const layers = style.layers ?? [];
   return layers.some((layer) => {

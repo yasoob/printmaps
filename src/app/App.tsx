@@ -1,5 +1,5 @@
-import { useCallback, useRef, useState } from 'react';
-import { useStore } from 'zustand';
+import { memo, useCallback, useRef, useState } from 'react';
+import type { StoreApi } from 'zustand/vanilla';
 import type { ContentLayer, ProjectDocument } from '../domain/project';
 import type { PreviewPngExporter } from '../export/previewPng';
 import type { DirectionsProvider, MapMatchingProvider, SearchProvider } from '../services/mapbox/contracts';
@@ -20,7 +20,8 @@ import { useAutosaveModalArbitration } from './hooks/useAutosaveModalArbitration
 import { useEditorShortcuts } from './hooks/useEditorShortcuts';
 import { useMapLocationCommand } from './hooks/useMapLocationCommand';
 import { useMobilePanels } from './hooks/useMobilePanels';
-import { createProjectStore } from './store';
+import { ProjectStoreContext, useProject, useProjectActions } from './projectStoreContext';
+import { createProjectStore, type ProjectState } from './store';
 
 type AppProps = {
   autosaveRepository?: AutosaveRepository | null;
@@ -43,20 +44,68 @@ function visiblePreviewLayerId(layers: readonly ContentLayer[], previewedLayerId
   return layer?.visible && layer.geometry ? previewedLayerId : null;
 }
 
+type CanvasWorkspaceProps = React.ComponentProps<typeof CanvasWorkspace>;
+
+/**
+ * Subscribes to the camera on the workspace's behalf. Panning writes centre and
+ * zoom at pointer rate, so keeping that subscription below the editor shell
+ * confines those renders to the map instead of the whole studio.
+ */
+const CanvasWorkspaceWithCamera = memo(function CanvasWorkspaceWithCamera(
+  props: Omit<CanvasWorkspaceProps, 'camera'>,
+) {
+  const camera = useProject((state) => state.document.camera);
+  return <CanvasWorkspace {...props} camera={camera} />;
+});
+
 export function App({ autosaveRepository, directionsProvider, mapMatchingProvider, searchProvider }: AppProps = {}) {
   const [projectStore] = useState(() => createProjectStore());
-  const [resolvedAutosaveRepository] = useState(() => (
+  return (
+    <ProjectStoreContext value={projectStore}>
+      <StudioApp
+        autosaveRepository={autosaveRepository}
+        directionsProvider={directionsProvider}
+        mapMatchingProvider={mapMatchingProvider}
+        projectStore={projectStore}
+        searchProvider={searchProvider}
+      />
+    </ProjectStoreContext>
+  );
+}
+
+function useResolvedAutosave(projectStore: StoreApi<ProjectState>, autosaveRepository: AutosaveRepository | null | undefined) {
+  const [resolved] = useState(() => (
     autosaveRepository === undefined
       ? (typeof indexedDB === 'undefined' ? null : createIndexedDbAutosaveRepository())
       : autosaveRepository
   ));
-  const project = useStore(projectStore);
-  const autosave = useProjectAutosave(projectStore, resolvedAutosaveRepository);
+  return useProjectAutosave(projectStore, resolved);
+}
+
+function useMapExporter() {
+  const [exporter, setExporter] = useState<{ run: PreviewPngExporter } | null>(null);
+  const onExporterChange = useCallback((next: PreviewPngExporter | null) => {
+    setExporter(next ? { run: next } : null);
+  }, []);
+  return { run: exporter?.run ?? null, onExporterChange };
+}
+
+function StudioApp({ autosaveRepository, directionsProvider, mapMatchingProvider, projectStore, searchProvider }: AppProps & {
+  projectStore: StoreApi<ProjectState>;
+}) {
+  const project = useProjectActions();
+  const layers = useProject((state) => state.document.layers);
+  const assets = useProject((state) => state.document.assets);
+  const page = useProject((state) => state.document.page);
+  const style = useProject((state) => state.document.style);
+  const selectedId = useProject((state) => state.selectedId);
+  const documentEpoch = useProject((state) => state.documentEpoch);
+  const autosave = useResolvedAutosave(projectStore, autosaveRepository);
   const [previewedLayerId, setPreviewedLayerId] = useState<string | null>(null);
   const [exportOpen, setExportOpen] = useState(false); const openExport = useCallback(() => setExportOpen(true), []);
   const [authoringState, setAuthoringState] = useState({ documentEpoch: 0, active: false });
-  const [mapExporter, setMapExporter] = useState<{ run: PreviewPngExporter } | null>(null);
-  const mapLocation = useMapLocationCommand(project.documentEpoch);
+  const mapExporter = useMapExporter();
+  const mapLocation = useMapLocationCommand(documentEpoch);
   const draggedLayerIdRef = useRef<string | null>(null);
   const exportButtonRef = useRef<HTMLButtonElement>(null);
   const importButtonRef = useRef<HTMLButtonElement>(null); const openButtonRef = useRef<HTMLButtonElement>(null);
@@ -64,27 +113,23 @@ export function App({ autosaveRepository, directionsProvider, mapMatchingProvide
   const handleMapDataImported = useCallback(() => setPreviewedLayerId(null), []);
   const mapDataImport = useAppMapDataImport(project.importLayers, project.replaceLayerFromImport, autosave.recoveryDraft !== null || autosave.corrupted, handleMapDataImported);
   const modal = useAutosaveModalArbitration({ autosave, exportButtonRef, exportOpen, importButtonRef: openButtonRef, importOpen: mapDataImport.isImportOpen, mobile, setExportOpen, setImportOpen: mapDataImport.setIsImportOpen });
-  const layers = project.document.layers; const mapPreviewedLayerId = visiblePreviewLayerId(layers, previewedLayerId);
-  const selectedLayer = layers.find((layer) => layer.id === project.selectedId) ?? null;
-  const isAuthoring = authoringState.documentEpoch === project.documentEpoch && authoringState.active;
+  const mapPreviewedLayerId = visiblePreviewLayerId(layers, previewedLayerId);
+  const selectedLayer = layers.find((layer) => layer.id === selectedId) ?? null;
+  const isAuthoring = authoringState.documentEpoch === documentEpoch && authoringState.active;
   const selectLayer = project.selectLayer; const openDocument = project.openDocument;
   const clearSelection = useCallback(() => selectLayer(null), [selectLayer]);
-  const handleExporterChange = useCallback((exporter: PreviewPngExporter | null) => {
-    setMapExporter(exporter ? { run: exporter } : null);
-  }, []);
   const handleOpenedDocument = useCallback((document: ProjectDocument) => {
     openDocument(document);
     setPreviewedLayerId(null);
   }, [openDocument]);
-  const handleAuthoringChange = useCallback((documentEpoch: number, isActive: boolean) => {
-    setAuthoringState({ documentEpoch, active: isActive });
+  const handleAuthoringChange = useCallback((nextDocumentEpoch: number, isActive: boolean) => {
+    setAuthoringState({ documentEpoch: nextDocumentEpoch, active: isActive });
   }, []);
   const { deleteSelectedLayer, handleDeleteKeyDown } = useEditorShortcuts({
     deleteFocusTarget: () => modal.mobilePanel === 'properties' ? mobile.propertiesPanelRef.current?.querySelector<HTMLElement>('[data-project-heading]') ?? null : null,
     isAuthoring,
     isModalOpen: modal.surface !== null,
     layers,
-    project,
     selectedLayer,
     setPreviewedLayerId,
   });
@@ -92,7 +137,7 @@ export function App({ autosaveRepository, directionsProvider, mapMatchingProvide
     <>
       <main className="studio-shell" inert={['export', 'autosave', 'import'].includes(modal.surface ?? '')} onKeyDown={handleDeleteKeyDown}>
         <StudioHeader
-          project={project} projectTitleRef={mobile.projectTitleRef}
+          projectTitleRef={mobile.projectTitleRef}
           exportButtonRef={exportButtonRef} importButtonRef={importButtonRef} openButtonRef={openButtonRef}
           finishImportWork={mapDataImport.finishImportWork} isImportWorkActive={mapDataImport.isImportWorkActive}
           startImportWork={mapDataImport.startImportWork} exportDisabled={isAuthoring}
@@ -103,21 +148,20 @@ export function App({ autosaveRepository, directionsProvider, mapMatchingProvide
           onExport={openExport}
         />
         <LayersSidebar
-          layers={layers} project={project} activePanel={modal.mobilePanel}
+          layers={layers} activePanel={modal.mobilePanel}
           draggedLayerIdRef={draggedLayerIdRef} setPreviewedLayerId={setPreviewedLayerId}
           closePanel={mobile.closePanel} panelRef={mobile.layersPanelRef}
           onKeyDown={mobile.handlePanelKeyDown} autosave={autosave}
         />
-        <CanvasWorkspace
-          layers={layers} assets={project.document.assets}
-          selectedId={project.selectedId} previewedId={mapPreviewedLayerId}
-          page={project.document.page}
-          camera={project.document.camera}
-          stylePreset={project.document.style.preset}
-          language={project.document.style.language}
-          textScalePercent={project.document.style.textScalePercent}
-          featureVisibility={project.document.style.visibility}
-          documentEpoch={project.documentEpoch}
+        <CanvasWorkspaceWithCamera
+          layers={layers} assets={assets}
+          selectedId={selectedId} previewedId={mapPreviewedLayerId}
+          page={page}
+          stylePreset={style.preset}
+          language={style.language}
+          textScalePercent={style.textScalePercent}
+          featureVisibility={style.visibility}
+          documentEpoch={documentEpoch}
           importFitRequest={mapDataImport.importFitRequest}
           locationRequest={mapLocation.request}
           activePanel={modal.mobilePanel}
@@ -135,12 +179,11 @@ export function App({ autosaveRepository, directionsProvider, mapMatchingProvide
           onCreateShape={project.createShape}
           onAuthoringChange={handleAuthoringChange}
           onBackgroundClick={clearSelection}
-          onExporterChange={handleExporterChange}
+          onExporterChange={mapExporter.onExporterChange}
           openPanel={mobile.openPanel}
         />
         {modal.mobilePanel && <button className="mobile-panel-backdrop" type="button" aria-label="Close open panel" onClick={() => mobile.closePanel()} />}
         <PropertiesSidebar
-          project={project}
           selectedLayer={selectedLayer}
           {...optionalMapMatchingProvider(mapMatchingProvider)}
 
@@ -154,7 +197,7 @@ export function App({ autosaveRepository, directionsProvider, mapMatchingProvide
         />
       </main>
       <ProjectAutosaveErrorNotice autosave={autosave} />
-      {modal.surface === 'export' && <ExportDialog exporter={mapExporter?.run ?? null} filename={project.document.id} document={project.document} onClose={modal.closeExport} />}
+      {modal.surface === 'export' && <ExportDialogSurface exporter={mapExporter.run} onClose={modal.closeExport} />}
       <ProjectAutosaveDialogs
         autosave={autosave}
         onBeforeDecision={modal.preemptSurface}
@@ -163,4 +206,9 @@ export function App({ autosaveRepository, directionsProvider, mapMatchingProvide
       />
     </>
   );
+}
+
+function ExportDialogSurface({ exporter, onClose }: { exporter: PreviewPngExporter | null; onClose: () => void }) {
+  const document = useProject((state) => state.document);
+  return <ExportDialog exporter={exporter} filename={document.id} document={document} onClose={onClose} />;
 }

@@ -1,6 +1,7 @@
 import { Frame, Layers3, MapPin, MousePointer2, Route, Shapes, SlidersHorizontal } from 'lucide-react';
 import type { ComponentProps, Dispatch, RefObject, SetStateAction } from 'react';
 import type { ShapeEditMode } from '../../map/ShapeVertexEditing';
+import { preloadRouteEditor } from '../../map/useTerraDrawRoutes';
 import type { MobilePanel } from '../hooks/useMobilePanels';
 import { MapScale } from './MapScale';
 import { PoiAuthoringControls } from './PoiAuthoringControls';
@@ -56,7 +57,7 @@ export function CanvasWorkspaceChrome({
       <nav className="tool-palette" aria-label="Map tools">
         {tools.map(({ id, label, mobileLabel, shortcut, icon: Icon }) => (
           <div className="tool-slot" key={id}>
-            <button ref={id === 'select' ? selectToolRef : undefined} className={`tool-button${activeTool === id ? ' is-active' : ''}`} type="button" aria-label={`${label} (${shortcut})`} aria-pressed={activeTool === id} title={`${label} · ${shortcut}`} onClick={() => onActivateTool(id)}>
+            <button ref={id === 'select' ? selectToolRef : undefined} className={`tool-button${activeTool === id ? ' is-active' : ''}`} type="button" aria-label={`${label} (${shortcut})`} aria-pressed={activeTool === id} title={`${label} · ${shortcut}`} onPointerEnter={id === 'route' ? preloadRouteEditor : undefined} onFocus={id === 'route' ? preloadRouteEditor : undefined} onClick={() => onActivateTool(id)}>
               <Icon size={17} strokeWidth={1.8} />
               <span className="tool-label" aria-hidden="true">{mobileLabel}</span>
             </button>

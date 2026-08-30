@@ -87,7 +87,21 @@ async function verifyPdfDownload() {
   const source = document.createElement('canvas');
   source.width = 2;
   source.height = 1;
-  exportMocks.exporter = vi.fn().mockResolvedValue({
+  const renderPrintTile = vi.fn(({ region }: { region: { width: number; height: number } }) => {
+    const tile = document.createElement('canvas');
+    tile.width = region.width;
+    tile.height = region.height;
+    return Promise.resolve(tile);
+  });
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+    getImageData: vi.fn((_x: number, _y: number, width: number, height: number) => ({
+      data: new Uint8ClampedArray(width * height * 4).fill(255),
+      width,
+      height,
+    })),
+  } as unknown as CanvasRenderingContext2D);
+  const captureExport = vi.fn();
+  captureExport.mockResolvedValue({
     blob: new Blob([Uint8Array.from([0xFF, 0xD8, 0xFF, 0xD9])], { type: 'image/jpeg' }),
     width: 2,
     height: 1,
@@ -97,6 +111,10 @@ async function verifyPdfDownload() {
       y: (48.26 - latitude) / 0.12,
     }),
   });
+  const exporter = Object.assign(captureExport, {
+    createPrintTileRenderer: vi.fn(() => renderPrintTile),
+  });
+  exportMocks.exporter = exporter;
   let downloadedBlob: Blob | undefined;
   let downloadName = '';
   vi.spyOn(URL, 'createObjectURL').mockImplementation((blob) => {
@@ -110,48 +128,64 @@ async function verifyPdfDownload() {
   });
   render(<App />);
 
+  for (const name of ['Page width', 'Page height']) {
+    const field = screen.getByRole('spinbutton', { name });
+    await user.clear(field);
+    await user.type(field, '25.4');
+    await user.tab();
+  }
   await user.click(screen.getByRole('button', { name: 'Export' }));
   const dialog = screen.getByRole('dialog', { name: 'Export map' });
   await user.click(within(dialog).getByRole('radio', { name: /PDF/ }));
   await user.click(screen.getByRole('button', { name: 'Download PDF' }));
 
   await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Download started for PDF'));
-  expect(exportMocks.exporter).toHaveBeenCalledWith({
+  expect(exporter).toHaveBeenCalledWith({
     content: 'basemap',
     signal: expect.any(AbortSignal),
   });
+  expect(exporter.createPrintTileRenderer).toHaveBeenCalledWith(expect.objectContaining({
+    content: 'basemap',
+    output: { width: 300, height: 300 },
+  }));
+  expect(renderPrintTile).toHaveBeenCalledOnce();
   expect(downloadName).toBe('vienna-field-guide.pdf');
   expect(downloadedBlob?.type).toBe('application/pdf');
   const pdfText = new TextDecoder('latin1').decode(await downloadedBlob?.arrayBuffer());
   expect(pdfText.startsWith('%PDF-1.7')).toBe(true);
-  expect(pdfText).toContain('/MediaBox [0 0 841.889764 595.275591]');
+  expect(pdfText).toContain('/MediaBox [0 0 72 72]');
   expect(pdfText).toContain('/Subtype /Image');
-  expect(pdfText).toContain('/DCTDecode');
+  expect(pdfText).toContain('/FlateDecode');
+  expect(pdfText).toContain('/Predictor 15');
+  expect(pdfText).not.toContain('/DCTDecode');
   expect(pdfText).toContain('Route 01');
   expect(pdfText).toContain('Coffee stop');
   expect(pdfText).toContain('City center');
   expect(pdfText).toContain('/Type /OCG');
   expect(pdfText).toContain(String.raw`(OpenFreeMap \267 OpenMapTiles \267 \251 OpenStreetMap contributors) Tj`);
-  expect(dialog).toHaveTextContent('raster basemap');
+  expect(dialog).toHaveTextContent('lossless basemap');
   expect(dialog).toHaveTextContent('vector overlays');
   expect(source).toMatchObject({ width: 0, height: 0 });
 }
 
 async function verifyPdfCancellation() {
   const user = userEvent.setup();
-  let finishEncoding: BlobCallback | undefined;
-  vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation((callback) => {
-    finishEncoding = callback;
-  });
+  let receivedSignal: AbortSignal | undefined;
   const source = document.createElement('canvas');
   source.width = 2;
   source.height = 1;
-  exportMocks.exporter = vi.fn().mockResolvedValue({
+  const renderPrintTile = vi.fn(({ signal }: { signal?: AbortSignal }) => new Promise<HTMLCanvasElement>((_resolve, reject) => {
+    receivedSignal = signal;
+    signal?.addEventListener('abort', () => reject(new DOMException('Cancelled', 'AbortError')), { once: true });
+  }));
+  exportMocks.exporter = Object.assign(vi.fn().mockResolvedValue({
     blob: new Blob(['png'], { type: 'image/png' }),
     width: 2,
     height: 1,
     surface: source,
     projectToFrame: () => ({ x: 0.5, y: 0.5 }),
+  }), {
+    createPrintTileRenderer: vi.fn(() => renderPrintTile),
   });
   const downloadClick = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
   render(<App />);
@@ -160,11 +194,8 @@ async function verifyPdfCancellation() {
   await user.click(screen.getByRole('radio', { name: /PDF/ }));
   await user.click(screen.getByRole('button', { name: 'Download PDF' }));
   const cancel = await screen.findByRole('button', { name: 'Cancel export' });
-  await waitFor(() => expect(finishEncoding).toBeTypeOf('function'));
+  await waitFor(() => expect(receivedSignal).toBeInstanceOf(AbortSignal));
   await user.click(cancel);
-  await act(async () => {
-    finishEncoding?.(new Blob([Uint8Array.from([0xFF, 0xD8, 0xFF, 0xD9])], { type: 'image/jpeg' }));
-  });
 
   await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Export cancelled'));
   expect(downloadClick).not.toHaveBeenCalled();
@@ -316,7 +347,7 @@ describe('editor export', () => {
 
   it('downloads an exact-page PDF with a raster basemap and named vector overlays', verifyPdfDownload);
 
-  it('propagates Cancel while the PDF basemap is being encoded', verifyPdfCancellation);
+  it('propagates Cancel while the native PDF basemap is rendering', verifyPdfCancellation);
 
   it('blocks an unusably small PNG before capture', async () => {
     const user = userEvent.setup();

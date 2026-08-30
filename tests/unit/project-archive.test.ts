@@ -6,12 +6,16 @@ import {
   parseProjectArchive,
 } from '../../src/domain/projectArchive';
 
+// Constructed from local components: fflate encodes DOS timestamps in local time,
+// so a UTC instant would fall below the 1980 floor in timezones behind UTC.
+const FIXED_ARCHIVE_MTIME = new Date(1980, 0, 2, 0, 0, 0, 0);
+
 const fixedZip = (entries: Record<string, string | Uint8Array>) => zipSync(
   Object.fromEntries(Object.entries(entries).map(([name, value]) => [
     name,
     strToU8(typeof value === 'string' ? value : new TextDecoder().decode(value)),
   ])),
-  { level: 0, mtime: new Date('1980-01-01T00:00:00.000Z') },
+  { level: 0, mtime: FIXED_ARCHIVE_MTIME },
 );
 
 const manifest = JSON.stringify({

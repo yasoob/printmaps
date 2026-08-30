@@ -27,6 +27,10 @@ npm run build
 
 Chromium is the acceptance browser for the end-to-end suite.
 
+## Export quality
+
+PNG and PDF basemaps render from bounded native MapLibre regions at a 300 DPI target rather than enlarging the browser preview. PNG includes physical-resolution metadata, while PDF uses lossless raster basemap streams and keeps routes, places, and areas as named vector layers.
+
 ## GitHub Pages
 
 Pushes to `main` deploy automatically through `.github/workflows/deploy-pages.yml`. Add the browser-safe Mapbox token as the Actions secret `VITE_MAPBOX_PUBLIC_ACCESS` to enable provider-backed features on the deployed site.

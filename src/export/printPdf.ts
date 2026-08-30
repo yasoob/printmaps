@@ -1,7 +1,12 @@
 import type { ContentLayer, ProjectDocument } from '../domain/project';
 import { fitAttributionFontSize, projectAttributionText } from '../domain/projectAttributions';
-import { asciiBytes, buildPdf, pdfString, streamObject, type PdfObject } from './pdfWriter';
+import { asciiBytes, buildPdfBlob, pdfString, streamObject, type PdfObject } from './pdfWriter';
 import { pdfVectorCommands } from './pdfVectorCommands';
+import {
+  createLosslessPdfRaster,
+  type LosslessPdfRasterImage,
+  type LosslessPdfRasterOptions,
+} from './printPdfRaster';
 import type { PreviewPng } from './previewPng';
 
 const POINTS_PER_MM = 72 / 25.4;
@@ -12,6 +17,18 @@ type PdfGroup = Readonly<{
   layer?: ContentLayer;
   name: string;
   resourceName: string;
+}>;
+
+type PdfBasemapImage = Readonly<{
+  bytes: Uint8Array | readonly Uint8Array[];
+  destination: Readonly<{ x: number; y: number; width: number; height: number }>;
+  dictionary: string;
+  resourceName: string;
+}>;
+
+type PdfBasemap = Readonly<{
+  images: readonly PdfBasemapImage[];
+  output: Readonly<{ width: number; height: number }>;
 }>;
 
 function formatNumber(value: number): string {
@@ -104,22 +121,35 @@ async function jpegBytes(capture: PreviewPng, signal: AbortSignal | undefined): 
 }
 
 function createContentStream(options: Readonly<{
+  basemapImages: readonly PdfBasemapImage[];
+  basemapOutput: PdfBasemap['output'];
   groups: readonly PdfGroup[];
   capture: PreviewPng & Required<Pick<PreviewPng, 'projectToFrame'>>;
   width: number;
   height: number;
   attributionText: string;
 }>): Uint8Array {
-  const { attributionText, capture, groups, height, width } = options;
+  const { attributionText, basemapImages, basemapOutput, capture, groups, height, width } = options;
   const basemap = groups.find(({ layer }) => layer?.type === 'basemap');
   if (!basemap) throw new Error('The project must contain one basemap for PDF export.');
+  if (basemapImages.length === 0) throw new Error('The PDF basemap has no printable image regions.');
   const lines = [
     'q',
     `0 0 ${formatNumber(width)} ${formatNumber(height)} re W n`,
     '/BasemapGS gs',
     `/OC /${basemap.resourceName} BDC`,
-    `${formatNumber(width)} 0 0 ${formatNumber(height)} 0 0 cm`,
-    '/BasemapImage Do',
+    ...basemapImages.flatMap(({ destination, resourceName }) => {
+      const imageWidth = destination.width / basemapOutput.width * width;
+      const imageHeight = destination.height / basemapOutput.height * height;
+      const imageX = destination.x / basemapOutput.width * width;
+      const imageY = height - (destination.y + destination.height) / basemapOutput.height * height;
+      return [
+        'q',
+        `${formatNumber(imageWidth)} 0 0 ${formatNumber(imageHeight)} ${formatNumber(imageX)} ${formatNumber(imageY)} cm`,
+        `/${resourceName} Do`,
+        'Q',
+      ];
+    }),
     'EMC',
     'Q',
   ];
@@ -160,11 +190,10 @@ function createContentStream(options: Readonly<{
   return asciiBytes(lines.join('\n'));
 }
 
-export async function createPrintPdf(
+function validatePdfInput(
   document: ProjectDocument,
   capture: PreviewPng,
-  signal?: AbortSignal,
-): Promise<Blob> {
+): asserts capture is PreviewPng & Required<Pick<PreviewPng, 'projectToFrame'>> {
   validateCapture(capture);
   if (!Number.isFinite(document.page.widthMm) || document.page.widthMm <= 0
     || !Number.isFinite(document.page.heightMm) || document.page.heightMm <= 0) {
@@ -175,19 +204,27 @@ export async function createPrintPdf(
   }
   const basemapLayers = document.layers.filter(({ type }) => type === 'basemap');
   if (basemapLayers.length !== 1) throw new Error('The project must contain exactly one basemap for PDF export.');
-  const imageBytes = await jpegBytes(capture, signal);
-  throwIfCancelled(signal);
+}
 
+function createPdf(
+  document: ProjectDocument,
+  capture: PreviewPng & Required<Pick<PreviewPng, 'projectToFrame'>>,
+  basemap: PdfBasemap,
+): Blob {
+  const basemapLayer = document.layers.find(({ type }) => type === 'basemap');
+  if (!basemapLayer) throw new Error('The project must contain exactly one basemap for PDF export.');
   const width = document.page.widthMm * POINTS_PER_MM;
   const height = document.page.heightMm * POINTS_PER_MM;
   const vectorLayers = document.layers.filter(({ type }) => type !== 'basemap');
   const groups: PdfGroup[] = [
-    { layer: basemapLayers[0], name: basemapLayers[0]?.name ?? 'Basemap', resourceName: 'Basemap' },
+    { layer: basemapLayer, name: basemapLayer.name, resourceName: 'Basemap' },
     ...vectorLayers.map((layer, index) => ({ layer, name: layer.name, resourceName: `Layer${index}` })),
     { name: 'Attribution', resourceName: 'Attribution' },
   ];
 
-  const firstGroupObject = 7;
+  const firstImageObject = 5;
+  const fontReference = firstImageObject + basemap.images.length;
+  const firstGroupObject = fontReference + 1;
   const groupReferences = groups.map((_, index) => firstGroupObject + index);
   const firstGraphicsStateObject = firstGroupObject + groups.length;
   const basemapGraphicsStateReference = firstGraphicsStateObject;
@@ -209,7 +246,12 @@ export async function createPrintPdf(
     `/BasemapGS ${basemapGraphicsStateReference} 0 R`,
     ...vectorLayers.map((_, index) => `/GS${index + 1} ${graphicsStateReferences[index]} 0 R`),
   ].join(' ');
+  const imageResources = basemap.images.map(({ resourceName }, index) => (
+    `/${resourceName} ${firstImageObject + index} 0 R`
+  )).join(' ');
   const content = createContentStream({
+    basemapImages: basemap.images,
+    basemapOutput: basemap.output,
     groups,
     capture,
     width,
@@ -220,35 +262,56 @@ export async function createPrintPdf(
   const objects: PdfObject[] = [
     [`<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [${allGroupReferences}] /D << /Order [${orderedGroupReferences}] /OFF [${offGroupReferences}] >> >> >>`],
     ['<< /Type /Pages /Kids [3 0 R] /Count 1 >>'],
-    [`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${formatNumber(width)} ${formatNumber(height)}] /CropBox [0 0 ${formatNumber(width)} ${formatNumber(height)}] /Resources << /XObject << /BasemapImage 5 0 R >> /Font << /F1 6 0 R >> /Properties << ${properties} >> /ExtGState << ${graphicsStates} >> >> /Contents 4 0 R >>`],
+    [`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${formatNumber(width)} ${formatNumber(height)}] /CropBox [0 0 ${formatNumber(width)} ${formatNumber(height)}] /Resources << /XObject << ${imageResources} >> /Font << /F1 ${fontReference} 0 R >> /Properties << ${properties} >> /ExtGState << ${graphicsStates} >> >> /Contents 4 0 R >>`],
     streamObject('', content),
-    streamObject(`/Type /XObject /Subtype /Image /Width ${capture.width} /Height ${capture.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode`, imageBytes),
+    ...basemap.images.map(({ bytes, dictionary }) => streamObject(dictionary, bytes)),
     ['<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>'],
     ...groups.map(({ name }) => [`<< /Type /OCG /Name ${pdfString(name)} >>`] as PdfObject),
-    [`<< /Type /ExtGState /CA ${opacityValue(basemapLayers[0])} /ca ${opacityValue(basemapLayers[0])} >>`],
+    [`<< /Type /ExtGState /CA ${opacityValue(basemapLayer)} /ca ${opacityValue(basemapLayer)} >>`],
     ...vectorLayers.map((layer) => [`<< /Type /ExtGState /CA ${opacityValue(layer)} /ca ${opacityValue(layer)} >>`] as PdfObject),
     [`<< /Title ${pdfString(document.title)} /Creator (Print Map Studio) /Subject (Exact-page PDF with a raster basemap and named vector overlays.) >>`],
   ];
-  const bytes = buildPdf(objects, infoReference);
-  const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
-  return new Blob([buffer], { type: 'application/pdf' });
+  return buildPdfBlob(objects, infoReference);
 }
 
-function sanitizeBaseFilename(filename: string): string {
-  return filename
-    .replace(/(?:\.layered\.svg|\.svg|\.png|\.pdf)$/i, '')
-    .replaceAll(/[^a-z0-9._-]+/gi, '-')
-    .replaceAll(/^[-.]+|[-.]+$/g, '') || 'map';
+function losslessImage(image: LosslessPdfRasterImage): PdfBasemapImage {
+  return {
+    bytes: image.bytes,
+    destination: image.destination,
+    dictionary: `/Type /XObject /Subtype /Image /Width ${image.width} /Height ${image.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Interpolate false /Filter /FlateDecode /DecodeParms << /Predictor 15 /Colors 3 /BitsPerComponent 8 /Columns ${image.width} >>`,
+    resourceName: image.resourceName,
+  };
 }
 
-export function startPrintPdfDownload(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob);
-  try {
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${sanitizeBaseFilename(filename)}.pdf`;
-    link.click();
-  } finally {
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
+export async function createPrintPdf(
+  document: ProjectDocument,
+  capture: PreviewPng,
+  signal?: AbortSignal,
+): Promise<Blob> {
+  validatePdfInput(document, capture);
+  const imageBytes = await jpegBytes(capture, signal);
+  throwIfCancelled(signal);
+  return createPdf(document, capture, {
+    images: [{
+      bytes: imageBytes,
+      destination: { x: 0, y: 0, width: capture.width, height: capture.height },
+      dictionary: `/Type /XObject /Subtype /Image /Width ${capture.width} /Height ${capture.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Interpolate false /Filter /DCTDecode`,
+      resourceName: 'BasemapImage0',
+    }],
+    output: { width: capture.width, height: capture.height },
+  });
+}
+
+export async function createNativePrintPdf(
+  document: ProjectDocument,
+  capture: PreviewPng,
+  options: LosslessPdfRasterOptions,
+): Promise<Blob> {
+  validatePdfInput(document, capture);
+  const raster = await createLosslessPdfRaster(options);
+  throwIfCancelled(options.signal);
+  return createPdf(document, capture, {
+    images: raster.images.map((image) => losslessImage(image)),
+    output: raster.output,
+  });
 }

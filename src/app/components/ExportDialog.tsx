@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ProjectDocument } from '../../domain/project';
 import { projectAttributions } from '../../domain/projectAttributions';
-import { createLayeredSvg, startLayeredSvgDownload } from '../../export/layeredSvg';
 import { canStreamLargeRasterPng } from '../../export/largeRasterPng';
 import { planExportPreflight, type RasterDelivery } from '../../export/preflight';
-import { createPrintPdf, startPrintPdfDownload } from '../../export/printPdf';
 import type { PreviewPngExporter } from '../../export/previewPng';
+import { runPdfExport } from './exportDialogPdf';
 import { runPngExport } from './exportDialogPng';
+import { NATIVE_SYMBOL_BUFFER_PX } from './exportDialogRaster';
 import { ExportDialogView, type ExportFormat } from './ExportDialogView';
 
 export type ExportDialogProps = {
@@ -49,58 +49,14 @@ function useExportPreflight(document: ProjectDocument): Readonly<{
       rasterLayers: [],
       cancellationSupported: true,
     };
-    const single = planExportPreflight({ ...request, rasterDelivery: 'single-png' });
+    const limits = document.style.visibility.labels ? { tileOverlapPx: NATIVE_SYMBOL_BUFFER_PX } : {};
+    const single = planExportPreflight({ ...request, rasterDelivery: 'single-png' }, limits);
     if (single.safe) return { preflight: single, rasterDelivery: 'single-png' };
-    const streaming = planExportPreflight({ ...request, rasterDelivery: 'streaming-png' });
+    const streaming = planExportPreflight({ ...request, rasterDelivery: 'streaming-png' }, limits);
     return streaming.safe
       ? { preflight: streaming, rasterDelivery: 'streaming-png' }
       : { preflight: single, rasterDelivery: 'single-png' };
   }, [document]);
-}
-
-
-type PdfExportOptions = Pick<ExportDialogProps, 'document' | 'exporter' | 'filename'> & {
-  abortControllerRef: React.RefObject<AbortController | null>;
-  setBusy: (isBusy: boolean) => void;
-  setError: (error: string | null) => void;
-  setStatus: (status: string) => void;
-};
-
-async function runPdfExport(options: PdfExportOptions): Promise<void> {
-  const { abortControllerRef, document, exporter, filename, setBusy, setError, setStatus } = options;
-  if (!exporter) {
-    setError('The live map preview is not ready yet. Wait for the map to load and try again.');
-    return;
-  }
-  const controller = new AbortController();
-  abortControllerRef.current = controller;
-  setBusy(true);
-  setError(null);
-  setStatus('Capturing a raster basemap for PDF…');
-  let sourceSurface: HTMLCanvasElement | null = null;
-  try {
-    const source = await exporter({ content: 'basemap', signal: controller.signal });
-    sourceSurface = source.surface;
-    if (controller.signal.aborted) throw new DOMException('PDF export was cancelled.', 'AbortError');
-    const pdf = await createPrintPdf(document, source, controller.signal);
-    if (controller.signal.aborted) throw new DOMException('PDF export was cancelled.', 'AbortError');
-    startPrintPdfDownload(pdf, filename);
-    setStatus('Download started for PDF.');
-  } catch (error_) {
-    if (controller.signal.aborted || (error_ instanceof DOMException && error_.name === 'AbortError')) {
-      setStatus('Export cancelled.');
-    } else {
-      setError(error_ instanceof Error ? error_.message : 'PDF export failed.');
-      setStatus('Export failed.');
-    }
-  } finally {
-    if (sourceSurface) {
-      sourceSurface.width = 0;
-      sourceSurface.height = 0;
-    }
-    if (abortControllerRef.current === controller) abortControllerRef.current = null;
-    setBusy(false);
-  }
 }
 
 function handleExportDialogKeyDown(event: React.KeyboardEvent<HTMLDialogElement>, isBusy: boolean, dialog: HTMLDialogElement | null, onClose: () => void) {
@@ -183,6 +139,7 @@ export function ExportDialog({ exporter, filename, document, onClose }: ExportDi
       const source = await exporter({ content: 'basemap', signal: controller.signal });
       sourceSurface = source.surface;
       if (controller.signal.aborted) throw new DOMException('Layered SVG export was cancelled.', 'AbortError');
+      const { createLayeredSvg, startLayeredSvgDownload } = await import('../../export/layeredSvg');
       const svg = await createLayeredSvg(document, source);
       if (controller.signal.aborted) throw new DOMException('Layered SVG export was cancelled.', 'AbortError');
       startLayeredSvgDownload(svg, filename);

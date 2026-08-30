@@ -1,4 +1,4 @@
-import { bringTerraRouteHandlesToFront } from '../../src/map/TerraDrawRouteFactory';
+import { bringTerraRouteHandlesToFront } from '../../src/map/TerraDrawRouteHandles';
 import { scheduleTerraRouteHandleOrder } from '../../src/map/useMapCanvasController';
 
 describe('Terra Draw route handle order', () => {

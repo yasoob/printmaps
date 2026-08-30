@@ -51,6 +51,18 @@ describe('export preflight planning', () => {
     expect(result.errors).toEqual([]);
   });
 
+  it('plans an A1 300 DPI PDF with bounded raster memory instead of a full-page canvas', () => {
+    const result = planExportPreflight(completeRequest({
+      format: 'pdf',
+      page: { widthMm: 841, heightMm: 594 },
+    }));
+
+    expect(result.safe).toBe(true);
+    expect(result.dimensions).toMatchObject({ widthPx: 9933, heightPx: 7016 });
+    expect(result.plan?.tiles.length).toBeGreaterThan(1);
+    expect(result.estimates?.peakBytes).toBeLessThan(512 * 1024 * 1024);
+  });
+
   it('offers bounded streaming PNG planning when one canvas exceeds memory', () => {
     const single = planExportPreflight(completeRequest({
       page: { widthMm: 1330, heightMm: 1330 },

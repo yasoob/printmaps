@@ -16,7 +16,6 @@ import {
   type ElevationProfileFontFamily,
   type ElevationProfileUnits,
 } from '../../export/elevationProfile';
-import { createElevationProfilePdf } from '../../export/elevationProfilePdf';
 import { ElevationProfileRequestControls } from './ElevationProfileRequestControls';
 import { ProfileRouteSource, type LocalProfileRoute } from './ProfileRouteSource';
 import { Checkbox } from './UiControls';
@@ -172,6 +171,7 @@ function ElevationProfileReady({
       } else if (format === 'png') {
         blob = await createElevationProfilePng(profile, routeName, renderOptions);
       } else {
+        const { createElevationProfilePdf } = await import('../../export/elevationProfilePdf');
         blob = await createElevationProfilePdf(profile, routeName, renderOptions);
       }
       downloadBlob(blob, `${filenameBase(routeName)}.elevation.${format}`);

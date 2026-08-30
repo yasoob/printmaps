@@ -1,5 +1,7 @@
+import { unzlibSync } from 'fflate';
 import { createInitialProjectDocument } from '../../src/domain/project';
-import { createPrintPdf } from '../../src/export/printPdf';
+import { planExportPreflight } from '../../src/export/preflight';
+import { createNativePrintPdf, createPrintPdf } from '../../src/export/printPdf';
 import type { PreviewPng } from '../../src/export/previewPng';
 
 function jpegCapture(): PreviewPng {
@@ -28,6 +30,81 @@ async function pdfText(document = createInitialProjectDocument()): Promise<strin
   const pdf = await createPrintPdf(document, jpegCapture());
   return new TextDecoder('latin1').decode(await pdf.arrayBuffer());
 }
+
+describe('native print PDF raster', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('embeds bounded native basemap regions as lossless target-resolution images', async () => {
+    const document = createInitialProjectDocument();
+    document.page = {
+      ...document.page,
+      preset: 'Custom',
+      widthMm: 25.4,
+      heightMm: 25.4,
+    };
+    const preflight = planExportPreflight({
+      format: 'pdf',
+      page: { widthMm: 25.4, heightMm: 25.4 },
+      dpi: 100,
+      attributions: ['© OpenStreetMap contributors'],
+      basemap: 'raster',
+      vectorOverlays: true,
+      cancellationSupported: true,
+    }, {
+      gpuMaxSidePx: 64,
+      preferredTileSidePx: 64,
+      tileOverlapPx: 4,
+    });
+    const renderedRegions: Array<{ x: number; y: number; width: number; height: number }> = [];
+    const renderedSurfaces: HTMLCanvasElement[] = [];
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+      getImageData: vi.fn((_x: number, _y: number, width: number, height: number) => ({
+        data: new Uint8ClampedArray(width * height * 4).fill(255),
+        width,
+        height,
+      })),
+    } as unknown as CanvasRenderingContext2D);
+
+    const pdf = await createNativePrintPdf(document, jpegCapture(), {
+      preflight,
+      renderTile: async ({ region }) => {
+        renderedRegions.push(region);
+        const surface = globalThis.document.createElement('canvas');
+        surface.width = region.width;
+        surface.height = region.height;
+        renderedSurfaces.push(surface);
+        return surface;
+      },
+    });
+    const pdfBytes = new Uint8Array(await pdf.arrayBuffer());
+    const text = new TextDecoder('latin1').decode(pdfBytes);
+    const dictionaryOffset = text.indexOf('/Filter /FlateDecode');
+    const streamHeaderOffset = text.indexOf('stream\n', dictionaryOffset);
+    const streamOffset = streamHeaderOffset + 'stream\n'.length;
+    const streamLength = Number(text.slice(dictionaryOffset, streamHeaderOffset).match(/\/Length (\d+)/)?.[1]);
+    const decodedImage = unzlibSync(pdfBytes.subarray(streamOffset, streamOffset + streamLength));
+
+    expect(renderedRegions).toEqual(preflight.plan?.tiles.map((tile) => ({
+      x: tile.renderX,
+      y: tile.renderY,
+      width: tile.renderWidth,
+      height: tile.renderHeight,
+    })));
+    expect(text.match(/\/Subtype \/Image/g)).toHaveLength(4);
+    expect(text).toContain('/Filter /FlateDecode');
+    expect(text).toContain('/Predictor 15');
+    expect(text).toContain('/Interpolate false');
+    expect(text).not.toContain('/DCTDecode');
+    expect(text).toContain('/BasemapImage0 Do');
+    expect(text).toContain('/BasemapImage3 Do');
+    expect(text).toContain('/MediaBox [0 0 72 72]');
+    expect(decodedImage).toHaveLength((56 * 3 + 1) * 56);
+    expect([...decodedImage.subarray(0, 7)]).toEqual([2, 255, 255, 255, 255, 255, 255]);
+    expect(decodedImage[56 * 3 + 1]).toBe(2);
+    expect([...decodedImage.subarray(56 * 3 + 2, 56 * 3 + 8)]).toEqual([0, 0, 0, 0, 0, 0]);
+    expect(renderedSurfaces.every(({ width, height }) => width === 0 && height === 0)).toBe(true);
+  });
+});
 
 describe('print PDF', () => {
   it('fails closed rather than substituting a standard symbol for a custom marker', async () => {

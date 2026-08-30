@@ -1,10 +1,12 @@
-import { createRef } from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { createRef, Profiler } from 'react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import type { StoreApi } from 'zustand/vanilla';
 import { LayerIdentityProperties } from '../../../src/app/components/LayerIdentityProperties';
 import { LayerProperties } from '../../../src/app/components/LayerProperties';
 import { LayersSidebar } from '../../../src/app/components/LayersSidebar';
 import { PropertiesSidebar } from '../../../src/app/components/PropertiesSidebar';
 import { StudioHeader } from '../../../src/app/components/StudioHeader';
+import { ProjectStoreContext } from '../../../src/app/projectStoreContext';
 import { createProjectStore, type ProjectState } from '../../../src/app/store';
 import type { ProjectAutosaveState } from '../../../src/storage/useProjectAutosave';
 
@@ -67,9 +69,8 @@ vi.mock('../../../src/storage/ProjectAutosaveUi', async (importOriginal) => {
   };
 });
 
-function headerProps(project: ProjectState) {
+function headerProps() {
   return {
-    project,
     projectTitleRef: createRef<HTMLButtonElement>(),
     exportButtonRef: createRef<HTMLButtonElement>(),
     importButtonRef: createRef<HTMLButtonElement>(),
@@ -88,16 +89,8 @@ function headerProps(project: ProjectState) {
   };
 }
 
-function cameraProject(project: ProjectState): ProjectState {
-  return {
-    ...project,
-    canUndo: true,
-    document: {
-      ...project.document,
-      camera: { ...project.document.camera, center: [16.4, 48.2], zoom: 12 },
-    },
-    past: [project.document],
-  };
+function panCamera(store: StoreApi<ProjectState>) {
+  act(() => { store.getState().setCameraViewport([16.4, 48.2], 12); });
 }
 
 function autosaveState(): ProjectAutosaveState {
@@ -116,18 +109,22 @@ describe('editor render boundaries', () => {
   beforeEach(() => { vi.clearAllMocks(); });
 
   it('does not rerender the project identity for selection or camera updates', () => {
-    const initial = createProjectStore().getState();
-    const props = headerProps(initial);
-    const { rerender } = render(<StudioHeader {...props} />);
+    const store = createProjectStore();
+    render(
+      <ProjectStoreContext value={store}>
+        <StudioHeader {...headerProps()} />
+      </ProjectStoreContext>,
+    );
 
-    rerender(<StudioHeader {...props} project={{ ...initial, selectedId: 'area-center' }} />);
-    rerender(<StudioHeader {...props} project={cameraProject(initial)} />);
+    act(() => { store.getState().selectLayer('area-center'); });
+    panCamera(store);
 
     expect(renderMetrics.title).toHaveBeenCalledOnce();
   });
 
   it('rerenders only rows whose visible list state changes', () => {
-    const initial = createProjectStore().getState();
+    const store = createProjectStore();
+    const initial = store.getState();
     const autosave = autosaveState();
     const props = {
       activePanel: null,
@@ -139,27 +136,22 @@ describe('editor render boundaries', () => {
       panelRef: createRef<HTMLElement>(),
       setPreviewedLayerId: vi.fn(),
     };
+    store.getState().selectLayer('route-01');
     const { rerender } = render(
-      <LayersSidebar {...props} project={{ ...initial, selectedId: 'route-01' }} />,
+      <ProjectStoreContext value={store}>
+        <LayersSidebar {...props} />
+      </ProjectStoreContext>,
     );
 
-    rerender(<LayersSidebar {...props} project={{ ...initial, selectedId: 'area-center' }} />);
-    rerender(
-      <LayersSidebar {...props} project={{ ...cameraProject(initial), selectedId: 'area-center' }} />,
-    );
+    act(() => { store.getState().selectLayer('area-center'); });
+    panCamera(store);
     const movedLayers = initial.document.layers.map((layer) => layer.id === 'area-center'
       ? { ...layer, geometry: structuredClone(layer.geometry) }
       : layer);
     rerender(
-      <LayersSidebar
-        {...props}
-        layers={movedLayers}
-        project={{
-          ...initial,
-          document: { ...initial.document, layers: movedLayers },
-          selectedId: 'area-center',
-        }}
-      />,
+      <ProjectStoreContext value={store}>
+        <LayersSidebar {...props} layers={movedLayers} />
+      </ProjectStoreContext>,
     );
 
     expect(renderMetrics.layerIcon).toHaveBeenCalledTimes(initial.document.layers.length + 2);
@@ -167,7 +159,7 @@ describe('editor render boundaries', () => {
   });
 
   it('does not rerender project controls for camera center and zoom changes', () => {
-    const initial = createProjectStore().getState();
+    const store = createProjectStore();
     const props = {
       activePanel: null,
       closePanel: vi.fn(),
@@ -176,15 +168,62 @@ describe('editor render boundaries', () => {
       onLocate: vi.fn(),
       onReplaceLayerData: vi.fn(),
       panelRef: createRef<HTMLElement>(),
-      project: initial,
       selectedLayer: null,
       setPreviewedLayerId: vi.fn(),
     };
-    const { rerender } = render(<PropertiesSidebar {...props} />);
+    render(
+      <ProjectStoreContext value={store}>
+        <PropertiesSidebar {...props} />
+      </ProjectStoreContext>,
+    );
 
-    rerender(<PropertiesSidebar {...props} project={cameraProject(initial)} />);
+    panCamera(store);
 
     expect(renderMetrics.projectProperties).toHaveBeenCalledOnce();
+  });
+
+  it('keeps camera-rate document writes out of the header and sidebars', () => {
+    const store = createProjectStore();
+    const commits = { header: 0, layers: 0, properties: 0 };
+    const count = (key: keyof typeof commits) => () => { commits[key] += 1; };
+    render(
+      <ProjectStoreContext value={store}>
+        <Profiler id="header" onRender={count('header')}><StudioHeader {...headerProps()} /></Profiler>
+        <Profiler id="layers" onRender={count('layers')}>
+          <LayersSidebar
+            activePanel={null}
+            autosave={autosaveState()}
+            closePanel={vi.fn()}
+            draggedLayerIdRef={createRef<string | null>()}
+            layers={store.getState().document.layers}
+            onKeyDown={vi.fn()}
+            panelRef={createRef<HTMLElement>()}
+            setPreviewedLayerId={vi.fn()}
+          />
+        </Profiler>
+        <Profiler id="properties" onRender={count('properties')}>
+          <PropertiesSidebar
+            activePanel={null}
+            closePanel={vi.fn()}
+            onDeleteSelected={vi.fn()}
+            onKeyDown={vi.fn()}
+            onLocate={vi.fn()}
+            onReplaceLayerData={vi.fn()}
+            panelRef={createRef<HTMLElement>()}
+            selectedLayer={null}
+            setPreviewedLayerId={vi.fn()}
+          />
+        </Profiler>
+      </ProjectStoreContext>,
+    );
+    commits.header = 0; commits.layers = 0; commits.properties = 0;
+
+    for (let tick = 0; tick < 5; tick += 1) {
+      act(() => { store.getState().setCameraViewport([16.4 + tick * 0.01, 48.2], 12, 'amend'); });
+    }
+
+    expect(store.getState().document.camera.center[0]).toBeCloseTo(16.44);
+    expect(commits).toEqual({ header: 0, layers: 0, properties: 0 });
   });
 
   it('refreshes memoized callbacks when their behavior changes', () => {

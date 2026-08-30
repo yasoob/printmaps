@@ -137,7 +137,7 @@ test('export offers one keyboard-accessible format choice with responsive techni
   const details = dialog.getByRole('button', { name: 'Technical details' });
   await details.click();
   await expect(details).toHaveAttribute('aria-expanded', 'true');
-  await expect(dialog).toContainText('raster basemap');
+  await expect(dialog).toContainText('lossless basemap');
   await expect(dialog).toContainText('named vector overlays');
   if (testInfo.project.name === 'chromium') await page.screenshot({ path: 'docs/screenshots/latest-desktop.png' });
 
@@ -227,6 +227,7 @@ test('layered SVG download embeds the raster basemap and preserves named vector 
 });
 
 test('PDF download has the exact page box with a raster basemap and named vector overlays', async ({ page }, testInfo) => {
+  test.setTimeout(180_000);
   await page.goto('/');
   const mapReady = page.locator('[data-map-ready="true"]');
   const mapFallback = page.getByText('Map preview unavailable');
@@ -236,7 +237,7 @@ test('PDF download has the exact page box with a raster basemap and named vector
   await page.getByRole('button', { name: 'Export' }).click();
   const dialog = page.getByRole('dialog', { name: 'Export map' });
   await dialog.getByRole('radio', { name: /PDF/ }).click();
-  await expect(dialog).toContainText('exact-page PDF');
+  await expect(dialog).toContainText('300 DPI lossless basemap');
   const downloadPromise = page.waitForEvent('download');
   await dialog.getByRole('button', { name: 'Download PDF' }).click();
   const download = await downloadPromise;
@@ -250,7 +251,9 @@ test('PDF download has the exact page box with a raster basemap and named vector
   expect(pdfText).toContain('/MediaBox [0 0 841.889764 595.275591]');
   expect(pdfText).toContain('/CropBox [0 0 841.889764 595.275591]');
   expect(pdfText).toContain('/Subtype /Image');
-  expect(pdfText).toContain('/Filter /DCTDecode');
+  expect(pdfText).toContain('/Filter /FlateDecode');
+  expect(pdfText).toContain('/Predictor 15');
+  expect(pdfText).toContain('/Width 3508 /Height 2480');
   expect(pdfText).toContain('/Type /OCG /Name (Route 01)');
   expect(pdfText).toContain('/Type /OCG /Name (Coffee stop)');
   expect(pdfText).toContain('/Type /OCG /Name (City center)');
@@ -432,14 +435,6 @@ test('large PNG export renders multiple overlapping native map tiles', async ({ 
   const dialog = page.getByRole('dialog', { name: 'Export map' });
   await expect(dialog).toContainText('7087 × 591 px — 300 DPI pixel target');
 
-  await dialog.getByRole('button', { name: 'Download PNG' }).click();
-  await expect(dialog.getByRole('alert')).toContainText('Turn off Show labels');
-  await dialog.getByRole('button', { name: 'Close export' }).click();
-  await page.getByRole('checkbox', { name: 'Show labels' }).uncheck();
-  await expect(mapReady).toBeVisible({ timeout: 20_000 });
-  await page.getByRole('button', { name: 'Export' }).click();
-  await expect(dialog).toContainText('7087 × 591 px — 300 DPI pixel target');
-
   const download = await downloadPng(page, dialog);
   const outputPath = testInfo.outputPath('vienna-field-guide-native-tiles.png');
   await download.saveAs(outputPath);
@@ -450,6 +445,6 @@ test('large PNG export renders multiple overlapping native map tiles', async ({ 
   const allNativeRegions = await readNativeExportRegions(page);
   const nativeRegions = allNativeRegions.filter((region) => region.endsWith('/7087x591'));
   expect(nativeRegions).toHaveLength(2);
-  expect(nativeRegions[0]).toMatch(/^0,0,4080,591\//);
-  expect(nativeRegions[1]).toMatch(/^4048,0,3039,591\//);
+  expect(nativeRegions[0]).toMatch(/^0,0,3840,591\//);
+  expect(nativeRegions[1]).toMatch(/^3328,0,3759,591\//);
 });

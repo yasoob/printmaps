@@ -3,7 +3,7 @@ import { cloneContentLayer, createDefaultLayerAppearance, type ContentLayer } fr
 import { isValidPosition } from '../domain/routeGeometry';
 import { validateCustomMarkerAssetCollection, validateStoredCustomMarkerAsset, type CustomMarkerAsset } from '../domain/customMarkerAssets';
 import type { ProjectState } from './store';
-import { commitDocument, replaceLayers, type ProjectSet } from './storeDocument';
+import { commitDocument, hasSameDocumentContent, replaceLayers, type ProjectSet } from './storeDocument';
 import { createPoiStructureActions } from './storePoiActions';
 import { createAdministrativeAreaActions } from './storeAdministrativeAreaActions';
 import { createRouteGeometryActions } from './storeRouteGeometryActions';
@@ -112,7 +112,7 @@ export function createLayerStructureActions(set: ProjectSet): Pick<ProjectState,
     importLayers: (importedLayers, documentEpoch, sourceDocument) => {
       let wasImported = false;
       set((state) => {
-        if (importedLayers.length === 0 || documentEpoch !== state.documentEpoch || sourceDocument !== state.document) return state;
+        if (importedLayers.length === 0 || documentEpoch !== state.documentEpoch || !hasSameDocumentContent(sourceDocument, state.document)) return state;
         wasImported = true;
 
         const layers = [...state.document.layers];

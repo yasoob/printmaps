@@ -5,7 +5,7 @@ import { geometryPositionCount } from '../domain/projectGeometry';
 import { isValidPosition } from '../domain/routeGeometry';
 import { isEditableShapeRing } from '../domain/shapeGeometry';
 import type { ProjectState } from './store';
-import { commitDocument, replaceLayers, type ProjectSet } from './storeDocument';
+import { commitDocument, hasSameDocumentContent, replaceLayers, type ProjectSet } from './storeDocument';
 
 function positionIsValid([longitude, latitude]: readonly [number, number]) {
   return isValidPosition(longitude, latitude);
@@ -41,7 +41,7 @@ export function createReplaceLayerFromImportAction(
   return (id, importedLayer, documentEpoch, sourceDocument) => {
     let wasReplaced = false;
     set((state) => {
-      if (documentEpoch !== state.documentEpoch || sourceDocument !== state.document) return state;
+      if (documentEpoch !== state.documentEpoch || !hasSameDocumentContent(sourceDocument, state.document)) return state;
       const target = state.document.layers.find((layer) => layer.id === id);
       const importedCopy = cloneContentLayer(importedLayer);
       const geometry = importedCopy.geometry;

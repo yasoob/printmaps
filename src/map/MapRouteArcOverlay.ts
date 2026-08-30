@@ -1,69 +1,83 @@
-import { ArcLayer } from '@deck.gl/layers';
-import { MapboxOverlay } from '@deck.gl/mapbox';
 import type { Map as MapLibreMap } from 'maplibre-gl';
-import type { ContentLayer } from '../domain/project';
 import { routeArcData, type RouteArcDatum } from './RouteArcRendering';
+import {
+  ARC_LAYER_ID,
+  type ArcDeckLayers,
+  type ArcDeckLayersLoader,
+  type ArcOverlay,
+  type RouteArcState,
+} from './RouteArcOverlayContracts';
 
-const ARC_LAYER_ID = 'studio-route-arcs';
+export type { OverlayFactory, RouteArcState } from './RouteArcOverlayContracts';
 
-type RouteArcState = {
-  layers: readonly ContentLayer[];
-  selectedId: string | null;
-  previewedId: string | null;
-};
+const loadArcDeckLayers: ArcDeckLayersLoader = () => import('./RouteArcDeckLayers');
 
-type ArcOverlay = {
-  finalize: () => void;
-  pickObject: (options: { x: number; y: number; radius: number; layerIds: string[] }) => { object?: unknown } | null;
-  setProps: (props: { layers: ArcLayer<RouteArcDatum>[] }) => void;
-};
+export type RouteArcOverlayOptions = Readonly<{
+  factory?: ArcDeckLayers['defaultOverlayFactory'];
+  widthScale?: number;
+  isInterleaved?: boolean;
+  loadDeckLayers?: ArcDeckLayersLoader;
+}>;
 
-type OverlayOptions = { interleaved: boolean };
-type OverlayFactory = (options: OverlayOptions) => ArcOverlay;
-
-function arcLayer(data: RouteArcDatum[], widthScale: number, isVisible: boolean) {
-  return new ArcLayer<RouteArcDatum>({
-    id: ARC_LAYER_ID,
-    data,
-    pickable: true,
-    getSourcePosition: (datum) => datum.source,
-    getTargetPosition: (datum) => datum.target,
-    getSourceColor: (datum) => datum.color,
-    getTargetColor: (datum) => datum.color,
-    getWidth: (datum) => datum.width * widthScale,
-    getHeight: 0.35,
-    visible: isVisible,
-    widthUnits: 'pixels',
-    wrapLongitude: true,
-  });
-}
-
-function defaultOverlayFactory(options: OverlayOptions): ArcOverlay {
-  return new MapboxOverlay({ interleaved: options.interleaved, layers: [] }) as ArcOverlay;
-}
-
-export function createRouteArcOverlay(
-  map: MapLibreMap,
-  factory: OverlayFactory = defaultOverlayFactory,
-  widthScale = 1,
-  isInterleaved = false,
-) {
+/**
+ * Arc routes are the only feature that needs deck.gl, and most projects have
+ * none, so the renderer is fetched the first time arc data actually appears.
+ * `sync` stays synchronous for the map adapter's error handling; callers that
+ * must observe the result — the print exporter above all — await `whenIdle`.
+ */
+export function createRouteArcOverlay(map: MapLibreMap, options: RouteArcOverlayOptions = {}) {
+  const {
+    factory,
+    widthScale = 1,
+    isInterleaved = false,
+    loadDeckLayers = loadArcDeckLayers,
+  } = options;
   let overlay: ArcOverlay | null = null;
+  let deckLayers: ArcDeckLayers | null = null;
+  let pendingRender: Promise<void> | null = null;
   let data: RouteArcDatum[] = [];
   let isExportVisible = true;
   let isDestroyed = false;
-  const ensureOverlay = () => {
+  let loadFailure: unknown = null;
+
+  const ensureOverlay = (loaded: ArcDeckLayers) => {
     if (overlay) return overlay;
-    overlay = factory({ interleaved: isInterleaved });
+    overlay = (factory ?? loaded.defaultOverlayFactory)({ interleaved: isInterleaved });
     map.addControl(overlay as never);
     return overlay;
   };
-  const render = () => {
+
+  const renderWith = (loaded: ArcDeckLayers) => {
+    if (isDestroyed) return;
     if (!overlay && data.length === 0) return;
-    ensureOverlay().setProps({
-      layers: data.length > 0 ? [arcLayer(data, widthScale, isExportVisible)] : [],
+    ensureOverlay(loaded).setProps({
+      layers: data.length > 0 ? [loaded.arcLayer(data, widthScale, isExportVisible)] : [],
     });
   };
+
+  const renderWhenLoaded = async (previous: Promise<void> | null) => {
+    await previous;
+    try {
+      deckLayers ??= await loadDeckLayers();
+      loadFailure = null;
+    } catch (error) {
+      // Interactive panning must not reject, so the failure is recorded and
+      // surfaced through `whenIdle` instead, where export can act on it.
+      loadFailure = error;
+      return;
+    }
+    renderWith(deckLayers);
+  };
+
+  const render = () => {
+    if (deckLayers) {
+      renderWith(deckLayers);
+      return;
+    }
+    if (!overlay && data.length === 0) return;
+    pendingRender = renderWhenLoaded(pendingRender);
+  };
+
   return {
     destroy: () => {
       if (isDestroyed) return;
@@ -95,6 +109,18 @@ export function createRouteArcOverlay(
       data = routeArcData(state.layers, state);
       render();
       return true;
+    },
+    /**
+     * Resolves once every render queued so far has been applied, including the
+     * on-demand fetch of the arc renderer. Throws when arcs are still waiting on
+     * a renderer that failed to load, so an export fails loudly rather than
+     * silently omitting routes.
+     */
+    whenIdle: async () => {
+      await pendingRender;
+      if (loadFailure && data.length > 0) {
+        throw new Error('The route arc renderer could not be loaded.', { cause: loadFailure });
+      }
     },
   };
 }

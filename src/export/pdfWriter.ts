@@ -40,15 +40,17 @@ function concatenate(chunks: readonly Uint8Array[]): Uint8Array {
   return result;
 }
 
-export function streamObject(dictionary: string, bytes: Uint8Array): PdfObject {
+export function streamObject(dictionary: string, bytes: Uint8Array | readonly Uint8Array[]): PdfObject {
+  const streamChunks = Array.isArray(bytes) ? bytes : [bytes];
+  const streamLength = streamChunks.reduce((total, chunk) => total + chunk.length, 0);
   return [
-    `<< ${dictionary}${dictionary ? ' ' : ''}/Length ${bytes.length} >>\nstream\n`,
-    bytes,
+    `<< ${dictionary}${dictionary ? ' ' : ''}/Length ${streamLength} >>\nstream\n`,
+    ...streamChunks,
     '\nendstream',
   ];
 }
 
-export function buildPdf(objects: readonly PdfObject[], infoReference: number): Uint8Array {
+function buildPdfChunks(objects: readonly PdfObject[], infoReference: number): Uint8Array[] {
   const chunks: Uint8Array[] = [
     asciiBytes('%PDF-1.7\n'),
     Uint8Array.from([0x25, 0xE2, 0xE3, 0xCF, 0xD3, 0x0A]),
@@ -74,5 +76,20 @@ export function buildPdf(objects: readonly PdfObject[], infoReference: number): 
     `startxref\n${xrefOffset}\n%%EOF\n`,
   ].join('');
   chunks.push(asciiBytes(xref));
-  return concatenate(chunks);
+  return chunks;
+}
+
+export function buildPdf(objects: readonly PdfObject[], infoReference: number): Uint8Array {
+  return concatenate(buildPdfChunks(objects, infoReference));
+}
+
+export function buildPdfBlob(objects: readonly PdfObject[], infoReference: number): Blob {
+  const chunks = buildPdfChunks(objects, infoReference);
+  const parts = chunks.map((chunk) => {
+    const { buffer, byteLength, byteOffset } = chunk;
+    if (byteOffset === 0 && byteLength === buffer.byteLength && buffer instanceof ArrayBuffer) return buffer;
+    if (buffer instanceof ArrayBuffer) return buffer.slice(byteOffset, byteOffset + byteLength);
+    return Uint8Array.from(chunk).buffer;
+  });
+  return new Blob(parts, { type: 'application/pdf' });
 }

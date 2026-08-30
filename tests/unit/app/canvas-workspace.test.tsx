@@ -1,7 +1,10 @@
 import { createRef } from 'react';
-import { render } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import type { ContentLayer } from '../../../src/domain/project';
 import { CanvasWorkspace } from '../../../src/app/components/CanvasWorkspace';
+
+const preloadRouteEditor = vi.hoisted(() => vi.fn());
+vi.mock('../../../src/map/useTerraDrawRoutes', () => ({ preloadRouteEditor }));
 
 const renderedLayerArrays = vi.hoisted(() => [] as ContentLayer[][]);
 const renderedContentRevisions = vi.hoisted(() => [] as Array<object | undefined>);
@@ -98,5 +101,35 @@ describe('CanvasWorkspace map content', () => {
 
     expect(renderedContentRevisions.at(-1)).not.toBe(initialRevision);
     expect(renderedContentRevisions.at(-1)).toBe(renderedLayerArrays.at(-1));
+  });
+});
+
+describe('route editor warm-up', () => {
+  beforeEach(() => preloadRouteEditor.mockClear());
+
+  it('fetches the route editor when the route tool is hovered, before it is activated', () => {
+    render(<CanvasWorkspace {...sharedProps} selectedId={null} />);
+    const routeTool = screen.getByRole('button', { name: 'Route (R)' });
+
+    expect(preloadRouteEditor).not.toHaveBeenCalled();
+    fireEvent.pointerEnter(routeTool);
+
+    expect(preloadRouteEditor).toHaveBeenCalled();
+  });
+
+  it('fetches the route editor when the route tool receives keyboard focus', () => {
+    render(<CanvasWorkspace {...sharedProps} selectedId={null} />);
+
+    fireEvent.focus(screen.getByRole('button', { name: 'Route (R)' }));
+
+    expect(preloadRouteEditor).toHaveBeenCalled();
+  });
+
+  it('leaves other tools alone', () => {
+    render(<CanvasWorkspace {...sharedProps} selectedId={null} />);
+
+    fireEvent.pointerEnter(screen.getByRole('button', { name: 'Area (S)' }));
+
+    expect(preloadRouteEditor).not.toHaveBeenCalled();
   });
 });

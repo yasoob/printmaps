@@ -8,9 +8,9 @@ import {
   type LargeRasterWritable,
 } from '../../export/largeRasterPng';
 import type { ExportPreflightResult, RasterDelivery } from '../../export/preflight';
-import { createPrintSizePng, type PrintSizePngStage } from '../../export/printSizePng';
+import type { PrintSizePngStage } from '../../export/printSizePng';
 import { startPreviewDownload, type PreviewPngExporter } from '../../export/previewPng';
-import { createPrintRegionExportPlan } from './exportDialogRaster';
+import { createPrintRegionExportPlan, NATIVE_SYMBOL_BUFFER_PX } from './exportDialogRaster';
 
 type Options = Readonly<{
   abortControllerRef: React.RefObject<AbortController | null>;
@@ -95,7 +95,14 @@ export async function runPngExport(options: Options): Promise<void> {
       : preflight.plan.tiles.map((tile) => ({
         x: tile.renderX, y: tile.renderY, width: tile.renderWidth, height: tile.renderHeight,
       }));
-    const exportPlan = createPrintRegionExportPlan(output, document, regions, controller.signal);
+    const exportPlan = createPrintRegionExportPlan({
+      content: 'composite',
+      document,
+      output,
+      regions,
+      signal: controller.signal,
+      symbolBufferPx: document.style.visibility.labels ? NATIVE_SYMBOL_BUFFER_PX : 0,
+    });
     const nativeRenderer = exporter.createPrintTileRenderer;
     if (!nativeRenderer) throw new Error('The live map preview is not ready yet. Wait for the map to load and try again.');
     const renderTile = nativeRenderer(exportPlan);
@@ -116,6 +123,7 @@ export async function runPngExport(options: Options): Promise<void> {
       return;
     }
 
+    const { createPrintSizePng } = await import('../../export/printSizePng');
     const result = await createPrintSizePng({
       preflight,
       renderTile: ({ region, signal }) => renderTile({ output, region, signal }),

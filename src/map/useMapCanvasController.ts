@@ -21,7 +21,7 @@ import { useMapLocationRequest } from './useMapLocationRequest';
 import { useMapCameraSynchronization } from './useMapCameraSynchronization';
 import type { CameraViewportChangeMode } from './MapCameraViewport';
 import { useTerraDrawRoutes, type RouteAuthoring } from './useTerraDrawRoutes';
-import { bringTerraRouteHandlesToFront } from './TerraDrawRouteFactory';
+import { bringTerraRouteHandlesToFront } from './TerraDrawRouteHandles';
 import { useRouteVertexEditing } from './useRouteVertexEditing';
 import { useShapeTransformEditing } from './useShapeTransformEditing';
 import { useShapeVertexEditing } from './useShapeVertexEditing';

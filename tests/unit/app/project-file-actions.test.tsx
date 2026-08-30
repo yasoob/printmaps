@@ -16,7 +16,7 @@ describe('project file actions', () => {
   it('keeps infrequent file commands in one clearly named Project menu', async () => {
     const user = userEvent.setup();
     render(
-      <ProjectFileActions document={createInitialProjectDocument()} onOpen={vi.fn()}>
+      <ProjectFileActions getDocument={() => createInitialProjectDocument()} onOpen={vi.fn()}>
         <button type="button" role="menuitem">Import map data</button>
       </ProjectFileActions>,
     );
@@ -63,7 +63,7 @@ describe('project file actions', () => {
     const user = userEvent.setup();
     const onOpen = vi.fn();
     const project = { ...createInitialProjectDocument(), title: 'Opened map' };
-    const { container } = render(<ProjectFileActions document={project} onOpen={onOpen} />);
+    const { container } = render(<ProjectFileActions getDocument={() => project} onOpen={onOpen} />);
     const input = container.querySelector<HTMLInputElement>('input[type="file"]')!;
 
     fireEvent.change(input, {

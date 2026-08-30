@@ -8,8 +8,20 @@ import type { ProjectState } from './store';
 
 export type ProjectSet = StoreApi<ProjectState>['setState'];
 
-export function copyDocument(document: ProjectDocument): ProjectDocument {
-  return {
+/**
+ * Upper bound on retained undo steps. Each entry is a deep copy of the whole
+ * document, so an uncapped stack grows without limit for the lifetime of the
+ * session (a 2,000-point route costs ~31KB per entry).
+ */
+export const MAX_HISTORY_ENTRIES = 100;
+
+function pushHistoryEntry(past: readonly ProjectDocument[], entry: ProjectDocument): ProjectDocument[] {
+  return past.length >= MAX_HISTORY_ENTRIES
+    ? [...past.slice(past.length - MAX_HISTORY_ENTRIES + 1), entry]
+    : [...past, entry];
+}
+
+export function copyDocument(document: ProjectDocument): ProjectDocument {  return {
     ...document,
     page: { ...document.page },
     camera: { ...document.camera, center: [...document.camera.center] },
@@ -19,6 +31,20 @@ export function copyDocument(document: ProjectDocument): ProjectDocument {
   };
 }
 
+/**
+ * Optimistic-concurrency key for imports staged against a snapshot. Every writer
+ * replaces the fields it touches, so identity per field is as strict as a deep
+ * compare. The camera is excluded deliberately: panning writes a new document at
+ * pointer rate without altering content, and it must not discard a batch that is
+ * still being read or reviewed.
+ */
+export function hasSameDocumentContent(a: ProjectDocument, b: ProjectDocument): boolean {
+  if (a === b) return true;
+  const keys = Object.keys(a) as (keyof ProjectDocument)[];
+  if (keys.length !== Object.keys(b).length) return false;
+  return keys.every((key) => key === 'camera' || a[key] === b[key]);
+}
+
 export function replaceLayers(document: ProjectDocument, layers: ContentLayer[]): ProjectDocument {
   return { ...document, layers };
 }
@@ -26,7 +52,7 @@ export function replaceLayers(document: ProjectDocument, layers: ContentLayer[])
 export function commitDocument(state: ProjectState, document: ProjectDocument) {
   return {
     document,
-    past: [...state.past, copyDocument(state.document)],
+    past: pushHistoryEntry(state.past, copyDocument(state.document)),
     future: [],
     canUndo: true,
     canRedo: false,
@@ -78,7 +104,7 @@ export function createDocumentActions(set: ProjectSet): Pick<ProjectState, 'open
         selectedId: state.selectedId && next.layers.some((layer) => layer.id === state.selectedId)
           ? state.selectedId
           : null,
-        past: [...state.past, copyDocument(state.document)],
+        past: pushHistoryEntry(state.past, copyDocument(state.document)),
         future,
         canUndo: true,
         canRedo: future.length > 0,

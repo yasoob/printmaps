@@ -17,11 +17,10 @@ import {
   type NativeArcOverlayFactory,
 } from './NativeMapTileSupport';
 import {
-  hasVisibleBasemapSymbolLayers,
   scaleNativeMapStyle,
   updatePrintLayerPaint,
-  withoutBasemapSymbolLayers,
 } from './NativeMapStyle';
+import { prepareNativePrintExport, type NativePrintExportSource } from './NativeMapExportPlan';
 
 export { calculateNativeTileCamera } from './NativeMapCamera';
 export type { NativeMapOutput, NativeMapRegion, NativeTileCamera, NativeTileRequest } from './NativeMapCamera';
@@ -205,7 +204,7 @@ async function renderNativeMapTileSnapshot(
       zoom: renderCamera.zoom,
     });
     verifyNativeTileCamera(map, renderCamera);
-    routeArcOverlay = attachNativeRouteArcs(
+    routeArcOverlay = await attachNativeRouteArcs(
       map,
       snapshot.layers,
       snapshot.pixelsPerMillimetre * 0.3 / pixelRatio,
@@ -236,38 +235,12 @@ async function renderNativeMapTileSnapshot(
 }
 
 export function createNativePrintTileExport(
-  source: Readonly<{
-    isReady: () => boolean;
-    map: MapLibreMap;
-    resolveAssets: () => Record<string, CustomMarkerAsset>;
-    resolveLayers: () => ContentLayer[];
-    resolvePrintFrame: () => HTMLElement | null | undefined;
-  }>,
+  source: NativePrintExportSource,
   plan: PrintTileExportPlan,
 ): PrintTileRenderer {
-  if (!source.isReady()) throw new Error('The native export source map changed before rendering began.');
-  const printFrame = source.resolvePrintFrame();
-  if (!printFrame) throw new Error('The print frame is not ready for native export.');
-  if (!Number.isFinite(plan.pixelsPerMillimetre) || plan.pixelsPerMillimetre <= 0) {
-    throw new Error('Native map export requires a finite positive print pixel density.');
-  }
-  const isMultiRegion = plan.regions.length > 1;
-  if (isMultiRegion && Math.abs(source.map.getPitch()) > 0.000001) {
-    throw new Error('Multi-region native PNG export does not support map pitch. Set Pitch to 0° or reduce the page dimensions and retry.');
-  }
   const snapshots = new globalThis.Map<string, NativeMapTileSnapshot>();
-  const currentStyle = structuredClone(source.map.getStyle());
-  if (isMultiRegion && plan.symbolsVisible && hasVisibleBasemapSymbolLayers(currentStyle)) {
-    throw new Error('Multi-region native PNG export cannot place labels seamlessly. Turn off Show labels or reduce the page dimensions and retry.');
-  }
-  const symbolSafeStyle = plan.symbolsVisible ? currentStyle : withoutBasemapSymbolLayers(currentStyle);
   const pixelRatio = selectNativeExportPixelRatio(plan.output);
-  const style = scaleNativeMapStyle(
-    symbolSafeStyle,
-    plan.pixelsPerMillimetre * 0.3 / pixelRatio,
-  );
-  const layers = structuredClone(source.resolveLayers());
-  const assets = structuredClone(source.resolveAssets());
+  const { assets, layers, printFrame, style } = prepareNativePrintExport(source, plan, pixelRatio);
   for (const region of plan.regions) {
     snapshots.set(regionKey(region), {
       assets,

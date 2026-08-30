@@ -11,6 +11,7 @@ import {
 import {
   hasVisibleBasemapSymbolLayers,
   withoutBasemapSymbolLayers,
+  withoutStudioContentLayers,
 } from '../../src/map/NativeMapStyle';
 
 const rect = (left: number, top: number, width: number, height: number): DOMRect => ({
@@ -223,7 +224,7 @@ describe('native map export camera', () => {
   });
 });
 
-describe('native map export job', () => {
+describe('native map export style isolation', () => {
   it('removes basemap symbols while retaining deterministic Studio content symbols', () => {
     const style = {
       version: 8 as const,
@@ -248,6 +249,69 @@ describe('native map export job', () => {
     expect(hasVisibleBasemapSymbolLayers(filtered)).toBe(false);
   });
 
+  it('isolates the basemap style for native PDF and layered raster rendering', () => {
+    const style = {
+      version: 8 as const,
+      sources: {},
+      layers: [
+        { id: 'background', type: 'background' as const },
+        { id: 'studio-layer-8:route-01:main', type: 'line' as const },
+        { id: 'studio-layer-8:poi-01:label', type: 'symbol' as const },
+        { id: 'roads', type: 'line' as const },
+      ],
+    };
+
+    const filtered = withoutStudioContentLayers(
+      style as unknown as ReturnType<MapLibreMap['getStyle']>,
+    );
+
+    expect(filtered.layers?.map(({ id }) => id)).toEqual(['background', 'roads']);
+    expect(style.layers).toHaveLength(4);
+  });
+
+  it('does not snapshot project overlays or custom assets for a basemap-only job', () => {
+    const sourceCanvas = document.createElement('canvas');
+    sourceCanvas.getBoundingClientRect = () => rect(0, 0, 800, 600);
+    const sourceMap = {
+      getBearing: () => 0,
+      getCanvas: () => sourceCanvas,
+      getPitch: () => 0,
+      getStyle: () => ({
+        version: 8 as const,
+        sources: {},
+        layers: [
+          { id: 'background', type: 'background' as const },
+          { id: 'studio-layer-8:route-01:main', type: 'line' as const },
+        ],
+      }),
+      getZoom: () => 10,
+      unproject: () => ({ lng: 16.4, lat: 48.2 }),
+    } as unknown as MapLibreMap;
+    const frame = document.createElement('div');
+    frame.getBoundingClientRect = () => rect(200, 200, 400, 200);
+    const resolveAssets = vi.fn(() => ({ [hiddenCustomAsset.id]: hiddenCustomAsset }));
+    const resolveLayers = vi.fn(() => [hiddenCustomPoi]);
+
+    createNativePrintTileExport({
+      isReady: () => true,
+      map: sourceMap,
+      resolveAssets,
+      resolveLayers,
+      resolvePrintFrame: () => frame,
+    }, {
+      content: 'basemap',
+      output: { width: 4000, height: 2000 },
+      regions: [{ x: 0, y: 0, width: 4000, height: 2000 }],
+      pixelsPerMillimetre: 10,
+      symbolsVisible: true,
+    });
+
+    expect(resolveAssets).not.toHaveBeenCalled();
+    expect(resolveLayers).not.toHaveBeenCalled();
+  });
+});
+
+describe('native map export job', () => {
   it('scales fixed and interpolated style pixels to canonical print pixels', () => {
     const style = {
       version: 8 as const,
@@ -349,6 +413,23 @@ describe('native map export job', () => {
       pixelsPerMillimetre: 10,
       symbolsVisible: true,
     } as Parameters<typeof createNativePrintTileExport>[1])).toThrow('Turn off Show labels');
+
+    expect(() => createNativePrintTileExport({
+      isReady: () => true,
+      map: sourceMap,
+      resolveAssets: () => ({}),
+      resolveLayers: () => [],
+      resolvePrintFrame: () => frame,
+    }, {
+      output: { width: 4000, height: 2000 },
+      regions: [
+        { x: 0, y: 0, width: 2256, height: 2000 },
+        { x: 1744, y: 0, width: 2256, height: 2000 },
+      ],
+      pixelsPerMillimetre: 10,
+      symbolBufferPx: 256,
+      symbolsVisible: true,
+    })).not.toThrow();
   });
 
   it('snapshots a multi-tile job and rejects every tile after source readiness changes', async () => {

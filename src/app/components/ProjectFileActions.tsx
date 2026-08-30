@@ -13,7 +13,7 @@ type ProjectFileStatus = {
 
 type ProjectFileActionsProps = {
   children?: ReactNode | ((menuContainer: HTMLElement | null) => ReactNode);
-  document: ProjectDocument;
+  getDocument: () => ProjectDocument;
   openButtonRef?: RefObject<HTMLButtonElement | null>;
   onOpen: (document: ProjectDocument) => void;
 };
@@ -31,7 +31,7 @@ async function parseOpenedProject(file: File) {
     : parseProjectFileText(await file.text());
 }
 
-export function ProjectFileActions({ children, document: projectDocument, openButtonRef, onOpen }: ProjectFileActionsProps) {
+export function ProjectFileActions({ children, getDocument, openButtonRef, onOpen }: ProjectFileActionsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [status, setStatus] = useState<ProjectFileStatus | null>(null);
   const actionsRef = useRef<HTMLDivElement>(null);
@@ -101,7 +101,7 @@ export function ProjectFileActions({ children, document: projectDocument, openBu
 
   const saveProject = () => {
     try {
-      downloadProjectDocument(projectDocument);
+      downloadProjectDocument(getDocument());
       setStatus(null);
     } catch (error) {
       setStatus({

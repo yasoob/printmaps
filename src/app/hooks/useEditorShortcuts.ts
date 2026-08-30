@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, type Dispatch, type SetStateAction } from 'react';
 import type { ContentLayer } from '../../domain/project';
-import type { ProjectState } from '../store';
+import { useProjectActions, useProjectStoreApi } from '../projectStoreContext';
 
 function isTextEditingTarget(target: EventTarget | null): boolean {
   return target instanceof HTMLElement
@@ -17,20 +17,19 @@ type EditorShortcutOptions = {
   isAuthoring: boolean;
   isModalOpen: boolean;
   layers: readonly ContentLayer[];
-  project: ProjectState;
   selectedLayer: ContentLayer | null;
   setPreviewedLayerId: Dispatch<SetStateAction<string | null>>;
 };
 
-function canHandleHistory(event: KeyboardEvent, options: EditorShortcutOptions): boolean {
+function canHandleHistory(event: KeyboardEvent, guards: { isAuthoring: boolean; isModalOpen: boolean }): boolean {
   return !event.defaultPrevented
     && !event.repeat
     && !event.isComposing
     && !event.altKey
     && (event.ctrlKey || event.metaKey)
     && !isTextEditingTarget(event.target)
-    && !options.isModalOpen
-    && !options.isAuthoring;
+    && !guards.isModalOpen
+    && !guards.isAuthoring;
 }
 
 function hasDeleteInputBlocker(event: React.KeyboardEvent<HTMLElement>): boolean {
@@ -57,9 +56,11 @@ function shouldDeleteSelection(event: React.KeyboardEvent<HTMLElement>, options:
 }
 
 export function useEditorShortcuts(options: EditorShortcutOptions) {
+  const store = useProjectStoreApi();
+  const { deleteLayer, redo, undo } = useProjectActions();
   const latestDeleteState = useRef({
     deleteFocusTarget: options.deleteFocusTarget,
-    deleteLayer: options.project.deleteLayer,
+    deleteLayer,
     layers: options.layers,
     selectedLayer: options.selectedLayer,
     setPreviewedLayerId: options.setPreviewedLayerId,
@@ -67,19 +68,19 @@ export function useEditorShortcuts(options: EditorShortcutOptions) {
   useLayoutEffect(() => {
     latestDeleteState.current = {
       deleteFocusTarget: options.deleteFocusTarget,
-      deleteLayer: options.project.deleteLayer,
+      deleteLayer,
       layers: options.layers,
       selectedLayer: options.selectedLayer,
       setPreviewedLayerId: options.setPreviewedLayerId,
     };
-  }, [options.deleteFocusTarget, options.layers, options.project.deleteLayer, options.selectedLayer, options.setPreviewedLayerId]);
+  }, [deleteLayer, options.deleteFocusTarget, options.layers, options.selectedLayer, options.setPreviewedLayerId]);
   const deleteSelectedLayer = useCallback(() => {
-    const { deleteFocusTarget, deleteLayer, layers, selectedLayer, setPreviewedLayerId } = latestDeleteState.current;
+    const { deleteFocusTarget, deleteLayer: removeLayer, layers, selectedLayer, setPreviewedLayerId } = latestDeleteState.current;
     if (!selectedLayer) return;
     const selectedIndex = layers.findIndex((layer) => layer.id === selectedLayer.id);
     const focusLayer = layers[selectedIndex + 1] ?? layers[selectedIndex - 1];
     setPreviewedLayerId((current) => current === selectedLayer.id ? null : current);
-    deleteLayer(selectedLayer.id);
+    removeLayer(selectedLayer.id);
     window.setTimeout(() => {
       const focusTarget = deleteFocusTarget?.() ?? (focusLayer
         ? layerSelectionButton(focusLayer.id)
@@ -87,25 +88,32 @@ export function useEditorShortcuts(options: EditorShortcutOptions) {
       focusTarget?.focus();
     }, 0);
   }, []);
-  const { project } = options;
+
+  // Guard state is read through a ref so the global listener binds once instead
+  // of being torn down and re-added on every render of the editor shell.
+  const historyGuards = useRef({ isAuthoring: options.isAuthoring, isModalOpen: options.isModalOpen });
+  useLayoutEffect(() => {
+    historyGuards.current = { isAuthoring: options.isAuthoring, isModalOpen: options.isModalOpen };
+  }, [options.isAuthoring, options.isModalOpen]);
 
   useEffect(() => {
     const handleHistoryShortcut = (event: KeyboardEvent) => {
-      if (!canHandleHistory(event, options)) return;
+      const { isAuthoring, isModalOpen } = historyGuards.current;
+      if (!canHandleHistory(event, { isAuthoring, isModalOpen })) return;
       const key = event.key.toLowerCase();
       const shouldUndo = key === 'z' && !event.shiftKey;
       const shouldRedo = key === 'y' || (key === 'z' && event.shiftKey);
-      if (shouldUndo && project.canUndo) {
+      if (shouldUndo && store.getState().canUndo) {
         event.preventDefault();
-        project.undo();
-      } else if (shouldRedo && project.canRedo) {
+        undo();
+      } else if (shouldRedo && store.getState().canRedo) {
         event.preventDefault();
-        project.redo();
+        redo();
       }
     };
     document.addEventListener('keydown', handleHistoryShortcut);
     return () => document.removeEventListener('keydown', handleHistoryShortcut);
-  }, [options, project]);
+  }, [redo, store, undo]);
 
   const handleDeleteKeyDown = useCallback((event: React.KeyboardEvent<HTMLElement>) => {
     if (!shouldDeleteSelection(event, options)) return;

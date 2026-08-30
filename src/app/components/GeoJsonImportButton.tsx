@@ -1,16 +1,14 @@
 import { FileUp } from 'lucide-react';
 import { useCallback, useEffect, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
-import type { ProjectDocument } from '../../domain/project';
 import type { LayerReplacementRequest, MapDataImportCommit } from '../hooks/useAppMapDataImport';
 import { useMapDataDrop } from '../hooks/useMapDataDrop';
 import { useMapDataImport } from '../hooks/useMapDataImport';
+import { useProject, useProjectDocumentContent } from '../projectStoreContext';
 import { MapDataImportPortals } from './MapDataImportPortals';
 
 type GeoJsonImportButtonProps = {
   isDisabled: boolean;
-  documentEpoch: number;
-  sourceDocument: ProjectDocument;
   buttonRef: RefObject<HTMLButtonElement | null>;
   finishImportWork: (workId: number) => void;
   isWorkActive: boolean;
@@ -51,10 +49,8 @@ function ImportTrigger({
 export function GeoJsonImportButton({
   isDisabled,
   buttonRef,
-  documentEpoch,
   finishImportWork,
   isWorkActive,
-  sourceDocument,
   startImportWork,
   isOpen,
   replacementRequest,
@@ -64,6 +60,11 @@ export function GeoJsonImportButton({
   presentation = 'trigger',
   triggerContainer,
 }: GeoJsonImportButtonProps) {
+  // The import guard compares content, so this snapshot only has to refresh when
+  // content does. Subscribing to the document itself would rebuild it on every
+  // camera write, which land at pointer rate while a file is being read.
+  const sourceDocument = useProjectDocumentContent();
+  const documentEpoch = useProject((state) => state.documentEpoch);
   const {
     batch,
     batchAppearance,

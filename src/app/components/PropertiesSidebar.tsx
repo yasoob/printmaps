@@ -1,14 +1,13 @@
 import { X } from 'lucide-react';
-import { memo, useCallback, useLayoutEffect, useRef, type Dispatch, type RefObject, type SetStateAction } from 'react';
+import { memo, useCallback, useLayoutEffect, useMemo, useRef, type Dispatch, type RefObject, type SetStateAction } from 'react';
 import type { ContentLayer } from '../../domain/project';
 import type { MapMatchingProvider } from '../../services/mapbox/contracts';
 import type { MobilePanel } from '../hooks/useMobilePanels';
-import type { ProjectState } from '../store';
+import { useProject, useProjectActions } from '../projectStoreContext';
 import { LayerProperties } from './LayerProperties';
-import { ProjectProperties } from './ProjectProperties';
+import { ProjectProperties, type CameraInspectorView } from './ProjectProperties';
 
 type PropertiesSidebarProps = {
-  project: ProjectState;
   selectedLayer: ContentLayer | null;
   mapMatchingProvider?: MapMatchingProvider;
   activePanel: MobilePanel | null;
@@ -25,59 +24,11 @@ function selectedLayerButton() {
   return document.querySelector<HTMLElement>('[data-layer-select][aria-current="true"]');
 }
 
-function hasSameProjectData(previous: PropertiesSidebarProps, next: PropertiesSidebarProps) {
-  const previousDocument = previous.project.document;
-  const nextDocument = next.project.document;
-  return previous.project.documentEpoch === next.project.documentEpoch
-    && previousDocument.assets === nextDocument.assets
-    && previousDocument.page === nextDocument.page
-    && previousDocument.style === nextDocument.style
-    && previousDocument.camera.bearing === nextDocument.camera.bearing
-    && previousDocument.camera.pitch === nextDocument.camera.pitch
-    && previousDocument.camera.locked === nextDocument.camera.locked;
-}
-
-function hasSameLayerActions(previous: ProjectState, next: ProjectState) {
-  return previous.duplicateLayer === next.duplicateLayer
-    && previous.renameLayer === next.renameLayer
-    && previous.setLayerOpacity === next.setLayerOpacity
-    && previous.setLayerAppearance === next.setLayerAppearance
-    && previous.toggleLayerVisibility === next.toggleLayerVisibility
-    && previous.toggleLayerLock === next.toggleLayerLock;
-}
-
-function hasSameGeometryActions(previous: ProjectState, next: ProjectState) {
-  return previous.applyMapMatching === next.applyMapMatching
-    && previous.setPoiCoordinates === next.setPoiCoordinates
-    && previous.setPoiCustomMarker === next.setPoiCustomMarker
-    && previous.insertRouteVertex === next.insertRouteVertex
-    && previous.removeRouteVertex === next.removeRouteVertex
-    && previous.setRouteVertex === next.setRouteVertex
-    && previous.setShapeVertex === next.setShapeVertex;
-}
-
-function hasSameSurface(previous: PropertiesSidebarProps, next: PropertiesSidebarProps) {
-  return previous.activePanel === next.activePanel
-    && previous.closePanel === next.closePanel
-    && previous.mapMatchingProvider === next.mapMatchingProvider
-    && previous.onDeleteSelected === next.onDeleteSelected
-    && previous.onKeyDown === next.onKeyDown
-    && previous.panelRef === next.panelRef
-    && previous.selectedLayer === next.selectedLayer
-    && previous.setPreviewedLayerId === next.setPreviewedLayerId
-    && previous.onLocate === next.onLocate
-    && previous.onReplaceLayerData === next.onReplaceLayerData;
-}
-
-function isSamePropertiesSidebarProps(previous: PropertiesSidebarProps, next: PropertiesSidebarProps) {
-  return hasSameSurface(previous, next)
-    && hasSameProjectData(previous, next)
-    && hasSameLayerActions(previous.project, next.project)
-    && hasSameGeometryActions(previous.project, next.project);
-}
-
 export const PropertiesSidebar = memo(function PropertiesSidebar(props: PropertiesSidebarProps) {
-  const { activePanel, closePanel, mapMatchingProvider, onDeleteSelected, onKeyDown, onLocate, onReplaceLayerData, panelRef, project, selectedLayer, setPreviewedLayerId } = props;
+  const { activePanel, closePanel, mapMatchingProvider, onDeleteSelected, onKeyDown, onLocate, onReplaceLayerData, panelRef, selectedLayer, setPreviewedLayerId } = props;
+  const project = useProjectActions();
+  const documentEpoch = useProject((state) => state.documentEpoch);
+  const assets = useProject((state) => state.document.assets);
   const activePanelRef = useRef(activePanel);
   useLayoutEffect(() => {
     activePanelRef.current = activePanel;
@@ -98,15 +49,14 @@ export const PropertiesSidebar = memo(function PropertiesSidebar(props: Properti
     }, 0);
   }, [duplicateLayer, panelRef, selectedLayerId]);
 
-
   return (
     <aside ref={panelRef} id="properties-panel" className={`right-sidebar${activePanel === 'properties' ? ' is-mobile-open' : ''}`} aria-label="Properties sidebar" role={activePanel === 'properties' ? 'dialog' : undefined} aria-modal={activePanel === 'properties' ? true : undefined} inert={activePanel === 'layers'} onKeyDown={(event) => onKeyDown(event, 'properties')}>
       <button className="mobile-drawer-close" type="button" aria-label="Close properties" onClick={() => closePanel('properties')}><X size={16} /></button>
       {selectedLayer ? (
         <LayerProperties
           layer={selectedLayer}
-          assets={project.document.assets}
-          documentEpoch={project.documentEpoch}
+          assets={assets}
+          documentEpoch={documentEpoch}
           {...(mapMatchingProvider ? { mapMatchingProvider } : {})}
           onApplyMapMatching={(input, expectedDocumentEpoch) => project.applyMapMatching(selectedLayer.id, input, expectedDocumentEpoch)}
           onRename={(name) => project.renameLayer(selectedLayer.id, name)}
@@ -125,8 +75,49 @@ export const PropertiesSidebar = memo(function PropertiesSidebar(props: Properti
           onDelete={onDeleteSelected}
         />
       ) : (
-        <ProjectProperties camera={project.document.camera} documentEpoch={project.documentEpoch} style={project.document.style} page={project.document.page} onBearingChange={project.setCameraBearing} onDimensionChange={project.setPageDimension} onFeatureVisibilityChange={project.setMapFeatureVisibility} onLanguageChange={project.setMapLanguage} onLocate={onLocate} onMapAreaLockChange={project.setMapAreaLocked} onOrientationChange={project.setPageOrientation} onPitchChange={project.setCameraPitch} onPresetChange={project.setPagePreset} onStyleChange={project.setMapStyle} onTextScaleChange={project.setMapTextScale} />
+        <ProjectPropertiesPanel onLocate={onLocate} />
       )}
     </aside>
   );
-}, isSamePropertiesSidebarProps);
+});
+
+/**
+ * Isolates the project inspector's camera subscription. Bearing, pitch and lock
+ * are rendered here, but panning writes centre and zoom at pointer rate; keeping
+ * this subscription narrow stops those writes from re-rendering the inspector.
+ */
+const ProjectPropertiesPanel = memo(function ProjectPropertiesPanel({ onLocate }: {
+  onLocate: (coordinate: [number, number], onApplied: () => void) => void;
+}) {
+  const project = useProjectActions();
+  const documentEpoch = useProject((state) => state.documentEpoch);
+  const style = useProject((state) => state.document.style);
+  const page = useProject((state) => state.document.page);
+  const bearing = useProject((state) => state.document.camera.bearing);
+  const pitch = useProject((state) => state.document.camera.pitch);
+  const locked = useProject((state) => state.document.camera.locked);
+  const camera = useMemo<CameraInspectorView>(
+    () => ({ bearing, locked, pitch }),
+    [bearing, locked, pitch],
+  );
+
+  return (
+    <ProjectProperties
+      camera={camera}
+      documentEpoch={documentEpoch}
+      style={style}
+      page={page}
+      onBearingChange={project.setCameraBearing}
+      onDimensionChange={project.setPageDimension}
+      onFeatureVisibilityChange={project.setMapFeatureVisibility}
+      onLanguageChange={project.setMapLanguage}
+      onLocate={onLocate}
+      onMapAreaLockChange={project.setMapAreaLocked}
+      onOrientationChange={project.setPageOrientation}
+      onPitchChange={project.setCameraPitch}
+      onPresetChange={project.setPagePreset}
+      onStyleChange={project.setMapStyle}
+      onTextScaleChange={project.setMapTextScale}
+    />
+  );
+});

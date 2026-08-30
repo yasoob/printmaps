@@ -2,31 +2,34 @@ import { describe, expect, it, vi } from 'vitest';
 import { createInitialProjectDocument } from '../../src/domain/project';
 import { createRouteArcOverlay } from '../../src/map/MapRouteArcOverlay';
 import { renderNativeMapTile } from '../../src/map/NativeMapExport';
+import { attachNativeRouteArcs } from '../../src/map/NativeMapTileSupport';
 
 describe('route arc overlay lifecycle', () => {
-  it('does not allocate an overlay until canonical Arc content is present', () => {
+  it('does not allocate an overlay until canonical Arc content is present', async () => {
     const factory = vi.fn(() => ({ finalize: vi.fn(), pickObject: vi.fn(), setProps: vi.fn() }));
     const addControl = vi.fn();
-    const controller = createRouteArcOverlay({ addControl } as never, factory as never);
+    const controller = createRouteArcOverlay({ addControl } as never, { factory: factory as never });
 
     expect(controller.sync({ layers: createInitialProjectDocument().layers, selectedId: null, previewedId: null })).toBe(true);
+    await controller.whenIdle();
     expect(factory).not.toHaveBeenCalled();
     expect(addControl).not.toHaveBeenCalled();
   });
 
-  it('syncs pickable two-anchor arcs and resolves the owning project layer', () => {
+  it('syncs pickable two-anchor arcs and resolves the owning project layer', async () => {
     const setProps = vi.fn();
     const finalize = vi.fn();
     const pickObject = vi.fn(() => ({ object: { layerId: 'route-01' } }));
     const overlay = { finalize, pickObject, setProps };
     const addControl = vi.fn();
-    const controller = createRouteArcOverlay({ addControl } as never, () => overlay as never);
+    const controller = createRouteArcOverlay({ addControl } as never, { factory: () => overlay as never });
     const layers = createInitialProjectDocument().layers;
     const route = layers[0];
     if (route.appearance?.kind !== 'route') throw new Error('Route appearance unavailable');
     route.geometry = { type: 'Arc', anchors: [[16.3, 48.2], [16.5, 48.2]] };
 
     controller.sync({ layers, selectedId: route.id, previewedId: null });
+    await controller.whenIdle();
 
     expect(addControl).toHaveBeenCalledOnce();
     expect(setProps).toHaveBeenCalledOnce();
@@ -40,20 +43,23 @@ describe('route arc overlay lifecycle', () => {
     expect(finalize).toHaveBeenCalledOnce();
   });
 
-  it('keeps the interleaved arc layer mounted while hiding basemap-only content', () => {
+  it('keeps the interleaved arc layer mounted while hiding basemap-only content', async () => {
     const setProps = vi.fn();
     const overlay = { finalize: vi.fn(), pickObject: vi.fn(), setProps };
-    const controller = createRouteArcOverlay({ addControl: vi.fn() } as never, () => overlay as never);
+    const controller = createRouteArcOverlay({ addControl: vi.fn() } as never, { factory: () => overlay as never });
     const layers = createInitialProjectDocument().layers;
     const route = layers[0];
     if (route.appearance?.kind !== 'route') throw new Error('Route appearance unavailable');
     route.geometry = { type: 'Arc', anchors: [[16.3, 48.2], [16.5, 48.2]] };
     controller.sync({ layers, selectedId: null, previewedId: null });
+    await controller.whenIdle();
 
     expect(controller.setExportVisibility(false)).toBe(true);
+    await controller.whenIdle();
     expect(setProps.mock.calls.at(-1)?.[0].layers).toHaveLength(1);
     expect(setProps.mock.calls.at(-1)?.[0].layers[0].props.visible).toBe(false);
     expect(controller.setExportVisibility(true)).toBe(true);
+    await controller.whenIdle();
     expect(setProps.mock.calls.at(-1)?.[0].layers).toHaveLength(1);
     expect(setProps.mock.calls.at(-1)?.[0].layers[0].props.visible).toBe(true);
   });
@@ -66,9 +72,9 @@ describe('route arc overlay lifecycle', () => {
     const previewOverlay = { finalize: vi.fn(), pickObject: vi.fn(), setProps: vi.fn() };
     const previewFactory = vi.fn(() => previewOverlay);
     const previewMap = { addControl: vi.fn() };
-    createRouteArcOverlay(previewMap as never, previewFactory as never).sync({
-      layers, selectedId: null, previewedId: null,
-    });
+    const previewController = createRouteArcOverlay(previewMap as never, { factory: previewFactory as never });
+    previewController.sync({ layers, selectedId: null, previewedId: null });
+    await previewController.whenIdle();
 
     const sourceCanvas = document.createElement('canvas');
     sourceCanvas.getBoundingClientRect = () => ({
@@ -127,5 +133,73 @@ describe('route arc overlay lifecycle', () => {
     expect(createArcOverlay).toHaveBeenCalledWith(temporaryMap, 1.5);
     expect(nativeArcOverlay.sync).toHaveBeenCalledWith({ layers, selectedId: null, previewedId: null });
     expect(nativeArcOverlay.destroy).toHaveBeenCalledOnce();
+  });
+  it('fails the export path loudly when the arc renderer cannot be fetched', async () => {
+    const layers = createInitialProjectDocument().layers;
+    const route = layers[0];
+    if (route.appearance?.kind !== 'route') throw new Error('Route appearance unavailable');
+    route.geometry = { type: 'Arc', anchors: [[16.3, 48.2], [16.5, 48.2]] };
+    const loadDeckLayers = vi.fn(() => Promise.reject(new Error('offline')));
+    const controller = createRouteArcOverlay({ addControl: vi.fn() } as never, {
+      factory: (() => ({ finalize: vi.fn(), pickObject: vi.fn(), setProps: vi.fn() })) as never,
+      loadDeckLayers: loadDeckLayers as never,
+    });
+
+    expect(controller.sync({ layers, selectedId: null, previewedId: null })).toBe(true);
+    await expect(controller.whenIdle()).rejects.toThrow('The route arc renderer could not be loaded.');
+    expect(loadDeckLayers).toHaveBeenCalled();
+  });
+
+  it('stays idle after a renderer fetch failure once no arcs remain to draw', async () => {
+    const layers = createInitialProjectDocument().layers;
+    const route = layers[0];
+    if (route.appearance?.kind !== 'route') throw new Error('Route appearance unavailable');
+    route.geometry = { type: 'Arc', anchors: [[16.3, 48.2], [16.5, 48.2]] };
+    const controller = createRouteArcOverlay({ addControl: vi.fn() } as never, {
+      factory: (() => ({ finalize: vi.fn(), pickObject: vi.fn(), setProps: vi.fn() })) as never,
+      loadDeckLayers: (() => Promise.reject(new Error('offline'))) as never,
+    });
+
+    controller.sync({ layers, selectedId: null, previewedId: null });
+    await expect(controller.whenIdle()).rejects.toThrow();
+
+    route.geometry = undefined;
+    controller.sync({ layers, selectedId: null, previewedId: null });
+    await expect(controller.whenIdle()).resolves.toBeUndefined();
+  });
+
+  it('recovers when a later renderer fetch succeeds after an earlier failure', async () => {
+    const layers = createInitialProjectDocument().layers;
+    const route = layers[0];
+    if (route.appearance?.kind !== 'route') throw new Error('Route appearance unavailable');
+    route.geometry = { type: 'Arc', anchors: [[16.3, 48.2], [16.5, 48.2]] };
+    const setProps = vi.fn();
+    const loadDeckLayers = vi.fn()
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValue({ arcLayer: () => ({ id: 'arc' }), defaultOverlayFactory: () => ({}) });
+    const controller = createRouteArcOverlay({ addControl: vi.fn() } as never, {
+      factory: (() => ({ finalize: vi.fn(), pickObject: vi.fn(), setProps })) as never,
+      loadDeckLayers: loadDeckLayers as never,
+    });
+
+    controller.sync({ layers, selectedId: null, previewedId: null });
+    await expect(controller.whenIdle()).rejects.toThrow();
+
+    controller.sync({ layers, selectedId: null, previewedId: null });
+    await expect(controller.whenIdle()).resolves.toBeUndefined();
+    expect(setProps).toHaveBeenCalled();
+  });
+
+  it('propagates a renderer failure out of the native tile attach step', async () => {
+    const layers = createInitialProjectDocument().layers;
+    const failing = {
+      destroy: vi.fn(),
+      sync: vi.fn(() => true),
+      whenIdle: vi.fn(() => Promise.reject(new Error('The route arc renderer could not be loaded.'))),
+    };
+
+    await expect(attachNativeRouteArcs({} as never, layers, 1, () => failing as never))
+      .rejects.toThrow('The route arc renderer could not be loaded.');
+    expect(failing.sync).toHaveBeenCalled();
   });
 });
