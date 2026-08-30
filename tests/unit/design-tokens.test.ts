@@ -15,7 +15,9 @@ describe('design token discipline', () => {
 
     expect(theme).toContain('@theme inline');
     expect(theme).toContain('--color-surface: var(--studio-surface)');
-    expect(theme).toContain('--studio-focus: #005fb8');
+    expect(theme).toContain('--studio-accent: #1aa2e6');
+    expect(theme).toContain('--studio-focus: var(--studio-accent)');
+    expect(theme).toContain('--studio-tool-card-accent: var(--studio-accent)');
     expect(theme).toContain('--studio-text-muted: #6b6b6b');
     expect(theme).toContain('--studio-text-subtle: #6b6b6b');
     expect(theme).toContain('--studio-control-height: 2rem');
@@ -30,6 +32,12 @@ describe('design token discipline', () => {
     expect(styles).toMatch(/\.maplibregl-ctrl-attrib[^}]*font-size:\s*var\(--studio-font-micro\)/s);
     expect(styles).toMatch(/\.studio-checkbox-box[^}]*pointer-events:\s*none/s);
     expect(styles).toMatch(/\.studio-switch-track[^}]*pointer-events:\s*none/s);
+    expect(styles).toMatch(/input\[type="checkbox"\], input\[type="radio"\][^}]*accent-color:\s*var\(--studio-accent\)/s);
+    expect(styles).toMatch(/\.primary-button[^}]*background:\s*var\(--studio-accent\)/s);
+    expect(styles).toMatch(/\.document-actions > \.primary-button::before[^}]*background:\s*var\(--studio-accent\)/s);
+    expect(styles).toMatch(/\.tool-button\.is-active[^}]*color:\s*var\(--studio-on-dark\); background:\s*var\(--studio-accent\)/s);
+    expect(styles).toMatch(/\.studio-checkbox-native:checked \+ \.studio-checkbox-box[^}]*background:\s*var\(--studio-accent\)/s);
+    expect(styles).toMatch(/\.studio-switch-native:checked \+ \.studio-switch-track[^}]*background:\s*var\(--studio-accent\)/s);
     expect(styles).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(/);
     expect(components).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(/);
     expect(iconComponents).not.toMatch(/[↑↓←→▲▼▶◀‹›]|•••/);

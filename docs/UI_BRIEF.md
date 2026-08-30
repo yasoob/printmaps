@@ -21,15 +21,15 @@ Use the supplied Felt sidebar as a quality reference for calm density, not as br
 - Section titles are dark and semibold; field labels are muted; values are near-black. Color belongs to map swatches and semantic states, not generic chrome.
 - Keep section spacing and separators consistent. Accordions remain useful for major groups, but their headers should feel like Felt section headers rather than large boxed rows.
 - Use Lucide exclusively at a consistent 16px size and approximately 1.75px stroke. Replace Unicode/text symbols such as `•••`, arrows, and handcrafted chevrons with the corresponding Lucide icon. Native select indicators may remain only if they visually match across supported browsers.
-- Add one shared native-semantic Checkbox primitive with a 16px square, 4px radius, muted border, near-black checked fill, and a clearly visible white Lucide check. Preserve keyboard input, visible focus, disabled state, forced-colors behavior, and a 44px mobile hit area. Do not rely on browser `accent-color`.
-- Add one shared Switch primitive for true on/off settings: near-black active track, white thumb, muted inactive track. Do not mix blue native checkboxes, custom blue toggles, and black switches.
+- Add one shared native-semantic Checkbox primitive with a 16px square, 4px radius, muted border, primary-blue checked fill, and a clearly visible white Lucide check. Preserve keyboard input, visible focus, disabled state, forced-colors behavior, and a 44px mobile hit area. Do not rely on browser `accent-color`.
+- Add one shared Switch primitive for true on/off settings: primary-blue active track, white thumb, muted inactive track. Keep native checkboxes, custom controls, and switches on the same primary interaction color.
 - Use checkboxes for independent multi-select lists such as visible map categories; use switches for a standalone behavior such as `Show legend` or `Lock map area`. Both must share the same active/inactive color logic.
 - Dropdown values and chevrons align consistently; color swatches use the same square size, radius, border, and spacing.
 
 ## Visual language
 
 - Inter/system UI, 11–13px control typography, tight but readable spacing.
-- White/near-white panels, #1e1e1e text, #e5e5e5 dividers, #0d99ff selection accent.
+- White/near-white panels, #1e1e1e text, #e5e5e5 dividers, #1aa2e6 primary interaction color.
 - No gradients.
 - No decorative drop shadows. Use borders, surface changes and selection outlines for hierarchy.
 - Corners 4–6px; avoid oversized pills.

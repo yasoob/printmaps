@@ -16,6 +16,7 @@ body {
 }
 
 button, input, select { font: inherit; color: inherit; }
+input[type="checkbox"], input[type="radio"] { accent-color: var(--studio-accent); }
 button { border: 0; background: none; }
 button:focus-visible, input:focus-visible, select:focus-visible {
   outline: var(--studio-focus-width) solid var(--studio-focus);
@@ -30,7 +31,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .startup-error p { @apply m-0 text-sm; line-height: 1.5; }
 .startup-error button {
   @apply mx-auto min-h-10 cursor-pointer rounded px-4 text-sm font-medium;
-  background: var(--studio-text);
+  background: var(--studio-accent);
   color: var(--studio-on-dark);
 }
 
@@ -151,8 +152,8 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   border-radius: var(--studio-radius-md);
   font-size: var(--studio-font-control);
 }
-.primary-button { color: var(--studio-on-dark); background: var(--studio-text); }
-.primary-button:hover { background: var(--studio-text-strong); }
+.primary-button { color: var(--studio-on-dark); background: var(--studio-accent); }
+.primary-button:hover { background: var(--studio-accent-strong); }
 
 .left-sidebar, .right-sidebar {
   @apply z-30 min-w-0;
@@ -372,7 +373,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   color: var(--studio-text-secondary);
 }
 .tool-button:hover { background: var(--studio-field); }
-.tool-button.is-active { color: var(--studio-accent-strong); background: var(--studio-accent-soft); }
+.tool-button.is-active { color: var(--studio-on-dark); background: var(--studio-accent); }
 .tool-label { display: none; }
 .map-fit-control {
   @apply absolute z-20 grid cursor-pointer place-items-center;
@@ -415,7 +416,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 .shape-editing-toolbar > button + button { border-left: var(--studio-border-width) solid var(--studio-line); }
 .shape-editing-toolbar > button:hover { background: var(--studio-field); }
-.shape-editing-toolbar > button[aria-pressed="true"] { background: var(--studio-text); color: var(--studio-on-dark); }
+.shape-editing-toolbar > button[aria-pressed="true"] { background: var(--studio-accent); color: var(--studio-on-dark); }
 .map-authoring-panel {
   @apply absolute left-1/2 z-40 flex -translate-x-1/2 flex-wrap items-center justify-center gap-2 px-2 py-1.5;
   bottom: 4.5rem;
@@ -451,8 +452,6 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .tool-card-actions > button { @apply min-h-8 rounded px-2.5 text-xs font-medium; }
 .tool-card-actions > button:not(.primary-button) { color: var(--studio-text-muted); }
 .tool-card-actions > button:not(.primary-button):hover { background: var(--studio-field); }
-.tool-authoring-card .primary-button { background: var(--studio-tool-card-accent); }
-.tool-authoring-card .primary-button:hover { background: color-mix(in srgb, var(--studio-tool-card-accent) 88%, var(--studio-text-strong)); }
 .shape-mode-tabs {
   @apply flex items-center gap-1 p-1;
   border-radius: var(--studio-radius-lg);
@@ -774,7 +773,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   background: var(--studio-surface);
 }
 .map-style-card:hover { border-color: var(--studio-line-hover); background: var(--studio-hover); }
-.map-style-card[aria-checked="true"] { border-color: var(--studio-text-strong); color: var(--studio-text-strong); }
+.map-style-card[aria-checked="true"] { border-color: var(--studio-accent); color: var(--studio-text-strong); }
 .map-style-card-preview {
   @apply relative block w-full overflow-hidden;
   aspect-ratio: 3 / 2;
@@ -785,7 +784,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .map-style-card-check {
   @apply absolute right-1 top-1 hidden h-4 w-4 place-items-center rounded-full;
   color: var(--studio-on-dark);
-  background: var(--studio-text-strong);
+  background: var(--studio-accent);
 }
 .map-style-card[aria-checked="true"] .map-style-card-check { @apply grid; }
 .map-style-card-label { @apply block overflow-hidden text-ellipsis whitespace-nowrap px-0.5 pb-0.5 pt-1; font-size: var(--studio-font-meta); font-weight: 600; }
@@ -878,8 +877,8 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
 }
 .studio-checkbox-box svg { opacity: 0; }
 .studio-checkbox-native:checked + .studio-checkbox-box {
-  border-color: var(--studio-text-strong);
-  background: var(--studio-text-strong);
+  border-color: var(--studio-accent);
+  background: var(--studio-accent);
 }
 .studio-checkbox-native:checked + .studio-checkbox-box svg { opacity: 1; }
 .studio-checkbox-native:focus-visible + .studio-checkbox-box,
@@ -901,7 +900,7 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
   @apply block h-3.5 w-3.5 rounded-full transition-transform;
   background: var(--studio-surface);
 }
-.studio-switch-native:checked + .studio-switch-track { background: var(--studio-text-strong); }
+.studio-switch-native:checked + .studio-switch-track { background: var(--studio-accent); }
 .studio-switch-native:checked + .studio-switch-track > span { transform: translateX(0.875rem); }
 .property-control > .studio-switch { min-height: var(--studio-control-height); }
 .map-location-control { @apply grid gap-1.5 py-1; }
@@ -1562,12 +1561,12 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
     bottom: 4px;
     left: 0;
     border-radius: inherit;
-    background: var(--studio-text);
+    background: var(--studio-accent);
     content: "";
   }
   .document-actions > .primary-button > * { position: relative; z-index: 1; }
   .document-actions > .primary-button:hover { background: transparent; }
-  .document-actions > .primary-button:hover::before { background: var(--studio-text-strong); }
+  .document-actions > .primary-button:hover::before { background: var(--studio-accent-strong); }
   .topbar {
     grid-template-columns: minmax(0, 1fr) auto;
     padding-top: var(--studio-safe-top);
