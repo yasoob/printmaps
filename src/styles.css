@@ -1882,7 +1882,7 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
     translate: none;
     transform: translateX(-50%);
   }
-  .route-authoring-panel[data-mobile-expanded="true"] {
+  .canvas-region.has-authoring-panel .route-authoring-panel[data-mobile-expanded="true"] {
     top: 50%;
     right: auto;
     bottom: auto;
