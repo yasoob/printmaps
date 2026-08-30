@@ -141,6 +141,22 @@ test('expert arc route authoring is undoable and exports a travel-mode marker', 
   await expect(page.getByRole('status', { name: 'Route drawing status' })).toContainText('2 points');
   await canvas.click({ position: point(0.9, 0.7) });
   await expect(page.getByRole('status', { name: 'Route drawing status' })).toContainText('3 points');
+  const expectedHandleCenters = [
+    point(0.1, 0.2),
+    point(0.9, 0.2),
+    point(0.9, 0.7),
+  ].map(({ x, y }) => ({ x: canvasBox!.x + x, y: canvasBox!.y + y }));
+  const handleCenters = await page.locator('.draft-route-point-marker').evaluateAll((elements) => (
+    elements.map((element) => {
+      const bounds = element.getBoundingClientRect();
+      return { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
+    })
+  ));
+  expect(handleCenters).toHaveLength(expectedHandleCenters.length);
+  for (const [index, expected] of expectedHandleCenters.entries()) {
+    expect(handleCenters[index].x).toBeCloseTo(expected.x, 0);
+    expect(handleCenters[index].y).toBeCloseTo(expected.y, 0);
+  }
   await page.getByRole('button', { name: 'Finish route' }).click();
   await expect(createdRoute).toHaveAttribute('aria-current', 'true');
   await page.screenshot({ path: testInfo.outputPath('expert-route-desktop.png'), fullPage: true });

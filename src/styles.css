@@ -1088,7 +1088,7 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
   cursor: grab;
 }
 .draft-route-point-marker {
-  position: relative;
+  position: absolute;
   width: 44px;
   height: 44px;
   padding: 0;
