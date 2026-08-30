@@ -1,10 +1,12 @@
 import { useEffect, useRef, type RefObject } from 'react';
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { CameraSettings, ContentLayer } from '../domain/project';
-import { layerBounds, type MapBounds } from './MapLayerBounds';
+import { layerBounds, visibleLayerBounds, type MapBounds } from './MapLayerBounds';
 import type { CameraViewportChangeMode } from './MapCameraViewport';
 
-const PAGE_BOUNDS: [[number, number], [number, number]] = [[16.28, 48.14], [16.48, 48.26]];
+const FALLBACK_FIT_PADDING = 64;
+const MAX_CONTENT_FIT_ZOOM = 16;
+const PRINT_FRAME_INSET = 32;
 
 type MapFitRequestOptions = Readonly<{
   camera: CameraSettings;
@@ -34,6 +36,34 @@ function runFit(
   }
 }
 
+function printFrameFitPadding(container: HTMLDivElement | null) {
+  if (!container) return FALLBACK_FIT_PADDING;
+  const frame = container.parentElement?.querySelector<HTMLElement>('.print-frame');
+  if (!frame) return FALLBACK_FIT_PADDING;
+
+  const containerRect = container.getBoundingClientRect();
+  const frameRect = frame.getBoundingClientRect();
+  if (containerRect.width <= 0 || containerRect.height <= 0 || frameRect.width <= 0 || frameRect.height <= 0) {
+    return FALLBACK_FIT_PADDING;
+  }
+
+  const frameTop = Math.max(containerRect.top, frameRect.top);
+  const frameRight = Math.min(containerRect.right, frameRect.right);
+  const frameBottom = Math.min(containerRect.bottom, frameRect.bottom);
+  const frameLeft = Math.max(containerRect.left, frameRect.left);
+  const frameWidth = frameRight - frameLeft;
+  const frameHeight = frameBottom - frameTop;
+  if (frameWidth <= 0 || frameHeight <= 0) return FALLBACK_FIT_PADDING;
+  const inset = Math.min(PRINT_FRAME_INSET, frameWidth / 4, frameHeight / 4);
+
+  return {
+    top: frameTop - containerRect.top + inset,
+    right: containerRect.right - frameRight + inset,
+    bottom: containerRect.bottom - frameBottom + inset,
+    left: frameLeft - containerRect.left + inset,
+  };
+}
+
 export function useMapFitRequests(options: MapFitRequestOptions) {
   const handledFitRequest = useRef(0);
   const handledLayerFitRequest = useRef(0);
@@ -46,11 +76,17 @@ export function useMapFitRequests(options: MapFitRequestOptions) {
       return;
     }
     handledFitRequest.current = options.fitRequest;
-    runFit(options.cameraViewportChangeMode, 'history', () => options.map.current?.fitBounds(PAGE_BOUNDS, {
-      bearing: options.camera.bearing, duration: 0, padding: 64, pitch: options.camera.pitch,
+    const bounds = visibleLayerBounds(options.layers);
+    if (!bounds) return;
+    runFit(options.cameraViewportChangeMode, 'history', () => options.map.current?.fitBounds(bounds, {
+      bearing: options.camera.bearing,
+      duration: 0,
+      maxZoom: MAX_CONTENT_FIT_ZOOM,
+      padding: printFrameFitPadding(options.container.current),
+      pitch: options.camera.pitch,
     }));
     options.container.current?.setAttribute('data-camera-fit-request', String(options.fitRequest));
-  }, [options.camera.bearing, options.camera.locked, options.camera.pitch, options.cameraViewportChangeMode, options.container, options.fitRequest, options.map]);
+  }, [options.camera.bearing, options.camera.locked, options.camera.pitch, options.cameraViewportChangeMode, options.container, options.fitRequest, options.layers, options.map]);
 
   useEffect(() => {
     const request = options.fitLayerRequest ?? 0;

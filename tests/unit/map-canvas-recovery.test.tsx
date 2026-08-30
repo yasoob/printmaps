@@ -267,7 +267,7 @@ describe('MapCanvas camera synchronization', () => {
     await waitFor(() => expect(mocks.adapterSync).toHaveBeenCalledTimes(2));
     expect(mocks.mapJumpTo).toHaveBeenCalledTimes(cameraSyncCalls + 1); expect(mocks.mapJumpTo).toHaveBeenLastCalledWith(updatedJump);
     rerender(<MapCanvas {...baseProps} selectedId={null} camera={updatedCamera} fitRequest={1} />);
-    expect(mocks.mapFitBounds).toHaveBeenLastCalledWith([[16.28, 48.14], [16.48, 48.26]], { bearing: 35, duration: 0, padding: 64, pitch: 40 });
+    expect(mocks.mapFitBounds).toHaveBeenLastCalledWith([[16.32, 48.2], [16.4, 48.22]], { bearing: 35, duration: 0, maxZoom: 16, padding: 64, pitch: 40 });
     rerender(<MapCanvas {...baseProps} selectedId={null} camera={{ ...updatedCamera, bearing: 45 }} fitRequest={1} />);
     expect(mocks.mapJumpTo).toHaveBeenLastCalledWith({ ...updatedJump, bearing: 45 }); expect(mocks.mapFitBounds).toHaveBeenCalledOnce();
   });

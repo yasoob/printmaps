@@ -1,5 +1,5 @@
 import type { ContentLayer } from '../../src/domain/project';
-import { combinedLayerBounds, layerBounds } from '../../src/map/MapLayerBounds';
+import { combinedLayerBounds, layerBounds, visibleLayerBounds } from '../../src/map/MapLayerBounds';
 
 function shapeLayer(id: string, geometry: NonNullable<ContentLayer['geometry']>): ContentLayer {
   return { id, name: id, type: 'shape', visible: true, locked: false, opacity: 28, geometry };
@@ -41,6 +41,16 @@ describe('map layer bounds', () => {
     ];
 
     expect(combinedLayerBounds(layers)).toEqual([[9, 46], [18, 50]]);
+  });
+
+  it('excludes hidden geometry from visible bounds', () => {
+    const layers: ContentLayer[] = [
+      shapeLayer('visible', { type: 'Point', coordinates: [16, 48] }),
+      { ...shapeLayer('hidden', { type: 'Point', coordinates: [-120, 30] }), visible: false },
+      { ...shapeLayer('transparent', { type: 'Point', coordinates: [120, 30] }), opacity: 0 },
+    ];
+
+    expect(visibleLayerBounds(layers)).toEqual([[16, 48], [16, 48]]);
   });
 
   it('fits a dateline Arc on its short continuous sampled extent', () => {
