@@ -94,9 +94,6 @@ test('travel-time area becomes one durable editable and exportable project layer
   await expect(layer).toBeVisible();
   await expect(page.getByRole('status', { name: 'Autosave status' })).toHaveText('All changes saved locally');
   await page.reload();
-  const recovery = page.getByRole('dialog', { name: 'Recover local draft' });
-  await expect(recovery).toBeVisible();
-  await recovery.getByRole('button', { name: 'Recover draft' }).click();
   await expect(layer).toBeVisible();
   await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
 

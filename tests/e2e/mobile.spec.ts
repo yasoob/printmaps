@@ -375,7 +375,8 @@ test('mobile navigation buttons use full touch targets', async ({ page }) => {
     await page.setViewportSize({ width, height: 844 });
     await page.goto('/');
 
-    const panelButtons = page.locator('.mobile-panel-actions button');
+    const panelButtons = page.locator('.mobile-panel-actions > button');
+    const locationSearch = page.locator('.location-search');
     const toolButtons = page.locator('.tool-palette .tool-button');
     const fitButton = page.getByRole('button', { name: 'Fit page' });
     await expect(panelButtons).toHaveCount(2);
@@ -383,6 +384,15 @@ test('mobile navigation buttons use full touch targets', async ({ page }) => {
     await expectFullTouchTargets(panelButtons);
     await expectFullTouchTargets(toolButtons);
     await expectFullTouchTargets(fitButton);
+    const layersBox = await panelButtons.first().boundingBox();
+    const searchBox = await locationSearch.boundingBox();
+    const propertiesBox = await panelButtons.last().boundingBox();
+    expect(layersBox).not.toBeNull();
+    expect(searchBox).not.toBeNull();
+    expect(propertiesBox).not.toBeNull();
+    expect(layersBox!.x + layersBox!.width).toBeLessThanOrEqual(searchBox!.x);
+    expect(searchBox!.x + searchBox!.width).toBeLessThanOrEqual(propertiesBox!.x);
+    expect(Math.round(searchBox!.height)).toBe(Math.round(layersBox!.height));
     if (width === 390) {
       await page.screenshot({ path: 'docs/screenshots/mobile-nav-touch-targets.png' });
     }

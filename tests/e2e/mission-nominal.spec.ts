@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
-import { discardUnexpectedAutosaveDraft } from './autosave-fixture';
+import { waitForAutosaveReady } from './autosave-fixture';
 
 const isFirefoxDisplayEnabled = process.env.PRINTMAP_FIREFOX_HEADED === '1';
 
@@ -26,7 +26,7 @@ test('nominal design, author, import, persist, reopen, and export workflow', asy
   });
 
   await page.goto('/');
-  await discardUnexpectedAutosaveDraft(page);
+  await waitForAutosaveReady(page);
   const mapCanvas = page.getByTestId('map-canvas');
   const mapReady = page.locator('[data-map-ready="true"]');
   const mapFallback = page.getByText('Map preview unavailable');
@@ -75,9 +75,6 @@ test('nominal design, author, import, persist, reopen, and export workflow', asy
   await expect(page.getByRole('status', { name: 'Autosave status' })).toHaveText('All changes saved locally');
 
   await page.reload();
-  const recovery = page.getByRole('dialog', { name: 'Recover local draft' });
-  await expect(recovery).toBeVisible();
-  await recovery.getByRole('button', { name: 'Recover draft' }).click();
   await expect(page.getByRole('button', { name: 'Select Route 02' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Select Café Central' })).toBeVisible();
   await expect(page.getByRole('spinbutton', { name: 'Page width' })).toHaveValue('20');

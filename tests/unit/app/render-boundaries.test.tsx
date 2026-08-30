@@ -8,6 +8,7 @@ import { PropertiesSidebar } from '../../../src/app/components/PropertiesSidebar
 import { StudioHeader } from '../../../src/app/components/StudioHeader';
 import { ProjectStoreContext } from '../../../src/app/projectStoreContext';
 import { createProjectStore, type ProjectState } from '../../../src/app/store';
+import { createInitialProjectDocument } from '../../../src/domain/project';
 import type { ProjectAutosaveState } from '../../../src/storage/useProjectAutosave';
 
 const renderMetrics = vi.hoisted(() => ({
@@ -95,12 +96,10 @@ function panCamera(store: StoreApi<ProjectState>) {
 
 function autosaveState(): ProjectAutosaveState {
   return {
-    recoveryDraft: null,
     corrupted: false,
     decisionPending: false,
     status: 'Autosave ready',
     statusKind: 'status',
-    recover: vi.fn(),
     discard: vi.fn(async () => true),
   };
 }
@@ -109,7 +108,7 @@ describe('editor render boundaries', () => {
   beforeEach(() => { vi.clearAllMocks(); });
 
   it('does not rerender the project identity for selection or camera updates', () => {
-    const store = createProjectStore();
+    const store = createProjectStore(createInitialProjectDocument());
     render(
       <ProjectStoreContext value={store}>
         <StudioHeader {...headerProps()} />
@@ -123,7 +122,7 @@ describe('editor render boundaries', () => {
   });
 
   it('rerenders only rows whose visible list state changes', () => {
-    const store = createProjectStore();
+    const store = createProjectStore(createInitialProjectDocument());
     const initial = store.getState();
     const autosave = autosaveState();
     const props = {
@@ -159,7 +158,7 @@ describe('editor render boundaries', () => {
   });
 
   it('does not rerender project controls for camera center and zoom changes', () => {
-    const store = createProjectStore();
+    const store = createProjectStore(createInitialProjectDocument());
     const props = {
       activePanel: null,
       closePanel: vi.fn(),
@@ -183,7 +182,7 @@ describe('editor render boundaries', () => {
   });
 
   it('keeps camera-rate document writes out of the header and sidebars', () => {
-    const store = createProjectStore();
+    const store = createProjectStore(createInitialProjectDocument());
     const commits = { header: 0, layers: 0, properties: 0 };
     const count = (key: keyof typeof commits) => () => { commits[key] += 1; };
     render(
@@ -227,7 +226,7 @@ describe('editor render boundaries', () => {
   });
 
   it('refreshes memoized callbacks when their behavior changes', () => {
-    const initial = createProjectStore().getState();
+    const initial = createProjectStore(createInitialProjectDocument()).getState();
     const layer = initial.document.layers.find(({ id }) => id === 'route-01');
     expect(layer).toBeDefined();
     if (!layer) return;
@@ -257,7 +256,7 @@ describe('editor render boundaries', () => {
   });
 
   it('updates shape vertices without rerendering identity and appearance controls', () => {
-    const initial = createProjectStore().getState();
+    const initial = createProjectStore(createInitialProjectDocument()).getState();
     const shape = initial.document.layers.find(({ id }) => id === 'area-center');
     expect(shape?.geometry?.type).toBe('Polygon');
     if (!shape || shape.geometry?.type !== 'Polygon') return;

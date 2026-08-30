@@ -34,6 +34,11 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   color: var(--studio-on-dark);
 }
 
+.startup-loading {
+  @apply grid h-full place-content-center text-sm;
+  color: var(--studio-text-secondary);
+}
+
 .studio-shell {
   @apply grid h-full w-full;
   grid-template: var(--studio-topbar-height) minmax(0, 1fr) / var(--studio-left-panel-width) minmax(420px, 1fr) var(--studio-right-panel-width);
@@ -84,15 +89,12 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   background: var(--studio-surface);
 }
 .brand-mark {
-  @apply grid place-items-center;
-  width: var(--studio-control-height);
+  @apply block shrink-0 object-cover;
+  width: calc(var(--studio-control-height) * 1.5);
   height: var(--studio-control-height);
   border-radius: var(--studio-radius-md);
-  color: var(--studio-on-dark);
-  background: var(--studio-text);
 }
 .brand-name { @apply mx-1.5 text-xs font-semibold tracking-tight; }
-.top-divider { @apply h-4 w-px; background: var(--studio-line); }
 .project-title, .icon-button, .quiet-button, .primary-button, .tool-button { @apply cursor-pointer; }
 .icon-button:disabled,
 .quiet-button:disabled,
@@ -343,7 +345,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .map-root[data-interaction-mode="select"] .maplibregl-canvas { cursor: default !important; }
 .map-root[data-interaction-mode="select"] .maplibregl-canvas:active { cursor: grabbing !important; }
 .map-root:is([data-interaction-mode="pin"], [data-interaction-mode="route"], [data-interaction-mode="shape"]) .maplibregl-canvas { cursor: crosshair !important; }
-.mobile-panel-actions, .mobile-panel-backdrop, .mobile-drawer-close { display: none; }
+.mobile-panel-actions > button, .mobile-panel-backdrop, .mobile-drawer-close { display: none; }
 .tool-palette {
   @apply absolute bottom-[18px] left-1/2 z-50 flex -translate-x-1/2 items-center p-1;
   height: 2.75rem;
@@ -1360,11 +1362,11 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
   .history-actions, .quiet-button { @apply hidden; }
   .document-actions .quiet-button {
     @apply inline-flex px-2;
-    height: 2.75rem;
+    height: 2.5rem;
   }
   .document-actions > .primary-button {
     @apply inline-flex gap-2 px-3;
-    height: 2.75rem;
+    height: 2.5rem;
     isolation: isolate;
     position: relative;
     background: transparent;
@@ -1426,10 +1428,12 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
     background: var(--studio-scrim);
   }
   .mobile-panel-actions {
-    @apply absolute top-2 z-30 flex gap-1;
+    @apply absolute top-2 z-40 grid items-center gap-2;
+    grid-template-columns: max-content minmax(0, 1fr) max-content;
     left: calc(8px + var(--studio-safe-left));
+    right: calc(8px + var(--studio-safe-right));
   }
-  .mobile-panel-actions button {
+  .mobile-panel-actions > button {
     @apply inline-flex min-h-11 items-center gap-1.5 px-3 font-medium;
     min-width: 2.75rem;
     border: var(--studio-border-width) solid var(--studio-line-strong);
@@ -1437,6 +1441,13 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
     background: var(--studio-surface-raised);
     font-size: var(--studio-font-control);
   }
+  .mobile-panel-actions .location-search {
+    position: static;
+    min-width: 0;
+    width: 100%;
+    translate: none;
+  }
+  .mobile-panel-actions .location-search-form { height: 2.75rem; }
   .left-sidebar.is-mobile-open .panel-header { min-height: 2.75rem; }
   .left-sidebar.is-mobile-open .layer-row {
     grid-template-columns: 2.75rem minmax(0, 1fr) 2.75rem 2.75rem;
@@ -1566,8 +1577,7 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
 }
 
 @media (max-width: 560px) {
-  .project-title, .top-divider { display: none; }
-  .location-search { top: 3.5rem; width: calc(100% - 1rem); }
+  .project-title { display: none; }
 }
 
 @media (forced-colors: active) {

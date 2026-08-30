@@ -1,5 +1,5 @@
 import { Frame, Layers3, MapPin, MousePointer2, Route, Shapes, SlidersHorizontal } from 'lucide-react';
-import type { ComponentProps, Dispatch, RefObject, SetStateAction } from 'react';
+import type { ComponentProps, Dispatch, ReactNode, RefObject, SetStateAction } from 'react';
 import type { ShapeEditMode } from '../../map/ShapeVertexEditing';
 import { preloadRouteEditor } from '../../map/useTerraDrawRoutes';
 import type { MobilePanel } from '../hooks/useMobilePanels';
@@ -24,20 +24,38 @@ type SelectedShapeControls = {
 };
 
 type CanvasWorkspaceChromeProps = {
-  activePanel: MobilePanel | null;
   activeTool: string;
   camera: { center: readonly [number, number]; locked: boolean; zoom: number };
-  layersTriggerRef: RefObject<HTMLButtonElement | null>;
   onActivateTool: (id: string) => void;
   onFitPage: () => void;
-  onOpenPanel: (panel: MobilePanel) => void;
   poiPanelProps: ComponentProps<typeof PoiAuthoringControls>;
-  propertiesTriggerRef: RefObject<HTMLButtonElement | null>;
   routePanelProps: ComponentProps<typeof RouteDrawingPanel>;
   selectToolRef: RefObject<HTMLButtonElement | null>;
   selectedShape: SelectedShapeControls;
   shapePanelProps: ComponentProps<typeof ShapeDrawingPanel>;
 };
+
+export function MobilePanelActions({
+  activePanel,
+  children,
+  layersTriggerRef,
+  onOpenPanel,
+  propertiesTriggerRef,
+}: {
+  activePanel: MobilePanel | null;
+  children: ReactNode;
+  layersTriggerRef: RefObject<HTMLButtonElement | null>;
+  onOpenPanel: (panel: MobilePanel) => void;
+  propertiesTriggerRef: RefObject<HTMLButtonElement | null>;
+}) {
+  return (
+    <div className="mobile-panel-actions" aria-label="Editor panels">
+      <button ref={layersTriggerRef} type="button" aria-label="Open layers" aria-controls="layers-panel" aria-expanded={activePanel === 'layers'} onClick={() => onOpenPanel('layers')}><Layers3 size={15} /><span>Layers</span></button>
+      {children}
+      <button ref={propertiesTriggerRef} type="button" aria-label="Open properties" aria-controls="properties-panel" aria-expanded={activePanel === 'properties'} onClick={() => onOpenPanel('properties')}><SlidersHorizontal size={15} /><span>Properties</span></button>
+    </div>
+  );
+}
 
 function SelectedShapeEditControls(props: SelectedShapeControls & { isActive: boolean }) {
   if (!props.isActive || !props.canEditPoints || !props.selectedId) return null;
@@ -45,15 +63,10 @@ function SelectedShapeEditControls(props: SelectedShapeControls & { isActive: bo
 }
 
 export function CanvasWorkspaceChrome({
-  activePanel, activeTool, camera, layersTriggerRef, onActivateTool, onFitPage, onOpenPanel,
-  poiPanelProps, propertiesTriggerRef, routePanelProps, selectToolRef, selectedShape, shapePanelProps,
+  activeTool, camera, onActivateTool, onFitPage, poiPanelProps, routePanelProps, selectToolRef, selectedShape, shapePanelProps,
 }: CanvasWorkspaceChromeProps) {
   return (
     <>
-      <div className="mobile-panel-actions" aria-label="Editor panels">
-        <button ref={layersTriggerRef} type="button" aria-label="Open layers" aria-controls="layers-panel" aria-expanded={activePanel === 'layers'} onClick={() => onOpenPanel('layers')}><Layers3 size={15} /><span>Layers</span></button>
-        <button ref={propertiesTriggerRef} type="button" aria-label="Open properties" aria-controls="properties-panel" aria-expanded={activePanel === 'properties'} onClick={() => onOpenPanel('properties')}><SlidersHorizontal size={15} /><span>Properties</span></button>
-      </div>
       <nav className="tool-palette" aria-label="Map tools">
         {tools.map(({ id, label, mobileLabel, shortcut, icon: Icon }) => (
           <div className="tool-slot" key={id}>

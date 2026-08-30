@@ -7,8 +7,13 @@ import {
   AutosaveRevisionExhaustedError,
   createIndexedDbAutosaveRepository,
   getAutosaveFailureMessage,
+  loadAutosavedProject,
+  type AutosaveRepository,
 } from '../../src/storage/autosave';
-import { createInitialProjectDocument } from '../../src/domain/project';
+import {
+  createInitialProjectDocument,
+  createNewProjectDocument,
+} from '../../src/domain/project';
 
 const databaseNames: string[] = [];
 
@@ -62,6 +67,15 @@ async function deleteDatabase(name: string) {
   });
 }
 
+function repositoryWith(load: AutosaveRepository['load']): AutosaveRepository {
+  return {
+    load,
+    save: vi.fn().mockResolvedValue(undefined),
+    discard: vi.fn().mockResolvedValue(undefined),
+    close: vi.fn(),
+  };
+}
+
 afterEach(async () => {
   const names = [...databaseNames];
   databaseNames.length = 0;
@@ -71,6 +85,47 @@ afterEach(async () => {
     request.onerror = () => resolve();
     request.onblocked = () => resolve();
   })));
+});
+
+describe('autosave startup', () => {
+  it('loads a valid local document without creating fallback state', async () => {
+    const document = createInitialProjectDocument();
+    document.title = 'Local project';
+    const repository = repositoryWith(vi.fn().mockResolvedValue({
+      recordVersion: AUTOSAVE_RECORD_VERSION,
+      savedAt: '2026-08-22T10:00:00.000Z',
+      document,
+    }));
+    const createFallback = vi.fn(createNewProjectDocument);
+
+    const startup = await loadAutosavedProject(repository, createFallback);
+
+    expect(startup).toEqual({ document, loadError: null });
+    expect(createFallback).not.toHaveBeenCalled();
+  });
+
+  it('creates a new project only when no local document exists', async () => {
+    const repository = repositoryWith(vi.fn().mockResolvedValue(null));
+
+    const startup = await loadAutosavedProject(repository, createNewProjectDocument);
+
+    expect(startup.loadError).toBeNull();
+    expect(startup.document).toMatchObject({
+      id: 'untitled-map',
+      title: 'Untitled map',
+      layers: [{ id: 'basemap', type: 'basemap' }],
+    });
+  });
+
+  it('preserves a load failure so autosave remains disabled', async () => {
+    const loadError = new Error('storage blocked');
+    const repository = repositoryWith(vi.fn().mockRejectedValue(loadError));
+
+    const startup = await loadAutosavedProject(repository, createNewProjectDocument);
+
+    expect(startup.loadError).toBe(loadError);
+    expect(startup.document.title).toBe('Untitled map');
+  });
 });
 
 describe('IndexedDB project autosave', () => {

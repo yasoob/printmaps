@@ -47,7 +47,7 @@ async function startApplication() {
       });
     }
     const { mountApp } = await import('./mountApp');
-    mountApp();
+    await mountApp();
     sessionStorage.removeItem(STARTUP_RETRY_KEY);
   } catch (error) {
     if (didRetryApplicationStart(error)) return;
