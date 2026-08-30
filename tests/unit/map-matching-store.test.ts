@@ -33,9 +33,16 @@ describe('canonical map-matched routes', () => {
 
   it('clears map-matching provenance after manual route geometry edits', () => {
     const store = createProjectStore(createInitialProjectDocument());
+    const sourcePointCount = () => {
+      const geometry = store.getState().document.layers
+        .find(({ id }) => id === 'route-01')?.geometry;
+      return geometry?.type === 'LineString' ? geometry.coordinates.length : 0;
+    };
     const apply = () => store.getState().applyMapMatching('route-01', {
       geometry: [[16.3261, 48.1941], [16.36, 48.21], [16.4291, 48.2261]],
-      profile: 'walking', confidence: 0.93, sourcePointCount: 4,
+      profile: 'walking',
+      confidence: 0.93,
+      sourcePointCount: sourcePointCount(),
     }, store.getState().documentEpoch);
     const provenance = () => store.getState().document.layers.find(({ id }) => id === 'route-01')?.provenance;
 
@@ -65,7 +72,7 @@ describe('canonical map-matched routes', () => {
     expect(store.getState().applyMapMatching('route-01', {
       geometry: [first, second, [16.5, 48.3]],
       profile: 'walking',
-      sourcePointCount: 3,
+      sourcePointCount: 4,
     }, 0)).toBe(true);
 
     const matched = store.getState().document.layers.find(({ id }) => id === 'route-01')!;
@@ -85,6 +92,17 @@ describe('canonical map-matched routes', () => {
       geometry: [[0, 0], [1, 1], [0, 0]],
       profile: 'walking',
       sourcePointCount: 3,
+    }, 0)).toBe(false);
+    expect(store.getState().canUndo).toBe(false);
+  });
+
+  it('rejects a match that did not use every source route point', () => {
+    const store = createProjectStore(createInitialProjectDocument());
+
+    expect(store.getState().applyMapMatching('route-01', {
+      geometry: [[16.3261, 48.1941], [16.4291, 48.2261]],
+      profile: 'walking',
+      sourcePointCount: 2,
     }, 0)).toBe(false);
     expect(store.getState().canUndo).toBe(false);
   });

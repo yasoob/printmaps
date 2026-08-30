@@ -9,6 +9,7 @@ const PROFILES = new Set<ProviderTravelProfile>(['driving', 'cycling', 'walking'
 const DEFAULT_TIMEOUT_MS = 15_000;
 const MAX_TRACE_POSITIONS = 100;
 const MAX_RESPONSE_POSITIONS = 50_000;
+const DRAWN_POINT_SNAP_RADIUS_METERS = 50;
 
 type MapboxMapMatchingProviderOptions = {
   fetch?: typeof globalThis.fetch;
@@ -16,8 +17,9 @@ type MapboxMapMatchingProviderOptions = {
   token: string | null | undefined;
 };
 
-type MapboxMapMatchingPayload = { code?: unknown; matchings?: unknown };
+type MapboxMapMatchingPayload = { code?: unknown; matchings?: unknown; tracepoints?: unknown };
 type MapboxMatching = { confidence?: unknown; geometry?: unknown };
+type MapboxTracepoint = { matchings_index?: unknown; waypoint_index?: unknown };
 
 function failResponse(message: string): never {
   throw new MapboxProviderError('RESPONSE_INVALID', `Mapbox returned an invalid map-matching response: ${message}`);
@@ -50,7 +52,10 @@ function requestUrl(request: MapMatchingRequest): URL {
   url.searchParams.set('geometries', 'geojson');
   url.searchParams.set('overview', 'full');
   url.searchParams.set('steps', 'false');
-  url.searchParams.set('tidy', 'true');
+  url.searchParams.set(
+    'radiuses',
+    request.trace.map(() => String(DRAWN_POINT_SNAP_RADIUS_METERS)).join(';'),
+  );
   return url;
 }
 
@@ -75,12 +80,28 @@ function responseMatch(value: unknown): ProviderMatch {
   };
 }
 
-function responseMatches(payload: unknown): readonly ProviderMatch[] {
+function validateTracepoints(value: unknown, sourcePointCount: number): void {
+  if (!Array.isArray(value) || value.length !== sourcePointCount) {
+    failResponse('Expected one matched tracepoint for every route point.');
+  }
+  for (const [index, item] of value.entries()) {
+    if (typeof item !== 'object' || item === null || Array.isArray(item)) {
+      failResponse(`Route point ${index + 1} was not matched to a road.`);
+    }
+    const tracepoint = item as MapboxTracepoint;
+    if (tracepoint.matchings_index !== 0 || tracepoint.waypoint_index !== index) {
+      failResponse(`Route point ${index + 1} was matched out of order.`);
+    }
+  }
+}
+
+function responseMatches(payload: unknown, sourcePointCount: number): readonly ProviderMatch[] {
   if (typeof payload !== 'object' || payload === null || Array.isArray(payload)) failResponse('Expected one successful matching.');
   const candidate = payload as MapboxMapMatchingPayload;
   if (candidate.code !== 'Ok' || !Array.isArray(candidate.matchings) || candidate.matchings.length !== 1) {
     failResponse('Expected one successful matching.');
   }
+  validateTracepoints(candidate.tracepoints, sourcePointCount);
   return [responseMatch(candidate.matchings[0])];
 }
 
@@ -119,7 +140,10 @@ export function createMapboxMapMatchingProvider(options: MapboxMapMatchingProvid
           signal: control.signal,
           token: options.token,
         });
-        return { matches: responseMatches(response.data), useBoundary: response.useBoundary };
+        return {
+          matches: responseMatches(response.data, request.trace.length),
+          useBoundary: response.useBoundary,
+        };
       } catch (error) {
         if (control.didTimeout()) {
           throw new MapboxProviderError('REQUEST_TIMEOUT', 'Mapbox took too long to match the route to roads. Try again.');

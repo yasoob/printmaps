@@ -4,7 +4,7 @@ import {
   type MapMatchingInput,
 } from '../domain/project';
 import { isValidPosition } from '../domain/routeGeometry';
-import { isCompleteRouteLayer } from '../domain/routeModel';
+import { isCompleteRouteLayer, semanticRoutePoints } from '../domain/routeModel';
 import {
   convertRoute,
   openRoute,
@@ -57,6 +57,7 @@ function mapMatchedLayer(
   input: MapMatchingInput,
 ): ContentLayer | null {
   let local = convertRoute(layer, 'straight');
+  if (semanticRoutePoints(local ?? layer)?.length !== input.sourcePointCount) return null;
   if (local?.route.closed) local = openRoute(local);
   const transformed = local && replaceRouteSemanticPoints(local, input.geometry);
   if (!transformed) return null;

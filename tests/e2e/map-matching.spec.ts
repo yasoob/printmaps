@@ -22,12 +22,19 @@ test('selected route matches to roads and remains durable editable and exportabl
     const url = new URL(route.request().url());
     expect(url.searchParams.get('geometries')).toBe('geojson');
     expect(url.searchParams.get('overview')).toBe('full');
-    expect(url.searchParams.get('tidy')).toBe('true');
+    expect(url.searchParams.get('radiuses')).toBe('50;50;50;50');
+    expect(url.searchParams.has('tidy')).toBe(false);
     await route.fulfill({
       contentType: 'application/json',
       body: JSON.stringify({
         code: 'Ok',
         matchings: [{ confidence: 0.93, geometry: { type: 'LineString', coordinates: matched } }],
+        tracepoints: [
+          { matchings_index: 0, waypoint_index: 0 },
+          { matchings_index: 0, waypoint_index: 1 },
+          { matchings_index: 0, waypoint_index: 2 },
+          { matchings_index: 0, waypoint_index: 3 },
+        ],
       }),
     });
   });
