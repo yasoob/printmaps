@@ -750,6 +750,12 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .inspector-accordion-content > .property-section { padding-left: 0; padding-right: 0; }
 .property-section + .property-section { padding-top: 0.875rem; }
 .property-section h3 { @apply mb-2 mt-0 font-semibold; font-size: var(--studio-font-label); }
+.property-note {
+  @apply m-0;
+  color: var(--studio-text-muted);
+  font-size: var(--studio-font-meta);
+  line-height: 1.4;
+}
 .property-row {
   @apply grid items-center;
   grid-template-columns: 5.5rem minmax(0, 1fr);
