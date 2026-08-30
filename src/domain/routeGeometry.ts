@@ -1,9 +1,20 @@
 import {
   arcSegmentPoint,
   createArcGeometry,
-  type ArcGeometry,
 } from "./routeArcGeometry";
 import { MAX_MERCATOR_LATITUDE, type ContentLayer } from "./project";
+import {
+  arePositionsEqual,
+  isCompleteRouteLayer,
+  semanticRoutePoints,
+  type CompleteRouteLayer,
+} from "./routeModel";
+import {
+  convertRoute,
+  insertRoutePoint,
+  removeRoutePoint,
+  replaceRouteSemanticPoints,
+} from "./routeTransformations";
 
 export function isValidPosition(longitude: number, latitude: number) {
   return (
@@ -33,28 +44,17 @@ export function midpointPosition(
   ];
 }
 
-function routePositions(
-  layer: ContentLayer,
-): readonly (readonly [number, number])[] | null {
-  if (layer.geometry?.type === "LineString") return layer.geometry.coordinates;
-  if (layer.geometry?.type === "Arc") return layer.geometry.anchors;
-  return null;
-}
-
 export function semanticRoutePositions(
   layer: ContentLayer,
 ): readonly (readonly [number, number])[] | null {
-  if (layer.type !== "route") return null;
-  if (layer.provenance?.service === "directions-v5")
-    return layer.provenance.waypoints;
-  return routePositions(layer);
+  return semanticRoutePoints(layer);
 }
 
 export function semanticRoutePointLabel(
   layer: ContentLayer,
   index: number,
 ): string {
-  return `${layer.provenance?.service === "directions-v5" ? "Waypoint" : "Anchor"} ${index + 1}`;
+  return `${layer.route?.kind === "road" ? "Waypoint" : "Anchor"} ${index + 1}`;
 }
 
 type EditableRouteGeometry = Extract<
@@ -82,7 +82,7 @@ function isVertexIndex(index: number, positionCount: number) {
 function editedRouteLayer(
   layer: ContentLayer,
   geometry: NonNullable<ContentLayer["geometry"]>,
-): ContentLayer {
+): ContentLayer | null {
   const updated = { ...layer, geometry };
   if (
     updated.provenance?.service === "map-matching-v5" ||
@@ -90,22 +90,16 @@ function editedRouteLayer(
   ) {
     delete updated.provenance;
   }
-  return updated;
-}
-
-function arcGeometryWithAnchors(
-  geometry: ArcGeometry,
-  anchors: readonly (readonly [number, number])[],
-) {
-  return createArcGeometry(anchors, geometry.curvatures);
+  return isCompleteRouteLayer(updated) ? updated : null;
 }
 
 export function replaceRouteGeometry(
   layer: ContentLayer | undefined,
   positions: readonly (readonly [number, number])[],
 ): ContentLayer | null {
-  if (layer?.type !== "route" || positions.length < 2) return null;
-  const current = routePositions(layer);
+  const source = localEditableRoute(layer);
+  if (!source || positions.length < 2) return null;
+  const current = semanticRoutePoints(source);
   if (
     !current ||
     positions.some(
@@ -113,28 +107,27 @@ export function replaceRouteGeometry(
     )
   )
     return null;
-  if (
-    new Set(
-      positions.map(([longitude, latitude]) => `${longitude},${latitude}`),
-    ).size < 2
-  )
-    return null;
-  const coordinates = positions.map(
+  let coordinates = positions.map(
     ([longitude, latitude]) => [longitude, latitude] as [number, number],
   );
+  if (source.route.closed && arePositionsEqual(coordinates[0], coordinates.at(-1)!)) {
+    coordinates = coordinates.slice(0, -1);
+  }
   const isUnchanged =
-    coordinates.length === current.length &&
+    coordinates.length === current.length - (source.route.closed ? 1 : 0) &&
     coordinates.every(
       ([longitude, latitude], index) =>
         current[index][0] === longitude && current[index][1] === latitude,
     );
   if (isUnchanged) return null;
-  const geometry =
-    layer.geometry?.type === "Arc"
-      ? arcGeometryWithAnchors(layer.geometry, coordinates)
-      : { type: "LineString" as const, coordinates };
-  if (!geometry) return null;
-  return editedRouteLayer(layer, geometry);
+  return replaceRouteSemanticPoints(source, coordinates);
+}
+
+function localEditableRoute(
+  layer: ContentLayer | undefined,
+): CompleteRouteLayer | null {
+  if (!layer || !isCompleteRouteLayer(layer)) return null;
+  return layer.route.kind === "road" ? convertRoute(layer, "straight") : layer;
 }
 
 export function moveRouteVertex(
@@ -142,25 +135,21 @@ export function moveRouteVertex(
   vertexIndex: number,
   [longitude, latitude]: readonly [number, number],
 ): ContentLayer | null {
-  if (
-    layer?.type !== "route" ||
-    !Number.isSafeInteger(vertexIndex) ||
-    !isValidPosition(longitude, latitude)
-  )
-    return null;
-  const current = routePositions(layer);
-  if (!current || vertexIndex < 0 || vertexIndex >= current.length) return null;
-  if (
-    current[vertexIndex][0] === longitude &&
-    current[vertexIndex][1] === latitude
-  )
-    return null;
-  const coordinates = current.map((position, index) =>
-    index === vertexIndex
+  if (!Number.isSafeInteger(vertexIndex) || !isValidPosition(longitude, latitude)) return null;
+  const source = localEditableRoute(layer);
+  const current = source && semanticRoutePoints(source);
+  if (!source || !current || vertexIndex < 0 || vertexIndex >= current.length) return null;
+  if (arePositionsEqual(current[vertexIndex], [longitude, latitude])) return null;
+  const semanticIndex = source.route.closed && vertexIndex === current.length - 1
+    ? 0
+    : vertexIndex;
+  const unique = source.route.closed ? current.slice(0, -1) : current;
+  const coordinates = unique.map((position, index) =>
+    index === semanticIndex
       ? ([longitude, latitude] as [number, number])
       : position,
   );
-  return replaceRouteGeometry(layer, coordinates);
+  return replaceRouteSemanticPoints(source, coordinates);
 }
 
 export function insertRouteVertex(
@@ -168,8 +157,9 @@ export function insertRouteVertex(
   vertexIndex: number,
   requestedCoordinate?: readonly [number, number],
 ): ContentLayer | null {
-  const geometry = editableRouteGeometry(layer);
-  if (!layer || !geometry) return null;
+  const source = localEditableRoute(layer);
+  const geometry = editableRouteGeometry(source ?? undefined);
+  if (!source || !geometry) return null;
   const positions =
     geometry.type === "Arc" ? geometry.anchors : geometry.coordinates;
   if (!isSegmentIndex(vertexIndex, positions.length)) return null;
@@ -182,21 +172,7 @@ export function insertRouteVertex(
     inserted = arcSegmentPoint(geometry, vertexIndex, 0.5);
   else inserted = midpointPosition(start, end);
   if (!isValidPosition(inserted[0], inserted[1])) return null;
-  const coordinates = positions.map(
-    (coordinate) => [...coordinate] as [number, number],
-  );
-  coordinates.splice(vertexIndex + 1, 0, inserted);
-  if (geometry.type === "LineString")
-    return editedRouteLayer(layer, { type: "LineString", coordinates });
-  const curvatures = [...geometry.curvatures];
-  curvatures.splice(
-    vertexIndex,
-    1,
-    curvatures[vertexIndex],
-    curvatures[vertexIndex],
-  );
-  const nextGeometry = createArcGeometry(coordinates, curvatures);
-  return nextGeometry ? editedRouteLayer(layer, nextGeometry) : null;
+  return insertRoutePoint(source, vertexIndex, inserted);
 }
 
 function canRemoveVertex(vertexIndex: number, count: number) {
@@ -212,36 +188,13 @@ export function removeRouteVertex(
   layer: ContentLayer | undefined,
   vertexIndex: number,
 ): ContentLayer | null {
-  const geometry = editableRouteGeometry(layer);
-  if (!layer || !geometry) return null;
+  const source = localEditableRoute(layer);
+  const geometry = editableRouteGeometry(source ?? undefined);
+  if (!source || !geometry) return null;
   const positions =
     geometry.type === "Arc" ? geometry.anchors : geometry.coordinates;
   if (!canRemoveVertex(vertexIndex, positions.length)) return null;
-  const coordinates = positions.map(
-    (coordinate) => [...coordinate] as [number, number],
-  );
-  coordinates.splice(vertexIndex, 1);
-  if (
-    new Set(
-      coordinates.map(([longitude, latitude]) => `${longitude},${latitude}`),
-    ).size < 2
-  )
-    return null;
-  if (geometry.type === "LineString")
-    return editedRouteLayer(layer, { type: "LineString", coordinates });
-  const curvatures = [...geometry.curvatures];
-  if (vertexIndex === 0) curvatures.shift();
-  else if (vertexIndex === geometry.anchors.length - 1) curvatures.pop();
-  else {
-    const merged = Math.max(
-      -1,
-      Math.min(1, (curvatures[vertexIndex - 1] + curvatures[vertexIndex]) / 2),
-    );
-    curvatures.splice(vertexIndex - 1, 2, merged);
-  }
-
-  const nextGeometry = createArcGeometry(coordinates, curvatures);
-  return nextGeometry ? editedRouteLayer(layer, nextGeometry) : null;
+  return removeRoutePoint(source, vertexIndex);
 }
 
 export function setArcSegmentCurvature(

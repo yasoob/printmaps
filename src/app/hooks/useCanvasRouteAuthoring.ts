@@ -1,171 +1,22 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback } from "react";
 import {
-  DEFAULT_ROUTE_AUTHORING_OPTIONS,
-  type RoadTravelMode,
-  type RouteAuthoringOptions,
-  type RouteLineShape,
-  type RouteTravelMarker,
-} from "../../domain/routeProfiles";
-import { routeSnapCandidates } from "../../map/RouteSnapping";
-import {
-  canFinishRoute,
-  extendedLocalRouteGeometry,
-  extendedRoutePoints,
-} from "../components/routeAuthoringActions";
-import { useDirectionsAuthoring } from "./useDirectionsAuthoring";
-import {
-  extensionDraftPoints,
-  useRouteExtensionActivation,
   useRouteKeyboard,
   type RouteAuthoringParameters,
-  type RouteExtensionRequest,
-  type RouteStateSetters,
 } from "./canvasRouteAuthoringSupport";
 import { routeInputActions, routePanelProps } from "./canvasRouteInputActions";
+import {
+  areDraftPointsEqual,
+  draftValidationError,
+  moveDraftPoint,
+  removeDraftPoint,
+  undoRouteSemanticDraft,
+} from "./routeSemanticDraft";
+import {
+  useRouteCoreState,
+  type RouteCoreState,
+} from "./useRouteCoreState";
 
 export type { RouteExtensionRequest } from "./canvasRouteAuthoringSupport";
-
-function useRouteCoreState(parameters: RouteAuthoringParameters) {
-  const [points, setPoints] = useState<[number, number][]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [announcement, setAnnouncement] = useState<string | null>(null);
-  const [isSnapEnabled, setIsSnapEnabled] = useState(false);
-  const [isDiscardOpen, setIsDiscardOpen] = useState(false);
-  const [toolAfterDiscard, setToolAfterDiscard] = useState<string | null>(null);
-  const [discardTrigger, setDiscardTrigger] = useState<HTMLElement | null>(
-    null,
-  );
-  const [extension, setExtension] = useState<RouteExtensionRequest | null>(
-    null,
-  );
-  const [lineShape, setLineShape] = useState<RouteLineShape>(
-    DEFAULT_ROUTE_AUTHORING_OPTIONS.lineShape,
-  );
-  const [roadTravelMode, setRoadTravelMode] = useState<RoadTravelMode>(
-    DEFAULT_ROUTE_AUTHORING_OPTIONS.roadTravelMode,
-  );
-  const [travelMarker, setTravelMarker] = useState<RouteTravelMarker | null>(
-    DEFAULT_ROUTE_AUTHORING_OPTIONS.travelMarker,
-  );
-  const options = useMemo<RouteAuthoringOptions>(
-    () => ({ lineShape, roadTravelMode, travelMarker }),
-    [lineShape, roadTravelMode, travelMarker],
-  );
-  const directions = useDirectionsAuthoring({
-    active: parameters.activeTool === "route" && lineShape === "road",
-    documentEpoch: parameters.documentEpoch,
-    onCreate: (input, routeOptions, expectedDocumentEpoch) =>
-      extension
-        ? parameters.onReplaceDirectionsRoute({
-            id: extension.layer.id,
-            input,
-            options: routeOptions,
-            expectedDocumentEpoch,
-            expectedLayer: extension.layer,
-            selectRoute: true,
-          })
-        : parameters.onCreateDirectionsRoute(
-            input,
-            routeOptions,
-            expectedDocumentEpoch,
-          ),
-    provider: parameters.directionsProvider,
-  });
-  const setters = useMemo<RouteStateSetters>(
-    () => ({
-      setAnnouncement,
-      setError,
-      setExtension,
-      setLineShape,
-      setPoints,
-      setRoadTravelMode,
-      setTravelMarker,
-    }),
-    [],
-  );
-  useRouteExtensionActivation(parameters, extension, setters);
-  const currentPoints = useMemo(
-    () =>
-      parameters.toolDocumentEpoch === parameters.documentEpoch ? points : [],
-    [parameters.documentEpoch, parameters.toolDocumentEpoch, points],
-  );
-  const commitPoints = useMemo(
-    () =>
-      extension
-        ? (extendedRoutePoints(
-            extension.layer,
-            currentPoints,
-            extension.endpoint,
-          ) ?? [])
-        : currentPoints,
-    [currentPoints, extension],
-  );
-  const canFinish =
-    (!extension || currentPoints.length > 0) &&
-    canFinishRoute(commitPoints, options);
-  const snapCandidates = useMemo(
-    () => routeSnapCandidates(parameters.layers),
-    [parameters.layers],
-  );
-  return {
-    announcement,
-    canFinish,
-    commitPoints,
-    currentPoints,
-    directions,
-    discardTrigger,
-    error,
-    extension,
-    isDiscardOpen,
-    isSnapEnabled,
-    lineShape,
-    options,
-    points,
-    roadTravelMode,
-    snapCandidates,
-    setAnnouncement,
-    setError,
-    setExtension,
-    setIsDiscardOpen,
-    setIsSnapEnabled,
-    setLineShape,
-    setPoints,
-    setRoadTravelMode,
-    setDiscardTrigger,
-    setToolAfterDiscard,
-    setTravelMarker,
-    toolAfterDiscard,
-    travelMarker,
-  };
-}
-
-export type RouteCoreState = ReturnType<typeof useRouteCoreState>;
-
-function localRouteResult(
-  parameters: RouteAuthoringParameters,
-  core: RouteCoreState,
-) {
-  if (!core.extension)
-    return parameters.onCreateRoute(core.currentPoints, core.options);
-  const geometry = extendedLocalRouteGeometry(
-    core.extension.layer,
-    core.currentPoints,
-    core.extension.endpoint,
-  );
-  if (!geometry) {
-    return {
-      ok: false,
-      error:
-        "This route extension has invalid geometry. Move the new endpoint and try again.",
-    } as const;
-  }
-  return parameters.onReplaceAuthoredRoute(
-    core.extension.layer.id,
-    geometry,
-    core.options.travelMarker,
-    core.extension.layer,
-  );
-}
 
 function useRouteCommitActions(
   parameters: RouteAuthoringParameters,
@@ -174,7 +25,7 @@ function useRouteCommitActions(
   const exit = useCallback(() => {
     const extensionTrigger = core.extension?.trigger;
     core.directions.cancel();
-    core.setPoints([]);
+    core.resetPoints([]);
     core.setError(null);
     core.setAnnouncement(null);
     core.setExtension(null);
@@ -182,53 +33,100 @@ function useRouteCommitActions(
     parameters.onAuthoringChange(parameters.documentEpoch, false);
     window.setTimeout(() => {
       if (
-        extensionTrigger?.isConnected &&
-        extensionTrigger.offsetParent !== null
-      )
-        extensionTrigger.focus();
+        extensionTrigger?.isConnected
+        && extensionTrigger.offsetParent !== null
+      ) extensionTrigger.focus();
       else parameters.selectToolRef.current?.focus();
     }, 0);
   }, [core, parameters]);
 
   const undo = useCallback(() => {
-    core.setPoints(core.currentPoints.slice(0, -1));
-    core.setAnnouncement("Removed the latest route point.");
+    core.directions.cancel();
+    core.setRoadPreview(null);
+    const hasHistory = core.currentDraft.history.length > 0;
+    core.setDraft(undoRouteSemanticDraft(core.currentDraft));
+    core.requestTerraSync();
+    if (hasHistory) {
+      core.setAnnouncement("Undid the latest draft edit.");
+    }
   }, [core]);
+
+  const commitRoad = useCallback(async () => {
+    const cached = core.roadPreview;
+    const revision = core.currentDraft.revision;
+    const mode = core.roadTravelMode;
+    const input = cached?.revision === revision
+      && cached.mode === mode
+      ? cached.input
+      : await core.directions.resolve(core.commitPoints, core.options);
+    if (
+      !input
+      || core.getCurrentDraft().revision !== revision
+      || core.currentRoadTravelMode() !== mode
+    ) return;
+    const result = core.directions.commit(input, core.options);
+    if (result.ok) exit();
+    else core.setError(result.error);
+  }, [core, exit]);
 
   const finish = useCallback(() => {
     if (!core.canFinish) return;
     if (core.lineShape === "road") {
-      void core.directions
-        .route(core.commitPoints, core.options)
-        .then((result) => {
-          if (result?.ok) exit();
-          else if (result) core.setError(result.error);
-        });
+      void commitRoad();
       return;
     }
-    const result = localRouteResult(parameters, core);
+    const result = core.extension
+      ? parameters.onReplaceRouteDraft({
+          id: core.extension.layer.id,
+          points: core.currentPoints,
+          travelMarker: core.options.travelMarker,
+          expectedDocumentEpoch: parameters.documentEpoch,
+          expectedLayer: core.extension.layer,
+        })
+      : parameters.onCreateRoute(core.currentPoints, core.options);
     if (result.ok) exit();
     else core.setError(result.error);
-  }, [core, exit, parameters]);
+  }, [commitRoad, core, exit, parameters]);
+
+  const preview = useCallback(async () => {
+    if (
+      core.lineShape !== "road"
+      || draftValidationError(
+        core.currentPoints,
+        "road",
+        core.isClosed,
+      )
+    ) return;
+    const revision = core.currentDraft.revision;
+    const mode = core.roadTravelMode;
+    const input = await core.directions.resolve(core.commitPoints, core.options);
+    if (
+      !input
+      || core.getCurrentDraft().revision !== revision
+      || core.currentRoadTravelMode() !== mode
+    ) return;
+    core.setRoadPreview({ input, mode, revision });
+    core.setAnnouncement("Road preview updated.");
+  }, [core]);
 
   const requestCancel = useCallback(
     (trigger: HTMLElement | null = null) => {
-      if (core.currentPoints.length === 0) {
+      if (core.currentDraft.history.length === 0) {
         exit();
         return;
       }
       core.setDiscardTrigger(
-        trigger ??
-          (document.activeElement instanceof HTMLElement
-            ? document.activeElement
-            : null),
+        trigger
+        ?? (document.activeElement instanceof HTMLElement
+          ? document.activeElement
+          : null),
       );
       core.setToolAfterDiscard(null);
       core.setIsDiscardOpen(true);
     },
     [core, exit],
   );
-  return { exit, finish, requestCancel, undo };
+  return { exit, finish, preview, requestCancel, undo };
 }
 
 export type RouteCommitActions = ReturnType<typeof useRouteCommitActions>;
@@ -240,23 +138,70 @@ export function useCanvasRouteAuthoring(parameters: RouteAuthoringParameters) {
   useRouteKeyboard({
     active: parameters.activeTool === "route",
     canFinish: core.canFinish,
-    canUndo: core.currentPoints.length > 0,
+    canUndo: core.currentDraft.history.length > 0,
     isDiscardOpen: core.isDiscardOpen,
     isRouting: core.directions.isRouting,
     onCancel: commitActions.requestCancel,
     onFinish: commitActions.finish,
     onUndo: commitActions.undo,
   });
-
+  const removePoint = useCallback((index: number) => {
+    const minimum = core.extension ? (core.isClosed ? 3 : 2) : 0;
+    if (core.currentPoints.length <= minimum) return;
+    core.editPoints(removeDraftPoint(core.currentPoints, index));
+    core.setAnnouncement(`Removed draft point ${index + 1}.`);
+  }, [core]);
+  const reorderPoint = useCallback((index: number, offset: -1 | 1) => {
+    const nextIndex = index + offset;
+    const next = moveDraftPoint(core.currentPoints, index, nextIndex);
+    if (areDraftPointsEqual(next, core.currentPoints)) return;
+    core.editPoints(next);
+    core.setAnnouncement(
+      `Moved draft point ${index + 1} ${offset < 0 ? "up" : "down"}.`,
+    );
+  }, [core]);
+  const focusPoint = useCallback((index: number) => {
+    core.setFocusRequest((current) => ({
+      index,
+      request: current.request + 1,
+    }));
+  }, [core]);
   return {
     addPoint: inputActions.addPoint,
     discard: inputActions.discard,
-    draftPoints: extensionDraftPoints(core.extension, core.currentPoints),
+    draftEditing: {
+      active: parameters.activeTool === "route" && core.currentPoints.length > 0,
+      focusRequest: core.focusRequest,
+      onMoveBegin: core.beginPointMove,
+      onMoveCommit: core.commitPointMove,
+      onMovePreview: core.previewPointMove,
+      points: core.currentPoints,
+    },
+    draftPoints: core.commitPoints,
+    isClosed: core.isClosed,
     isDiscardOpen: core.isDiscardOpen,
     keepEditing: inputActions.keepEditing,
     options: core.options,
-    panelProps: routePanelProps(parameters, core, inputActions, commitActions),
+    panelProps: routePanelProps(
+      parameters,
+      core,
+      {
+        commit: commitActions,
+        input: inputActions,
+        point: { focusPoint, removePoint, reorderPoint },
+      },
+    ),
     points: core.currentPoints,
+    preview: core.roadPreview?.input ?? null,
     requestToolChange: inputActions.requestToolChange,
+    terraAuthoring: {
+      active: parameters.activeTool === "route" && !core.extension,
+      lineShape: core.lineShape === "road" ? "straight" as const : core.lineShape,
+      onFinish: (points: [number, number][]) => core.editPoints(points, false),
+      onPreview: (points: [number, number][]) => core.editPoints(points, false),
+      points: core.currentPoints,
+      revision: core.terraSyncRevision,
+      undoRequest: 0,
+    },
   };
 }

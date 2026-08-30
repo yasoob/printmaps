@@ -6,6 +6,7 @@ import type { MapBounds } from './MapLayerBounds';
 import type { CameraViewportChangeMode } from './MapCameraViewport';
 import type { ShapeEditMode } from './ShapeVertexEditing';
 import type { RouteAuthoring } from './useTerraDrawRoutes';
+import type { DraftRouteEditing } from './DraftRouteEditing';
 import { mapLocationRequestDiagnostic, resolveMapLocationRequest, type MapLocationRequest } from './MapLocationRequest';
 import { useMapCanvasController } from './useMapCanvasController';
 
@@ -28,6 +29,7 @@ type MapCanvasProps = {
   onRouteVertexChange?: (id: string, vertexIndex: number, coordinate: readonly [number, number]) => void;
   onRouteVertexInsert?: (id: string, segmentIndex: number) => void;
   routeAuthoring?: RouteAuthoring;
+  routeDraftEditing?: DraftRouteEditing;
   onShapeGeometryChange?: (id: string, geometry: ShapeGeometry) => void;
   onBackgroundClick: () => void;
   onExporterChange?: (exporter: PreviewPngExporter | null) => void;
@@ -80,6 +82,7 @@ export function MapCanvas({
   onRouteVertexChange,
   onRouteVertexInsert,
   routeAuthoring,
+  routeDraftEditing,
   onShapeGeometryChange,
   onBackgroundClick,
   onExporterChange,
@@ -120,6 +123,7 @@ export function MapCanvas({
     onRouteVertexChange,
     onRouteVertexInsert,
     routeAuthoring,
+    routeDraftEditing,
     onShapeGeometryChange,
     previewedId,
     selectedId,

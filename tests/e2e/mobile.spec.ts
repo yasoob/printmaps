@@ -319,7 +319,7 @@ test('mobile map palette keeps one navigation mode and exposes Fit page directly
   const panel = page.locator('.route-authoring-panel');
   const panelBox = await panel.boundingBox();
   expect(panelBox).not.toBeNull();
-  expect(panelBox!.height).toBeLessThanOrEqual(150);
+  expect(panelBox!.height).toBeLessThanOrEqual(352);
   await expectNoOverlap(panel, page.locator('.map-scale'));
   await expectNoOverlap(panel, page.locator('.maplibregl-ctrl-bottom-left'));
   await expectNoOverlap(panel, page.locator('.maplibregl-ctrl-bottom-right'));

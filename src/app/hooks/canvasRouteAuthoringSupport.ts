@@ -1,4 +1,4 @@
-import { useEffect, type RefObject } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 import type { CameraSettings, ContentLayer } from "../../domain/project";
 import {
   DEFAULT_ROUTE_AUTHORING_OPTIONS,
@@ -44,6 +44,7 @@ export type RouteAuthoringParameters = {
     expectedLayer: ContentLayer,
   ) => RouteMutationResult;
   onReplaceDirectionsRoute: ProjectState["replaceDirectionsRoute"];
+  onReplaceRouteDraft: ProjectState["replaceRouteDraft"];
   routeExtensionRequest: RouteExtensionRequest | null;
   selectToolRef: RefObject<HTMLButtonElement | null>;
   setActiveTool: (id: string) => void;
@@ -62,8 +63,9 @@ export type RouteStateSetters = {
 };
 
 function routeLineShape(layer: ContentLayer): RouteLineShape {
-  if (layer.provenance?.service === "directions-v5") return "road";
-  return layer.geometry?.type === "Arc" ? "arc" : "straight";
+  return layer.route?.kind ?? (
+    layer.geometry?.type === "Arc" ? "arc" : "straight"
+  );
 }
 
 function routeRoadMode(layer: ContentLayer): RoadTravelMode {
@@ -78,9 +80,11 @@ export function useRouteExtensionActivation(
   extension: RouteExtensionRequest | null,
   setters: RouteStateSetters,
 ) {
+  const handledRequest = useRef<number | null>(null);
   useEffect(() => {
     const request = parameters.routeExtensionRequest;
-    if (!request || request.request === extension?.request) return;
+    if (!request || request.request === handledRequest.current) return;
+    handledRequest.current = request.request;
     const timeout = window.setTimeout(() => {
       const current = parameters.layers.find(
         (layer) => layer.id === request.layer.id,
@@ -97,7 +101,11 @@ export function useRouteExtensionActivation(
         return;
       }
       setters.setExtension(request);
-      setters.setPoints([]);
+      const semanticPoints = semanticRoutePositions(current) ?? [];
+      setters.setPoints(
+        (current.route?.closed ? semanticPoints.slice(0, -1) : semanticPoints)
+          .map(([longitude, latitude]) => [longitude, latitude]),
+      );
       setters.setError(null);
       setters.setAnnouncement(
         `Extending ${current.name} from its ${request.endpoint}.`,
@@ -106,7 +114,7 @@ export function useRouteExtensionActivation(
       setters.setRoadTravelMode(routeRoadMode(current));
       setters.setTravelMarker(
         current.appearance?.kind === "route"
-          ? current.appearance.travelMarker
+          ? current.appearance.marker?.pictogram ?? null
           : null,
       );
       parameters.setToolDocumentEpoch(parameters.documentEpoch);

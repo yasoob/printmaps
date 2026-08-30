@@ -7,6 +7,8 @@ import {
 } from "../domain/routeGeometry";
 import { createArcGeometry } from "../domain/routeArcGeometry";
 import type { ContentLayer } from "../domain/project";
+import { isCompleteRouteLayer } from "../domain/routeModel";
+import { markerAppearanceFor } from "../domain/routeProfiles";
 import type { ProjectState } from "./store";
 import {
   commitDocument,
@@ -37,7 +39,7 @@ function commitRouteGeometry(
     );
     if (layer?.type !== "route" || layer.locked || !layer.visible) return state;
     const updatedLayer = update(layer);
-    if (!updatedLayer) return state;
+    if (!updatedLayer || !isCompleteRouteLayer(updatedLayer)) return state;
     return commitDocument(
       state,
       replaceLayers(
@@ -142,10 +144,23 @@ export function createRouteGeometryActions(
         if (!geometry) return state;
         const updated: ContentLayer = {
           ...validation.layer,
-          appearance: { ...validation.appearance, travelMarker },
+          route: {
+            kind: geometry.type === "Arc" ? "arc" : "straight",
+            closed: false,
+          },
+          appearance: {
+            ...validation.appearance,
+            marker: markerAppearanceFor(travelMarker),
+            segmentStyles: Array.from({
+              length: (geometry.type === "Arc"
+                ? geometry.anchors
+                : geometry.coordinates).length - 1,
+            }, (_unused, index) => validation.appearance.segmentStyles[index] ?? null),
+          },
           geometry,
         };
         delete updated.provenance;
+        if (!isCompleteRouteLayer(updated)) return state;
         result = { ok: true, routeId: id };
         return {
           ...commitDocument(

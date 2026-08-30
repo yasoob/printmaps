@@ -1,12 +1,8 @@
 import type { Map as MapLibreMap } from 'maplibre-gl';
-import type { ContentLayer } from '../../src/domain/project';
+import { createDefaultRouteAppearance, type ContentLayer } from '../../src/domain/project';
 import { createMapLibreContentAdapter } from '../../src/map/MapContentAdapter';
 
-type AddedLayer = {
-  id: string;
-  source?: string;
-  paint?: Record<string, unknown>;
-};
+type AddedLayer = { id: string; source?: string; paint?: Record<string, unknown> };
 
 function createMapHarness({
   failAddLayerAt,
@@ -103,7 +99,10 @@ function contentLayer(
   geometry: NonNullable<ContentLayer['geometry']>,
   opacity = 100,
 ): ContentLayer {
-  return { id, name: id, type, geometry, opacity, visible: true, locked: false };
+  const routeFields = type === 'route' && geometry.type === 'LineString'
+    ? { route: { kind: 'straight' as const, closed: false }, appearance: createDefaultRouteAppearance(geometry.coordinates.length - 1) }
+    : {};
+  return { id, name: id, type, geometry, opacity, visible: true, locked: false, ...routeFields };
 }
 
 describe('MapLibre content adapter', () => {
@@ -123,11 +122,11 @@ describe('MapLibre content adapter', () => {
     });
 
     expect(adapter.setExportVisibility(false)).toBe(true);
-    expect(layoutUpdates).toHaveLength(4);
+    expect(layoutUpdates).toHaveLength(6);
     expect(layoutUpdates.every(([, property, value]) => property === 'visibility' && value === 'none')).toBe(true);
     expect(adapter.setExportVisibility(true)).toBe(true);
-    expect(layoutUpdates.slice(4)).toHaveLength(4);
-    expect(layoutUpdates.slice(4).every(([, property, value]) => property === 'visibility' && value === 'visible')).toBe(true);
+    expect(layoutUpdates.slice(6)).toHaveLength(6);
+    expect(layoutUpdates.slice(6).every(([, property, value]) => property === 'visibility' && value === 'visible')).toBe(true);
   });
 
   it('reports content sync as deferred while the style is not loaded', () => {
@@ -175,8 +174,8 @@ describe('MapLibre content adapter', () => {
     });
 
     expect(sources).toHaveLength(2);
-    expect(layers).toHaveLength(4);
-    expect(new Set(layers.keys())).toHaveLength(4);
+    expect(layers).toHaveLength(6);
+    expect(new Set(layers.keys())).toHaveLength(6);
   });
 
   it('applies zero shape opacity to both the fill and outline', () => {
@@ -216,8 +215,10 @@ describe('MapLibre content adapter', () => {
     expect(adapter.sync({ layers: [route, poi], selectedId: 'route', previewedId: 'poi' })).toBe('synced');
     expect([...layers.values()]).toEqual(renderedLayers);
     expect(paintUpdates).toEqual(expect.arrayContaining([
-      ['studio-layer-5:route:main', 'line-color', '#d9363e'],
-      ['studio-layer-5:route:main', 'line-width', 6],
+      ['studio-layer-5:route:casing', 'line-color', '#006fc9'],
+      ['studio-layer-5:route:casing', 'line-opacity', 1],
+      ['studio-layer-5:route:solid', 'line-color', ['get', 'color']],
+      ['studio-layer-5:route:solid', 'line-width', ['get', 'width']],
       ['studio-layer-3:poi:main', 'circle-color', '#0d78b5'],
       ['studio-layer-3:poi:main', 'circle-radius', 9],
     ]));
@@ -310,7 +311,9 @@ describe('MapLibre content adapter updates', () => {
       'studio-layer-12:middle-shape:fill',
       'studio-layer-12:middle-shape:hover-halo',
       'studio-layer-12:middle-shape:line',
-      'studio-layer-9:top-route:main',
+      'studio-layer-9:top-route:casing',
+      'studio-layer-9:top-route:solid',
+      'studio-layer-9:top-route:dashed',
     ]);
   });
 
@@ -412,7 +415,7 @@ describe('MapLibre content adapter recovery', () => {
 
     expect(adapter.sync({ layers: [route], selectedId: null, previewedId: null })).toBe('synced');
     expect(adapter.sync(emptyState)).toBe('failed');
-    expect(layers).toHaveLength(1);
+    expect(layers).toHaveLength(0);
     expect(sources).toHaveLength(1);
     expect(container).toHaveAttribute('data-map-content-error', 'true');
 

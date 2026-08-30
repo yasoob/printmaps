@@ -64,7 +64,7 @@ export function directionsReplacementRequest(
       lineShape: "road",
       roadTravelMode: ROAD_MODE[profile],
       travelMarker:
-        appearance?.kind === "route" ? appearance.travelMarker : null,
+        appearance?.kind === "route" ? appearance.marker?.pictogram ?? null : null,
     },
     expectedDocumentEpoch: edit.expectedDocumentEpoch,
     expectedLayer: edit.expectedLayer,
@@ -152,6 +152,13 @@ export function changedWaypointEdit(
   }
   const waypoints = copyWaypoints(edit.waypoints);
   waypoints[waypointIndex] = [coordinate[0], coordinate[1]];
+  if (edit.expectedLayer.route?.closed === true) {
+    if (waypointIndex === 0) {
+      waypoints[waypoints.length - 1] = [coordinate[0], coordinate[1]];
+    } else if (waypointIndex === waypoints.length - 1) {
+      waypoints[0] = [coordinate[0], coordinate[1]];
+    }
+  }
   return { ok: true, edit: { ...edit, waypoints } };
 }
 

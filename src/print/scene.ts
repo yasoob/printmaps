@@ -1,7 +1,8 @@
-import { rebasePathLongitudes, sampleArc, sampledPathMidpoint } from '../domain/routeArcGeometry';
+import { deriveRenderedRoute, projectedRouteMarkerBearing } from '../domain/renderedRoute';
+import { rebasePathLongitudes } from '../domain/routeArcGeometry';
+import { routePictogramSvg } from '../domain/routePictograms';
 import type { ContentLayer, LayerGeometry, LayerType, ProjectDocument } from '../domain/project';
 import { fitAttributionFontSize } from '../domain/projectAttributions';
-import { ROUTE_TRAVEL_MARKER_GLYPHS } from '../domain/routeProfiles';
 import { resolvePrintLayerStyle } from './layerStyle';
 import { serializePoiMarker } from './poiMarker';
 import type { CustomMarkerAsset } from '../domain/customMarkerAssets';
@@ -33,11 +34,7 @@ export class PrintSceneError extends Error {
   }
 }
 
-const expectedGeometry: Readonly<Record<Exclude<LayerType, 'basemap'>, string>> = {
-  route: 'LineString or Arc',
-  poi: 'Point',
-  shape: 'Polygon',
-};
+const expectedGeometry: Readonly<Record<Exclude<LayerType, 'basemap'>, string>> = { route: 'LineString or Arc', poi: 'Point', shape: 'Polygon' };
 
 function escapeXml(value: string): string {
   return value.replaceAll(/[&<>"']/g, (character) => ({
@@ -157,7 +154,8 @@ function projectCoordinate(
   }
   let point: PagePoint;
   try {
-    point = options.project([coordinate[0], coordinate[1]], {
+    const projectedCoordinate = rebasePathLongitudes([[coordinate[0], coordinate[1]]], options.referenceLongitude)[0];
+    point = options.project(projectedCoordinate, {
       layerId: layer.id,
       pageWidthMm: page.width,
       pageHeightMm: page.height,
@@ -171,22 +169,42 @@ function projectCoordinate(
   return point;
 }
 
-function pointText(point: PagePoint): string {
-  return `${formatNumber(point.x)} ${formatNumber(point.y)}`;
-}
-
-function routeTravelModeMarker(layer: ContentLayer, point: PagePoint, color: string): string {
-  const appearance = layer.appearance?.kind === 'route' ? layer.appearance : undefined;
-  if (!appearance?.travelMarker) return '';
-  const label = ROUTE_TRAVEL_MARKER_GLYPHS[appearance.travelMarker];
-  return `<g data-route-travel-marker="${appearance.travelMarker}" aria-label="${escapeXml(label)} travel marker"><circle cx="${formatNumber(point.x)}" cy="${formatNumber(point.y)}" r="4" fill="${escapeXml(color)}" stroke="#ffffff" stroke-width="0.6"/><text x="${formatNumber(point.x)}" y="${formatNumber(point.y)}" fill="#ffffff" font-family="sans-serif" font-size="1.8" font-weight="700" text-anchor="middle" dominant-baseline="middle">${escapeXml(label)}</text></g>`;
-}
-
 function isGeometryMatchingLayer(layer: ContentLayer, geometry: LayerGeometry | undefined): boolean {
   if (layer.type === 'route') return geometry?.type === 'LineString' || geometry?.type === 'Arc';
   if (layer.type === 'shape') return geometry?.type === 'Polygon' || geometry?.type === 'MultiPolygon';
   if (layer.type === 'basemap') return false;
   return geometry?.type === expectedGeometry[layer.type];
+}
+
+function routeGeometryElement(
+  layer: ContentLayer,
+  options: PrintSceneOptions,
+  page: Readonly<{ width: number; height: number }>,
+): string {
+  const rendered = deriveRenderedRoute(layer);
+  if (!rendered || layer.appearance?.kind !== 'route') {
+    throw new PrintSceneError(`Layer "${layer.id}" is not a complete printable route.`);
+  }
+  const paths = rendered.legs.map((leg) => {
+    const points = leg.path.map((coordinate) => projectCoordinate(coordinate, layer, options, page));
+    const commands = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${formatNumber(point.x)} ${formatNumber(point.y)}`).join(' ');
+    const width = leg.style.width * 0.3;
+    const dash = leg.style.strokeStyle === 'dashed'
+      ? ` stroke-dasharray="${formatNumber(width * 2)} ${formatNumber(width * 1.5)}"`
+      : '';
+    return `<path data-route-leg="${leg.index}" d="${commands}" fill="none" stroke="${escapeXml(leg.style.color)}" stroke-width="${formatNumber(width)}"${dash} stroke-linecap="round" stroke-linejoin="round"/>`;
+  }).join('');
+  const markerAppearance = layer.appearance.marker;
+  const markers = markerAppearance
+    ? rendered.markers.map((marker) => routePictogramSvg(
+        markerAppearance.pictogram, escapeXml(marker.style.color), {
+          point: projectCoordinate(marker.position, layer, options, page),
+          radius: 4,
+          bearing: projectedRouteMarkerBearing(marker, markerAppearance, (position) => projectCoordinate(position, layer, options, page), 'down'),
+        },
+      )).join('')
+    : '';
+  return paths + markers;
 }
 
 function geometryElement(
@@ -201,7 +219,6 @@ function geometryElement(
     throw new PrintSceneError(`Layer "${layer.id}" is missing valid ${expectedGeometry[layer.type]} geometry.`);
   }
   const style = resolvePrintLayerStyle(layer, (message) => { throw new PrintSceneError(message); });
-  const stroke = `stroke="${escapeXml(style.stroke)}" stroke-width="${formatNumber(style.strokeWidthMm)}"`;
 
   if (geometry.type === 'Point') {
     const point = projectCoordinate(geometry.coordinates, layer, options, { width, height });
@@ -212,25 +229,8 @@ function geometryElement(
       style,
     });
   }
-  if (geometry.type === 'Arc') {
-    const coordinates = rebasePathLongitudes(sampleArc(geometry), options.referenceLongitude);
-    const points = coordinates.map((coordinate) => (
-      projectCoordinate(coordinate, layer, options, { width, height })
-    ));
-    const commands = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${pointText(point)}`).join(' ');
-    return `<path d="${commands}" fill="none" ${stroke} stroke-linecap="round" stroke-linejoin="round"/>${routeTravelModeMarker(layer, projectCoordinate(sampledPathMidpoint(coordinates), layer, options, { width, height }), style.stroke)}`;
-  }
-  if (geometry.type === 'LineString') {
-    if (geometry.coordinates.length < 2) {
-      throw new PrintSceneError(`Layer "${layer.id}" route must contain at least two coordinates.`);
-    }
-    const coordinates = rebasePathLongitudes(geometry.coordinates, options.referenceLongitude);
-    const points = coordinates.map((coordinate) => (
-      projectCoordinate(coordinate, layer, options, { width, height })
-    ));
-    const commands = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${pointText(point)}`).join(' ');
-    const marker = projectCoordinate(sampledPathMidpoint(coordinates), layer, options, { width, height });
-    return `<path d="${commands}" fill="none" ${stroke} stroke-linecap="round" stroke-linejoin="round"/>${routeTravelModeMarker(layer, marker, style.stroke)}`;
+  if (geometry.type === 'Arc' || geometry.type === 'LineString') {
+    return routeGeometryElement(layer, options, { width, height });
   }
 
   const appearance = layer.appearance?.kind === 'shape'

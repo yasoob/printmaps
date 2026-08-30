@@ -37,7 +37,7 @@ function scaledExpressionOutput(value: unknown, scale: number, property: string)
     }
     return expression;
   }
-  throw new TypeError(`Native map export cannot scale the ${property} style expression safely.`);
+  return ['*', expression, scale];
 }
 
 export function scaleNativeMapStyle<T extends ReturnType<MapLibreMap['getStyle']>>(
@@ -110,10 +110,11 @@ function printPaintValue(
   value: unknown,
   pixelsPerMillimetre: number,
 ): unknown {
-  if (typeof value !== 'number') return value;
   if (property === 'line-width') {
-    return value * pixelsPerMillimetre * (layer.type === 'shape' ? 0.25 : 0.3);
+    const scale = pixelsPerMillimetre * (layer.type === 'shape' ? 0.25 : 0.3);
+    return typeof value === 'number' ? value * scale : ['*', value, scale];
   }
+  if (typeof value !== 'number') return value;
   if (property === 'circle-radius') return value * pixelsPerMillimetre * (2 / 7);
   if (property === 'circle-stroke-width') return value * pixelsPerMillimetre * 0.2;
   if (property === 'text-halo-width' && layer.appearance?.kind === 'route') {

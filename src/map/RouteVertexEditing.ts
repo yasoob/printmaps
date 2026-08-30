@@ -2,7 +2,7 @@ import { Marker, type Map as MapLibreMap } from 'maplibre-gl';
 import { createArcGeometry, sampleArc } from '../domain/routeArcGeometry';
 import type { ContentLayer } from '../domain/project';
 import { isValidPosition, semanticRoutePointLabel, semanticRoutePositions } from '../domain/routeGeometry';
-import { mapContentSourceId } from './MapContentGeometry';
+import { mapContentSourceId, routeMapFeatures } from './MapContentGeometry';
 
 export type RouteVertexMarker = {
   addTo: (map: RouteVertexMap) => RouteVertexMarker;
@@ -37,22 +37,24 @@ function normalizedMapCoordinate(longitude: number, latitude: number): [number, 
 
 function didSetRouteSourceGeometry(
   map: RouteVertexMap,
-  layerId: string,
+  layer: ContentLayer,
   coordinates: readonly (readonly [number, number])[],
 ): boolean {
   try {
-    const source = map.getSource(mapContentSourceId(layerId)) as {
+    const source = map.getSource(mapContentSourceId(layer.id)) as {
       setData?: (data: unknown) => void;
     } | undefined;
     if (typeof source?.setData !== 'function') return false;
-    source.setData({
-      type: 'Feature',
-      properties: { layerId },
-      geometry: {
-        type: 'LineString',
-        coordinates: coordinates.map((coordinate) => [...coordinate]),
-      },
-    });
+    const geometry = layer.geometry?.type === 'Arc'
+      ? createArcGeometry(coordinates, layer.geometry.curvatures)
+      : {
+          type: 'LineString' as const,
+          coordinates: coordinates.map((coordinate) => [...coordinate] as [number, number]),
+        };
+    if (!geometry) return false;
+    const data = routeMapFeatures({ ...layer, geometry });
+    if (!data) return false;
+    source.setData(data);
     return true;
   } catch {
     return false;
@@ -89,9 +91,8 @@ function isEditableRouteLayer(layer: ContentLayer): layer is EditableRouteLayer 
 
 type RestorePreviewOptions = {
   canonicalCoordinates: [number, number][];
-  canonicalDisplayCoordinates: [number, number][];
   isArc: boolean;
-  layerId: string;
+  layer: ContentLayer;
   map: RouteVertexMap;
   onPreview: NonNullable<RouteVertexEditingOptions['onPreview']>;
 };
@@ -99,9 +100,9 @@ type RestorePreviewOptions = {
 function restoreRoutePreview(options: RestorePreviewOptions) {
   const didRestoreSource = didSetRouteSourceGeometry(
     options.map,
-    options.layerId,
-    options.canonicalDisplayCoordinates,
-  ) || didSetRouteSourceGeometry(options.map, options.layerId, options.canonicalDisplayCoordinates);
+    options.layer,
+    options.canonicalCoordinates,
+  ) || didSetRouteSourceGeometry(options.map, options.layer, options.canonicalCoordinates);
   const didRestoreGuidance = options.isArc
     || didUpdateGuidance(options.onPreview, options.canonicalCoordinates)
     || didUpdateGuidance(options.onPreview, options.canonicalCoordinates);
@@ -230,9 +231,8 @@ export function installRouteVertexEditing(
   const restoreCanonicalPreview = () => {
     const didRestore = restoreRoutePreview({
       canonicalCoordinates,
-      canonicalDisplayCoordinates,
       isArc: layer.geometry?.type === 'Arc',
-      layerId: layer.id,
+      layer,
       map,
       onPreview,
     });
@@ -244,9 +244,17 @@ export function installRouteVertexEditing(
     const coordinates = canonicalCoordinates.map((candidate, index) => (
       index === vertexIndex ? [coordinate[0], coordinate[1]] as [number, number] : candidate
     ));
+    if (
+      layer.route?.closed
+      && coordinates.length > 1
+      && (vertexIndex === 0 || vertexIndex === coordinates.length - 1)
+    ) {
+      coordinates[0] = [coordinate[0], coordinate[1]];
+      coordinates[coordinates.length - 1] = [coordinate[0], coordinate[1]];
+    }
     const nextDisplayCoordinates = displayCoordinates(layer, coordinates);
     if (!nextDisplayCoordinates) return false;
-    const didUpdateSource = didSetRouteSourceGeometry(map, layer.id, nextDisplayCoordinates);
+    const didUpdateSource = didSetRouteSourceGeometry(map, layer, coordinates);
     const didUpdateTerraGuidance = layer.geometry?.type === 'Arc' || didUpdateGuidance(onPreview, coordinates);
     if (!didUpdateSource || !didUpdateTerraGuidance) {
       restoreCanonicalPreview();

@@ -48,7 +48,9 @@ export function InspectorAccordion({ children, isDefaultExpanded, storageKey, su
           {!isExpanded && <span id={summaryId} className="inspector-section-summary">{summary}</span>}
         </button>
       </h3>
-      <div id={contentId} className="inspector-accordion-content" hidden={!isExpanded}>{children}</div>
+      <div id={contentId} className="inspector-accordion-content" hidden={!isExpanded}>
+        {isExpanded ? children : null}
+      </div>
     </section>
   );
 }

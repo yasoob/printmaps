@@ -20,7 +20,8 @@ describe('Felt-inspired inspector cohesion', () => {
     expect(layerMenu.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
     expect(screen.getByRole('switch', { name: 'Toggle layer visibility' })).toBeChecked();
     expect(screen.getByRole('switch', { name: 'Toggle layer lock' })).not.toBeChecked();
-    expect(screen.getByRole('combobox', { name: 'Route travel marker' })).toBeVisible();
+    expect(screen.getByRole('combobox', { name: 'Route line style' })).toBeVisible();
+    expect(screen.getByText('Advanced')).toBeVisible();
 
     await user.click(screen.getByRole('button', { name: 'Select City center' }));
     expect(screen.getByRole('switch', { name: 'Invert shape fill' })).toHaveClass('studio-switch-native');

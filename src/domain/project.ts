@@ -1,19 +1,33 @@
 import type { ArcGeometry } from './routeArcGeometry';
-import { createDefaultLayerAppearance, type LayerAppearance } from './layerAppearance';
+import {
+  createDefaultLayerAppearance,
+  createDefaultRouteAppearance,
+  type LayerAppearance,
+} from './layerAppearance';
 import type { CustomMarkerAsset } from './customMarkerAssets';
 import { MAP_STYLE_PRESET_LABELS, type MapStylePreset } from './mapStylePresets';
 import type { PagePreset } from './pagePresets';
+import type { RouteMetadata } from './routeMetadata';
+import { cloneContentLayer } from './projectClone';
 
 export type { ArcGeometry } from './routeArcGeometry';
 export { createDefaultLayerAppearance } from './layerAppearance';
+export { createDefaultRouteAppearance } from './layerAppearance';
 export type {
   LayerAppearance,
   PoiAppearance,
+  ResolvedRouteSegmentStyle,
   RouteAppearance,
+  RouteMarkerAppearance,
+  RouteMarkerPlacement,
+  RouteSegmentStyleOverride,
+  RouteStrokeStyle,
   ShapeAppearance,
 } from './layerAppearance';
+export { ROUTE_KINDS, type RouteKind, type RouteMetadata } from './routeMetadata';
+export { cloneContentLayer } from './projectClone';
 
-export const PROJECT_SCHEMA_VERSION = 23 as const;
+export const PROJECT_SCHEMA_VERSION = 24 as const;
 export const MAX_MERCATOR_LATITUDE = 85.051129;
 export const MAX_MAP_ZOOM = 22;
 
@@ -130,6 +144,7 @@ export type ContentLayer = {
   visible: boolean;
   locked: boolean;
   opacity: number;
+  route?: RouteMetadata;
   appearance?: LayerAppearance;
   geometry?: LayerGeometry;
   provenance?: ProviderProvenance;
@@ -180,72 +195,6 @@ export function mapStyleBasemapName(preset: MapStylePreset): string {
   return `${MAP_STYLE_PRESET_LABELS[preset]} basemap`;
 }
 
-function cloneProviderProvenance(provenance: ProviderProvenance | undefined): ProviderProvenance | undefined {
-  if (provenance?.service === 'isochrone-v1') {
-    return { ...provenance, center: [...provenance.center] as [number, number] };
-  }
-  if (provenance?.service === 'directions-v5') {
-    return {
-      ...provenance,
-      waypoints: provenance.waypoints.map((position) => [...position] as [number, number]),
-    };
-  }
-  if (provenance?.service === 'geocoding-v6') return { ...provenance };
-  if (provenance?.service === 'map-matching-v5') return { ...provenance };
-}
-
-export function cloneContentLayer(layer: ContentLayer): ContentLayer {
-  const appearance = layer.appearance ? { ...layer.appearance } : undefined;
-  const provenance = cloneProviderProvenance(layer.provenance);
-  const base = { ...layer };
-  delete base.appearance;
-  delete base.provenance;
-  const copy = { ...base, ...(appearance && { appearance }), ...(provenance && { provenance }) };
-  if (!layer.geometry) return copy;
-  if (layer.geometry.type === 'Arc') {
-    return {
-      ...copy,
-      geometry: {
-        type: 'Arc',
-        anchors: layer.geometry.anchors.map((position) => [...position]) as ArcGeometry['anchors'],
-        curvatures: [...layer.geometry.curvatures] as ArcGeometry['curvatures'],
-      },
-    };
-  }
-  if (layer.geometry.type === 'Point') {
-    return { ...copy, geometry: { ...layer.geometry, coordinates: [...layer.geometry.coordinates] } };
-  }
-  if (layer.geometry.type === 'LineString') {
-    return {
-      ...copy,
-      geometry: {
-        ...layer.geometry,
-        coordinates: layer.geometry.coordinates.map((position) => (
-          [position[0], position[1]] as [number, number]
-        )),
-      },
-    };
-  }
-  if (layer.geometry.type === 'Polygon') return {
-    ...copy,
-    geometry: {
-      ...layer.geometry,
-      coordinates: layer.geometry.coordinates.map((ring) => ring.map((position) => (
-        [position[0], position[1]] as [number, number]
-      ))),
-    },
-  };
-  return {
-    ...copy,
-    geometry: {
-      ...layer.geometry,
-      coordinates: layer.geometry.coordinates.map((polygon) => polygon.map((ring) => ring.map((position) => (
-        [position[0], position[1]] as [number, number]
-      )))),
-    },
-  };
-}
-
 const baseMapLayer: ContentLayer = {
   id: 'basemap',
   name: 'Paper basemap',
@@ -263,7 +212,8 @@ const initialLayers: ContentLayer[] = [
     visible: true,
     locked: false,
     opacity: 100,
-    appearance: createDefaultLayerAppearance('route'),
+    route: { kind: 'straight', closed: false },
+    appearance: createDefaultRouteAppearance(3),
     geometry: {
       type: 'LineString',
       coordinates: [[16.326, 48.194], [16.353, 48.205], [16.391, 48.215], [16.429, 48.226]],

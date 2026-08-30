@@ -28,19 +28,24 @@ describe('expert route geometry', () => {
       kind: 'route',
       color: '#d9363e',
       width: 4,
-      travelMarker: 'air',
+      strokeStyle: 'solid',
+      marker: { pictogram: 'air', placement: { type: 'center' }, orientToPath: true, reverseFacing: false },
+      segmentStyles: [null],
     });
     expect(route?.geometry).toEqual({ type: 'Arc', anchors: waypoints, curvatures: [0.35] });
   });
 
   it('renders an enabled travel profile as a centered live-map marker', () => {
     const route = createInitialProjectDocument().layers[0];
+    route.route = { kind: 'arc', closed: false };
     route.geometry = { type: 'Arc', anchors: [[16.3, 48.2], [16.5, 48.2]], curvatures: [0.35] };
     route.appearance = {
       kind: 'route',
       color: '#d9363e',
       width: 4,
-      travelMarker: 'air',
+      strokeStyle: 'solid',
+      marker: { pictogram: 'air', placement: { type: 'center' }, orientToPath: true, reverseFacing: false },
+      segmentStyles: [null],
     };
 
     const descriptors = mapLayerDescriptors(route, { selectedId: null, previewedId: null });
@@ -48,8 +53,8 @@ describe('expert route geometry', () => {
     expect(descriptors).toContainEqual(expect.objectContaining({
       type: 'symbol',
       layout: expect.objectContaining({
-        'symbol-placement': 'line-center',
-        'text-field': 'AIR',
+        'icon-image': ['get', 'iconImage'],
+        'icon-rotate': ['get', 'bearing'],
       }),
     }));
   });

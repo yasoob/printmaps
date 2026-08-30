@@ -3,7 +3,8 @@ import path from 'node:path';
 import { expect, test } from '@playwright/test';
 
 test('Download project saves the current portable versioned JSON', async ({ context, page }, testInfo) => {
-  await context.grantPermissions(['geolocation'], { origin: 'http://127.0.0.1:4175' });
+  const origin = new URL(String(testInfo.project.use.baseURL)).origin;
+  await context.grantPermissions(['geolocation'], { origin });
   await context.setGeolocation({ longitude: 16.41, latitude: 48.23 });
   await page.goto('./');
   await page.getByRole('button', { name: 'Use my location' }).click();
@@ -29,7 +30,7 @@ test('Download project saves the current portable versioned JSON', async ({ cont
   await download.saveAs(outputPath);
   const savedProject = JSON.parse(await readFile(outputPath, 'utf8'));
   expect(savedProject).toMatchObject({
-    schemaVersion: 23,
+    schemaVersion: 24,
     id: 'vienna-field-guide',
     title: 'Vienna field guide',
     page: { preset: 'A4', widthMm: 210, heightMm: 297, orientation: 'portrait' },

@@ -7,19 +7,50 @@ import { ElevationProfilePanel } from "./ElevationProfilePanel";
 import { InspectorAccordion, PropertySection } from "./PropertyControls";
 import { RouteMapMatchingControl } from "./RouteMapMatchingControl";
 import { RouteVertexControls } from "./RouteVertexControls";
+import { RouteStructureControls } from "./RouteStructureControls";
+import {
+  RouteMarkerControls,
+  RouteSegmentControls,
+} from "./RouteAppearanceAdvancedControls";
+import { DirectionsEditStatus } from "./DirectionsEditStatus";
 
 type RouteAdvancedPropertiesProps = Omit<
   RouteLayerPropertiesProps,
-  "documentEpoch" | "onAppearanceChange"
+  "documentEpoch"
 > & {
   documentEpoch: number;
   positions: readonly (readonly [number, number])[];
 };
 
+function RouteStructureSection({
+  directionsProvider,
+  documentEpoch,
+  layer,
+  onTransformRoute,
+}: Pick<
+  RouteLayerPropertiesProps,
+  "directionsProvider" | "layer" | "onTransformRoute"
+> & { documentEpoch: number }) {
+  if (!onTransformRoute) return null;
+  return (
+    <PropertySection title="Route structure">
+      <RouteStructureControls
+        documentEpoch={documentEpoch}
+        layer={layer}
+        onTransformRoute={onTransformRoute}
+        {...(directionsProvider && { directionsProvider })}
+      />
+    </PropertySection>
+  );
+}
+
 export function RouteAdvancedProperties({
   documentEpoch,
   layer,
   mapMatchingProvider,
+  directionsProvider,
+  onTransformRoute,
+  onAppearanceChange,
   onApplyMapMatching,
   onArcCurvatureChange,
   onRouteVertexChange,
@@ -48,6 +79,11 @@ export function RouteAdvancedProperties({
         {...vertexProps}
         curvatures={layer.geometry.curvatures}
         onArcCurvatureChange={onArcCurvatureChange}
+        documentEpoch={documentEpoch}
+        directionsProvider={directionsProvider}
+        layer={layer}
+        onTransformRoute={onTransformRoute}
+        onAppearanceChange={onAppearanceChange}
       />
     );
   }
@@ -59,6 +95,9 @@ export function RouteAdvancedProperties({
       layer={layer}
       appearance={layer.appearance}
       mapMatchingProvider={mapMatchingProvider}
+      directionsProvider={directionsProvider}
+      onTransformRoute={onTransformRoute}
+      onAppearanceChange={onAppearanceChange}
       onApplyMapMatching={onApplyMapMatching}
       directionsRouteEditError={directionsRouteEditError}
       directionsRouteEditIsRouting={directionsRouteEditIsRouting}
@@ -86,17 +125,39 @@ function ArcRouteAdvanced({
   onRouteVertexRemove,
   positions,
   routeId,
+  documentEpoch,
+  directionsProvider,
+  layer,
+  onTransformRoute,
+  onAppearanceChange,
 }: AdvancedVertexProps & {
   curvatures: readonly number[];
   onArcCurvatureChange?: RouteLayerPropertiesProps["onArcCurvatureChange"];
+  documentEpoch: number;
+  directionsProvider?: RouteLayerPropertiesProps["directionsProvider"];
+  layer: ContentLayer;
+  onTransformRoute?: RouteLayerPropertiesProps["onTransformRoute"];
+  onAppearanceChange: RouteLayerPropertiesProps["onAppearanceChange"];
 }) {
   return (
     <InspectorAccordion
       isDefaultExpanded={false}
       storageKey="print-map-studio:inspector:layer:route-advanced"
-      summary="Curvature · Vertices"
+      summary="Structure · Marker · Segments · Curvature · Vertices"
       title="Advanced"
     >
+      <RouteStructureSection
+        directionsProvider={directionsProvider}
+        documentEpoch={documentEpoch}
+        layer={layer}
+        onTransformRoute={onTransformRoute}
+      />
+      <PropertySection title="Marker">
+        <RouteMarkerControls appearance={layer.appearance as RouteAppearance} disabled={disabled} onChange={onAppearanceChange} />
+      </PropertySection>
+      <PropertySection title="Segments">
+        <RouteSegmentControls appearance={layer.appearance as RouteAppearance} disabled={disabled} onChange={onAppearanceChange} />
+      </PropertySection>
       <PropertySection title="Curvature">
         <ArcCurvatureControls
           curvatures={curvatures}
@@ -122,37 +183,6 @@ function ArcRouteAdvanced({
   );
 }
 
-function DirectionsEditStatus({
-  error,
-  isRouting,
-  onCancel,
-  onRetry,
-}: {
-  error?: string | null;
-  isRouting?: boolean;
-  onCancel?: () => void;
-  onRetry?: () => void;
-}) {
-  return (
-    <>
-      {isRouting && <p role="status">Finding an updated road route…</p>}
-      {error && (
-        <div className="isochrone-error" role="alert">
-          <p>{error}</p>
-          <div className="route-vertex-actions">
-            <button type="button" onClick={onRetry}>
-              Retry
-            </button>
-            <button type="button" onClick={onCancel}>
-              Cancel edit
-            </button>
-          </div>
-        </div>
-      )}
-    </>
-  );
-}
-
 function LineRouteAdvanced({
   appearance,
   coordinates,
@@ -160,6 +190,9 @@ function LineRouteAdvanced({
   documentEpoch,
   layer,
   mapMatchingProvider,
+  directionsProvider,
+  onTransformRoute,
+  onAppearanceChange,
   onApplyMapMatching,
   onRouteVertexChange,
   onRouteVertexInsert,
@@ -176,6 +209,9 @@ function LineRouteAdvanced({
   documentEpoch: number;
   layer: ContentLayer;
   mapMatchingProvider?: MapMatchingProvider;
+  directionsProvider?: RouteLayerPropertiesProps["directionsProvider"];
+  onTransformRoute?: RouteLayerPropertiesProps["onTransformRoute"];
+  onAppearanceChange: RouteLayerPropertiesProps["onAppearanceChange"];
   onApplyMapMatching?: RouteLayerPropertiesProps["onApplyMapMatching"];
   directionsRouteEditError?: string | null;
   directionsRouteEditIsRouting?: boolean;
@@ -197,11 +233,23 @@ function LineRouteAdvanced({
         storageKey="print-map-studio:inspector:layer:route-advanced"
         summary={
           isDirectionsRoute
-            ? "Waypoints · Elevation profile"
-            : "Road matching · Vertices · Elevation profile"
+            ? "Structure · Marker · Segments · Waypoints · Elevation profile"
+            : "Structure · Marker · Segments · Road matching · Vertices · Elevation profile"
         }
         title="Advanced"
       >
+        <RouteStructureSection
+          directionsProvider={directionsProvider}
+          documentEpoch={documentEpoch}
+          layer={layer}
+          onTransformRoute={onTransformRoute}
+        />
+        <PropertySection title="Marker">
+          <RouteMarkerControls appearance={appearance} disabled={disabled} onChange={onAppearanceChange} />
+        </PropertySection>
+        <PropertySection title="Segments">
+          <RouteSegmentControls appearance={appearance} disabled={disabled} onChange={onAppearanceChange} />
+        </PropertySection>
         {onApplyMapMatching && !isDirectionsRoute && (
           <PropertySection title="Road matching">
             <RouteMapMatchingControl

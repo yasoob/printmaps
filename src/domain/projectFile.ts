@@ -16,8 +16,14 @@ import type { CustomMarkerAsset } from './customMarkerAssets';
 import { parseProjectAssets } from './projectAssets';
 import { MAP_STYLE_PRESETS as MAP_STYLE_PRESET_DEFINITIONS } from './mapStylePresets';
 import { ProjectFileError } from './projectFileError';
-import { parseLayerProvenance } from './projectProvenance';
+import { parseLayerProvenance, validateProviderGeometry } from './projectProvenance';
 import { PAGE_PRESET_DEFINITIONS, pagePresetDimensions } from './pagePresets';
+import {
+  routeLayerValidationError,
+  parseRouteMetadata,
+  semanticLegCount,
+  semanticRoutePoints,
+} from './routeModel';
 
 export { ProjectFileError } from './projectFileError';
 
@@ -86,17 +92,24 @@ function layerAppearanceAt(
   layer: JsonObject,
   type: LayerType,
   index: number,
-  assets: Record<string, CustomMarkerAsset>,
+  context: Readonly<{
+    assets: Record<string, CustomMarkerAsset>;
+    semanticRouteLegCount?: number;
+  }>,
 ): LayerAppearance | undefined {
-  const appearance = parseLayerAppearance(
-    layer.appearance,
+  const appearance = parseLayerAppearance({
+    value: layer.appearance,
     type,
-    `Layer ${index + 1}`,
-    (message) => { throw new ProjectFileError(message); },
-  );
-  if (appearance?.kind === 'poi' && appearance.customAssetId && !Object.hasOwn(assets, appearance.customAssetId)) {
+    label: `Layer ${index + 1}`,
+    fail: (message) => { throw new ProjectFileError(message); },
+    semanticLegCount: context.semanticRouteLegCount,
+  });
+  if (appearance?.kind === 'poi'
+    && appearance.customAssetId
+    && !Object.hasOwn(context.assets, appearance.customAssetId)) {
     throw new ProjectFileError(`Layer ${index + 1} references a missing custom marker asset.`);
   }
+
   return appearance;
 }
 
@@ -142,6 +155,17 @@ function validatedLayerGeometry(
   throw new ProjectFileError(`${layerLabel} layers may only contain ${expectedGeometryLabel(type)} geometry.`);
 }
 
+function routeLegCountFor(layer: Pick<ContentLayer, 'type' | 'route' | 'geometry' | 'provenance'>) {
+  const points = layer.route ? semanticRoutePoints(layer) : null;
+  return points ? semanticLegCount(points) : undefined;
+}
+
+function validateParsedRoute(layer: ContentLayer, index: number) {
+  if (layer.type !== 'route') return;
+  const error = routeLayerValidationError(layer);
+  if (error) throw new ProjectFileError(`Layer ${index + 1}: ${error}`);
+}
+
 function layerAt(
   candidate: unknown,
   index: number,
@@ -156,26 +180,36 @@ function layerAt(
   if (context.ids.has(id)) throw new ProjectFileError('Layer IDs must be unique.');
   context.ids.add(id);
   const type = layerTypeAt(layer.type, index);
-  const appearance = layerAppearanceAt(layer, type, index, context.assets);
+  const route = parseRouteMetadata(
+    layer.route,
+    type === 'route',
+    `Layer ${index + 1}`,
+    (message) => { throw new ProjectFileError(message); },
+  );
   const geometry = validatedLayerGeometry(layer.geometry, type, index, context.coordinateCount);
   const provenance = parseLayerProvenance(layer.provenance, type, index, context.coordinateCount);
-  if (provenance?.service === 'directions-v5' && geometry?.type !== 'LineString') {
-    throw new ProjectFileError('Directions provenance requires LineString route geometry.');
-  }
-  if (provenance?.service === 'map-matching-v5' && geometry?.type !== 'LineString') {
-    throw new ProjectFileError('Map-matching provenance requires LineString route geometry.');
-  }
-  return {
+  validateProviderGeometry(provenance, geometry, (message) => {
+    throw new ProjectFileError(message);
+  });
+  const routeLegCount = routeLegCountFor({ type, route, geometry, provenance });
+  const appearance = layerAppearanceAt(layer, type, index, {
+    assets: context.assets,
+    semanticRouteLegCount: routeLegCount,
+  });
+  const parsed: ContentLayer = {
     id,
     name: nonEmptyString(layer.name, `Layer ${index + 1} name`),
     type,
     visible: booleanAt(layer.visible, `Layer ${index + 1} visibility`),
     locked: booleanAt(layer.locked, `Layer ${index + 1} lock state`),
     opacity: layerOpacityAt(layer.opacity, index),
+    ...(route && { route }),
     ...optionalAppearance(appearance),
     ...(geometry && { geometry }),
     ...(provenance && { provenance }),
   };
+  validateParsedRoute(parsed, index);
+  return parsed;
 }
 
 function layersAt(value: unknown, assets: Record<string, CustomMarkerAsset>) {

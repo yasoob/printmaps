@@ -390,6 +390,20 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   .has-authoring-panel .map-fit-control { bottom: 16.25rem; }
   .has-authoring-panel .maplibregl-ctrl-bottom-right { bottom: 11.375rem; }
 }
+.canvas-region.has-authoring-panel .map-fit-control {
+  top: 1rem;
+  bottom: auto;
+}
+.canvas-region.has-authoring-panel .maplibregl-ctrl-bottom-right {
+  top: calc(1rem + 1.9375rem + 0.5rem);
+  bottom: auto;
+}
+.canvas-region.has-authoring-panel .route-authoring-panel {
+  left: 0.5rem;
+  width: min(20rem, calc(100% - 1rem));
+  translate: none;
+  transform: none;
+}
 .shape-editing-toolbar {
   @apply absolute left-1/2 z-20 flex -translate-x-1/2 items-center overflow-hidden;
   bottom: 4.5rem;
@@ -446,7 +460,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   border-radius: var(--studio-radius-lg);
   background: var(--studio-field);
 }
-.shape-mode-tabs > button { @apply flex min-h-9 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded px-2.5 py-1.5 text-xs leading-tight; }
+.shape-mode-tabs > button { @apply flex min-h-10 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded px-2.5 py-1.5 text-xs leading-tight; }
 .shape-mode-tabs > button[aria-selected="true"] {
   color: var(--studio-tool-card-accent);
   background: var(--studio-surface);
@@ -544,6 +558,18 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .route-progress > button:hover { background: var(--studio-field); }
 .route-progress > button:disabled { cursor: default; opacity: .38; }
 .route-authoring-panel { overflow-y: auto; overscroll-behavior: contain; }
+.route-point-sources {
+  @apply min-w-0 rounded-md;
+  border: var(--studio-border-width) solid var(--studio-line);
+}
+.route-point-sources > summary {
+  @apply flex min-h-10 cursor-pointer items-center px-3 text-xs font-medium;
+  color: var(--studio-text-secondary);
+}
+.route-point-sources[open] > summary {
+  border-bottom: var(--studio-border-width) solid var(--studio-line);
+}
+.route-point-sources > .route-point-inputs { @apply p-2; }
 .route-point-inputs { @apply grid gap-2; }
 .route-coordinate-entry { @apply grid grid-cols-2 gap-2; }
 .route-coordinate-entry > button { @apply col-span-2 min-h-9 rounded px-3 text-xs font-medium; border: var(--studio-border-width) solid var(--studio-line-strong); }
@@ -551,10 +577,78 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .route-poi-entry > select { @apply h-10 min-w-0 w-full rounded-md px-3 text-xs; border: var(--studio-border-width) solid var(--studio-line-strong); background: var(--studio-surface); }
 .route-point-inputs > button { @apply min-h-9 rounded px-3 text-xs font-medium; border: var(--studio-border-width) solid var(--studio-line-strong); }
 .route-snap-control { @apply flex items-start gap-2 whitespace-normal text-xs leading-snug; }
-.route-point-list { @apply m-0 grid max-h-24 list-decimal gap-1 overflow-y-auto pl-5 text-[10px] tabular-nums; color: var(--studio-text-muted); }
+.route-draft-points {
+  @apply min-w-0 rounded-md;
+  border: var(--studio-border-width) solid var(--studio-line);
+}
+.route-draft-points > summary {
+  @apply flex min-h-11 cursor-pointer items-center px-3 text-xs font-medium;
+  color: var(--studio-text-secondary);
+}
+.route-point-list {
+  @apply m-0 grid max-h-48 min-w-0 list-none gap-1 overflow-y-auto p-1 text-[10px] tabular-nums;
+  color: var(--studio-text-muted);
+}
+.route-point-row { @apply grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-1 rounded; }
+.route-point-coordinate { @apply flex min-w-0 items-center gap-2 px-2; }
+.route-point-coordinate > span { @apply min-w-0 truncate; }
+.route-point-actions { @apply grid grid-cols-4; }
+.route-point-actions > button {
+  @apply grid h-11 w-11 place-items-center rounded;
+  color: var(--studio-text-muted);
+}
+.route-point-actions > button:hover:not(:disabled) { background: var(--studio-field); color: var(--studio-text); }
+.route-point-actions > button:disabled { @apply cursor-default; color: var(--studio-text-subtle); }
+.route-point-actions > button:focus-visible,
+.route-preview-button:focus-visible { outline: 2px solid var(--studio-focus); outline-offset: -2px; }
+.route-loop-note { @apply block px-3 pb-3 text-[10px] leading-snug; color: var(--studio-text-muted); }
+.route-preview-button {
+  @apply min-h-11 w-full rounded px-3 text-xs font-medium;
+  border: var(--studio-border-width) solid var(--studio-line-strong);
+  color: var(--studio-tool-card-accent);
+}
+.route-preview-button:hover:not(:disabled) { background: var(--studio-field); }
+.route-preview-button:disabled { @apply cursor-default; opacity: .5; }
 .route-finish-explanation { @apply text-[10px] leading-snug; color: var(--studio-text-muted); }
 .route-extend-actions { @apply grid grid-cols-2 gap-2; }
 .route-extend-actions > button { @apply min-h-9 rounded px-2 text-xs; border: var(--studio-border-width) solid var(--studio-line-strong); }
+.route-structure-controls { @apply grid gap-2; }
+.route-structure-controls > label { @apply grid gap-1; color: var(--studio-text-muted); font-size: var(--studio-font-meta); }
+.route-structure-controls select {
+  @apply min-w-0 w-full rounded px-2;
+  min-height: var(--studio-control-height);
+  border: var(--studio-border-width) solid var(--studio-line-strong);
+  background: var(--studio-surface);
+  color: var(--studio-text);
+  font-size: var(--studio-font-control);
+}
+.route-structure-controls > button,
+.route-structure-actions > button,
+.route-structure-confirmation button,
+.route-structure-progress button,
+.route-structure-error button {
+  @apply rounded px-2 font-medium;
+  min-height: var(--studio-control-height);
+  border: var(--studio-border-width) solid var(--studio-line-strong);
+  font-size: var(--studio-font-meta);
+}
+.route-structure-controls button:hover:not(:disabled) { background: var(--studio-field); }
+.route-structure-controls button:disabled { @apply cursor-default; color: var(--studio-text-subtle); }
+.route-structure-actions { @apply grid grid-cols-2 gap-2; }
+.route-structure-controls > small { color: var(--studio-text-muted); line-height: 1.4; }
+.route-structure-confirmation,
+.route-structure-progress,
+.route-structure-error {
+  @apply grid gap-2 rounded p-2;
+  background: var(--studio-field);
+}
+.route-structure-confirmation p,
+.route-structure-progress p,
+.route-structure-error p { @apply m-0; font-size: var(--studio-font-meta); line-height: 1.4; overflow-wrap: anywhere; }
+.route-structure-confirmation > div,
+.route-structure-error > div { @apply grid grid-cols-2 gap-2; }
+.route-structure-progress { color: var(--studio-text-secondary); }
+.route-structure-error { color: var(--studio-danger); }
 .route-discard-overlay { @apply fixed inset-0 z-[120] grid place-items-center p-4; }
 .route-discard-dialog { @apply z-[121] m-0 grid max-w-sm gap-4 rounded-lg p-5; position: relative; border: var(--studio-border-width) solid var(--studio-line-strong); background: var(--studio-surface-raised); color: var(--studio-text); box-shadow: var(--studio-shadow-lg); }
 .route-discard-dialog h2,
@@ -977,6 +1071,7 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
 .route-vertex-actions button:disabled { @apply cursor-default; color: var(--studio-text-subtle); }
 .route-vertex-hint { @apply mt-1 block; color: var(--studio-text-muted); line-height: 1.35; }
 .route-vertex-marker,
+.draft-route-point-marker,
 .route-midpoint-marker,
 .poi-move-marker,
 .shape-vertex-marker,
@@ -995,6 +1090,33 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
   background: var(--studio-surface);
   cursor: grab;
 }
+.draft-route-point-marker {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.draft-route-point-marker::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+  border: 3px solid var(--studio-accent-strong);
+  border-radius: 50%;
+  background: var(--studio-surface);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--studio-text) 30%, transparent);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+.draft-route-point-marker:active { cursor: grabbing; }
 .route-midpoint-marker {
   width: 0.875rem;
   height: 0.875rem;
@@ -1029,6 +1151,7 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
   cursor: copy;
 }
 .route-vertex-marker:focus-visible,
+.draft-route-point-marker:focus-visible,
 .route-midpoint-marker:focus-visible,
 .poi-move-marker:focus-visible,
 .shape-vertex-marker:focus-visible,
@@ -1275,7 +1398,9 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
   .route-point-inputs select,
   .route-snap-control,
   .route-discard-actions > button,
-  .route-extend-actions > button { min-height: 44px; }
+  .route-extend-actions > button,
+  .route-structure-controls button,
+  .route-structure-controls select { min-height: 44px; }
   .route-vertex-marker,
   .poi-move-marker,
   .shape-vertex-marker,
@@ -1350,6 +1475,8 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
 }
 
 @media (max-width: 420px) {
+  .route-structure-controls button,
+  .route-structure-controls select { min-height: 44px; }
   .export-format-option { @apply px-2; }
   .export-format-option small { font-size: var(--studio-font-meta); }
   .export-dialog .icon-button,
@@ -1558,7 +1685,8 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
     height: 2.875rem;
   }
   .canvas-region.has-authoring-panel .map-fit-control {
-    bottom: calc(max(14px, var(--studio-safe-bottom)) + 24.75rem);
+    top: auto;
+    bottom: calc(max(14px, var(--studio-safe-bottom)) + 33.25rem);
   }
   .tool-palette::-webkit-scrollbar { display: none; }
   .shape-editing-toolbar {
@@ -1567,7 +1695,16 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
   }
   .map-authoring-panel {
     bottom: calc(max(14px, var(--studio-safe-bottom)) + 4rem);
+    left: calc(50% + (var(--studio-safe-left) - var(--studio-safe-right)) / 2);
     max-width: calc(100vw - 16px - var(--studio-safe-left) - var(--studio-safe-right));
+    max-height: min(22rem, calc(100dvh - 8rem - var(--studio-safe-top) - var(--studio-safe-bottom)));
+  }
+  .canvas-region.has-authoring-panel .route-authoring-panel {
+    position: fixed;
+    left: calc(0.5rem + var(--studio-safe-left));
+    width: min(var(--studio-tool-card-width), calc(100vw - 16px - var(--studio-safe-left) - var(--studio-safe-right)));
+    translate: none;
+    transform: none;
   }
   .shadcn-combobox-input-group,
   .shadcn-combobox-input-group > input { min-height: 2.75rem; }
@@ -1587,7 +1724,8 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
   .canvas-region.has-authoring-panel .maplibregl-ctrl-bottom-left,
   .canvas-region.has-authoring-panel .maplibregl-ctrl-bottom-right,
   .canvas-region.has-authoring-panel .map-scale {
-    bottom: calc(max(14px, var(--studio-safe-bottom)) + 18rem);
+    top: auto;
+    bottom: calc(max(14px, var(--studio-safe-bottom)) + 26.5rem);
   }
   .maplibregl-ctrl-bottom-left {
     left: calc(4px + var(--studio-safe-left));

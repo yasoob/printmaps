@@ -134,6 +134,8 @@ describe('print PDF', () => {
   it('exports a canonical Arc with the same sampled line path as the map', async () => {
     const document = createInitialProjectDocument();
     document.layers[0].geometry = { type: 'Arc', anchors: [[16.326, 48.194], [16.429, 48.226]], curvatures: [0.35] };
+    document.layers[0].route = { kind: 'arc', closed: false };
+    if (document.layers[0].appearance?.kind === 'route') document.layers[0].appearance.segmentStyles = [null];
 
     const pdf = await createPrintPdf(document, linearCapture());
     const text = new TextDecoder('latin1').decode(await pdf.arrayBuffer());
@@ -172,7 +174,7 @@ describe('print PDF', () => {
   it('uses canonical route, POI, and shape appearance in vector commands', async () => {
     const document = createInitialProjectDocument();
     document.layers[0].appearance = {
-      kind: 'route', color: '#010203', width: 8, travelMarker: null,
+      kind: 'route', color: '#010203', width: 8, strokeStyle: 'solid', marker: null, segmentStyles: [null, null, null],
     };
     document.layers[1].appearance = {
       kind: 'poi', color: '#abcdef', size: 21, markerShape: 'circle', markerSymbol: 'none', label: '',
@@ -207,13 +209,15 @@ describe('print PDF', () => {
       kind: 'route',
       color: '#d9363e',
       width: 4,
-      travelMarker: 'air',
+      strokeStyle: 'solid',
+      marker: { pictogram: 'air', placement: { type: 'center' }, orientToPath: true, reverseFacing: false },
+      segmentStyles: [null, null, null],
     };
 
     const text = await pdfText(document);
 
-    expect(text).toContain('% Route travel marker: air');
-    expect(text).toContain('(AIR) Tj');
+    expect(text).toContain('% Route pictogram: air');
+    expect(text).not.toContain('(AIR) Tj');
   });
 
   it('prints canonical POI marker shape, semantic symbol, and label as vector PDF content', async () => {

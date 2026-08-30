@@ -1,11 +1,13 @@
 import { createArcGeometry } from "../domain/routeArcGeometry";
-import { createDefaultLayerAppearance } from "../domain/project";
+import { createDefaultRouteAppearance } from "../domain/project";
 import { isValidPosition } from "../domain/routeGeometry";
+import { routePointValidationError } from "../domain/routeModel";
 import {
   buildRouteCoordinates,
   DEFAULT_ROUTE_AUTHORING_OPTIONS,
   isRouteAuthoringOptions,
   type RouteAuthoringOptions,
+  markerAppearanceFor,
 } from "../domain/routeProfiles";
 import type { ProjectState } from "./store";
 import {
@@ -20,10 +22,10 @@ function isValidLocalRouteInput(
 ): options is RouteAuthoringOptions {
   if (!isRouteAuthoringOptions(options) || options.lineShape === "road")
     return false;
-  const distinctCoordinates = new Set(
-    coordinates.map((position) => `${position[0]},${position[1]}`),
-  );
-  if (distinctCoordinates.size < 2) return false;
+  if (routePointValidationError(coordinates, {
+    kind: options.lineShape,
+    closed: false,
+  })) return false;
   return coordinates.every((position) =>
     isValidPosition(position[0], position[1]),
   );
@@ -69,25 +71,18 @@ export function createRouteAction(
         };
         return state;
       }
-      const defaultAppearance = createDefaultLayerAppearance("route");
-      if (defaultAppearance?.kind !== "route") {
-        result = {
-          ok: false,
-          error:
-            "The route appearance is invalid. Reset the route marker and try again.",
-        };
-        return state;
-      }
+      const defaultAppearance = createDefaultRouteAppearance(routeCoordinates.length - 1);
       const route = {
         id,
         name: `Route ${String(routeNumber).padStart(2, "0")}`,
         type: "route" as const,
+        route: { kind: options.lineShape, closed: false },
         visible: true,
         locked: false,
         opacity: 100,
         appearance: {
           ...defaultAppearance,
-          travelMarker: options.travelMarker,
+          marker: markerAppearanceFor(options.travelMarker),
         },
         geometry,
       };

@@ -1,4 +1,9 @@
-import { Minus, Route, Spline, Undo2 } from "lucide-react";
+import {
+  Minus,
+  Route,
+  Spline,
+  Undo2,
+} from "lucide-react";
 import {
   ROAD_TRAVEL_MODES,
   ROAD_TRAVEL_MODE_LABELS,
@@ -12,11 +17,14 @@ import type { ContentLayer } from "../../domain/project";
 import { didHandleRovingSelection } from "./rovingSelection";
 import { RoutePointInputs } from "./RoutePointInputs";
 import { ToolCardActions, ToolCardHeader } from "./ToolAuthoringCard";
+import { RouteDraftPointList } from "./RouteDraftPointList";
 
 export type RouteDrawingPanelProps = Readonly<{
   pointCount: number;
   points: readonly (readonly [number, number])[];
   canFinish: boolean;
+  canUndo: boolean;
+  closed: boolean;
   finishExplanation: string;
   lineShape: RouteLineShape;
   pathLocked?: boolean;
@@ -37,6 +45,13 @@ export type RouteDrawingPanelProps = Readonly<{
   onCancel: () => void;
   onUndo: () => void;
   onFinish: () => void;
+  onFocusPoint: (index: number) => void;
+  onMovePointDown: (index: number) => void;
+  onMovePointUp: (index: number) => void;
+  onPreviewRoad: () => void;
+  onRemovePoint: (index: number) => void;
+  hasRoadPreview: boolean;
+  minimumPointCount: number;
 }>;
 
 function RoutePathControl(props: RouteDrawingPanelProps) {
@@ -149,15 +164,7 @@ function RouteDraftStatus(props: RouteDrawingPanelProps) {
   else if (props.pointCount === 0) status = "Click the map to add route points";
   return (
     <>
-      {props.points.length > 0 && (
-        <ol className="route-point-list" aria-label="Draft route points">
-          {props.points.map(([longitude, latitude], index) => (
-            <li key={`${longitude},${latitude}`}>
-              Point {index + 1}: {longitude}, {latitude}
-            </li>
-          ))}
-        </ol>
-      )}
+      {props.points.length > 0 && <RouteDraftPointList {...props} />}
       <div className="route-progress">
         <span role="status" aria-label="Route drawing status">
           {status}
@@ -165,7 +172,7 @@ function RouteDraftStatus(props: RouteDrawingPanelProps) {
         <button
           type="button"
           aria-label="Undo last route point"
-          disabled={props.pointCount === 0 || props.isRouting}
+          disabled={!props.canUndo || props.isRouting}
           onClick={props.onUndo}
         >
           <Undo2 aria-hidden="true" size={14} />
@@ -188,15 +195,30 @@ export function RouteDrawingPanel(props: RouteDrawingPanelProps) {
       />
       <RoutePathControl {...props} />
       <RouteTravelControls {...props} />
-      <RoutePointInputs
-        disabled={props.isRouting}
-        initialCoordinate={props.initialCoordinate}
-        onAdd={props.onAddPoint}
-        onSnapChange={props.onSnapChange}
-        pois={props.pois}
-        snapEnabled={props.snapEnabled}
-      />
+      <details className="route-point-sources">
+        <summary>Add by coordinates or existing place</summary>
+        <RoutePointInputs
+          disabled={props.isRouting}
+          initialCoordinate={props.initialCoordinate}
+          onAdd={props.onAddPoint}
+          onSnapChange={props.onSnapChange}
+          pois={props.pois}
+          snapEnabled={props.snapEnabled}
+        />
+      </details>
       <RouteDraftStatus {...props} />
+      {props.lineShape === "road" && props.points.length >= 2 && (
+        <button
+          className="route-preview-button"
+          type="button"
+          disabled={props.isRouting}
+          onClick={props.onPreviewRoad}
+        >
+          {props.isRouting
+            ? "Previewing…"
+            : (props.hasRoadPreview ? "Refresh Road Preview" : "Road Preview")}
+        </button>
+      )}
       {props.announcement && (
         <div role="status" aria-live="polite">
           {props.announcement}

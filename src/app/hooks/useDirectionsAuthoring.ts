@@ -74,7 +74,7 @@ export function useDirectionsAuthoring(options: DirectionsAuthoringOptions) {
 
   useEffect(() => () => controllerRef.current?.abort(), []);
 
-  const route = useCallback(async (
+  const resolve = useCallback(async (
     waypoints: readonly (readonly [number, number])[],
     authoringOptions: RouteAuthoringOptions,
   ) => {
@@ -95,33 +95,59 @@ export function useDirectionsAuthoring(options: DirectionsAuthoringOptions) {
         || lifecycleRef.current.documentEpoch !== expectedDocumentEpoch) return null;
       const selected = response.routes[0];
       if (!selected) throw new Error('Mapbox did not return a road route. Try different points.');
-      const result = options.onCreate({
+      return {
         geometry: selected.geometry.map(([longitude, latitude]) => [longitude, latitude]),
         waypoints: waypoints.map(([longitude, latitude]) => [longitude, latitude]),
         profile,
         distanceMeters: selected.distanceMeters,
         durationSeconds: selected.durationSeconds,
-      }, authoringOptions, expectedDocumentEpoch);
-      if (!result.ok) setRequestError({ lifecycleVersion: lifecycle.version, message: result.error });
-      return result;
+      } satisfies DirectionsRouteInput;
     } catch (requestError) {
       if (controller.signal.aborted || requestId !== requestIdRef.current) return null;
       setRequestError({ lifecycleVersion: lifecycle.version, message: errorMessage(requestError) });
-      return { ok: false, error: errorMessage(requestError) } satisfies RouteMutationResult;
+      return null;
     } finally {
       if (requestId === requestIdRef.current) {
         controllerRef.current = null;
         setGeneration(null);
       }
     }
-  }, [lifecycle.version, options, provider]);
+  }, [lifecycle.version, options.documentEpoch, provider]);
+
+  const commit = useCallback((
+    input: DirectionsRouteInput,
+    authoringOptions: RouteAuthoringOptions,
+  ) => {
+    const result = options.onCreate(
+      input,
+      authoringOptions,
+      options.documentEpoch,
+    );
+    if (!result.ok) {
+      setRequestError({
+        lifecycleVersion: lifecycle.version,
+        message: result.error,
+      });
+    }
+    return result;
+  }, [lifecycle.version, options]);
+
+  const route = useCallback(async (
+    waypoints: readonly (readonly [number, number])[],
+    authoringOptions: RouteAuthoringOptions,
+  ) => {
+    const input = await resolve(waypoints, authoringOptions);
+    return input ? commit(input, authoringOptions) : null;
+  }, [commit, resolve]);
 
   return {
     cancel,
+    commit,
     error: options.active && requestError?.lifecycleVersion === lifecycle.version ? requestError.message : null,
     isRouting: options.active
       && generation?.documentEpoch === options.documentEpoch
       && generation.lifecycleVersion === lifecycle.version,
+    resolve,
     route,
   };
 }

@@ -1,7 +1,7 @@
 import { X } from 'lucide-react';
 import { memo, useCallback, useLayoutEffect, useMemo, useRef, type Dispatch, type RefObject, type SetStateAction } from 'react';
 import type { ContentLayer } from '../../domain/project';
-import type { MapMatchingProvider } from '../../services/mapbox/contracts';
+import type { DirectionsProvider, MapMatchingProvider } from '../../services/mapbox/contracts';
 import type { MobilePanel } from '../hooks/useMobilePanels';
 import { useProject, useProjectActions } from '../projectStoreContext';
 import { LayerProperties } from './LayerProperties';
@@ -11,6 +11,7 @@ import type { RouteExtensionEndpoint } from './routeAuthoringActions';
 type PropertiesSidebarProps = {
   selectedLayer: ContentLayer | null;
   mapMatchingProvider?: MapMatchingProvider;
+  directionsProvider?: DirectionsProvider;
   activePanel: MobilePanel | null;
   panelRef: RefObject<HTMLElement | null>;
   setPreviewedLayerId: Dispatch<SetStateAction<string | null>>;
@@ -34,7 +35,7 @@ function selectedLayerButton() {
 }
 
 export const PropertiesSidebar = memo(function PropertiesSidebar(props: PropertiesSidebarProps) {
-  const { activePanel, closePanel, directionsRouteEditError, directionsRouteEditIsRouting, directionsRouteEditWaypoints, mapMatchingProvider, onBeginRouteExtend, onCancelDirectionsRouteEdit, onDeleteSelected, onKeyDown, onLocate, onReplaceLayerData, onRetryDirectionsRouteEdit, onRouteVertexChange, onRouteVertexRemove, panelRef, selectedLayer, setPreviewedLayerId } = props;
+  const { activePanel, closePanel, directionsProvider, directionsRouteEditError, directionsRouteEditIsRouting, directionsRouteEditWaypoints, mapMatchingProvider, onBeginRouteExtend, onCancelDirectionsRouteEdit, onDeleteSelected, onKeyDown, onLocate, onReplaceLayerData, onRetryDirectionsRouteEdit, onRouteVertexChange, onRouteVertexRemove, panelRef, selectedLayer, setPreviewedLayerId } = props;
   const project = useProjectActions();
   const documentEpoch = useProject((state) => state.documentEpoch);
   const assets = useProject((state) => state.document.assets);
@@ -66,6 +67,7 @@ export const PropertiesSidebar = memo(function PropertiesSidebar(props: Properti
           layer={selectedLayer}
           assets={assets}
           documentEpoch={documentEpoch}
+          {...(directionsProvider ? { directionsProvider } : {})}
           {...(mapMatchingProvider ? { mapMatchingProvider } : {})}
           onApplyMapMatching={(input, expectedDocumentEpoch) => project.applyMapMatching(selectedLayer.id, input, expectedDocumentEpoch)}
           onRename={(name) => project.renameLayer(selectedLayer.id, name)}
@@ -92,6 +94,7 @@ export const PropertiesSidebar = memo(function PropertiesSidebar(props: Properti
           directionsRouteEditWaypoints={directionsRouteEditWaypoints}
           onRetryDirectionsRouteEdit={onRetryDirectionsRouteEdit}
           onCancelDirectionsRouteEdit={onCancelDirectionsRouteEdit}
+          onTransformRoute={project.transformRoute}
           onShapeVertexChange={(ringIndex, vertexIndex, coordinates) => project.setShapeVertex(selectedLayer.id, ringIndex, vertexIndex, coordinates)}
           onToggleVisibility={() => { clearSelectedPreview(); project.toggleLayerVisibility(selectedLayer.id); }}
           onToggleLock={() => project.toggleLayerLock(selectedLayer.id)}

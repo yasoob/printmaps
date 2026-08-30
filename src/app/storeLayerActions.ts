@@ -1,6 +1,7 @@
 import { canonicalLayerAppearance } from '../domain/layerAppearance';
 import { cloneContentLayer, createDefaultLayerAppearance, type ContentLayer } from '../domain/project';
 import { isValidPosition } from '../domain/routeGeometry';
+import { semanticLegCount, semanticRoutePoints } from '../domain/routeModel';
 import { validateCustomMarkerAssetCollection, validateStoredCustomMarkerAsset, type CustomMarkerAsset } from '../domain/customMarkerAssets';
 import type { ProjectState } from './store';
 import { commitDocument, hasSameDocumentContent, replaceLayers, type ProjectSet } from './storeDocument';
@@ -11,7 +12,8 @@ import { createDirectionsRouteActions } from './storeDirectionsRouteActions';
 import { createRouteAction } from './storeRouteCreationAction';
 import { createMapMatchingAction } from './storeMapMatchingAction';
 import { createReplaceLayerFromImportAction } from './storeImportReplacementAction';
-type LayerPropertyActions = Pick<ProjectState, 'applyMapMatching' | 'insertRouteVertex' | 'removeRouteVertex' | 'renameLayer' | 'replaceAuthoredRoute' | 'replaceRouteGeometry' | 'selectLayer' | 'setArcSegmentCurvature' | 'setLayerAppearance' | 'setLayerOpacity' | 'setPoiCoordinates' | 'setPoiCustomMarker' | 'setRouteVertex' | 'toggleLayerVisibility' | 'toggleLayerLock'>;
+import { createRouteTransformActions } from './storeRouteTransformActions';
+type LayerPropertyActions = Pick<ProjectState, 'applyMapMatching' | 'insertRouteVertex' | 'removeRouteVertex' | 'renameLayer' | 'replaceAuthoredRoute' | 'replaceRouteGeometry' | 'selectLayer' | 'setArcSegmentCurvature' | 'setLayerAppearance' | 'setLayerOpacity' | 'setPoiCoordinates' | 'setPoiCustomMarker' | 'setRouteMarker' | 'setRouteSegmentStyle' | 'setRouteVertex' | 'toggleLayerVisibility' | 'toggleLayerLock'>;
 
 function isCanonicalCustomMarkerAsset(asset: CustomMarkerAsset): boolean {
   try {
@@ -66,11 +68,52 @@ function createShapeAction(set: ProjectSet): ProjectState['createShape'] {
   });
 }
 
-export function createLayerStructureActions(set: ProjectSet): Pick<ProjectState, 'createAdministrativeArea' | 'createDirectionsRoute' | 'replaceDirectionsRoute' | 'createPoi' | 'createPoiBatch' | 'createSearchPoi' | 'createRoute' | 'createShape' | 'deleteLayer' | 'duplicateLayer' | 'importLayers' | 'moveLayer' | 'replaceLayerFromImport'> {
+function updateRouteAppearance(
+  set: ProjectSet,
+  id: string,
+  update: (appearance: Extract<ContentLayer['appearance'], { kind: 'route' }>) => Extract<ContentLayer['appearance'], { kind: 'route' }>,
+) {
+  return set((state) => {
+    const layer = state.document.layers.find((candidate) => candidate.id === id);
+    if (layer?.type !== 'route' || layer.appearance?.kind !== 'route') return state;
+    const points = semanticRoutePoints(layer);
+    if (!points) return state;
+    const appearance = canonicalLayerAppearance('route', update(layer.appearance), semanticLegCount(points));
+    if (!appearance || appearance.kind !== 'route'
+      || JSON.stringify(appearance) === JSON.stringify(layer.appearance)) return state;
+    return commitDocument(state, replaceLayers(state.document, state.document.layers.map((candidate) => (
+      candidate.id === id ? { ...candidate, appearance } : candidate
+    ))));
+  });
+}
+
+function createRouteAppearanceActions(set: ProjectSet): Pick<ProjectState, 'setRouteMarker' | 'setRouteSegmentStyle'> {
+  return {
+    setRouteMarker: (id, marker) => updateRouteAppearance(set, id, (appearance) => ({
+      ...appearance,
+      marker: marker === null
+        ? null
+        : { ...marker, placement: { ...marker.placement } },
+    })),
+    setRouteSegmentStyle: (id, segmentIndex, style) => updateRouteAppearance(set, id, (appearance) => {
+      if (!Number.isSafeInteger(segmentIndex) || segmentIndex < 0
+        || segmentIndex >= appearance.segmentStyles.length) return appearance;
+      return {
+        ...appearance,
+        segmentStyles: appearance.segmentStyles.map((candidate, index) => (
+          index === segmentIndex ? (style === null ? null : { ...style }) : candidate
+        )),
+      };
+    }),
+  };
+}
+
+export function createLayerStructureActions(set: ProjectSet): Pick<ProjectState, 'createAdministrativeArea' | 'createDirectionsRoute' | 'replaceDirectionsRoute' | 'replaceRouteDraft' | 'transformRoute' | 'createPoi' | 'createPoiBatch' | 'createSearchPoi' | 'createRoute' | 'createShape' | 'deleteLayer' | 'duplicateLayer' | 'importLayers' | 'moveLayer' | 'replaceLayerFromImport'> {
   return {
     ...createPoiStructureActions(set),
     ...createAdministrativeAreaActions(set),
     ...createDirectionsRouteActions(set),
+    ...createRouteTransformActions(set),
     createRoute: createRouteAction(set),
     createShape: createShapeAction(set),
     replaceLayerFromImport: createReplaceLayerFromImportAction(set),
@@ -156,6 +199,7 @@ export function createLayerPropertyActions(set: ProjectSet): LayerPropertyAction
   return {
     applyMapMatching: createMapMatchingAction(set),
     ...createRouteGeometryActions(set),
+    ...createRouteAppearanceActions(set),
     renameLayer: (id, name) => set((state) => {
       const layer = state.document.layers.find((candidate) => candidate.id === id);
       if (!layer || !name.trim() || layer.name === name) return state;
@@ -174,7 +218,12 @@ export function createLayerPropertyActions(set: ProjectSet): LayerPropertyAction
     })),
     setLayerAppearance: (id, appearance) => set((state) => {
       const layer = state.document.layers.find((candidate) => candidate.id === id);
-      const canonicalAppearance = canonicalLayerAppearance(layer?.type ?? 'basemap', appearance);
+      const points = layer ? semanticRoutePoints(layer) : null;
+      const canonicalAppearance = canonicalLayerAppearance(
+        layer?.type ?? 'basemap',
+        appearance,
+        points ? semanticLegCount(points) : undefined,
+      );
       if (!layer || !canonicalAppearance) return state;
       const nextAppearance = canonicalAppearance.kind === 'poi' ? { ...canonicalAppearance, customAssetId: layer.appearance?.kind === 'poi' ? layer.appearance.customAssetId ?? null : null } : canonicalAppearance;
       if (JSON.stringify(layer.appearance) === JSON.stringify(nextAppearance)) return state;

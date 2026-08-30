@@ -92,9 +92,11 @@ export function createTerraRouteSession(options: RouteSessionOptions) {
   return {
     destroy: () => draw.stop(),
     updateGeometry: (coordinates: Position[]) => {
-      if (editingId === undefined || options.mode !== 'edit') return false;
+      const targetId = editingId
+        ?? (options.mode === 'draw' ? draw.getSnapshot()[0]?.id : undefined);
+      if (targetId === undefined) return false;
       try {
-        draw.updateFeatureGeometry(editingId, {
+        draw.updateFeatureGeometry(targetId, {
           type: 'LineString', coordinates: coordinates.map((coordinate) => [...coordinate]),
         });
         return true;

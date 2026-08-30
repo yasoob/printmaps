@@ -170,7 +170,8 @@ describe('straight route authoring', () => {
     await user.click(screen.getByRole('button', { name: 'Finish route' }));
 
     expect(screen.getByTestId('map-canvas').dataset.layerGeometry).toContain('route-02:[[16.31,48.19],[16.4,48.24],[16.46,48.2]]');
-    expect(screen.getByRole('combobox', { name: 'Route travel marker' })).toHaveValue('air');
+    await user.click(screen.getByText('Advanced'));
+    expect(screen.getByRole('combobox', { name: 'Route marker pictogram' })).toHaveValue('air');
   });
 
   it('routes drawn waypoints through Mapbox and commits one canonical road route', async () => {
@@ -364,6 +365,7 @@ describe('straight route draft lifecycle', () => {
     const user = userEvent.setup();
     render(<App autosaveRepository={null} />);
     await user.click(screen.getByRole('button', { name: 'Route (R)' }));
+    await user.click(screen.getByText('Add by coordinates or existing place'));
 
     const longitude = screen.getByRole('textbox', {
       name: 'New route point longitude',

@@ -148,7 +148,8 @@ test('expert arc route authoring is undoable and exports a travel-mode marker', 
   await expect(page.getByRole('button', { name: 'Export' })).toBeEnabled();
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-order', /route-02/);
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-appearance', /route-02:[^|]*:air/);
-  await expect(page.getByRole('combobox', { name: 'Route travel marker' })).toHaveValue('air');
+  await page.getByRole('button', { name: /Advanced/ }).click();
+  await expect(page.getByRole('combobox', { name: 'Route marker pictogram' })).toHaveValue('air');
   await page.getByRole('button', { name: 'Undo' }).click();
   await expect(createdRoute).not.toBeVisible();
   await page.getByRole('button', { name: 'Redo' }).click();
@@ -168,8 +169,8 @@ test('expert arc route authoring is undoable and exports a travel-mode marker', 
   const routePath = svg.match(/data-layer-id="route-02"[^>]*>[\s\S]*?<path[^>]*d="([^"]+)"/)?.[1];
   expect(routePath).toContain(' L ');
   expect(routePath).not.toContain(' Q ');
-  expect(svg).toContain('data-route-travel-marker="air"');
-  expect(svg).toContain('>AIR</text>');
+  expect(svg).toContain('data-route-pictogram="air"');
+  expect(svg).not.toContain('>AIR</text>');
   await page.getByRole('dialog', { name: 'Export map' }).getByRole('button', { name: 'Close export' }).click();
 
   await page.setViewportSize({ width: 390, height: 844 });
@@ -279,7 +280,7 @@ test('a pitch-zero Arc visibly curves and supports accessible one-step edits', a
   const mapCanvas = page.getByTestId('map-canvas');
   const geometryWithMarker = await mapCanvas.getAttribute('data-map-layer-geometry');
   await page.getByRole('button', { name: /Advanced/ }).click();
-  await page.getByRole('combobox', { name: 'Route travel marker' }).selectOption('none');
+  await page.getByRole('combobox', { name: 'Route marker pictogram' }).selectOption('none');
   await expect(mapCanvas).toHaveAttribute('data-map-layer-geometry', geometryWithMarker!);
   await page.getByRole('button', { name: 'Select Paper basemap' }).click();
   await expect(vertices).toHaveCount(0);

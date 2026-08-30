@@ -95,7 +95,7 @@ test('project inspector progressively discloses advanced controls on desktop and
   await layerLockSwitch.check();
   await expect(layerLockSwitch).toBeChecked();
   await layerLockSwitch.uncheck();
-  await expect(page.getByRole('combobox', { name: 'Route travel marker' })).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Route marker pictogram' })).toBeVisible();
   await page.locator('.maplibregl-canvas').click({ position: { x: 80, y: 80 } });
   const restoredCamera = page.getByRole('button', { name: /Camera & location/ });
   await expect(restoredCamera).toHaveAttribute('aria-expanded', 'true');

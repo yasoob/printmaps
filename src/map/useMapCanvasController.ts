@@ -28,6 +28,8 @@ import { useShapeVertexEditing } from './useShapeVertexEditing';
 import { usePointEditing } from './usePointEditing';
 import type { ShapeEditMode } from './ShapeVertexEditing';
 import { createArcGeometry } from '../domain/routeArcGeometry';
+import type { DraftRouteEditing } from './DraftRouteEditing';
+import { useDraftRouteEditing } from './useDraftRouteEditing';
 
 const ignoreRouteGeometryChange = () => {};
 
@@ -56,6 +58,7 @@ type MapCanvasControllerOptions = {
   onRouteVertexChange?: (id: string, vertexIndex: number, coordinate: readonly [number, number]) => void;
   onRouteVertexInsert?: (id: string, segmentIndex: number) => void;
   routeAuthoring?: RouteAuthoring;
+  routeDraftEditing?: DraftRouteEditing;
   onShapeGeometryChange?: (id: string, geometry: ShapeGeometry) => void;
   previewedId: string | null;
   selectedId: string | null;
@@ -201,7 +204,7 @@ export function useMapCanvasController({
   onRouteGeometryChange,
   onRouteVertexChange,
   onRouteVertexInsert,
-  routeAuthoring,
+  routeAuthoring, routeDraftEditing,
   onShapeGeometryChange,
   previewedId,
   selectedId,
@@ -212,7 +215,8 @@ export function useMapCanvasController({
   const [terraMap, setTerraMap] = useState<MapLibreMap | null>(null), routeEditing = useRouteEditing({ ignoreNextMapClickRef, layers, map: terraMap, onRouteEditorError, onRouteGeometryChange, routeAuthoring, selectedId });
   const { displayLayers } = routeEditing;
   const contentState = useRef<MapContentState>({ layers: displayLayers, assets, selectedId, previewedId, contentRevision }), contentSyncDeferred = useRef(false), contentReady = useRef(false), mapFailed = useRef(false);
-  const layerSelect = useRef(onLayerSelect), backgroundClick = useRef(onBackgroundClick), mapClick = useRef(onMapClick);
+  const layerSelect = useRef(onLayerSelect), backgroundClick = useRef(onBackgroundClick);
+  const mapClick = useRef(routeAuthoring?.active ? undefined : onMapClick);
   const cameraViewportChange = useRef(onCameraViewportChange), cameraState = useRef(camera), exporterChangeRef = useRef(onExporterChange);
   const cameraViewportChangeMode = useRef<CameraViewportChangeMode>('history'), availableExporterRef = useRef<PreviewPngExporter | null>(null);
   const [mapError, setMapError] = useState<MapError | null>(null), [contentError, setContentError] = useState<ContentError | null>(null);
@@ -250,8 +254,8 @@ export function useMapCanvasController({
     backgroundClick.current = onBackgroundClick;
     cameraViewportChange.current = onCameraViewportChange;
     layerSelect.current = onLayerSelect;
-    mapClick.current = onMapClick;
-  }, [camera, onBackgroundClick, onCameraViewportChange, onLayerSelect, onMapClick]);
+    mapClick.current = routeAuthoring?.active ? undefined : onMapClick;
+  }, [camera, onBackgroundClick, onCameraViewportChange, onLayerSelect, onMapClick, routeAuthoring?.active]);
 
   useExporterSubscription(onExporterChange, availableExporterRef, exporterChangeRef);
 
@@ -300,11 +304,10 @@ export function useMapCanvasController({
     });
   }, [cameraState, handleContentSyncResult, invalidateExporter, resetFeatureVisibility, resetMapLanguage, resetTextScale, stylePreset, synchronizeFeatureVisibility, synchronizeMapLanguage, synchronizeTextScale]);
 
-  usePointEditing({ layers, map, onPoiCoordinatesChange, selectedId, stylePreset }); useShapeEditing({ layers, map, onShapeGeometryChange, selectedId, shapeEditMode, stylePreset }); useAccessibleRouteVertexEditing({ layers, map, onRouteGeometryChange, onRouteVertexChange, onRouteVertexInsert, onRoutePreview: routeEditing.updateEditingGeometry, selectedId, stylePreset });
+  usePointEditing({ layers, map, onPoiCoordinatesChange, selectedId, stylePreset }); useShapeEditing({ layers, map, onShapeGeometryChange, selectedId, shapeEditMode, stylePreset }); useAccessibleRouteVertexEditing({ layers, map, onRouteGeometryChange, onRouteVertexChange, onRouteVertexInsert, onRoutePreview: routeEditing.updateEditingGeometry, selectedId, stylePreset }); useDraftRouteEditing(terraMap, routeDraftEditing);
 
   useMapCameraSynchronization({ camera, container, map, stylePreset }); useMapLocationRequest({ container, locationRequest, map, stylePreset });
   useMapFitRequests({ camera, cameraViewportChangeMode, container, fitImportBounds, fitImportRequest, fitLayerId, fitLayerRequest, fitRequest, layers, map });
-
 
   return { container, visibleError: mapError ?? contentError };
 }

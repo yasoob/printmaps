@@ -17,6 +17,39 @@ describe('imported layer replacement', () => {
       geometry: { type: 'LineString', coordinates: [[15.9, 48.1], [16.1, 48.3]] },
     };
     expect(original).toBeDefined();
+    const originalCoordinates = original?.geometry?.type === 'LineString'
+      ? original.geometry.coordinates
+      : [];
+    if (original?.appearance?.kind === 'route') {
+      original.route = { kind: 'road', closed: false };
+      original.appearance.color = '#112233';
+      original.appearance.width = 7;
+      original.appearance.marker = {
+        pictogram: 'bike',
+        placement: { type: 'fraction', fraction: 0.25 },
+        orientToPath: true,
+        reverseFacing: true,
+      };
+      original.appearance.segmentStyles = [
+        { color: '#abcdef' },
+        { width: 6 },
+        { strokeStyle: 'dashed' },
+      ];
+      original.provenance = {
+        provider: 'mapbox',
+        service: 'directions-v5',
+        waypoints: originalCoordinates.map(([longitude, latitude]) => (
+          [longitude, latitude]
+        )),
+        profile: 'driving',
+        distanceMeters: 1000,
+        durationSeconds: 100,
+      };
+    }
+    replacement.geometry = {
+      type: 'LineString',
+      coordinates: [[16.326, 48.194], [16.353, 48.205], [16.1, 48.3]],
+    };
     store.getState().selectLayer('route-01');
 
     expect(store.getState().replaceLayerFromImport(
@@ -24,7 +57,21 @@ describe('imported layer replacement', () => {
     )).toBe(true);
 
     const replaced = store.getState().document.layers.find(({ id }) => id === 'route-01');
-    expect(replaced).toEqual({ ...original, geometry: replacement.geometry });
+    expect(replaced).toMatchObject({
+      id: original!.id,
+      name: original!.name,
+      type: original!.type,
+      visible: original!.visible,
+      locked: original!.locked,
+      opacity: original!.opacity,
+      route: { kind: 'straight', closed: false },
+      geometry: replacement.geometry,
+      appearance: {
+        ...original!.appearance,
+        segmentStyles: [{ color: '#abcdef' }, null],
+      },
+    });
+    expect(replaced?.provenance).toBeUndefined();
     expect(store.getState().document.layers.map(({ id }) => id))
       .toEqual(sourceDocument.layers.map(({ id }) => id));
     expect(store.getState().selectedId).toBe('route-01');
@@ -33,8 +80,22 @@ describe('imported layer replacement', () => {
     store.getState().undo();
     expect(store.getState().document.layers.find(({ id }) => id === 'route-01')).toEqual(original);
     store.getState().redo();
-    expect(store.getState().document.layers.find(({ id }) => id === 'route-01')?.geometry)
-      .toEqual(replacement.geometry);
+    expect(store.getState().document.layers.find(({ id }) => id === 'route-01'))
+      .toMatchObject({
+        route: { kind: 'straight', closed: false },
+        geometry: replacement.geometry,
+        appearance: {
+          color: '#112233',
+          width: 7,
+          marker: {
+            pictogram: 'bike',
+            placement: { type: 'fraction', fraction: 0.25 },
+            orientToPath: true,
+            reverseFacing: true,
+          },
+          segmentStyles: [{ color: '#abcdef' }, null],
+        },
+      });
   });
 
   it('rejects geometry that contradicts the canonical layer type', () => {

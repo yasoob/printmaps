@@ -2,12 +2,25 @@ export const ROUTE_TRAVEL_MARKERS = ['air', 'rail', 'car', 'walk', 'bike', 'ship
 export type RouteTravelMarker = typeof ROUTE_TRAVEL_MARKERS[number];
 export const ROAD_TRAVEL_MODES = ['car', 'walk', 'bike'] as const;
 export type RoadTravelMode = typeof ROAD_TRAVEL_MODES[number];
-export type RouteLineShape = 'straight' | 'arc' | 'road';
+export type RouteLineShape = RouteKind;
 export type RouteAuthoringOptions = Readonly<{
   lineShape: RouteLineShape;
   roadTravelMode: RoadTravelMode;
   travelMarker: RouteTravelMarker | null;
 }>;
+
+export function markerAppearanceFor(
+  pictogram: RouteTravelMarker | null,
+): import('./layerAppearance').RouteMarkerAppearance | null {
+  return pictogram === null
+    ? null
+    : {
+        pictogram,
+        placement: { type: 'center' },
+        orientToPath: true,
+        reverseFacing: false,
+      };
+}
 
 export const DEFAULT_ROUTE_AUTHORING_OPTIONS: RouteAuthoringOptions = {
   lineShape: 'straight',
@@ -38,15 +51,6 @@ export const ROUTE_TRAVEL_MARKER_LABELS: Readonly<Record<RouteTravelMarker, stri
   ship: 'Ship',
 };
 
-export const ROUTE_TRAVEL_MARKER_GLYPHS: Readonly<Record<RouteTravelMarker, string>> = {
-  air: 'AIR',
-  rail: 'RAIL',
-  car: 'CAR',
-  walk: 'WALK',
-  bike: 'BIKE',
-  ship: 'SHIP',
-};
-
 type Position = readonly [number, number];
 
 export function buildRouteCoordinates(
@@ -56,3 +60,4 @@ export function buildRouteCoordinates(
   if (lineShape !== 'straight' && lineShape !== 'arc' && lineShape !== 'road') return [];
   return waypoints.map(([longitude, latitude]) => [longitude, latitude]);
 }
+import type { RouteKind } from './project';

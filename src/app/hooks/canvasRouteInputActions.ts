@@ -1,18 +1,38 @@
 import type { ComponentProps } from "react";
 import type { RouteLineShape } from "../../domain/routeProfiles";
+import { createArcGeometry } from "../../domain/routeArcGeometry";
 import { snapRouteCoordinate } from "../../map/RouteSnapping";
 import type { RouteDrawingPanel } from "../components/RouteDrawingPanel";
 import {
   appendRoutePoint,
-  appendRouteExtensionPoint,
   MAX_ROAD_ROUTE_WAYPOINTS,
   routeFinishExplanation,
 } from "../components/routeAuthoringActions";
-import type {
-  RouteCommitActions,
-  RouteCoreState,
-} from "./useCanvasRouteAuthoring";
+import type { RouteCommitActions } from "./useCanvasRouteAuthoring";
+import type { RouteCoreState } from "./useRouteCoreState";
 import type { RouteAuthoringParameters } from "./canvasRouteAuthoringSupport";
+import { canonicalDraftPoints } from "./routeSemanticDraft";
+
+function pointsAfterAddition(
+  core: RouteCoreState,
+  base: [number, number][],
+  points: [number, number][],
+) {
+  const added = points.at(-1);
+  return added && core.extension?.endpoint === "start"
+    ? [added, ...base]
+    : points;
+}
+
+function closedArcAdditionError(
+  core: RouteCoreState,
+  points: [number, number][],
+) {
+  if (!core.isClosed || !core.extension || core.lineShape !== "arc") return null;
+  return createArcGeometry(canonicalDraftPoints(points, true))
+    ? null
+    : "This point would create an impossible Arc return leg. Choose a different location.";
+}
 
 export function routeInputActions(
   parameters: RouteAuthoringParameters,
@@ -41,18 +61,16 @@ export function routeInputActions(
       parameters.toolDocumentEpoch === parameters.documentEpoch
         ? core.points
         : [];
-    const next = core.extension
-      ? appendRouteExtensionPoint({
-          additions: base,
-          coordinate: snapped.coordinate,
-          endpoint: core.extension.endpoint,
-          layer: core.extension.layer,
-          lineShape: core.lineShape,
-        })
-      : appendRoutePoint(base, snapped.coordinate, core.lineShape);
+    const next = appendRoutePoint(base, snapped.coordinate, core.lineShape);
     core.setError(next.error);
     if (next.error) return;
-    core.setPoints(next.points);
+    const editedPoints = pointsAfterAddition(core, base, next.points);
+    const arcError = closedArcAdditionError(core, editedPoints);
+    if (arcError) {
+      core.setError(arcError);
+      return;
+    }
+    core.editPoints(editedPoints);
     core.setAnnouncement(
       snapped.label
         ? `Snapped route point to ${snapped.label}.`
@@ -64,7 +82,7 @@ export function routeInputActions(
     if (
       id !== "route" &&
       parameters.activeTool === "route" &&
-      core.currentPoints.length > 0
+      core.currentDraft.history.length > 0
     ) {
       core.setDiscardTrigger(
         document.activeElement instanceof HTMLElement
@@ -76,7 +94,7 @@ export function routeInputActions(
       return false;
     }
     if (id === "route" && parameters.toolDocumentEpoch !== parameters.documentEpoch) {
-      core.setPoints([]);
+      core.resetPoints([]);
       core.setAnnouncement(null);
       core.setError(null);
       core.setExtension(null);
@@ -88,6 +106,7 @@ export function routeInputActions(
   const changeLineShape = (shape: RouteLineShape) => {
     if (core.extension || shape === core.lineShape) return;
     core.directions.cancel();
+    core.setRoadPreview(null);
     if (
       shape === "road" &&
       core.currentPoints.length > MAX_ROAD_ROUTE_WAYPOINTS
@@ -119,9 +138,17 @@ export function routeInputActions(
 export function routePanelProps(
   parameters: RouteAuthoringParameters,
   core: RouteCoreState,
-  actions: ReturnType<typeof routeInputActions>,
-  commitActions: RouteCommitActions,
+  actions: {
+    input: ReturnType<typeof routeInputActions>;
+    commit: RouteCommitActions;
+    point: {
+    focusPoint: (index: number) => void;
+    removePoint: (index: number) => void;
+    reorderPoint: (index: number, offset: -1 | 1) => void;
+    };
+  },
 ): ComponentProps<typeof RouteDrawingPanel> {
+  const { commit, input, point } = actions;
   return {
     announcement: core.announcement,
     canFinish: core.canFinish,
@@ -137,14 +164,18 @@ export function routePanelProps(
     initialCoordinate: parameters.camera.center,
     isRouting: core.directions.isRouting,
     lineShape: core.lineShape,
-    onAddPoint: (coordinate, label) => actions.addPoint(coordinate, label),
-    onCancel: () => commitActions.requestCancel(),
-    onFinish: commitActions.finish,
-    onLineShapeChange: actions.changeLineShape,
+    onAddPoint: (coordinate, label) => input.addPoint(coordinate, label),
+    onCancel: () => commit.requestCancel(),
+    onFinish: commit.finish,
+    onFocusPoint: point.focusPoint,
+    onLineShapeChange: input.changeLineShape,
     onRoadTravelModeChange: (mode) => {
       core.directions.cancel();
+      core.setRoadPreview(null);
       core.setRoadTravelMode(mode);
     },
+    onPreviewRoad: commit.preview,
+    onRemovePoint: point.removePoint,
     onSnapChange: (isEnabled) => {
       core.setIsSnapEnabled(isEnabled);
       core.setAnnouncement(
@@ -152,11 +183,15 @@ export function routePanelProps(
       );
     },
     onTravelMarkerChange: core.setTravelMarker,
+    onMovePointDown: (index) => point.reorderPoint(index, 1),
+    onMovePointUp: (index) => point.reorderPoint(index, -1),
     onUndo: () => {
       core.setError(null);
-      commitActions.undo();
+      commit.undo();
     },
     pathLocked: core.extension !== null,
+    canUndo: core.currentDraft.history.length > 0,
+    closed: core.isClosed,
     pointCount: core.currentPoints.length,
     points: core.currentPoints,
     pois: parameters.layers.filter(
@@ -168,5 +203,8 @@ export function routePanelProps(
       ? `Extend ${core.extension.layer.name} from ${core.extension.endpoint}`
       : "Route",
     travelMarker: core.travelMarker,
+    hasRoadPreview: core.roadPreview?.revision === core.currentDraft.revision
+      && core.roadPreview.mode === core.roadTravelMode,
+    minimumPointCount: core.extension ? (core.isClosed ? 3 : 2) : 0,
   };
 }

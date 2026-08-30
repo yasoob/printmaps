@@ -1,10 +1,15 @@
 import {
   createDefaultLayerAppearance,
+  createDefaultRouteAppearance,
   MAX_MERCATOR_LATITUDE,
   type ContentLayer,
   type LayerGeometry,
   type LayerType,
 } from '../domain/project';
+import {
+  arePositionsEqual,
+  routePointValidationError,
+} from '../domain/routeModel';
 
 export const MAX_GPX_KML_FILE_BYTES = 5 * 1024 * 1024;
 export const MAX_GPX_KML_FEATURES = 1000;
@@ -145,14 +150,23 @@ export function createLayer({
     MultiPolygon: 'shape',
   };
   const type = layerTypes[geometry.type];
+  const isRoute = type === 'route' && geometry.type === 'LineString';
+  const closed = isRoute && arePositionsEqual(geometry.coordinates[0], geometry.coordinates.at(-1)!);
+  if (isRoute) {
+    const error = routePointValidationError(geometry.coordinates, { kind: 'straight', closed });
+    if (error) throw new GpxKmlImportError(error);
+  }
   return {
     id: uniqueId(prefix, name, fallback, usedIds),
     name,
     type,
+    ...(isRoute && { route: { kind: 'straight' as const, closed } }),
     visible: true,
     locked: false,
     opacity: 100,
-    appearance: createDefaultLayerAppearance(type),
+    appearance: isRoute
+      ? createDefaultRouteAppearance(geometry.coordinates.length - 1)
+      : createDefaultLayerAppearance(type),
     geometry,
   };
 }

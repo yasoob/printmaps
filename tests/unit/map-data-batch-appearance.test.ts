@@ -1,4 +1,8 @@
-import { createDefaultLayerAppearance, type ContentLayer } from '../../src/domain/project';
+import {
+  createDefaultLayerAppearance,
+  createDefaultRouteAppearance,
+  type ContentLayer,
+} from '../../src/domain/project';
 import {
   applyMapDataBatchAppearance,
   createMapDataBatchAppearance,
@@ -17,10 +21,13 @@ function importedLayer(type: 'route' | 'poi' | 'shape'): ContentLayer {
     id: `imported-${type}`,
     name: `Imported ${type}`,
     type,
+    ...(type === 'route' && { route: { kind: 'straight' as const, closed: false } }),
     visible: true,
     locked: false,
     opacity: 100,
-    appearance: createDefaultLayerAppearance(type),
+    appearance: type === 'route'
+      ? createDefaultRouteAppearance(1)
+      : createDefaultLayerAppearance(type),
     geometry,
   };
 }
@@ -42,7 +49,7 @@ describe('reviewed map-data batch appearance', () => {
 
     expect(styled.map(({ appearance }) => appearance)).toEqual([
       {
-        kind: 'route', color: '#112233', width: 7, travelMarker: null,
+        kind: 'route', color: '#112233', width: 7, strokeStyle: 'solid', marker: null, segmentStyles: [null],
       },
       {
         kind: 'poi', color: '#445566', size: 22, markerShape: 'diamond', markerSymbol: 'none', label: '', customAssetId: null,
@@ -52,7 +59,7 @@ describe('reviewed map-data batch appearance', () => {
       },
     ]);
     expect(layers.map(({ appearance }) => appearance)).toEqual([
-      createDefaultLayerAppearance('route'),
+      createDefaultRouteAppearance(1),
       createDefaultLayerAppearance('poi'),
       createDefaultLayerAppearance('shape'),
     ]);

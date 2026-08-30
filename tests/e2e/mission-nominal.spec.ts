@@ -8,6 +8,7 @@ const isFirefoxDisplayEnabled = process.env.PRINTMAP_FIREFOX_HEADED === '1';
 const isExpectedWebGlDiagnostic = (message: string, browserName: string) => (
   message.includes('GPU stall due to ReadPixels')
   || message.includes('AllowWebgl2:false restricts context creation on this system')
+  || message.includes('Multiple readback operations using getImageData are faster')
   || (browserName === 'firefox' && message.includes('WebGL context was lost.'))
 );
 
@@ -88,7 +89,7 @@ test('nominal design, author, import, persist, reopen, and export workflow', asy
   await projectDownload.saveAs(projectPath);
   const savedProject = JSON.parse(await readFile(projectPath, 'utf8'));
   expect(savedProject).toMatchObject({
-    schemaVersion: 23,
+    schemaVersion: 24,
     page: { widthMm: 20, heightMm: 60, orientation: 'portrait' },
     style: { preset: 'sea-glass' },
   });

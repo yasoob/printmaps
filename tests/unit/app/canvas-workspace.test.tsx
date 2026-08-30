@@ -63,6 +63,7 @@ const sharedProps = {
   onCreateAdministrativeAreas: vi.fn(),
   onCreateDirectionsRoute: vi.fn(),
   onReplaceDirectionsRoute: vi.fn(),
+  onReplaceRouteDraft: vi.fn(),
   onCreateIsochroneArea: vi.fn(),
   onCreatePoi: vi.fn(),
   onCreatePoiBatch: vi.fn(),

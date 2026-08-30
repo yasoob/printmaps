@@ -1,5 +1,5 @@
 import type { Map as MapLibreMap } from 'maplibre-gl';
-import type { ContentLayer } from '../../src/domain/project';
+import { createDefaultRouteAppearance, type ContentLayer } from '../../src/domain/project';
 import { createMapLibreContentAdapter } from '../../src/map/MapContentAdapter';
 
 type AddedLayer = {
@@ -8,10 +8,16 @@ type AddedLayer = {
 };
 
 type AddedSource = {
-  data: {
-    geometry: NonNullable<ContentLayer['geometry']>;
-  };
+  data: Record<string, unknown>;
 };
+
+function sourceGeometry(source: AddedSource | undefined): unknown {
+  const data = source?.data as {
+    geometry?: NonNullable<ContentLayer['geometry']>;
+    features?: { geometry: NonNullable<ContentLayer['geometry']> }[];
+  } | undefined;
+  return data?.features?.[0]?.geometry ?? data?.geometry;
+}
 
 function createMapHarness() {
   const sources = new Map<string, AddedSource>();
@@ -42,7 +48,13 @@ function contentLayer(
   type: ContentLayer['type'],
   geometry: NonNullable<ContentLayer['geometry']>,
 ): ContentLayer {
-  return { id, name: id, type, geometry, opacity: 100, visible: true, locked: false };
+  return {
+    id, name: id, type, geometry, opacity: 100, visible: true, locked: false,
+    ...(type === 'route' && geometry.type === 'LineString' && {
+      route: { kind: 'straight' as const, closed: false },
+      appearance: createDefaultRouteAppearance(geometry.coordinates.length - 1),
+    }),
+  };
 }
 
 describe('MapLibre content adapter mutable input safety', () => {
@@ -65,7 +77,7 @@ describe('MapLibre content adapter mutable input safety', () => {
       previewedId: null,
       contentRevision: {},
     })).toBe('synced');
-    expect(sources.get('studio-source-5:route')?.data.geometry).toEqual({
+    expect(sourceGeometry(sources.get('studio-source-5:route'))).toEqual({
       type: 'LineString',
       coordinates: [[0, 0], [7, 1]],
     });
@@ -85,7 +97,7 @@ describe('MapLibre content adapter mutable input safety', () => {
     route.geometry.coordinates[1][0] = 7;
 
     expect(adapter.sync({ layers, selectedId: 'route', previewedId: null })).toBe('synced');
-    expect(sources.get('studio-source-5:route')?.data.geometry).toEqual({
+    expect(sourceGeometry(sources.get('studio-source-5:route'))).toEqual({
       type: 'LineString',
       coordinates: [[0, 0], [7, 1]],
     });
@@ -104,7 +116,7 @@ describe('MapLibre content adapter mutable input safety', () => {
     route.geometry = { type: 'LineString', coordinates: [[2, 2], [3, 3]] };
 
     expect(adapter.sync({ layers, selectedId: null, previewedId: 'route' })).toBe('synced');
-    expect(sources.get('studio-source-5:route')?.data.geometry).toEqual(route.geometry);
+    expect(sourceGeometry(sources.get('studio-source-5:route'))).toEqual(route.geometry);
   });
 
   it('replaces a changed layer element in the same layer array', () => {
@@ -142,7 +154,9 @@ describe('MapLibre content adapter mutable input safety', () => {
 
     expect(adapter.sync({ layers, selectedId: null, previewedId: 'poi' })).toBe('synced');
     expect([...renderedLayers.keys()]).toEqual([
-      'studio-layer-5:route:main',
+      'studio-layer-5:route:casing',
+      'studio-layer-5:route:solid',
+      'studio-layer-5:route:dashed',
       'studio-layer-3:poi:main',
     ]);
     expect(container).toHaveAttribute('data-map-layer-order', 'poi,route');
@@ -163,7 +177,11 @@ describe('MapLibre content adapter mutable input safety', () => {
     poi.visible = false;
 
     expect(adapter.sync({ layers, selectedId: 'route', previewedId: null })).toBe('synced');
-    expect([...renderedLayers.keys()]).toEqual(['studio-layer-5:route:main']);
+    expect([...renderedLayers.keys()]).toEqual([
+      'studio-layer-5:route:casing',
+      'studio-layer-5:route:solid',
+      'studio-layer-5:route:dashed',
+    ]);
     expect([...sources.keys()]).toEqual(['studio-source-5:route']);
     expect(container).toHaveAttribute('data-map-layer-order', 'route');
   });

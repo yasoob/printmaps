@@ -381,19 +381,43 @@ describe('editor POI appearance and geometry fields', () => {
 });
 
 describe('route travel-marker properties', () => {
+  it('creates a complete marker and preserves advanced placement when changing pictogram', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: 'Select Route 01' }));
+    const legacyMarker = screen.getByRole('combobox', { name: 'Route travel marker' });
+    await user.selectOptions(legacyMarker, 'car');
+    await user.click(screen.getByText('Advanced'));
+    const advancedMarker = screen.getByRole('combobox', { name: 'Route marker pictogram' });
+    expect(advancedMarker).toHaveValue('car');
+    expect(screen.getByRole('combobox', { name: 'Route marker placement' })).toHaveValue('center');
+    expect(screen.getByRole('switch', { name: 'Orient route marker to path' })).toBeChecked();
+
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Route marker placement' }), 'fraction');
+    await user.click(screen.getByRole('switch', { name: 'Reverse route marker facing' }));
+    await user.selectOptions(legacyMarker, 'air');
+    expect(screen.getByRole('combobox', { name: 'Route marker placement' })).toHaveValue('fraction');
+    expect(screen.getByRole('switch', { name: 'Reverse route marker facing' })).toBeChecked();
+    await user.selectOptions(legacyMarker, 'none');
+    expect(advancedMarker).toHaveValue('none');
+    await user.click(screen.getByText('Advanced'));
+  });
+
   it('commits the decorative marker as one undoable edit', async () => {
     const user = userEvent.setup();
     render(<App />);
 
     await user.click(screen.getByRole('button', { name: 'Select Route 01' }));
-    const marker = screen.getByRole('combobox', { name: 'Route travel marker' });
+    await user.click(screen.getByText('Advanced'));
+    const marker = screen.getByRole('combobox', { name: 'Route marker pictogram' });
     await user.selectOptions(marker, 'air');
 
     expect(marker).toHaveValue('air');
     expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-layer-state', expect.stringContaining('route-01:true'));
 
     await user.click(screen.getByRole('button', { name: 'Undo' }));
-    expect(screen.getByRole('combobox', { name: 'Route travel marker' })).toHaveValue('none');
+    expect(screen.getByRole('combobox', { name: 'Route marker pictogram' })).toHaveValue('none');
   });
 });
 

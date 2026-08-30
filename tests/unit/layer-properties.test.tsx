@@ -30,7 +30,7 @@ function route(width: number): ContentLayer {
     locked: false,
     opacity: 100,
     appearance: {
-      kind: 'route', color: '#d9363e', width, travelMarker: null,
+      kind: 'route', color: '#d9363e', width, strokeStyle: 'solid', marker: null, segmentStyles: [null],
     },
     geometry: { type: 'LineString', coordinates: [[0, 0], [1, 1]] },
   };

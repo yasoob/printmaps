@@ -1,8 +1,9 @@
 # Print Map Studio — Mission Complete
 
-Completion date: 2026-08-27 (UTC)
+Completion evidence refreshed: 2026-08-30 (UTC)
 
-Final verified implementation commit SHA: `8a5bd4fd7a3803c3755cd8036277af4e46f7424f`
+Baseline implementation commit SHA: `8a5bd4fd7a3803c3755cd8036277af4e46f7424f`.
+The schema-24 advanced-route work is intentionally uncommitted.
 
 ## Completion gate
 
@@ -22,10 +23,13 @@ Firefox and WebKit were intentionally not run because Chromium is the project ow
 ## Release evidence
 
 - Provider-backed travel-time Areas pass end-to-end creation, cancellation, stale-document suppression, canonical persistence, Undo/Redo, autosave recovery and offline credited export.
-- Routes use strict schema 23 with connected signed-curvature Arc segments and one canonical sampled 2D path across live MapLibre rendering, hit testing, fit, markers, native PNG, layered SVG, and PDF. Straight/Arc anchors and persisted Road waypoints are the only meaningful editable points. Existing routes extend from either endpoint in one transaction; Road waypoint edits reroute and atomically refresh provider geometry and provenance, while generic manual geometry edits explicitly become local and clear stale provenance. Map/search/typed/POI/opt-in snapped inputs share validation and cap behavior, Road travel mode is independent from decorative markers, and recoverable drafts remain available after rejected writes or provider failures.
+- Routes use strict schema 24. Every route declares Straight, Arc, or Road kind and open/closed state; a closed loop has at least three distinct semantic points and one canonical final copy of its first point. Conversion, reverse, close, and open are atomic one-step history operations. Local conversions preserve semantic points, Arc conversion creates one default curvature per leg, Road-to-local conversion clears Directions provenance, and Road conversion/reverse/loop changes reroute persisted waypoints only after a successful non-stale provider response.
+- Route drafts expose ordered remove/reorder/focus controls plus 44 px pointer and keyboard map handles. Road drafts have an explicit Preview: a successful result is cached by draft revision and travel mode, Finish reuses an unchanged preview, and any semantic edit forces fresh routing. Failed/stale requests leave both the committed route and editable choices intact.
+- Route markers are shared vector Air, Train, Car, Walking, Cycling, and Ship pictograms, or None. Center is exactly 50%; a numeric fraction is retained on reverse and therefore mirrors geographically from the new start; repeat spacing is a normalized percentage of total rendered path length and starts at half a spacing. Per-semantic-leg color, width, and solid/dashed overrides inherit route defaults field-by-field and are deterministically remapped by structural edits.
+- One rendered-route derivation partitions Straight, sampled Arc, and provider Road geometry into semantic legs and places markers on the actual rendered path. MapLibre live rendering, hit testing/highlighting, native PNG, layered SVG, and PDF consume that shared result, including segment colors, widths, dashes, vector pictograms, orientation, and opacity.
 - Large raster export remains one PNG with bounded multi-region rendering.
 - Generated worldwide Natural Earth 5.1.1 country/region boundaries are the authoritative runtime catalogue; Vienna municipality data remains separately attributed.
-- Desktop, 390 px responsive behavior, modal/drawer focus, downloads, imports, IndexedDB recovery and clean-console nominal flows are covered in Chromium.
+- Desktop plus 320 px and 390 px responsive behavior, 44 px route targets, focus, alerts/disabled explanations, downloads, imports, IndexedDB recovery and clean-console nominal flows are covered in Chromium.
 - Fresh 1440×900 release screenshot: `docs/screenshots/road-routing-search-20260826.png`.
 - Screenshot SHA-256: `5e92fabc391a4b37e803b5c3739fadb330897eb14894470390028c02f9b9f597`.
 

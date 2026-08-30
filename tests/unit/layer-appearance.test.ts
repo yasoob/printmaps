@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { createProjectStore } from '../../src/app/store';
-import { createInitialProjectDocument, type ContentLayer } from '../../src/domain/project';
+import { createDefaultRouteAppearance, createInitialProjectDocument, type ContentLayer } from '../../src/domain/project';
 import { parseGpxText, parseKmlText } from '../../src/import/gpxKml';
 import { parseGeoJsonText } from '../../src/import/geojson';
 import { mapLayerDescriptors } from '../../src/map/MapContentLayerRendering';
@@ -28,6 +28,10 @@ function layer(type: ContentLayer['type'], appearance: ContentLayer['appearance'
     visible: true,
     locked: false,
     opacity: 100,
+    ...(type === 'route' && {
+      route: { kind: 'straight' as const, closed: false },
+      appearance: appearance ?? createDefaultRouteAppearance(1),
+    }),
   };
 }
 
@@ -36,11 +40,11 @@ describe('canonical layer appearance', () => {
     const store = createProjectStore(createInitialProjectDocument());
 
     store.getState().setLayerAppearance('route-01', {
-      kind: 'route', color: '#D9363E', width: 4, travelMarker: null,
+      kind: 'route', color: '#D9363E', width: 4, strokeStyle: 'solid', marker: null, segmentStyles: [null, null, null],
     });
 
     expect(store.getState().document.layers[0].appearance).toEqual({
-      kind: 'route', color: '#d9363e', width: 4, travelMarker: null,
+      kind: 'route', color: '#d9363e', width: 4, strokeStyle: 'solid', marker: null, segmentStyles: [null, null, null],
     });
     expect(store.getState().canUndo).toBe(false);
   });
@@ -48,17 +52,17 @@ describe('canonical layer appearance', () => {
   it('assigns editable appearances to every local import format', () => {
     expect(parseGeoJsonText(geoJsonFixture).map(({ appearance }) => appearance)).toEqual([
       { kind: 'poi', color: '#0d78b5', size: 14, markerShape: 'circle', markerSymbol: 'none', label: '', customAssetId: null },
-      { kind: 'route', color: '#d9363e', width: 4, travelMarker: null },
+      { kind: 'route', color: '#d9363e', width: 4, strokeStyle: 'solid', marker: null, segmentStyles: [null] },
       { kind: 'shape', fillColor: '#d18b25', strokeColor: '#d18b25', strokeWidth: 2, invert: false },
     ]);
     expect(parseGpxText(gpxFixture).map(({ appearance }) => appearance)).toEqual([
       { kind: 'poi', color: '#0d78b5', size: 14, markerShape: 'circle', markerSymbol: 'none', label: '', customAssetId: null },
-      { kind: 'route', color: '#d9363e', width: 4, travelMarker: null },
-      { kind: 'route', color: '#d9363e', width: 4, travelMarker: null },
+      { kind: 'route', color: '#d9363e', width: 4, strokeStyle: 'solid', marker: null, segmentStyles: [null] },
+      { kind: 'route', color: '#d9363e', width: 4, strokeStyle: 'solid', marker: null, segmentStyles: [null] },
     ]);
     expect(parseKmlText(kmlFixture).map(({ appearance }) => appearance)).toEqual([
       { kind: 'poi', color: '#0d78b5', size: 14, markerShape: 'circle', markerSymbol: 'none', label: '', customAssetId: null },
-      { kind: 'route', color: '#d9363e', width: 4, travelMarker: null },
+      { kind: 'route', color: '#d9363e', width: 4, strokeStyle: 'solid', marker: null, segmentStyles: [null] },
       { kind: 'shape', fillColor: '#d18b25', strokeColor: '#d18b25', strokeWidth: 2, invert: false },
     ]);
   });
@@ -66,7 +70,7 @@ describe('canonical layer appearance', () => {
   it('maps canonical appearance to live MapLibre paint descriptors', () => {
     const route = mapLayerDescriptors(
       layer('route', {
-        kind: 'route', color: '#112233', width: 8, travelMarker: null,
+        kind: 'route', color: '#112233', width: 8, strokeStyle: 'solid', marker: null, segmentStyles: [null],
       }),
       highlight,
     );
@@ -80,7 +84,7 @@ describe('canonical layer appearance', () => {
       kind: 'shape', fillColor: '#abcdef', strokeColor: '#123456', strokeWidth: 5, invert: false,
     }), highlight);
 
-    expect(route[0].paint).toMatchObject({ 'line-color': '#112233', 'line-width': 8 });
+    expect(route[1].paint).toMatchObject({ 'line-color': ['get', 'color'], 'line-width': ['get', 'width'] });
     expect(poi[0].paint).toMatchObject({ 'circle-color': '#445566', 'circle-radius': 12 });
     expect(shape[0].paint).toMatchObject({ 'fill-color': '#abcdef' });
     expect(shape[2].paint).toMatchObject({ 'line-color': '#123456', 'line-width': 5 });
@@ -89,7 +93,7 @@ describe('canonical layer appearance', () => {
   it('preserves configured feature colors while selection adds non-color emphasis', () => {
     const selected = { selectedId: 'shape', previewedId: null };
     const route = mapLayerDescriptors(layer('route', {
-      kind: 'route', color: '#112233', width: 8, travelMarker: null,
+      kind: 'route', color: '#112233', width: 8, strokeStyle: 'solid', marker: null, segmentStyles: [null],
     }), { selectedId: 'route', previewedId: null });
     const poi = mapLayerDescriptors(layer('poi', {
       kind: 'poi', color: '#445566', size: 24, markerShape: 'circle', markerSymbol: 'none', label: '',
@@ -98,7 +102,8 @@ describe('canonical layer appearance', () => {
       kind: 'shape', fillColor: '#abcdef', strokeColor: '#123456', strokeWidth: 5, invert: false,
     }), selected);
 
-    expect(route[0].paint).toMatchObject({ 'line-color': '#112233', 'line-width': 10 });
+    expect(route[0].paint).toMatchObject({ 'line-color': '#006fc9', 'line-opacity': 1 });
+    expect(route[1].paint).toMatchObject({ 'line-color': ['get', 'color'], 'line-width': ['get', 'width'] });
     expect(poi[0].paint).toMatchObject({ 'circle-color': '#445566', 'circle-radius': 14 });
     expect(shape[0].paint).toMatchObject({ 'fill-color': '#abcdef' });
     expect(shape[1].paint).toMatchObject({ 'line-color': '#006fc9', 'line-opacity': 0 });

@@ -7,6 +7,7 @@ const arcRoute: ContentLayer = {
   id: 'arc',
   name: 'Arc route',
   type: 'route',
+  route: { kind: 'arc', closed: false },
   visible: true,
   locked: false,
   opacity: 100,
@@ -14,7 +15,9 @@ const arcRoute: ContentLayer = {
     kind: 'route',
     color: '#d9363e',
     width: 4,
-    travelMarker: 'air',
+    strokeStyle: 'solid',
+    marker: { pictogram: 'air', placement: { type: 'center' }, orientToPath: true, reverseFacing: false },
+    segmentStyles: [null, null],
   },
   geometry: {
     type: 'Arc',

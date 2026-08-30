@@ -1,5 +1,6 @@
 import { createProjectStore } from '../../src/app/store';
 import { createInitialProjectDocument } from '../../src/domain/project';
+import { routeLayerValidationError } from '../../src/domain/routeModel';
 
 const routeGeometry = (store: ReturnType<typeof createProjectStore>) => (
   store.getState().document.layers.find((layer) => layer.id === 'route-01')?.geometry
@@ -14,6 +15,8 @@ describe('route vertex structure history', () => {
       anchors: [[0, 0], [1, 0], [2, 0]],
       curvatures: [0.2, -0.4],
     };
+    route.route = { kind: 'arc', closed: false };
+    if (route.appearance?.kind === 'route') route.appearance.segmentStyles = [null, null];
     const store = createProjectStore(document);
 
     store.getState().setArcSegmentCurvature('route-01', 0, -0.2);
@@ -23,7 +26,7 @@ describe('route vertex structure history', () => {
     expect(routeGeometry(store)).toMatchObject({ curvatures: [-0.2, -0.2, -0.4] });
     expect(store.getState().past).toHaveLength(2);
     store.getState().removeRouteVertex('route-01', 1);
-    expect(routeGeometry(store)).toMatchObject({ curvatures: [-0.2, -0.4] });
+    expect(routeGeometry(store)).toMatchObject({ curvatures: [0.35, -0.4] });
     expect(store.getState().past).toHaveLength(3);
     store.getState().undo();
     expect(routeGeometry(store)).toMatchObject({ curvatures: [-0.2, -0.2, -0.4] });
@@ -105,6 +108,7 @@ describe('route vertex structure history', () => {
     const document = createInitialProjectDocument();
     const route = document.layers.find((layer) => layer.id === 'route-01')!;
     route.geometry = { type: 'LineString', coordinates: [[179, 0], [-179, 0]] };
+    if (route.appearance?.kind === 'route') route.appearance.segmentStyles = [null];
     const store = createProjectStore(document);
 
     store.getState().insertRouteVertex('route-01', 0);
@@ -125,6 +129,47 @@ describe('route vertex structure history', () => {
 
     expect(store.getState().canUndo).toBe(false);
     expect(routeGeometry(store)).toEqual(route.geometry);
+  });
+
+  it('keeps schema-24 styles and closure canonical across legacy geometry actions', () => {
+    const document = createInitialProjectDocument();
+    const route = document.layers.find((layer) => layer.id === 'route-01')!;
+    route.geometry = {
+      type: 'LineString',
+      coordinates: [[0, 0], [1, 0], [1, 1], [0, 0]],
+    };
+    route.route = { kind: 'straight', closed: true };
+    if (route.appearance?.kind !== 'route') throw new Error('Expected route appearance.');
+    route.appearance.segmentStyles = [{ color: '#123456' }, null, { width: 8 }];
+    const store = createProjectStore(document);
+
+    store.getState().insertRouteVertex('route-01', 2);
+    let updated = store.getState().document.layers.find((layer) => layer.id === 'route-01')!;
+    expect(updated.appearance?.kind === 'route' ? updated.appearance.segmentStyles : []).toEqual([
+      { color: '#123456' },
+      null,
+      { width: 8 },
+      { width: 8 },
+    ]);
+    expect(routeLayerValidationError(updated)).toBeNull();
+
+    store.getState().setRouteVertex('route-01', 0, [-1, 0]);
+    updated = store.getState().document.layers.find((layer) => layer.id === 'route-01')!;
+    expect(updated.geometry).toMatchObject({
+      coordinates: [[-1, 0], [1, 0], [1, 1], [0.5, 0.5], [-1, 0]],
+    });
+    expect(updated.appearance?.kind === 'route' ? updated.appearance.segmentStyles : []).toEqual([
+      null,
+      null,
+      { width: 8 },
+      null,
+    ]);
+    expect(routeLayerValidationError(updated)).toBeNull();
+
+    const historyLength = store.getState().past.length;
+    store.getState().replaceRouteGeometry('route-01', [[0, 0], [1, 0], [1, 0], [0, 0]]);
+    expect(store.getState().past).toHaveLength(historyLength);
+    expect(routeLayerValidationError(updated)).toBeNull();
   });
 
   it.each(['locked', 'hidden'] as const)('rejects every route geometry edit while the route is %s', (state) => {

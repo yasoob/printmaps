@@ -3,9 +3,20 @@ import type { Map as MapLibreMap } from 'maplibre-gl';
 import { createInitialProjectDocument } from '../../src/domain/project';
 import { useTerraDrawRoutes } from '../../src/map/useTerraDrawRoutes';
 
+type MockSessionOptions = {
+  onPreview: (coordinates: [number, number][]) => void;
+};
+
 const metrics = vi.hoisted(() => ({
-  createDraw: vi.fn(() => ({ marker: 'draw' })),
-  createSession: vi.fn(() => ({ destroy: vi.fn(), undo: vi.fn(() => true), updateGeometry: vi.fn(() => true) })),
+  createDraw: vi.fn(() => ({ clear: vi.fn(), marker: 'draw', setMode: vi.fn() })),
+  createSession: vi.fn((options: MockSessionOptions) => {
+    void options;
+    return {
+      destroy: vi.fn(),
+      undo: vi.fn(() => true),
+      updateGeometry: vi.fn(() => true),
+    };
+  }),
 }));
 
 vi.mock('../../src/map/TerraDrawRouteFactory', () => ({ createTerraRouteDraw: metrics.createDraw }));
@@ -59,6 +70,42 @@ describe('Terra Draw route hook', () => {
     expect(metrics.createSession).toHaveBeenCalledWith(expect.objectContaining({ mode: 'draw' }));
     rerender({ undoRequest: 1 });
     expect(session.undo).toHaveBeenCalledOnce();
+  });
+
+  it('synchronizes external semantic draft edits into Terra Draw guidance', async () => {
+    const layers = createInitialProjectDocument().layers;
+    const onPreview = vi.fn();
+    const { rerender } = renderHook(({ points, revision }) =>
+      useTerraDrawRoutes({
+        authoring: {
+          active: true,
+          lineShape: 'straight',
+          onFinish: vi.fn(),
+          onPreview,
+          points,
+          revision,
+          undoRequest: 0,
+        },
+        layers,
+        map,
+        onRouteGeometryChange: vi.fn(),
+        onRoutePreview: vi.fn(),
+        selectedId: null,
+      }), {
+      initialProps: {
+        points: [[0, 0], [1, 1]] as [number, number][],
+        revision: 0,
+      },
+    });
+    await waitFor(() => expect(metrics.createSession).toHaveBeenCalled());
+    const draw = metrics.createDraw.mock.results[0].value;
+
+    rerender({ points: [[0, 0], [2, 2]], revision: 1 });
+
+    expect(draw.clear).toHaveBeenCalledOnce();
+    expect(draw.setMode).toHaveBeenLastCalledWith('linestring');
+    metrics.createSession.mock.calls[0][0].onPreview([[3, 3]]);
+    expect(onPreview).toHaveBeenLastCalledWith([[0, 0], [2, 2], [3, 3]]);
   });
 
   it('announces an activating route-editor load failure', async () => {

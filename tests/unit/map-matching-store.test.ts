@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createProjectStore } from '../../src/app/store';
 import { createInitialProjectDocument } from '../../src/domain/project';
+import { routeLayerValidationError } from '../../src/domain/routeModel';
 
 describe('canonical map-matched routes', () => {
   it('replaces one route as one undoable edit with compact map-matching provenance', () => {
@@ -17,7 +18,7 @@ describe('canonical map-matched routes', () => {
     }, 0);
 
     expect(applied).toBe(true);
-    expect(store.getState().document.schemaVersion).toBe(23);
+    expect(store.getState().document.schemaVersion).toBe(24);
     expect(store.getState().document.layers.find(({ id }) => id === 'route-01')).toMatchObject({
       geometry: { type: 'LineString', coordinates: geometry },
       provenance: {
@@ -49,5 +50,42 @@ describe('canonical map-matched routes', () => {
     expect(apply()).toBe(true);
     store.getState().removeRouteVertex('route-01', 1);
     expect(provenance()).toBeUndefined();
+  });
+
+  it('commits map matching as a strict open Straight route with remapped styles', () => {
+    const document = createInitialProjectDocument();
+    const source = document.layers.find(({ id }) => id === 'route-01')!;
+    if (source.appearance?.kind !== 'route' || source.geometry?.type !== 'LineString') {
+      throw new Error('Expected route fixture.');
+    }
+    source.appearance.segmentStyles[0] = { color: '#123456' };
+    const [first, second] = source.geometry.coordinates;
+    const store = createProjectStore(document);
+
+    expect(store.getState().applyMapMatching('route-01', {
+      geometry: [first, second, [16.5, 48.3]],
+      profile: 'walking',
+      sourcePointCount: 3,
+    }, 0)).toBe(true);
+
+    const matched = store.getState().document.layers.find(({ id }) => id === 'route-01')!;
+    expect(matched.route).toEqual({ kind: 'straight', closed: false });
+    expect(matched.appearance?.kind === 'route' ? matched.appearance.segmentStyles : []).toEqual([
+      { color: '#123456' },
+      null,
+    ]);
+    expect(matched.provenance?.service).toBe('map-matching-v5');
+    expect(routeLayerValidationError(matched)).toBeNull();
+  });
+
+  it('rejects duplicate map-matched positions without changing history', () => {
+    const store = createProjectStore(createInitialProjectDocument());
+
+    expect(store.getState().applyMapMatching('route-01', {
+      geometry: [[0, 0], [1, 1], [0, 0]],
+      profile: 'walking',
+      sourcePointCount: 3,
+    }, 0)).toBe(false);
+    expect(store.getState().canUndo).toBe(false);
   });
 });

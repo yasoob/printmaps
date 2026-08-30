@@ -5,6 +5,7 @@ import type { ShapeEditMode } from '../../../src/map/ShapeVertexEditing';
 import { mapLocationRequestDiagnostic, type MapLocationRequest } from '../../../src/map/MapLocationRequest';
 import { exportMocks } from './exportMocks';
 import type { RouteAuthoring } from '../../../src/map/useTerraDrawRoutes';
+import type { DraftRouteEditing } from '../../../src/map/DraftRouteEditing';
 import type { CameraViewportChangeMode } from '../../../src/map/MapCameraViewport';
 
 type MapCanvasMockProps = {
@@ -21,6 +22,7 @@ type MapCanvasMockProps = {
   onCameraViewportChange?: (center: readonly [number, number], zoom: number, mode: CameraViewportChangeMode) => void;
   onMapClick?: (coordinate: [number, number]) => void;
   routeAuthoring?: RouteAuthoring;
+  routeDraftEditing?: DraftRouteEditing;
   onBackgroundClick: () => void;
   onExporterChange?: (exporter: typeof exportMocks.exporter) => void;
   fitRequest?: number;
@@ -50,6 +52,7 @@ export function MapCanvas({
   onCameraViewportChange,
   onMapClick,
   routeAuthoring,
+  routeDraftEditing,
   onBackgroundClick,
   onExporterChange,
   fitRequest,
@@ -110,6 +113,10 @@ export function MapCanvas({
       <button type="button" onClick={() => onMapClick?.([16.3261, 48.1941])}>Map nearby route anchor</button>
       <button type="button" onClick={() => onMapClick?.([16.37, 48.21])}>Map POI point</button>
       <button type="button" onClick={() => onMapClick?.([16.36, 48.25])}>Map shape point 3</button>
+      <button type="button" onClick={() => {
+        routeDraftEditing?.onMoveBegin();
+        routeDraftEditing?.onMovePreview(0, [16.32, 48.2]);
+      }}>Preview drag route point 1</button>
     </div>
   );
 }

@@ -10,6 +10,7 @@ import {
 } from './NativeMapCamera';
 import { visibleContentLayers } from './MapContentLayerRendering';
 import { registerCustomMarkerImages } from './CustomMarkerMapImages';
+import { registerRoutePictogramImages } from './RoutePictogramMapImages';
 import {
   copyNativeMapCanvas,
 } from './NativeMapTileSupport';
@@ -86,6 +87,7 @@ function waitForNativeMap(
         try {
           const visibleLayers = visibleContentLayers(layers);
           await registerCustomMarkerImages(map, visibleLayers, options.assets);
+          registerRoutePictogramImages(map, visibleLayers);
           for (const layer of visibleLayers) {
             updatePrintLayerPaint(map, layer, options.pixelsPerMillimetre, options.assets);
           }

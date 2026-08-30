@@ -51,7 +51,7 @@ function StudioCanvas({ m }: { m: StudioAppModel }) {
       onRouteVertexInsert={m.project.insertRouteVertex}
       onLocate={m.mapLocation.locate}
       onShapeGeometryChange={m.project.setShapeGeometry}
-      directionsProvider={m.directionsProvider}
+      {...(m.directionsProvider ? { directionsProvider: m.directionsProvider } : {})}
       searchProvider={m.searchProvider ?? defaultSearchProvider}
       onCreateDirectionsRoute={m.project.createDirectionsRoute}
       onReplaceDirectionsRoute={m.project.replaceDirectionsRoute}
@@ -62,6 +62,7 @@ function StudioCanvas({ m }: { m: StudioAppModel }) {
       onCreateSearchPoi={m.project.createSearchPoi}
       onCreateRoute={m.project.createRoute}
       onReplaceAuthoredRoute={m.project.replaceAuthoredRoute}
+      onReplaceRouteDraft={m.project.replaceRouteDraft}
       routeExtensionRequest={m.routeExtensionRequest}
       onCreateShape={m.project.createShape}
       onAuthoringChange={m.handleAuthoringChange}
@@ -88,6 +89,7 @@ function StudioProperties({ m }: { m: StudioAppModel }) {
         isSelectedDirectionsEdit && m.directionsRouteEditing.isRouting
       }
       directionsRouteEditWaypoints={pendingWaypoints}
+      directionsProvider={m.directionsProvider}
       mapMatchingProvider={m.mapMatchingProvider}
       activePanel={m.modal.mobilePanel}
       panelRef={m.mobile.propertiesPanelRef}

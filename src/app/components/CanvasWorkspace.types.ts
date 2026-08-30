@@ -72,6 +72,7 @@ export type CanvasWorkspaceProps = {
   onCreateAdministrativeArea: (area: AdministrativeArea) => string | null;
   onCreateDirectionsRoute: CreateDirectionsRoute;
   onReplaceDirectionsRoute: ProjectState["replaceDirectionsRoute"];
+  onReplaceRouteDraft: ProjectState["replaceRouteDraft"];
   directionsProvider?: DirectionsProvider;
   searchProvider?: SearchProvider;
   onCreateIsochroneArea: (

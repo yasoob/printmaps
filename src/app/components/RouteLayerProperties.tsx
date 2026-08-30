@@ -9,13 +9,32 @@ import { semanticRoutePositions } from "../../domain/routeGeometry";
 import {
   ROUTE_TRAVEL_MARKERS,
   ROUTE_TRAVEL_MARKER_LABELS,
+  markerAppearanceFor,
   type RouteTravelMarker,
 } from "../../domain/routeProfiles";
-import type { MapMatchingProvider } from "../../services/mapbox/contracts";
+import type {
+  DirectionsProvider,
+  MapMatchingProvider,
+} from "../../services/mapbox/contracts";
+import type { ProjectState } from "../store";
 import { InputGroup, InputGroupAddon, InputNumber } from "./InputGroup";
 import { PropertyRow, PropertySection } from "./PropertyControls";
 import { RouteAdvancedProperties } from "./RouteAdvancedProperties";
 import type { RouteExtensionEndpoint } from "./routeAuthoringActions";
+
+function markerForPictogram(
+  appearance: RouteAppearance,
+  pictogram: string,
+) {
+  if (pictogram === "none") return null;
+  if (appearance.marker) {
+    return {
+      ...appearance.marker,
+      pictogram: pictogram as RouteTravelMarker,
+    };
+  }
+  return markerAppearanceFor(pictogram as RouteTravelMarker);
+}
 
 function RouteAppearanceControls({
   appearance,
@@ -91,19 +110,32 @@ function RouteAppearanceControls({
           </InputGroupAddon>
         </InputGroup>
       </PropertyRow>
-      <PropertyRow label="Travel marker">
+      <PropertyRow label="Line">
         <select
-          aria-label="Route travel marker"
-          value={appearance.travelMarker ?? "none"}
+          aria-label="Route line style"
+          value={appearance.strokeStyle}
           onChange={(event) =>
             onChange({
               ...appearance,
-              travelMarker:
-                event.target.value === "none"
-                  ? null
-                  : (event.target.value as RouteTravelMarker),
+              strokeStyle: event.currentTarget.value as "solid" | "dashed",
             })
           }
+        >
+          <option value="solid">Solid</option>
+          <option value="dashed">Dashed</option>
+        </select>
+      </PropertyRow>
+      <PropertyRow label="Travel marker">
+        <select
+          aria-label="Route travel marker"
+          value={appearance.marker?.pictogram ?? "none"}
+          onChange={(event) => {
+            const pictogram = event.currentTarget.value;
+            onChange({
+              ...appearance,
+              marker: markerForPictogram(appearance, pictogram),
+            });
+          }}
         >
           <option value="none">None</option>
           {ROUTE_TRAVEL_MARKERS.map((marker) => (
@@ -119,6 +151,7 @@ function RouteAppearanceControls({
 
 export type RouteLayerPropertiesProps = {
   documentEpoch?: number;
+  directionsProvider?: DirectionsProvider;
   layer: ContentLayer;
   mapMatchingProvider?: MapMatchingProvider;
   onApplyMapMatching?: (
@@ -142,6 +175,7 @@ export type RouteLayerPropertiesProps = {
   directionsRouteEditWaypoints?: readonly (readonly [number, number])[] | null;
   onRetryDirectionsRouteEdit?: () => void;
   onCancelDirectionsRouteEdit?: () => void;
+  onTransformRoute?: ProjectState["transformRoute"];
 };
 
 function RouteExtensionControls({

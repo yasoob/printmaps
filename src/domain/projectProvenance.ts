@@ -2,6 +2,7 @@ import type {
   DirectionsProvenance,
   GeocodingProvenance,
   IsochroneProvenance,
+  LayerGeometry,
   LayerType,
   MapMatchingProvenance,
   ProviderProvenance,
@@ -11,6 +12,19 @@ import { ProjectFileError } from './projectFileError';
 
 type JsonObject = Record<string, unknown>;
 const PROFILES = new Set<IsochroneProvenance['profile']>(['driving', 'cycling', 'walking']);
+
+export function validateProviderGeometry(
+  provenance: ProviderProvenance | undefined,
+  geometry: LayerGeometry | undefined,
+  fail: (message: string) => never,
+) {
+  if (provenance?.service === 'directions-v5' && geometry?.type !== 'LineString') {
+    fail('Directions provenance requires LineString route geometry.');
+  }
+  if (provenance?.service === 'map-matching-v5' && geometry?.type !== 'LineString') {
+    fail('Map-matching provenance requires LineString route geometry.');
+  }
+}
 
 function objectAt(value: unknown, label: string): JsonObject {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
@@ -75,12 +89,8 @@ function parseDirectionsProvenance(
     `Layer ${index + 1} provenance waypoints`,
     coordinateCount,
   );
-  if (waypointGeometry.type !== 'LineString') {
-    throw new ProjectFileError(`Layer ${index + 1} provenance needs 2 to 25 distinct waypoints.`);
-  }
-  const distinct = new Set(waypointGeometry.coordinates.map((position) => `${position[0]},${position[1]}`));
-  if (waypointGeometry.coordinates.length > 25 || distinct.size !== waypointGeometry.coordinates.length) {
-    throw new ProjectFileError(`Layer ${index + 1} provenance needs 2 to 25 distinct waypoints.`);
+  if (waypointGeometry.type !== 'LineString' || waypointGeometry.coordinates.length > 26) {
+    throw new ProjectFileError(`Layer ${index + 1} provenance needs 2 to 25 semantic waypoints, plus an optional canonical closing waypoint.`);
   }
   const distanceMeters = finiteNumber(provenance.distanceMeters, `Layer ${index + 1} provenance distance`);
   const durationSeconds = finiteNumber(provenance.durationSeconds, `Layer ${index + 1} provenance duration`);

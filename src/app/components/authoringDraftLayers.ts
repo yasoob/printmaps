@@ -1,7 +1,9 @@
 import { createArcGeometry } from "../../domain/routeArcGeometry";
 import type { ContentLayer } from "../../domain/project";
+import type { DirectionsRouteInput } from "../../domain/project";
 import {
   buildRouteCoordinates,
+  markerAppearanceFor,
   type RouteAuthoringOptions,
 } from "../../domain/routeProfiles";
 
@@ -55,13 +57,48 @@ export function createIsochroneCenterLayer(
   ];
 }
 
+function routeDraftCoordinates(
+  routePoints: [number, number][],
+  options: RouteAuthoringOptions,
+  roadPreview: DirectionsRouteInput | null,
+) {
+  if (roadPreview) return roadPreview.geometry;
+  const lineShape = options.lineShape === "road" ? "straight" : options.lineShape;
+  return buildRouteCoordinates(routePoints, lineShape);
+}
+
+function routeDraftGeometry(
+  coordinates: [number, number][],
+  lineShape: RouteAuthoringOptions["lineShape"],
+) {
+  if (lineShape !== "arc") {
+    return { type: "LineString" as const, coordinates };
+  }
+  return createArcGeometry(coordinates);
+}
+
+function routeDraftKind(
+  lineShape: RouteAuthoringOptions["lineShape"],
+  hasRoadPreview: boolean,
+) {
+  if (hasRoadPreview) return "road" as const;
+  return lineShape === "road" ? "straight" as const : lineShape;
+}
+
 export function createRouteDraftLayers(
   routePoints: [number, number][],
   projectLayers: ContentLayer[],
   options: RouteAuthoringOptions,
+  draftOptions: {
+    isClosed?: boolean;
+    roadPreview?: DirectionsRouteInput | null;
+  } = {},
 ): ContentLayer[] {
+  const isClosed = draftOptions.isClosed ?? false;
+  const roadPreview = draftOptions.roadPreview ?? null;
   const uniqueId = uniqueLayerId(projectLayers);
-  const pointLayers: ContentLayer[] = routePoints.map((coordinates, index) => ({
+  const editablePoints = isClosed ? routePoints.slice(0, -1) : routePoints;
+  const pointLayers: ContentLayer[] = editablePoints.map((coordinates, index) => ({
     id: uniqueId(`route-draft-point-${index + 1}`),
     name: `Route point ${index + 1}`,
     type: "poi",
@@ -71,12 +108,9 @@ export function createRouteDraftLayers(
     geometry: { type: "Point", coordinates },
   }));
   if (routePoints.length < 2) return pointLayers;
-  const coordinates = buildRouteCoordinates(routePoints, options.lineShape);
+  const coordinates = routeDraftCoordinates(routePoints, options, roadPreview);
   if (coordinates.length < 2) return pointLayers;
-  const geometry =
-    options.lineShape === "arc"
-      ? createArcGeometry(coordinates)
-      : { type: "LineString" as const, coordinates };
+  const geometry = routeDraftGeometry(coordinates, options.lineShape);
   if (!geometry) return pointLayers;
   return [
     ...pointLayers,
@@ -84,6 +118,10 @@ export function createRouteDraftLayers(
       id: uniqueId("route-draft"),
       name: "Route draft",
       type: "route",
+      route: {
+        kind: routeDraftKind(options.lineShape, roadPreview !== null),
+        closed: isClosed,
+      },
       visible: true,
       locked: true,
       opacity: 100,
@@ -91,9 +129,23 @@ export function createRouteDraftLayers(
         kind: "route",
         color: "#d9363e",
         width: 4,
-        travelMarker: options.travelMarker,
+        strokeStyle: "solid",
+        marker: markerAppearanceFor(options.travelMarker),
+        segmentStyles: Array.from({ length: routePoints.length - 1 }, () => null),
       },
       geometry,
+      ...(roadPreview && {
+        provenance: {
+          provider: "mapbox" as const,
+          service: "directions-v5" as const,
+          waypoints: roadPreview.waypoints.map(
+            ([longitude, latitude]) => [longitude, latitude] as [number, number],
+          ),
+          profile: roadPreview.profile,
+          distanceMeters: roadPreview.distanceMeters,
+          durationSeconds: roadPreview.durationSeconds,
+        },
+      }),
     },
   ];
 }
@@ -120,9 +172,18 @@ export function createShapeDraftLayers(
         id: uniqueId("shape-draft-outline"),
         name: "Shape draft outline",
         type: "route",
+        route: { kind: "straight", closed: false },
         visible: true,
         locked: true,
         opacity: 100,
+        appearance: {
+          kind: "route",
+          color: "#d9363e",
+          width: 4,
+          strokeStyle: "solid",
+          marker: null,
+          segmentStyles: Array.from({ length: shapePoints.length - 1 }, () => null),
+        },
         geometry: { type: "LineString", coordinates: shapePoints },
       },
     ];

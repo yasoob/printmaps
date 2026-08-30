@@ -14,6 +14,9 @@ import {
   type PagePreset,
   type ProjectDocument,
   type SearchPoiInput,
+  type RouteKind,
+  type RouteMarkerAppearance,
+  type RouteSegmentStyleOverride,
 } from "../domain/project";
 import type {
   RouteAuthoringOptions,
@@ -45,6 +48,29 @@ export type ReplaceDirectionsRouteRequest = {
   selectRoute?: boolean;
 };
 
+export type RouteTransformOperation =
+  | { type: "convert"; targetKind: RouteKind }
+  | { type: "reverse" }
+  | { type: "close" }
+  | { type: "open" };
+
+export type TransformRouteRequest = {
+  id: string;
+  operation: RouteTransformOperation;
+  expectedDocumentEpoch: number;
+  expectedLayer: ContentLayer;
+  road?: DirectionsRouteInput;
+};
+
+export type ReplaceRouteDraftRequest = {
+  id: string;
+  points: readonly (readonly [number, number])[];
+  expectedDocumentEpoch: number;
+  expectedLayer: ContentLayer;
+  road?: DirectionsRouteInput;
+  travelMarker: RouteTravelMarker | null;
+};
+
 export type ProjectState = {
   document: ProjectDocument;
   documentEpoch: number;
@@ -71,6 +97,8 @@ export type ProjectState = {
   replaceDirectionsRoute: (
     request: ReplaceDirectionsRouteRequest,
   ) => RouteMutationResult;
+  replaceRouteDraft: (request: ReplaceRouteDraftRequest) => RouteMutationResult;
+  transformRoute: (request: TransformRouteRequest) => RouteMutationResult;
   createPoi: (coordinates: readonly [number, number]) => void;
   createPoiBatch: (
     entries: readonly PoiSpreadsheetEntry[],
@@ -127,6 +155,12 @@ export type ProjectState = {
   setPageOrientation: (orientation: PageOrientation) => void;
   setPagePreset: (preset: PagePreset) => void;
   setLayerAppearance: (id: string, appearance: LayerAppearance) => void;
+  setRouteMarker: (id: string, marker: RouteMarkerAppearance | null) => void;
+  setRouteSegmentStyle: (
+    id: string,
+    segmentIndex: number,
+    style: RouteSegmentStyleOverride | null,
+  ) => void;
   setPoiCoordinates: (
     id: string,
     coordinates: readonly [number, number],

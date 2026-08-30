@@ -26,11 +26,7 @@ const rect = (left: number, top: number, width: number, height: number): DOMRect
   toJSON: () => ({}),
 });
 
-const hiddenCustomAsset: CustomMarkerAsset = {
-  id: `sha256-${'a'.repeat(64)}`,
-  mimeType: 'image/svg+xml', width: 100, height: 100,
-  dataUri: 'data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHBhdGggZD0iTTAgMCIvPjwvc3ZnPg==',
-};
+const hiddenCustomAsset: CustomMarkerAsset = { id: `sha256-${'a'.repeat(64)}`, mimeType: 'image/svg+xml', width: 100, height: 100, dataUri: 'data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHBhdGggZD0iTTAgMCIvPjwvc3ZnPg==' };
 const hiddenCustomPoi: ContentLayer = {
   id: 'hidden-custom-poi', name: 'Hidden custom POI', type: 'poi', visible: false, locked: false, opacity: 100,
   appearance: {
@@ -110,8 +106,7 @@ describe('native map export camera', () => {
     renderedCanvas.width = 1000;
     renderedCanvas.height = 500;
     const handlers = new Map<string, (event?: unknown) => void>();
-    const remove = vi.fn();
-    const setPaintProperty = vi.fn();
+    const { hasImage, remove, setPaintProperty } = { hasImage: vi.fn(() => true), remove: vi.fn(), setPaintProperty: vi.fn() };
     const temporaryMap = {
       getBearing: () => 25,
       getCanvas: () => renderedCanvas,
@@ -124,6 +119,8 @@ describe('native map export camera', () => {
         if (event === 'load' || event === 'idle') queueMicrotask(callback);
       },
       remove,
+      hasImage,
+      addImage: vi.fn(),
       setPaintProperty,
       triggerRepaint: vi.fn(),
     } as unknown as MapLibreMap;
@@ -146,11 +143,17 @@ describe('native map export camera', () => {
         id: 'route-01',
         name: 'Route 01',
         type: 'route',
+        route: { kind: 'straight', closed: false },
         visible: true,
         locked: false,
         opacity: 100,
         appearance: {
-          kind: 'route', color: '#d9363e', width: 4, travelMarker: 'air',
+          kind: 'route',
+          color: '#d9363e',
+          width: 4,
+          strokeStyle: 'solid',
+          marker: { pictogram: 'air', placement: { type: 'center' }, orientToPath: true, reverseFacing: false },
+          segmentStyles: [null],
         },
         geometry: { type: 'LineString', coordinates: [[16.3, 48.2], [16.4, 48.3]] },
       }, hiddenCustomPoi],
@@ -175,19 +178,23 @@ describe('native map export camera', () => {
     expect(temporaryContainer?.dataset.nativeExportRegion).toBe('1000,500,1000,500/4000x2000');
     expect(temporaryContainer?.isConnected).toBe(false);
     expect(drawImage).toHaveBeenCalledWith(renderedCanvas, 0, 0);
+    expect(hasImage).toHaveBeenCalledWith('studio-route-pictogram-air-d9363e');
     expect(setPaintProperty).toHaveBeenCalledWith(
-      'studio-layer-8:route-01:main',
+      'studio-layer-8:route-01:solid',
       'line-width',
-      6,
+      ['*', ['get', 'width'], 1.5],
     );
     expect(setPaintProperty).toHaveBeenCalledWith(
       'studio-layer-8:route-01:travel-mode',
-      'text-halo-width',
-      20,
+      'icon-opacity',
+      1,
     );
     expect(remove).toHaveBeenCalledOnce();
   });
 
+});
+
+describe('native map export camera validation', () => {
   it('fails closed when MapLibre clamps the requested print camera', async () => {
     const sourceCanvas = document.createElement('canvas');
     sourceCanvas.getBoundingClientRect = () => rect(0, 0, 800, 600);

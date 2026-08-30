@@ -1,10 +1,15 @@
 import {
   createDefaultLayerAppearance,
+  createDefaultRouteAppearance,
   MAX_MERCATOR_LATITUDE,
   type ContentLayer,
   type LayerGeometry,
   type LayerType,
 } from '../domain/project';
+import {
+  arePositionsEqual,
+  routePointValidationError,
+} from '../domain/routeModel';
 
 export const MAX_GEOJSON_FILE_BYTES = 5 * 1024 * 1024;
 export const MAX_GEOJSON_FEATURES = 1000;
@@ -172,6 +177,26 @@ function validateFeatureId(feature: JsonObject, featureLabel: string): void {
   }
 }
 
+function validateImportedRoute(geometry: LayerGeometry, featureLabel: string) {
+  if (geometry.type !== 'LineString') return;
+  const closed = arePositionsEqual(geometry.coordinates[0], geometry.coordinates.at(-1)!);
+  const error = routePointValidationError(geometry.coordinates, { kind: 'straight', closed });
+  if (error) throw new GeoJsonImportError(`${featureLabel}: ${error}`);
+}
+
+function importedLayerPresentation(geometry: LayerGeometry, type: LayerType) {
+  if (geometry.type !== 'LineString') {
+    return { appearance: createDefaultLayerAppearance(type) };
+  }
+  return {
+    route: {
+      kind: 'straight' as const,
+      closed: arePositionsEqual(geometry.coordinates[0], geometry.coordinates.at(-1)!),
+    },
+    appearance: createDefaultRouteAppearance(geometry.coordinates.length - 1),
+  };
+}
+
 function featureAt(
   candidate: unknown,
   index: number,
@@ -186,6 +211,7 @@ function featureAt(
     ? {}
     : objectAt(feature.properties, `${featureLabel} properties`);
   const geometry = geometryAt(feature.geometry, featureLabel, coordinateCount);
+  validateImportedRoute(geometry, featureLabel);
   const fallback = `${geometry.type === 'LineString' ? 'Line' : geometry.type} ${index + 1}`;
   const name = sanitizeName(properties.name, fallback);
   const idSeed = typeof feature.id === 'string' || typeof feature.id === 'number'
@@ -204,10 +230,10 @@ function featureAt(
     id,
     name,
     type,
+    ...importedLayerPresentation(geometry, type),
     visible: true,
     locked: false,
     opacity: 100,
-    appearance: createDefaultLayerAppearance(type),
     geometry,
   };
 }

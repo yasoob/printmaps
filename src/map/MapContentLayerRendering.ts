@@ -2,7 +2,6 @@ import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { ContentLayer, PoiAppearance } from '../domain/project';
 import type { CustomMarkerAsset } from '../domain/customMarkerAssets';
 import { POI_MARKER_SYMBOL_GLYPHS } from '../domain/poiMarkers';
-import { ROUTE_TRAVEL_MARKER_GLYPHS } from '../domain/routeProfiles';
 import { addMapContentSource, mapContentSourceId, mapGeometryForLayer } from './MapContentGeometry';
 import { customMarkerImageId, encodedContentId, mapContentLayerId } from './MapContentLayerIds';
 import { shapeLayerDescriptors } from './MapShapeLayerRendering';
@@ -28,7 +27,9 @@ const ROUTE_APPEARANCE = {
   kind: 'route',
   color: '#d9363e',
   width: 4,
-  travelMarker: null,
+  strokeStyle: 'solid',
+  marker: null,
+  segmentStyles: [],
 } as const;
 const POI_APPEARANCE = {
   kind: 'poi',
@@ -54,7 +55,7 @@ export const visibleContentLayers = (layers: ContentLayer[]) => (
 export const contentStructure = (layers: ContentLayer[]) => layers
   .map((layer) => {
     const routeMarker = layer.appearance?.kind === 'route'
-      ? `:${layer.appearance.travelMarker ?? 'none'}`
+      ? `:${JSON.stringify(layer.appearance)}`
       : '';
     const poiMarker = layer.appearance?.kind === 'poi'
       ? `:${layer.appearance.markerShape}:${layer.appearance.markerSymbol}:${layer.appearance.label}:${layer.appearance.size}:${layer.appearance.customAssetId ?? ''}`
@@ -66,36 +67,49 @@ export const contentStructure = (layers: ContentLayer[]) => layers
 
 const routeLayerDescriptor = (layer: ContentLayer, isHighlighted: boolean) => {
   const appearance = layer.appearance?.kind === 'route' ? layer.appearance : ROUTE_APPEARANCE;
-  const line = {
-    id: mapContentLayerId(layer.id),
+  const segmentFilter = ['==', ['get', 'featureKind'], 'segment'];
+  const casing: MapLayerDescriptor = {
+    id: mapContentLayerId(layer.id, 'casing'),
     type: 'line' as const,
+    filter: segmentFilter,
     paint: {
-      'line-color': appearance.color,
-      'line-opacity': layer.opacity / 100,
-      'line-width': isHighlighted ? appearance.width + 2 : appearance.width,
+      'line-color': HIGHLIGHT_COLOR,
+      'line-opacity': isHighlighted ? layer.opacity / 100 : 0,
+      'line-width': ['+', ['get', 'width'], 4] as PaintValue,
     },
     layout: { 'line-cap': 'round' as const, 'line-join': 'round' as const },
   };
-  if (!appearance.travelMarker) return [line];
-  const marker = {
+  const line = (strokeStyle: 'solid' | 'dashed'): MapLayerDescriptor => ({
+    id: mapContentLayerId(layer.id, strokeStyle),
+    type: 'line' as const,
+    filter: ['all', segmentFilter, ['==', ['get', 'strokeStyle'], strokeStyle]],
+    paint: {
+      'line-color': ['get', 'color'] as PaintValue,
+      'line-opacity': layer.opacity / 100,
+      'line-width': ['get', 'width'] as PaintValue,
+      ...(strokeStyle === 'dashed' && { 'line-dasharray': [2, 1.5] }),
+    },
+    layout: { 'line-cap': 'round' as const, 'line-join': 'round' as const },
+  });
+  if (!appearance.marker) return [casing, line('solid'), line('dashed')];
+  const marker: MapLayerDescriptor = {
     id: mapContentLayerId(layer.id, 'travel-mode'),
     type: 'symbol' as const,
+    hitTest: false,
+    filter: ['==', ['get', 'featureKind'], 'marker'],
     layout: {
-      'symbol-placement': 'line-center' as const,
-      'text-field': ROUTE_TRAVEL_MARKER_GLYPHS[appearance.travelMarker],
-      'text-font': ['Noto Sans Regular'],
-      'text-size': 11,
-      'text-allow-overlap': true,
-      'text-ignore-placement': true,
+      'icon-image': ['get', 'iconImage'],
+      'icon-size': 1,
+      'icon-rotate': ['get', 'bearing'],
+      'icon-rotation-alignment': 'map',
+      'icon-allow-overlap': true,
+      'icon-ignore-placement': true,
     },
     paint: {
-      'text-color': '#ffffff',
-      'text-opacity': layer.opacity / 100,
-      'text-halo-color': isHighlighted ? HIGHLIGHT_COLOR : appearance.color,
-      'text-halo-width': 4,
+      'icon-opacity': layer.opacity / 100,
     },
   };
-  return [line, marker];
+  return [casing, line('solid'), line('dashed'), marker];
 };
 
 function customPoiMarkerDescriptor(layer: ContentLayer, appearance: PoiAppearance, asset: CustomMarkerAsset): MapLayerDescriptor {
@@ -207,6 +221,7 @@ export type MapLayerDescriptor = {
   type: 'circle' | 'fill' | 'line' | 'symbol';
   hitTest?: boolean;
   sourceRole?: 'outline';
+  filter?: unknown[];
   layout?: Record<string, unknown>;
   paint: Record<string, PaintValue>;
 };

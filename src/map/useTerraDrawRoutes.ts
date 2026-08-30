@@ -42,6 +42,8 @@ export type RouteAuthoring = {
   onError?: (message: string | null) => void;
   onFinish: (coordinates: [number, number][]) => void;
   onPreview: (coordinates: [number, number][]) => void;
+  points?: readonly (readonly [number, number])[];
+  revision?: number;
   undoRequest: number;
 };
 
@@ -65,7 +67,9 @@ type RouteCallbacks = {
   onRoutePreview: TerraDrawRoutesOptions['onRoutePreview'];
 };
 
-type RouteSession = ReturnType<typeof createTerraRouteSession>;
+type RouteSession = ReturnType<typeof createTerraRouteSession> & {
+  resetAuthoring?: (points: readonly (readonly [number, number])[]) => void;
+};
 type EditableRoute = ContentLayer;
 
 function editableRouteFor(options: TerraDrawRoutesOptions): EditableRoute | null {
@@ -109,13 +113,27 @@ function useLatestCallbacks(options: TerraDrawRoutesOptions) {
 function createAuthoringSession(
   draw: ReturnType<typeof createTerraRouteDraw>,
   callbacks: RefObject<RouteCallbacks>,
+  initialPoints: readonly (readonly [number, number])[],
 ): RouteSession {
-  return createTerraRouteSession({
+  let basePoints = initialPoints.map(([longitude, latitude]) => [longitude, latitude] as [number, number]);
+  const withBasePoints = (coordinates: [number, number][]) => [
+    ...basePoints.map(([longitude, latitude]) => [longitude, latitude] as [number, number]),
+    ...coordinates,
+  ];
+  const session = createTerraRouteSession({
     draw,
     mode: 'draw',
-    onFinish: (coordinates) => callbacks.current.authoringFinish?.(coordinates),
-    onPreview: (coordinates) => callbacks.current.authoringPreview?.(coordinates),
+    onFinish: (coordinates) => callbacks.current.authoringFinish?.(withBasePoints(coordinates)),
+    onPreview: (coordinates) => callbacks.current.authoringPreview?.(withBasePoints(coordinates)),
   });
+  return {
+    ...session,
+    resetAuthoring: (points) => {
+      basePoints = points.map(([longitude, latitude]) => [longitude, latitude]);
+      draw.clear();
+      draw.setMode('linestring');
+    },
+  };
 }
 
 function createEditingSession(
@@ -137,18 +155,35 @@ function createEditingSession(
   });
 }
 
-function sessionFor(
-  draw: ReturnType<typeof createTerraRouteDraw>,
-  isAuthoring: boolean,
-  editableRoute: EditableRoute | null,
-  callbacks: RefObject<RouteCallbacks>,
-) {
-  if (isAuthoring) return createAuthoringSession(draw, callbacks);
+function sessionFor(options: {
+  authoringPoints: readonly (readonly [number, number])[];
+  callbacks: RefObject<RouteCallbacks>;
+  draw: ReturnType<typeof createTerraRouteDraw>;
+  editableRoute: EditableRoute | null;
+  isAuthoring: boolean;
+}) {
+  const { authoringPoints, callbacks, draw, editableRoute, isAuthoring } = options;
+  if (isAuthoring) return createAuthoringSession(draw, callbacks, authoringPoints);
   if (editableRoute) return createEditingSession(draw, editableRoute, callbacks);
   return null;
 }
 
-function useRouteSession(options: TerraDrawRoutesOptions, callbacks: RefObject<RouteCallbacks>) {
+function reportRouteEditorLoadError(
+  callbacks: RefObject<RouteCallbacks>,
+  isAuthoring: boolean,
+) {
+  if (isAuthoring) {
+    callbacks.current.authoringError?.('The route editor could not be loaded. Close the Route tool and try again.');
+    return;
+  }
+  callbacks.current.editorError?.('The route editor could not be loaded. Select another layer, then select this route to try again.');
+}
+
+function useRouteSession(
+  options: TerraDrawRoutesOptions,
+  callbacks: RefObject<RouteCallbacks>,
+  authoringPoints: RefObject<readonly (readonly [number, number])[] | undefined>,
+) {
   const session = useRef<RouteSession | null>(null);
   const isAuthoring = options.authoring?.active === true;
   const editableRoute = editableRouteFor(options);
@@ -169,16 +204,18 @@ function useRouteSession(options: TerraDrawRoutesOptions, callbacks: RefObject<R
       try {
         const loaded = await (options.loadRouteEditor ?? loadTerraRouteDraw)();
         if (isCancelled) return;
-        owned = sessionFor(loaded.createTerraRouteDraw(map, lineShape, isAuthoring), isAuthoring, editableRoute, callbacks);
+        owned = sessionFor({
+          authoringPoints: authoringPoints.current ?? [],
+          callbacks,
+          draw: loaded.createTerraRouteDraw(map, lineShape, isAuthoring),
+          editableRoute,
+          isAuthoring,
+        });
         session.current = owned;
         if (isAuthoring) callbacks.current.authoringError?.(null);
         else callbacks.current.editorError?.(null);
       } catch {
-        if (!isCancelled && isAuthoring) {
-          callbacks.current.authoringError?.('The route editor could not be loaded. Close the Route tool and try again.');
-        } else if (!isCancelled) {
-          callbacks.current.editorError?.('The route editor could not be loaded. Select another layer, then select this route to try again.');
-        }
+        if (!isCancelled) reportRouteEditorLoadError(callbacks, isAuthoring);
       }
     })();
     return () => {
@@ -189,14 +226,18 @@ function useRouteSession(options: TerraDrawRoutesOptions, callbacks: RefObject<R
       if (session.current === owned) session.current = null;
       if (editableRoute) onRoutePreview(editableRoute.id, null);
     };
-  }, [callbacks, editableRoute, isAuthoring, lineShape, map, options.loadRouteEditor]);
+  }, [authoringPoints, callbacks, editableRoute, isAuthoring, lineShape, map, options.loadRouteEditor]);
 
   return { isAuthoring, session };
 }
 
 export function useTerraDrawRoutes(options: TerraDrawRoutesOptions) {
   const callbacks = useLatestCallbacks(options);
-  const { isAuthoring, session } = useRouteSession(options, callbacks);
+  const authoringPoints = useRef(options.authoring?.points);
+  useLayoutEffect(() => {
+    authoringPoints.current = options.authoring?.points;
+  }, [options.authoring?.points]);
+  const { isAuthoring, session } = useRouteSession(options, callbacks, authoringPoints);
   const lastUndoRequest = useRef(options.authoring?.undoRequest ?? 0);
 
   useEffect(() => {
@@ -205,6 +246,15 @@ export function useTerraDrawRoutes(options: TerraDrawRoutesOptions) {
     lastUndoRequest.current = undoRequest;
     session.current?.undo();
   }, [isAuthoring, options.authoring?.undoRequest, session]);
+
+  useEffect(() => {
+    if (!isAuthoring || options.authoring?.revision === undefined) return;
+    session.current?.resetAuthoring?.(authoringPoints.current ?? []);
+  }, [
+    isAuthoring,
+    options.authoring?.revision,
+    session,
+  ]);
 
   const updateEditingGeometry = useCallback((coordinates: [number, number][]) => (
     session.current?.updateGeometry(coordinates) ?? false

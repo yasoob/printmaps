@@ -80,6 +80,7 @@ test('content appearance edits update the live map, history, and layered SVG', a
   await page.getByLabel('Route color').fill('#112233');
   await page.getByRole('spinbutton', { name: 'Route width' }).fill('8');
   await page.getByRole('spinbutton', { name: 'Route width' }).press('Tab');
+  await page.getByRole('combobox', { name: 'Route travel marker' }).selectOption('car');
 
   await page.getByRole('button', { name: 'Select Coffee stop' }).click();
   await page.getByLabel('POI color').fill('#445566');

@@ -37,8 +37,13 @@ function validateRequest(request: DirectionsRequest) {
       || !isValidPosition(position[0], position[1]))) {
     throw new MapboxProviderError('REQUEST_INVALID', 'Choose valid route points and a supported travel mode.');
   }
-  const distinctWaypoints = new Set(request.waypoints.map(([longitude, latitude]) => `${longitude},${latitude}`));
-  if (distinctWaypoints.size !== request.waypoints.length) {
+  const waypointKeys = request.waypoints.map(
+    ([longitude, latitude]) => `${longitude},${latitude}`,
+  );
+  const isCanonicalLoop = waypointKeys.length >= 4
+    && waypointKeys[0] === waypointKeys.at(-1)
+    && new Set(waypointKeys.slice(0, -1)).size === waypointKeys.length - 1;
+  if (!isCanonicalLoop && new Set(waypointKeys).size !== waypointKeys.length) {
     throw new MapboxProviderError('REQUEST_INVALID', 'Choose distinct route points.');
   }
 }

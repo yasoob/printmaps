@@ -78,6 +78,8 @@ describe('layered SVG print scene', () => {
   it('exports the same canonical Arc samples used by the map', () => {
     const project = createInitialProjectDocument();
     project.layers[0].geometry = { type: 'Arc', anchors: [[16.326, 48.194], [16.429, 48.226]], curvatures: [0.35] };
+    project.layers[0].route = { kind: 'arc', closed: false };
+    if (project.layers[0].appearance?.kind === 'route') project.layers[0].appearance.segmentStyles = [null];
 
     const svgDocument = parseSvg(serializePrintScene(project, {
       basemap: { dataUri: onePixelPng, pixelWidth: 1, pixelHeight: 1 },
@@ -139,7 +141,7 @@ describe('layered SVG print scene', () => {
     project.layers[0].visible = false;
     project.layers[0].opacity = 37;
     project.layers[0].appearance = {
-      kind: 'route', color: '#010203', width: 8, travelMarker: null,
+      kind: 'route', color: '#010203', width: 8, strokeStyle: 'solid', marker: null, segmentStyles: [null, null, null],
     };
     project.layers[1].appearance = { kind: 'poi', color: '#abcdef', size: 21, markerShape: 'circle', markerSymbol: 'none', label: '' };
     project.layers[2].appearance = {
@@ -164,7 +166,11 @@ describe('layered SVG print scene', () => {
     const routePath = requiredElement(route, ':scope > path');
     expect(routePath.getAttribute('stroke')).toBe('#010203');
     expect(routePath.getAttribute('stroke-width')).toBe('2.4');
-    expect(routePath.getAttribute('d')).toBe('M 26 106 L 53 95 L 91 85 L 129 74');
+    expect([...route.querySelectorAll(':scope > path')].map((path) => path.getAttribute('d'))).toEqual([
+      'M 26 106 L 53 95',
+      'M 53 95 L 91 85',
+      'M 91 85 L 129 74',
+    ]);
     expect(poi.getAttribute('fill')).toBe('#abcdef');
     expect(poi.getAttribute('r')).toBe('3');
     expect(shape.getAttribute('fill')).toBe('#112233');
@@ -233,7 +239,9 @@ describe('layered SVG print scene validation', () => {
       kind: 'route',
       color: 'url(javascript:owned())',
       width: 4,
-      travelMarker: null,
+      strokeStyle: 'solid',
+      marker: null,
+      segmentStyles: [null, null, null],
     };
     expect(() => serializePrintScene(project, options)).toThrow('unsafe SVG paint');
 
@@ -249,7 +257,9 @@ describe('route travel SVG markers', () => {
       kind: 'route',
       color: '#d9363e',
       width: 4,
-      travelMarker: 'air',
+      strokeStyle: 'solid',
+      marker: { pictogram: 'air', placement: { type: 'center' }, orientToPath: true, reverseFacing: false },
+      segmentStyles: [null, null, null],
     };
 
     const svgDocument = parseSvg(serializePrintScene(project, {
@@ -257,10 +267,11 @@ describe('route travel SVG markers', () => {
       attribution: '© OpenStreetMap contributors',
       project: projector,
     }));
-    const marker = requiredElement(svgDocument, '[data-layer-id="route-01"] [data-route-travel-marker="air"]');
+    const marker = requiredElement(svgDocument, '[data-layer-id="route-01"] [data-route-pictogram="air"]');
 
     expect(marker.querySelector('circle')).not.toBeNull();
-    expect(marker.querySelector('text')?.textContent).toBe('AIR');
+    expect(marker.querySelector('path')).not.toBeNull();
+    expect(marker.querySelector('text')).toBeNull();
   });
 });
 

@@ -1,4 +1,10 @@
-import { ROUTE_TRAVEL_MARKERS, type RouteTravelMarker } from './routeProfiles';
+import {
+  canonicalRouteAppearance,
+  createDefaultRouteAppearance,
+  isRouteAppearanceValid,
+  parseRouteAppearance,
+  type RouteAppearance,
+} from './routeAppearance';
 import {
   hasPoiLabelControlCharacter,
   isPoiLabelValid,
@@ -9,12 +15,19 @@ import {
   type PoiMarkerSymbol,
 } from './poiMarkers';
 
-export type RouteAppearance = {
-  kind: 'route';
-  color: string;
-  width: number;
-  travelMarker: RouteTravelMarker | null;
-};
+export {
+  createDefaultRouteAppearance,
+  isRouteAppearanceValid,
+  ROUTE_STROKE_STYLES,
+} from './routeAppearance';
+export type {
+  ResolvedRouteSegmentStyle,
+  RouteAppearance,
+  RouteMarkerAppearance,
+  RouteMarkerPlacement,
+  RouteSegmentStyleOverride,
+  RouteStrokeStyle,
+} from './routeAppearance';
 export type PoiAppearance = {
   kind: 'poi';
   color: string;
@@ -40,15 +53,23 @@ type JsonObject = Record<string, unknown>;
 
 const HEX_COLOR = /^#[0-9a-f]{6}$/i;
 
+export function cloneLayerAppearance(appearance: LayerAppearance): LayerAppearance {
+  if (appearance.kind !== 'route') return { ...appearance };
+  return {
+    ...appearance,
+    marker: appearance.marker && {
+      ...appearance.marker,
+      placement: { ...appearance.marker.placement },
+    },
+    segmentStyles: appearance.segmentStyles.map((style) => style && { ...style }),
+  };
+}
+
 export function createDefaultLayerAppearance(type: AppearanceLayerType): LayerAppearance | undefined {
   if (type === 'route') {
-    return {
-      kind: 'route',
-      color: '#d9363e',
-      width: 4,
-      travelMarker: null,
-    };
+    return createDefaultRouteAppearance(0);
   }
+
   if (type === 'poi') {
     return {
       kind: 'poi',
@@ -77,15 +98,7 @@ function normalizedAppearance(appearance: LayerAppearance): LayerAppearance {
   if (appearance.kind === 'poi') {
     return { ...appearance, color: appearance.color.toLowerCase(), customAssetId: appearance.customAssetId ?? null };
   }
-  return { ...appearance, color: appearance.color.toLowerCase() };
-}
-
-function isRouteAppearanceValid(appearance: RouteAppearance): boolean {
-  return HEX_COLOR.test(appearance.color)
-    && Number.isFinite(appearance.width)
-    && appearance.width >= 1
-    && appearance.width <= 16
-    && (appearance.travelMarker === null || ROUTE_TRAVEL_MARKERS.includes(appearance.travelMarker));
+  return appearance;
 }
 
 function isPoiAppearanceValid(appearance: PoiAppearance): boolean {
@@ -117,11 +130,17 @@ function isShapeAppearanceValid(appearance: ShapeAppearance): boolean {
 export function canonicalLayerAppearance(
   layerType: AppearanceLayerType,
   appearance: LayerAppearance,
+  semanticLegCount?: number,
 ): LayerAppearance | undefined {
-  const normalized = normalizedAppearance(appearance);
+  const normalized = appearance.kind === 'route'
+    ? canonicalRouteAppearance(appearance)
+    : normalizedAppearance(appearance);
   if (layerType !== normalized.kind) return;
   if (normalized.kind === 'route') {
-    return isRouteAppearanceValid(normalized) ? normalized : undefined;
+    return isRouteAppearanceValid(normalized)
+      && (semanticLegCount === undefined || normalized.segmentStyles.length === semanticLegCount)
+      ? normalized
+      : undefined;
   }
   if (normalized.kind === 'poi') {
     return isPoiAppearanceValid(normalized) ? normalized : undefined;
@@ -146,20 +165,6 @@ function colorValue(value: unknown, label: string, fail: Fail): string {
     fail(`${label} must be a six-digit hexadecimal color.`);
   }
   return value.toLowerCase();
-}
-
-function routeAppearanceAt(appearance: JsonObject, label: string, fail: Fail): RouteAppearance {
-  const width = finiteValue(appearance.width, `${label} route width`, fail);
-  if (width < 1 || width > 16) fail(`${label} route width must be between 1 and 16 pixels.`);
-  if (appearance.travelMarker !== null && !ROUTE_TRAVEL_MARKERS.includes(appearance.travelMarker as RouteTravelMarker)) {
-    fail(`${label} route travel marker is not supported.`);
-  }
-  return {
-    kind: 'route',
-    color: colorValue(appearance.color, `${label} route color`, fail),
-    width,
-    travelMarker: appearance.travelMarker as RouteTravelMarker | null,
-  };
 }
 
 function poiAppearanceAt(appearance: JsonObject, label: string, fail: Fail): PoiAppearance {
@@ -206,19 +211,21 @@ function optionalShapeLabel(value: unknown, label: string, fail: Fail) {
   return { label: value };
 }
 
-export function parseLayerAppearance(
-  value: unknown,
-  type: AppearanceLayerType,
-  label: string,
-  fail: Fail,
-): LayerAppearance | undefined {
+export function parseLayerAppearance(options: Readonly<{
+  value: unknown;
+  type: AppearanceLayerType;
+  label: string;
+  fail: Fail;
+  semanticLegCount?: number;
+}>): LayerAppearance | undefined {
+  const { value, type, label, fail, semanticLegCount } = options;
   if (type === 'basemap') {
     if (value !== undefined) fail(`${label} basemap may not define content appearance.`);
     return;
   }
+  if (type === 'route') return parseRouteAppearance(value, label, fail, semanticLegCount);
   const appearance = objectValue(value, `${label} appearance`, fail);
   if (appearance.kind !== type) fail(`${label} appearance must match its ${type} layer type.`);
-  if (type === 'route') return routeAppearanceAt(appearance, label, fail);
   if (type === 'poi') return poiAppearanceAt(appearance, label, fail);
   const strokeWidth = finiteValue(appearance.strokeWidth, `${label} shape outline width`, fail);
   if (strokeWidth < 0.5 || strokeWidth > 12) {
@@ -232,7 +239,7 @@ export function parseLayerAppearance(
     fillColor: colorValue(appearance.fillColor, `${label} shape fill color`, fail),
     strokeColor: colorValue(appearance.strokeColor, `${label} shape outline color`, fail),
     strokeWidth,
-    invert: appearance.invert,
+    invert: appearance.invert as boolean,
     ...optionalShapeLabel(appearance.label, label, fail),
   };
 }

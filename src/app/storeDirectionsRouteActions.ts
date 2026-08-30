@@ -1,12 +1,14 @@
 import {
-  createDefaultLayerAppearance,
+  createDefaultRouteAppearance,
   normalizeCameraPrecision,
   type ContentLayer,
   type DirectionsRouteInput,
 } from "../domain/project";
 import { isValidPosition } from "../domain/routeGeometry";
+import { arePositionsEqual, isCompleteRouteLayer } from "../domain/routeModel";
 import {
   isRouteAuthoringOptions,
+  markerAppearanceFor,
   type RouteAuthoringOptions,
 } from "../domain/routeProfiles";
 import type { ProjectState } from "./store";
@@ -15,6 +17,7 @@ import {
   replaceLayers,
   type ProjectSet,
 } from "./storeDocument";
+import { replacementDirectionsRoute } from "./storeDirectionsRouteReplacement";
 
 type CanonicalDirectionsRoute = DirectionsRouteInput & {
   options: RouteAuthoringOptions;
@@ -70,6 +73,19 @@ function canonicalPositions(
   return positions;
 }
 
+function areWaypointsCanonical(
+  waypoints: readonly (readonly [number, number])[],
+  isClosed: boolean,
+): boolean {
+  const distinctWaypoints = isClosed ? waypoints.slice(0, -1) : waypoints;
+  const keys = distinctWaypoints.map(([longitude, latitude]) => `${longitude},${latitude}`);
+  if (new Set(keys).size !== keys.length) return false;
+  if (!isClosed) return !arePositionsEqual(waypoints[0], waypoints.at(-1)!);
+  return waypoints.length >= 4
+    && distinctWaypoints.length <= 24
+    && arePositionsEqual(waypoints[0], waypoints.at(-1)!);
+}
+
 function directionsInput(value: unknown): Partial<DirectionsRouteInput> | null {
   if (typeof value !== "object" || value === null || Array.isArray(value))
     return null;
@@ -83,6 +99,7 @@ function isNonNegativeFinite(value: unknown): value is number {
 function canonicalDirectionsRoute(
   value: unknown,
   options: unknown,
+  isClosed = false,
 ): CanonicalDirectionsRoute | null {
   if (!isRouteAuthoringOptions(options) || options.lineShape !== "road")
     return null;
@@ -91,7 +108,7 @@ function canonicalDirectionsRoute(
   const waypoints = canonicalPositions(input.waypoints, {
     minimum: 2,
     maximum: 25,
-    requireAllDistinct: true,
+    requireAllDistinct: false,
   });
   const geometry = canonicalPositions(input.geometry, {
     minimum: 2,
@@ -99,6 +116,7 @@ function canonicalDirectionsRoute(
     requireAllDistinct: false,
   });
   if (!waypoints || !geometry) return null;
+  if (!areWaypointsCanonical(waypoints, isClosed)) return null;
   const expectedProfile = PROFILE_BY_MODE[options.roadTravelMode];
   if (input.profile !== expectedProfile) return null;
   if (
@@ -127,18 +145,18 @@ function routeLayer(
   identity: ReturnType<typeof nextRouteIdentity>,
   input: CanonicalDirectionsRoute,
 ): ContentLayer | null {
-  const appearance = createDefaultLayerAppearance("route");
-  if (appearance?.kind !== "route") return null;
-  return {
+  const appearance = createDefaultRouteAppearance(input.waypoints.length - 1);
+  const candidate: ContentLayer = {
     id: identity.id,
     name: `Route ${String(identity.number).padStart(2, "0")}`,
     type: "route",
+    route: { kind: "road", closed: false },
     visible: true,
     locked: false,
     opacity: 100,
     appearance: {
       ...appearance,
-      travelMarker: input.options.travelMarker,
+      marker: markerAppearanceFor(input.options.travelMarker),
     },
     geometry: { type: "LineString", coordinates: input.geometry },
     provenance: {
@@ -150,6 +168,7 @@ function routeLayer(
       durationSeconds: input.durationSeconds,
     },
   };
+  return isCompleteRouteLayer(candidate) ? candidate : null;
 }
 
 function mutationFailure(
@@ -236,24 +255,11 @@ export function createDirectionsRouteActions(
         );
         return state;
       }
-      const input = canonicalDirectionsRoute(candidate, options);
+      const isClosed = current.route?.closed === true;
+      const input = canonicalDirectionsRoute(candidate, options, isClosed);
       if (!input) return state;
-      const updated: ContentLayer = {
-        ...current,
-        appearance: {
-          ...current.appearance,
-          travelMarker: input.options.travelMarker,
-        },
-        geometry: { type: "LineString", coordinates: input.geometry },
-        provenance: {
-          provider: "mapbox",
-          service: "directions-v5",
-          waypoints: input.waypoints,
-          profile: input.profile,
-          distanceMeters: input.distanceMeters,
-          durationSeconds: input.durationSeconds,
-        },
-      };
+      const updated = replacementDirectionsRoute(current, input, isClosed);
+      if (!updated) return state;
       result = { ok: true, routeId: id };
       return {
         ...commitDocument(

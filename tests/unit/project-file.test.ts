@@ -2,7 +2,7 @@ import { createInitialProjectDocument } from '../../src/domain/project';
 import { parseProjectFileText } from '../../src/domain/projectFile';
 
 describe('portable project validation', () => {
-  it.each([16, 17, 18, 19, 20, 21])('rejects the obsolete schema-%s format with a reset-oriented message', (schemaVersion) => {
+  it.each([16, 17, 18, 19, 20, 21, 22, 23])('rejects the obsolete schema-%s format with a reset-oriented message', (schemaVersion) => {
     const obsolete = { ...createInitialProjectDocument(), schemaVersion };
 
     expect(() => parseProjectFileText(JSON.stringify(obsolete))).toThrow(
@@ -82,7 +82,9 @@ describe('portable project validation', () => {
     const source = createInitialProjectDocument();
     const route = source.layers.find(({ type }) => type === 'route');
     if (!route) throw new Error('Expected route fixture.');
+    route.route = { kind: 'arc', closed: false };
     route.geometry = { type: 'Arc', anchors: [[179, 10], [-179, 12]], curvatures: [-0.4] };
+    if (route.appearance?.kind === 'route') route.appearance.segmentStyles = [null];
 
     const parsed = parseProjectFileText(JSON.stringify(source));
     const parsedRoute = parsed.layers.find(({ type }) => type === 'route');
@@ -165,6 +167,8 @@ describe('portable project provenance', () => {
       waypoints: [[16.31, 48.19], [16.4, 48.24]], profile: 'driving',
       distanceMeters: 9200, durationSeconds: 1320,
     };
+    route.route = { kind: 'road', closed: false };
+    if (route.appearance?.kind === 'route') route.appearance.segmentStyles = [null];
 
     const parsed = parseProjectFileText(JSON.stringify(source));
     const parsedRoute = parsed.layers.find(({ id }) => id === route.id);

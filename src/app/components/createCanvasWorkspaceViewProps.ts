@@ -89,6 +89,8 @@ function createMapProps(inputs: ViewInputs): ComponentProps<typeof MapCanvas> {
     onRouteGeometryChange: props.onRouteGeometryChange,
     onRouteVertexChange: props.onRouteVertexChange,
     onRouteVertexInsert: props.onRouteVertexInsert,
+    routeAuthoring: inputs.route.terraAuthoring,
+    routeDraftEditing: inputs.route.draftEditing,
     onShapeGeometryChange: props.onShapeGeometryChange,
     orientation: props.page.orientation,
     page: props.page,

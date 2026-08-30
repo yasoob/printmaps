@@ -7,10 +7,11 @@ const layer: ContentLayer = {
   id: 'road',
   name: 'Road',
   type: 'route',
+  route: { kind: 'road', closed: false },
   visible: true,
   locked: false,
   opacity: 100,
-  appearance: { kind: 'route', color: '#d9363e', width: 4, travelMarker: null },
+  appearance: { kind: 'route', color: '#d9363e', width: 4, strokeStyle: 'solid', marker: null, segmentStyles: [null, null] },
   geometry: { type: 'LineString', coordinates: [[0, 0], [0.5, 0.5], [1, 1], [1.5, 1.5], [2, 2]] },
   provenance: {
     provider: 'mapbox',
@@ -54,6 +55,72 @@ it('reroutes a moved semantic waypoint and refreshes all provider provenance', a
     expectedDocumentEpoch: 4,
     expectedLayer: layer,
   }));
+});
+
+it('keeps a closed Road endpoint canonical when either duplicate is edited', async () => {
+  const closedLayer: ContentLayer = {
+    ...layer,
+    route: { kind: 'road', closed: true },
+    appearance: {
+      kind: 'route',
+      color: '#d9363e',
+      width: 4,
+      strokeStyle: 'solid',
+      marker: null,
+      segmentStyles: [null, null, null],
+    },
+    geometry: {
+      type: 'LineString',
+      coordinates: [[0, 0], [1, 0], [1, 1], [0, 0]],
+    },
+    provenance: {
+      provider: 'mapbox',
+      service: 'directions-v5',
+      waypoints: [[0, 0], [1, 0], [1, 1], [0, 0]],
+      profile: 'walking',
+      distanceMeters: 100,
+      durationSeconds: 50,
+    },
+  };
+  const directions = vi.fn<DirectionsProvider['directions']>().mockResolvedValue({
+    routes: [{
+      geometry: [[0.25, 0.25], [1, 0], [1, 1], [0.25, 0.25]],
+      distanceMeters: 120,
+      durationSeconds: 60,
+    }],
+    useBoundary: 'provider-response-use-requires-terms-review',
+  });
+  const replaceDirectionsRoute = vi.fn(() => ({ ok: true as const, routeId: 'road' }));
+  const { result } = renderHook(() => useDirectionsRouteEditing({
+    documentEpoch: 4,
+    layers: [closedLayer],
+    provider: { directions },
+    replaceDirectionsRoute,
+  }));
+
+  act(() => {
+    result.current.changeWaypoint('road', 0, [0.25, 0.25]);
+  });
+  await waitFor(() => expect(replaceDirectionsRoute).toHaveBeenCalled());
+
+  const canonical = [[0.25, 0.25], [1, 0], [1, 1], [0.25, 0.25]];
+  expect(directions).toHaveBeenCalledWith(expect.objectContaining({
+    waypoints: canonical,
+  }));
+  expect(replaceDirectionsRoute).toHaveBeenCalledWith(expect.objectContaining({
+    input: expect.objectContaining({ waypoints: canonical }),
+    expectedLayer: expect.objectContaining({
+      route: { kind: 'road', closed: true },
+    }),
+  }));
+
+  act(() => {
+    result.current.changeWaypoint('road', 3, [0.5, 0.5]);
+  });
+  await waitFor(() => expect(directions).toHaveBeenCalledTimes(2));
+  expect(directions.mock.calls[1]?.[0].waypoints).toEqual([
+    [0.5, 0.5], [1, 0], [1, 1], [0.5, 0.5],
+  ]);
 });
 
 it('keeps failed waypoint edits recoverable for retry or cancel', async () => {

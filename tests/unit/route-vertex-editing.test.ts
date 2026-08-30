@@ -21,15 +21,21 @@ class FakeMarker implements RouteVertexMarker {
 
 const route: ContentLayer = {
   id: 'route-project-id', name: 'Route', type: 'route', visible: true, locked: false, opacity: 100,
-  appearance: { kind: 'route', color: '#d9363e', width: 4, travelMarker: null },
+  route: { kind: 'straight', closed: false },
+  appearance: { kind: 'route', color: '#d9363e', width: 4, strokeStyle: 'solid', marker: null, segmentStyles: [null, null] },
   geometry: { type: 'LineString', coordinates: [[0, 0], [1, 1], [2, 0]] },
 };
 
 function routeHarness() {
   const markers: FakeMarker[] = [];
   let sourceCoordinates: readonly (readonly [number, number])[] = [[0, 0], [1, 1], [2, 0]];
-  const setData = vi.fn((data: { geometry: { coordinates: [number, number][] } }) => {
-    sourceCoordinates = data.geometry.coordinates;
+  const setData = vi.fn((data: {
+    features: { properties: { featureKind: string }; geometry: { coordinates: [number, number][] } }[];
+  }) => {
+    const segments = data.features.filter(({ properties }) => properties.featureKind === 'segment');
+    sourceCoordinates = segments.flatMap(({ geometry }, index) => (
+      geometry.coordinates.slice(index === 0 ? 0 : 1)
+    ));
   });
   const createMarker = (element: HTMLElement) => {
     const marker = new FakeMarker(element);
@@ -55,6 +61,8 @@ describe('route vertex map editing', () => {
     const { createMarker, map, markers, setData } = routeHarness();
     const arc = {
       ...route,
+      route: { kind: 'arc' as const, closed: false },
+      appearance: { ...route.appearance!, segmentStyles: [null] },
       geometry: { type: 'Arc' as const, anchors: [[0, 0], [2, 0]] as [[number, number], [number, number]], curvatures: [0.35] as [number] },
     };
     const commit = vi.fn();
@@ -62,11 +70,13 @@ describe('route vertex map editing', () => {
 
     markers[1].coordinate = { lng: 3, lat: 0 };
     markers[1].trigger('drag');
-    const preview = setData.mock.calls.at(-1)?.[0].geometry.coordinates;
+    const data = setData.mock.calls.at(-1)?.[0];
+    const preview = data?.features[0]?.geometry.coordinates;
     expect(preview).toBeDefined();
     if (!preview) throw new Error('Arc preview was not written.');
     expect(preview).toHaveLength(25);
     expect(Math.abs(preview[12][1])).toBeGreaterThan(0.1);
+    expect(data?.features[0]?.properties.featureKind).toBe('segment');
     markers[1].trigger('dragend');
     expect(commit).toHaveBeenCalledWith(1, [3, 0]);
 
@@ -78,6 +88,7 @@ describe('route vertex map editing', () => {
     const { createMarker, map, markers } = routeHarness();
     const arc = {
       ...route,
+      route: { kind: 'arc' as const, closed: false },
       geometry: {
         type: 'Arc' as const,
         anchors: [[0, 0], [1, 0], [2, 0]] as [[number, number], [number, number], [number, number]],
@@ -111,7 +122,7 @@ describe('route vertex map editing', () => {
   });
 
   it('rolls a cancelled preview back to one canonical source and Terra geometry', () => {
-    const { createMarker, map, markers, setData } = routeHarness();
+    const { createMarker, map, markers, sourceCoordinates } = routeHarness();
     const onPreview = vi.fn();
     const commit = vi.fn();
     const cleanup = installRouteVertexEditing(map, route, commit, { createMarker, onPreview });
@@ -120,9 +131,7 @@ describe('route vertex map editing', () => {
 
     cleanup();
 
-    expect(setData).toHaveBeenLastCalledWith(expect.objectContaining({
-      geometry: { type: 'LineString', coordinates: [[0, 0], [1, 1], [2, 0]] },
-    }));
+    expect(sourceCoordinates()).toEqual([[0, 0], [1, 1], [2, 0]]);
     expect(onPreview).toHaveBeenLastCalledWith([[0, 0], [1, 1], [2, 0]]);
     expect(commit).not.toHaveBeenCalled();
   });
@@ -135,9 +144,7 @@ describe('route vertex map editing', () => {
 
     markers[1].trigger('drag');
 
-    expect(setData).toHaveBeenLastCalledWith(expect.objectContaining({
-      geometry: { type: 'LineString', coordinates: [[0, 0], [1, 1], [2, 0]] },
-    }));
+    expect(setData.mock.calls.at(-1)?.[0].features).toHaveLength(2);
     expect(onPreview).toHaveBeenLastCalledWith([[0, 0], [1, 1], [2, 0]]);
     expect(markers[1].coordinate).toEqual({ lng: 1, lat: 1 });
   });
@@ -154,8 +161,6 @@ describe('route vertex map editing', () => {
 
     expect(() => markers[1].trigger('dragend')).not.toThrow();
 
-    expect(setData).toHaveBeenLastCalledWith(expect.objectContaining({
-      geometry: { type: 'LineString', coordinates: [[0, 0], [1, 1], [2, 0]] },
-    }));
+    expect(setData.mock.calls.at(-1)?.[0].features).toHaveLength(2);
   });
 });

@@ -123,6 +123,7 @@ function useCanvasGeometryLayers(
           : [],
         layers,
         route.options,
+        { isClosed: route.isClosed, roadPreview: route.preview },
       ),
       ...(shape.mode === "draw"
         ? createShapeDraftLayers(shape.points, layers)
@@ -140,6 +141,8 @@ function useCanvasGeometryLayers(
       layers,
       route.draftPoints,
       route.options,
+      route.isClosed,
+      route.preview,
       route.points.length,
       shape.isochrone.center,
       shape.mode,
@@ -159,6 +162,7 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
     onCreateAdministrativeArea, onCreateDirectionsRoute, onCreateIsochroneArea,
     onCreatePoi, onCreatePoiBatch, onCreateRoute, onCreateSearchPoi, onCreateShape,
     onLayerSelect, onReplaceAuthoredRoute, onReplaceDirectionsRoute,
+    onReplaceRouteDraft,
     routeExtensionRequest, selectedId,
   } = props;
   const activeTool =
@@ -185,6 +189,7 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
     onLayerSelect,
     onReplaceAuthoredRoute,
     onReplaceDirectionsRoute,
+    onReplaceRouteDraft,
     routeExtensionRequest,
     selectToolRef,
     setActiveTool: setStoredActiveTool,

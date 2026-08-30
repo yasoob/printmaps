@@ -1,7 +1,11 @@
-import { rebasePathLongitudes, sampleArc, sampledPathMidpoint } from '../domain/routeArcGeometry';
+import {
+  deriveRenderedRoute,
+  projectedRouteMarkerBearing,
+} from '../domain/renderedRoute';
+import { rebasePathLongitudes } from '../domain/routeArcGeometry';
+import { routePictogramPdfGeometry } from '../domain/routePictograms';
 import type { ContentLayer } from '../domain/project';
 import { POI_MARKER_SYMBOL_GLYPHS } from '../domain/poiMarkers';
-import { ROUTE_TRAVEL_MARKER_GLYPHS } from '../domain/routeProfiles';
 import type { PreviewPng } from './previewPng';
 
 const POINTS_PER_MM = 72 / 25.4;
@@ -89,52 +93,68 @@ function poiMarkerCommands(point: FramePoint, radius: number, shape: 'circle' | 
   ].join('\n');
 }
 
-function routeAppearance(layer: ContentLayer) {
-  return layer.appearance?.kind === 'route'
-    ? layer.appearance
-    : { color: '#d9363e', width: 4, travelMarker: null };
-}
-
-function routeMarkerCommands(layer: ContentLayer, point: FramePoint) {
-  const appearance = routeAppearance(layer);
-  if (!appearance.travelMarker) return '';
-  const label = ROUTE_TRAVEL_MARKER_GLYPHS[appearance.travelMarker];
+function routeMarkerCommands(
+  pictogram: NonNullable<Extract<ContentLayer['appearance'], { kind: 'route' }>['marker']>['pictogram'],
+  color: string,
+  point: FramePoint,
+  bearing: number,
+) {
   const radius = 4 * POINTS_PER_MM;
-  const textX = point.x - label.length * 1.35;
-  const textY = point.y - 1.8;
+  const geometry = routePictogramPdfGeometry(pictogram, point, radius, bearing);
   const marker = [
-    `% Route travel marker: ${appearance.travelMarker}`,
+    `% Route pictogram: ${pictogram}`,
     'q',
-    `${colorComponents(appearance.color)} rg`,
-    '1 1 1 RG',
-    `${formatNumber(0.6 * POINTS_PER_MM)} w`,
-    circleCommands(point, radius),
-    'B',
-    '1 1 1 rg',
-    'BT',
-    '/F1 5 Tf',
-    `${formatNumber(textX)} ${formatNumber(textY)} Td`,
-    `(${label}) Tj`,
-    'ET',
-    'Q',
+    `${colorComponents(color)} rg`,
   ].join('\n');
-  return marker;
+  const primitives = geometry.map((primitive, index) => {
+    const pathCommands = primitive.type === 'circle'
+      ? circleCommands(primitive.center, primitive.radius)
+      : primitive.points.map((candidate, pointIndex) => (
+          `${pointText(candidate)} ${pointIndex === 0 ? 'm' : 'l'}`
+        )).join('\n') + (primitive.closed ? '\nh' : '');
+    if (index === 0) return `${pathCommands}\nf`;
+    const operator = primitive.fill ? 'f' : 'S';
+    return `1 1 1 ${primitive.fill ? 'rg' : 'RG'}\n${formatNumber(primitive.strokeWidth)} w\n1 J\n1 j\n${pathCommands}\n${operator}`;
+  }).join('\n');
+  return `${marker}\n${primitives}\nQ`;
 }
 
-function routeCommands(
-  layer: ContentLayer,
-  coordinates: readonly (readonly [number, number])[],
-  context: ProjectionContext,
-): string {
-  if (coordinates.length < 2) throw new Error(`Route layer "${layer.name}" has no printable line.`);
-  const appearance = routeAppearance(layer);
-  const path = coordinates.map((coordinate, index) => (
-    `${pointText(project(coordinate, context))} ${index === 0 ? 'm' : 'l'}`
-  )).join('\n');
-  const line = `${colorComponents(appearance.color)} RG\n${formatNumber(appearance.width * 0.3 * POINTS_PER_MM)} w\n1 J\n1 j\n${path}\nS`;
-  const point = project(sampledPathMidpoint(coordinates), context);
-  const marker = routeMarkerCommands(layer, point);
-  return marker ? `${line}\n${marker}` : line;
+function routeCommands(layer: ContentLayer, context: ProjectionContext): string {
+  const rendered = deriveRenderedRoute(layer);
+  if (!rendered || layer.appearance?.kind !== 'route') {
+    throw new Error(`Route layer "${layer.name}" has no printable line.`);
+  }
+  const lines = rendered.legs.map((leg) => {
+    const width = leg.style.width * 0.3 * POINTS_PER_MM;
+    const path = rebasePathLongitudes(leg.path, context.capture.referenceLongitude)
+      .map((coordinate, index) => (
+        `${pointText(project(coordinate, context))} ${index === 0 ? 'm' : 'l'}`
+      )).join('\n');
+    const dash = leg.style.strokeStyle === 'dashed'
+      ? `[${formatNumber(width * 2)} ${formatNumber(width * 1.5)}] 0 d`
+      : '[] 0 d';
+    return `% Route leg: ${leg.index}\n${colorComponents(leg.style.color)} RG\n${formatNumber(width)} w\n${dash}\n1 J\n1 j\n${path}\nS`;
+  });
+  const pictogram = layer.appearance.marker?.pictogram;
+  const markerAppearance = layer.appearance.marker;
+  const projectRouteCoordinate = (coordinate: readonly [number, number]) => project(
+    rebasePathLongitudes([coordinate], context.capture.referenceLongitude)[0],
+    context,
+  );
+  if (pictogram) {
+    lines.push(...rendered.markers.map((marker) => routeMarkerCommands(
+      pictogram,
+      marker.style.color,
+      projectRouteCoordinate(marker.position),
+      projectedRouteMarkerBearing(
+        marker,
+        markerAppearance!,
+        projectRouteCoordinate,
+        'up',
+      ),
+    )));
+  }
+  return lines.join('\n');
 }
 
 function poiCommands(
@@ -206,12 +226,7 @@ function shapeCommands(
 function routeLayerCommands(layer: ContentLayer, context: ProjectionContext) {
   const geometry = layer.geometry;
   if (geometry?.type !== 'Arc' && geometry?.type !== 'LineString') return;
-  const coordinates = geometry.type === 'Arc' ? sampleArc(geometry) : geometry.coordinates;
-  return routeCommands(
-    layer,
-    rebasePathLongitudes(coordinates, context.capture.referenceLongitude),
-    context,
-  );
+  return routeCommands(layer, context);
 }
 
 function poiLayerCommands(layer: ContentLayer, context: ProjectionContext) {

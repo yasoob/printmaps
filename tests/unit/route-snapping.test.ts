@@ -6,6 +6,7 @@ it('indexes semantic Road waypoints instead of provider geometry samples', () =>
     id: 'road',
     name: 'Road trip',
     type: 'route',
+    route: { kind: 'road', closed: false },
     visible: true,
     locked: false,
     opacity: 100,

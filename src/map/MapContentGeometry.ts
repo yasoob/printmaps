@@ -1,6 +1,8 @@
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import { sampleArc } from '../domain/routeArcGeometry';
 import type { ContentLayer, LayerGeometry, ShapeGeometry } from '../domain/project';
+import { deriveRenderedRoute } from '../domain/renderedRoute';
+import { routePictogramImageId } from '../domain/routePictograms';
 
 const SOURCE_PREFIX = 'studio-source-';
 const WORLD_MASK_RING: [number, number][] = [
@@ -13,6 +15,14 @@ export function mapContentSourceId(id: string, role?: string): string {
 }
 
 type GeoJsonGeometry = Exclude<LayerGeometry, { type: 'Arc' }>;
+type MapGeoJson = GeoJsonGeometry | {
+  type: 'FeatureCollection';
+  features: {
+    type: 'Feature';
+    properties: Record<string, string | number>;
+    geometry: GeoJsonGeometry;
+  }[];
+};
 
 function isInvertedShape(layer: ContentLayer, geometry: LayerGeometry | undefined): geometry is ShapeGeometry {
   return (geometry?.type === 'Polygon' || geometry?.type === 'MultiPolygon')
@@ -28,6 +38,7 @@ export function mapGeometryForLayer(layer: ContentLayer): GeoJsonGeometry {
     if (polygons.some((polygon) => polygon.length === 0)) {
       throw new Error(`Shape layer "${layer.id}" contains an empty polygon.`);
     }
+
     const exteriorRings = polygons.map((polygon) => polygon[0]);
     const outsideMask = [WORLD_MASK_RING, ...exteriorRings];
     const filledIslands = polygons.flatMap((polygon) => polygon.slice(1).map((ring) => [ring]));
@@ -38,14 +49,52 @@ export function mapGeometryForLayer(layer: ContentLayer): GeoJsonGeometry {
   return geometry!;
 }
 
+export function routeMapFeatures(layer: ContentLayer): MapGeoJson | null {
+  const rendered = deriveRenderedRoute(layer);
+  if (!rendered) return null;
+  const pictogram = layer.appearance?.kind === 'route' ? layer.appearance.marker?.pictogram : undefined;
+  return {
+    type: 'FeatureCollection',
+    features: [
+      ...rendered.legs.map((leg) => ({
+        type: 'Feature' as const,
+        properties: {
+          layerId: layer.id,
+          featureKind: 'segment',
+          segmentIndex: leg.index,
+          color: leg.style.color,
+          width: leg.style.width,
+          strokeStyle: leg.style.strokeStyle,
+        },
+        geometry: { type: 'LineString' as const, coordinates: leg.path },
+      })),
+      ...rendered.markers.map((marker, markerIndex) => ({
+        type: 'Feature' as const,
+        properties: {
+          layerId: layer.id,
+          featureKind: 'marker',
+          markerIndex,
+          segmentIndex: marker.legIndex,
+          bearing: marker.bearing,
+          color: marker.style.color,
+          iconImage: routePictogramImageId(pictogram!, marker.style.color),
+        },
+        geometry: { type: 'Point' as const, coordinates: marker.position },
+      })),
+    ],
+  };
+}
+
 export function addMapContentSource(
   map: MapLibreMap,
   id: string,
   layer: ContentLayer,
   geometry: GeoJsonGeometry,
 ) {
+  const data = layer.type === 'route' ? routeMapFeatures(layer) : null;
+  if (!data && layer.type === 'route') throw new Error(`Route layer "${layer.id}" cannot be rendered.`);
   map.addSource(id, {
     type: 'geojson',
-    data: { type: 'Feature', properties: { layerId: layer.id }, geometry },
+    data: data ?? { type: 'Feature', properties: { layerId: layer.id }, geometry },
   });
 }

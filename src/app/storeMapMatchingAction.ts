@@ -1,5 +1,15 @@
-import { normalizeCameraPrecision, type MapMatchingInput } from '../domain/project';
+import {
+  normalizeCameraPrecision,
+  type ContentLayer,
+  type MapMatchingInput,
+} from '../domain/project';
 import { isValidPosition } from '../domain/routeGeometry';
+import { isCompleteRouteLayer } from '../domain/routeModel';
+import {
+  convertRoute,
+  openRoute,
+  replaceRouteSemanticPoints,
+} from '../domain/routeTransformations';
 import type { ProjectState } from './store';
 import { commitDocument, replaceLayers, type ProjectSet } from './storeDocument';
 
@@ -18,7 +28,7 @@ function canonicalGeometry(input: MapMatchingInput['geometry']): [number, number
     geometry.push(coordinate);
   }
   const distinctPointCount = new Set(geometry.map(([longitude, latitude]) => `${longitude},${latitude}`)).size;
-  return distinctPointCount >= 2 ? geometry : null;
+  return distinctPointCount === geometry.length ? geometry : null;
 }
 
 function isMetadataValid(input: MapMatchingInput): boolean {
@@ -42,6 +52,27 @@ function canonicalInput(input: MapMatchingInput): MapMatchingInput | null {
   };
 }
 
+function mapMatchedLayer(
+  layer: ContentLayer,
+  input: MapMatchingInput,
+): ContentLayer | null {
+  let local = convertRoute(layer, 'straight');
+  if (local?.route.closed) local = openRoute(local);
+  const transformed = local && replaceRouteSemanticPoints(local, input.geometry);
+  if (!transformed) return null;
+  const candidate: ContentLayer = {
+    ...transformed,
+    provenance: {
+      provider: 'mapbox',
+      service: 'map-matching-v5',
+      profile: input.profile,
+      sourcePointCount: input.sourcePointCount,
+      ...(input.confidence !== undefined && { confidence: input.confidence }),
+    },
+  };
+  return isCompleteRouteLayer(candidate) ? candidate : null;
+}
+
 export function createMapMatchingAction(set: ProjectSet): ProjectState['applyMapMatching'] {
   return (id, candidate, expectedDocumentEpoch) => {
     let didApply = false;
@@ -50,18 +81,9 @@ export function createMapMatchingAction(set: ProjectSet): ProjectState['applyMap
       const layer = state.document.layers.find((item) => item.id === id);
       const input = canonicalInput(candidate);
       if (!input || !layer || layer.locked || !layer.visible || layer.type !== 'route') return state;
+      const nextLayer = mapMatchedLayer(layer, input);
+      if (!nextLayer) return state;
       didApply = true;
-      const nextLayer = {
-        ...layer,
-        geometry: { type: 'LineString' as const, coordinates: input.geometry.map((position) => [...position] as [number, number]) },
-        provenance: {
-          provider: 'mapbox' as const,
-          service: 'map-matching-v5' as const,
-          profile: input.profile,
-          sourcePointCount: input.sourcePointCount,
-          ...(input.confidence !== undefined && { confidence: input.confidence }),
-        },
-      };
       return commitDocument(state, replaceLayers(state.document, state.document.layers.map((item) => (
         item.id === id ? nextLayer : item
       ))));

@@ -1,8 +1,14 @@
-import type { LayerGeometry, LayerType } from '../domain/project';
+import type { ContentLayer, LayerGeometry, LayerType } from '../domain/project';
 import { cloneContentLayer } from '../domain/project';
 import { MAX_PROJECT_COORDINATES } from '../domain/projectFile';
 import { geometryPositionCount } from '../domain/projectGeometry';
 import { isValidPosition } from '../domain/routeGeometry';
+import {
+  arePositionsEqual,
+  isCompleteRouteLayer,
+  routePositionKey,
+  semanticRoutePoints,
+} from '../domain/routeModel';
 import { isEditableShapeRing } from '../domain/shapeGeometry';
 import type { ProjectState } from './store';
 import { commitDocument, hasSameDocumentContent, replaceLayers, type ProjectSet } from './storeDocument';
@@ -35,6 +41,61 @@ function isGeometryCompatible(type: LayerType, geometry: LayerGeometry): boolean
   return false;
 }
 
+function semanticLegKey(
+  start: readonly [number, number],
+  end: readonly [number, number],
+) {
+  const left = routePositionKey(start);
+  const right = routePositionKey(end);
+  return left < right ? `${left}|${right}` : `${right}|${left}`;
+}
+
+function replaceImportedRoute(
+  target: ContentLayer,
+  geometry: Extract<LayerGeometry, { type: 'LineString' }>,
+): ContentLayer | null {
+  if (!isCompleteRouteLayer(target)) return null;
+  const currentPoints = semanticRoutePoints(target)!;
+  const stylesByLeg = new Map(
+    currentPoints.slice(1).map((point, index) => [
+      semanticLegKey(currentPoints[index], point),
+      target.appearance.segmentStyles[index],
+    ]),
+  );
+  const replacement = cloneContentLayer(target);
+  const closed = arePositionsEqual(
+    geometry.coordinates[0],
+    geometry.coordinates.at(-1)!,
+  );
+  replacement.route = { kind: 'straight', closed };
+  replacement.geometry = geometry;
+  replacement.appearance = {
+    ...target.appearance,
+    marker: target.appearance.marker && {
+      ...target.appearance.marker,
+      placement: { ...target.appearance.marker.placement },
+    },
+    segmentStyles: geometry.coordinates.slice(1).map((point, index) => {
+      const style = stylesByLeg.get(
+        semanticLegKey(geometry.coordinates[index], point),
+      );
+      return style ? { ...style } : null;
+    }),
+  };
+  delete replacement.provenance;
+  return isCompleteRouteLayer(replacement) ? replacement : null;
+}
+
+function replacementLayer(
+  target: ContentLayer,
+  geometry: LayerGeometry,
+): ContentLayer | null {
+  if (target.type === 'route' && geometry.type === 'LineString') {
+    return replaceImportedRoute(target, geometry);
+  }
+  return { ...target, geometry };
+}
+
 export function createReplaceLayerFromImportAction(
   set: ProjectSet,
 ): ProjectState['replaceLayerFromImport'] {
@@ -57,11 +118,13 @@ export function createReplaceLayerFromImportAction(
         total + geometryPositionCount(layer.id === id ? geometry : layer.geometry)
       ), 0);
       if (positionCount > MAX_PROJECT_COORDINATES) return state;
+      const replacement = replacementLayer(target, geometry);
+      if (!replacement) return state;
       wasReplaced = true;
       return commitDocument(state, replaceLayers(
         state.document,
         state.document.layers.map((layer) => (
-          layer.id === id ? { ...layer, geometry } : layer
+          layer.id === id ? replacement : layer
         )),
       ));
     });

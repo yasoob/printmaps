@@ -106,6 +106,27 @@ describe('Mapbox Directions provider', () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
+  it('accepts only the canonical endpoint duplicate used by closed routes', async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(Response.json({
+      code: 'Ok',
+      routes: [{
+        geometry: {
+          type: 'LineString',
+          coordinates: [[16.35, 48.2], [16.38, 48.21], [16.4, 48.22], [16.35, 48.2]],
+        },
+        distance: 5000,
+        duration: 1200,
+      }],
+    }));
+    const provider = createMapboxDirectionsProvider({ fetch, token: TOKEN });
+
+    await expect(provider.directions({
+      waypoints: [[16.35, 48.2], [16.38, 48.21], [16.4, 48.22], [16.35, 48.2]],
+      profile: 'walking',
+    })).resolves.toMatchObject({ routes: [{ distanceMeters: 5000 }] });
+    expect(fetch).toHaveBeenCalledOnce();
+  });
+
   it('rejects a sparse two-entry waypoint array before fetch', async () => {
     const fetch = vi.fn<typeof globalThis.fetch>().mockRejectedValue(new Error('fetch reached'));
     const provider = createMapboxDirectionsProvider({ fetch, token: TOKEN });

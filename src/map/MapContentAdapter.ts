@@ -9,6 +9,7 @@ import {
   visibleContentLayers,
   type RenderedMapContent,
 } from './MapContentLayerRendering';
+import { registerRoutePictogramImages } from './RoutePictogramMapImages';
 
 export type MapContentState = {
   layers: ContentLayer[];
@@ -40,7 +41,7 @@ function updateContainerState(
   container.dataset.mapLayerAppearance = visibleLayers.flatMap((layer) => {
     const { appearance } = layer;
     if (appearance?.kind === 'route') {
-      return [`${layer.id}:${appearance.color}:${appearance.width}:${appearance.travelMarker ?? 'none'}`];
+      return [`${layer.id}:${appearance.color}:${appearance.width}:${appearance.marker?.pictogram ?? 'none'}:${appearance.strokeStyle === 'dashed'}`];
     }
     if (appearance?.kind === 'poi') {
       return [
@@ -128,6 +129,7 @@ function createMarkerImageRegistry(map: MapLibreMap, decodeImage: NonNullable<Ma
   const pending = new Map<string, Promise<void>>();
   const failed = new Set<string>();
   const registered = new Set<string>();
+  const registeredRouteImages = new Set<string>();
   let desiredAssetIds = new Set<string>();
   const load = (asset: CustomMarkerAsset, imageId: string) => {
     const task = (async () => {
@@ -160,8 +162,19 @@ function createMarkerImageRegistry(map: MapLibreMap, decodeImage: NonNullable<Ma
         }
       }
       registered.clear();
+      for (const imageId of registeredRouteImages) {
+        try {
+          if (map.hasImage(imageId)) map.removeImage(imageId);
+        } catch {
+          // Map teardown owns any image that cannot be removed here.
+        }
+      }
+      registeredRouteImages.clear();
     },
     ensure: (state: MapContentState, layers: ContentLayer[]) => {
+      for (const imageId of registerRoutePictogramImages(map, layers)) {
+        registeredRouteImages.add(imageId);
+      }
       const assetIds = new Set(layers.flatMap(({ appearance }) => (
         appearance?.kind === 'poi' && appearance.customAssetId ? [appearance.customAssetId] : []
       )));
@@ -190,6 +203,15 @@ function createMarkerImageRegistry(map: MapLibreMap, decodeImage: NonNullable<Ma
           registered.delete(imageId);
         }
       }
+      const referencedRouteImages = registerRoutePictogramImages(map, layers);
+      for (const imageId of registeredRouteImages) {
+        if (referencedRouteImages.has(imageId)) continue;
+        try {
+          if (map.hasImage(imageId)) map.removeImage(imageId);
+        } finally {
+          registeredRouteImages.delete(imageId);
+        }
+      }
     },
   };
 }
@@ -200,10 +222,8 @@ export function createMapLibreContentAdapter(
   options: MapContentAdapterOptions = {},
 ): MapContentAdapter {
   const rendered: RenderedMapContent = { mapLayerIds: [], hitTestLayerIds: [], sourceIds: [], structure: '' };
-  let cachedContentRevision: object | undefined;
-  let cachedVisibleLayers: ContentLayer[] = [];
-  let cachedStructure = '';
-  let cachedGeometry = '';
+  let cachedContentRevision: object | undefined, cachedVisibleLayers: ContentLayer[] = [];
+  let cachedStructure = '', cachedGeometry = '';
   let isCleanupPending = false;
   const markerImages = createMarkerImageRegistry(map, options.decodeImage ?? decodeCustomMarkerImage);
 
