@@ -177,8 +177,12 @@ test('browser location centers the map and map-area lock gates movement commands
   expect(consoleProblems).toEqual([]);
 });
 
-test('desktop Fit and Zoom stack stays aligned and clear of route authoring', async ({ page }) => {
-  for (const viewport of [{ width: 1440, height: 900 }, { width: 1024, height: 768 }]) {
+test('desktop Fit and Zoom stack stays aligned and clear of centered route authoring', async ({ page }) => {
+  for (const viewport of [
+    { width: 2000, height: 600 },
+    { width: 1440, height: 900 },
+    { width: 1024, height: 768 },
+  ]) {
     await page.setViewportSize(viewport);
     await page.goto('./');
     await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
@@ -187,9 +191,17 @@ test('desktop Fit and Zoom stack stays aligned and clear of route authoring', as
     const fitBox = await page.getByRole('button', { name: 'Fit page' }).boundingBox();
     const zoomBox = await page.locator('.maplibregl-ctrl-group').first().boundingBox();
     const panelBox = await page.locator('.route-authoring-panel').boundingBox();
+    const canvasRegionBox = await page.locator('.canvas-region').boundingBox();
     expect(fitBox).not.toBeNull();
     expect(zoomBox).not.toBeNull();
     expect(panelBox).not.toBeNull();
+    expect(canvasRegionBox).not.toBeNull();
+    expect(panelBox!.x).toBeGreaterThanOrEqual(canvasRegionBox!.x);
+    expect(panelBox!.x + panelBox!.width).toBeLessThanOrEqual(canvasRegionBox!.x + canvasRegionBox!.width);
+    expect(panelBox!.x + panelBox!.width / 2).toBeCloseTo(
+      canvasRegionBox!.x + canvasRegionBox!.width / 2,
+      0,
+    );
     expect(fitBox!.x).toBe(zoomBox!.x);
     expect(fitBox!.width).toBe(zoomBox!.width);
     expect(zoomBox!.y - (fitBox!.y + fitBox!.height)).toBe(8);

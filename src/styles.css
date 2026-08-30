@@ -399,10 +399,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   bottom: auto;
 }
 .canvas-region.has-authoring-panel .route-authoring-panel {
-  left: 0.5rem;
   width: min(20rem, calc(100% - 1rem));
-  translate: none;
-  transform: none;
 }
 .shape-editing-toolbar {
   @apply absolute left-1/2 z-20 flex -translate-x-1/2 items-center overflow-hidden;
