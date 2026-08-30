@@ -419,7 +419,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .shape-editing-toolbar > button:hover { background: var(--studio-field); }
 .shape-editing-toolbar > button[aria-pressed="true"] { background: var(--studio-accent); color: var(--studio-on-dark); }
 .map-authoring-panel {
-  @apply absolute left-1/2 z-40 flex -translate-x-1/2 flex-wrap items-center justify-center gap-2 px-2 py-1.5;
+  @apply absolute left-1/2 z-40 flex flex-wrap items-center justify-center gap-2 px-2 py-1.5;
   bottom: 4.5rem;
   max-width: calc(100% - 1rem);
   min-height: 2.5rem;
@@ -428,6 +428,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   background: var(--studio-surface-raised);
   color: var(--studio-text-secondary);
   font-size: var(--studio-font-control);
+  transform: translateX(-50%);
 }
 .map-authoring-panel > label { @apply flex items-center gap-1 whitespace-nowrap; }
 .map-authoring-panel > label > select { min-width: 5.25rem; }
