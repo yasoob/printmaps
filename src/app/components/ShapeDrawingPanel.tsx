@@ -1,9 +1,9 @@
-import { Clock3, MapPinned, PencilRuler } from 'lucide-react';
+import { Clock3, MapPinned, PencilRuler, Shapes, Undo2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { AdministrativeArea } from '../../domain/administrativeAreas';
 import { AdministrativeAreaPicker } from './AdministrativeAreaPicker';
-import { DrawingPanel } from './RouteDrawingPanel';
 import { didHandleRovingSelection } from './rovingSelection';
+import { ToolCardActions, ToolCardHeader } from './ToolAuthoringCard';
 
 export type ShapeAuthoringMode = 'administrative' | 'draw' | 'isochrone';
 
@@ -18,7 +18,6 @@ type ShapeDrawingPanelProps = Readonly<{
   mode: ShapeAuthoringMode;
   onModeChange: (mode: ShapeAuthoringMode) => void;
   onAddAdministrativeArea: (area: AdministrativeArea) => void;
-  onMergeAdministrativeAreas: (areas: readonly AdministrativeArea[]) => boolean;
   onCancel: () => void;
   onUndo: () => void;
   onFinish: () => void;
@@ -45,35 +44,39 @@ function ShapeModeTabs({ mode, onChange }: Readonly<{
 }
 
 export function ShapeDrawingPanel(props: ShapeDrawingPanelProps) {
+  const header = <ToolCardHeader closeLabel="Close Area menu" icon={Shapes} onClose={props.onCancel} title="Area" />;
   const modes = <ShapeModeTabs mode={props.mode} onChange={props.onModeChange} />;
   if (props.mode === 'administrative') {
     return (
-      <div className="map-authoring-panel shape-authoring-panel">
+      <div className="map-authoring-panel tool-authoring-card shape-authoring-panel">
+        {header}
         {modes}
-        <AdministrativeAreaPicker onAdd={props.onAddAdministrativeArea} onMerge={props.onMergeAdministrativeAreas} />
-        <button type="button" onClick={props.onCancel}>Cancel area</button>
+        <AdministrativeAreaPicker onAdd={props.onAddAdministrativeArea} onCancel={props.onCancel} />
       </div>
     );
   }
   if (props.mode === 'isochrone') {
-    return <div className="map-authoring-panel shape-authoring-panel">{modes}{props.isochronePanel}</div>;
+    return <div className="map-authoring-panel tool-authoring-card shape-authoring-panel">{header}{modes}{props.isochronePanel}</div>;
   }
   const vertexLabel = props.pointCount === 1 ? 'vertex' : 'vertices';
   return (
-    <DrawingPanel
-      statusLabel="Area drawing status"
-      status={`${props.pointCount} ${vertexLabel}`}
-      cancelLabel="Cancel area"
-      finishLabel="Finish area"
-      finishDisabled={!props.canFinish}
-      undoLabel="Undo last area point"
-      undoDisabled={props.pointCount === 0}
-      onCancel={props.onCancel}
-      onUndo={props.onUndo}
-      onFinish={props.onFinish}
-    >
+    <div className="map-authoring-panel tool-authoring-card shape-authoring-panel">
+      {header}
       {modes}
-      <span className="shape-drawing-hint">Click the map to outline an area</span>
-    </DrawingPanel>
+      <div className="shape-drawing-content">
+        <span className="shape-control-label">Outline</span>
+        <p>Click around the area on the map. Add at least three points to close the shape.</p>
+        <div className="shape-drawing-progress">
+          <span role="status" aria-label="Area drawing status">{props.pointCount} {vertexLabel}</span>
+          <button type="button" aria-label="Undo last area point" disabled={props.pointCount === 0} onClick={props.onUndo}>
+            <Undo2 aria-hidden="true" size={14} />Undo point
+          </button>
+        </div>
+      </div>
+      <ToolCardActions>
+        <button type="button" aria-label="Cancel area" onClick={props.onCancel}>Cancel</button>
+        <button className="primary-button" type="button" disabled={!props.canFinish} onClick={props.onFinish}>Finish area</button>
+      </ToolCardActions>
+    </div>
   );
 }

@@ -123,7 +123,7 @@ describe('POI authoring', () => {
 
     await user.click(screen.getByRole('button', { name: 'Place (P)' }));
     expect(screen.getByRole('button', { name: 'Export' })).toHaveAttribute('title', 'Finish or cancel map authoring before export');
-    expect(screen.getByRole('status', { name: 'POI placement status' })).toHaveTextContent('Click the map to place a POI');
+    expect(screen.getByRole('status', { name: 'POI placement status' })).toHaveTextContent('Click the map or choose a search result');
 
     await user.click(screen.getByRole('button', { name: 'Map POI point' }));
 

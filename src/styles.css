@@ -394,7 +394,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .shape-editing-toolbar > button:hover { background: var(--studio-field); }
 .shape-editing-toolbar > button[aria-pressed="true"] { background: var(--studio-text); color: var(--studio-on-dark); }
 .map-authoring-panel {
-  @apply absolute left-1/2 z-10 flex -translate-x-1/2 flex-wrap items-center justify-center gap-2 px-2 py-1.5;
+  @apply absolute left-1/2 z-40 flex -translate-x-1/2 flex-wrap items-center justify-center gap-2 px-2 py-1.5;
   bottom: 4.5rem;
   max-width: calc(100% - 1rem);
   min-height: 2.5rem;
@@ -408,126 +408,166 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .map-authoring-panel > label > select { min-width: 5.25rem; }
 .authoring-option-group { @apply flex items-center gap-1.5 border-0 p-0; }
 .authoring-option-group legend { @apply mr-1 text-[10px] font-medium uppercase tracking-wide; color: var(--studio-text-muted); }
-.authoring-segmented {
-  @apply flex items-center overflow-hidden;
-  border: var(--studio-border-width) solid var(--studio-line-strong);
-  border-radius: var(--studio-radius-md);
-  background: var(--studio-surface);
+.tool-authoring-card {
+  @apply flex-col items-stretch justify-start gap-3 p-4;
+  gap: var(--studio-tool-card-gap);
+  width: min(var(--studio-tool-card-width), calc(100% - 1rem));
+  max-width: calc(100% - 1rem);
+  max-height: min(var(--studio-tool-card-max-height), calc(100dvh - 7rem));
+  padding: var(--studio-tool-card-padding);
+  border-radius: var(--studio-tool-card-radius);
+  box-shadow: var(--studio-tool-card-shadow);
 }
-.authoring-segmented > button {
-  @apply inline-grid h-7 min-w-7 place-items-center px-1.5;
-  color: var(--studio-text-secondary);
-}
-.authoring-segmented > button + button { border-left: var(--studio-border-width) solid var(--studio-line); }
-.authoring-segmented > button:hover { background: var(--studio-field); }
-.authoring-segmented > button[aria-checked="true"] { background: var(--studio-text); color: var(--studio-on-dark); }
-.route-authoring-panel { width: min(36rem, calc(100% - 1rem)); }
-.route-authoring-panel > [role="status"] { @apply basis-full text-center; }
-.route-path-options > button { @apply flex min-h-8 items-center gap-1.5 px-2; }
-.route-marker-field { @apply flex items-center gap-1.5 whitespace-nowrap; }
-.route-marker-field > span { @apply text-xs font-medium; color: var(--studio-text-muted); }
-.route-marker-field > select { min-width: 6.75rem; }
-.shape-authoring-panel { max-width: min(46rem, calc(100% - 1rem)); }
+.tool-card-heading { @apply flex basis-full items-center justify-between; width: 100%; }
+.tool-card-heading > strong { @apply flex items-center gap-2 text-sm font-semibold; color: var(--studio-text); }
+.tool-card-heading > button { @apply grid h-7 w-7 place-items-center rounded-full; color: var(--studio-text-muted); }
+.tool-card-heading > button:hover { background: var(--studio-field); }
+.tool-control-label,
+.shape-control-label { @apply text-[10px] font-semibold uppercase tracking-[0.1em]; color: var(--studio-text-muted); }
+.tool-card-actions { @apply flex items-center justify-end gap-1 pt-1; }
+.tool-card-actions > button { @apply min-h-8 rounded px-2.5 text-xs font-medium; }
+.tool-card-actions > button:not(.primary-button) { color: var(--studio-text-muted); }
+.tool-card-actions > button:not(.primary-button):hover { background: var(--studio-field); }
+.tool-authoring-card .primary-button { background: var(--studio-tool-card-accent); }
+.tool-authoring-card .primary-button:hover { background: color-mix(in srgb, var(--studio-tool-card-accent) 88%, var(--studio-text-strong)); }
 .shape-mode-tabs {
-  @apply flex items-center;
+  @apply flex items-center gap-1 p-1;
+  border-radius: var(--studio-radius-lg);
+  background: var(--studio-field);
+}
+.shape-mode-tabs > button { @apply flex min-h-9 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded px-2.5 py-1.5 text-xs leading-tight; }
+.shape-mode-tabs > button[aria-selected="true"] {
+  color: var(--studio-tool-card-accent);
+  background: var(--studio-surface);
+  box-shadow: var(--studio-tool-card-selected-shadow);
+}
+.shape-authoring-panel > .shape-mode-tabs { width: 100%; }
+.shape-drawing-content { @apply grid gap-2 py-1; }
+.shape-drawing-content > p { @apply m-0 text-xs leading-relaxed; color: var(--studio-text-muted); }
+.shape-drawing-progress { @apply mt-1 flex items-center justify-between gap-3; }
+.shape-drawing-progress > span { @apply text-xs font-medium; color: var(--studio-text); }
+.shape-drawing-progress > button { @apply flex min-h-8 items-center gap-1.5 rounded px-2 text-xs; color: var(--studio-tool-card-accent); }
+.shape-drawing-progress > button:hover { background: var(--studio-field); }
+.shape-drawing-progress > button:disabled { cursor: default; opacity: .38; }
+.isochrone-panel { @apply grid gap-4; width: 100%; }
+.isochrone-field { @apply grid gap-1.5; }
+.isochrone-center { @apply flex min-w-0 items-center gap-2 py-0.5; }
+.isochrone-center > svg { @apply shrink-0; color: var(--studio-text-muted); }
+.isochrone-center > span { @apply flex min-w-0 flex-1 flex-col; }
+.isochrone-center strong { @apply truncate text-xs font-medium; color: var(--studio-text); }
+.isochrone-center small { @apply truncate text-[10px] tabular-nums; color: var(--studio-text-muted); }
+.isochrone-travel-mode { @apply m-0 border-0 p-0; }
+.isochrone-profiles { @apply mt-1.5 grid grid-cols-3 gap-1 rounded-lg p-1; background: var(--studio-field); }
+.isochrone-profiles > button { @apply flex min-h-12 flex-col items-center justify-center gap-1 rounded text-[10px] font-medium; color: var(--studio-text-muted); }
+.isochrone-profiles > button:hover { color: var(--studio-text); }
+.isochrone-profiles > button[aria-checked="true"] { color: var(--studio-tool-card-accent); background: var(--studio-surface); box-shadow: var(--studio-tool-card-selected-shadow); }
+.isochrone-duration-row { @apply grid gap-1.5; }
+.isochrone-duration-heading { @apply flex items-center justify-between; }
+.isochrone-duration-heading > strong { @apply text-xs font-semibold tabular-nums; color: var(--studio-text); }
+.isochrone-duration-row > input[type="range"] {
+  @apply m-0 h-5 w-full cursor-pointer;
+  accent-color: var(--studio-tool-card-accent);
+}
+.isochrone-duration-row > input[type="range"]:focus-visible { outline: var(--studio-focus-width) solid var(--studio-focus); outline-offset: 2px; }
+.isochrone-duration-limits { @apply flex items-center justify-between text-[9px]; color: var(--studio-text-muted); }
+.isochrone-error { @apply text-xs; color: var(--studio-danger); }
+.shadcn-combobox-input-group {
+  @apply flex h-10 min-w-0 items-center gap-2 rounded-md px-3;
   border: var(--studio-border-width) solid var(--studio-line-strong);
-  border-radius: var(--studio-radius-md);
   background: var(--studio-surface);
 }
-.shape-mode-tabs > button { @apply flex min-h-10 items-center gap-1.5 whitespace-nowrap px-2.5 py-1.5 text-xs leading-tight; }
-.shape-mode-tabs > button + button { border-left: var(--studio-border-width) solid var(--studio-line); }
-.shape-mode-tabs > button[aria-selected="true"] { background: var(--studio-text); color: var(--studio-on-dark); }
-.isochrone-panel { @apply flex flex-wrap items-center justify-center gap-2; }
-.isochrone-hint { @apply m-0 text-xs; color: var(--studio-text-muted); }
-.isochrone-center { @apply flex min-w-32 flex-col px-2 py-1; border-left: var(--studio-border-width) solid var(--studio-line); }
-.isochrone-center > span,
-.isochrone-duration > span:first-child { @apply text-[10px] font-medium uppercase tracking-wide; color: var(--studio-text-muted); }
-.isochrone-center > strong { @apply max-w-44 truncate text-xs font-medium; color: var(--studio-text); }
-.isochrone-center > small { @apply text-[10px] tabular-nums; color: var(--studio-text-muted); }
-.isochrone-profiles { @apply flex overflow-hidden; border: var(--studio-border-width) solid var(--studio-line-strong); border-radius: var(--studio-radius-md); }
-.isochrone-profiles > button { @apply flex min-h-10 items-center gap-1 px-2 text-xs; }
-.isochrone-profiles > button + button { border-left: var(--studio-border-width) solid var(--studio-line); }
-.isochrone-profiles > button[aria-checked="true"] { background: var(--studio-text); color: var(--studio-on-dark); }
-.isochrone-duration { @apply flex items-center gap-1; }
-.isochrone-duration > input { @apply h-8 w-16 px-2 text-right tabular-nums; border: var(--studio-border-width) solid var(--studio-line-strong); border-radius: var(--studio-radius-md); background: var(--studio-surface); }
-.isochrone-limit-note { @apply m-0 max-w-56 text-xs leading-snug; color: var(--studio-text-muted); }
-.isochrone-error { @apply max-w-56 text-xs; color: var(--studio-danger); }
-.isochrone-actions { @apply flex items-center gap-1; }
-.isochrone-actions > button { @apply min-h-10 px-2.5 text-xs; border-radius: var(--studio-radius-md); }
-.isochrone-actions > button:not(.primary-button):hover { background: var(--studio-field); }
-.shape-drawing-hint { color: var(--studio-text-muted); }
-.administrative-region-options {
-  @apply grid grid-cols-2 gap-x-3 gap-y-1 border-0 p-1;
-  width: min(22rem, calc(100vw - 2rem));
-  max-height: 7rem;
-  overflow-y: auto;
-}
-.administrative-region-options legend { @apply sr-only; }
-.administrative-region-options .studio-checkbox { @apply whitespace-nowrap; }
-.administrative-filter > input {
-  @apply h-8 w-36 px-2 outline-none;
+.shadcn-combobox-input-group:focus-within { border-color: var(--studio-tool-card-accent); box-shadow: var(--studio-tool-card-focus-shadow); }
+.shadcn-combobox-input-group > svg { @apply shrink-0; color: var(--studio-text-muted); }
+.shadcn-combobox-input-group > input { @apply min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap border-0 bg-transparent text-xs outline-none; }
+.shadcn-combobox-positioner { z-index: 100; }
+.shadcn-combobox-popup {
+  width: var(--anchor-width);
+  max-height: min(18rem, var(--available-height));
+  overflow: hidden;
   border: var(--studio-border-width) solid var(--studio-line-strong);
-  border-radius: var(--studio-radius-md);
-  background: var(--studio-surface);
+  border-radius: 0.625rem;
   color: var(--studio-text);
+  background: var(--studio-surface);
+  box-shadow: 0 14px 35px color-mix(in srgb, var(--studio-text) 18%, transparent);
 }
-.administrative-filter > input:focus-visible { border-color: var(--studio-accent); }
-.map-authoring-panel > .administrative-coverage {
-  max-width: 18rem;
-  white-space: normal;
-}
-.administrative-region-error { color: var(--studio-danger); font-size: var(--studio-font-meta); }
+.shadcn-combobox-count { @apply px-3 pb-1 pt-2 text-[10px] font-medium; color: var(--studio-text-muted); }
+.shadcn-combobox-list { @apply max-h-44 overflow-y-auto p-1; overscroll-behavior: contain; }
+.shadcn-combobox-item { @apply flex min-h-11 cursor-default items-center gap-2 rounded-md px-2 outline-none; color: var(--studio-text-secondary); }
+.shadcn-combobox-item[data-highlighted] { background: var(--studio-field); }
+.shadcn-combobox-item[data-selected] { color: var(--studio-tool-card-accent); background: var(--studio-tool-card-accent-soft); }
+.shadcn-combobox-indicator { @apply grid h-4 w-4 shrink-0 place-items-center; color: var(--studio-tool-card-accent); }
+.shadcn-combobox-item-copy { @apply flex min-w-0 flex-1 flex-col; }
+.shadcn-combobox-item-copy > strong { @apply truncate text-xs font-medium; color: var(--studio-text); }
+.shadcn-combobox-item-copy > small { @apply truncate text-[10px]; color: var(--studio-text-muted); }
+.shadcn-combobox-empty { @apply px-3 py-8 text-center text-xs; color: var(--studio-text-muted); }
+.shadcn-combobox-empty:empty { display: none; }
+.administrative-boundary-picker { @apply grid min-h-0 gap-4; width: 100%; }
+.administrative-combobox-field { @apply grid gap-1.5; }
+.administrative-combobox-field > label { @apply text-[10px] font-semibold uppercase tracking-[0.1em]; color: var(--studio-text-muted); }
+.is-spinning { animation: studio-spin 900ms linear infinite; }
+@keyframes studio-spin { to { rotate: 360deg; } }
+.administrative-picker-footer { @apply flex items-center justify-end gap-1 pt-1; }
+.administrative-picker-footer > button:not(.primary-button) { @apply min-h-8 rounded px-2 text-xs; color: var(--studio-text-muted); }
+.administrative-picker-footer > button:not(.primary-button):hover { background: var(--studio-field); }
+.administrative-boundary-picker > [role="status"] { @apply flex items-center justify-center gap-1 text-center text-[10px]; color: var(--studio-danger); }
+.administrative-boundary-picker > [role="status"]:empty { display: none; }
 .map-authoring-panel > span { @apply whitespace-nowrap px-1; }
-.map-authoring-panel > [role="status"][aria-label^="Administrative"] {
-  flex: 1 0 100%;
-  max-width: 100%;
-  overflow-wrap: anywhere;
-  text-align: center;
-  white-space: normal;
-}
 .map-authoring-panel > button:not(.primary-button) {
   @apply inline-flex h-7 items-center gap-1 px-2;
   border-radius: var(--studio-radius-md);
 }
 .map-authoring-panel > button:not(.primary-button):hover { background: var(--studio-field); }
 .map-authoring-panel > .primary-button { @apply h-7 px-2.5; }
-.poi-spreadsheet-panel {
-  @apply absolute left-1/2 flex -translate-x-1/2 flex-col gap-2 p-3;
-  bottom: 4.5rem;
-  width: min(32rem, calc(100% - 1rem));
-  border: var(--studio-border-width) solid var(--studio-line-strong);
-  border-radius: var(--studio-radius-lg);
-  background: var(--studio-surface-raised);
-  color: var(--studio-text-secondary);
-  font-size: var(--studio-font-control);
+.tool-segmented-control { @apply grid grid-cols-3 gap-1 rounded-lg p-1; background: var(--studio-field); }
+.tool-segmented-control > button { @apply flex min-h-10 items-center justify-center gap-1.5 rounded px-2 text-xs font-medium; color: var(--studio-text-muted); }
+.tool-segmented-control > button:hover { color: var(--studio-text); }
+.tool-segmented-control > button[aria-checked="true"] { color: var(--studio-tool-card-accent); background: var(--studio-surface); box-shadow: var(--studio-tool-card-selected-shadow); }
+.route-path-field { @apply m-0 border-0 p-0; }
+.route-path-field > legend { @apply mb-1.5; }
+.tool-authoring-card > .route-marker-field { @apply grid gap-1.5 whitespace-normal; }
+.route-marker-field > select { @apply h-10 w-full rounded-md px-3 text-xs outline-none; border: var(--studio-border-width) solid var(--studio-line-strong); background: var(--studio-surface); }
+.route-marker-field > select:focus-visible { border-color: var(--studio-tool-card-accent); box-shadow: var(--studio-tool-card-focus-shadow); }
+.route-progress { @apply flex items-center justify-between gap-3 py-1; }
+.route-progress > span { @apply min-w-0 flex-1 text-xs; color: var(--studio-text-muted); }
+.route-progress > button { @apply flex min-h-8 shrink-0 items-center gap-1.5 rounded px-2 text-xs; color: var(--studio-tool-card-accent); }
+.route-progress > button:hover { background: var(--studio-field); }
+.route-progress > button:disabled { cursor: default; opacity: .38; }
+.poi-placement-content { @apply grid gap-1.5 py-1; }
+.poi-placement-content > p { @apply m-0 text-xs leading-relaxed; color: var(--studio-text-muted); }
+.map-authoring-panel > .tool-card-secondary-action {
+  @apply flex h-auto min-h-12 w-full items-center gap-2 rounded-md px-3 py-2 text-left;
+  color: var(--studio-tool-card-accent);
+  background: var(--studio-field);
 }
-.poi-spreadsheet-heading { @apply flex items-baseline justify-between gap-3; }
-.poi-spreadsheet-heading strong { color: var(--studio-text); font-size: var(--studio-font-label); }
-.poi-spreadsheet-heading span { color: var(--studio-text-subtle); font-size: var(--studio-font-meta); }
-.poi-spreadsheet-mode { @apply m-0 flex items-center gap-3 border-0 p-0; }
+.tool-card-secondary-action > svg { @apply shrink-0; }
+.tool-card-secondary-action > span { @apply flex min-w-0 flex-1 flex-col; }
+.tool-card-secondary-action strong { @apply text-xs font-medium; color: var(--studio-text); }
+.tool-card-secondary-action small { @apply text-[10px]; color: var(--studio-text-muted); }
+.poi-spreadsheet-panel { overflow-y: auto; }
+.poi-spreadsheet-intro { @apply grid gap-1; }
+.poi-spreadsheet-intro > p { @apply m-0 text-xs leading-relaxed; color: var(--studio-text-muted); }
+.poi-spreadsheet-mode { @apply m-0 grid grid-cols-2 gap-1 rounded-lg border-0 p-1; background: var(--studio-field); }
 .poi-spreadsheet-mode legend { @apply sr-only; }
-.poi-spreadsheet-mode label { @apply inline-flex h-8 items-center gap-1.5; color: var(--studio-text); }
-.poi-spreadsheet-mode input { accent-color: var(--studio-text-strong); }
-.poi-spreadsheet-panel > label { @apply font-medium; color: var(--studio-text); font-size: var(--studio-font-meta); }
+.poi-spreadsheet-mode label { @apply relative flex min-h-10 cursor-pointer items-center justify-center rounded text-xs font-medium; color: var(--studio-text-muted); }
+.poi-spreadsheet-mode label:has(input:checked) { color: var(--studio-tool-card-accent); background: var(--studio-surface); box-shadow: var(--studio-tool-card-selected-shadow); }
+.poi-spreadsheet-mode input { @apply absolute inset-0 h-full w-full cursor-pointer opacity-0; }
+.poi-spreadsheet-panel > label { @apply font-medium; color: var(--studio-text-muted); font-size: var(--studio-font-meta); }
 .poi-spreadsheet-panel textarea {
-  @apply w-full resize-y px-2 py-1.5 outline-none;
+  @apply w-full resize-y px-3 py-2 outline-none;
   min-height: 7rem;
   max-height: 14rem;
   border: var(--studio-border-width) solid var(--studio-line-strong);
-  border-radius: var(--studio-radius-sm);
+  border-radius: var(--studio-radius-md);
   background: var(--studio-field);
   color: var(--studio-text);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: var(--studio-font-meta);
   font-variant-numeric: tabular-nums;
 }
-.poi-spreadsheet-panel textarea:focus { border-color: var(--studio-accent); }
+.poi-spreadsheet-panel textarea:focus { border-color: var(--studio-tool-card-accent); box-shadow: var(--studio-tool-card-focus-shadow); }
 .poi-spreadsheet-panel textarea[aria-invalid="true"] { border-color: var(--studio-danger); }
 .poi-spreadsheet-panel > p { @apply m-0; color: var(--studio-danger); font-size: var(--studio-font-meta); }
 .poi-spreadsheet-panel > p[role="status"] { color: var(--studio-text-subtle); }
-.poi-spreadsheet-actions { @apply flex justify-end gap-2; }
-.poi-spreadsheet-actions button { @apply h-7 px-2.5; border-radius: var(--studio-radius-md); }
-.poi-spreadsheet-actions button:not(.primary-button):hover { background: var(--studio-field); }
 .map-scale {
   @apply absolute bottom-3 right-3 z-30;
   height: 0.5rem;
@@ -1473,14 +1513,14 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
     bottom: calc(max(14px, var(--studio-safe-bottom)) + 4rem);
     max-width: calc(100vw - 16px - var(--studio-safe-left) - var(--studio-safe-right));
   }
-  .administrative-filter > input { min-height: 2.75rem; }
+  .shadcn-combobox-input-group,
+  .shadcn-combobox-input-group > input { min-height: 2.75rem; }
   .poi-spreadsheet-panel {
     bottom: calc(max(14px, var(--studio-safe-bottom)) + 4rem);
     left: calc(50% + (var(--studio-safe-left) - var(--studio-safe-right)) / 2);
     width: calc(100vw - 16px - var(--studio-safe-left) - var(--studio-safe-right));
     max-height: calc(100dvh - 8rem - var(--studio-safe-top) - var(--studio-safe-bottom));
   }
-  .poi-spreadsheet-heading { @apply items-start; }
   .poi-spreadsheet-mode label { min-height: 2.75rem; }
   .poi-spreadsheet-panel textarea { min-height: 5.5rem; max-height: 22dvh; }
   .maplibregl-ctrl-bottom-left,

@@ -1,7 +1,9 @@
+import { ListPlus, MapPin } from 'lucide-react';
 import type { RefObject } from 'react';
 import type { PoiSpreadsheetEntry } from '../../domain/poiSpreadsheet';
 import type { SearchProvider } from '../../services/mapbox/contracts';
 import { PoiSpreadsheetPanel } from './PoiSpreadsheetPanel';
+import { ToolCardActions, ToolCardHeader } from './ToolAuthoringCard';
 
 type PoiAuthoringControlsProps = {
   active: boolean;
@@ -23,11 +25,20 @@ export function PoiAuthoringControls(props: PoiAuthoringControlsProps) {
     return <PoiSpreadsheetPanel documentEpoch={documentEpoch} onCancel={onCancelSpreadsheet} onSubmit={onSubmitSpreadsheet} searchProvider={searchProvider} />;
   }
   return (
-    <div className="map-authoring-panel">
-      <span role="status" aria-label="POI placement status">Click the map to place a POI</span>
+    <div className="map-authoring-panel tool-authoring-card poi-authoring-panel">
+      <ToolCardHeader closeLabel="Close Place menu" icon={MapPin} onClose={onCancel} title="Place" />
+      <div className="poi-placement-content">
+        <span className="tool-control-label">Place one point</span>
+        <p role="status" aria-label="POI placement status">Click the map or choose a search result to add a point.</p>
+      </div>
       {error && <span className="isochrone-error" role="alert">{error}</span>}
-      <button ref={spreadsheetTriggerRef} type="button" onClick={onOpenSpreadsheet}>Paste POI list</button>
-      <button type="button" onClick={onCancel}>Cancel POI</button>
+      <button ref={spreadsheetTriggerRef} className="tool-card-secondary-action" type="button" aria-label="Paste POI list" onClick={onOpenSpreadsheet}>
+        <ListPlus aria-hidden="true" size={15} />
+        <span><strong>Add multiple points</strong><small>Paste coordinates or addresses from a spreadsheet</small></span>
+      </button>
+      <ToolCardActions>
+        <button type="button" aria-label="Cancel POI" onClick={onCancel}>Cancel</button>
+      </ToolCardActions>
     </div>
   );
 }

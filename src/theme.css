@@ -18,6 +18,16 @@
   --studio-focus: #005fb8;
   --studio-accent-strong: #0878c9;
   --studio-accent-soft: #e8f4ff;
+  --studio-tool-card-accent: #376c4a;
+  --studio-tool-card-accent-soft: #e4efe5;
+  --studio-tool-card-width: 25rem;
+  --studio-tool-card-max-height: 42rem;
+  --studio-tool-card-padding: 1rem;
+  --studio-tool-card-gap: 0.75rem;
+  --studio-tool-card-radius: 0.875rem;
+  --studio-tool-card-shadow: 0 18px 50px color-mix(in srgb, var(--studio-text) 19%, transparent);
+  --studio-tool-card-selected-shadow: 0 1px 4px color-mix(in srgb, var(--studio-text) 12%, transparent);
+  --studio-tool-card-focus-shadow: 0 0 0 1px var(--studio-tool-card-accent);
   --studio-danger: #c5352c;
   --studio-route: #ff4f3d;
   --studio-on-dark: #ffffff;

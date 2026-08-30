@@ -173,7 +173,7 @@ function StudioApp({ autosaveRepository, directionsProvider, mapMatchingProvider
           directionsProvider={directionsProvider} searchProvider={searchProvider ?? defaultSearchProvider}
           onCreateDirectionsRoute={project.createDirectionsRoute}
           onCreateAdministrativeArea={project.createAdministrativeArea}
-          onCreateAdministrativeAreas={project.createAdministrativeAreas} onCreateIsochroneArea={project.createIsochroneArea}
+          onCreateIsochroneArea={project.createIsochroneArea}
           onCreatePoi={project.createPoi} onCreatePoiBatch={project.createPoiBatch} onCreateSearchPoi={project.createSearchPoi}
           onCreateRoute={project.createRoute}
           onCreateShape={project.createShape}

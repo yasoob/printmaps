@@ -204,12 +204,13 @@ def write_json(path: Path, value: Any) -> None:
 
 def exchange_directories(left: Path, right: Path) -> None:
     """Atomically exchange two populated directories without a missing-path window."""
-    rename_at_2 = getattr(ctypes.CDLL(None, use_errno=True), "renameat2", None)
-    if rename_at_2 is None:
+    library = ctypes.CDLL(None, use_errno=True)
+    rename_exchange = getattr(library, "renameat2", None) or getattr(library, "renameatx_np", None)
+    if rename_exchange is None:
         raise OSError(errno.ENOSYS, "Atomic directory exchange is unavailable on this platform.")
-    rename_at_2.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
-    rename_at_2.restype = ctypes.c_int
-    if rename_at_2(-100, os.fsencode(left), -100, os.fsencode(right), 2) != 0:
+    rename_exchange.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
+    rename_exchange.restype = ctypes.c_int
+    if rename_exchange(-100, os.fsencode(left), -100, os.fsencode(right), 2) != 0:
         error_number = ctypes.get_errno()
         raise OSError(error_number, os.strerror(error_number))
 

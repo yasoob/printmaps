@@ -1,3 +1,4 @@
+import { ListPlus } from 'lucide-react';
 import { useLayoutEffect, useRef, useState, type FormEvent } from 'react';
 import {
   MAX_POI_ADDRESS_ROWS,
@@ -8,6 +9,7 @@ import {
   type PoiSpreadsheetEntry,
 } from '../../domain/poiSpreadsheet';
 import type { SearchProvider } from '../../services/mapbox/contracts';
+import { ToolCardActions, ToolCardHeader } from './ToolAuthoringCard';
 
 type PoiSpreadsheetPanelProps = {
   documentEpoch: number;
@@ -103,10 +105,11 @@ export function PoiSpreadsheetPanel({ documentEpoch, onCancel, onSubmit, searchP
 
   const isAddressMode = mode === 'addresses';
   return (
-    <form className="poi-spreadsheet-panel" aria-labelledby="poi-spreadsheet-title" onSubmit={(event) => { void submit(event); }}>
-      <div className="poi-spreadsheet-heading">
-        <strong id="poi-spreadsheet-title">Add POIs from a spreadsheet</strong>
-        <span>{isAddressMode ? `Look up up to ${MAX_POI_ADDRESS_ROWS} address rows with Mapbox.` : `Paste up to ${MAX_POI_SPREADSHEET_ROWS} tab-separated rows.`}</span>
+    <form className="map-authoring-panel tool-authoring-card poi-spreadsheet-panel" aria-label="Place multiple points" onSubmit={(event) => { void submit(event); }}>
+      <ToolCardHeader closeLabel="Close POI list" icon={ListPlus} onClose={cancel} title="Place multiple" />
+      <div className="poi-spreadsheet-intro">
+        <span className="tool-control-label">Source data</span>
+        <p>{isAddressMode ? `Look up up to ${MAX_POI_ADDRESS_ROWS} address rows with Mapbox.` : `Paste up to ${MAX_POI_SPREADSHEET_ROWS} tab-separated rows.`}</p>
       </div>
       <fieldset className="poi-spreadsheet-mode" disabled={isResolving}>
         <legend>Location columns</legend>
@@ -130,10 +133,10 @@ export function PoiSpreadsheetPanel({ documentEpoch, onCancel, onSubmit, searchP
       />
       {isResolving && <p role="status">Finding spreadsheet addresses…</p>}
       {error && <p role="alert">{error}</p>}
-      <div className="poi-spreadsheet-actions">
+      <ToolCardActions>
         <button type="button" onClick={cancel}>Cancel list</button>
         <button className="primary-button" type="submit" disabled={isResolving}>{submitLabel(isAddressMode, isResolving)}</button>
-      </div>
+      </ToolCardActions>
     </form>
   );
 }

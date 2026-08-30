@@ -21,7 +21,7 @@ test('POI placement can be cancelled, undone, redone, and exported as vector con
   test.skip(await mapFallback.isVisible(), 'This browser fixture has no WebGL 2 renderer, so map authoring cannot be exercised.');
 
   await page.getByRole('button', { name: 'Place (P)' }).click();
-  await expect(page.getByRole('status', { name: 'POI placement status' })).toContainText('Click the map to place a POI');
+  await expect(page.getByRole('status', { name: 'POI placement status' })).toContainText('Click the map or choose a search result');
   await expect(page.getByRole('button', { name: 'Export' })).toBeDisabled();
   await page.getByRole('button', { name: 'Cancel POI' }).click();
   await expect(page.getByRole('button', { name: 'Select (V)' })).toBeFocused();

@@ -4,7 +4,6 @@ import {
   Spline,
   Undo2,
 } from 'lucide-react';
-import type { ReactNode } from 'react';
 import {
   ROUTE_TRAVEL_PROFILES,
   ROUTE_TRAVEL_PROFILE_LABELS,
@@ -12,33 +11,7 @@ import {
   type RouteTravelProfile,
 } from '../../domain/routeProfiles';
 import { didHandleRovingSelection } from './rovingSelection';
-
-type DrawingPanelProps = {
-  children?: ReactNode;
-  className?: string;
-  statusLabel: string;
-  status: string;
-  cancelLabel: string;
-  finishLabel: string;
-  finishDisabled: boolean;
-  undoLabel?: string;
-  undoDisabled?: boolean;
-  onCancel: () => void;
-  onUndo?: () => void;
-  onFinish: () => void;
-};
-
-export function DrawingPanel(props: DrawingPanelProps) {
-  return (
-    <div className={`map-authoring-panel${props.className ? ` ${props.className}` : ''}`}>
-      {props.children}
-      <span role="status" aria-label={props.statusLabel}>{props.status}</span>
-      {props.onUndo && <button type="button" aria-label={props.undoLabel} disabled={props.undoDisabled} onClick={props.onUndo}><Undo2 aria-hidden="true" size={14} /> Undo point</button>}
-      <button type="button" onClick={props.onCancel}>{props.cancelLabel}</button>
-      <button className="primary-button" type="button" disabled={props.finishDisabled} onClick={props.onFinish}>{props.finishLabel}</button>
-    </div>
-  );
-}
+import { ToolCardActions, ToolCardHeader } from './ToolAuthoringCard';
 
 type RouteDrawingPanelProps = Readonly<{
   pointCount: number;
@@ -69,29 +42,36 @@ export function RouteDrawingPanel(props: RouteDrawingPanelProps) {
     props.onShowTravelModeIconChange(true);
   };
   return (
-    <DrawingPanel
-      className="route-authoring-panel"
-      statusLabel="Route drawing status"
-      status={status}
-      cancelLabel="Cancel route"
-      finishLabel={props.isRouting ? 'Routing…' : 'Finish route'}
-      finishDisabled={!props.canFinish || props.isRouting}
-      undoLabel="Undo last route point"
-      undoDisabled={props.pointCount === 0 || props.isRouting}
-      onCancel={props.onCancel}
-      onUndo={props.onUndo}
-      onFinish={props.onFinish}
-    >
-      <div className="authoring-segmented route-path-options" role="radiogroup" aria-label="Route path" onKeyDown={(event) => didHandleRovingSelection(event, '[role="radio"]')}>
-        <button disabled={props.isRouting} type="button" role="radio" aria-checked={props.lineShape === 'straight'} tabIndex={props.lineShape === 'straight' ? 0 : -1} aria-label="Straight" title="Straight segments" onClick={() => props.onLineShapeChange('straight')}><Minus size={15} /><span>Straight</span></button>
-        <button disabled={props.isRouting} type="button" role="radio" aria-checked={props.lineShape === 'arc'} tabIndex={props.lineShape === 'arc' ? 0 : -1} aria-label="Arc" title="Curved arcs" onClick={() => props.onLineShapeChange('arc')}><Spline size={15} /><span>Arc</span></button>
-        <button disabled={props.isRouting} type="button" role="radio" aria-checked={props.lineShape === 'road'} tabIndex={props.lineShape === 'road' ? 0 : -1} aria-label="Road" title="Route along roads with Mapbox" onClick={() => props.onLineShapeChange('road')}><Route size={15} /><span>Road</span></button>
+    <div className="map-authoring-panel tool-authoring-card route-authoring-panel">
+      <ToolCardHeader closeLabel="Close Route menu" icon={Route} onClose={props.onCancel} title="Route" />
+      <fieldset className="route-path-field">
+        <legend className="tool-control-label">Path</legend>
+        <div className="tool-segmented-control route-path-options" role="radiogroup" aria-label="Route path" onKeyDown={(event) => didHandleRovingSelection(event, '[role="radio"]')}>
+          <button disabled={props.isRouting} type="button" role="radio" aria-checked={props.lineShape === 'straight'} tabIndex={props.lineShape === 'straight' ? 0 : -1} aria-label="Straight" title="Straight segments" onClick={() => props.onLineShapeChange('straight')}><Minus size={15} /><span>Straight</span></button>
+          <button disabled={props.isRouting} type="button" role="radio" aria-checked={props.lineShape === 'arc'} tabIndex={props.lineShape === 'arc' ? 0 : -1} aria-label="Arc" title="Curved arcs" onClick={() => props.onLineShapeChange('arc')}><Spline size={15} /><span>Arc</span></button>
+          <button disabled={props.isRouting} type="button" role="radio" aria-checked={props.lineShape === 'road'} tabIndex={props.lineShape === 'road' ? 0 : -1} aria-label="Road" title="Route along roads with Mapbox" onClick={() => props.onLineShapeChange('road')}><Route size={15} /><span>Road</span></button>
+        </div>
+      </fieldset>
+      <label className="route-marker-field">
+        <span className="tool-control-label">Travel marker</span>
+        <select aria-label="Travel marker" disabled={props.isRouting} value={markerValue} onChange={changeMarker}>
+          <option value="none">None</option>
+          {ROUTE_TRAVEL_PROFILES.map((profile) => <option key={profile} value={profile}>{ROUTE_TRAVEL_PROFILE_LABELS[profile]}</option>)}
+        </select>
+      </label>
+      <div className="route-progress">
+        <span role="status" aria-label="Route drawing status">{status}</span>
+        <button type="button" aria-label="Undo last route point" disabled={props.pointCount === 0 || props.isRouting} onClick={props.onUndo}>
+          <Undo2 aria-hidden="true" size={14} />Undo point
+        </button>
       </div>
-      <label className="route-marker-field"><span>Marker</span><select aria-label="Travel marker" disabled={props.isRouting} value={markerValue} onChange={changeMarker}>
-        <option value="none">None</option>
-        {ROUTE_TRAVEL_PROFILES.map((profile) => <option key={profile} value={profile}>{ROUTE_TRAVEL_PROFILE_LABELS[profile]}</option>)}
-      </select></label>
       {props.error && <div className="isochrone-error" role="alert">{props.error}</div>}
-    </DrawingPanel>
+      <ToolCardActions>
+        <button type="button" aria-label="Cancel route" onClick={props.onCancel}>Cancel</button>
+        <button className="primary-button" type="button" disabled={!props.canFinish || props.isRouting} onClick={props.onFinish}>
+          {props.isRouting ? 'Routing…' : 'Finish route'}
+        </button>
+      </ToolCardActions>
+    </div>
   );
 }
