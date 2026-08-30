@@ -361,6 +361,27 @@ test('mobile authoring panels and native map controls stay usable and disjoint',
   }
 });
 
+test('short landscape route authoring keeps every map control on-screen', async ({ page }) => {
+  await page.setViewportSize({ width: 844, height: 320 });
+  await page.goto('./');
+  await page.getByRole('button', { name: 'Route (R)' }).click();
+
+  const panel = page.locator('.route-authoring-panel');
+  const controls = [
+    page.getByRole('button', { name: 'Fit page' }),
+    page.locator('.maplibregl-ctrl-bottom-right'),
+    page.locator('.maplibregl-ctrl-bottom-left'),
+    page.locator('.map-scale'),
+  ];
+  for (const control of controls) {
+    const box = await control.boundingBox();
+    expect(box).not.toBeNull();
+    expect(Math.min(box!.x, box!.y, 844 - box!.x - box!.width, 320 - box!.y - box!.height)).toBeGreaterThanOrEqual(0);
+    await expectNoOverlap(panel, control);
+  }
+  await expectNoOverlap(controls[2], controls[3]);
+});
+
 test('mobile navigation buttons use full touch targets', async ({ page }) => {
   const consoleErrors: string[] = [];
   const pageErrors: string[] = [];

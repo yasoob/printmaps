@@ -113,9 +113,9 @@ describe('route SVG and PDF parity', () => {
         if (context.layerId === route.id) svgLongitudes.push(longitude);
         return { x: longitude, y: 0 };
       },
-      referenceLongitude: 180,
+      referenceLongitude: 0,
     });
-    expect(svgLongitudes.every((longitude) => longitude >= 179 && longitude <= 181)).toBe(true);
+    expect(Math.max(...svgLongitudes) - Math.min(...svgLongitudes)).toBeLessThanOrEqual(2);
 
     const pdfLongitudes: number[] = [];
     pdfVectorCommands(route, {
@@ -127,8 +127,8 @@ describe('route SVG and PDF parity', () => {
         pdfLongitudes.push(longitude);
         return { x: (longitude - 179) / 2, y: 0.5 };
       },
-      referenceLongitude: 180,
+      referenceLongitude: 0,
     }, 100, 100);
-    expect(pdfLongitudes.every((longitude) => longitude >= 179 && longitude <= 181)).toBe(true);
+    expect(Math.max(...pdfLongitudes) - Math.min(...pdfLongitudes)).toBeLessThanOrEqual(2);
   });
 });

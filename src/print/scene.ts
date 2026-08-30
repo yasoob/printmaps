@@ -1,4 +1,4 @@
-import { deriveRenderedRoute, projectedRouteMarkerBearing } from '../domain/renderedRoute';
+import { deriveRenderedRoute, projectedRouteMarkerBearing, rebaseRenderedRouteMarker } from '../domain/renderedRoute';
 import { rebasePathLongitudes } from '../domain/routeArcGeometry';
 import { routePictogramSvg } from '../domain/routePictograms';
 import type { ContentLayer, LayerGeometry, LayerType, ProjectDocument } from '../domain/project';
@@ -12,19 +12,14 @@ export type PagePoint = Readonly<{ x: number; y: number }>;
 
 export type CoordinateProjector = (
   coordinate: readonly [number, number],
-  context: Readonly<{
-    layerId: string;
-    pageWidthMm: number;
-    pageHeightMm: number;
-  }>,
+  context: Readonly<{ layerId: string; pageWidthMm: number; pageHeightMm: number }>,
 ) => PagePoint;
 
 export type RasterBasemapAsset = Readonly<{ dataUri: string; pixelWidth: number; pixelHeight: number }>;
 
 export type PrintSceneOptions = Readonly<{
   basemap: RasterBasemapAsset; attribution: string; project: CoordinateProjector;
-  metadata?: string;
-  referenceLongitude?: number;
+  metadata?: string; referenceLongitude?: number;
 }>;
 
 export class PrintSceneError extends Error {
@@ -154,8 +149,7 @@ function projectCoordinate(
   }
   let point: PagePoint;
   try {
-    const projectedCoordinate = rebasePathLongitudes([[coordinate[0], coordinate[1]]], options.referenceLongitude)[0];
-    point = options.project(projectedCoordinate, {
+    point = options.project([coordinate[0], coordinate[1]], {
       layerId: layer.id,
       pageWidthMm: page.width,
       pageHeightMm: page.height,
@@ -186,7 +180,8 @@ function routeGeometryElement(
     throw new PrintSceneError(`Layer "${layer.id}" is not a complete printable route.`);
   }
   const paths = rendered.legs.map((leg) => {
-    const points = leg.path.map((coordinate) => projectCoordinate(coordinate, layer, options, page));
+    const points = rebasePathLongitudes(leg.path, options.referenceLongitude)
+      .map((coordinate) => projectCoordinate(coordinate, layer, options, page));
     const commands = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${formatNumber(point.x)} ${formatNumber(point.y)}`).join(' ');
     const width = leg.style.width * 0.3;
     const dash = leg.style.strokeStyle === 'dashed'
@@ -196,13 +191,18 @@ function routeGeometryElement(
   }).join('');
   const markerAppearance = layer.appearance.marker;
   const markers = markerAppearance
-    ? rendered.markers.map((marker) => routePictogramSvg(
-        markerAppearance.pictogram, escapeXml(marker.style.color), {
+    ? rendered.markers.map((rawMarker) => {
+      const marker = rebaseRenderedRouteMarker(rawMarker, options.referenceLongitude);
+      return routePictogramSvg(
+        markerAppearance.pictogram,
+        escapeXml(marker.style.color),
+        {
           point: projectCoordinate(marker.position, layer, options, page),
           radius: 4,
           bearing: projectedRouteMarkerBearing(marker, markerAppearance, (position) => projectCoordinate(position, layer, options, page), 'down'),
         },
-      )).join('')
+      );
+    }).join('')
     : '';
   return paths + markers;
 }

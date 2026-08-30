@@ -1,6 +1,7 @@
 import {
   deriveRenderedRoute,
   projectedRouteMarkerBearing,
+  rebaseRenderedRouteMarker,
 } from '../domain/renderedRoute';
 import { rebasePathLongitudes } from '../domain/routeArcGeometry';
 import { routePictogramPdfGeometry } from '../domain/routePictograms';
@@ -137,22 +138,16 @@ function routeCommands(layer: ContentLayer, context: ProjectionContext): string 
   });
   const pictogram = layer.appearance.marker?.pictogram;
   const markerAppearance = layer.appearance.marker;
-  const projectRouteCoordinate = (coordinate: readonly [number, number]) => project(
-    rebasePathLongitudes([coordinate], context.capture.referenceLongitude)[0],
-    context,
-  );
   if (pictogram) {
-    lines.push(...rendered.markers.map((marker) => routeMarkerCommands(
-      pictogram,
-      marker.style.color,
-      projectRouteCoordinate(marker.position),
-      projectedRouteMarkerBearing(
-        marker,
-        markerAppearance!,
-        projectRouteCoordinate,
-        'up',
-      ),
-    )));
+    lines.push(...rendered.markers.map((rawMarker) => {
+      const marker = rebaseRenderedRouteMarker(rawMarker, context.capture.referenceLongitude);
+      return routeMarkerCommands(
+        pictogram,
+        marker.style.color,
+        project(marker.position, context),
+        projectedRouteMarkerBearing(marker, markerAppearance!, (position) => project(position, context), 'up'),
+      );
+    }));
   }
   return lines.join('\n');
 }

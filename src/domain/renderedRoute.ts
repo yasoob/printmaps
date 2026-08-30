@@ -43,6 +43,21 @@ export type RenderedRoute = {
   markers: RenderedRouteMarker[];
 };
 
+export function rebaseRenderedRouteMarker(
+  marker: RenderedRouteMarker,
+  referenceLongitude?: number,
+): RenderedRouteMarker {
+  const rebased = rebasePathLongitudes(
+    [marker.tangent.start, marker.position, marker.tangent.end],
+    referenceLongitude,
+  );
+  return {
+    ...marker,
+    position: rebased[1]!,
+    tangent: { start: rebased[0]!, end: rebased[2]! },
+  };
+}
+
 export function projectedRouteMarkerBearing(
   marker: Pick<RenderedRouteMarker, 'tangent'>,
   appearance: RouteMarkerAppearance,
