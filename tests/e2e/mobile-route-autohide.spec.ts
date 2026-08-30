@@ -1,7 +1,8 @@
 import { expect, test } from "@playwright/test";
 
-test("auto-hides route settings while preserving map drawing", async ({ page }, testInfo) => {
-  await page.setViewportSize({ width: 574, height: 844 });
+test("centers and auto-hides route settings while preserving map drawing", async ({ page }, testInfo) => {
+  const viewport = { width: 390, height: 844 };
+  await page.setViewportSize(viewport);
   await page.goto("./");
   const mapReady = page.locator('[data-map-ready="true"]');
   const mapFallback = page.getByText("Map preview unavailable");
@@ -15,8 +16,12 @@ test("auto-hides route settings while preserving map drawing", async ({ page }, 
     .toHaveCount(0);
   await expect(page.getByRole("button", { name: /Draw on map/i }))
     .toHaveCount(0);
-  expect(await panel.evaluate((element) => getComputedStyle(element).maxHeight))
-    .toBe("none");
+  const expandedBox = await panel.boundingBox();
+  expect(expandedBox).not.toBeNull();
+  expect(expandedBox!.y).toBeGreaterThanOrEqual(0);
+  expect(expandedBox!.y + expandedBox!.height).toBeLessThanOrEqual(viewport.height);
+  expect(expandedBox!.x + expandedBox!.width / 2).toBeCloseTo(viewport.width / 2, 0);
+  expect(expandedBox!.y + expandedBox!.height / 2).toBeCloseTo(viewport.height / 2, 0);
   await page.screenshot({
     animations: "disabled",
     path: testInfo.outputPath("mobile-route-settings.png"),
