@@ -40,6 +40,7 @@ function isSameLayerRowProps(previous: LayerRowProps, next: LayerRowProps) {
 const LayerRow = memo(function LayerRow({ layer, index, layers, isSelected, activePanel, draggedLayerIdRef, setPreviewedLayerId, closePanel }: LayerRowProps) {
   const { moveLayer, selectLayer, toggleLayerLock, toggleLayerVisibility } = useProjectActions();
   const Icon = layerIcons[layer.type];
+  const isBasemap = layer.type === 'basemap';
   const clearPreview = () => setPreviewedLayerId((current) => current === layer.id ? null : current);
   const select = () => {
     selectLayer(layer.id);
@@ -65,11 +66,12 @@ const LayerRow = memo(function LayerRow({ layer, index, layers, isSelected, acti
       <button
         className="layer-drag"
         type="button"
-        draggable
+        disabled={isBasemap}
+        draggable={!isBasemap}
         aria-label={`Reorder ${layer.name}`}
-        title="Drag to reorder · Alt+Arrow keys"
+        title={isBasemap ? 'Basemap is fixed at the bottom' : 'Drag to reorder · Alt+Arrow keys'}
         onKeyDown={reorderByKeyboard}
-        onDragStart={() => { draggedLayerIdRef.current = layer.id; }}
+        onDragStart={() => { if (!isBasemap) draggedLayerIdRef.current = layer.id; }}
         onDragOver={(event) => event.preventDefault()}
         onDrop={() => {
           if (draggedLayerIdRef.current) moveLayer(draggedLayerIdRef.current, layers.findIndex((candidate) => candidate.id === layer.id));

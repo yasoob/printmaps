@@ -221,6 +221,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .layer-row:hover .layer-lock, .layer-row:hover .layer-drag, .layer-row.is-selected .layer-lock, .layer-row.is-selected .layer-drag, .layer-lock:focus-visible, .layer-drag:focus-visible { opacity: 1; }
 .layer-drag { cursor: grab; }
 .layer-drag:active { cursor: grabbing; }
+.layer-drag:disabled { cursor: default; opacity: .25; }
 .sidebar-footer {
   @apply mt-auto flex justify-between px-3 py-2.5;
   border-top: var(--studio-border-width) solid var(--studio-line);
@@ -1347,7 +1348,7 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
   border: 0;
 }
 .export-format-group {
-  @apply grid grid-cols-3 gap-1 rounded p-1;
+  @apply grid grid-cols-2 gap-1 rounded p-1;
   background: var(--studio-field);
 }
 .export-format-option {

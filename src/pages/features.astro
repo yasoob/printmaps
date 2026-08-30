@@ -3,7 +3,7 @@ import MarketingLayout from '../marketing/MarketingLayout.astro';
 import { breadcrumbStructuredData, SITE_URL } from '../marketing/product';
 
 const title = 'Printable map maker features';
-const description = 'Explore Print Map Studio features for custom map design, routes, places, administrative areas, GPX/KML/GeoJSON import, local projects, and PNG, PDF or layered SVG export.';
+const description = 'Explore Print Map Studio features for custom map design, routes, places, administrative areas, GPX/KML/GeoJSON import, local projects, and PNG, PDF, layered SVG or layered PSD export.';
 const structuredData = breadcrumbStructuredData([
   { name: 'Home', url: `${SITE_URL}/` },
   { name: 'Features', url: `${SITE_URL}/features/` },
@@ -43,8 +43,8 @@ const features = [
   {
     number: '06',
     title: 'Export for the next step',
-    copy: 'Download a print-sized PNG, an exact-page PDF, or a layered SVG. Supported routes, points, and shapes remain vector content in PDF and SVG, while the basemap can be embedded as high-resolution raster imagery.',
-    tags: ['PNG', 'PDF', 'Layered SVG', 'Print resolution'],
+    copy: 'Download a print-sized PNG, an exact-page PDF, a layered SVG, or a layered PSD. Supported routes, points, and shapes remain vector content in PDF and SVG; PSD embeds them as separate SVG Smart Objects.',
+    tags: ['PNG', 'PDF', 'Layered SVG', 'Layered PSD'],
   },
 ] as const;
 ---
@@ -91,13 +91,13 @@ const features = [
       <div class="accuracy-note__copy">
         <p>
           PNG is a raster image produced for the selected page size. PDF preserves the
-          physical page and supported vector overlays. Layered SVG keeps named groups for
-          the map and the content you add.
+          physical page and supported vector overlays. Layered SVG keeps named vector groups,
+          while layered PSD embeds each content layer as a named SVG Smart Object.
         </p>
         <p>
-          The basemap can still be raster inside PDF and SVG. Print Map Studio does not
-          claim an all-vector basemap, CMYK output, PDF/X certification, or editable
-          Photoshop files.
+          The basemap can still be raster inside PDF, SVG and PSD. Print Map Studio does not
+          claim an all-vector basemap, CMYK output, PDF/X certification, or native
+          Photoshop type and shape layers.
         </p>
         <a class="text-link" href="/#faq">
           Read export answers

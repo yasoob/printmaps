@@ -16,6 +16,7 @@ const ESTIMATED_TILE_PLAN_RECORD_BYTES = 256;
 function estimatedOutputBytes(format: ExportFormat, rgbaBytes: number): number {
   if (format === 'pdf') return Math.ceil(rgbaBytes * (3 / 4) * 1.01 + 1024 * 1024);
   if (format === 'layered-svg') return Math.ceil(rgbaBytes * 1.4 + 256 * 1024);
+  if (format === 'psd') return Math.ceil(rgbaBytes * 4 + 1024 * 1024);
   return Math.ceil(rgbaBytes * 1.05);
 }
 

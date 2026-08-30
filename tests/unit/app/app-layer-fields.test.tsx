@@ -24,17 +24,18 @@ describe('editor layer fields', () => {
     expect(screen.getByRole('switch', { name: 'Toggle layer visibility' })).not.toBeChecked();
   });
 
-  it('moves focus to Project properties after deleting the final layer', async () => {
+  it('keeps the fixed basemap after deleting every editable layer', async () => {
     const user = userEvent.setup();
     render(<App />);
 
-    for (const layerName of ['Route 01', 'Coffee stop', 'City center', 'Paper basemap']) {
+    for (const layerName of ['Route 01', 'Coffee stop', 'City center']) {
       await user.click(screen.getByRole('button', { name: `Select ${layerName}` }));
       await user.click(screen.getByRole('button', { name: 'Layer menu' }));
       await user.click(screen.getByRole('menuitem', { name: 'Delete layer' }));
     }
 
-    expect(screen.getByRole('heading', { name: 'Project' })).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'Select Paper basemap' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Layer menu' })).not.toBeInTheDocument();
   });
 
   it('normalizes trimmed names and clamped opacity drafts after blur', async () => {

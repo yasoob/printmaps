@@ -209,6 +209,21 @@ describe('portable project provenance', () => {
     expect(parsed.layers.find((layer) => layer.type === 'basemap')?.name).toBe('Client reference map');
   });
 
+  it('requires exactly one final basemap layer', () => {
+    const missing = createInitialProjectDocument();
+    missing.layers = missing.layers.filter(({ type }) => type !== 'basemap');
+    const duplicate = createInitialProjectDocument();
+    duplicate.layers.push({ ...duplicate.layers.at(-1)!, id: 'second-basemap' });
+    const misplaced = createInitialProjectDocument();
+    misplaced.layers.unshift(misplaced.layers.pop()!);
+
+    for (const document of [missing, duplicate, misplaced]) {
+      expect(() => parseProjectFileText(JSON.stringify(document))).toThrow(
+        'Projects must contain exactly one basemap as the final layer.',
+      );
+    }
+  });
+
   it('normalizes portable viewport precision at the validation boundary', () => {
     const source = createInitialProjectDocument();
     source.camera.center = [16.41000000001, 48.23000000001];

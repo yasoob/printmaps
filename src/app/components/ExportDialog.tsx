@@ -2,10 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ProjectDocument } from '../../domain/project';
 import { projectAttributions } from '../../domain/projectAttributions';
 import { canStreamLargeRasterPng } from '../../export/largeRasterPng';
+import { planLayeredPsdExport } from '../../export/layeredPsdPlan';
 import { planExportPreflight, type RasterDelivery } from '../../export/preflight';
 import type { PreviewPngExporter } from '../../export/previewPng';
 import { runPdfExport } from './exportDialogPdf';
 import { runPngExport } from './exportDialogPng';
+import { runPsdExport } from './exportDialogPsd';
 import { NATIVE_SYMBOL_BUFFER_PX } from './exportDialogRaster';
 import { ExportDialogView, type ExportFormat } from './ExportDialogView';
 
@@ -81,10 +83,11 @@ function selectExportFormat(format: ExportFormat, options: Readonly<{
   options.setStatus('');
 }
 
-function runSelectedExport(format: ExportFormat, png: () => Promise<void>, svg: () => Promise<void>, pdf: () => void) {
-  if (format === 'png') void png();
-  else if (format === 'svg') void svg();
-  else pdf();
+function runSelectedExport(
+  format: ExportFormat,
+  exports: Readonly<Record<ExportFormat, () => void>>,
+) {
+  exports[format]();
 }
 
 export function ExportDialog({ exporter, filename, document, onClose }: ExportDialogProps) {
@@ -93,20 +96,24 @@ export function ExportDialog({ exporter, filename, document, onClose }: ExportDi
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const [busy, setBusy] = useState(false);
+  const [cancellationAvailable, setCancellationAvailable] = useState(true);
   const [selectedFormat, setSelectedFormat] = useState<ExportFormat>('png');
 
   const [technicalDetailsExpanded, setTechnicalDetailsExpanded] = useState(false);
   const [status, setStatus] = useState('');
   const [error, setError] = useState<string | null>(null);
   const { preflight, rasterDelivery } = useExportPreflight(document);
+  const psdPlan = useMemo(() => planLayeredPsdExport(document), [document]);
   const largeRasterSupported = canStreamLargeRasterPng();
 
   useEffect(() => {
     (preflight.safe ? downloadButtonRef : cancelButtonRef).current?.focus();
   }, [preflight.safe]);
   useEffect(() => {
-    if (busy) cancelButtonRef.current?.focus();
-  }, [busy]);
+    if (!busy) return;
+    if (cancellationAvailable) cancelButtonRef.current?.focus();
+    else dialogRef.current?.focus();
+  }, [busy, cancellationAvailable]);
   useEffect(() => () => abortControllerRef.current?.abort(), []);
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDialogElement>) => handleExportDialogKeyDown(event, busy, dialogRef.current, onClose);
@@ -162,9 +169,24 @@ export function ExportDialog({ exporter, filename, document, onClose }: ExportDi
   };
 
   const downloadPdf = () => void runPdfExport({ abortControllerRef, document, exporter, filename, setBusy, setError, setStatus });
+  const downloadPsd = () => void runPsdExport({
+    abortControllerRef,
+    document,
+    exporter,
+    filename,
+    setBusy,
+    setCancellationAvailable,
+    setError,
+    setStatus,
+  });
 
   const changeFormat = (format: ExportFormat) => selectExportFormat(format, { isBusy: busy, setError, setFormat: setSelectedFormat, setStatus });
-  const downloadSelectedFormat = () => runSelectedExport(selectedFormat, download, downloadLayeredSvg, downloadPdf);
+  const downloadSelectedFormat = () => runSelectedExport(selectedFormat, {
+    pdf: downloadPdf,
+    png: () => void download(),
+    psd: downloadPsd,
+    svg: () => void downloadLayeredSvg(),
+  });
 
-  return <ExportDialogView busy={busy} cancelButtonRef={cancelButtonRef} dialogRef={dialogRef} document={document} downloadButtonRef={downloadButtonRef} error={error} largeRasterSupported={largeRasterSupported} onCancel={cancelExport} onClose={onClose} onDownload={downloadSelectedFormat} onFormatChange={changeFormat} onKeyDown={handleKeyDown} onTechnicalDetailsToggle={() => setTechnicalDetailsExpanded((expanded) => !expanded)} preflight={preflight} rasterDelivery={rasterDelivery} selectedFormat={selectedFormat} status={status} technicalDetailsExpanded={technicalDetailsExpanded} />;
+  return <ExportDialogView busy={busy} cancellationAvailable={cancellationAvailable} cancelButtonRef={cancelButtonRef} dialogRef={dialogRef} document={document} downloadButtonRef={downloadButtonRef} error={error} largeRasterSupported={largeRasterSupported} onCancel={cancelExport} onClose={onClose} onDownload={downloadSelectedFormat} onFormatChange={changeFormat} onKeyDown={handleKeyDown} onTechnicalDetailsToggle={() => setTechnicalDetailsExpanded((expanded) => !expanded)} preflight={preflight} psdPlan={psdPlan} rasterDelivery={rasterDelivery} selectedFormat={selectedFormat} status={status} technicalDetailsExpanded={technicalDetailsExpanded} />;
 }

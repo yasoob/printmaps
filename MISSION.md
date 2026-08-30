@@ -16,9 +16,9 @@ The mission is complete only when all of the following are true:
 6. Core content supports route, POI and shape layers with create/select/edit/hide/lock/reorder/delete/duplicate and undo/redo.
 7. GPX, KML and GeoJSON fixtures import locally and appear as editable content layers.
 8. Project save/open/autosave works locally through IndexedDB and portable JSON/ZIP download/upload.
-9. PNG, PDF and layered SVG exports are generated client-side. Large raster export uses tiled/strip rendering with preflight guards and cancellation.
+9. PNG, PDF, layered SVG and layered PSD exports are generated client-side. Large raster export uses tiled/strip rendering with preflight guards and cancellation.
 10. Every implemented UI interaction has automated behavioral coverage at the appropriate level: Testing Library for deterministic component/store behavior and Playwright for real map, focus, pointer, keyboard, responsive, download, and persistence flows. Chromium is the sole browser acceptance target. Firefox and WebKit are excluded unless the project owner explicitly requests a run.
-11. Export tests assert dimensions and named SVG groups.
+11. Export tests assert dimensions and named SVG/PSD layers.
 12. A 390px smoke test has no body horizontal overflow, and the browser console is clean in nominal desktop/mobile flows.
 13. `docs/FINDINGS.md` records evidence, open limitations and exact verification output. `docs/COMPLETE.md` is created only after every gate passes and includes commands, output summaries and the final commit SHA.
 
@@ -30,7 +30,7 @@ The mission is complete only when all of the following are true:
 2. Project document, layers, undo/redo and persistence.
 3. Route/POI/shape tools and Mapbox provider adapter.
 4. GPX/KML/GeoJSON import.
-5. SVG/PNG/PDF export and tiled large export.
+5. SVG/PNG/PDF/PSD export and tiled large export.
 6. Accessibility, responsive behavior, visual QA, performance and final review.
 7. Phase-2 capabilities from the plan only after the core gate is solid.
 

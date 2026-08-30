@@ -4,6 +4,7 @@ import {
   type ContentLayer,
   type ProjectDocument,
 } from '../domain/project';
+import { hasExactlyOneBottomBasemap } from '../domain/projectLayerStructure';
 import type { ProjectState } from './store';
 
 export type ProjectSet = StoreApi<ProjectState>['setState'];
@@ -62,6 +63,9 @@ export function commitDocument(state: ProjectState, document: ProjectDocument) {
 export function createDocumentActions(set: ProjectSet): Pick<ProjectState, 'openDocument' | 'setProjectTitle' | 'undo' | 'redo'> {
   return {
     openDocument: (storedDocument) => {
+      if (!hasExactlyOneBottomBasemap(storedDocument.layers)) {
+        throw new Error('Opened projects must contain exactly one basemap as the final layer.');
+      }
       const openedDocument = copyDocument(storedDocument);
       set((state) => ({
         document: openedDocument,

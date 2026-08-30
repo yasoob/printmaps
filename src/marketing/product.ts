@@ -46,7 +46,7 @@ export const faqItems = [
   },
   {
     question: 'Can I upload a custom marker or logo?',
-    answer: 'Yes. A place marker can use your own PNG, JPEG or SVG image. Custom markers are stored inside the portable project and supported by the live map, PNG and layered SVG workflows; PDF does not currently support them.',
+    answer: 'Yes. A place marker can use your own PNG, JPEG or SVG image. Custom markers are stored inside the portable project and supported by the live map, PNG, layered SVG and layered PSD workflows; PDF does not currently support them.',
   },
   {
     question: 'Can I highlight a country or region?',
@@ -62,7 +62,7 @@ export const faqItems = [
   },
   {
     question: 'Which export formats are available?',
-    answer: 'Print Map Studio exports print-sized PNG, PDF and layered SVG files. PDF and SVG keep supported routes, places and shapes as vector content, while the basemap may be embedded as raster imagery.',
+    answer: 'Print Map Studio exports print-sized PNG, PDF, layered SVG and layered PSD files. PDF and SVG keep supported routes, places and shapes as vector content. PSD embeds each content layer and attribution as a separate SVG Smart Object over a raster basemap.',
   },
   {
     question: 'Can I make a high-resolution map for print?',
@@ -70,7 +70,7 @@ export const faqItems = [
   },
   {
     question: 'Can I edit the map after export?',
-    answer: 'Choose layered SVG when you want named map and content groups for further work in a vector editor. PNG is a flat image, while PDF preserves the exact page and supported vector overlays.',
+    answer: 'Choose layered SVG for named vector groups or layered PSD for separately named SVG Smart Objects in Photoshop. PNG is a flat image, while PDF preserves the exact page and supported vector overlays.',
   },
   {
     question: 'How do I receive my exported files?',
