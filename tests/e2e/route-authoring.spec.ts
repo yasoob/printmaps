@@ -83,7 +83,7 @@ test('expert arc route authoring is undoable and exports a travel-mode marker', 
       consoleProblems.push(message.text());
     }
   });
-  await page.goto('/');
+  await page.goto('./');
   const mapReady = page.locator('[data-map-ready="true"]');
   const mapFallback = page.getByText('Map preview unavailable');
   await expect(mapReady.or(mapFallback)).toBeVisible({ timeout: 20_000 });
@@ -152,7 +152,7 @@ test('expert arc route authoring is undoable and exports a travel-mode marker', 
 });
 
 test('a selected straight route drags a Terra Draw midpoint as one undoable edit', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   const mapReady = page.locator('[data-map-ready="true"]');
   const mapFallback = page.getByText('Map preview unavailable');
   await expect(mapReady.or(mapFallback)).toBeVisible({ timeout: 20_000 });
@@ -191,7 +191,7 @@ test('a selected straight route drags a Terra Draw midpoint as one undoable edit
 });
 
 test('accessible route drag moves dependent midpoint handles live above the stroke', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   const mapReady = page.locator('[data-map-ready="true"]');
   const mapFallback = page.getByText('Map preview unavailable');
   await expect(mapReady.or(mapFallback)).toBeVisible({ timeout: 20_000 });

@@ -58,7 +58,7 @@ test('touch selects and moves area and route geometry directly on the map', asyn
   test.skip(testInfo.project.name !== 'chromium', 'Trusted touch gesture coverage uses Chromium CDP.');
   const context = await browser.newContext({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
   const page = await context.newPage();
-  await page.goto('/');
+  await page.goto('./');
   const map = page.getByTestId('map-canvas');
   const mapFallback = page.getByText('Map preview unavailable');
   await expect(page.locator('[data-map-ready="true"]').or(mapFallback)).toBeVisible({ timeout: 20_000 });
@@ -91,7 +91,7 @@ test('touch repositions a selected Place marker through a 44px handle', async ({
   test.skip(testInfo.project.name !== 'chromium', 'Trusted touch gesture coverage uses Chromium CDP.');
   const context = await browser.newContext({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
   const page = await context.newPage();
-  await page.goto('/');
+  await page.goto('./');
   const map = page.getByTestId('map-canvas');
   const fallback = page.getByText('Map preview unavailable');
   await expect(page.locator('[data-map-ready="true"]').or(fallback)).toBeVisible({ timeout: 20_000 });

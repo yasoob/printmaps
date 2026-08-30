@@ -9,7 +9,7 @@ const testFiles = ['tests/**/*.{ts,tsx}'];
 const codeFiles = ['**/*.{js,jsx,ts,tsx}'];
 
 export default tseslint.config(
-  { ignores: ['dist', 'coverage', 'playwright-report', 'test-results', 'printmaps-inspection'] },
+  { ignores: ['.astro', 'dist', 'coverage', 'playwright-report', 'test-results', 'printmaps-inspection'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

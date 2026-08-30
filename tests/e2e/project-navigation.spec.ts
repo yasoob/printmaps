@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 test('Project menu actions round-trip the portable project', async ({ page }, testInfo) => {
-  await page.goto('/');
+  await page.goto('./');
   await page.getByRole('button', { name: 'Portrait' }).click();
 
   const downloadPromise = page.waitForEvent('download');
@@ -23,7 +23,7 @@ test('Project menu actions round-trip the portable project', async ({ page }, te
 
 test('Project actions and Export remain reachable in the mobile header', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/');
+  await page.goto('./');
 
   const project = page.getByRole('button', { name: 'Project' });
   const exportAction = page.getByRole('button', { name: 'Export' });

@@ -25,7 +25,7 @@ test('project inspector progressively discloses advanced controls on desktop and
     for (const key of keys) window.localStorage.removeItem(key);
   }, disclosureKeys);
 
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
 
   const desktopProperties = page.getByRole('complementary', { name: 'Properties sidebar' });
@@ -152,7 +152,7 @@ test('project inspector progressively discloses advanced controls on desktop and
 });
 
 test('sidebar InputGroups scrub constrained numbers and preserve direct editing', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   const width = page.getByRole('spinbutton', { name: 'Page width' });
   const widthHandle = width.locator('xpath=..').locator('.input-group-addon.is-scrubbable');
   expect(await width.evaluate((input: HTMLInputElement) => input.checkValidity())).toBe(true);

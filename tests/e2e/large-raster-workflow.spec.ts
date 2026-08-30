@@ -8,7 +8,7 @@ test('oversized raster output remains one PNG and handles picker cancellation', 
       value: async () => { throw new DOMException('User cancelled.', 'AbortError'); },
     });
   });
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
   await page.getByRole('spinbutton', { name: 'Page width' }).fill('1400');
   await page.getByRole('spinbutton', { name: 'Page width' }).press('Tab');
@@ -25,7 +25,7 @@ test('oversized raster output remains one PNG and handles picker cancellation', 
 });
 
 test('streamed regions decode as one PNG in Chromium', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   const result = await page.evaluate(async () => {
     const rasterModulePath = '/src/export/largeRasterPng.ts';
     const preflightModulePath = '/src/export/preflight.ts';
@@ -93,7 +93,7 @@ test('streamed regions decode as one PNG in Chromium', async ({ page }) => {
 
 test('large PDF export embeds overlapping native-detail basemap regions', async ({ page }, testInfo) => {
   test.setTimeout(180_000);
-  await page.goto('/');
+  await page.goto('./');
   const mapReady = page.locator('[data-map-ready="true"]');
   const mapFallback = page.getByText('Map preview unavailable');
   await expect(mapReady.or(mapFallback)).toBeVisible({ timeout: 20_000 });

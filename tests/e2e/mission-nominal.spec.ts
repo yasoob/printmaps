@@ -25,7 +25,7 @@ test('nominal design, author, import, persist, reopen, and export workflow', asy
     }
   });
 
-  await page.goto('/');
+  await page.goto('./');
   await waitForAutosaveReady(page);
   const mapCanvas = page.getByTestId('map-canvas');
   const mapReady = page.locator('[data-map-ready="true"]');

@@ -9,6 +9,7 @@ import { ProjectFileActions } from './ProjectFileActions';
 import { ProjectTitleEditor } from './ProjectTitleEditor';
 
 const LOGO_URL = publicAssetUrl('logo.png');
+const HOME_URL = publicAssetUrl('');
 
 type StudioHeaderProps = {
   projectTitleRef: RefObject<HTMLButtonElement | null>;
@@ -40,8 +41,10 @@ const StudioBrand = memo(function StudioBrand({
 }) {
   return (
     <div className="brand-block">
-      <img className="brand-mark" alt="" height="32" src={LOGO_URL} width="48" />
-      <span className="brand-name">Print Map Studio</span>
+      <a className="studio-home-link" href={HOME_URL} aria-label="Print Map Studio home">
+        <img className="brand-mark" alt="" height="32" src={LOGO_URL} width="48" />
+        <span className="brand-name">Print Map Studio</span>
+      </a>
       <ProjectTitleEditor buttonRef={buttonRef} title={title} onChange={onChange} />
     </div>
   );

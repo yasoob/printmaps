@@ -246,7 +246,7 @@ const expectBalancedHorizontalSpacing = async (button: Locator, icon: Locator, l
 
 test('mobile Export action keeps balanced content and an even visual inset', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/');
+  await page.goto('./');
 
   const button = page.getByRole('button', { name: 'Export' });
   await expectBalancedHorizontalSpacing(button, button.locator('svg'), button.locator('span'));
@@ -279,7 +279,7 @@ test('mobile Export action keeps balanced content and an even visual inset', asy
 test('mobile map palette keeps one navigation mode and exposes Fit page directly', async ({ page }) => {
   test.setTimeout(60_000);
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/');
+  await page.goto('./');
 
   const toolbar = page.getByRole('navigation', { name: 'Map tools' });
   await expect(toolbar).toBeVisible({ timeout: 20_000 });
@@ -333,7 +333,7 @@ test('mobile map palette keeps one navigation mode and exposes Fit page directly
 test('mobile authoring panels and native map controls stay usable and disjoint', async ({ page }) => {
   for (const tool of ['Place (P)', 'Area (S)']) {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto('/');
+    await page.goto('./');
     await page.getByRole('button', { name: tool }).click();
 
     const panel = page.locator('.map-authoring-panel');
@@ -373,7 +373,7 @@ test('mobile navigation buttons use full touch targets', async ({ page }) => {
 
   for (const width of [390, 320]) {
     await page.setViewportSize({ width, height: 844 });
-    await page.goto('/');
+    await page.goto('./');
 
     const panelButtons = page.locator('.mobile-panel-actions > button');
     const locationSearch = page.locator('.location-search');
@@ -445,7 +445,7 @@ test('mobile navigation buttons use full touch targets', async ({ page }) => {
 
 test('mobile shell exposes accessible drawers and non-overlapping attribution states', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/');
+  await page.goto('./');
 
   const mapReady = page.locator('[data-map-ready="true"]');
   const mapFallback = page.getByRole('status');

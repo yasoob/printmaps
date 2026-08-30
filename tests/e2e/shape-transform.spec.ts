@@ -32,7 +32,7 @@ async function expectHandlesAligned(page: Page, map: Locator) {
 }
 
 test('shape handles stay at the coordinates positioned by MapLibre', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   const map = page.getByTestId('map-canvas');
   await expect(map).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
   await page.getByRole('button', { name: 'Select City center' }).click();
@@ -55,7 +55,7 @@ test('shape handles stay at the coordinates positioned by MapLibre', async ({ pa
 });
 
 test('selected shapes move and resize directly with undoable map handles', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   const map = page.getByTestId('map-canvas');
   await expect(map).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
   await page.getByRole('button', { name: 'Select City center' }).click();

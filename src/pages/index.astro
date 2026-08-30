@@ -1,0 +1,63 @@
+---
+import HomeFeatures from '../marketing/HomeFeatures.astro';
+import HomeUseCases from '../marketing/HomeUseCases.astro';
+import MapCapabilityStrip from '../marketing/MapCapabilityStrip.astro';
+import MarketingHero from '../marketing/MarketingHero.astro';
+import MarketingLayout from '../marketing/MarketingLayout.astro';
+import SimpleFaqSection from '../marketing/SimpleFaqSection.astro';
+import { faqItems, SITE_NAME, SITE_URL } from '../marketing/product';
+
+const description = 'Create custom print-ready maps in your browser. Style the map, draw routes, add places and regions, import GPX, KML or GeoJSON, then export PNG, PDF or layered SVG.';
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'WebSite',
+      '@id': `${SITE_URL}/#website`,
+      name: SITE_NAME,
+      url: SITE_URL,
+      description,
+    },
+    {
+      '@type': 'SoftwareApplication',
+      '@id': `${SITE_URL}/#application`,
+      name: SITE_NAME,
+      url: `${SITE_URL}/editor/`,
+      applicationCategory: 'DesignApplication',
+      operatingSystem: 'Any modern web browser',
+      description,
+      offers: {
+        '@type': 'Offer',
+        price: '0',
+        priceCurrency: 'USD',
+      },
+      featureList: [
+        'Map style and page controls',
+        'Route, point and shape authoring',
+        'GPX, KML and GeoJSON import',
+        'PNG, PDF and layered SVG export',
+        'Local browser autosave',
+      ],
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: faqItems.map((item) => ({
+        '@type': 'Question',
+        name: item.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: item.answer,
+        },
+      })),
+    },
+  ],
+};
+---
+
+<MarketingLayout title={SITE_NAME} description={description} showHeader={false} structuredData={structuredData}>
+  <MarketingHero />
+  <MapCapabilityStrip />
+  <HomeFeatures />
+  <HomeUseCases />
+  <SimpleFaqSection items={faqItems} />
+</MarketingLayout>

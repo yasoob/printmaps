@@ -5,7 +5,7 @@ import { expect, test } from '@playwright/test';
 test('Download project saves the current portable versioned JSON', async ({ context, page }, testInfo) => {
   await context.grantPermissions(['geolocation'], { origin: 'http://127.0.0.1:4175' });
   await context.setGeolocation({ longitude: 16.41, latitude: 48.23 });
-  await page.goto('/');
+  await page.goto('./');
   await page.getByRole('button', { name: 'Use my location' }).click();
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-center', '16.41,48.23');
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-zoom', '14');
@@ -50,7 +50,7 @@ test('Download project saves the current portable versioned JSON', async ({ cont
 });
 
 test('Project download and open restore the current project as a fresh history root', async ({ page }, testInfo) => {
-  await page.goto('/');
+  await page.goto('./');
   await page.getByRole('spinbutton', { name: 'Bearing' }).fill('35');
   await page.getByRole('spinbutton', { name: 'Bearing' }).press('Tab');
   await page.getByRole('checkbox', { name: 'Show roads' }).uncheck();
@@ -75,7 +75,7 @@ test('Project download and open restore the current project as a fresh history r
 });
 
 test('opens a validated portable project as a focused fresh history root', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   await page.getByRole('button', { name: 'Portrait' }).click();
   await page.getByRole('button', { name: 'Select Route 01' }).click();
   await expect(page.getByRole('button', { name: 'Undo' })).toBeEnabled();
@@ -130,7 +130,7 @@ test('opens a validated portable project as a focused fresh history root', async
 });
 
 test('rejects invalid project files without replacing work and allows a retry', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   await page.getByRole('button', { name: 'Portrait' }).click();
 
   for (const invalidFile of [
@@ -180,7 +180,7 @@ test('rejects invalid project files without replacing work and allows a retry', 
 });
 
 test('imports supported GeoJSON as one undoable editable layer batch', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
 
   const chooserPromise = page.waitForEvent('filechooser');
   const project = page.getByRole('button', { name: 'Project' });
@@ -206,7 +206,7 @@ test('imports supported GeoJSON as one undoable editable layer batch', async ({ 
 });
 
 test('drops multiple map-data files as one reviewed batch and fits their combined extent', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   const files = await Promise.all([
     ['supported.geojson', 'application/geo+json', 'tests/fixtures/import/supported.geojson'],
     ['namespaced.kml', 'application/vnd.google-earth.kml+xml', 'tests/fixtures/import/wave2/namespaced.kml'],
@@ -246,7 +246,7 @@ test('drops multiple map-data files as one reviewed batch and fits their combine
 });
 
 test('replaces a reviewed import batch without changing the explicit retain-view choice', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   await page.locator('input[accept^=".geojson"]').setInputFiles([
     path.resolve('tests/fixtures/import/supported.geojson'),
     path.resolve('tests/fixtures/import/wave2/namespaced.gpx'),
@@ -272,7 +272,7 @@ test('replaces a reviewed import batch without changing the explicit retain-view
 
 test('ignores map-data drops while another modal workflow owns the editor', async ({ page }) => {
   test.slow();
-  await page.goto('/');
+  await page.goto('./');
   await page.getByRole('button', { name: 'Export' }).click();
   const exportDialog = page.getByRole('dialog', { name: 'Export map' });
   await expect(exportDialog).toBeVisible();
@@ -290,7 +290,7 @@ test('ignores map-data drops while another modal workflow owns the editor', asyn
 });
 
 test('contains import review focus and restores it after cancelling a dropped batch', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   const transfer = await page.evaluateHandle(() => {
     const dataTransfer = new DataTransfer();
     dataTransfer.items.add(new File([
@@ -322,7 +322,7 @@ test('contains import review focus and restores it after cancelling a dropped ba
 });
 
 test('imports GPX as one undoable editable layer batch', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
 
   await page.locator('input[accept^=".geojson"]').setInputFiles(path.resolve('tests/fixtures/import/wave2/namespaced.gpx'));
 
@@ -339,7 +339,7 @@ test('imports GPX as one undoable editable layer batch', async ({ page }) => {
 });
 
 test('imports KML as one undoable editable layer batch', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
 
   await page.locator('input[accept^=".geojson"]').setInputFiles(path.resolve('tests/fixtures/import/wave2/namespaced.kml'));
 
@@ -356,7 +356,7 @@ test('imports KML as one undoable editable layer batch', async ({ page }) => {
 });
 
 test('rejects invalid GPX and KML without changing history and allows a retry', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
 
   for (const invalidFile of [
     {
@@ -383,7 +383,7 @@ test('rejects invalid GPX and KML without changing history and allows a retry', 
 });
 
 test('rejects empty GeoJSON without changing history and allows the same chooser to retry', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
 
   await page.locator('input[accept^=".geojson"]').setInputFiles({
     name: 'empty.geojson',

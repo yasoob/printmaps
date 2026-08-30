@@ -32,7 +32,7 @@ test('selected route matches to roads and remains durable editable and exportabl
     });
   });
 
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
   await page.getByRole('button', { name: 'Select Route 01' }).click();
   await page.getByRole('button', { name: /Advanced/ }).click();

@@ -14,7 +14,7 @@ test('Vienna municipality selection and merging preserve source credit through p
       consoleProblems.push(message.text());
     }
   });
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
 
   await page.getByRole('button', { name: 'Area (S)' }).click();
@@ -88,7 +88,7 @@ test('polygon authoring can be cancelled, undone, redone, and exported as vector
       consoleProblems.push(message.text());
     }
   });
-  await page.goto('/');
+  await page.goto('./');
   const mapReady = page.locator('[data-map-ready="true"]');
   const mapFallback = page.getByText('Map preview unavailable');
   await expect(mapReady.or(mapFallback)).toBeVisible({ timeout: 20_000 });
@@ -150,7 +150,7 @@ test('polygon authoring can be cancelled, undone, redone, and exported as vector
 });
 
 test('a finished custom area supports point editing, insertion, undo, and explicit transform mode', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   const mapReady = page.locator('[data-map-ready="true"]');
   const mapFallback = page.getByText('Map preview unavailable');
   await expect(mapReady.or(mapFallback)).toBeVisible({ timeout: 20_000 });

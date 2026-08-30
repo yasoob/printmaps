@@ -47,7 +47,7 @@ test('road route becomes editable canonical project geometry and exports offline
     };
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) });
   });
-  await page.goto('/');
+  await page.goto('./');
   const mapReady = page.locator('[data-map-ready="true"]');
   const mapFallback = page.getByText('Map preview unavailable');
   await expect(mapReady.or(mapFallback)).toBeVisible({ timeout: 20_000 });

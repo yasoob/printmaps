@@ -13,7 +13,7 @@ function routeFeature(name: string, offset: number) {
 }
 
 test('replaces selected route geometry in place while retaining identity, styling, and one-step history', async ({ page }, testInfo) => {
-  await page.goto('/');
+  await page.goto('./');
   const mapRoot = page.getByTestId('map-canvas');
   await expect(mapRoot).toHaveAttribute('data-map-layer-geometry', /route-01:/);
   const originalGeometry = await mapRoot.getAttribute('data-map-layer-geometry');
@@ -59,7 +59,7 @@ test('replaces selected route geometry in place while retaining identity, stylin
 });
 
 test('rejects a multi-file layer replacement without partially changing the project', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   const mapRoot = page.getByTestId('map-canvas');
   await expect(mapRoot).toHaveAttribute('data-map-layer-geometry', /route-01:/);
   const originalGeometry = await mapRoot.getAttribute('data-map-layer-geometry');

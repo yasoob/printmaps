@@ -14,7 +14,7 @@ test('initial editor search, live scale, title history, and Project actions work
       }),
     });
   });
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
 
   const undo = page.getByRole('button', { name: 'Undo' });
@@ -63,7 +63,7 @@ test('initial editor search, live scale, title history, and Project actions work
 });
 
 test('Backspace deletes a selected content layer but never hijacks text editing', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   const coffee = page.getByRole('button', { name: 'Select Coffee stop' });
   await coffee.click();
   await page.keyboard.press('Backspace');
@@ -81,7 +81,7 @@ test('Backspace deletes a selected content layer but never hijacks text editing'
 
 test('route radios and Shape tabs rove with arrow keys without clipping mobile labels', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/');
+  await page.goto('./');
 
   await page.getByRole('button', { name: 'Route (R)' }).click();
   const straight = page.getByRole('radio', { name: 'Straight' });

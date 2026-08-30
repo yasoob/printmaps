@@ -29,7 +29,7 @@ export function copyNativeMapCanvas(
   const output = document.createElement('canvas');
   output.width = width;
   output.height = height;
-  const context = output.getContext('2d');
+  const context = output.getContext('2d', { willReadFrequently: true });
   if (!context) {
     output.width = 0;
     output.height = 0;

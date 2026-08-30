@@ -23,7 +23,7 @@ test('desktop editor switches between project and layer properties', async ({ pa
     await route.continue();
   });
 
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.getByRole('main')).toBeVisible();
   await expect(page.getByRole('complementary', { name: 'Layers sidebar' })).toBeVisible();
   await expect(page.getByRole('complementary', { name: 'Properties sidebar' })).toBeVisible();
@@ -61,7 +61,7 @@ test('desktop editor switches between project and layer properties', async ({ pa
 });
 
 test('map content overlays preview on list hover and select from the canvas', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   const mapRoot = page.getByTestId('map-canvas');
   await expect(mapRoot).toHaveAttribute('data-map-layer-order', 'route-01,poi-cafe,area-center', { timeout: 20_000 });
 
@@ -90,7 +90,7 @@ test('map content overlays preview on list hover and select from the canvas', as
 });
 
 test('desktop commands, orientation, reorder, and overflow menu work in a real browser', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
 
   const frame = page.locator('.print-frame');
@@ -152,7 +152,7 @@ test('browser location centers the map and map-area lock gates movement commands
   });
   await context.grantPermissions(['geolocation'], { origin: 'http://127.0.0.1:4175' });
   await context.setGeolocation({ longitude: 16.3725, latitude: 48.2084 });
-  await page.goto('/');
+  await page.goto('./');
   const map = page.getByTestId('map-canvas');
   await expect(map).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
 
@@ -180,7 +180,7 @@ test('browser location centers the map and map-area lock gates movement commands
 test('desktop Fit and Zoom stack stays aligned and clear of route authoring', async ({ page }) => {
   for (const viewport of [{ width: 1440, height: 900 }, { width: 1024, height: 768 }]) {
     await page.setViewportSize(viewport);
-    await page.goto('/');
+    await page.goto('./');
     await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
     await page.getByRole('button', { name: 'Route (R)' }).click();
 
@@ -209,7 +209,7 @@ test('desktop Fit and Zoom stack stays aligned and clear of route authoring', as
 });
 
 test('map cursor reflects selection, dragging, and authoring intent', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   const map = page.getByTestId('map-canvas');
   await expect(map).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
   const canvas = map.locator('.maplibregl-canvas');
@@ -243,7 +243,7 @@ test('style loading failure shows a recoverable map status', async ({ page }) =>
     confirmStyleAbort?.();
   });
 
-  await page.goto('/');
+  await page.goto('./');
   await styleAbort;
 
   const mapStatus = page.getByLabel('Map canvas').getByRole('status');
@@ -253,7 +253,7 @@ test('style loading failure shows a recoverable map status', async ({ page }) =>
 
 test('switches open map styles and recovers after a selected style fails', async ({ page }) => {
   await page.route('**/styles/night-ink.json', (route) => route.abort());
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
   const style = page.getByRole('radio', { name: /^Night Ink:/ });
 
@@ -277,7 +277,7 @@ test('applies Coastal, translated labels, and expanded map detail controls', asy
       consoleProblems.push(message.text());
     }
   });
-  await page.goto('/');
+  await page.goto('./');
   const map = page.getByTestId('map-canvas');
   await expect(map).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
 

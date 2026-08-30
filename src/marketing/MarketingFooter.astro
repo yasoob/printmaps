@@ -1,0 +1,31 @@
+---
+import { navigation, SITE_NAME } from './product';
+
+const year = new Date().getFullYear();
+---
+
+<footer class="bg-white px-4 pt-24 pb-4 font-inter text-[#1d1d1f] sm:px-8 sm:pt-32">
+  <div class="mx-auto max-w-[76rem]">
+    <div class="flex items-start justify-between gap-16 max-md:flex-col max-md:gap-12">
+      <div>
+        <a class="flex w-max items-center gap-3 text-xl font-semibold tracking-[-0.03em] text-[#1d1d1f] no-underline focus-visible:rounded focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#8bb9ff] sm:gap-5 sm:text-3xl" href="/" aria-label={`${SITE_NAME} home`}>
+          <img class="h-auto w-14 border-0! sm:w-22" src="/logo.png" alt="" width="88" height="59" loading="lazy" />
+          <span>{SITE_NAME}</span>
+        </a>
+        <p class="mt-3 max-w-xs text-sm leading-6 text-[#6e6e73] sm:mt-5 sm:max-w-none sm:text-lg">Beautiful, print-ready maps. Made in your browser.</p>
+      </div>
+      <nav class="grid grid-cols-2 gap-x-14 gap-y-5 pt-4 max-md:w-full" aria-label="Footer navigation">
+        {
+          navigation.map((item) => (
+            <a class="text-base font-medium text-[#6e6e73] no-underline hover:text-[#0071e3] focus-visible:rounded focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#8bb9ff]" href={item.href}>{item.label}</a>
+          ))
+        }
+        <a class="text-base font-medium text-[#6e6e73] no-underline hover:text-[#0071e3] focus-visible:rounded focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#8bb9ff]" href="/editor/">Open editor</a>
+      </nav>
+    </div>
+    <div class="flex justify-between gap-8 pt-40 text-sm text-[#6e6e73] max-md:flex-col">
+      <span>&copy; {year} {SITE_NAME}</span>
+      <span>Map data &copy; OpenStreetMap contributors</span>
+    </div>
+  </div>
+</footer>

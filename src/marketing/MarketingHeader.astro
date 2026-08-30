@@ -1,0 +1,51 @@
+---
+import { navigation, SITE_NAME } from './product';
+
+type Props = {
+  currentPath: string;
+};
+
+const { currentPath } = Astro.props;
+const isCurrent = (href: string) => currentPath === href;
+---
+
+<header class="site-header">
+  <div class="site-header__inner">
+    <a class="brand-link" href="/" aria-label={`${SITE_NAME} home`}>
+      <img src="/logo.png" alt="" width="45" height="30" />
+      <span>{SITE_NAME}</span>
+    </a>
+
+    <nav class="desktop-nav" aria-label="Main navigation">
+      {
+        navigation.map((item) => (
+          <a href={item.href} aria-current={isCurrent(item.href) ? 'page' : undefined}>
+            {item.label}
+          </a>
+        ))
+      }
+    </nav>
+
+    <a class="button button--small button--ink desktop-cta" href="/editor/">
+      Open editor
+      <span aria-hidden="true">-&gt;</span>
+    </a>
+
+    <details class="mobile-nav">
+      <summary aria-label="Open navigation">
+        <span></span>
+        <span></span>
+      </summary>
+      <nav aria-label="Mobile navigation">
+        {
+          navigation.map((item) => (
+            <a href={item.href} aria-current={isCurrent(item.href) ? 'page' : undefined}>
+              {item.label}
+            </a>
+          ))
+        }
+        <a class="button button--ink" href="/editor/">Open editor</a>
+      </nav>
+    </details>
+  </div>
+</header>

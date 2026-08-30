@@ -17,7 +17,7 @@ test('chooses original map presets through the responsive thumbnail gallery', as
     }
   });
 
-  await page.goto('/');
+  await page.goto('./');
   await waitForAutosaveReady(page);
   const map = page.getByTestId('map-canvas');
   await expect(map).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });

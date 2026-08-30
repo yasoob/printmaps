@@ -67,7 +67,7 @@ test('export offers one keyboard-accessible format choice with responsive techni
   page.on('console', (message) => {
     if (message.type() === 'error') consoleProblems.push(message.text());
   });
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.locator('[data-map-ready="true"]').or(page.getByText('Map preview unavailable'))).toBeVisible({ timeout: 20_000 });
 
   await page.getByRole('button', { name: 'Export' }).click();
@@ -168,7 +168,7 @@ test('export offers one keyboard-accessible format choice with responsive techni
 });
 
 test('layered SVG download embeds the raster basemap and preserves named vector groups', async ({ page }, testInfo) => {
-  await page.goto('/');
+  await page.goto('./');
   const mapReady = page.locator('[data-map-ready="true"]');
   const mapFallback = page.getByText('Map preview unavailable');
   await expect(mapReady.or(mapFallback)).toBeVisible({ timeout: 20_000 });
@@ -228,7 +228,7 @@ test('layered SVG download embeds the raster basemap and preserves named vector 
 
 test('PDF download has the exact page box with a raster basemap and named vector overlays', async ({ page }, testInfo) => {
   test.setTimeout(180_000);
-  await page.goto('/');
+  await page.goto('./');
   const mapReady = page.locator('[data-map-ready="true"]');
   const mapFallback = page.getByText('Map preview unavailable');
   await expect(mapReady.or(mapFallback)).toBeVisible({ timeout: 20_000 });
@@ -265,7 +265,7 @@ test('PDF download has the exact page box with a raster basemap and named vector
 
 test('export downloads the current print frame as PNG on desktop and mobile', async ({ page }, testInfo) => {
   test.setTimeout(180_000);
-  await page.goto('/');
+  await page.goto('./');
   const mapReady = page.locator('[data-map-ready="true"]');
   const mapFallback = page.getByText('Map preview unavailable');
   await expect(mapReady.or(mapFallback)).toBeVisible({ timeout: 20_000 });
@@ -418,7 +418,7 @@ test('export downloads the current print frame as PNG on desktop and mobile', as
 
 test('large PNG export renders multiple overlapping native map tiles', async ({ page }, testInfo) => {
   test.setTimeout(90_000);
-  await page.goto('/');
+  await page.goto('./');
   const mapReady = page.locator('[data-map-ready="true"]');
   const mapFallback = page.getByText('Map preview unavailable');
   await expect(mapReady.or(mapFallback)).toBeVisible({ timeout: 20_000 });

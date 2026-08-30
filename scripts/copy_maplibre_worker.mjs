@@ -2,7 +2,7 @@ import { copyFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 
 const sourceDirectory = path.resolve('node_modules/maplibre-gl/dist');
-const targetDirectory = path.resolve('dist/assets');
+const targetDirectory = path.resolve('dist/_astro');
 const workerFiles = ['maplibre-gl-worker.mjs', 'maplibre-gl-shared.mjs'];
 
 await mkdir(targetDirectory, { recursive: true });

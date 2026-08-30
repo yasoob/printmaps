@@ -1,0 +1,58 @@
+<section class="min-h-svh overflow-hidden bg-[#f5f5f7] font-inter text-[#1d1d1f]">
+  <header class="mx-auto grid min-h-18 w-[calc(100%_-_4rem)] max-w-[76rem] grid-cols-[1fr_auto_1fr] items-center max-md:w-[calc(100%_-_2rem)] max-md:grid-cols-[1fr_auto]">
+    <a class="flex w-max items-center gap-2.5 text-base font-semibold tracking-[-0.015em] no-underline focus-visible:rounded focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#8bb9ff]" href="/">
+      <img class="h-8 w-12 rounded-[0.35rem] object-cover" src="/logo.png" alt="" width="48" height="32" />
+      <span class="max-sm:text-sm">Print Map Studio</span>
+    </a>
+    <nav class="flex items-center gap-7 max-md:hidden" aria-label="Main navigation">
+      <a class="text-sm font-medium text-[#6e6e73] no-underline hover:text-[#1d1d1f] focus-visible:rounded focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#8bb9ff]" href="#features">Features</a>
+      <a class="text-sm font-medium text-[#6e6e73] no-underline hover:text-[#1d1d1f] focus-visible:rounded focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#8bb9ff]" href="#use-cases">Use cases</a>
+      <a class="text-sm font-medium text-[#6e6e73] no-underline hover:text-[#1d1d1f] focus-visible:rounded focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#8bb9ff]" href="#faq">FAQ</a>
+    </nav>
+    <a class="justify-self-end rounded-full bg-[#0071e3] px-4.5 py-3 text-[0.76rem] font-semibold text-white no-underline transition hover:-translate-y-0.5 hover:bg-[#0077ed] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#8bb9ff] motion-reduce:transition-none" href="/editor/">Open Editor</a>
+  </header>
+
+  <div class="mx-auto w-[calc(100%_-_2rem)] max-w-[88rem] pt-22 text-center max-md:w-full max-md:pt-18">
+    <div class="max-md:px-5">
+      <span class="text-[0.7rem] font-semibold tracking-[0.1em] text-[#6e6e73] uppercase">Your map, made for printing</span>
+      <div class="relative mx-auto w-fit">
+        <img
+          class="absolute top-1 right-[calc(100%_+_1.25rem)] hidden! size-24 -rotate-12 object-contain xl:block!"
+          src="/hero-assets/free-sticker.png"
+          alt="Free"
+          width="256"
+          height="256"
+        />
+        <h1 class="mt-3.5 text-[clamp(3.25rem,5vw,5rem)] leading-[0.98] font-bold tracking-[-0.025em] max-md:text-[clamp(2.75rem,12vw,3.5rem)]">
+          Beautiful maps.<br />Ready to print.
+        </h1>
+      </div>
+      <p class="mx-auto mt-5.5 max-w-2xl text-[1.05rem] leading-[1.55] text-[#6e6e73] max-md:text-[0.9rem]">
+        Style the map, add routes and places, then export PNG, PDF, or layered SVG.
+      </p>
+    </div>
+
+    <a
+      data-hero-image-link
+      class="group relative mx-auto mt-18 block w-full max-w-[76rem] overflow-hidden rounded-t-xs bg-white shadow-[0_2rem_5rem_rgba(0,0,0,0.12)] transition-transform duration-500 ease-out hover:scale-[1.015] focus-visible:scale-[1.015] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[#8bb9ff] motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:focus-visible:scale-100 lg:aspect-[2000/770] max-md:mt-14 max-md:w-[calc(100%_-_1rem)]"
+      href="/editor/"
+      aria-label="Open Print Map Studio editor"
+    >
+      <picture class="block">
+        <source media="(max-width: 640px)" srcset="/hero-assets/editor-mobile.webp" type="image/webp" />
+        <source media="(max-width: 1024px)" srcset="/hero-assets/editor-tablet.webp" type="image/webp" />
+        <img
+          class="h-auto w-full"
+          src="/hero-assets/editor-new-york.webp"
+          alt="Print Map Studio showing a map with responsive editing controls"
+          width="1600"
+          height="924"
+        />
+      </picture>
+      <span class="pointer-events-none absolute inset-0 bg-black/0 transition-colors duration-500 group-hover:bg-black/20 group-focus-visible:bg-black/20 motion-reduce:transition-none" aria-hidden="true"></span>
+      <span class="pointer-events-none absolute top-1/2 left-1/2 inline-flex -translate-x-1/2 -translate-y-1/2 scale-95 items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-[#1d1d1f] opacity-0 shadow-lg transition duration-300 group-hover:scale-100 group-hover:opacity-100 group-focus-visible:scale-100 group-focus-visible:opacity-100 motion-reduce:transition-none">
+        Open Editor
+      </span>
+    </a>
+  </div>
+</section>

@@ -13,7 +13,7 @@ test('generated worldwide catalogue lazily creates a durable Japanese region', a
     }
   });
 
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
   await page.getByRole('button', { name: 'Area (S)' }).click();
   await page.getByRole('combobox', { name: 'Administrative level' }).selectOption('region');
@@ -67,7 +67,7 @@ test('generated multipart region merges with an adjacent region and keeps every 
     }
   });
 
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
   await page.getByRole('button', { name: 'Area (S)' }).click();
   await page.getByRole('combobox', { name: 'Administrative level' }).selectOption('region');
@@ -109,7 +109,7 @@ test('generated worldwide catalogue lazily creates a durable country', async ({ 
     }
   });
 
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
   await page.getByRole('button', { name: 'Area (S)' }).click();
   const country = page.getByRole('combobox', { name: 'Administrative area' });
@@ -160,7 +160,7 @@ test('generated boundary pickers stay fail-closed when the worldwide catalogue i
     body: JSON.stringify({ schemaVersion: 999 }),
   }));
 
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
   await page.getByRole('button', { name: 'Area (S)' }).click();
 

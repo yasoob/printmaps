@@ -1,0 +1,122 @@
+---
+import MarketingLayout from '../marketing/MarketingLayout.astro';
+import { breadcrumbStructuredData, SITE_URL } from '../marketing/product';
+
+const title = 'Custom map maker use cases';
+const description = 'Create custom printable maps for publishing, tourism, routes, real estate, local marketing, events, posters, photobooks, planning, and site communication.';
+const structuredData = breadcrumbStructuredData([
+  { name: 'Home', url: `${SITE_URL}/` },
+  { name: 'Use cases', url: `${SITE_URL}/use-cases/` },
+]);
+
+const audiences = [
+  {
+    id: 'design-publishing',
+    number: '01',
+    title: 'Design and publishing',
+    copy: 'Build a map around the dimensions and hierarchy of the layout, not a generic screenshot. Control map detail, labels, overlays, and colors before taking the file into a brochure, guide, report, magazine, or presentation.',
+    tags: ['Brochures', 'Guidebooks', 'Reports', 'Editorial layouts'],
+  },
+  {
+    id: 'routes-tourism',
+    number: '02',
+    title: 'Routes and tourism',
+    copy: 'Draw an itinerary, import a recorded GPX route, add important stops, and show the surrounding geography clearly. Use the result for visitor guides, trail maps, event routes, cycling handouts, and destination material.',
+    tags: ['Walking routes', 'Cycling maps', 'Visitor guides', 'GPX tracks'],
+  },
+  {
+    id: 'places-property',
+    number: '03',
+    title: 'Property and local marketing',
+    copy: 'Put a property, venue, or branch in context. Add nearby places individually or from a spreadsheet, outline a district, and create a map that helps an audience understand access and neighborhood relationships.',
+    tags: ['Real estate', 'Venues', 'Store locations', 'Neighborhood maps'],
+  },
+  {
+    id: 'events',
+    number: '04',
+    title: 'Events and wayfinding',
+    copy: 'Combine an event boundary, entrances, routes, points of interest, and transport context in one layered composition. Keep the map simple enough to scan on a program, poster, handout, or digital notice.',
+    tags: ['Event routes', 'Entrances', 'Transit context', 'Handouts'],
+  },
+  {
+    id: 'personal',
+    number: '05',
+    title: 'Posters and keepsakes',
+    copy: 'Frame a meaningful place, trace a journey, mark a set of memories, and choose a style that fits the room or photobook. Export at the intended page size instead of stretching a screen capture later.',
+    tags: ['Map posters', 'Photobooks', 'Travel memories', 'Wall art'],
+  },
+  {
+    id: 'planning',
+    number: '06',
+    title: 'Planning and site communication',
+    copy: 'Use shapes, administrative boundaries, routes, and location markers to explain a site or area in a visual report. Print Map Studio supports clear static communication, while dedicated GIS remains the right tool for spatial analysis.',
+    tags: ['Site context', 'Regions', 'Access routes', 'Static reports'],
+  },
+] as const;
+---
+
+<MarketingLayout title={title} description={description} structuredData={structuredData}>
+  <header class="page-hero">
+    <div class="page-hero__grid">
+      <div>
+        <span class="eyebrow">Custom maps for real work</span>
+        <h1>Give every place a point of view.</h1>
+      </div>
+      <div class="page-hero__aside">
+        <p>
+          A good map is not just accurate. It is edited for the people who need to read it,
+          the story it needs to tell, and the space it has to fill.
+        </p>
+        <a class="button button--ink" href="/editor/">Make your map</a>
+      </div>
+    </div>
+  </header>
+
+  <section class="page-band">
+    <div class="section section--compact">
+      <div class="audience-list">
+        {audiences.map((audience) => (
+          <article class="audience-card" id={audience.id}>
+            <span class="audience-card__number">{audience.number}</span>
+            <h2>{audience.title}</h2>
+            <p>{audience.copy}</p>
+            <div class="tag-list" aria-label={`${audience.title} examples`}>
+              {audience.tags.map((tag) => <span class="tag">{tag}</span>)}
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="accuracy-note">
+      <h2>Static maps, made with intention.</h2>
+      <div class="accuracy-note__copy">
+        <p>
+          Print Map Studio is built for maps that become pages and images. It is not a
+          turn-by-turn navigation app, an interactive map embed, or a replacement for
+          geospatial analysis software.
+        </p>
+        <p>
+          That narrower focus keeps the editor centered on composition, content layers,
+          and reliable print dimensions.
+        </p>
+        <a class="text-link" href="/features/">
+          Explore the tools
+          <span aria-hidden="true">-&gt;</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="final-cta-wrap">
+    <div class="final-cta">
+      <h2>Make the map your project needs.</h2>
+      <p>Start from any place, add the context that matters, and export it for the page.</p>
+      <div class="final-cta__actions">
+        <a class="button button--citron" href="/editor/">Start creating free</a>
+      </div>
+    </div>
+  </section>
+</MarketingLayout>

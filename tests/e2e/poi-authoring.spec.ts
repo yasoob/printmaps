@@ -14,7 +14,7 @@ test('POI placement can be cancelled, undone, redone, and exported as vector con
       consoleProblems.push(message.text());
     }
   });
-  await page.goto('/');
+  await page.goto('./');
   const mapReady = page.locator('[data-map-ready="true"]');
   const mapFallback = page.getByText('Map preview unavailable');
   await expect(mapReady.or(mapFallback)).toBeVisible({ timeout: 20_000 });
@@ -95,7 +95,7 @@ test('pasted address rows become one durable geocoded POI batch', async ({ page 
     });
   });
 
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
   await page.getByRole('button', { name: 'Place (P)' }).click();
   await page.getByRole('button', { name: 'Paste POI list' }).click();
@@ -138,7 +138,7 @@ test('pasted POI rows create one responsive undoable batch', async ({ page }) =>
       consoleProblems.push(message.text());
     }
   });
-  await page.goto('/');
+  await page.goto('./');
   const mapReady = page.locator('[data-map-ready="true"]');
   const mapFallback = page.getByText('Map preview unavailable');
   await expect(mapReady.or(mapFallback)).toBeVisible({ timeout: 20_000 });

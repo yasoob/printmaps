@@ -2,7 +2,7 @@
 import { expect, test } from '@playwright/test';
 
 test('autosaves to IndexedDB and restores the local project automatically', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   const autosaveStatus = page.getByRole('status', { name: 'Autosave status' });
   await expect(autosaveStatus).toHaveText('Autosave ready');
   await page.getByRole('radio', { name: /^Night Ink:/ }).click();
@@ -46,14 +46,14 @@ test('autosaves to IndexedDB and restores the local project automatically', asyn
   const context = page.context();
   await page.close();
   const verificationPage = await context.newPage();
-  await verificationPage.goto('/');
+  await verificationPage.goto('./');
   await expect(verificationPage.getByRole('status', { name: 'Autosave status' })).toHaveText('Autosave ready');
   await expect(verificationPage.getByRole('button', { name: 'Portrait' })).toHaveAttribute('aria-pressed', 'true');
   await expect(verificationPage.getByRole('dialog', { name: 'Recover local draft' })).toHaveCount(0);
 });
 
 test('contains a corrupt IndexedDB draft until the user discards it', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.getByRole('status', { name: 'Autosave status' })).toHaveText('Autosave ready');
   await page.evaluate(async () => {
     const database = await new Promise<IDBDatabase>((resolve, reject) => {
@@ -84,7 +84,7 @@ test('contains a corrupt IndexedDB draft until the user discards it', async ({ p
 });
 
 test('does not render fallback project state while the local project is loading', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   const autosaveStatus = page.getByRole('status', { name: 'Autosave status' });
   await expect(autosaveStatus).toHaveText('Autosave ready');
   await page.getByRole('button', { name: 'Portrait' }).click();
@@ -123,7 +123,7 @@ test('does not render fallback project state while the local project is loading'
 
   await page.close();
   const delayedPage = await context.newPage();
-  await delayedPage.goto('/');
+  await delayedPage.goto('./');
   await delayedPage.waitForFunction(() => (
     typeof (window as typeof window & { __releaseAutosaveLoad?: () => void }).__releaseAutosaveLoad === 'function'
   ));

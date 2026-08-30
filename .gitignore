@@ -1,9 +1,11 @@
 node_modules/
 dist/
+.astro/
 playwright-report/
 test-results/
 coverage/
 .cache/
+.impeccable/
 __pycache__/
 .env
 .env.local

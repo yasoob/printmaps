@@ -1,0 +1,199 @@
+<section id="features" class="scroll-mt-8 bg-white py-20 font-inter text-[#1d1d1f] sm:py-28" aria-labelledby="home-features-title">
+  <div class="mx-auto w-[calc(100%_-_2rem)] max-w-[86rem]">
+    <div data-feature-tour data-autoplay-paused="false" class="grid overflow-hidden lg:min-h-[42rem] lg:grid-cols-2">
+      <div class="flex flex-col px-6 py-12 sm:px-12 sm:py-16 lg:px-16 lg:py-18">
+        <div>
+          <h2 id="home-features-title" class="max-w-md text-3xl font-semibold tracking-[-0.035em] sm:text-5xl">
+            The complete map workflow
+          </h2>
+          <p class="mt-4 max-w-md text-sm leading-6 text-[#6e6e73] sm:text-base">
+            Design a custom printable map in three focused steps.
+          </p>
+        </div>
+
+        <div class="mt-10 flex flex-col sm:mt-12" role="tablist" aria-label="Product tour">
+          <button
+            id="feature-tab-design"
+            class="relative border-l border-[#d2d2d7] py-4 pl-5 text-left text-[#6e6e73] transition-colors hover:text-[#1d1d1f] focus-visible:rounded-r-lg focus-visible:outline-3 focus-visible:outline-[#8bb9ff] data-[active=true]:text-[#1d1d1f]"
+            type="button"
+            role="tab"
+            aria-controls="feature-panel-design"
+            aria-selected="true"
+            data-active="true"
+          >
+            <span data-tab-progress class="pointer-events-none absolute top-0 bottom-0 -left-px z-10 w-0.5 origin-top bg-[#0071e3]" aria-hidden="true"></span>
+            <span class="flex items-baseline gap-3">
+              <span class="text-xl font-semibold tracking-[-0.02em] text-[#0071e3] sm:text-2xl">01</span>
+              <span class="text-xl font-semibold tracking-[-0.02em] sm:text-2xl">Design your map</span>
+            </span>
+            <span data-tab-description class="mt-2 block text-sm leading-6 text-[#6e6e73]">
+              Set an exact print size, choose a style, adjust labels and language, and frame the place you want to show.
+            </span>
+          </button>
+          <button
+            id="feature-tab-content"
+            class="relative border-l border-[#d2d2d7] py-4 pl-5 text-left text-[#6e6e73] transition-colors hover:text-[#1d1d1f] focus-visible:rounded-r-lg focus-visible:outline-3 focus-visible:outline-[#8bb9ff] data-[active=true]:text-[#1d1d1f]"
+            type="button"
+            role="tab"
+            aria-controls="feature-panel-content"
+            aria-selected="false"
+            data-active="false"
+            tabindex="-1"
+          >
+            <span data-tab-progress class="pointer-events-none absolute top-0 bottom-0 -left-px z-10 w-0.5 origin-top bg-[#0071e3]" aria-hidden="true" hidden></span>
+            <span class="flex items-baseline gap-3">
+              <span class="text-xl font-semibold tracking-[-0.02em] text-[#0071e3] sm:text-2xl">02</span>
+              <span class="text-xl font-semibold tracking-[-0.02em] sm:text-2xl">Add your content</span>
+            </span>
+            <span data-tab-description class="mt-2 hidden text-sm leading-6 text-[#6e6e73]">
+              Draw routes, add places, highlight regions, or import GPX, KML and GeoJSON as editable layers.
+            </span>
+          </button>
+          <button
+            id="feature-tab-export"
+            class="relative border-l border-[#d2d2d7] py-4 pl-5 text-left text-[#6e6e73] transition-colors hover:text-[#1d1d1f] focus-visible:rounded-r-lg focus-visible:outline-3 focus-visible:outline-[#8bb9ff] data-[active=true]:text-[#1d1d1f]"
+            type="button"
+            role="tab"
+            aria-controls="feature-panel-export"
+            aria-selected="false"
+            data-active="false"
+            tabindex="-1"
+          >
+            <span data-tab-progress class="pointer-events-none absolute top-0 bottom-0 -left-px z-10 w-0.5 origin-top bg-[#0071e3]" aria-hidden="true" hidden></span>
+            <span class="flex items-baseline gap-3">
+              <span class="text-xl font-semibold tracking-[-0.02em] text-[#0071e3] sm:text-2xl">03</span>
+              <span class="text-xl font-semibold tracking-[-0.02em] sm:text-2xl">Export for print</span>
+            </span>
+            <span data-tab-description class="mt-2 hidden text-sm leading-6 text-[#6e6e73]">
+              Download a print-sized PNG, exact-page PDF, or layered SVG with supported content preserved as vectors.
+            </span>
+          </button>
+        </div>
+
+        <a class="mt-10 inline-flex w-max items-center justify-center rounded-lg bg-[#0071e3] px-5 py-3 text-sm font-semibold text-white no-underline transition hover:-translate-y-0.5 hover:bg-[#0077ed] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#8bb9ff] motion-reduce:transition-none sm:mt-12" href="/editor/">
+          Open Editor
+        </a>
+      </div>
+
+      <div class="relative isolate flex items-center bg-[#0071e3] py-8 pl-8 before:pointer-events-none before:absolute before:inset-0 before:z-0 before:bg-[url('/noise.svg')] before:opacity-30 before:content-[''] sm:py-12 sm:pl-12 lg:py-16 lg:pl-14">
+        <div class="relative z-10 w-full overflow-hidden rounded-l-xl bg-white shadow-[0_1.5rem_4rem_rgba(0,0,0,0.2)]">
+          <div id="feature-panel-design" role="tabpanel" aria-labelledby="feature-tab-design">
+            <picture class="block">
+              <source media="(max-width: 640px)" srcset="/feature-shots/design-mobile.png" />
+              <img class="h-auto w-full" src="/feature-shots/design-desktop.png" alt="Print Map Studio page sizing and map style controls" width="1440" height="900" loading="lazy" />
+            </picture>
+          </div>
+          <div id="feature-panel-content" role="tabpanel" aria-labelledby="feature-tab-content" hidden>
+            <picture class="block">
+              <source media="(max-width: 640px)" srcset="/feature-shots/content-mobile.png" />
+              <img class="h-auto w-full" src="/feature-shots/content-desktop.png" alt="Print Map Studio editing a route as a selected map layer" width="1440" height="900" loading="lazy" />
+            </picture>
+          </div>
+          <div id="feature-panel-export" role="tabpanel" aria-labelledby="feature-tab-export" hidden>
+            <picture class="block">
+              <source media="(max-width: 640px)" srcset="/feature-shots/export-mobile.png" />
+              <img class="h-auto w-full" src="/feature-shots/export-desktop.png" alt="Print Map Studio export choices for PNG, layered SVG and PDF" width="1440" height="900" loading="lazy" />
+            </picture>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  const tours = document.querySelectorAll<HTMLElement>('[data-feature-tour]');
+
+  for (const tour of tours) {
+    const tabs = [...tour.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+    const panels = [...tour.querySelectorAll<HTMLElement>('[role="tabpanel"]')];
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const duration = 6_000;
+    let progressAnimation: Animation | null = null;
+    let isVisible = false;
+    let isManuallyPaused = false;
+
+    const selectedTab = () => tabs.find((tab) => tab.getAttribute('aria-selected') === 'true');
+
+    const stopProgress = () => {
+      progressAnimation?.cancel();
+      progressAnimation = null;
+    };
+
+    const startProgress = () => {
+      stopProgress();
+      const selected = selectedTab();
+      const progress = selected?.querySelector<HTMLElement>('[data-tab-progress]');
+      if (!selected || !progress) return;
+      progress.style.transform = `scaleY(${isManuallyPaused || reducedMotion.matches ? 1 : 0})`;
+      if (isManuallyPaused || reducedMotion.matches || !isVisible || document.hidden) return;
+      progressAnimation = progress.animate(
+        [{ transform: 'scaleY(0)' }, { transform: 'scaleY(1)' }],
+        { duration, easing: 'linear', fill: 'forwards' },
+      );
+      progressAnimation.addEventListener('finish', () => {
+        if (isManuallyPaused || reducedMotion.matches || !isVisible || document.hidden) return;
+        const index = tabs.indexOf(selected);
+        const nextTab = tabs[(index + 1) % tabs.length];
+        if (nextTab) selectTab(nextTab, false, false);
+      }, { once: true });
+    };
+
+    const selectTab = (selected: HTMLButtonElement, shouldFocus: boolean, isManual: boolean) => {
+      if (isManual) {
+        isManuallyPaused = true;
+        tour.dataset.autoplayPaused = 'true';
+      }
+      for (const tab of tabs) {
+        const isSelected = tab === selected;
+        tab.setAttribute('aria-selected', String(isSelected));
+        tab.dataset.active = String(isSelected);
+        tab.tabIndex = isSelected ? 0 : -1;
+        const description = tab.querySelector<HTMLElement>('[data-tab-description]');
+        const progress = tab.querySelector<HTMLElement>('[data-tab-progress]');
+        description?.classList.toggle('hidden', !isSelected);
+        if (progress) {
+          progress.hidden = !isSelected;
+          progress.style.transform = 'scaleY(0)';
+        }
+      }
+
+      for (const panel of panels) {
+        panel.hidden = panel.id !== selected.getAttribute('aria-controls');
+      }
+
+      if (shouldFocus) selected.focus();
+      startProgress();
+    };
+
+    tabs.forEach((tab, index) => {
+      tab.addEventListener('click', () => selectTab(tab, false, true));
+      tab.addEventListener('keydown', (event) => {
+        const keys = ['ArrowDown', 'ArrowRight', 'ArrowUp', 'ArrowLeft', 'Home', 'End'];
+        if (!keys.includes(event.key)) return;
+        event.preventDefault();
+        const nextIndex = event.key === 'Home'
+          ? 0
+          : event.key === 'End'
+            ? tabs.length - 1
+            : (index + (event.key === 'ArrowDown' || event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+        const nextTab = tabs[nextIndex];
+        if (nextTab) selectTab(nextTab, true, true);
+      });
+    });
+
+    const observer = new IntersectionObserver(([entry]) => {
+      isVisible = Boolean(entry?.isIntersecting);
+      if (isVisible) startProgress();
+      else stopProgress();
+    }, { threshold: 0.35 });
+    observer.observe(tour);
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) stopProgress();
+      else startProgress();
+    });
+
+    reducedMotion.addEventListener('change', startProgress);
+  }
+</script>

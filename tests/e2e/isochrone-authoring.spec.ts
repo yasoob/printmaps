@@ -49,7 +49,7 @@ test('travel-time area becomes one durable editable and exportable project layer
     });
   });
 
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
   await page.getByRole('button', { name: 'Area (S)' }).click();
   await page.getByRole('tab', { name: 'Travel time' }).click();

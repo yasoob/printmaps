@@ -14,7 +14,7 @@ const accordionGeometry = async (page: import('@playwright/test').Page) => page
   }));
 
 test('aligns every inspector chevron with its title', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
 
   const initialGeometry = await accordionGeometry(page);
@@ -32,7 +32,7 @@ test('aligns every inspector chevron with its title', async ({ page }) => {
 });
 
 test('keeps map styles preview-first without duplicate gallery attribution', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
 
   await expect(page.getByRole('toolbar', { name: 'Map style theme families' })).toHaveCount(0);

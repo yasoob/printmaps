@@ -69,7 +69,7 @@ async function downloadShapeSvgPath(
 
 test('content appearance edits update the live map, history, and layered SVG', async ({ page }, testInfo) => {
   test.slow();
-  await page.goto('/');
+  await page.goto('./');
   const mapRoot = page.getByTestId('map-canvas');
   const mapReady = page.locator('[data-map-ready="true"]');
   const mapFallback = page.getByText('Map preview unavailable');
@@ -151,7 +151,7 @@ test('a validated custom POI marker survives the live map, portable project, and
       consoleProblems.push(message.text());
     }
   });
-  await page.goto('/');
+  await page.goto('./');
   const mapReady = page.locator('[data-map-ready="true"]');
   const mapFallback = page.getByText('Map preview unavailable');
   await expect(mapReady.or(mapFallback)).toBeVisible({ timeout: 20_000 });
@@ -196,7 +196,7 @@ test('POI coordinates update the live map, history, portable project, and layere
   page.on('console', (message) => {
     if (message.type() === 'error' || message.type() === 'warning') consoleProblems.push(message.text());
   });
-  await page.goto('/');
+  await page.goto('./');
   const mapRoot = page.getByTestId('map-canvas');
   const mapReady = page.locator('[data-map-ready="true"]');
   const mapFallback = page.getByText('Map preview unavailable');
@@ -241,7 +241,7 @@ test('route vertex coordinates update the live map, history, portable project, a
   page.on('console', (message) => {
     if (message.type() === 'error' || message.type() === 'warning') consoleProblems.push(message.text());
   });
-  await page.goto('/');
+  await page.goto('./');
   const mapRoot = page.getByTestId('map-canvas');
   const mapReady = page.locator('[data-map-ready="true"]');
   const mapFallback = page.getByText('Map preview unavailable');
@@ -291,7 +291,7 @@ test('route vertices insert, remove, and drag directly on the map as one history
       consoleProblems.push(message.text());
     }
   });
-  await page.goto('/');
+  await page.goto('./');
   const mapRoot = page.getByTestId('map-canvas');
   const mapReady = page.locator('[data-map-ready="true"]');
   const mapFallback = page.getByText('Map preview unavailable');
@@ -345,7 +345,7 @@ test('shape vertex coordinates preserve ring closure across the live map, histor
       consoleProblems.push(message.text());
     }
   });
-  await page.goto('/');
+  await page.goto('./');
   const mapRoot = page.getByTestId('map-canvas');
   const mapReady = page.locator('[data-map-ready="true"]');
   const mapFallback = page.getByText('Map preview unavailable');
@@ -395,7 +395,7 @@ test('selected Place marker drags and nudges as one undoable geometry edit', asy
     if (message.type() === 'error') consoleProblems.push(message.text());
   });
   page.on('pageerror', (error) => { consoleProblems.push(error.message); });
-  await page.goto('/');
+  await page.goto('./');
   const map = page.getByTestId('map-canvas');
   const fallback = page.getByText('Map preview unavailable');
   await expect(page.locator('[data-map-ready="true"]').or(fallback)).toBeVisible({ timeout: 20_000 });
