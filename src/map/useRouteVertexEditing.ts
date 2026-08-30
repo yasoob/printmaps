@@ -7,6 +7,7 @@ type RouteVertexEditingOptions = {
   layers: ContentLayer[];
   map: RefObject<MapLibreMap | null>;
   onRouteVertexChange?: (id: string, vertexIndex: number, coordinate: readonly [number, number]) => void;
+  onRouteVertexInsert?: (id: string, segmentIndex: number) => void;
   onRouteVertexPreview?: (coordinates: [number, number][]) => boolean;
   selectedId: string | null;
   stylePreset: MapStylePreset;
@@ -16,18 +17,21 @@ export function useRouteVertexEditing({
   layers,
   map,
   onRouteVertexChange,
+  onRouteVertexInsert,
   onRouteVertexPreview,
   selectedId,
   stylePreset,
 }: RouteVertexEditingOptions) {
   const routeVertexChange = useRef(onRouteVertexChange);
+  const routeVertexInsert = useRef(onRouteVertexInsert);
   const routeVertexPreview = useRef(onRouteVertexPreview);
   const pendingFocus = useRef<{ layerId: string; vertexIndex: number } | null>(null);
   const canCommit = typeof onRouteVertexChange === 'function';
   useLayoutEffect(() => {
     routeVertexChange.current = onRouteVertexChange;
+    routeVertexInsert.current = onRouteVertexInsert;
     routeVertexPreview.current = onRouteVertexPreview;
-  }, [onRouteVertexChange, onRouteVertexPreview]);
+  }, [onRouteVertexChange, onRouteVertexInsert, onRouteVertexPreview]);
 
   useEffect(() => {
     const activeMap = map.current;
@@ -40,7 +44,10 @@ export function useRouteVertexEditing({
       activeMap,
       selectedLayer,
       (vertexIndex, coordinate) => routeVertexChange.current?.(selectedLayer.id, vertexIndex, coordinate),
-      { onPreview: (coordinates) => routeVertexPreview.current?.(coordinates) },
+      {
+        onInsert: (segmentIndex) => routeVertexInsert.current?.(selectedLayer.id, segmentIndex),
+        onPreview: (coordinates) => routeVertexPreview.current?.(coordinates),
+      },
     );
     if (pendingFocus.current?.layerId === selectedLayer.id) {
       editing.focusVertex(pendingFocus.current.vertexIndex);
@@ -53,6 +60,11 @@ export function useRouteVertexEditing({
         : undefined;
       if (focusedIndex !== undefined) {
         pendingFocus.current = { layerId: selectedLayer.id, vertexIndex: Number(focusedIndex) };
+      } else if (activeElement instanceof HTMLElement && activeElement.dataset.routeSegmentIndex !== undefined) {
+        pendingFocus.current = {
+          layerId: selectedLayer.id,
+          vertexIndex: Number(activeElement.dataset.routeSegmentIndex) + 1,
+        };
       }
       editing();
     };

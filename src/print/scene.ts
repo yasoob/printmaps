@@ -1,4 +1,4 @@
-import { arcControlPosition, arcPoint } from '../domain/routeArcGeometry';
+import { rebasePathLongitudes, sampleArc, sampledPathMidpoint } from '../domain/routeArcGeometry';
 import type { ContentLayer, LayerGeometry, LayerType, ProjectDocument } from '../domain/project';
 import { fitAttributionFontSize } from '../domain/projectAttributions';
 import { ROUTE_TRAVEL_PROFILE_MARKERS } from '../domain/routeProfiles';
@@ -23,6 +23,7 @@ export type RasterBasemapAsset = Readonly<{ dataUri: string; pixelWidth: number;
 export type PrintSceneOptions = Readonly<{
   basemap: RasterBasemapAsset; attribution: string; project: CoordinateProjector;
   metadata?: string;
+  referenceLongitude?: number;
 }>;
 
 export class PrintSceneError extends Error {
@@ -174,14 +175,9 @@ function pointText(point: PagePoint): string {
   return `${formatNumber(point.x)} ${formatNumber(point.y)}`;
 }
 
-function routeTravelModeMarker(
-  layer: ContentLayer,
-  points: readonly PagePoint[],
-  color: string,
-): string {
+function routeTravelModeMarker(layer: ContentLayer, point: PagePoint, color: string): string {
   const appearance = layer.appearance?.kind === 'route' ? layer.appearance : undefined;
   if (!appearance?.showTravelModeIcon) return '';
-  const point = points[Math.floor((points.length - 1) / 2)];
   const label = ROUTE_TRAVEL_PROFILE_MARKERS[appearance.travelProfile];
   return `<g data-route-travel-profile="${appearance.travelProfile}" aria-label="${escapeXml(label)} travel-mode marker"><circle cx="${formatNumber(point.x)}" cy="${formatNumber(point.y)}" r="4" fill="${escapeXml(color)}" stroke="#ffffff" stroke-width="0.6"/><text x="${formatNumber(point.x)}" y="${formatNumber(point.y)}" fill="#ffffff" font-family="sans-serif" font-size="1.8" font-weight="700" text-anchor="middle" dominant-baseline="middle">${escapeXml(label)}</text></g>`;
 }
@@ -217,22 +213,24 @@ function geometryElement(
     });
   }
   if (geometry.type === 'Arc') {
-    const start = projectCoordinate(geometry.anchors[0], layer, options, { width, height });
-    const control = projectCoordinate(arcControlPosition(geometry), layer, options, { width, height });
-    const end = projectCoordinate(geometry.anchors[1], layer, options, { width, height });
-    const midpoint = projectCoordinate(arcPoint(geometry, 0.5), layer, options, { width, height });
-    const commands = `M ${pointText(start)} Q ${pointText(control)} ${pointText(end)}`;
-    return `<path d="${commands}" fill="none" ${stroke} stroke-linecap="round"/>${routeTravelModeMarker(layer, [midpoint], style.stroke)}`;
+    const coordinates = rebasePathLongitudes(sampleArc(geometry), options.referenceLongitude);
+    const points = coordinates.map((coordinate) => (
+      projectCoordinate(coordinate, layer, options, { width, height })
+    ));
+    const commands = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${pointText(point)}`).join(' ');
+    return `<path d="${commands}" fill="none" ${stroke} stroke-linecap="round" stroke-linejoin="round"/>${routeTravelModeMarker(layer, projectCoordinate(sampledPathMidpoint(coordinates), layer, options, { width, height }), style.stroke)}`;
   }
   if (geometry.type === 'LineString') {
     if (geometry.coordinates.length < 2) {
       throw new PrintSceneError(`Layer "${layer.id}" route must contain at least two coordinates.`);
     }
-    const points = geometry.coordinates.map((coordinate) => (
+    const coordinates = rebasePathLongitudes(geometry.coordinates, options.referenceLongitude);
+    const points = coordinates.map((coordinate) => (
       projectCoordinate(coordinate, layer, options, { width, height })
     ));
     const commands = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${pointText(point)}`).join(' ');
-    return `<path d="${commands}" fill="none" ${stroke} stroke-linecap="round" stroke-linejoin="round"/>${routeTravelModeMarker(layer, points, style.stroke)}`;
+    const marker = projectCoordinate(sampledPathMidpoint(coordinates), layer, options, { width, height });
+    return `<path d="${commands}" fill="none" ${stroke} stroke-linecap="round" stroke-linejoin="round"/>${routeTravelModeMarker(layer, marker, style.stroke)}`;
   }
 
   const appearance = layer.appearance?.kind === 'shape'

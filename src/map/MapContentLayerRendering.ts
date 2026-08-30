@@ -77,8 +77,6 @@ const routeLayerDescriptor = (layer: ContentLayer, isHighlighted: boolean) => {
     },
     layout: { 'line-cap': 'round' as const, 'line-join': 'round' as const },
   };
-  const isArc = layer.geometry?.type === 'Arc';
-  if (isArc && !appearance.showTravelModeIcon) return [];
   if (!appearance.showTravelModeIcon) return [line];
   const marker = {
     id: mapContentLayerId(layer.id, 'travel-mode'),
@@ -98,7 +96,7 @@ const routeLayerDescriptor = (layer: ContentLayer, isHighlighted: boolean) => {
       'text-halo-width': 4,
     },
   };
-  return isArc ? [marker] : [line, marker];
+  return [line, marker];
 };
 
 function customPoiMarkerDescriptor(layer: ContentLayer, appearance: PoiAppearance, asset: CustomMarkerAsset): MapLayerDescriptor {

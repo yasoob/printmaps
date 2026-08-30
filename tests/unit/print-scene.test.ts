@@ -75,9 +75,9 @@ describe('layered SVG print scene', () => {
     })).toBe(svgText);
   });
 
-  it('exports a canonical Arc as one vector quadratic instead of sampled line segments', () => {
+  it('exports the same canonical Arc samples used by the map', () => {
     const project = createInitialProjectDocument();
-    project.layers[0].geometry = { type: 'Arc', anchors: [[16.326, 48.194], [16.429, 48.226]] };
+    project.layers[0].geometry = { type: 'Arc', anchors: [[16.326, 48.194], [16.429, 48.226]], curvatures: [0.35] };
 
     const svgDocument = parseSvg(serializePrintScene(project, {
       basemap: { dataUri: onePixelPng, pixelWidth: 1, pixelHeight: 1 },
@@ -86,8 +86,8 @@ describe('layered SVG print scene', () => {
     }));
     const path = requiredElement(svgDocument, '[data-layer-id="route-01"] > path').getAttribute('d') ?? '';
 
-    expect(path).toContain(' Q ');
-    expect(path).not.toContain(' L ');
+    expect(path).toContain(' L ');
+    expect(path).not.toContain(' Q ');
   });
 
   it('preserves custom physical dimensions exactly in millimetres and the viewBox', () => {

@@ -27,6 +27,7 @@ import { useShapeTransformEditing } from './useShapeTransformEditing';
 import { useShapeVertexEditing } from './useShapeVertexEditing';
 import { usePointEditing } from './usePointEditing';
 import type { ShapeEditMode } from './ShapeVertexEditing';
+import { createArcGeometry } from '../domain/routeArcGeometry';
 
 const ignoreRouteGeometryChange = () => {};
 
@@ -51,6 +52,7 @@ type MapCanvasControllerOptions = {
   onMapClick?: (coordinate: [number, number]) => void;
   onPoiCoordinatesChange?: (id: string, coordinate: readonly [number, number]) => void;
   onRouteGeometryChange?: (id: string, coordinates: readonly (readonly [number, number])[]) => void;
+  onRouteVertexInsert?: (id: string, segmentIndex: number) => void;
   routeAuthoring?: RouteAuthoring;
   onShapeGeometryChange?: (id: string, geometry: ShapeGeometry) => void;
   previewedId: string | null;
@@ -60,8 +62,8 @@ type MapCanvasControllerOptions = {
 };
 
 function routePreviewGeometry(layer: ContentLayer, coordinates: [number, number][]) {
-  if (layer.geometry?.type === 'Arc' && coordinates.length === 2) {
-    return { type: 'Arc' as const, anchors: coordinates as [[number, number], [number, number]] };
+  if (layer.geometry?.type === 'Arc') {
+    return createArcGeometry(coordinates, layer.geometry.curvatures) ?? layer.geometry;
   }
   return { type: 'LineString' as const, coordinates };
 }
@@ -152,14 +154,15 @@ function useShapeEditing({ layers, map, onShapeGeometryChange, selectedId, shape
 }
 
 function useAccessibleRouteVertexEditing(options: Pick<MapCanvasControllerOptions,
-  'layers' | 'onRouteGeometryChange' | 'selectedId' | 'stylePreset'> & {
+  'layers' | 'onRouteGeometryChange' | 'onRouteVertexInsert' | 'selectedId' | 'stylePreset'> & {
     map: RefObject<MapLibreMap | null>;
     onRoutePreview?: (coordinates: [number, number][]) => boolean;
   }) {
   const handleChange = useCallback((id: string, vertexIndex: number, coordinate: readonly [number, number]) => {
     const route = options.layers.find((layer) => layer.id === id);
-    if (route?.geometry?.type !== 'LineString') return;
-    const coordinates = route.geometry.coordinates.map((candidate, index) => (
+    if (route?.geometry?.type !== 'LineString' && route?.geometry?.type !== 'Arc') return;
+    const positions = route.geometry.type === 'Arc' ? route.geometry.anchors : route.geometry.coordinates;
+    const coordinates = positions.map((candidate, index) => (
       index === vertexIndex ? [coordinate[0], coordinate[1]] as [number, number] : candidate
     ));
     options.onRouteGeometryChange?.(id, coordinates);
@@ -167,6 +170,7 @@ function useAccessibleRouteVertexEditing(options: Pick<MapCanvasControllerOption
   useRouteVertexEditing({
     layers: options.layers, map: options.map,
     onRouteVertexChange: options.onRouteGeometryChange ? handleChange : undefined,
+    onRouteVertexInsert: options.onRouteVertexInsert,
     onRouteVertexPreview: options.onRoutePreview,
     selectedId: options.selectedId, stylePreset: options.stylePreset,
   });
@@ -191,6 +195,7 @@ export function useMapCanvasController({
   onLayerSelect,
   onCameraViewportChange, onMapClick, onPoiCoordinatesChange,
   onRouteGeometryChange,
+  onRouteVertexInsert,
   routeAuthoring,
   onShapeGeometryChange,
   previewedId,
@@ -290,7 +295,7 @@ export function useMapCanvasController({
     });
   }, [cameraState, handleContentSyncResult, invalidateExporter, resetFeatureVisibility, resetMapLanguage, resetTextScale, stylePreset, synchronizeFeatureVisibility, synchronizeMapLanguage, synchronizeTextScale]);
 
-  usePointEditing({ layers, map, onPoiCoordinatesChange, selectedId, stylePreset }); useShapeEditing({ layers, map, onShapeGeometryChange, selectedId, shapeEditMode, stylePreset }); useAccessibleRouteVertexEditing({ layers, map, onRouteGeometryChange, onRoutePreview: routeEditing.updateEditingGeometry, selectedId, stylePreset });
+  usePointEditing({ layers, map, onPoiCoordinatesChange, selectedId, stylePreset }); useShapeEditing({ layers, map, onShapeGeometryChange, selectedId, shapeEditMode, stylePreset }); useAccessibleRouteVertexEditing({ layers, map, onRouteGeometryChange, onRouteVertexInsert, onRoutePreview: routeEditing.updateEditingGeometry, selectedId, stylePreset });
 
   useMapCameraSynchronization({ camera, container, map, stylePreset }); useMapLocationRequest({ container, locationRequest, map, stylePreset });
   useMapFitRequests({ camera, cameraViewportChangeMode, container, fitImportBounds, fitImportRequest, fitLayerId, fitLayerRequest, fitRequest, layers, map });

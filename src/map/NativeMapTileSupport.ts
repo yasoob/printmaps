@@ -1,26 +1,3 @@
-import type { Map as MapLibreMap } from 'maplibre-gl';
-import type { ContentLayer } from '../domain/project';
-import { createRouteArcOverlay } from './MapRouteArcOverlay';
-
-export type NativeArcOverlay = Pick<ReturnType<typeof createRouteArcOverlay>, 'destroy' | 'sync'>
-  & Partial<Pick<ReturnType<typeof createRouteArcOverlay>, 'whenIdle'>>;
-export type NativeArcOverlayFactory = (map: MapLibreMap, widthScale: number) => NativeArcOverlay;
-
-export async function attachNativeRouteArcs(
-  map: MapLibreMap,
-  layers: readonly ContentLayer[],
-  widthScale: number,
-  factory?: NativeArcOverlayFactory,
-): Promise<NativeArcOverlay> {
-  const overlay = factory
-    ? factory(map, widthScale)
-    : createRouteArcOverlay(map, { widthScale, isInterleaved: true });
-  overlay.sync({ layers, selectedId: null, previewedId: null });
-  // The arc renderer is fetched on demand; the tile must not be captured before it lands.
-  await overlay.whenIdle?.();
-  return overlay;
-}
-
 export function copyNativeMapCanvas(
   rendered: HTMLCanvasElement,
   width: number,

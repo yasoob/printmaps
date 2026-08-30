@@ -13,9 +13,8 @@ import { ROUTE_EDITOR_PREFIX } from './TerraDrawRouteHandles';
 const HANDLE_COLOR = '#d9363e';
 const HANDLE_OUTLINE = '#ffffff';
 
-function lineStringMode(lineShape: RouteLineShape) {
+function lineStringMode() {
   return new TerraDrawLineStringMode({
-    finishOnNthCoordinate: lineShape === 'arc' ? 2 : undefined,
     pointerDistance: 22,
     projection: 'web-mercator',
     showCoordinatePoints: true,
@@ -82,7 +81,7 @@ export function createTerraRouteDraw(
   });
   return new TerraDraw({
     adapter,
-    modes: [lineStringMode(lineShape), selectMode(lineShape)],
+    modes: [lineStringMode(), selectMode(lineShape)],
     ...(shouldEnableUndo && {
       undoRedo: { modeLevel: new TerraDrawModeUndoRedo({ maxStackSize: 100 }) },
     }),

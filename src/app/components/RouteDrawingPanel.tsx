@@ -34,7 +34,7 @@ export function RouteDrawingPanel(props: RouteDrawingPanelProps) {
   const markerValue = props.showTravelModeIcon ? props.travelProfile : 'none';
   const status = props.isRouting
     ? 'Finding the road route…'
-    : (props.pointCount === 0 ? 'Click the map to add route points' : `${props.pointCount} ${pointLabel} added`);
+    : (props.pointCount === 0 ? 'Click the map to add route points' : `${props.pointCount} ${pointLabel} added · Finish when ready`);
   const changeMarker = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const value = event.target.value;
     if (value === 'none') return props.onShowTravelModeIconChange(false);

@@ -11,7 +11,7 @@ import { createDirectionsRouteAction } from './storeDirectionsRouteActions';
 import { createRouteAction } from './storeRouteCreationAction';
 import { createMapMatchingAction } from './storeMapMatchingAction';
 import { createReplaceLayerFromImportAction } from './storeImportReplacementAction';
-type LayerPropertyActions = Pick<ProjectState, 'applyMapMatching' | 'insertRouteVertex' | 'removeRouteVertex' | 'renameLayer' | 'replaceRouteGeometry' | 'selectLayer' | 'setLayerAppearance' | 'setLayerOpacity' | 'setPoiCoordinates' | 'setPoiCustomMarker' | 'setRouteVertex' | 'toggleLayerVisibility' | 'toggleLayerLock'>;
+type LayerPropertyActions = Pick<ProjectState, 'applyMapMatching' | 'insertRouteVertex' | 'removeRouteVertex' | 'renameLayer' | 'replaceRouteGeometry' | 'selectLayer' | 'setArcSegmentCurvature' | 'setLayerAppearance' | 'setLayerOpacity' | 'setPoiCoordinates' | 'setPoiCustomMarker' | 'setRouteVertex' | 'toggleLayerVisibility' | 'toggleLayerLock'>;
 
 function isCanonicalCustomMarkerAsset(asset: CustomMarkerAsset): boolean {
   try {

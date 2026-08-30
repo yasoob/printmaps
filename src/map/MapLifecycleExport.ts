@@ -68,15 +68,19 @@ export function createLifecycleExportPreview(
     const attribution = references.container.current
       ?.querySelector<HTMLElement>('.maplibregl-ctrl-attrib-inner')
       ?.textContent ?? '';
-    const capture = (isAttributionIncluded: boolean) => capturePrintFramePng(
-      map.getCanvas(),
-      printFrame,
-      attribution,
-      {
-        projectToCanvas: (coordinate) => map.project([coordinate[0], coordinate[1]]),
-        isAttributionIncluded,
-      },
-    );
+    const capture = (isAttributionIncluded: boolean) => {
+      const referenceLongitude = map.getCenter().lng;
+      return capturePrintFramePng(
+        map.getCanvas(),
+        printFrame,
+        attribution,
+        {
+          projectToCanvas: (coordinate) => map.project([coordinate[0], coordinate[1]]),
+          isAttributionIncluded,
+          referenceLongitude,
+        },
+      );
+    };
     if (exportOptions?.content !== 'basemap') return capture(true);
     return captureBasemapOnly(
       references.contentAdapter.current,

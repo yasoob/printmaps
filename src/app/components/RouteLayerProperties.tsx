@@ -13,6 +13,7 @@ import { RouteMapMatchingControl } from './RouteMapMatchingControl';
 import { RouteVertexControls } from './RouteVertexControls';
 import { Checkbox } from './UiControls';
 import { InputGroup, InputGroupAddon, InputNumber } from './InputGroup';
+import { MAX_ARC_CURVATURE } from '../../domain/routeArcGeometry';
 
 function RouteAppearanceControls({
   appearance,
@@ -50,6 +51,7 @@ type RouteLayerPropertiesProps = {
   mapMatchingProvider?: MapMatchingProvider;
   onApplyMapMatching?: (input: MapMatchingInput, expectedDocumentEpoch: number) => boolean;
   onAppearanceChange: (appearance: LayerAppearance) => void;
+  onArcCurvatureChange?: (segmentIndex: number, curvature: number) => void;
   onRouteVertexInsert: (vertexIndex: number) => void;
   onRouteVertexRemove: (vertexIndex: number) => void;
   onRouteVertexChange: (vertexIndex: number, coordinates: readonly [number, number]) => void;
@@ -61,42 +63,208 @@ export function RouteLayerProperties({
   mapMatchingProvider,
   onApplyMapMatching,
   onAppearanceChange,
+  onArcCurvatureChange,
   onRouteVertexInsert,
   onRouteVertexRemove,
   onRouteVertexChange,
 }: RouteLayerPropertiesProps) {
   if (layer.appearance?.kind !== 'route') return null;
-  if (layer.geometry?.type !== 'LineString') {
-    return <><PropertySection title="Appearance"><RouteAppearanceControls appearance={layer.appearance} onChange={onAppearanceChange} /></PropertySection><DirectionsProvenanceSummary layer={layer} /></>;
-  }
+  if (layer.geometry?.type !== 'LineString' && layer.geometry?.type !== 'Arc') return null;
+  const positions = layer.geometry.type === 'Arc' ? layer.geometry.anchors : layer.geometry.coordinates;
   return (
     <>
       <PropertySection title="Appearance">
         <RouteAppearanceControls key={`${layer.id}-${layer.appearance.width}`} appearance={layer.appearance} onChange={onAppearanceChange} />
       </PropertySection>
+      <RouteAdvancedProperties
+        documentEpoch={documentEpoch}
+        layer={layer}
+        mapMatchingProvider={mapMatchingProvider}
+        onApplyMapMatching={onApplyMapMatching}
+        onArcCurvatureChange={onArcCurvatureChange}
+        onRouteVertexChange={onRouteVertexChange}
+        onRouteVertexInsert={onRouteVertexInsert}
+        onRouteVertexRemove={onRouteVertexRemove}
+        positions={positions}
+      />
+    </>
+  );
+}
+
+function RouteAdvancedProperties({
+  documentEpoch,
+  layer,
+  mapMatchingProvider,
+  onApplyMapMatching,
+  onArcCurvatureChange,
+  onRouteVertexChange,
+  onRouteVertexInsert,
+  onRouteVertexRemove,
+  positions,
+}: Omit<RouteLayerPropertiesProps, 'documentEpoch' | 'onAppearanceChange'> & {
+  documentEpoch: number;
+  positions: readonly (readonly [number, number])[];
+}) {
+  if (layer.appearance?.kind !== 'route') return null;
+  if (layer.geometry?.type !== 'LineString' && layer.geometry?.type !== 'Arc') return null;
+  const vertexProps = {
+    disabled: layer.locked || !layer.visible,
+    onRouteVertexChange,
+    onRouteVertexInsert,
+    onRouteVertexRemove,
+    positions,
+    routeId: layer.id,
+  };
+  if (layer.geometry.type === 'Arc') {
+    return (
+      <ArcRouteAdvanced
+        {...vertexProps}
+        curvatures={layer.geometry.curvatures}
+        onArcCurvatureChange={onArcCurvatureChange}
+      />
+    );
+  }
+  return (
+    <LineRouteAdvanced
+      {...vertexProps}
+      coordinates={layer.geometry.coordinates}
+      documentEpoch={documentEpoch}
+      layer={layer}
+      appearance={layer.appearance}
+      mapMatchingProvider={mapMatchingProvider}
+      onApplyMapMatching={onApplyMapMatching}
+    />
+  );
+}
+
+type AdvancedVertexProps = {
+  disabled: boolean;
+  onRouteVertexChange: RouteLayerPropertiesProps['onRouteVertexChange'];
+  onRouteVertexInsert: RouteLayerPropertiesProps['onRouteVertexInsert'];
+  onRouteVertexRemove: RouteLayerPropertiesProps['onRouteVertexRemove'];
+  positions: readonly (readonly [number, number])[];
+  routeId: string;
+};
+
+function ArcRouteAdvanced({
+  curvatures,
+  disabled,
+  onArcCurvatureChange,
+  onRouteVertexChange,
+  onRouteVertexInsert,
+  onRouteVertexRemove,
+  positions,
+  routeId,
+}: AdvancedVertexProps & {
+  curvatures: readonly number[];
+  onArcCurvatureChange?: RouteLayerPropertiesProps['onArcCurvatureChange'];
+}) {
+  return (
+    <InspectorAccordion isDefaultExpanded={false} storageKey="print-map-studio:inspector:layer:route-advanced" summary="Curvature · Vertices" title="Advanced">
+      <PropertySection title="Curvature">
+        <ArcCurvatureControls curvatures={curvatures} disabled={disabled} onChange={(segmentIndex, curvature) => onArcCurvatureChange?.(segmentIndex, curvature)} />
+      </PropertySection>
+      <PropertySection title="Vertices">
+        <RouteVertexControls key={routeId} coordinates={positions} disabled={disabled} onChange={onRouteVertexChange} onInsert={onRouteVertexInsert} onRemove={onRouteVertexRemove} />
+      </PropertySection>
+    </InspectorAccordion>
+  );
+}
+
+function LineRouteAdvanced({
+  appearance,
+  coordinates,
+  disabled,
+  documentEpoch,
+  layer,
+  mapMatchingProvider,
+  onApplyMapMatching,
+  onRouteVertexChange,
+  onRouteVertexInsert,
+  onRouteVertexRemove,
+  positions,
+  routeId,
+}: AdvancedVertexProps & {
+  appearance: RouteAppearance;
+  coordinates: readonly (readonly [number, number])[];
+  documentEpoch: number;
+  layer: ContentLayer;
+  mapMatchingProvider?: MapMatchingProvider;
+  onApplyMapMatching?: RouteLayerPropertiesProps['onApplyMapMatching'];
+}) {
+  return (
+    <>
       <DirectionsProvenanceSummary layer={layer} />
       <InspectorAccordion isDefaultExpanded={false} storageKey="print-map-studio:inspector:layer:route-advanced" summary="Road matching · Vertices · Elevation profile" title="Advanced">
-        {onApplyMapMatching && (
-          <PropertySection title="Road matching">
-            <RouteMapMatchingControl
-              key={`${layer.id}-${documentEpoch}-${layer.visible}-${layer.locked}-${layer.appearance.travelProfile}-${JSON.stringify(layer.geometry.coordinates)}`}
-              coordinates={layer.geometry.coordinates}
-              disabled={layer.locked || !layer.visible}
-              documentEpoch={documentEpoch}
-              onApply={onApplyMapMatching}
-              profile={layer.appearance.travelProfile}
-              provenance={layer.provenance?.service === 'map-matching-v5' ? layer.provenance : undefined}
-              {...(mapMatchingProvider && { provider: mapMatchingProvider })}
-            />
-          </PropertySection>
-        )}
+        {onApplyMapMatching && <PropertySection title="Road matching">
+          <RouteMapMatchingControl
+            key={`${layer.id}-${documentEpoch}-${layer.visible}-${layer.locked}-${appearance.travelProfile}-${JSON.stringify(coordinates)}`}
+            coordinates={coordinates}
+            disabled={disabled}
+            documentEpoch={documentEpoch}
+            onApply={onApplyMapMatching}
+            profile={appearance.travelProfile}
+            provenance={layer.provenance?.service === 'map-matching-v5' ? layer.provenance : undefined}
+            {...(mapMatchingProvider && { provider: mapMatchingProvider })}
+          />
+        </PropertySection>}
         <PropertySection title="Vertices">
-          <RouteVertexControls key={layer.id} coordinates={layer.geometry.coordinates} disabled={layer.locked || !layer.visible} onChange={onRouteVertexChange} onInsert={onRouteVertexInsert} onRemove={onRouteVertexRemove} />
+          <RouteVertexControls key={routeId} coordinates={positions} disabled={disabled} onChange={onRouteVertexChange} onInsert={onRouteVertexInsert} onRemove={onRouteVertexRemove} />
         </PropertySection>
         <PropertySection title="Elevation">
-          <ElevationProfilePanel key={`${layer.id}-${JSON.stringify(layer.geometry.coordinates)}`} coordinates={layer.geometry.coordinates} routeName={layer.name} routeColor={layer.appearance.color} />
+          <ElevationProfilePanel key={`${layer.id}-${JSON.stringify(coordinates)}`} coordinates={coordinates} routeName={layer.name} routeColor={appearance.color} />
         </PropertySection>
       </InspectorAccordion>
+    </>
+  );
+}
+
+function ArcCurvatureControls({
+  curvatures,
+  disabled,
+  onChange,
+}: {
+  curvatures: readonly number[];
+  disabled: boolean;
+  onChange: (segmentIndex: number, curvature: number) => void;
+}) {
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const segmentIndex = Math.min(selectedIndex, curvatures.length - 1);
+  const curvature = curvatures[segmentIndex] ?? 0;
+  const [amountEdit, setAmountEdit] = useState(() => ({
+    segmentIndex,
+    source: curvature,
+    value: String(Math.abs(curvature)),
+  }));
+  const amountDraft = amountEdit.segmentIndex === segmentIndex && amountEdit.source === curvature
+    ? amountEdit.value
+    : String(Math.abs(curvature));
+  const amount = Number(amountDraft);
+  const isInvalid = amountDraft.trim() === '' || !Number.isFinite(amount) || amount < 0 || amount > MAX_ARC_CURVATURE;
+  const commitAmount = () => {
+    if (isInvalid) {
+      setAmountEdit({ segmentIndex, source: curvature, value: String(Math.abs(curvature)) });
+      return;
+    }
+    setAmountEdit({ segmentIndex, source: curvature, value: String(amount) });
+    onChange(segmentIndex, amount * (curvature < 0 ? -1 : 1));
+  };
+  return (
+    <>
+      <PropertyRow label="Segment">
+        <select aria-label="Arc segment" disabled={disabled} value={segmentIndex} onChange={(event) => {
+          setSelectedIndex(Number(event.target.value));
+        }}>
+          {curvatures.map((_value, index) => <option key={index} value={index}>Segment {index + 1}</option>)}
+        </select>
+      </PropertyRow>
+      <PropertyRow label="Bend">
+        <InputGroup>
+          <InputNumber aria-label="Arc curvature amount" aria-invalid={isInvalid || undefined} disabled={disabled} min={0} max={MAX_ARC_CURVATURE} step={0.05} value={amountDraft} onChange={(event) => setAmountEdit({ segmentIndex, source: curvature, value: event.target.value })} onBlur={commitAmount} />
+          <InputGroupAddon align="inline-end">×</InputGroupAddon>
+        </InputGroup>
+      </PropertyRow>
+      <button type="button" aria-label="Flip arc direction" disabled={disabled || curvature === 0} onClick={() => onChange(segmentIndex, -curvature)}>Flip direction</button>
     </>
   );
 }

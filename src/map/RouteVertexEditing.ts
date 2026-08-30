@@ -1,4 +1,5 @@
 import { Marker, type Map as MapLibreMap } from 'maplibre-gl';
+import { createArcGeometry, sampleArc } from '../domain/routeArcGeometry';
 import type { ContentLayer } from '../domain/project';
 import { isValidPosition } from '../domain/routeGeometry';
 import { mapContentSourceId } from './MapContentGeometry';
@@ -17,6 +18,7 @@ type RouteVertexMap = Pick<MapLibreMap, 'getSource' | 'project' | 'unproject'>;
 type MarkerFactory = (element: HTMLElement) => RouteVertexMarker;
 type RouteVertexEditingOptions = {
   createMarker?: MarkerFactory;
+  onInsert?: (segmentIndex: number) => void;
   onPreview?: (coordinates: [number, number][]) => boolean | void;
 };
 
@@ -57,6 +59,12 @@ function didSetRouteSourceGeometry(
   }
 }
 
+function displayCoordinates(layer: ContentLayer, coordinates: [number, number][]) {
+  if (layer.geometry?.type !== 'Arc') return coordinates;
+  const arc = createArcGeometry(coordinates, layer.geometry.curvatures);
+  return arc ? sampleArc(arc) : null;
+}
+
 function didUpdateGuidance(
   onPreview: NonNullable<RouteVertexEditingOptions['onPreview']>,
   coordinates: [number, number][],
@@ -68,83 +76,88 @@ function didUpdateGuidance(
   }
 }
 
-export function installRouteVertexEditing(
-  map: RouteVertexMap,
-  layer: ContentLayer,
-  onCommit: (vertexIndex: number, coordinate: readonly [number, number]) => void,
-  options: RouteVertexEditingOptions = {},
-): RouteVertexEditingSession {
-  if (
-    layer.type !== 'route'
-    || layer.locked
-    || !layer.visible
-    || layer.geometry?.type !== 'LineString'
-  ) {
-    const emptySession = (() => {}) as RouteVertexEditingSession;
-    emptySession.focusVertex = () => {};
-    return emptySession;
-  }
+type EditableRouteLayer = ContentLayer & {
+  geometry: Extract<NonNullable<ContentLayer['geometry']>, { type: 'Arc' | 'LineString' }>;
+};
 
-  const createMarker = options.createMarker ?? createMapLibreMarker;
-  const onPreview = options.onPreview ?? (() => true);
-  const canonicalCoordinates = layer.geometry.coordinates.map((coordinate) => [...coordinate] as [number, number]);
-  const markers: RouteVertexMarker[] = [];
-  let hasUncommittedPreview = false;
-  const restoreCanonicalPreview = () => {
-    const didRestoreSource = didSetRouteSourceGeometry(map, layer.id, canonicalCoordinates)
-      || didSetRouteSourceGeometry(map, layer.id, canonicalCoordinates);
-    const didRestoreGuidance = didUpdateGuidance(onPreview, canonicalCoordinates)
-      || didUpdateGuidance(onPreview, canonicalCoordinates);
-    hasUncommittedPreview = !didRestoreSource || !didRestoreGuidance;
-    return !hasUncommittedPreview;
-  };
-  const preview = (vertexIndex: number, coordinate: readonly [number, number]) => {
-    const coordinates = canonicalCoordinates.map((candidate, index) => (
-      index === vertexIndex ? [coordinate[0], coordinate[1]] as [number, number] : candidate
-    ));
-    const didUpdateSource = didSetRouteSourceGeometry(map, layer.id, coordinates);
-    const didUpdateTerraGuidance = didUpdateGuidance(onPreview, coordinates);
-    if (!didUpdateSource || !didUpdateTerraGuidance) {
-      restoreCanonicalPreview();
-      return false;
-    }
-    hasUncommittedPreview = true;
-    return true;
-  };
+function isEditableRouteLayer(layer: ContentLayer): layer is EditableRouteLayer {
+  return layer.type === 'route'
+    && !layer.locked
+    && layer.visible
+    && (layer.geometry?.type === 'LineString' || layer.geometry?.type === 'Arc');
+}
 
-  for (const [vertexIndex, coordinate] of canonicalCoordinates.entries()) {
+type RestorePreviewOptions = {
+  canonicalCoordinates: [number, number][];
+  canonicalDisplayCoordinates: [number, number][];
+  isArc: boolean;
+  layerId: string;
+  map: RouteVertexMap;
+  onPreview: NonNullable<RouteVertexEditingOptions['onPreview']>;
+};
+
+function restoreRoutePreview(options: RestorePreviewOptions) {
+  const didRestoreSource = didSetRouteSourceGeometry(
+    options.map,
+    options.layerId,
+    options.canonicalDisplayCoordinates,
+  ) || didSetRouteSourceGeometry(options.map, options.layerId, options.canonicalDisplayCoordinates);
+  const didRestoreGuidance = options.isArc
+    || didUpdateGuidance(options.onPreview, options.canonicalCoordinates)
+    || didUpdateGuidance(options.onPreview, options.canonicalCoordinates);
+  return didRestoreSource && didRestoreGuidance;
+}
+
+type PreviewState = { hasUncommitted: boolean };
+
+type VertexMarkerOptions = {
+  canonicalCoordinates: [number, number][];
+  createMarker: MarkerFactory;
+  map: RouteVertexMap;
+  markers: RouteVertexMarker[];
+  onCommit: (vertexIndex: number, coordinate: readonly [number, number]) => void;
+  preview: (vertexIndex: number, coordinate: readonly [number, number]) => boolean;
+  previewState: PreviewState;
+  restoreCanonicalPreview: () => boolean;
+};
+
+function addVertexMarkers(options: VertexMarkerOptions) {
+  for (const [vertexIndex, coordinate] of options.canonicalCoordinates.entries()) {
     const element = document.createElement('button');
     element.type = 'button';
     element.className = 'route-vertex-marker';
     element.dataset.routeVertexIndex = String(vertexIndex);
     element.setAttribute('aria-label', `Drag route vertex ${vertexIndex + 1}`);
     element.title = `Drag route vertex ${vertexIndex + 1} · Arrow keys nudge`;
-    const marker = createMarker(element).setLngLat(coordinate).addTo(map);
+    const marker = options.createMarker(element).setLngLat(coordinate).addTo(options.map);
     marker.on('drag', () => {
       const { lng, lat } = marker.getLngLat();
-      const coordinate = normalizedMapCoordinate(lng, lat);
-      if (coordinate && !preview(vertexIndex, coordinate)) marker.setLngLat(canonicalCoordinates[vertexIndex]);
+      const nextCoordinate = normalizedMapCoordinate(lng, lat);
+      if (nextCoordinate && !options.preview(vertexIndex, nextCoordinate)) {
+        marker.setLngLat(options.canonicalCoordinates[vertexIndex]);
+      }
     });
     marker.on('dragend', () => {
       const { lng, lat } = marker.getLngLat();
       const nextCoordinate = normalizedMapCoordinate(lng, lat);
       if (!nextCoordinate) {
         marker.setLngLat(coordinate);
-        restoreCanonicalPreview();
+        options.restoreCanonicalPreview();
         return;
       }
-      if (!preview(vertexIndex, nextCoordinate)) {
+      if (!options.preview(vertexIndex, nextCoordinate)) {
         marker.setLngLat(coordinate);
         return;
       }
-      hasUncommittedPreview = false;
-      onCommit(vertexIndex, nextCoordinate);
+      options.previewState.hasUncommitted = false;
+      options.onCommit(vertexIndex, nextCoordinate);
     });
     element.addEventListener('keydown', (event) => {
       if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
       event.preventDefault();
+      event.stopPropagation();
       const currentCoordinate = marker.getLngLat();
-      const point = map.project([currentCoordinate.lng, currentCoordinate.lat]);
+      const point = options.map.project([currentCoordinate.lng, currentCoordinate.lat]);
       const step = event.shiftKey ? 1 : 8;
       switch (event.key) {
         case 'ArrowLeft': { point.x -= step; break; }
@@ -152,18 +165,102 @@ export function installRouteVertexEditing(
         case 'ArrowUp': { point.y -= step; break; }
         case 'ArrowDown': { point.y += step; break; }
       }
-      const next = map.unproject(point);
+      const next = options.map.unproject(point);
       const nextCoordinate = normalizedMapCoordinate(next.lng, next.lat);
-      if (!nextCoordinate || !preview(vertexIndex, nextCoordinate)) return;
+      if (!nextCoordinate || !options.preview(vertexIndex, nextCoordinate)) return;
       marker.setLngLat(nextCoordinate);
-      hasUncommittedPreview = false;
-      onCommit(vertexIndex, nextCoordinate);
+      options.previewState.hasUncommitted = false;
+      options.onCommit(vertexIndex, nextCoordinate);
     });
-    markers.push(marker);
+    options.markers.push(marker);
+  }
+}
+
+function addArcInsertionMarkers(
+  map: RouteVertexMap,
+  geometry: Extract<NonNullable<ContentLayer['geometry']>, { type: 'Arc' }>,
+  options: Required<Pick<RouteVertexEditingOptions, 'onInsert'>> & Pick<RouteVertexEditingOptions, 'createMarker'>,
+  markers: RouteVertexMarker[],
+) {
+  const createMarker = options.createMarker ?? createMapLibreMarker;
+  const coordinates = sampleArc(geometry);
+  const samplesPerSegment = (coordinates.length - 1) / geometry.curvatures.length;
+  for (let segmentIndex = 0; segmentIndex < geometry.curvatures.length; segmentIndex += 1) {
+    const coordinate = coordinates[segmentIndex * samplesPerSegment + Math.floor(samplesPerSegment / 2)];
+    if (!coordinate) continue;
+    const element = document.createElement('button');
+    element.type = 'button';
+    element.className = 'route-midpoint-marker';
+    element.dataset.routeSegmentIndex = String(segmentIndex);
+    element.setAttribute('aria-label', `Add route vertex between ${segmentIndex + 1} and ${segmentIndex + 2}`);
+    element.title = `Add route vertex between ${segmentIndex + 1} and ${segmentIndex + 2}`;
+    element.addEventListener('click', (event) => {
+      event.stopPropagation();
+      options.onInsert(segmentIndex);
+    });
+    markers.push(createMarker(element).setLngLat(coordinate).addTo(map));
+  }
+}
+
+export function installRouteVertexEditing(
+  map: RouteVertexMap,
+  layer: ContentLayer,
+  onCommit: (vertexIndex: number, coordinate: readonly [number, number]) => void,
+  options: RouteVertexEditingOptions = {},
+): RouteVertexEditingSession {
+  if (!isEditableRouteLayer(layer)) {
+    const emptySession = (() => {}) as RouteVertexEditingSession;
+    emptySession.focusVertex = () => {};
+    return emptySession;
+  }
+
+  const createMarker = options.createMarker ?? createMapLibreMarker;
+  const onPreview = options.onPreview ?? (() => true);
+  const canonicalCoordinates = (layer.geometry.type === 'Arc' ? layer.geometry.anchors : layer.geometry.coordinates)
+    .map((coordinate) => [...coordinate] as [number, number]);
+  const canonicalDisplayCoordinates = displayCoordinates(layer, canonicalCoordinates);
+  if (!canonicalDisplayCoordinates) throw new Error('The selected route cannot be previewed.');
+  const markers: RouteVertexMarker[] = [];
+  const previewState: PreviewState = { hasUncommitted: false };
+  const restoreCanonicalPreview = () => {
+    const didRestore = restoreRoutePreview({
+      canonicalCoordinates,
+      canonicalDisplayCoordinates,
+      isArc: layer.geometry?.type === 'Arc',
+      layerId: layer.id,
+      map,
+      onPreview,
+    });
+    previewState.hasUncommitted = !didRestore;
+    return !previewState.hasUncommitted;
+  };
+  const preview = (vertexIndex: number, coordinate: readonly [number, number]) => {
+    const coordinates = canonicalCoordinates.map((candidate, index) => (
+      index === vertexIndex ? [coordinate[0], coordinate[1]] as [number, number] : candidate
+    ));
+    const nextDisplayCoordinates = displayCoordinates(layer, coordinates);
+    if (!nextDisplayCoordinates) return false;
+    const didUpdateSource = didSetRouteSourceGeometry(map, layer.id, nextDisplayCoordinates);
+    const didUpdateTerraGuidance = layer.geometry?.type === 'Arc' || didUpdateGuidance(onPreview, coordinates);
+    if (!didUpdateSource || !didUpdateTerraGuidance) {
+      restoreCanonicalPreview();
+      return false;
+    }
+    previewState.hasUncommitted = true;
+    return true;
+  };
+  addVertexMarkers({
+    canonicalCoordinates, createMarker, map, markers, onCommit, preview, previewState, restoreCanonicalPreview,
+  });
+  if (layer.geometry.type === 'Arc' && options.onInsert) {
+    addArcInsertionMarkers(map, layer.geometry, {
+      createMarker: options.createMarker,
+      onInsert: options.onInsert,
+    }, markers);
   }
 
   const cleanup = (() => {
-    if (hasUncommittedPreview) restoreCanonicalPreview();
+    if (previewState.hasUncommitted) restoreCanonicalPreview();
     for (const marker of markers) marker.remove();
   }) as RouteVertexEditingSession;
   cleanup.focusVertex = (vertexIndex) => markers[vertexIndex]?.getElement().focus();

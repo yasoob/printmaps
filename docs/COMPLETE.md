@@ -22,7 +22,7 @@ Firefox and WebKit were intentionally not run because Chromium is the project ow
 ## Release evidence
 
 - Provider-backed travel-time Areas pass end-to-end creation, cancellation, stale-document suppression, canonical persistence, Undo/Redo, autosave recovery and offline credited export.
-- Routes preserve canonical two-anchor Arc geometry. Road routes persist editable canonical LineString geometry and retain required Mapbox Directions attribution after manual edits; stale Map Matching confidence provenance is still cleared.
+- Routes use connected, adjustable signed-curvature Arc segments whose canonical sampled 2D path is shared by live MapLibre rendering, hit testing, fit, travel markers, native PNG, layered SVG, and PDF. Arc authoring finishes explicitly and selected vertices support accessible pointer, keyboard, coordinate, insertion, and removal edits. Road routes persist editable canonical LineString geometry and retain required Mapbox Directions attribution after manual edits; stale Map Matching confidence provenance is still cleared.
 - Large raster export remains one PNG with bounded multi-region rendering.
 - Generated worldwide Natural Earth 5.1.1 country/region boundaries are the authoritative runtime catalogue; Vienna municipality data remains separately attributed.
 - Desktop, 390 px responsive behavior, modal/drawer focus, downloads, imports, IndexedDB recovery and clean-console nominal flows are covered in Chromium.

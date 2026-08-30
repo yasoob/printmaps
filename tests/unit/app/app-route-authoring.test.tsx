@@ -113,7 +113,7 @@ describe('straight route authoring', () => {
     expect(marker).toHaveValue('ship');
   });
 
-  it('authors an arc with a travel profile and printable mode marker', async () => {
+  it('authors a multi-segment arc only after explicit Finish', async () => {
     const user = userEvent.setup();
     render(<App autosaveRepository={null} />);
 
@@ -125,8 +125,13 @@ describe('straight route authoring', () => {
     expect(screen.getByRole('status', { name: 'Route drawing status' })).toHaveTextContent('1 point');
     await user.click(screen.getByRole('button', { name: 'Map route point 2' }));
 
-    expect(screen.queryByRole('status', { name: 'Route drawing status' })).not.toBeInTheDocument();
-    expect(screen.getByTestId('map-canvas').dataset.layerGeometry).toContain('route-02:[[16.31,48.19],[16.4,48.24]]');
+    expect(screen.getByRole('status', { name: 'Route drawing status' })).toHaveTextContent('2 points');
+    expect(screen.queryByRole('button', { name: 'Select Route 02' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Map route point 3' }));
+    expect(screen.getByRole('status', { name: 'Route drawing status' })).toHaveTextContent('3 points');
+    await user.click(screen.getByRole('button', { name: 'Finish route' }));
+
+    expect(screen.getByTestId('map-canvas').dataset.layerGeometry).toContain('route-02:[[16.31,48.19],[16.4,48.24],[16.46,48.2]]');
     expect(screen.getByRole('combobox', { name: 'Route travel profile' })).toHaveValue('air');
     expect(screen.getByRole('checkbox', { name: 'Show travel-mode marker' })).toBeChecked();
   });

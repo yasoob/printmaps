@@ -71,6 +71,7 @@ export type ProjectState = {
   setPoiCoordinates: (id: string, coordinates: readonly [number, number]) => void;
   setPoiCustomMarker: (id: string, asset: CustomMarkerAsset | null) => void;
   setRouteVertex: (id: string, vertexIndex: number, coordinates: readonly [number, number]) => void;
+  setArcSegmentCurvature: (id: string, segmentIndex: number, curvature: number) => void;
   setShapeGeometry: (id: string, geometry: import('../domain/project').ShapeGeometry) => void;
   setShapeVertex: (id: string, ringIndex: number, vertexIndex: number, coordinates: readonly [number, number]) => void;
   setLayerOpacity: (id: string, opacity: number) => void;

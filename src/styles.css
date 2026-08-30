@@ -950,6 +950,7 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
 .route-vertex-actions button:disabled { @apply cursor-default; color: var(--studio-text-subtle); }
 .route-vertex-hint { @apply mt-1 block; color: var(--studio-text-muted); line-height: 1.35; }
 .route-vertex-marker,
+.route-midpoint-marker,
 .poi-move-marker,
 .shape-vertex-marker,
 .shape-midpoint-marker,
@@ -966,6 +967,16 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
   border-radius: 50%;
   background: var(--studio-surface);
   cursor: grab;
+}
+.route-midpoint-marker {
+  width: 0.875rem;
+  height: 0.875rem;
+  padding: 0;
+  border: 2px solid var(--studio-surface);
+  border-radius: 50%;
+  background: var(--studio-accent-strong);
+  box-shadow: 0 0 0 1px var(--studio-accent-strong);
+  cursor: copy;
 }
 .route-vertex-marker:active,
 .shape-vertex-marker:active { cursor: grabbing; }
@@ -991,6 +1002,7 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
   cursor: copy;
 }
 .route-vertex-marker:focus-visible,
+.route-midpoint-marker:focus-visible,
 .poi-move-marker:focus-visible,
 .shape-vertex-marker:focus-visible,
 .shape-midpoint-marker:focus-visible { outline: 2px solid var(--studio-focus); outline-offset: 2px; }

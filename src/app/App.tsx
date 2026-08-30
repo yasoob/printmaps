@@ -199,6 +199,7 @@ function StudioApp(props: StudioAppProps) {
           layersTriggerRef={mobile.layersTriggerRef}
           propertiesTriggerRef={mobile.propertiesTriggerRef}
           onLayerSelect={project.selectLayer} onCameraViewportChange={project.setCameraViewport} onPoiCoordinatesChange={project.setPoiCoordinates} onRouteGeometryChange={project.replaceRouteGeometry}
+          onRouteVertexInsert={project.insertRouteVertex}
           onLocate={mapLocation.locate}
           onShapeGeometryChange={project.setShapeGeometry}
           directionsProvider={directionsProvider} searchProvider={searchProvider ?? defaultSearchProvider}

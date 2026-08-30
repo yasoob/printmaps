@@ -149,7 +149,7 @@ describe('IndexedDB project autosave', () => {
     repository.close();
   });
 
-  it('restores a schema-21 autosave that used the legacy Letter preset ID', async () => {
+  it('restores a current-schema autosave that used the legacy Letter preset ID', async () => {
     const name = databaseName();
     const repository = createIndexedDbAutosaveRepository({ databaseName: name });
     await repository.save(createInitialProjectDocument(), '2026-08-22T10:00:00.000Z');

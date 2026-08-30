@@ -6,6 +6,29 @@ const routeGeometry = (store: ReturnType<typeof createProjectStore>) => (
 );
 
 describe('route vertex structure history', () => {
+  it('edits, inserts, removes, and flips Arc segments as single history steps', () => {
+    const document = createInitialProjectDocument();
+    const route = document.layers.find((layer) => layer.id === 'route-01')!;
+    route.geometry = {
+      type: 'Arc',
+      anchors: [[0, 0], [1, 0], [2, 0]],
+      curvatures: [0.2, -0.4],
+    };
+    const store = createProjectStore(document);
+
+    store.getState().setArcSegmentCurvature('route-01', 0, -0.2);
+    expect(routeGeometry(store)).toMatchObject({ curvatures: [-0.2, -0.4] });
+    expect(store.getState().past).toHaveLength(1);
+    store.getState().insertRouteVertex('route-01', 0);
+    expect(routeGeometry(store)).toMatchObject({ curvatures: [-0.2, -0.2, -0.4] });
+    expect(store.getState().past).toHaveLength(2);
+    store.getState().removeRouteVertex('route-01', 1);
+    expect(routeGeometry(store)).toMatchObject({ curvatures: [-0.2, -0.4] });
+    expect(store.getState().past).toHaveLength(3);
+    store.getState().undo();
+    expect(routeGeometry(store)).toMatchObject({ curvatures: [-0.2, -0.2, -0.4] });
+  });
+
   it('inserts a midpoint after one route vertex as a single undoable edit', () => {
     const store = createProjectStore(createInitialProjectDocument());
 

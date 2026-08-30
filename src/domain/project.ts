@@ -13,7 +13,7 @@ export type {
   ShapeAppearance,
 } from './layerAppearance';
 
-export const PROJECT_SCHEMA_VERSION = 21 as const;
+export const PROJECT_SCHEMA_VERSION = 22 as const;
 export const MAX_MERCATOR_LATITUDE = 85.051129;
 export const MAX_MAP_ZOOM = 22;
 
@@ -208,6 +208,7 @@ export function cloneContentLayer(layer: ContentLayer): ContentLayer {
       geometry: {
         type: 'Arc',
         anchors: layer.geometry.anchors.map((position) => [...position]) as ArcGeometry['anchors'],
+        curvatures: [...layer.geometry.curvatures] as ArcGeometry['curvatures'],
       },
     };
   }

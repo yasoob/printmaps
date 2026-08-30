@@ -131,9 +131,9 @@ describe('print PDF', () => {
     expect(text).toContain('/OC /Layer0 BDC');
   });
 
-  it('exports a canonical Arc with a cubic Bézier command instead of line segments', async () => {
+  it('exports a canonical Arc with the same sampled line path as the map', async () => {
     const document = createInitialProjectDocument();
-    document.layers[0].geometry = { type: 'Arc', anchors: [[16.326, 48.194], [16.429, 48.226]] };
+    document.layers[0].geometry = { type: 'Arc', anchors: [[16.326, 48.194], [16.429, 48.226]], curvatures: [0.35] };
 
     const pdf = await createPrintPdf(document, linearCapture());
     const text = new TextDecoder('latin1').decode(await pdf.arrayBuffer());
@@ -141,8 +141,8 @@ describe('print PDF', () => {
     const routeEnd = text.indexOf('EMC', routeStart);
     const routeCommands = text.slice(routeStart, routeEnd);
 
-    expect(routeCommands).toMatch(/\d+(?:\.\d+)? \d+(?:\.\d+)? \d+(?:\.\d+)? \d+(?:\.\d+)? \d+(?:\.\d+)? \d+(?:\.\d+)? c/);
-    expect(routeCommands).not.toMatch(/\d+(?:\.\d+)? \d+(?:\.\d+)? l/);
+    expect(routeCommands).toMatch(/\d+(?:\.\d+)? \d+(?:\.\d+)? l/);
+    expect(routeCommands).not.toMatch(/\d+(?:\.\d+)? \d+(?:\.\d+)? \d+(?:\.\d+)? \d+(?:\.\d+)? \d+(?:\.\d+)? \d+(?:\.\d+)? c/);
   });
 
   it('applies canonical basemap opacity to the raster image', async () => {

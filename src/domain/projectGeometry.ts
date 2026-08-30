@@ -1,10 +1,15 @@
-import { createArcGeometry } from './routeArcGeometry';
+import {
+  DEFAULT_ARC_SEGMENTS,
+  MAX_ARC_CURVATURE,
+  MIN_ARC_CURVATURE,
+  createArcGeometry,
+} from './routeArcGeometry';
 import { MAX_MERCATOR_LATITUDE, type LayerGeometry } from './project';
 
 export function geometryPositionCount(geometry: LayerGeometry | undefined): number {
   if (!geometry) return 0;
   if (geometry.type === 'Point') return 1;
-  if (geometry.type === 'Arc') return 2;
+  if (geometry.type === 'Arc') return geometry.anchors.length;
   if (geometry.type === 'LineString') return geometry.coordinates.length;
   if (geometry.type === 'Polygon') {
     return geometry.coordinates.reduce((total, ring) => total + ring.length, 0);
@@ -82,17 +87,31 @@ function polygonCoordinatesAt(
 }
 
 function arcGeometryAt(
-  value: unknown,
+  geometry: JsonObject,
   label: string,
   coordinateCount: CoordinateCounter,
   options: GeometryParserOptions,
 ) {
-  if (!Array.isArray(value) || value.length !== 2) options.fail('Arc geometry needs exactly two anchors.');
-  const anchors = value.map((position, index) => positionAt(
+  if (!Array.isArray(geometry.anchors) || geometry.anchors.length < 2) options.fail('Arc geometry needs at least two anchors.');
+  const anchors = geometry.anchors.map((position, index) => positionAt(
     position, `${label} Arc anchor ${index + 1}`, coordinateCount, options,
   ));
-  const arc = createArcGeometry(anchors);
-  if (!arc) options.fail('Arc geometry anchors must be distinct and unambiguous.');
+  coordinateCount.value += (anchors.length - 1) * (DEFAULT_ARC_SEGMENTS - 1);
+  if (coordinateCount.value > options.maximumCoordinates) {
+    options.fail(`Arc sampled geometry would exceed the project limit of ${options.maximumCoordinates.toLocaleString()} positions.`);
+  }
+  if (!Array.isArray(geometry.curvatures) || geometry.curvatures.length !== anchors.length - 1) {
+    options.fail('Arc geometry needs one curvature value per segment.');
+  }
+  const curvatures = geometry.curvatures.map((value, index) => {
+    const curvature = finiteNumber(value, `${label} Arc segment ${index + 1} curvature`, options.fail);
+    if (curvature < MIN_ARC_CURVATURE || curvature > MAX_ARC_CURVATURE) {
+      options.fail(`Arc curvature must be between ${MIN_ARC_CURVATURE} and ${MAX_ARC_CURVATURE}.`);
+    }
+    return curvature;
+  });
+  const arc = createArcGeometry(anchors, curvatures);
+  if (!arc) options.fail('Adjacent Arc anchors must be distinct and unambiguous.');
   return arc;
 }
 
@@ -106,7 +125,7 @@ export function parseLayerGeometry(
   if (geometry.type === 'Point') {
     return { type: 'Point', coordinates: positionAt(geometry.coordinates, `${label} Point`, coordinateCount, options) };
   }
-  if (geometry.type === 'Arc') return arcGeometryAt(geometry.anchors, label, coordinateCount, options);
+  if (geometry.type === 'Arc') return arcGeometryAt(geometry, label, coordinateCount, options);
   if (geometry.type === 'LineString') {
     if (!Array.isArray(geometry.coordinates) || geometry.coordinates.length < 2) {
       options.fail('LineString geometry needs at least two positions.');
@@ -132,5 +151,5 @@ export function parseLayerGeometry(
       )),
     };
   }
-  options.fail(`${label} geometry type must be Point, LineString, Polygon, or MultiPolygon.`);
+  options.fail(`${label} geometry type must be Point, LineString, Arc, Polygon, or MultiPolygon.`);
 }

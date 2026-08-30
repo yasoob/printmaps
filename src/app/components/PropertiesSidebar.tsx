@@ -62,6 +62,7 @@ export const PropertiesSidebar = memo(function PropertiesSidebar(props: Properti
           onRename={(name) => project.renameLayer(selectedLayer.id, name)}
           onOpacityChange={(opacity) => project.setLayerOpacity(selectedLayer.id, opacity)}
           onAppearanceChange={(appearance) => project.setLayerAppearance(selectedLayer.id, appearance)}
+          onArcCurvatureChange={(segmentIndex, curvature) => project.setArcSegmentCurvature(selectedLayer.id, segmentIndex, curvature)}
           onPoiCoordinatesChange={(coordinates) => project.setPoiCoordinates(selectedLayer.id, coordinates)}
           onPoiCustomMarkerChange={(asset) => project.setPoiCustomMarker(selectedLayer.id, asset)}
           onRouteVertexInsert={(vertexIndex) => project.insertRouteVertex(selectedLayer.id, vertexIndex)}

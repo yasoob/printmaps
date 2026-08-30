@@ -6,6 +6,7 @@ export type PreviewPng = {
   height: number;
   surface: HTMLCanvasElement;
   projectToFrame?: (coordinate: readonly [number, number]) => Readonly<{ x: number; y: number }>;
+  referenceLongitude?: number;
 };
 
 export type PrintTileRenderRequest = Readonly<{
@@ -38,6 +39,7 @@ export type PreviewPngExporter = ((
 type PreviewCaptureOptions = Readonly<{
   projectToCanvas?: (coordinate: readonly [number, number]) => Readonly<{ x: number; y: number }>;
   isAttributionIncluded?: boolean;
+  referenceLongitude?: number;
 }>;
 
 type PreviewCrop = {
@@ -216,6 +218,7 @@ export async function capturePrintFramePng(
   if (!options.projectToCanvas) return preview;
   return {
     ...preview,
+    referenceLongitude: options.referenceLongitude,
     projectToFrame: (coordinate: readonly [number, number]) => {
       const point = options.projectToCanvas!(coordinate);
       return {

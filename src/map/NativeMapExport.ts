@@ -11,10 +11,7 @@ import {
 import { visibleContentLayers } from './MapContentLayerRendering';
 import { registerCustomMarkerImages } from './CustomMarkerMapImages';
 import {
-  attachNativeRouteArcs,
   copyNativeMapCanvas,
-  type NativeArcOverlay,
-  type NativeArcOverlayFactory,
 } from './NativeMapTileSupport';
 import {
   scaleNativeMapStyle,
@@ -35,7 +32,6 @@ export function selectNativeExportPixelRatio(
 }
 
 type NativeMapRenderOptions = Readonly<{
-  createArcOverlay?: NativeArcOverlayFactory;
   createMap?: NativeMapFactory;
   layers: ContentLayer[];
   assets?: Record<string, CustomMarkerAsset>;
@@ -186,7 +182,6 @@ async function renderNativeMapTileSnapshot(
   document.body.append(container);
 
   let map: MapLibreMap | null = null;
-  let routeArcOverlay: NativeArcOverlay | null = null;
   try {
     const createMap = options.createMap ?? ((mapOptions) => new Map(mapOptions));
     map = createMap({
@@ -204,12 +199,6 @@ async function renderNativeMapTileSnapshot(
       zoom: renderCamera.zoom,
     });
     verifyNativeTileCamera(map, renderCamera);
-    routeArcOverlay = await attachNativeRouteArcs(
-      map,
-      snapshot.layers,
-      snapshot.pixelsPerMillimetre * 0.3 / pixelRatio,
-      options.createArcOverlay,
-    );
     await waitForNativeMap(
       map,
       snapshot.layers,
@@ -228,7 +217,6 @@ async function renderNativeMapTileSnapshot(
     }
     return copyNativeMapCanvas(rendered, request.region.width, request.region.height);
   } finally {
-    routeArcOverlay?.destroy();
     if (map) removeMap(map);
     container.remove();
   }

@@ -31,12 +31,12 @@ describe('expert route geometry', () => {
       travelProfile: 'air',
       showTravelModeIcon: true,
     });
-    expect(route?.geometry).toEqual({ type: 'Arc', anchors: waypoints });
+    expect(route?.geometry).toEqual({ type: 'Arc', anchors: waypoints, curvatures: [0.35] });
   });
 
   it('renders an enabled travel profile as a centered live-map marker', () => {
     const route = createInitialProjectDocument().layers[0];
-    route.geometry = { type: 'Arc', anchors: [[16.3, 48.2], [16.5, 48.2]] };
+    route.geometry = { type: 'Arc', anchors: [[16.3, 48.2], [16.5, 48.2]], curvatures: [0.35] };
     route.appearance = {
       kind: 'route',
       color: '#d9363e',

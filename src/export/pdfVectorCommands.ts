@@ -1,4 +1,4 @@
-import { arcControlPosition, arcPoint, type ArcGeometry } from '../domain/routeArcGeometry';
+import { rebasePathLongitudes, sampleArc, sampledPathMidpoint } from '../domain/routeArcGeometry';
 import type { ContentLayer } from '../domain/project';
 import { POI_MARKER_SYMBOL_GLYPHS } from '../domain/poiMarkers';
 import { ROUTE_TRAVEL_PROFILE_MARKERS } from '../domain/routeProfiles';
@@ -132,27 +132,8 @@ function routeCommands(
     `${pointText(project(coordinate, context))} ${index === 0 ? 'm' : 'l'}`
   )).join('\n');
   const line = `${colorComponents(appearance.color)} RG\n${formatNumber(appearance.width * 0.3 * POINTS_PER_MM)} w\n1 J\n1 j\n${path}\nS`;
-  const point = project(coordinates[Math.floor((coordinates.length - 1) / 2)], context);
+  const point = project(sampledPathMidpoint(coordinates), context);
   const marker = routeMarkerCommands(layer, point);
-  return marker ? `${line}\n${marker}` : line;
-}
-
-function arcRouteCommands(layer: ContentLayer, geometry: ArcGeometry, context: ProjectionContext): string {
-  const appearance = routeAppearance(layer);
-  const start = project(geometry.anchors[0], context);
-  const control = project(arcControlPosition(geometry), context);
-  const end = project(geometry.anchors[1], context);
-  const firstControl = {
-    x: start.x + (control.x - start.x) * 2 / 3,
-    y: start.y + (control.y - start.y) * 2 / 3,
-  };
-  const secondControl = {
-    x: end.x + (control.x - end.x) * 2 / 3,
-    y: end.y + (control.y - end.y) * 2 / 3,
-  };
-  const path = `${pointText(start)} m\n${pointText(firstControl)} ${pointText(secondControl)} ${pointText(end)} c`;
-  const line = `${colorComponents(appearance.color)} RG\n${formatNumber(appearance.width * 0.3 * POINTS_PER_MM)} w\n1 J\n1 j\n${path}\nS`;
-  const marker = routeMarkerCommands(layer, project(arcPoint(geometry, 0.5), context));
   return marker ? `${line}\n${marker}` : line;
 }
 
@@ -223,8 +204,14 @@ function shapeCommands(
 }
 
 function routeLayerCommands(layer: ContentLayer, context: ProjectionContext) {
-  if (layer.geometry?.type === 'Arc') return arcRouteCommands(layer, layer.geometry, context);
-  if (layer.geometry?.type === 'LineString') return routeCommands(layer, layer.geometry.coordinates, context);
+  const geometry = layer.geometry;
+  if (geometry?.type !== 'Arc' && geometry?.type !== 'LineString') return;
+  const coordinates = geometry.type === 'Arc' ? sampleArc(geometry) : geometry.coordinates;
+  return routeCommands(
+    layer,
+    rebasePathLongitudes(coordinates, context.capture.referenceLongitude),
+    context,
+  );
 }
 
 function poiLayerCommands(layer: ContentLayer, context: ProjectionContext) {

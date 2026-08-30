@@ -34,8 +34,8 @@ export function RouteVertexControls({ coordinates, disabled = false, onChange, o
           ))}
         </select>
       </PropertyRow>
-      <CoordinateField key={`route-longitude-${vertexIndex}-${selectedCoordinates[0]}`} ariaLabel="Route vertex longitude" label="Longitude" minimum={-180} maximum={180} value={selectedCoordinates[0]} disabled={disabled} onCommit={(longitude) => onChange(vertexIndex, [longitude, selectedCoordinates[1]])} />
-      <CoordinateField key={`route-latitude-${vertexIndex}-${selectedCoordinates[1]}`} ariaLabel="Route vertex latitude" label="Latitude" minimum={-90} maximum={90} value={selectedCoordinates[1]} disabled={disabled} onCommit={(latitude) => onChange(vertexIndex, [selectedCoordinates[0], latitude])} />
+      <CoordinateField ariaLabel="Route vertex longitude" label="Longitude" minimum={-180} maximum={180} value={selectedCoordinates[0]} disabled={disabled} onCommit={(longitude) => onChange(vertexIndex, [longitude, selectedCoordinates[1]])} />
+      <CoordinateField ariaLabel="Route vertex latitude" label="Latitude" minimum={-90} maximum={90} value={selectedCoordinates[1]} disabled={disabled} onCommit={(latitude) => onChange(vertexIndex, [selectedCoordinates[0], latitude])} />
       <div className="route-vertex-actions">
         <button type="button" aria-label="Insert route vertex after selected" disabled={disabled || vertexIndex >= coordinates.length - 1} onClick={() => { setSelectedIndex(vertexIndex + 1); onInsert(vertexIndex); }}><Plus size={13} /> Insert after</button>
         <button type="button" aria-label="Remove selected route vertex" disabled={disabled || coordinates.length <= 2} onClick={() => { setSelectedIndex(Math.min(vertexIndex, coordinates.length - 2)); onRemove(vertexIndex); }}><Trash2 size={13} /> Remove</button>

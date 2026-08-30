@@ -51,6 +51,48 @@ function routeHarness() {
 }
 
 describe('route vertex map editing', () => {
+  it('previews Arc drag and keyboard edits on the canonical sampled source', () => {
+    const { createMarker, map, markers, setData } = routeHarness();
+    const arc = {
+      ...route,
+      geometry: { type: 'Arc' as const, anchors: [[0, 0], [2, 0]] as [[number, number], [number, number]], curvatures: [0.35] as [number] },
+    };
+    const commit = vi.fn();
+    installRouteVertexEditing(map, arc, commit, { createMarker });
+
+    markers[1].coordinate = { lng: 3, lat: 0 };
+    markers[1].trigger('drag');
+    const preview = setData.mock.calls.at(-1)?.[0].geometry.coordinates;
+    expect(preview).toBeDefined();
+    if (!preview) throw new Error('Arc preview was not written.');
+    expect(preview).toHaveLength(25);
+    expect(Math.abs(preview[12][1])).toBeGreaterThan(0.1);
+    markers[1].trigger('dragend');
+    expect(commit).toHaveBeenCalledWith(1, [3, 0]);
+
+    markers[0].element.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    expect(commit).toHaveBeenLastCalledWith(0, [8, 0]);
+  });
+
+  it('adds accessible insertion handles for every Arc segment', () => {
+    const { createMarker, map, markers } = routeHarness();
+    const arc = {
+      ...route,
+      geometry: {
+        type: 'Arc' as const,
+        anchors: [[0, 0], [1, 0], [2, 0]] as [[number, number], [number, number], [number, number]],
+        curvatures: [0.35, -0.35] as [number, number],
+      },
+    };
+    const onInsert = vi.fn();
+    installRouteVertexEditing(map, arc, vi.fn(), { createMarker, onInsert });
+
+    expect(markers).toHaveLength(5);
+    expect(markers[3].element).toHaveAttribute('aria-label', 'Add route vertex between 1 and 2');
+    markers[3].element.click();
+    expect(onInsert).toHaveBeenCalledWith(0);
+  });
+
   it('restores Terra guidance when canonical MapLibre source restoration fails', () => {
     const { createMarker, map, markers, setData, sourceCoordinates } = routeHarness();
     const onPreview = vi.fn();

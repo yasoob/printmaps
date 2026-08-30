@@ -6,8 +6,6 @@ import type { createTerraRouteDraw } from './TerraDrawRouteFactory';
 import { createTerraRouteSession } from './TerraDrawRouteEditing';
 
 // Concurrent editor sessions share one in-flight import instead of racing
-// separate requests for the same chunk.
-// Concurrent editor sessions share one in-flight import instead of racing
 // separate requests for the same chunk. A failed fetch is never cached, so the
 // next activation retries.
 const terraRouteDraw: { module: Promise<typeof import('./TerraDrawRouteFactory')> | null } = { module: null };
@@ -41,6 +39,7 @@ export function preloadRouteEditor() {
 export type RouteAuthoring = {
   active: boolean;
   lineShape: RouteLineShape;
+  onError?: (message: string | null) => void;
   onFinish: (coordinates: [number, number][]) => void;
   onPreview: (coordinates: [number, number][]) => void;
   undoRequest: number;
@@ -49,6 +48,7 @@ export type RouteAuthoring = {
 type TerraDrawRoutesOptions = {
   authoring?: RouteAuthoring;
   layers: ContentLayer[];
+  loadRouteEditor?: () => Promise<typeof import('./TerraDrawRouteFactory')>;
   map: MapLibreMap | null;
   onRouteGeometryChange: (id: string, coordinates: readonly (readonly [number, number])[]) => void;
   onRoutePreview: (id: string, coordinates: [number, number][] | null) => void;
@@ -56,6 +56,7 @@ type TerraDrawRoutesOptions = {
 };
 
 type RouteCallbacks = {
+  authoringError?: RouteAuthoring['onError'];
   authoringFinish?: RouteAuthoring['onFinish'];
   authoringPreview?: RouteAuthoring['onPreview'];
   onRouteGeometryChange: TerraDrawRoutesOptions['onRouteGeometryChange'];
@@ -68,22 +69,21 @@ type EditableRoute = ContentLayer;
 function editableRouteFor(options: TerraDrawRoutesOptions): EditableRoute | null {
   const layer = options.layers.find((candidate) => candidate.id === options.selectedId);
   if (layer?.type !== 'route' || !layer.visible || layer.locked) return null;
-  if (layer.geometry?.type !== 'LineString' && layer.geometry?.type !== 'Arc') return null;
+  if (layer.geometry?.type !== 'LineString') return null;
   return layer;
 }
 
 function routeLineShape(layer: EditableRoute | null): RouteLineShape | undefined {
-  if (layer?.geometry?.type === 'Arc') return 'arc';
   if (layer?.geometry?.type === 'LineString') return 'straight';
 }
 
 function routeCoordinates(layer: EditableRoute | null) {
-  if (layer?.geometry?.type === 'Arc') return layer.geometry.anchors;
   if (layer?.geometry?.type === 'LineString') return layer.geometry.coordinates;
 }
 
 function useLatestCallbacks(options: TerraDrawRoutesOptions) {
   const callbacks = useRef<RouteCallbacks>({
+    authoringError: options.authoring?.onError,
     authoringFinish: options.authoring?.onFinish,
     authoringPreview: options.authoring?.onPreview,
     onRouteGeometryChange: options.onRouteGeometryChange,
@@ -91,6 +91,7 @@ function useLatestCallbacks(options: TerraDrawRoutesOptions) {
   });
   useLayoutEffect(() => {
     callbacks.current = {
+      authoringError: options.authoring?.onError,
       authoringFinish: options.authoring?.onFinish,
       authoringPreview: options.authoring?.onPreview,
       onRouteGeometryChange: options.onRouteGeometryChange,
@@ -157,17 +158,17 @@ function useRouteSession(options: TerraDrawRoutesOptions, callbacks: RefObject<R
     // terra-draw only matters once a route is being drawn or edited, so the
     // editor is fetched at that point rather than shipped with the first paint.
     void (async () => {
-      // A fetch failure leaves the tool inert rather than raising an unhandled
-      // rejection; the uncached loader retries on the next activation.
-      let loaded: typeof import('./TerraDrawRouteFactory');
       try {
-        loaded = await loadTerraRouteDraw();
+        const loaded = await (options.loadRouteEditor ?? loadTerraRouteDraw)();
+        if (isCancelled) return;
+        owned = sessionFor(loaded.createTerraRouteDraw(map, lineShape, isAuthoring), isAuthoring, editableRoute, callbacks);
+        session.current = owned;
+        if (isAuthoring) callbacks.current.authoringError?.(null);
       } catch {
-        return;
+        if (!isCancelled && isAuthoring) {
+          callbacks.current.authoringError?.('The route editor could not be loaded. Close the Route tool and try again.');
+        }
       }
-      if (isCancelled) return;
-      owned = sessionFor(loaded.createTerraRouteDraw(map, lineShape, isAuthoring), isAuthoring, editableRoute, callbacks);
-      session.current = owned;
     })();
     return () => {
       // Only this run's session is torn down: a later run may already have
@@ -177,7 +178,7 @@ function useRouteSession(options: TerraDrawRoutesOptions, callbacks: RefObject<R
       if (session.current === owned) session.current = null;
       if (editableRoute) onRoutePreview(editableRoute.id, null);
     };
-  }, [callbacks, editableRoute, isAuthoring, lineShape, map]);
+  }, [callbacks, editableRoute, isAuthoring, lineShape, map, options.loadRouteEditor]);
 
   return { isAuthoring, session };
 }

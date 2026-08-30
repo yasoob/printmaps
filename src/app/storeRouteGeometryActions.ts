@@ -1,8 +1,8 @@
-import { insertRouteVertex, moveRouteVertex, removeRouteVertex, replaceRouteGeometry } from '../domain/routeGeometry';
+import { insertRouteVertex, moveRouteVertex, removeRouteVertex, replaceRouteGeometry, setArcSegmentCurvature } from '../domain/routeGeometry';
 import type { ProjectState } from './store';
 import { commitDocument, replaceLayers, type ProjectSet } from './storeDocument';
 
-type RouteGeometryActions = Pick<ProjectState, 'insertRouteVertex' | 'removeRouteVertex' | 'replaceRouteGeometry' | 'setRouteVertex'>;
+type RouteGeometryActions = Pick<ProjectState, 'insertRouteVertex' | 'removeRouteVertex' | 'replaceRouteGeometry' | 'setArcSegmentCurvature' | 'setRouteVertex'>;
 
 function commitRouteGeometry(
   set: ProjectSet,
@@ -42,6 +42,11 @@ export function createRouteGeometryActions(set: ProjectSet): RouteGeometryAction
       set,
       id,
       (layer) => moveRouteVertex(layer, vertexIndex, coordinates),
+    ),
+    setArcSegmentCurvature: (id, segmentIndex, curvature) => commitRouteGeometry(
+      set,
+      id,
+      (layer) => setArcSegmentCurvature(layer, segmentIndex, curvature),
     ),
   };
 }

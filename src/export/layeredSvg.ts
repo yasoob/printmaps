@@ -31,6 +31,7 @@ export async function createLayeredSvg(document: ProjectDocument, capture: Previ
     basemap: { dataUri, pixelWidth: capture.width, pixelHeight: capture.height },
     attribution: projectAttributionText(document),
     metadata: 'Raster basemap captured from the current browser map; user route, POI, and shape overlays remain named vectors.',
+    referenceLongitude: capture.referenceLongitude,
     project: (coordinate, context) => {
       const point = capture.projectToFrame!(coordinate);
       return {

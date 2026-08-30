@@ -43,6 +43,18 @@ describe('map layer bounds', () => {
     expect(combinedLayerBounds(layers)).toEqual([[9, 46], [18, 50]]);
   });
 
+  it('fits a dateline Arc on its short continuous sampled extent', () => {
+    const layer: ContentLayer = {
+      id: 'dateline', name: 'Dateline', type: 'route', visible: true, locked: false, opacity: 100,
+      geometry: { type: 'Arc', anchors: [[179, 0], [-179, 0]], curvatures: [0.35] },
+    };
+
+    const bounds = combinedLayerBounds([layer]);
+
+    expect(bounds).toBeDefined();
+    expect(bounds![1][0] - bounds![0][0]).toBeLessThan(3);
+  });
+
   it('refuses bounds outside the Web Mercator latitude range', () => {
     const layer: ContentLayer = {
       id: 'polar', name: 'Polar', type: 'poi', visible: true, locked: false, opacity: 100,

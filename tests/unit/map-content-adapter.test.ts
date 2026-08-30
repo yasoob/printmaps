@@ -239,7 +239,9 @@ describe('MapLibre content adapter', () => {
       data: { geometry: { type: 'Point', coordinates: [2, 3] } },
     });
   });
+});
 
+describe('MapLibre content adapter updates', () => {
   it('reuses the content snapshot for selection and hover syncs with an explicit revision', () => {
     const { map } = createMapHarness();
     const adapter = createMapLibreContentAdapter(map, document.createElement('div'));

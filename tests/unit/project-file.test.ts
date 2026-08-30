@@ -2,7 +2,7 @@ import { createInitialProjectDocument } from '../../src/domain/project';
 import { parseProjectFileText } from '../../src/domain/projectFile';
 
 describe('portable project validation', () => {
-  it.each([16, 17, 18, 19, 20])('rejects the obsolete schema-%s format with a reset-oriented message', (schemaVersion) => {
+  it.each([16, 17, 18, 19, 20, 21])('rejects the obsolete schema-%s format with a reset-oriented message', (schemaVersion) => {
     const obsolete = { ...createInitialProjectDocument(), schemaVersion };
 
     expect(() => parseProjectFileText(JSON.stringify(obsolete))).toThrow(
@@ -47,7 +47,7 @@ describe('portable project validation', () => {
     expect(parseProjectFileText(JSON.stringify(source)).page).toEqual(source.page);
   });
 
-  it('normalizes the legacy schema-21 Letter preset to US Letter', () => {
+  it('normalizes the legacy Letter preset ID within the current schema', () => {
     const source = createInitialProjectDocument() as unknown as { page: Record<string, unknown> };
     source.page = { preset: 'Letter', orientation: 'landscape', widthMm: 279.4, heightMm: 215.9 };
 
@@ -82,7 +82,7 @@ describe('portable project validation', () => {
     const source = createInitialProjectDocument();
     const route = source.layers.find(({ type }) => type === 'route');
     if (!route) throw new Error('Expected route fixture.');
-    route.geometry = { type: 'Arc', anchors: [[179, 10], [-179, 12]] };
+    route.geometry = { type: 'Arc', anchors: [[179, 10], [-179, 12]], curvatures: [-0.4] };
 
     const parsed = parseProjectFileText(JSON.stringify(source));
     const parsedRoute = parsed.layers.find(({ type }) => type === 'route');
@@ -90,7 +90,29 @@ describe('portable project validation', () => {
     expect(parsedRoute?.geometry).toEqual(route.geometry);
     expect(parsedRoute?.geometry).not.toBe(route.geometry);
   });
+});
 
+describe('portable project Arc limits', () => {
+  it('rejects Arc projects whose canonical sampled geometry exceeds the project budget', () => {
+    const source = createInitialProjectDocument();
+    const route = source.layers.find(({ type }) => type === 'route');
+    if (!route) throw new Error('Expected route fixture.');
+    const anchors = Array.from({ length: 8400 }, (_unused, index) => (
+      [index % 2, 0] as [number, number]
+    ));
+    route.geometry = {
+      type: 'Arc',
+      anchors: anchors as [[number, number], [number, number], ...[number, number][]],
+      curvatures: Array.from({ length: anchors.length - 1 }, () => 0.35) as [number, ...number[]],
+    };
+
+    expect(() => parseProjectFileText(JSON.stringify(source))).toThrow(
+      'Arc sampled geometry would exceed the project limit',
+    );
+  });
+});
+
+describe('portable project provenance', () => {
   it('round-trips detached Mapbox isochrone provenance without credentials or raw responses', () => {
     const source = createInitialProjectDocument();
     const shape = source.layers.find(({ type }) => type === 'shape');
@@ -159,7 +181,7 @@ describe('portable project validation', () => {
     const source = createInitialProjectDocument();
     const route = source.layers.find(({ type }) => type === 'route');
     if (!route) throw new Error('Expected route fixture.');
-    route.geometry = { type: 'Arc', anchors: [[16.31, 48.19], [16.4, 48.24]] };
+    route.geometry = { type: 'Arc', anchors: [[16.31, 48.19], [16.4, 48.24]], curvatures: [0.35] };
     route.provenance = {
       provider: 'mapbox', service: 'directions-v5',
       waypoints: [[16.31, 48.19], [16.4, 48.24]], profile: 'driving',
@@ -266,16 +288,23 @@ describe('portable project rejection', () => {
       ...createInitialProjectDocument(),
       layers: [{
         ...createInitialProjectDocument().layers[0],
-        geometry: { type: 'Arc', anchors: [[16.3, 48.2]] },
+        geometry: { type: 'Arc', anchors: [[16.3, 48.2]], curvatures: [] },
       }],
-    }), 'Arc geometry needs exactly two anchors'],
+    }), 'Arc geometry needs at least two anchors'],
     ['an Arc with duplicate anchors', JSON.stringify({
       ...createInitialProjectDocument(),
       layers: [{
         ...createInitialProjectDocument().layers[0],
-        geometry: { type: 'Arc', anchors: [[16.3, 48.2], [16.3, 48.2]] },
+        geometry: { type: 'Arc', anchors: [[16.3, 48.2], [16.3, 48.2]], curvatures: [0.35] },
       }],
-    }), 'Arc geometry anchors must be distinct and unambiguous'],
+    }), 'Adjacent Arc anchors must be distinct and unambiguous'],
+    ['an Arc without canonical segment curvature', JSON.stringify({
+      ...createInitialProjectDocument(),
+      layers: [{
+        ...createInitialProjectDocument().layers[0],
+        geometry: { type: 'Arc', anchors: [[16.3, 48.2], [16.4, 48.2]] },
+      }],
+    }), 'Arc geometry needs one curvature value per segment'],
     ['standard preset dimensions that are not canonical', JSON.stringify({
       ...createInitialProjectDocument(),
       page: { preset: 'A4', widthMm: 300, heightMm: 210, orientation: 'landscape' },

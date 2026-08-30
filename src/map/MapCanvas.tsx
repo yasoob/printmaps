@@ -25,6 +25,7 @@ type MapCanvasProps = {
   onMapClick?: (coordinate: [number, number]) => void;
   onPoiCoordinatesChange?: (id: string, coordinate: readonly [number, number]) => void;
   onRouteGeometryChange?: (id: string, coordinates: readonly (readonly [number, number])[]) => void;
+  onRouteVertexInsert?: (id: string, segmentIndex: number) => void;
   routeAuthoring?: RouteAuthoring;
   onShapeGeometryChange?: (id: string, geometry: ShapeGeometry) => void;
   onBackgroundClick: () => void;
@@ -71,6 +72,7 @@ export function MapCanvas({
   onMapClick,
   onPoiCoordinatesChange,
   onRouteGeometryChange,
+  onRouteVertexInsert,
   routeAuthoring,
   onShapeGeometryChange,
   onBackgroundClick,
@@ -107,6 +109,7 @@ export function MapCanvas({
     onMapClick,
     onPoiCoordinatesChange,
     onRouteGeometryChange,
+    onRouteVertexInsert,
     routeAuthoring,
     onShapeGeometryChange,
     previewedId,
