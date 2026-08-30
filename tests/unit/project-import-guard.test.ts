@@ -68,4 +68,19 @@ describe('import staleness guard', () => {
     expect(commitImport(staged)).toBe(false);
     expect(hasImportedLayer(staged.store)).toBe(false);
   });
+
+  it('rejects imported basemap layers', () => {
+    const staged = stage();
+    const basemap = createInitialProjectDocument().layers.at(-1);
+    if (!basemap) throw new Error('Expected basemap fixture.');
+
+    const imported = staged.store.getState().importLayers(
+      [{ ...basemap, id: 'imported-basemap' }],
+      staged.documentEpoch,
+      staged.sourceDocument,
+    );
+
+    expect(imported).toBe(false);
+    expect(staged.store.getState().document.layers.filter(({ type }) => type === 'basemap')).toHaveLength(1);
+  });
 });

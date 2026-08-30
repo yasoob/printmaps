@@ -62,7 +62,7 @@ export const LayerIdentityProperties = memo(function LayerIdentityProperties({
     <>
       <div className="properties-title">
         <h2>{layer.name}</h2>
-        <LayerMenu onReplace={onReplace} onDuplicate={onDuplicate} onDelete={onDelete} replaceDisabled={layer.type === 'basemap' || layer.locked} />
+        {layer.type !== 'basemap' && <LayerMenu onReplace={onReplace} onDuplicate={onDuplicate} onDelete={onDelete} replaceDisabled={layer.locked} />}
       </div>
       <PropertySection title="Layer">
         <PropertyRow label="Name"><input aria-label="Layer name" value={nameDraft} onChange={(event) => onNameChange(event.target.value)} onBlur={onNameCommit} /></PropertyRow>

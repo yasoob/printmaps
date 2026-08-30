@@ -74,6 +74,7 @@ test('export offers one keyboard-accessible format choice with responsive techni
   const dialog = page.getByRole('dialog', { name: 'Export map' });
   const png = dialog.getByRole('radio', { name: /^PNG / });
   const svg = dialog.getByRole('radio', { name: /Layered SVG/ });
+  const psd = dialog.getByRole('radio', { name: /Layered PSD/ });
   const pdf = dialog.getByRole('radio', { name: /PDF/ });
   await expect(png).toHaveAttribute('aria-checked', 'true');
   await expect(dialog.getByRole('button', { name: 'Download PNG' })).toBeFocused();
@@ -114,7 +115,7 @@ test('export offers one keyboard-accessible format choice with responsive techni
     };
   });
   expect(chrome.formatGroupBackground).not.toBe('rgba(0, 0, 0, 0)');
-  expect(chrome.formatOptions).toHaveLength(3);
+  expect(chrome.formatOptions).toHaveLength(4);
   expect(chrome.formatOptions.every(({ borderWidths }) => borderWidths.every((width) => width === '0px'))).toBe(true);
   expect(chrome.formatOptions.every(({ boxShadow }) => boxShadow === 'none')).toBe(true);
   expect(chrome.formatOptions[0]?.backgroundColor).not.toBe(chrome.formatOptions[1]?.backgroundColor);
@@ -130,6 +131,10 @@ test('export offers one keyboard-accessible format choice with responsive techni
   await expect(dialog).toContainText('297 × 210 mm');
   await expect(dialog.getByRole('button', { name: 'Download layered SVG' })).toBeVisible();
   await svg.press('ArrowRight');
+  await expect(psd).toHaveAttribute('aria-checked', 'true');
+  await expect(psd).toBeFocused();
+  await expect(dialog.getByRole('button', { name: 'Download layered PSD' })).toBeVisible();
+  await psd.press('ArrowRight');
   await expect(pdf).toHaveAttribute('aria-checked', 'true');
   await expect(pdf).toBeFocused();
   await expect(dialog.getByRole('button', { name: 'Download PDF' })).toBeVisible();
@@ -151,6 +156,7 @@ test('export offers one keyboard-accessible format choice with responsive techni
   for (const control of [
     dialog.getByRole('radio', { name: /^PNG / }),
     dialog.getByRole('radio', { name: /Layered SVG/ }),
+    dialog.getByRole('radio', { name: /Layered PSD/ }),
     dialog.getByRole('radio', { name: /PDF/ }),
     details,
     dialog.getByRole('button', { name: 'Close export' }),

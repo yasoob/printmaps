@@ -246,7 +246,7 @@ describe('project store history', () => {
     store.getState().undo();
     expect(store.getState().canRedo).toBe(true);
 
-    const openedDocument = createDocument();
+    const openedDocument = createInitialProjectDocument();
     openedDocument.id = 'opened-project';
     openedDocument.title = 'Opened project';
     store.getState().openDocument(openedDocument);

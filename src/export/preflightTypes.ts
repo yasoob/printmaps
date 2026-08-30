@@ -1,5 +1,5 @@
 export type PixelRounding = 'round' | 'floor' | 'ceil';
-export type ExportFormat = 'png' | 'pdf' | 'layered-svg';
+export type ExportFormat = 'png' | 'pdf' | 'layered-svg' | 'psd';
 export type BasemapMode = 'raster' | 'none';
 export type RasterDelivery = 'single-png' | 'streaming-png';
 

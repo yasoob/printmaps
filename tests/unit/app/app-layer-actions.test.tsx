@@ -181,6 +181,7 @@ describe('editor layer actions', () => {
     render(<App />);
     const routeHandle = screen.getByRole('button', { name: 'Reorder Route 01' });
     const coffeeHandle = screen.getByRole('button', { name: 'Reorder Coffee stop' });
+    expect(screen.getByRole('button', { name: 'Reorder Paper basemap' })).toBeDisabled();
 
     fireEvent.dragStart(routeHandle);
     fireEvent.dragOver(coffeeHandle);

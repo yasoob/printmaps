@@ -1,9 +1,10 @@
 import { ChevronRight, X } from 'lucide-react';
 import type React from 'react';
 import type { ProjectDocument } from '../../domain/project';
+import type { LayeredPsdExportPlan } from '../../export/layeredPsdPlan';
 import { planExportPreflight, type RasterDelivery } from '../../export/preflight';
 
-export type ExportFormat = 'png' | 'svg' | 'pdf';
+export type ExportFormat = 'png' | 'svg' | 'psd' | 'pdf';
 
 type ExportPreflight = ReturnType<typeof planExportPreflight>;
 
@@ -14,12 +15,14 @@ const EXPORT_FORMATS: ReadonlyArray<Readonly<{
 }>> = [
   { format: 'png', label: 'PNG', description: 'Native-detail raster' },
   { format: 'svg', label: 'Layered SVG', description: 'Vector content layers' },
+  { format: 'psd', label: 'Layered PSD', description: 'SVG Smart Objects' },
   { format: 'pdf', label: 'PDF', description: 'Exact print page' },
 ];
 
 const DOWNLOAD_LABEL: Record<ExportFormat, string> = {
   png: 'Download PNG',
   svg: 'Download layered SVG',
+  psd: 'Download layered PSD',
   pdf: 'Download PDF',
 };
 
@@ -27,9 +30,26 @@ function downloadLabel(format: ExportFormat): string {
   return DOWNLOAD_LABEL[format];
 }
 
-function canDownload(format: ExportFormat, delivery: RasterDelivery, preflight: ExportPreflight, canStreamLargePng: boolean): boolean {
-  if (format !== 'png') return true;
-  return preflight.safe && (delivery !== 'streaming-png' || canStreamLargePng);
+function cancelLabel(isBusy: boolean, isCancellationAvailable: boolean): string {
+  if (!isBusy) return 'Cancel';
+  return isCancellationAvailable ? 'Cancel export' : 'Finishing export…';
+}
+
+function canDownload(
+  format: ExportFormat,
+  options: Readonly<{
+    canStreamLargePng: boolean;
+    delivery: RasterDelivery;
+    preflight: ExportPreflight;
+    psdPlan: LayeredPsdExportPlan;
+  }>,
+): boolean {
+  if (format === 'psd') return options.psdPlan.preflight.safe;
+  if (format === 'png') {
+    return options.preflight.safe
+      && (options.delivery !== 'streaming-png' || options.canStreamLargePng);
+  }
+  return true;
 }
 
 function formatBytes(bytes: number): string {
@@ -82,9 +102,10 @@ function ExportFormatChoice({ busy, onChange, selectedFormat }: Readonly<{
   );
 }
 
-function ExportOutputSummary({ document, preflight, selectedFormat }: Readonly<{
+function ExportOutputSummary({ document, preflight, psdPlan, selectedFormat }: Readonly<{
   document: ProjectDocument;
   preflight: ExportPreflight;
+  psdPlan: LayeredPsdExportPlan;
   selectedFormat: ExportFormat;
 }>) {
   const pageLabel = `${document.page.preset} ${document.page.orientation}`;
@@ -95,6 +116,17 @@ function ExportOutputSummary({ document, preflight, selectedFormat }: Readonly<{
       {preflight.delivery === 'streaming-png' ? (
         <p>{pageLabel} · Rendered in bounded regions and streamed into one PNG file.</p>
       ) : <p>{pageLabel} · Native-detail PNG</p>}
+    </section>
+  );
+  if (selectedFormat === 'psd') return (
+    <section className="export-output-summary" aria-labelledby="export-output-title">
+      <span id="export-output-title">Output</span>
+      {psdPlan.preflight.dimensions && (
+        <strong>
+          {psdPlan.preflight.dimensions.widthPx} × {psdPlan.preflight.dimensions.heightPx} px — {psdPlan.effectiveDpi} DPI
+        </strong>
+      )}
+      <p>{pageLabel} · Native-detail basemap and named SVG Smart Objects</p>
     </section>
   );
   return (
@@ -121,11 +153,12 @@ function StreamingPngNotice({ delivery, canStreamLargePng, selectedFormat }: Rea
   );
 }
 
-function ExportTechnicalDetails({ busy, expanded, onToggle, preflight, selectedFormat }: Readonly<{
+function ExportTechnicalDetails({ busy, expanded, onToggle, preflight, psdPlan, selectedFormat }: Readonly<{
   busy: boolean;
   expanded: boolean;
   onToggle: () => void;
   preflight: ExportPreflight;
+  psdPlan: LayeredPsdExportPlan;
   selectedFormat: ExportFormat;
 }>) {
   return (
@@ -143,11 +176,13 @@ function ExportTechnicalDetails({ busy, expanded, onToggle, preflight, selectedF
             <p>PNG embeds 300 DPI physical-resolution metadata.</p>
             <p>The PNG renderer renders bounded map regions at their target pixel dimensions from the live vector map style instead of enlarging the browser preview.</p>
           </>
+        ) : (selectedFormat === 'psd' ? (
+          <p>Layered PSD keeps the native-detail basemap as raster while every route, POI, shape, and attribution remains an embedded, separately named SVG Smart Object.{psdPlan.compact ? ` Output is reduced to ${psdPlan.effectiveDpi} DPI to stay within reliable browser memory limits.` : ''}</p>
         ) : (
           <p>{selectedFormat === 'svg'
             ? 'Layered SVG embeds a raster basemap while route, POI, and shape remain named vector overlays.'
             : 'The exact-page PDF losslessly embeds bounded native-detail basemap regions at a 300 DPI pixel target while route, POI, and shape remain named vector overlays.'}</p>
-        )}
+        ))}
       </div>
     </section>
   );
@@ -155,6 +190,7 @@ function ExportTechnicalDetails({ busy, expanded, onToggle, preflight, selectedF
 
 type ExportDialogViewProps = {
   busy: boolean;
+  cancellationAvailable: boolean;
   cancelButtonRef: React.RefObject<HTMLButtonElement | null>;
   dialogRef: React.RefObject<HTMLDialogElement | null>;
   document: ProjectDocument;
@@ -169,6 +205,7 @@ type ExportDialogViewProps = {
 
   onTechnicalDetailsToggle: () => void;
   preflight: ExportPreflight;
+  psdPlan: LayeredPsdExportPlan;
   rasterDelivery: RasterDelivery;
   selectedFormat: ExportFormat;
   status: string;
@@ -176,8 +213,14 @@ type ExportDialogViewProps = {
 };
 
 export function ExportDialogView(props: ExportDialogViewProps) {
-  const { busy, cancelButtonRef, dialogRef, document, downloadButtonRef, error, largeRasterSupported, onCancel, onClose, onDownload, onFormatChange, onKeyDown, onTechnicalDetailsToggle, preflight, rasterDelivery, selectedFormat, status, technicalDetailsExpanded } = props;
-  const canDownloadSelectedFormat = canDownload(selectedFormat, rasterDelivery, preflight, largeRasterSupported);
+  const { busy, cancellationAvailable, cancelButtonRef, dialogRef, document, downloadButtonRef, error, largeRasterSupported, onCancel, onClose, onDownload, onFormatChange, onKeyDown, onTechnicalDetailsToggle, preflight, psdPlan, rasterDelivery, selectedFormat, status, technicalDetailsExpanded } = props;
+  const canDownloadSelectedFormat = canDownload(selectedFormat, {
+    canStreamLargePng: largeRasterSupported,
+    delivery: rasterDelivery,
+    preflight,
+    psdPlan,
+  });
+  const selectedPreflight = selectedFormat === 'psd' ? psdPlan.preflight : preflight;
   return (
     <div className="export-overlay">
       <div className="export-backdrop" aria-hidden="true" onClick={busy ? undefined : onClose} />
@@ -189,12 +232,12 @@ export function ExportDialogView(props: ExportDialogViewProps) {
         <div className="export-dialog-body">
           <ExportFormatChoice busy={busy} onChange={onFormatChange} selectedFormat={selectedFormat} />
           <StreamingPngNotice canStreamLargePng={largeRasterSupported} delivery={rasterDelivery} selectedFormat={selectedFormat} />
-          <ExportOutputSummary document={document} preflight={preflight} selectedFormat={selectedFormat} />
-          <ExportTechnicalDetails busy={busy} expanded={technicalDetailsExpanded} onToggle={onTechnicalDetailsToggle} preflight={preflight} selectedFormat={selectedFormat} />
-          {selectedFormat === 'png' && preflight.errors.length > 0 && (
+          <ExportOutputSummary document={document} preflight={preflight} psdPlan={psdPlan} selectedFormat={selectedFormat} />
+          <ExportTechnicalDetails busy={busy} expanded={technicalDetailsExpanded} onToggle={onTechnicalDetailsToggle} preflight={preflight} psdPlan={psdPlan} selectedFormat={selectedFormat} />
+          {(selectedFormat === 'png' || selectedFormat === 'psd') && selectedPreflight.errors.length > 0 && (
             <div className="export-error" role="alert">
               <strong>Export blocked</strong>
-              <ul>{preflight.errors.map((issue) => <li key={issue.code}>{issue.message}</li>)}</ul>
+              <ul>{selectedPreflight.errors.map((issue) => <li key={issue.code}>{issue.message}</li>)}</ul>
               <p>Reduce the page dimensions before retrying.</p>
             </div>
           )}
@@ -203,7 +246,7 @@ export function ExportDialogView(props: ExportDialogViewProps) {
           {error && <p className="export-error" role="alert">{error}</p>}
         </div>
         <div className="export-dialog-actions">
-          <button ref={cancelButtonRef} type="button" onClick={busy ? onCancel : onClose}>{busy ? 'Cancel export' : 'Cancel'}</button>
+          <button ref={cancelButtonRef} type="button" disabled={busy && !cancellationAvailable} onClick={busy ? onCancel : onClose}>{cancelLabel(busy, cancellationAvailable)}</button>
           <button ref={downloadButtonRef} className="primary-button" type="button" disabled={busy || !canDownloadSelectedFormat} onClick={onDownload}>{busy ? 'Preparing…' : downloadLabel(selectedFormat)}</button>
         </div>
       </dialog>

@@ -1,6 +1,6 @@
 # Print Map Studio
 
-A free, local-first map design studio for creating static, print-ready maps in the browser. Design the base map, add routes, places and areas, import geographic data, then export PNG, PDF or layered SVG without creating an account.
+A free, local-first map design studio for creating static, print-ready maps in the browser. Design the base map, add routes, places and areas, import geographic data, then export PNG, PDF, layered SVG or layered PSD without creating an account.
 
 ## Live site
 
@@ -14,7 +14,7 @@ A free, local-first map design studio for creating static, print-ready maps in t
 - Editable routes, places, custom markers, shapes, administrative boundaries and travel-time areas.
 - GPX, KML and GeoJSON import, plus spreadsheet-based place creation.
 - Browser-local autosave and portable project downloads.
-- Print-sized PNG, exact-page PDF and layered SVG export.
+- Print-sized PNG, exact-page PDF, layered SVG and layered PSD export.
 
 Provider-backed place search, road routing, map matching, address lookup and isochrones require a browser-safe Mapbox public token. Core editing and OpenFreeMap rendering remain available without one.
 
@@ -65,7 +65,7 @@ Chromium is the acceptance browser. `test:e2e:release` runs the editor suite in 
 
 ## Export model
 
-PNG and PDF basemaps render from bounded native MapLibre regions at a 300 DPI target rather than enlarging the browser preview. PNG includes physical-resolution metadata. PDF preserves the exact page and named vector overlays. Layered SVG keeps supported routes, places and shapes as named vector groups, while the basemap may remain raster.
+PNG, PDF and layered PSD basemaps render from bounded native MapLibre regions rather than enlarging the browser preview. PNG includes 300 DPI physical-resolution metadata. PDF preserves the exact page and named vector overlays. Layered SVG keeps supported routes, places and shapes as named vector groups. Layered PSD keeps the basemap raster while embedding each content layer and attribution as a separately named SVG Smart Object with a compatibility preview, using 300 DPI when the browser memory-safe document limits allow it.
 
 ## Deployment
 

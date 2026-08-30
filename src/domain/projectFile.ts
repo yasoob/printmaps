@@ -16,6 +16,7 @@ import type { CustomMarkerAsset } from './customMarkerAssets';
 import { parseProjectAssets } from './projectAssets';
 import { MAP_STYLE_PRESETS as MAP_STYLE_PRESET_DEFINITIONS } from './mapStylePresets';
 import { ProjectFileError } from './projectFileError';
+import { hasExactlyOneBottomBasemap } from './projectLayerStructure';
 import { parseLayerProvenance, validateProviderGeometry } from './projectProvenance';
 import { PAGE_PRESET_DEFINITIONS, pagePresetDimensions } from './pagePresets';
 import {
@@ -216,12 +217,13 @@ function layersAt(value: unknown, assets: Record<string, CustomMarkerAsset>) {
   if (!Array.isArray(value)) throw new ProjectFileError('Project layers must be an array.');
   if (value.length > MAX_PROJECT_LAYERS) throw new ProjectFileError(`Projects may contain at most ${MAX_PROJECT_LAYERS} layers.`);
   const context = { ids: new Set<string>(), coordinateCount: { value: 0 }, assets };
-  return value.map((candidate, index) => layerAt(candidate, index, context));
+  const layers = value.map((candidate, index) => layerAt(candidate, index, context));
+  if (!hasExactlyOneBottomBasemap(layers)) throw new ProjectFileError('Projects must contain exactly one basemap as the final layer.');
+  return layers;
 }
 
 function pageAt(value: unknown): ProjectDocument['page'] {
-  const page = objectAt(value, 'Project page');
-  const orientation = page.orientation;
+  const page = objectAt(value, 'Project page'), orientation = page.orientation;
   if (typeof orientation !== 'string' || !PAGE_ORIENTATIONS.has(orientation as PageOrientation)) {
     throw new ProjectFileError('Page orientation must be landscape or portrait.');
   }
@@ -237,8 +239,7 @@ function pageAt(value: unknown): ProjectDocument['page'] {
   const preset = presetValue as PagePreset;
   if (preset !== 'Custom') {
     const [longEdge, shortEdge] = pagePresetDimensions(preset);
-    const expectedWidth = orientation === 'landscape' ? longEdge : shortEdge;
-    const expectedHeight = orientation === 'landscape' ? shortEdge : longEdge;
+    const expectedWidth = orientation === 'landscape' ? longEdge : shortEdge, expectedHeight = orientation === 'landscape' ? shortEdge : longEdge;
     if (base.widthMm !== expectedWidth || base.heightMm !== expectedHeight) {
       throw new ProjectFileError(
         `${preset} page dimensions must be ${expectedWidth} × ${expectedHeight} mm in ${orientation}.`,

@@ -64,17 +64,20 @@ function outputTruthWarnings(request: ExportPreflightRequest): ExportPreflightIs
   if (request.basemap === 'raster') {
     warnings.push({
       code: 'RASTER_BASEMAP',
-      message: 'The basemap is raster content, including in PDF and layered SVG output.',
+      message: 'The basemap is raster content, including in PDF, layered SVG, and layered PSD output.',
     });
   }
   if (request.vectorOverlays) {
     warnings.push(request.format === 'png' ? {
       code: 'OVERLAYS_RASTERIZED',
       message: 'Vector overlays are rasterized in PNG output.',
+    } : (request.format === 'psd' ? {
+      code: 'PSD_OVERLAYS_SMART_OBJECTS',
+      message: 'User overlays remain embedded SVG Smart Objects in layered PSD output.',
     } : {
       code: 'VECTOR_OVERLAYS_REMAIN_VECTOR',
       message: `User overlays remain vector in ${request.format === 'pdf' ? 'PDF' : 'layered SVG'} output.`,
-    });
+    }));
   }
   if (request.format === 'pdf') {
     warnings.push({ code: 'NOT_PDF_X', message: 'PDF output is not PDF/X or press-certified.' });

@@ -118,7 +118,7 @@ export function createLayerStructureActions(set: ProjectSet): Pick<ProjectState,
     createShape: createShapeAction(set),
     replaceLayerFromImport: createReplaceLayerFromImportAction(set),
     deleteLayer: (id) => set((state) => {
-      if (state.document.layers.every((layer) => layer.id !== id)) return state;
+      if (state.document.layers.find((layer) => layer.id === id)?.type === 'basemap' || state.document.layers.every((layer) => layer.id !== id)) return state;
       const layers = state.document.layers.filter((layer) => layer.id !== id);
       const referencedAssets = assetsReferencedBy(layers);
       const assets = Object.fromEntries(Object.entries(state.document.assets)
@@ -133,7 +133,7 @@ export function createLayerStructureActions(set: ProjectSet): Pick<ProjectState,
     }),
     duplicateLayer: (id) => set((state) => {
       const sourceIndex = state.document.layers.findIndex((layer) => layer.id === id);
-      if (sourceIndex === -1) return state;
+      if (sourceIndex === -1 || state.document.layers[sourceIndex]?.type === 'basemap') return state;
 
       const source = state.document.layers[sourceIndex];
       const usedIds = new Set(state.document.layers.map((layer) => layer.id));
@@ -155,7 +155,7 @@ export function createLayerStructureActions(set: ProjectSet): Pick<ProjectState,
     importLayers: (importedLayers, documentEpoch, sourceDocument) => {
       let wasImported = false;
       set((state) => {
-        if (importedLayers.length === 0 || documentEpoch !== state.documentEpoch || !hasSameDocumentContent(sourceDocument, state.document)) return state;
+        if (importedLayers.length === 0 || importedLayers.some(({ type }) => type === 'basemap') || documentEpoch !== state.documentEpoch || !hasSameDocumentContent(sourceDocument, state.document)) return state;
         wasImported = true;
 
         const layers = [...state.document.layers];
@@ -184,7 +184,11 @@ export function createLayerStructureActions(set: ProjectSet): Pick<ProjectState,
     moveLayer: (id, toIndex) => set((state) => {
       if (!Number.isFinite(toIndex)) return state;
       const fromIndex = state.document.layers.findIndex((layer) => layer.id === id);
-      const targetIndex = Math.max(0, Math.min(Math.trunc(toIndex), state.document.layers.length - 1));
+      const movingLayer = state.document.layers[fromIndex];
+      if (movingLayer?.type === 'basemap') return state;
+      const basemapIndex = state.document.layers.findIndex((layer) => layer.type === 'basemap');
+      const maximumTarget = basemapIndex === -1 ? state.document.layers.length - 1 : Math.max(0, basemapIndex - 1);
+      const targetIndex = Math.max(0, Math.min(Math.trunc(toIndex), maximumTarget));
       if (fromIndex === -1 || fromIndex === targetIndex) return state;
 
       const layers = [...state.document.layers];
