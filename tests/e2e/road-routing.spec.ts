@@ -1,15 +1,21 @@
 import { readFile } from 'node:fs/promises';
-import path from 'node:path';
 import { expect, test } from '@playwright/test';
 
 function providerGeometry(requestUrl: string): [number, number][] {
   const url = new URL(requestUrl);
   const encodedCoordinates = url.pathname.split('/').at(-1);
   if (!encodedCoordinates) throw new Error('Directions request has no coordinates.');
-  const [start, end] = decodeURIComponent(encodedCoordinates).split(';').map((value) => (
+  const waypoints = decodeURIComponent(encodedCoordinates).split(';').map((value) => (
     value.split(',').map(Number) as [number, number]
   ));
-  return [start, [(start[0] + end[0]) / 2 + 0.003, (start[1] + end[1]) / 2], end];
+  return waypoints.flatMap((waypoint, index) => {
+    if (index === 0) return [waypoint];
+    const previous = waypoints[index - 1];
+    return [
+      [(previous[0] + waypoint[0]) / 2 + 0.003, (previous[1] + waypoint[1]) / 2] as [number, number],
+      waypoint,
+    ];
+  });
 }
 
 test('road route edits semantic waypoints by rerouting and exports offline', async ({ page }) => {
@@ -22,16 +28,19 @@ test('road route edits semantic waypoints by rerouting and exports offline', asy
   await page.route('https://api.mapbox.com/search/geocode/v6/forward**', async (route) => {
     const query = new URL(route.request().url()).searchParams.get('q') ?? '';
     const isWest = query.includes('West');
+    const isNorth = query.includes('North');
+    const name = isWest ? 'Vienna West' : (isNorth ? 'Vienna North' : 'Vienna East');
+    const coordinates = isWest ? [16.31, 48.19] : (isNorth ? [16.38, 48.28] : [16.4, 48.24]);
     await route.fulfill({
       contentType: 'application/json',
       body: JSON.stringify({
         type: 'FeatureCollection',
         features: [{
-          id: isWest ? 'place.vienna-west' : 'place.vienna-east',
+          id: `place.${name.toLowerCase().replaceAll(' ', '-')}`,
           type: 'Feature',
-          geometry: { type: 'Point', coordinates: isWest ? [16.31, 48.19] : [16.4, 48.24] },
+          geometry: { type: 'Point', coordinates },
           properties: {
-            name: isWest ? 'Vienna West' : 'Vienna East',
+            name,
             place_formatted: 'Austria',
           },
         }],
@@ -121,7 +130,27 @@ test('road route edits semantic waypoints by rerouting and exports offline', asy
   expect(directionRequests).toBe(2);
   await page.getByRole('dialog', { name: 'Export map' }).getByRole('button', { name: 'Close export' }).click();
 
-  await page.screenshot({ path: path.resolve('docs/screenshots/road-routing-search-20260826.png') });
+  await page.getByRole('button', { name: 'Extend end' }).click();
+  const mapCanvas = page.getByTestId('map-canvas');
+  const layerOrder = async () => {
+    const order = await mapCanvas.getAttribute('data-map-layer-order');
+    return order?.split(',') ?? [];
+  };
+  await expect.poll(layerOrder).toContain('route-02');
+  expect(await layerOrder()).not.toContain('route-draft');
+  await search.fill('Vienna North');
+  await page.getByRole('button', { name: 'Search locations' }).click();
+  await page.getByRole('option', { name: 'Vienna North, Austria' }).click();
+  await expect.poll(layerOrder).toContain('route-02');
+  expect(await layerOrder()).not.toContain('route-draft');
+
+  await page.getByRole('button', { name: 'Road Preview' }).click();
+  await expect(page.getByText('Road preview updated.')).toBeVisible();
+  await expect.poll(layerOrder).toContain('route-draft');
+  expect(await layerOrder()).not.toContain('route-02');
+  expect(directionRequests).toBe(3);
+
+  await page.screenshot({ path: test.info().outputPath('road-routing-search.png') });
   expect(await page.evaluate(() => document.body.scrollWidth - document.body.clientWidth)).toBe(0);
   expect(consoleProblems).toEqual([]);
 });

@@ -92,10 +92,12 @@ export function createRouteDraftLayers(
   draftOptions: {
     isClosed?: boolean;
     roadPreview?: DirectionsRouteInput | null;
+    showPath?: boolean;
   } = {},
 ): ContentLayer[] {
   const isClosed = draftOptions.isClosed ?? false;
   const roadPreview = draftOptions.roadPreview ?? null;
+  const showPath = draftOptions.showPath ?? true;
   const uniqueId = uniqueLayerId(projectLayers);
   const editablePoints = isClosed ? routePoints.slice(0, -1) : routePoints;
   const pointLayers: ContentLayer[] = editablePoints.map((coordinates, index) => ({
@@ -107,7 +109,7 @@ export function createRouteDraftLayers(
     opacity: 100,
     geometry: { type: "Point", coordinates },
   }));
-  if (routePoints.length < 2) return pointLayers;
+  if (!showPath || routePoints.length < 2) return pointLayers;
   const coordinates = routeDraftCoordinates(routePoints, options, roadPreview);
   if (coordinates.length < 2) return pointLayers;
   const geometry = routeDraftGeometry(coordinates, options.lineShape);

@@ -178,6 +178,7 @@ export function useCanvasRouteAuthoring(parameters: RouteAuthoringParameters) {
       points: core.currentPoints,
     },
     draftPoints: core.commitPoints,
+    extensionLayerId: core.extension?.layer.id ?? null,
     isClosed: core.isClosed,
     isDiscardOpen: core.isDiscardOpen,
     keepEditing: inputActions.keepEditing,

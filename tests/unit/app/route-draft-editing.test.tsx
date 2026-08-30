@@ -186,9 +186,16 @@ describe("Road draft previews", () => {
     expect(directions).toHaveBeenCalledTimes(1);
 
     await user.click(screen.getByRole("button", { name: "Extend end" }));
+    const map = screen.getByTestId("map-canvas");
+    expect(map.dataset.layerGeometry).toContain("route-01:");
+    expect(map.dataset.layerGeometry).not.toContain("route-draft:");
     await user.click(screen.getByRole("button", { name: "Map route point 3" }));
+    expect(map.dataset.layerGeometry).toContain("route-01:");
+    expect(map.dataset.layerGeometry).not.toContain("route-draft:");
     await user.click(screen.getByRole("button", { name: "Road Preview" }));
     await screen.findByText("Road preview updated.");
+    expect(map.dataset.layerGeometry).not.toContain("route-01:");
+    expect(map.dataset.layerGeometry).toContain("route-draft:");
     expect(directions).toHaveBeenCalledTimes(2);
     await user.click(screen.getByRole("button", { name: "Finish route" }));
 

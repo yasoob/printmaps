@@ -25,6 +25,18 @@ describe("route authoring draft layers", () => {
     expect(guide?.provenance).toBeUndefined();
   });
 
+  it("can render Road semantic handles without duplicating a persisted route path", () => {
+    const layers = createRouteDraftLayers(
+      [[0, 0], [1, 1], [2, 0]],
+      createInitialProjectDocument().layers,
+      roadOptions,
+      { showPath: false },
+    );
+
+    expect(layers.filter(({ type }) => type === "poi")).toHaveLength(3);
+    expect(layers.some(({ name }) => name === "Route draft")).toBe(false);
+  });
+
   it("uses provider geometry only for a successful Road preview", () => {
     const points: [number, number][] = [[0, 0], [1, 1], [2, 0]];
     const geometry: [number, number][] = [
