@@ -1,11 +1,14 @@
-import { Download, PenLine, Redo2, Undo2 } from 'lucide-react';
+import { Download, Redo2, Undo2 } from 'lucide-react';
 import { memo, useCallback, type RefObject } from 'react';
 import type { ProjectDocument } from '../../domain/project';
+import { publicAssetUrl } from '../../domain/publicAssetUrl';
 import type { LayerReplacementRequest, MapDataImportCommit } from '../hooks/useAppMapDataImport';
 import { useProject, useProjectActions, useProjectStoreApi } from '../projectStoreContext';
 import { GeoJsonImportButton } from './GeoJsonImportButton';
 import { ProjectFileActions } from './ProjectFileActions';
 import { ProjectTitleEditor } from './ProjectTitleEditor';
+
+const LOGO_URL = publicAssetUrl('logo.png');
 
 type StudioHeaderProps = {
   projectTitleRef: RefObject<HTMLButtonElement | null>;
@@ -37,8 +40,8 @@ const StudioBrand = memo(function StudioBrand({
 }) {
   return (
     <div className="brand-block">
-      <div className="brand-mark" aria-hidden="true"><PenLine size={16} strokeWidth={2} /></div>
-      <span className="brand-name">Print Map Studio</span><span className="top-divider" />
+      <img className="brand-mark" alt="" height="32" src={LOGO_URL} width="48" />
+      <span className="brand-name">Print Map Studio</span>
       <ProjectTitleEditor buttonRef={buttonRef} title={title} onChange={onChange} />
     </div>
   );

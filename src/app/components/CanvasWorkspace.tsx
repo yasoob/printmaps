@@ -23,7 +23,7 @@ import type { DirectionsProvider, SearchProvider } from '../../services/mapbox/c
 import { usePoiAuthoring } from '../hooks/usePoiAuthoring';
 import type { ShapeAuthoringMode } from './ShapeDrawingPanel';
 import { IsochronePanel } from './IsochronePanel';
-import { CanvasWorkspaceChrome } from './CanvasWorkspaceChrome';
+import { CanvasWorkspaceChrome, MobilePanelActions } from './CanvasWorkspaceChrome';
 import { appendRoadSearchWaypoint, canFinishRoute, finishRouteCoordinates, MAX_ROAD_ROUTE_WAYPOINTS, type CreateDirectionsRoute } from './routeAuthoringActions';
 import { countDistinctPoints, createIsochroneCenterLayer, createRouteDraftLayers, createShapeDraftLayers } from './authoringDraftLayers';
 
@@ -266,23 +266,23 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
 
   return (
     <section className={`canvas-region${['route', 'pin', 'shape'].includes(activeTool) ? ' has-authoring-panel' : ''}`} inert={activePanel !== null}>
-      <LocationSearch key={documentEpoch} provider={searchProvider} proximity={camera.center} onSelect={(coordinate, result) => {
-        const isResultConsumed = isSearchResultConsumed(activeTool, routeLineShape, shapeMode, poiAuthoring.spreadsheetOpen); if (!isResultConsumed) onLocate?.(coordinate, () => {});
-        if (activeTool === 'route' && routeLineShape === 'road') {
-          directions.cancel();
-          setToolDocumentEpoch(documentEpoch);
-          const next = appendRoadSearchWaypoint(routePoints, coordinate);
-          setRouteWaypointError(next.error); setStoredRoutePoints(next.points);
-        }
-        if (activeTool === 'pin' && !poiAuthoring.spreadsheetOpen) {
-          poiAuthoring.placeSearchResult(coordinate, result.label, result.providerFeatureId);
-        }
-        if (activeTool === 'shape' && shapeMode === 'isochrone') {
-          isochrone.setCenter({ coordinate, label: result.label });
-        }
-      }} />
+      <MobilePanelActions activePanel={activePanel} layersTriggerRef={layersTriggerRef} onOpenPanel={openPanel} propertiesTriggerRef={propertiesTriggerRef}><LocationSearch key={documentEpoch} provider={searchProvider} proximity={camera.center} onSelect={(coordinate, result) => {
+          const isResultConsumed = isSearchResultConsumed(activeTool, routeLineShape, shapeMode, poiAuthoring.spreadsheetOpen); if (!isResultConsumed) onLocate?.(coordinate, () => {});
+          if (activeTool === 'route' && routeLineShape === 'road') {
+            directions.cancel();
+            setToolDocumentEpoch(documentEpoch);
+            const next = appendRoadSearchWaypoint(routePoints, coordinate);
+            setRouteWaypointError(next.error); setStoredRoutePoints(next.points);
+          }
+          if (activeTool === 'pin' && !poiAuthoring.spreadsheetOpen) {
+            poiAuthoring.placeSearchResult(coordinate, result.label, result.providerFeatureId);
+          }
+          if (activeTool === 'shape' && shapeMode === 'isochrone') {
+            isochrone.setCenter({ coordinate, label: result.label });
+          }
+        }} /></MobilePanelActions>
       <MapCanvas camera={camera} stylePreset={stylePreset} language={language} textScalePercent={textScalePercent} featureVisibility={featureVisibility} layers={geometryLayers} assets={assets} contentRevision={geometryLayers} interactionMode={activeTool} selectedId={selectedId} previewedId={previewedId} shapeEditMode={shapeEditMode} onLayerSelect={onLayerSelect} onCameraViewportChange={onCameraViewportChange} onMapClick={handleMapClick} onPoiCoordinatesChange={onPoiCoordinatesChange} onRouteGeometryChange={onRouteGeometryChange} routeAuthoring={{ active: activeTool === 'route', lineShape: routeLineShape, onFinish: finishRouteWith, onPreview: (points) => { directions.cancel(); const bounded = routeLineShape === 'road' ? points.slice(0, MAX_ROAD_ROUTE_WAYPOINTS) : points; setRouteWaypointError(bounded.length < points.length ? 'Road routes support up to 25 waypoints.' : null); setStoredRoutePoints(bounded); }, undoRequest: routeUndoRequest }} onShapeGeometryChange={onShapeGeometryChange} onBackgroundClick={onBackgroundClick} onExporterChange={onExporterChange} fitRequest={fitRequest} fitLayerId={fitLayerRequest.id} fitLayerRequest={fitLayerRequest.request} fitImportBounds={importFitRequest.bounds} fitImportRequest={importFitRequest.request} locationRequest={locationRequest} orientation={page.orientation} page={page} />
-      <CanvasWorkspaceChrome activePanel={activePanel} activeTool={activeTool} camera={camera} layersTriggerRef={layersTriggerRef} onActivateTool={activateTool} onFitPage={fitPage} onOpenPanel={openPanel} poiPanelProps={{ active: activeTool === 'pin', documentEpoch, error: poiAuthoring.placementError, searchProvider, spreadsheetOpen: poiAuthoring.spreadsheetOpen, spreadsheetTriggerRef: poiAuthoring.spreadsheetTriggerRef, onCancel: poiAuthoring.cancel, onCancelSpreadsheet: poiAuthoring.cancelSpreadsheet, onOpenSpreadsheet: poiAuthoring.openSpreadsheet, onSubmitSpreadsheet: poiAuthoring.submitSpreadsheet }} propertiesTriggerRef={propertiesTriggerRef} routePanelProps={{ pointCount: routePoints.length, canFinish: canFinishRouteValue, lineShape: routeLineShape, travelProfile: routeTravelProfile, showTravelModeIcon, isRouting: directions.isRouting, error: routeWaypointError ?? directions.error, onLineShapeChange: (shape) => { directions.cancel(); setRouteWaypointError(null); setRouteLineShape(shape); setStoredRoutePoints([]); }, onTravelProfileChange: (profile) => { directions.cancel(); setRouteTravelProfile(profile); }, onShowTravelModeIconChange: setShowTravelModeIcon, onCancel: cancelRoute, onUndo: () => { setRouteWaypointError(null); undoRoutePoint(); }, onFinish: finishRoute }} selectToolRef={selectToolRef} selectedShape={{ canEditPoints: canEditShapePoints, mode: shapeEditMode, onChange: setStoredShapeEditMode, selectedId }} shapePanelProps={{ pointCount: shapePoints.length, canFinish: canFinishShape, mode: shapeMode, onModeChange: (mode) => { isochrone.cancel(); setShapeMode(mode); setStoredShapePoints([]); }, onAddAdministrativeArea: addAdministrativeArea, onMergeAdministrativeAreas: mergeAdministrativeAreas, onCancel: cancelShape, onUndo: undoShapePoint, onFinish: finishShape, isochronePanel: <IsochronePanel center={isochrone.center} error={isochrone.error} isGenerating={isochrone.isGenerating} minutes={isochrone.minutes} profile={isochrone.profile} onCancel={cancelShape} onGenerate={() => { void isochrone.generate(); }} onMinutesChange={isochrone.setMinutes} onProfileChange={isochrone.setProfile} /> }} />
+      <CanvasWorkspaceChrome activeTool={activeTool} camera={camera} onActivateTool={activateTool} onFitPage={fitPage} poiPanelProps={{ active: activeTool === 'pin', documentEpoch, error: poiAuthoring.placementError, searchProvider, spreadsheetOpen: poiAuthoring.spreadsheetOpen, spreadsheetTriggerRef: poiAuthoring.spreadsheetTriggerRef, onCancel: poiAuthoring.cancel, onCancelSpreadsheet: poiAuthoring.cancelSpreadsheet, onOpenSpreadsheet: poiAuthoring.openSpreadsheet, onSubmitSpreadsheet: poiAuthoring.submitSpreadsheet }} routePanelProps={{ pointCount: routePoints.length, canFinish: canFinishRouteValue, lineShape: routeLineShape, travelProfile: routeTravelProfile, showTravelModeIcon, isRouting: directions.isRouting, error: routeWaypointError ?? directions.error, onLineShapeChange: (shape) => { directions.cancel(); setRouteWaypointError(null); setRouteLineShape(shape); setStoredRoutePoints([]); }, onTravelProfileChange: (profile) => { directions.cancel(); setRouteTravelProfile(profile); }, onShowTravelModeIconChange: setShowTravelModeIcon, onCancel: cancelRoute, onUndo: () => { setRouteWaypointError(null); undoRoutePoint(); }, onFinish: finishRoute }} selectToolRef={selectToolRef} selectedShape={{ canEditPoints: canEditShapePoints, mode: shapeEditMode, onChange: setStoredShapeEditMode, selectedId }} shapePanelProps={{ pointCount: shapePoints.length, canFinish: canFinishShape, mode: shapeMode, onModeChange: (mode) => { isochrone.cancel(); setShapeMode(mode); setStoredShapePoints([]); }, onAddAdministrativeArea: addAdministrativeArea, onMergeAdministrativeAreas: mergeAdministrativeAreas, onCancel: cancelShape, onUndo: undoShapePoint, onFinish: finishShape, isochronePanel: <IsochronePanel center={isochrone.center} error={isochrone.error} isGenerating={isochrone.isGenerating} minutes={isochrone.minutes} profile={isochrone.profile} onCancel={cancelShape} onGenerate={() => { void isochrone.generate(); }} onMinutesChange={isochrone.setMinutes} onProfileChange={isochrone.setProfile} /> }} />
     </section>
   );
 }
