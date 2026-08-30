@@ -1,6 +1,6 @@
 import { createStore } from 'zustand/vanilla';
 import {
-  createInitialProjectDocument,
+  createNewProjectDocument,
   type ContentLayer,
   type DirectionsRouteInput,
   type LayerAppearance,
@@ -88,7 +88,7 @@ export type ProjectState = {
 };
 
 export function createProjectStore(
-  initialDocument: ProjectDocument = createInitialProjectDocument(),
+  initialDocument: ProjectDocument = createNewProjectDocument(),
 ) {
   return createStore<ProjectState>((set) => ({
     document: copyDocument(initialDocument),

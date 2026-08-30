@@ -1,6 +1,10 @@
 import { memo, useCallback, useRef, useState } from 'react';
 import type { StoreApi } from 'zustand/vanilla';
-import type { ContentLayer, ProjectDocument } from '../domain/project';
+import {
+  createInitialProjectDocument,
+  type ContentLayer,
+  type ProjectDocument,
+} from '../domain/project';
 import type { PreviewPngExporter } from '../export/previewPng';
 import type { DirectionsProvider, MapMatchingProvider, SearchProvider } from '../services/mapbox/contracts';
 import { createMapboxSearchProvider } from '../services/mapbox/search';
@@ -16,7 +20,7 @@ import { LayersSidebar } from './components/LayersSidebar';
 import { PropertiesSidebar } from './components/PropertiesSidebar';
 import { StudioHeader } from './components/StudioHeader';
 import { useAppMapDataImport } from './hooks/useAppMapDataImport';
-import { useAutosaveModalArbitration } from './hooks/useAutosaveModalArbitration';
+import { useModalSurfaces } from './hooks/useModalSurfaces';
 import { useEditorShortcuts } from './hooks/useEditorShortcuts';
 import { useMapLocationCommand } from './hooks/useMapLocationCommand';
 import { useMobilePanels } from './hooks/useMobilePanels';
@@ -25,7 +29,9 @@ import { createProjectStore, type ProjectState } from './store';
 
 type AppProps = {
   autosaveRepository?: AutosaveRepository | null;
+  autosaveLoadError?: unknown | null;
   directionsProvider?: DirectionsProvider;
+  initialDocument?: ProjectDocument;
   mapMatchingProvider?: MapMatchingProvider;
   searchProvider?: SearchProvider;
 };
@@ -33,6 +39,12 @@ type AppProps = {
 const defaultSearchProvider = createMapboxSearchProvider({
   token: import.meta.env.VITE_MAPBOX_PUBLIC_ACCESS,
 });
+
+function resolveInitialDocument(initialDocument: ProjectDocument | undefined) {
+  if (initialDocument) return initialDocument;
+  if (import.meta.env.MODE === 'test') return createInitialProjectDocument();
+  throw new Error('App requires an initial project document.');
+}
 
 function optionalMapMatchingProvider(provider: MapMatchingProvider | undefined) {
   return provider ? { mapMatchingProvider: provider } : {};
@@ -58,12 +70,20 @@ const CanvasWorkspaceWithCamera = memo(function CanvasWorkspaceWithCamera(
   return <CanvasWorkspace {...props} camera={camera} />;
 });
 
-export function App({ autosaveRepository, directionsProvider, mapMatchingProvider, searchProvider }: AppProps = {}) {
-  const [projectStore] = useState(() => createProjectStore());
+export function App({
+  autosaveLoadError = null,
+  autosaveRepository,
+  directionsProvider,
+  initialDocument,
+  mapMatchingProvider,
+  searchProvider,
+}: AppProps = {}) {
+  const [projectStore] = useState(() => createProjectStore(resolveInitialDocument(initialDocument)));
   return (
     <ProjectStoreContext value={projectStore}>
       <StudioApp
         autosaveRepository={autosaveRepository}
+        autosaveLoadError={autosaveLoadError}
         directionsProvider={directionsProvider}
         mapMatchingProvider={mapMatchingProvider}
         projectStore={projectStore}
@@ -73,13 +93,17 @@ export function App({ autosaveRepository, directionsProvider, mapMatchingProvide
   );
 }
 
-function useResolvedAutosave(projectStore: StoreApi<ProjectState>, autosaveRepository: AutosaveRepository | null | undefined) {
+function useResolvedAutosave(
+  projectStore: StoreApi<ProjectState>,
+  autosaveRepository: AutosaveRepository | null | undefined,
+  autosaveLoadError: unknown | null,
+) {
   const [resolved] = useState(() => (
     autosaveRepository === undefined
       ? (typeof indexedDB === 'undefined' ? null : createIndexedDbAutosaveRepository())
       : autosaveRepository
   ));
-  return useProjectAutosave(projectStore, resolved);
+  return useProjectAutosave(projectStore, resolved, autosaveLoadError);
 }
 
 function useMapExporter() {
@@ -90,9 +114,10 @@ function useMapExporter() {
   return { run: exporter?.run ?? null, onExporterChange };
 }
 
-function StudioApp({ autosaveRepository, directionsProvider, mapMatchingProvider, projectStore, searchProvider }: AppProps & {
-  projectStore: StoreApi<ProjectState>;
-}) {
+type StudioAppProps = AppProps & { projectStore: StoreApi<ProjectState> };
+
+function StudioApp(props: StudioAppProps) {
+  const { autosaveLoadError = null, autosaveRepository, directionsProvider, mapMatchingProvider, projectStore, searchProvider } = props;
   const project = useProjectActions();
   const layers = useProject((state) => state.document.layers);
   const assets = useProject((state) => state.document.assets);
@@ -100,7 +125,7 @@ function StudioApp({ autosaveRepository, directionsProvider, mapMatchingProvider
   const style = useProject((state) => state.document.style);
   const selectedId = useProject((state) => state.selectedId);
   const documentEpoch = useProject((state) => state.documentEpoch);
-  const autosave = useResolvedAutosave(projectStore, autosaveRepository);
+  const autosave = useResolvedAutosave(projectStore, autosaveRepository, autosaveLoadError);
   const [previewedLayerId, setPreviewedLayerId] = useState<string | null>(null);
   const [exportOpen, setExportOpen] = useState(false); const openExport = useCallback(() => setExportOpen(true), []);
   const [authoringState, setAuthoringState] = useState({ documentEpoch: 0, active: false });
@@ -111,8 +136,14 @@ function StudioApp({ autosaveRepository, directionsProvider, mapMatchingProvider
   const importButtonRef = useRef<HTMLButtonElement>(null); const openButtonRef = useRef<HTMLButtonElement>(null);
   const mobile = useMobilePanels();
   const handleMapDataImported = useCallback(() => setPreviewedLayerId(null), []);
-  const mapDataImport = useAppMapDataImport(project.importLayers, project.replaceLayerFromImport, autosave.recoveryDraft !== null || autosave.corrupted, handleMapDataImported);
-  const modal = useAutosaveModalArbitration({ autosave, exportButtonRef, exportOpen, importButtonRef: openButtonRef, importOpen: mapDataImport.isImportOpen, mobile, setExportOpen, setImportOpen: mapDataImport.setIsImportOpen });
+  const mapDataImport = useAppMapDataImport(project.importLayers, project.replaceLayerFromImport, autosave.corrupted, handleMapDataImported);
+  const modal = useModalSurfaces({
+    exportButtonRef,
+    exportOpen,
+    importOpen: mapDataImport.isImportOpen,
+    mobile,
+    setExportOpen,
+  });
   const mapPreviewedLayerId = visiblePreviewLayerId(layers, previewedLayerId);
   const selectedLayer = layers.find((layer) => layer.id === selectedId) ?? null;
   const isAuthoring = authoringState.documentEpoch === documentEpoch && authoringState.active;
@@ -128,20 +159,20 @@ function StudioApp({ autosaveRepository, directionsProvider, mapMatchingProvider
   const { deleteSelectedLayer, handleDeleteKeyDown } = useEditorShortcuts({
     deleteFocusTarget: () => modal.mobilePanel === 'properties' ? mobile.propertiesPanelRef.current?.querySelector<HTMLElement>('[data-project-heading]') ?? null : null,
     isAuthoring,
-    isModalOpen: modal.surface !== null,
+    isModalOpen: modal.surface !== null || autosave.corrupted,
     layers,
     selectedLayer,
     setPreviewedLayerId,
   });
   return (
     <>
-      <main className="studio-shell" inert={['export', 'autosave', 'import'].includes(modal.surface ?? '')} onKeyDown={handleDeleteKeyDown}>
+      <main className="studio-shell" inert={autosave.corrupted || ['export', 'import'].includes(modal.surface ?? '')} onKeyDown={handleDeleteKeyDown}>
         <StudioHeader
           projectTitleRef={mobile.projectTitleRef}
           exportButtonRef={exportButtonRef} importButtonRef={importButtonRef} openButtonRef={openButtonRef}
           finishImportWork={mapDataImport.finishImportWork} isImportWorkActive={mapDataImport.isImportWorkActive}
           startImportWork={mapDataImport.startImportWork} exportDisabled={isAuthoring}
-          importDisabled={modal.surface !== null && modal.surface !== 'import'}
+          importDisabled={autosave.corrupted || (modal.surface !== null && modal.surface !== 'import')}
           importOpen={modal.surface === 'import'} replacementRequest={mapDataImport.replacementRequest}
           inert={modal.mobilePanel !== null} onOpen={handleOpenedDocument}
           onImport={mapDataImport.handleImportedLayers} onImportOpenChange={mapDataImport.setIsImportOpen}
@@ -200,8 +231,6 @@ function StudioApp({ autosaveRepository, directionsProvider, mapMatchingProvider
       {modal.surface === 'export' && <ExportDialogSurface exporter={mapExporter.run} onClose={modal.closeExport} />}
       <ProjectAutosaveDialogs
         autosave={autosave}
-        onBeforeDecision={modal.preemptSurface}
-        returnFocusRef={modal.returnFocusRef}
         fallbackFocusRef={openButtonRef}
       />
     </>

@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { createProjectStore } from '../../src/app/store';
+import { createInitialProjectDocument } from '../../src/domain/project';
 
 describe('canonical map-matched routes', () => {
   it('replaces one route as one undoable edit with compact map-matching provenance', () => {
-    const store = createProjectStore();
+    const store = createProjectStore(createInitialProjectDocument());
     store.getState().selectLayer('route-01');
     const original = structuredClone(store.getState().document.layers.find(({ id }) => id === 'route-01'));
     const geometry = [[16.3261, 48.1941], [16.36, 48.21], [16.4291, 48.2261]] as const;
@@ -30,7 +31,7 @@ describe('canonical map-matched routes', () => {
   });
 
   it('clears map-matching provenance after manual route geometry edits', () => {
-    const store = createProjectStore();
+    const store = createProjectStore(createInitialProjectDocument());
     const apply = () => store.getState().applyMapMatching('route-01', {
       geometry: [[16.3261, 48.1941], [16.36, 48.21], [16.4291, 48.2261]],
       profile: 'walking', confidence: 0.93, sourcePointCount: 4,

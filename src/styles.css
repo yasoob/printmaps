@@ -34,6 +34,11 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   color: var(--studio-on-dark);
 }
 
+.startup-loading {
+  @apply grid h-full place-content-center text-sm;
+  color: var(--studio-text-secondary);
+}
+
 .studio-shell {
   @apply grid h-full w-full;
   grid-template: var(--studio-topbar-height) minmax(0, 1fr) / var(--studio-left-panel-width) minmax(420px, 1fr) var(--studio-right-panel-width);

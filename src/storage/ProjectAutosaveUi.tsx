@@ -1,5 +1,5 @@
 import type { RefObject } from 'react';
-import { AutosaveCorruptionDialog, AutosaveRecoveryDialog } from './AutosaveRecoveryDialog';
+import { AutosaveCorruptionDialog } from './AutosaveCorruptionDialog';
 import type { ProjectAutosaveState } from './useProjectAutosave';
 
 function isInteractive(element: HTMLElement | null) {
@@ -12,22 +12,9 @@ function isInteractive(element: HTMLElement | null) {
     && (checkVisibility === null || checkVisibility());
 }
 
-function restoreInteractiveFocus(
-  returnFocusRef: RefObject<HTMLElement | null>,
-  fallbackFocusRef: RefObject<HTMLElement | null>,
-) {
+function restoreInteractiveFocus(fallbackFocusRef: RefObject<HTMLElement | null>) {
   let attempts = 0;
   const focusWhenInteractive = () => {
-    const returnTarget = returnFocusRef.current;
-    if (isInteractive(returnTarget)) {
-      returnTarget?.focus();
-      return;
-    }
-    if (returnTarget?.isConnected && attempts < 10) {
-      attempts += 1;
-      window.requestAnimationFrame(focusWhenInteractive);
-      return;
-    }
     const fallbackTarget = fallbackFocusRef.current;
     if (isInteractive(fallbackTarget)) {
       fallbackTarget?.focus();
@@ -64,40 +51,19 @@ export function ProjectAutosaveErrorNotice({ autosave }: { autosave: ProjectAuto
 
 export function ProjectAutosaveDialogs({
   autosave,
-  onBeforeDecision,
-  returnFocusRef,
   fallbackFocusRef,
 }: {
   autosave: ProjectAutosaveState;
-  onBeforeDecision: () => void;
-  returnFocusRef: RefObject<HTMLElement | null>;
   fallbackFocusRef: RefObject<HTMLElement | null>;
 }) {
-  const restoreFocus = () => restoreInteractiveFocus(returnFocusRef, fallbackFocusRef);
+  const restoreFocus = () => restoreInteractiveFocus(fallbackFocusRef);
   const discard = () => {
-    onBeforeDecision();
     void autosave.discard().then((discarded) => {
       if (discarded) restoreFocus();
     });
   };
 
-  return (
-    <>
-      {autosave.recoveryDraft && (
-        <AutosaveRecoveryDialog
-          draft={autosave.recoveryDraft}
-          busy={autosave.decisionPending}
-          onRecover={() => {
-            onBeforeDecision();
-            autosave.recover();
-            restoreFocus();
-          }}
-          onDiscard={discard}
-        />
-      )}
-      {autosave.corrupted && (
-        <AutosaveCorruptionDialog busy={autosave.decisionPending} onDiscard={discard} />
-      )}
-    </>
-  );
+  return autosave.corrupted
+    ? <AutosaveCorruptionDialog busy={autosave.decisionPending} onDiscard={discard} />
+    : null;
 }

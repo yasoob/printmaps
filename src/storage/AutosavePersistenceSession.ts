@@ -1,37 +1,13 @@
 import type { StoreApi } from 'zustand';
 import type { ProjectState } from '../app/store';
 import type { ProjectDocument } from '../domain/project';
-import { parseProjectFileText } from '../domain/projectFile';
-import { AutosaveCorruptionError, getAutosaveFailureMessage, type AutosaveDraft, type AutosaveRepository } from './autosave';
+import type { AutosaveRepository } from './autosave';
 
-type AutosavePhase = 'loading' | 'recovery' | 'ready' | 'disabled';
-type RefValue<T> = { current: T };
 type SaveIntent = { document: ProjectDocument; revision: number; isLifecycle: boolean };
-
-function persistedDocumentText(document: ProjectDocument) {
-  try {
-    return JSON.stringify(parseProjectFileText(JSON.stringify(document)));
-  } catch {
-    return null;
-  }
-}
-
-function isSameDocument(left: ProjectDocument, right: ProjectDocument) {
-  const leftText = persistedDocumentText(left);
-  return leftText !== null && leftText === persistedDocumentText(right);
-}
 
 type AutosavePersistenceOptions = {
   repository: AutosaveRepository;
   store: StoreApi<ProjectState>;
-  generation: object;
-  phaseRef: RefValue<AutosavePhase>;
-  mountedRef: RefValue<boolean>;
-  pendingDocumentRef: RefValue<ProjectDocument | null>;
-  scheduleSaveRef: RefValue<((document: ProjectDocument) => void) | null>;
-  decisionPendingRef: RefValue<boolean>;
-  onLoaded: (generation: object, draft: AutosaveDraft | null) => void;
-  onLoadFailed: (generation: object, error: unknown, isCorrupted: boolean) => void;
   onSaveStarted: () => void;
   onSaveSucceeded: () => void;
   onSaveFailed: (error: unknown) => void;
@@ -49,7 +25,6 @@ export class AutosavePersistenceSession {
   private unsubscribe = () => {};
   private readonly handlePagehide = () => this.flushDebouncedSave(true);
   private readonly scheduleSave = (document: ProjectDocument) => {
-    this.options.pendingDocumentRef.current = null;
     this.debouncedDocument = document;
     if (this.saveTimer !== null) window.clearTimeout(this.saveTimer);
     const revision = ++this.saveRevision;
@@ -62,26 +37,6 @@ export class AutosavePersistenceSession {
   };
 
   constructor(private readonly options: AutosavePersistenceOptions) {}
-
-  private async loadDraft() {
-    const { generation, onLoaded, onLoadFailed, pendingDocumentRef, phaseRef, repository, store } = this.options;
-    const activeDocumentAtStart = store.getState().document;
-    try {
-      const storedDraft = await repository.load();
-      if (!this.isActive) return;
-      const recoveryDraft = storedDraft && !isSameDocument(storedDraft.document, activeDocumentAtStart)
-        ? storedDraft
-        : null;
-      phaseRef.current = recoveryDraft ? 'recovery' : 'ready';
-      onLoaded(generation, recoveryDraft);
-      if (!recoveryDraft && pendingDocumentRef.current) this.scheduleSave(pendingDocumentRef.current);
-    } catch (error) {
-      if (!this.isActive) return;
-      const isCorrupted = error instanceof AutosaveCorruptionError;
-      phaseRef.current = isCorrupted ? 'recovery' : 'disabled';
-      onLoadFailed(generation, error, isCorrupted);
-    }
-  }
 
   private queueSave(document: ProjectDocument, revision: number, isLifecycle = false) {
     this.pendingSaveIntent = { document, revision, isLifecycle };
@@ -135,38 +90,19 @@ export class AutosavePersistenceSession {
   private stop() {
     this.isActive = false;
     this.isClosing = true;
-    this.options.mountedRef.current = false;
     this.unsubscribe();
-    this.options.scheduleSaveRef.current = null;
     window.removeEventListener('pagehide', this.handlePagehide);
-    const handoffDocument = this.debouncedDocument ?? this.pendingSaveIntent?.document;
-    if (handoffDocument) this.options.pendingDocumentRef.current = handoffDocument;
     this.flushDebouncedSave(false);
     this.closeIfIdle();
   }
 
   start() {
-    const { decisionPendingRef, mountedRef, phaseRef, scheduleSaveRef, store } = this.options;
-    mountedRef.current = true;
-    phaseRef.current = 'loading';
-    decisionPendingRef.current = false;
-    scheduleSaveRef.current = this.scheduleSave;
+    const { store } = this.options;
     window.addEventListener('pagehide', this.handlePagehide);
-    void this.loadDraft();
     this.unsubscribe = store.subscribe((state, previousState) => {
       if (state.document === previousState.document) return;
-      if (phaseRef.current === 'loading' || phaseRef.current === 'recovery') {
-        this.options.pendingDocumentRef.current = state.document;
-        return;
-      }
-      if (phaseRef.current === 'ready') this.scheduleSave(state.document);
+      this.scheduleSave(state.document);
     });
     return () => this.stop();
   }
-}
-
-export function autosaveLoadFailureMessage(error: unknown, isCorrupted: boolean) {
-  return isCorrupted
-    ? 'The local autosave is damaged or unsupported. Discard it before autosave can continue.'
-    : getAutosaveFailureMessage(error);
 }

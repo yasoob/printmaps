@@ -245,6 +245,15 @@ export function cloneContentLayer(layer: ContentLayer): ContentLayer {
   };
 }
 
+const baseMapLayer: ContentLayer = {
+  id: 'basemap',
+  name: 'Paper basemap',
+  type: 'basemap',
+  visible: true,
+  locked: true,
+  opacity: 100,
+};
+
 const initialLayers: ContentLayer[] = [
   {
     id: 'route-01',
@@ -284,9 +293,25 @@ const initialLayers: ContentLayer[] = [
       ]],
     },
   },
-  { id: 'basemap', name: 'Paper basemap', type: 'basemap', visible: true, locked: true, opacity: 100 },
+  baseMapLayer,
 ];
 
+export function createNewProjectDocument(): ProjectDocument {
+  return {
+    schemaVersion: PROJECT_SCHEMA_VERSION,
+    id: 'untitled-map',
+    title: 'Untitled map',
+    page: createDefaultPageSettings(),
+    camera: createDefaultCameraSettings(),
+    style: createDefaultMapStyleSettings(),
+    assets: {},
+    layers: [cloneContentLayer(baseMapLayer)],
+  };
+}
+
+/**
+ * Example content used by component, store, and browser tests.
+ */
 export function createInitialProjectDocument(): ProjectDocument {
   return {
     schemaVersion: PROJECT_SCHEMA_VERSION,

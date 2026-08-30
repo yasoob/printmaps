@@ -15,7 +15,7 @@ const asset: CustomMarkerAsset = {
 
 describe('canonical custom marker storage', () => {
   it('attaches a hash-owned marker to one POI as a single undoable document edit', () => {
-    const store = createProjectStore();
+    const store = createProjectStore(createInitialProjectDocument());
 
     store.getState().setPoiCustomMarker('poi-cafe', asset);
 
@@ -37,7 +37,7 @@ describe('canonical custom marker storage', () => {
   });
 
   it('keeps a shared marker while referenced and prunes it after the final POI is deleted', () => {
-    const store = createProjectStore();
+    const store = createProjectStore(createInitialProjectDocument());
     store.getState().setPoiCustomMarker('poi-cafe', asset);
     store.getState().duplicateLayer('poi-cafe');
 
@@ -48,7 +48,7 @@ describe('canonical custom marker storage', () => {
   });
 
   it('keeps custom-asset ownership behind the dedicated marker action', () => {
-    const store = createProjectStore();
+    const store = createProjectStore(createInitialProjectDocument());
     store.getState().setPoiCustomMarker('poi-cafe', asset);
     const appearance = store.getState().document.layers.find(({ id }) => id === 'poi-cafe')?.appearance;
     if (appearance?.kind !== 'poi') throw new Error('Expected POI appearance.');
