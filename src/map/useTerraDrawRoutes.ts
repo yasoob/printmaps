@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, type RefObject } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { ContentLayer } from '../domain/project';
 import type { RouteLineShape } from '../domain/routeProfiles';
@@ -185,6 +185,10 @@ function useRouteSession(
   authoringPoints: RefObject<readonly (readonly [number, number])[] | undefined>,
 ) {
   const session = useRef<RouteSession | null>(null);
+  const [readyAuthoring, setReadyAuthoring] = useState<{
+    lineShape: RouteLineShape;
+    map: MapLibreMap;
+  } | null>(null);
   const isAuthoring = options.authoring?.active === true;
   const editableRoute = editableRouteFor(options);
   const lineShape = isAuthoring ? options.authoring?.lineShape : routeLineShape(editableRoute);
@@ -212,7 +216,10 @@ function useRouteSession(
           isAuthoring,
         });
         session.current = owned;
-        if (isAuthoring) callbacks.current.authoringError?.(null);
+        if (isAuthoring) {
+          setReadyAuthoring({ lineShape, map });
+          callbacks.current.authoringError?.(null);
+        }
         else callbacks.current.editorError?.(null);
       } catch {
         if (!isCancelled) reportRouteEditorLoadError(callbacks, isAuthoring);
@@ -228,7 +235,10 @@ function useRouteSession(
     };
   }, [authoringPoints, callbacks, editableRoute, isAuthoring, lineShape, map, options.loadRouteEditor]);
 
-  return { isAuthoring, session };
+  const isAuthoringReady = isAuthoring
+    && readyAuthoring?.lineShape === lineShape
+    && readyAuthoring?.map === map;
+  return { isAuthoring, isAuthoringReady, session };
 }
 
 export function useTerraDrawRoutes(options: TerraDrawRoutesOptions) {
@@ -237,7 +247,11 @@ export function useTerraDrawRoutes(options: TerraDrawRoutesOptions) {
   useLayoutEffect(() => {
     authoringPoints.current = options.authoring?.points;
   }, [options.authoring?.points]);
-  const { isAuthoring, session } = useRouteSession(options, callbacks, authoringPoints);
+  const {
+    isAuthoring,
+    isAuthoringReady,
+    session,
+  } = useRouteSession(options, callbacks, authoringPoints);
   const lastUndoRequest = useRef(options.authoring?.undoRequest ?? 0);
 
   useEffect(() => {
@@ -259,5 +273,5 @@ export function useTerraDrawRoutes(options: TerraDrawRoutesOptions) {
   const updateEditingGeometry = useCallback((coordinates: [number, number][]) => (
     session.current?.updateGeometry(coordinates) ?? false
   ), [session]);
-  return { updateEditingGeometry };
+  return { isAuthoringReady, updateEditingGeometry };
 }

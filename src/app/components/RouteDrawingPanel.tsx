@@ -15,6 +15,8 @@ import {
 } from "../../domain/routeProfiles";
 import type { ContentLayer } from "../../domain/project";
 import { didHandleRovingSelection } from "./rovingSelection";
+import { MobileRouteSettingsButton } from "./MobileRouteSettingsButton";
+import { useMobileRoutePanel } from "../hooks/useMobileRoutePanel";
 import { RoutePointInputs } from "./RoutePointInputs";
 import { ToolCardActions, ToolCardHeader } from "./ToolAuthoringCard";
 import { RouteDraftPointList } from "./RouteDraftPointList";
@@ -164,64 +166,103 @@ function RouteDraftStatus(props: RouteDrawingPanelProps) {
   if (props.isRouting) status = "Finding the road route…";
   else if (props.pointCount === 0) status = "Click the map to add route points";
   return (
-    <>
-      {props.points.length > 0 && <RouteDraftPointList {...props} />}
-      <div className="route-progress">
-        <span role="status" aria-label="Route drawing status">
-          {status}
+    <div className="route-progress">
+      <span role="status" aria-label="Route drawing status">{status}</span>
+      <button
+        type="button"
+        aria-label="Undo last route point"
+        disabled={!props.canUndo || props.isRouting}
+        onClick={props.onUndo}
+      >
+        <Undo2 aria-hidden="true" size={14} />
+        <span>Undo point</span>
+      </button>
+    </div>
+  );
+}
+
+function RouteDrawingActions({
+  finishExplanationId,
+  props,
+}: Readonly<{
+  finishExplanationId: string;
+  props: RouteDrawingPanelProps;
+}>) {
+  const finishLabel = props.isRouting ? "Routing…" : "Finish route";
+  const compactFinishLabel = props.isRouting ? "Routing…" : "Finish";
+  return (
+    <ToolCardActions>
+      <button type="button" aria-label="Cancel route" onClick={props.onCancel}>
+        Cancel
+      </button>
+      <button
+        className="primary-button"
+        type="button"
+        aria-label="Finish route"
+        aria-describedby={finishExplanationId}
+        disabled={!props.canFinish || props.isRouting}
+        onClick={props.onFinish}
+      >
+        <span className="route-finish-full" aria-hidden="true">
+          {finishLabel}
         </span>
-        <button
-          type="button"
-          aria-label="Undo last route point"
-          disabled={!props.canUndo || props.isRouting}
-          onClick={props.onUndo}
-        >
-          <Undo2 aria-hidden="true" size={14} />
-          Undo point
-        </button>
-      </div>
-    </>
+        <span className="route-finish-compact" aria-hidden="true">
+          {compactFinishLabel}
+        </span>
+      </button>
+    </ToolCardActions>
   );
 }
 
 export function RouteDrawingPanel(props: RouteDrawingPanelProps) {
   const finishExplanationId = "route-finish-explanation";
+  const mobile = useMobileRoutePanel(props.pointCount);
+
   return (
-    <div className="map-authoring-panel tool-authoring-card route-authoring-panel">
+    <div
+      className="map-authoring-panel tool-authoring-card route-authoring-panel"
+      data-mobile-expanded={mobile.settingsOpen}
+    >
       <ToolCardHeader
         closeLabel="Close Route menu"
         icon={Route}
         onClose={props.onCancel}
         title={props.title ?? "Route"}
       />
-      <RoutePathControl {...props} />
-      <RouteTravelControls {...props} />
-      <details className="route-point-sources">
-        <summary>Add by coordinates or existing place</summary>
-        <RoutePointInputs
-          disabled={props.isRouting}
-          initialCoordinate={props.initialCoordinate}
-          onAdd={props.onAddPoint}
-          onSnapChange={props.onSnapChange}
-          pois={props.pois}
-          snapEnabled={props.snapEnabled}
-        />
-      </details>
-      <RouteDraftStatus {...props} />
-      {props.showRoadPreview && props.lineShape === "road" && props.points.length >= 2 && (
-        <button
-          className="route-preview-button"
-          type="button"
-          disabled={props.isRouting}
-          onClick={props.onPreviewRoad}
-        >
-          {props.isRouting
-            ? "Previewing…"
-            : (props.hasRoadPreview ? "Refresh Road Preview" : "Road Preview")}
-        </button>
+      {!mobile.settingsOpen && (
+        <MobileRouteSettingsButton onOpen={mobile.openSettings} />
       )}
+      <div className="route-authoring-settings">
+        <RoutePathControl {...props} />
+        <RouteTravelControls {...props} />
+        <details className="route-point-sources">
+          <summary>Add by coordinates or existing place</summary>
+          <RoutePointInputs
+            disabled={props.isRouting}
+            initialCoordinate={props.initialCoordinate}
+            onAdd={props.onAddPoint}
+            onSnapChange={props.onSnapChange}
+            pois={props.pois}
+            snapEnabled={props.snapEnabled}
+          />
+        </details>
+        {props.points.length > 0 && <RouteDraftPointList {...props} />}
+        {props.showRoadPreview && props.lineShape === "road" && props.points.length >= 2 && (
+          <button
+            className="route-preview-button"
+            type="button"
+            disabled={props.isRouting}
+            onClick={props.onPreviewRoad}
+          >
+            {props.isRouting
+              ? "Previewing…"
+              : (props.hasRoadPreview ? "Refresh Road Preview" : "Road Preview")}
+          </button>
+        )}
+      </div>
+      <RouteDraftStatus {...props} />
       {props.announcement && (
-        <div role="status" aria-live="polite">
+        <div className="route-announcement" role="status" aria-live="polite">
           {props.announcement}
         </div>
       )}
@@ -233,24 +274,10 @@ export function RouteDrawingPanel(props: RouteDrawingPanelProps) {
       <small id={finishExplanationId} className="route-finish-explanation">
         {props.finishExplanation}
       </small>
-      <ToolCardActions>
-        <button
-          type="button"
-          aria-label="Cancel route"
-          onClick={props.onCancel}
-        >
-          Cancel
-        </button>
-        <button
-          className="primary-button"
-          type="button"
-          aria-describedby={finishExplanationId}
-          disabled={!props.canFinish || props.isRouting}
-          onClick={props.onFinish}
-        >
-          {props.isRouting ? "Routing…" : "Finish route"}
-        </button>
-      </ToolCardActions>
+      <RouteDrawingActions
+        finishExplanationId={finishExplanationId}
+        props={props}
+      />
     </div>
   );
 }

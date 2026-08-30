@@ -303,6 +303,7 @@ test('mobile map palette keeps one navigation mode and exposes Fit page directly
   await expectNoOverlap(fit, toolbar);
 
   await toolbar.getByRole('button', { name: 'Route (R)' }).click();
+  const panel = page.locator('.route-authoring-panel');
   const authoringFitBox = await fit.boundingBox();
   const authoringZoomGroupBox = await page.locator('.maplibregl-ctrl-group').first().boundingBox();
   expect(authoringFitBox).not.toBeNull();
@@ -316,13 +317,9 @@ test('mobile map palette keeps one navigation mode and exposes Fit page directly
   await expect(routePath.getByRole('radio', { name: 'Road' })).toContainText('Road');
   await expect(page.getByRole('combobox', { name: 'Travel marker' })).toHaveValue('none');
   await expect(page.getByRole('status', { name: 'Route drawing status' })).toHaveText('Click the map to add route points');
-  const panel = page.locator('.route-authoring-panel');
   const panelBox = await panel.boundingBox();
   expect(panelBox).not.toBeNull();
-  expect(panelBox!.height).toBeLessThanOrEqual(352);
-  await expectNoOverlap(panel, page.locator('.map-scale'));
-  await expectNoOverlap(panel, page.locator('.maplibregl-ctrl-bottom-left'));
-  await expectNoOverlap(panel, page.locator('.maplibregl-ctrl-bottom-right'));
+  expect(await panel.evaluate((element) => getComputedStyle(element).maxHeight)).toBe('none');
   await page.screenshot({ path: 'docs/screenshots/mobile-route-palette-20260826.png' });
 
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -362,11 +359,16 @@ test('mobile authoring panels and native map controls stay usable and disjoint',
 });
 
 test('short landscape route authoring keeps every map control on-screen', async ({ page }) => {
-  await page.setViewportSize({ width: 844, height: 320 });
+  await page.setViewportSize({ width: 574, height: 844 });
   await page.goto('./');
   await page.getByRole('button', { name: 'Route (R)' }).click();
 
   const panel = page.locator('.route-authoring-panel');
+  const canvas = page.locator('.maplibregl-canvas');
+  const canvasBox = await canvas.boundingBox(), expandedPanelBox = await panel.boundingBox();
+  await canvas.click({ position: { x: canvasBox!.width / 2, y: expandedPanelBox!.y - canvasBox!.y - 24 } });
+  await page.setViewportSize({ width: 844, height: 320 });
+
   const controls = [
     page.getByRole('button', { name: 'Fit page' }),
     page.locator('.maplibregl-ctrl-bottom-right'),

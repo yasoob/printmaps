@@ -110,7 +110,11 @@ function useRouteEditing(options: RouteEditingOptions) {
     onRoutePreview: handlePreview,
     selectedId: options.onRouteGeometryChange ? options.selectedId : null,
   });
-  return { displayLayers, updateEditingGeometry: terraEditing.updateEditingGeometry };
+  return {
+    displayLayers,
+    isAuthoringReady: terraEditing.isAuthoringReady,
+    updateEditingGeometry: terraEditing.updateEditingGeometry,
+  };
 }
 
 function useExporterSubscription(
@@ -216,7 +220,7 @@ export function useMapCanvasController({
   const { displayLayers } = routeEditing;
   const contentState = useRef<MapContentState>({ layers: displayLayers, assets, selectedId, previewedId, contentRevision }), contentSyncDeferred = useRef(false), contentReady = useRef(false), mapFailed = useRef(false);
   const layerSelect = useRef(onLayerSelect), backgroundClick = useRef(onBackgroundClick);
-  const mapClick = useRef(routeAuthoring?.active ? undefined : onMapClick);
+  const mapClick = useRef(routeAuthoring?.active && routeEditing.isAuthoringReady ? undefined : onMapClick);
   const cameraViewportChange = useRef(onCameraViewportChange), cameraState = useRef(camera), exporterChangeRef = useRef(onExporterChange);
   const cameraViewportChangeMode = useRef<CameraViewportChangeMode>('history'), availableExporterRef = useRef<PreviewPngExporter | null>(null);
   const [mapError, setMapError] = useState<MapError | null>(null), [contentError, setContentError] = useState<ContentError | null>(null);
@@ -254,8 +258,8 @@ export function useMapCanvasController({
     backgroundClick.current = onBackgroundClick;
     cameraViewportChange.current = onCameraViewportChange;
     layerSelect.current = onLayerSelect;
-    mapClick.current = routeAuthoring?.active ? undefined : onMapClick;
-  }, [camera, onBackgroundClick, onCameraViewportChange, onLayerSelect, onMapClick, routeAuthoring?.active]);
+    mapClick.current = routeAuthoring?.active && routeEditing.isAuthoringReady ? undefined : onMapClick;
+  }, [camera, onBackgroundClick, onCameraViewportChange, onLayerSelect, onMapClick, routeAuthoring?.active, routeEditing.isAuthoringReady]);
 
   useExporterSubscription(onExporterChange, availableExporterRef, exporterChangeRef);
 

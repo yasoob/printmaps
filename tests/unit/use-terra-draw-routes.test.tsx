@@ -55,7 +55,7 @@ describe('Terra Draw route hook', () => {
       onPreview: vi.fn(),
       undoRequest: 0,
     };
-    const { rerender } = renderHook(({ undoRequest }) => useTerraDrawRoutes({
+    const { rerender, result } = renderHook(({ undoRequest }) => useTerraDrawRoutes({
       authoring: { ...authoring, undoRequest },
       layers,
       map,
@@ -63,7 +63,9 @@ describe('Terra Draw route hook', () => {
       onRoutePreview: vi.fn(),
       selectedId: null,
     }), { initialProps: { undoRequest: 0 } });
-    await waitFor(() => expect(metrics.createSession).toHaveBeenCalled());
+    expect(result.current.isAuthoringReady).toBe(false);
+    await waitFor(() => expect(result.current.isAuthoringReady).toBe(true));
+    expect(metrics.createSession).toHaveBeenCalled();
     const session = metrics.createSession.mock.results[0].value;
 
     expect(metrics.createDraw).toHaveBeenCalledWith(map, 'straight', true);
