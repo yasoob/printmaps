@@ -28,8 +28,6 @@ Astro statically renders the marketing site, while the React 19 and MapLibre edi
 | `/#features` | Interactive design, content and export tour |
 | `/#use-cases` | Publishing, tourism, property, event, personal and planning workflows |
 | `/#faq` | Product, storage, provider and export answers |
-| `/features/` | Detailed editor and export capabilities |
-| `/use-cases/` | Detailed audience and workflow guidance |
 | `/editor/` | Client-side map editor |
 
 ## Local development

@@ -7,18 +7,6 @@ const marketingRoutes = [
     heading: 'Beautiful maps. Ready to print.',
     canonical: 'https://printmaps.yasoob.me/',
   },
-  {
-    path: '../features/',
-    title: 'Printable map maker features | Print Map Studio',
-    heading: 'Every tool earns its place.',
-    canonical: 'https://printmaps.yasoob.me/features/',
-  },
-  {
-    path: '../use-cases/',
-    title: 'Custom map maker use cases | Print Map Studio',
-    heading: 'Give every place a point of view.',
-    canonical: 'https://printmaps.yasoob.me/use-cases/',
-  },
 ] as const;
 
 test('marketing routes render crawlable content and metadata without editor code', async ({ page }) => {
