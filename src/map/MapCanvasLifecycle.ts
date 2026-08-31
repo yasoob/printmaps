@@ -1,5 +1,5 @@
 import type { Dispatch, SetStateAction } from 'react';
-import { AttributionControl, NavigationControl, type Map as MapLibreMap } from 'maplibre-gl';
+import { AttributionControl, type Map as MapLibreMap } from 'maplibre-gl';
 import type { PreviewPngExporter } from '../export/previewPng';
 import { createMapLibreContentAdapter, type MapContentAdapter, type MapContentState } from './MapContentAdapter';
 import type { CameraSettings } from '../domain/project';
@@ -7,6 +7,7 @@ import { createInteractiveMap } from './MapCanvasFactory';
 import { armLifecycleDeadline, clearLifecycleDeadline, MAP_READY_TIMEOUT_MS, MAP_STYLE_TIMEOUT_MS, type MapLifecycleDeadlineState } from './MapLifecycleDeadline';
 import type { CameraViewportChangeMode } from './MapCameraViewport';
 import { createLifecycleExportPreview, type LifecycleExportReferences } from './MapLifecycleExport';
+import { createPageNavigationControl } from './MapPageNavigationControl';
 
 export type MapError = {
   kind: 'content' | 'renderer' | 'style';
@@ -29,6 +30,7 @@ type LifecycleReferences = LifecycleExportReferences & {
   contentState: MutableReference<MapContentState>;
   contentSyncDeferred: MutableReference<boolean>;
   exporterChange: MutableReference<((exporter: PreviewPngExporter | null) => void) | undefined>;
+  fitPage: MutableReference<() => void>;
   ignoreNextMapClick: MutableReference<boolean>;
   layerSelect: MutableReference<(id: string) => void>;
   mapClick: MutableReference<((coordinate: [number, number]) => void) | undefined>;
@@ -52,7 +54,7 @@ function createAttributionController(container: HTMLDivElement) {
   let isInitialized = false;
   let resizeFrame: number | null = null;
   const viewportQuery = typeof window.matchMedia === 'function'
-    ? window.matchMedia('(max-width: 760px)')
+    ? window.matchMedia('(max-width: 899px)')
     : null;
   const sync = (isMobile: boolean) => {
     const attribution = container.querySelector<HTMLDetailsElement>('.maplibregl-ctrl-attrib');
@@ -257,7 +259,11 @@ function installMapLifecycle(map: MapLibreMap, options: MapLifecycleOptions) {
   const state: MapLifecycleDeadlineState = { isDisposed: false, isMapLoaded: false, isStyleLoaded: false, startupTimeout: null };
   options.references.mapFailed.current = false;
   const handlers = createMapEventHandlers(map, state, options, attribution.initialize);
-  map.addControl(new NavigationControl({ showCompass: false }), 'bottom-right'); map.addControl(new AttributionControl({ compact: true }), 'bottom-left');
+  map.addControl(
+    createPageNavigationControl(() => options.references.fitPage.current()),
+    'bottom-right',
+  );
+  map.addControl(new AttributionControl({ compact: true }), 'bottom-left');
   attribution.listen();
   armLifecycleDeadline(state, handlers.handleLoadTimeout, MAP_STYLE_TIMEOUT_MS);
   map.once('style.load', handlers.handleStyleLoad);

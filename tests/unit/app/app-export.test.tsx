@@ -288,7 +288,7 @@ describe('editor export', () => {
     const dialog = screen.getByRole('dialog', { name: 'Export map' });
     const download = screen.getByRole('button', { name: 'Download PNG' });
     expect(dialog).toBeInTheDocument();
-    expect(download).toHaveFocus();
+    await waitFor(() => expect(download).toHaveFocus());
     expect(dialog).toHaveTextContent('3508 × 2480 px — 300 DPI pixel target');
     expect(dialog).toHaveTextContent('PNG embeds 300 DPI physical-resolution metadata');
     expect(dialog).toHaveTextContent('renders bounded map regions at their target pixel dimensions');
@@ -325,7 +325,7 @@ describe('editor export', () => {
 
     expect(within(formats).getByRole('radio', { name: /PNG/ })).toHaveAttribute('aria-checked', 'true');
     expect(within(formats).getByRole('radio', { name: /Layered SVG/ })).toHaveAttribute('aria-checked', 'false');
-    expect(within(dialog).getByRole('button', { name: 'Download PNG' })).toHaveFocus();
+    await waitFor(() => expect(within(dialog).getByRole('button', { name: 'Download PNG' })).toHaveFocus());
     expect(within(dialog).getByText('PNG embeds 300 DPI physical-resolution metadata.')).not.toBeVisible();
 
     await user.click(within(formats).getByRole('radio', { name: /Layered SVG/ }));
@@ -385,7 +385,7 @@ describe('editor export', () => {
 
     const dialog = screen.getByRole('dialog', { name: 'Export map' });
     expect(screen.getByRole('button', { name: 'Download PNG' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus());
     expect(dialog).toContainElement(document.activeElement as HTMLElement);
   });
 
@@ -410,11 +410,11 @@ describe('editor export', () => {
 
     const cancel = await screen.findByRole('button', { name: 'Cancel export' });
     expect(cancel).toHaveFocus();
-    expect(document.querySelector('.export-backdrop')?.tagName).toBe('DIV');
+    expect(document.querySelector('.export-dialog-backdrop')?.tagName).toBe('DIV');
     await user.keyboard('{Tab}');
-    expect(cancel).toHaveFocus();
+    await waitFor(() => expect(cancel).toHaveFocus());
     await user.keyboard('{Shift>}{Tab}{/Shift}');
-    expect(cancel).toHaveFocus();
+    await waitFor(() => expect(cancel).toHaveFocus());
     await user.keyboard('{Escape}');
     expect(dialog).toBeInTheDocument();
     expect(cancel).toHaveFocus();

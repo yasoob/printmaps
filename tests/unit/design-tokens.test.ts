@@ -24,6 +24,9 @@ describe('design token discipline', () => {
     expect(theme).toContain('--studio-font-control: 0.8125rem');
     expect(theme).toContain('--studio-font-label: 0.75rem');
     expect(theme).toContain('--studio-font-meta: 0.6875rem');
+    expect(theme).toContain('--primary: var(--studio-accent)');
+    expect(theme).toContain('--popover: var(--studio-surface-raised)');
+    expect(theme).toContain('--ring: var(--studio-focus)');
     expect(styles).toContain('@import "tailwindcss"');
     expect(styles).toContain('@apply');
     expect(styles).toContain('.inspector-accordion');
@@ -41,6 +44,22 @@ describe('design token discipline', () => {
     expect(styles).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(/);
     expect(components).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(/);
     expect(iconComponents).not.toMatch(/[↑↓←→▲▼▶◀‹›]|•••/);
+  });
+
+  it('keeps canvas chrome in explicit docks and control groups instead of state-dependent coordinates', () => {
+    const styles = read('src/styles.css');
+
+    expect(styles).toContain('.canvas-overlay {');
+    expect(styles).toContain('.canvas-top-dock {');
+    expect(styles).toContain('.canvas-authoring-dock {');
+    expect(styles).toContain('.canvas-tool-dock {');
+    expect(styles).toContain('.map-fit-control::before {');
+    expect(styles).not.toContain('.canvas-fit-dock {');
+    expect(styles).not.toContain('.canvas-region.has-authoring-panel');
+    expect(styles).not.toMatch(/:has\(\.route-authoring-panel[^)]*\)\s+\.map-(?:fit-control|scale)/);
+    expect(styles).not.toMatch(/\.map-fit-control\s*\{[^}]*position:\s*absolute/s);
+    expect(styles).not.toMatch(/\.map-authoring-panel\s*\{[^}]*position:\s*absolute/s);
+    expect(styles).not.toMatch(/\.tool-palette\s*\{[^}]*position:\s*absolute/s);
   });
 
   it('keeps search results and map scale flat without decorative shadows', () => {

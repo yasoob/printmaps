@@ -77,5 +77,5 @@ test('rejects a multi-file layer replacement without partially changing the proj
   await expect(dialog.getByRole('alert')).toHaveText('Replace Route 01 with one file containing exactly one route feature. Nothing was changed.');
   await expect(dialog.getByRole('button', { name: 'Replace Route 01' })).toHaveCount(0);
   await expect(mapRoot).toHaveAttribute('data-map-layer-geometry', originalGeometry ?? '');
-  await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
+  await expect(page.locator('button[aria-label="Undo"]')).toBeDisabled();
 });

@@ -18,23 +18,6 @@ export type ExportDialogProps = {
   onClose: () => void;
 };
 
-function trapDialogFocus(event: React.KeyboardEvent<HTMLDialogElement>, dialog: HTMLDialogElement | null) {
-  if (event.key !== 'Tab') return;
-  const focusable = [...(dialog?.querySelectorAll<HTMLElement>('button:not([disabled])') ?? [])];
-  if (focusable.length === 0) {
-    event.preventDefault();
-    dialog?.focus();
-    return;
-  }
-  const currentIndex = focusable.indexOf(document.activeElement as HTMLElement);
-  const isMovingBeforeFirst = event.shiftKey && currentIndex <= 0;
-  const isMovingAfterLast = !event.shiftKey && currentIndex === focusable.length - 1;
-  if (isMovingBeforeFirst || isMovingAfterLast) {
-    event.preventDefault();
-    (isMovingBeforeFirst ? focusable.at(-1) : focusable[0])?.focus();
-  }
-}
-
 function useExportPreflight(document: ProjectDocument): Readonly<{
   preflight: ReturnType<typeof planExportPreflight>;
   rasterDelivery: RasterDelivery;
@@ -61,16 +44,6 @@ function useExportPreflight(document: ProjectDocument): Readonly<{
   }, [document]);
 }
 
-function handleExportDialogKeyDown(event: React.KeyboardEvent<HTMLDialogElement>, isBusy: boolean, dialog: HTMLDialogElement | null, onClose: () => void) {
-  if (event.key === 'Escape') {
-    event.preventDefault();
-    event.stopPropagation();
-    if (!isBusy) onClose();
-    return;
-  }
-  trapDialogFocus(event, dialog);
-}
-
 function selectExportFormat(format: ExportFormat, options: Readonly<{
   isBusy: boolean;
   setError: (error: string | null) => void;
@@ -91,7 +64,7 @@ function runSelectedExport(
 }
 
 export function ExportDialog({ exporter, filename, document, onClose }: ExportDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
   const downloadButtonRef = useRef<HTMLButtonElement>(null);
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -107,16 +80,11 @@ export function ExportDialog({ exporter, filename, document, onClose }: ExportDi
   const largeRasterSupported = canStreamLargeRasterPng();
 
   useEffect(() => {
-    (preflight.safe ? downloadButtonRef : cancelButtonRef).current?.focus();
-  }, [preflight.safe]);
-  useEffect(() => {
     if (!busy) return;
     if (cancellationAvailable) cancelButtonRef.current?.focus();
     else dialogRef.current?.focus();
   }, [busy, cancellationAvailable]);
   useEffect(() => () => abortControllerRef.current?.abort(), []);
-
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLDialogElement>) => handleExportDialogKeyDown(event, busy, dialogRef.current, onClose);
 
   const download = () => {
     if (!exporter?.createPrintTileRenderer) {
@@ -188,5 +156,5 @@ export function ExportDialog({ exporter, filename, document, onClose }: ExportDi
     svg: () => void downloadLayeredSvg(),
   });
 
-  return <ExportDialogView busy={busy} cancellationAvailable={cancellationAvailable} cancelButtonRef={cancelButtonRef} dialogRef={dialogRef} document={document} downloadButtonRef={downloadButtonRef} error={error} largeRasterSupported={largeRasterSupported} onCancel={cancelExport} onClose={onClose} onDownload={downloadSelectedFormat} onFormatChange={changeFormat} onKeyDown={handleKeyDown} onTechnicalDetailsToggle={() => setTechnicalDetailsExpanded((expanded) => !expanded)} preflight={preflight} psdPlan={psdPlan} rasterDelivery={rasterDelivery} selectedFormat={selectedFormat} status={status} technicalDetailsExpanded={technicalDetailsExpanded} />;
+  return <ExportDialogView busy={busy} cancellationAvailable={cancellationAvailable} cancelButtonRef={cancelButtonRef} dialogRef={dialogRef} document={document} downloadButtonRef={downloadButtonRef} error={error} largeRasterSupported={largeRasterSupported} onCancel={cancelExport} onClose={onClose} onDownload={downloadSelectedFormat} onFormatChange={changeFormat} onTechnicalDetailsToggle={() => setTechnicalDetailsExpanded((expanded) => !expanded)} preflight={preflight} psdPlan={psdPlan} rasterDelivery={rasterDelivery} selectedFormat={selectedFormat} status={status} technicalDetailsExpanded={technicalDetailsExpanded} />;
 }

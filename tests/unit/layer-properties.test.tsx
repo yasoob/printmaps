@@ -80,7 +80,7 @@ describe('layer appearance draft boundaries', () => {
     expect(screen.getByText('Copernicus DEM GLO-90 via Open-Meteo')).toBeVisible();
   });
 
-  it('disables imported-data replacement for a locked layer and focuses the first available menu action', async () => {
+  it('disables imported-data replacement for a locked layer and advances to the next menu action', async () => {
     const user = userEvent.setup();
     const lockedRoute = route(4);
     lockedRoute.locked = true;
@@ -88,7 +88,10 @@ describe('layer appearance draft boundaries', () => {
 
     await user.click(screen.getByRole('button', { name: 'Layer menu' }));
 
-    expect(screen.getByRole('menuitem', { name: 'Replace layer data' })).toBeDisabled();
+    expect(screen.getByRole('menuitem', { name: 'Replace layer data' })).toHaveAttribute('aria-disabled', 'true');
+    await user.keyboard('{ArrowDown}');
+    expect(screen.getByRole('menuitem', { name: 'Replace layer data' })).toHaveFocus();
+    await user.keyboard('{ArrowDown}');
     expect(screen.getByRole('menuitem', { name: 'Duplicate layer' })).toHaveFocus();
   });
 

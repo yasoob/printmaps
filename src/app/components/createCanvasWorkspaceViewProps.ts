@@ -85,6 +85,7 @@ function createMapProps(inputs: ViewInputs): ComponentProps<typeof MapCanvas> {
     onBackgroundClick: props.onBackgroundClick,
     onCameraViewportChange: props.onCameraViewportChange,
     onExporterChange: props.onExporterChange,
+    onFitPage: inputs.fitPage,
     onLayerSelect: props.onLayerSelect,
     onMapClick: inputs.handleMapClick,
     onPoiCoordinatesChange: props.onPoiCoordinatesChange,
@@ -108,12 +109,11 @@ function createMapProps(inputs: ViewInputs): ComponentProps<typeof MapCanvas> {
 
 function createChromeProps(
   inputs: ViewInputs,
-): Omit<ComponentProps<typeof CanvasWorkspaceChrome>, "selectToolRef"> {
+): Omit<ComponentProps<typeof CanvasWorkspaceChrome>, "selectToolRef" | "topDock"> {
   return {
     activeTool: inputs.activeTool,
     camera: inputs.props.camera,
     onActivateTool: inputs.activateTool,
-    onFitPage: inputs.fitPage,
     poiPanelProps: {
       active: inputs.activeTool === "pin",
       documentEpoch: inputs.props.documentEpoch,

@@ -3,7 +3,7 @@ import { setMapInteractionLock } from '../../src/map/MapInteractionLock';
 function createMapHarness() {
   const calls: string[] = [];
   const container = document.createElement('div');
-  container.innerHTML = '<button class="maplibregl-ctrl-zoom-in"></button><button class="maplibregl-ctrl-zoom-out"></button>';
+  container.innerHTML = '<button class="map-fit-control"></button><button class="maplibregl-ctrl-zoom-in"></button><button class="maplibregl-ctrl-zoom-out"></button>';
   const handler = (name: string) => ({
     disable: () => { calls.push(`${name}:disable`); },
     enable: () => { calls.push(`${name}:enable`); },
@@ -21,18 +21,18 @@ function createMapHarness() {
       touchZoomRotate: handler('touchZoomRotate'),
       getContainer: () => container,
     },
-    zoomButtons: [...container.querySelectorAll('button')],
+    cameraButtons: [...container.querySelectorAll('button')],
   };
 }
 
 describe('map-area interaction lock', () => {
   it('disables every camera movement handler while locked and restores them when unlocked', () => {
-    const { calls, map, zoomButtons } = createMapHarness();
+    const { calls, cameraButtons, map } = createMapHarness();
 
     setMapInteractionLock(map, true);
-    expect(zoomButtons.every((button) => button.disabled)).toBe(true);
+    expect(cameraButtons.every((button) => button.disabled)).toBe(true);
     setMapInteractionLock(map, false);
-    expect(zoomButtons.every((button) => !button.disabled)).toBe(true);
+    expect(cameraButtons.every((button) => !button.disabled)).toBe(true);
 
     expect(calls).toEqual([
       'boxZoom:disable',

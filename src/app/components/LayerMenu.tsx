@@ -1,5 +1,11 @@
 import { Ellipsis } from 'lucide-react';
 import { useRef, useState } from 'react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 type LayerMenuProps = {
   onDelete: () => void;
@@ -12,34 +18,38 @@ export function LayerMenu({ onReplace, onDuplicate, onDelete, replaceDisabled }:
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-      event.preventDefault();
-      const items = [...(menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]:not([disabled])') ?? [])];
-      const currentIndex = items.indexOf(document.activeElement as HTMLElement);
-      const direction = event.key === 'ArrowDown' ? 1 : -1;
-      items[(currentIndex + direction + items.length) % items.length]?.focus();
-    } else if (event.key === 'Escape') {
-      event.preventDefault();
-      setOpen(false);
-      queueMicrotask(() => buttonRef.current?.focus());
-    }
-  };
-  const toggleMenu = () => {
-    setOpen(!open);
-    if (!open) queueMicrotask(() => menuRef.current?.querySelector<HTMLElement>('[role="menuitem"]:not([disabled])')?.focus());
-  };
 
   return (
-    <>
-      <button ref={buttonRef} className="icon-button" type="button" aria-label="Layer menu" aria-haspopup="menu" aria-expanded={open} onClick={toggleMenu}><Ellipsis aria-hidden="true" size={16} strokeWidth={1.75} /></button>
-      {open && (
-        <div ref={menuRef} className="layer-menu" role="menu" onKeyDown={handleKeyDown}>
-          <button type="button" role="menuitem" disabled={replaceDisabled} onClick={() => { setOpen(false); onReplace(buttonRef.current); }}>Replace layer data</button>
-          <button type="button" role="menuitem" onClick={() => { setOpen(false); onDuplicate(); }}>Duplicate layer</button>
-          <button className="danger-button" type="button" role="menuitem" onClick={onDelete}>Delete layer</button>
-        </div>
-      )}
-    </>
+    <DropdownMenu
+      open={open}
+      onOpenChange={(isOpen) => {
+        setOpen(isOpen);
+        if (!isOpen) queueMicrotask(() => buttonRef.current?.focus());
+      }}
+      onOpenChangeComplete={(isOpen) => {
+        if (isOpen) menuRef.current?.querySelector<HTMLElement>('[role="menuitem"]:not([data-disabled])')?.focus();
+      }}
+    >
+      <DropdownMenuTrigger
+        render={(
+          <button
+            ref={buttonRef}
+            className="icon-button"
+            type="button"
+            aria-label="Layer menu"
+            onMouseDown={() => { if (!open) setOpen(true); }}
+          >
+            <Ellipsis aria-hidden="true" size={16} strokeWidth={1.75} />
+          </button>
+        )}
+      />
+      <DropdownMenuContent ref={menuRef} className="layer-menu" align="end">
+        <DropdownMenuItem disabled={replaceDisabled} onClick={() => onReplace(buttonRef.current)}>
+          Replace layer data
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={onDuplicate}>Duplicate layer</DropdownMenuItem>
+        <DropdownMenuItem variant="destructive" onClick={onDelete}>Delete layer</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

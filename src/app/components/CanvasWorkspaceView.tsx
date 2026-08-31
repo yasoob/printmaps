@@ -13,7 +13,7 @@ export type CanvasWorkspaceViewProps = {
   activeTool: string;
   chromeProps: Omit<
     ComponentProps<typeof CanvasWorkspaceChrome>,
-    "selectToolRef"
+    "selectToolRef" | "topDock"
   >;
   isRouteDiscardOpen: boolean;
   layersTriggerRef: RefObject<HTMLButtonElement | null>;
@@ -42,22 +42,27 @@ export function CanvasWorkspaceView({
   searchKey,
   searchProps,
 }: CanvasWorkspaceViewProps) {
-  const hasAuthoringPanel = ["route", "pin", "shape"].includes(activeTool);
   return (
     <section
-      className={`canvas-region${hasAuthoringPanel ? " has-authoring-panel" : ""}`}
+      className="canvas-region"
+      data-active-tool={activeTool}
       inert={activePanel !== null}
     >
-      <MobilePanelActions
-        activePanel={activePanel}
-        layersTriggerRef={layersTriggerRef}
-        onOpenPanel={onOpenPanel}
-        propertiesTriggerRef={propertiesTriggerRef}
-      >
-        <LocationSearch key={searchKey} {...searchProps} />
-      </MobilePanelActions>
       <MapCanvas {...mapProps} />
-      <CanvasWorkspaceChrome {...chromeProps} selectToolRef={selectToolRef} />
+      <CanvasWorkspaceChrome
+        {...chromeProps}
+        selectToolRef={selectToolRef}
+        topDock={(
+          <MobilePanelActions
+            activePanel={activePanel}
+            layersTriggerRef={layersTriggerRef}
+            onOpenPanel={onOpenPanel}
+            propertiesTriggerRef={propertiesTriggerRef}
+          >
+            <LocationSearch key={searchKey} {...searchProps} />
+          </MobilePanelActions>
+        )}
+      />
       {isRouteDiscardOpen && (
         <RouteDiscardDialog
           onDiscard={onDiscardRoute}

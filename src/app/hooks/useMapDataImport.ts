@@ -90,18 +90,17 @@ export function useMapDataImport(options: MapDataImportOptions) {
     inputRef.current?.click();
   }, [inputRef, replacementTargetRef, returnFocusRef, setReplacementTarget, triggerRef]);
 
-  const chooseReplacementFile = useCallback((target: ContentLayer, trigger: HTMLElement | null) => {
+  const prepareReplacement = useCallback((target: ContentLayer, trigger: HTMLElement | null) => {
     replacementTargetRef.current = target;
     setReplacementTarget(target);
     returnFocusRef.current = trigger;
-    inputRef.current?.click();
-  }, [inputRef, replacementTargetRef, returnFocusRef, setReplacementTarget]);
+  }, [replacementTargetRef, returnFocusRef, setReplacementTarget]);
 
   return {
     batch,
     batchAppearance,
     chooseImportFiles,
-    chooseReplacementFile,
+    prepareReplacement,
     closeDialog,
     commitReviewedImport,
     dialogError,

@@ -1,5 +1,6 @@
 import { ChevronRight, X } from 'lucide-react';
 import type React from 'react';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import type { ProjectDocument } from '../../domain/project';
 import type { LayeredPsdExportPlan } from '../../export/layeredPsdPlan';
 import { planExportPreflight, type RasterDelivery } from '../../export/preflight';
@@ -192,7 +193,7 @@ type ExportDialogViewProps = {
   busy: boolean;
   cancellationAvailable: boolean;
   cancelButtonRef: React.RefObject<HTMLButtonElement | null>;
-  dialogRef: React.RefObject<HTMLDialogElement | null>;
+  dialogRef: React.RefObject<HTMLDivElement | null>;
   document: ProjectDocument;
   downloadButtonRef: React.RefObject<HTMLButtonElement | null>;
   error: string | null;
@@ -201,8 +202,6 @@ type ExportDialogViewProps = {
   onClose: () => void;
   onDownload: () => void;
   onFormatChange: (format: ExportFormat) => void;
-  onKeyDown: React.KeyboardEventHandler<HTMLDialogElement>;
-
   onTechnicalDetailsToggle: () => void;
   preflight: ExportPreflight;
   psdPlan: LayeredPsdExportPlan;
@@ -213,7 +212,7 @@ type ExportDialogViewProps = {
 };
 
 export function ExportDialogView(props: ExportDialogViewProps) {
-  const { busy, cancellationAvailable, cancelButtonRef, dialogRef, document, downloadButtonRef, error, largeRasterSupported, onCancel, onClose, onDownload, onFormatChange, onKeyDown, onTechnicalDetailsToggle, preflight, psdPlan, rasterDelivery, selectedFormat, status, technicalDetailsExpanded } = props;
+  const { busy, cancellationAvailable, cancelButtonRef, dialogRef, document, downloadButtonRef, error, largeRasterSupported, onCancel, onClose, onDownload, onFormatChange, onTechnicalDetailsToggle, preflight, psdPlan, rasterDelivery, selectedFormat, status, technicalDetailsExpanded } = props;
   const canDownloadSelectedFormat = canDownload(selectedFormat, {
     canStreamLargePng: largeRasterSupported,
     delivery: rasterDelivery,
@@ -222,9 +221,24 @@ export function ExportDialogView(props: ExportDialogViewProps) {
   });
   const selectedPreflight = selectedFormat === 'psd' ? psdPlan.preflight : preflight;
   return (
-    <div className="export-overlay">
-      <div className="export-backdrop" aria-hidden="true" onClick={busy ? undefined : onClose} />
-      <dialog ref={dialogRef} className="export-dialog" open aria-modal="true" aria-labelledby="export-title" aria-busy={busy} tabIndex={-1} onKeyDown={onKeyDown}>
+    <Dialog
+      open
+      onOpenChange={(open, eventDetails) => {
+        if (open) return;
+        if (busy) eventDetails.cancel();
+        else onClose();
+      }}
+    >
+      <DialogContent
+        ref={dialogRef}
+        className="export-dialog"
+        overlayClassName="export-dialog-backdrop"
+        showCloseButton={false}
+        initialFocus={preflight.safe ? downloadButtonRef : cancelButtonRef}
+        aria-labelledby="export-title"
+        aria-busy={busy}
+        tabIndex={-1}
+      >
         <div className="export-dialog-header">
           <div><h2 id="export-title">Export map</h2><p>Choose a format for the current print frame.</p></div>
           <button className="icon-button" type="button" aria-label="Close export" disabled={busy} onClick={onClose}><X size={16} /></button>
@@ -249,7 +263,7 @@ export function ExportDialogView(props: ExportDialogViewProps) {
           <button ref={cancelButtonRef} type="button" disabled={busy && !cancellationAvailable} onClick={busy ? onCancel : onClose}>{cancelLabel(busy, cancellationAvailable)}</button>
           <button ref={downloadButtonRef} className="primary-button" type="button" disabled={busy || !canDownloadSelectedFormat} onClick={onDownload}>{busy ? 'Preparing…' : downloadLabel(selectedFormat)}</button>
         </div>
-      </dialog>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

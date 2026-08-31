@@ -87,20 +87,32 @@ export function useMobilePanels() {
     if (typeof window.matchMedia !== 'function') return;
     const mediaQuery = window.matchMedia(MOBILE_VIEWPORT_QUERY);
     const handleChange = (event: MediaQueryListEvent) => {
-      const isHadOpenDialog = document.querySelector('[aria-modal="true"]') !== null;
+      const didHaveOpenDialog = activePanelRef.current !== null;
+      const focusedElement = document.activeElement;
+      let enteringPanel: MobilePanel | null = null;
+      if (event.matches && focusedElement instanceof Node) {
+        if (layersPanelRef.current?.contains(focusedElement)) enteringPanel = 'layers';
+        else if (propertiesPanelRef.current?.contains(focusedElement)) enteringPanel = 'properties';
+      }
+      isMobileViewportRef.current = event.matches;
       setIsMobileViewport(event.matches);
+      if (enteringPanel) {
+        setMobilePanel(enteringPanel);
+        scheduleFocus(() => getPanelElements(enteringPanel)[0]?.focus());
+        return;
+      }
       if (!event.matches) {
         if (focusTimerRef.current !== null) {
           window.clearTimeout(focusTimerRef.current);
           focusTimerRef.current = null;
         }
         setMobilePanel(null);
-        if (isHadOpenDialog) requestAnimationFrame(() => projectTitleRef.current?.focus());
+        if (didHaveOpenDialog) scheduleFocus(() => projectTitleRef.current?.focus(), 32);
       }
     };
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
-  }, []);
+  }, [getPanelElements, scheduleFocus]);
 
   useEffect(() => () => {
     if (focusTimerRef.current !== null) window.clearTimeout(focusTimerRef.current);

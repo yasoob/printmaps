@@ -36,6 +36,7 @@ type MapCanvasProps = {
   onShapeGeometryChange?: (id: string, geometry: ShapeGeometry) => void;
   onBackgroundClick: () => void;
   onExporterChange?: (exporter: PreviewPngExporter | null) => void;
+  onFitPage?: () => void;
   fitRequest?: number;
   fitLayerId?: string | null;
   fitLayerRequest?: number;
@@ -64,6 +65,8 @@ const resolveMapLanguage = (language?: MapLanguage) => language ?? 'local';
 const resolveShapeEditMode = (mode?: ShapeEditMode): ShapeEditMode => mode ?? 'transform';
 const resolveInteractionMode = (mode?: string) => mode ?? 'select';
 const DEFAULT_STYLE_CUSTOMIZATION = createDefaultMapStyleCustomization();
+const ignoreFitPage = () => {};
+const resolveFitPage = (fitPage?: () => void) => fitPage ?? ignoreFitPage;
 const resolveStyleCustomization = (customization?: MapStyleCustomization) => customization ?? DEFAULT_STYLE_CUSTOMIZATION;
 const printFrameClassName = (orientation: 'landscape' | 'portrait', isVisible?: boolean) => (
   `print-frame is-${orientation}${isVisible === false ? ' is-boundary-hidden' : ''}`
@@ -98,6 +101,7 @@ export function MapCanvas({
   onShapeGeometryChange,
   onBackgroundClick,
   onExporterChange,
+  onFitPage,
   fitRequest = 0,
   fitLayerId,
   fitLayerRequest,
@@ -129,6 +133,7 @@ export function MapCanvas({
     assets,
     onBackgroundClick,
     onExporterChange,
+    onFitPage: resolveFitPage(onFitPage),
     onLayerSelect,
     onCameraViewportChange,
     onMapClick,

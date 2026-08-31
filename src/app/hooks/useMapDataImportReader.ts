@@ -16,6 +16,7 @@ type ReviewedSource = Readonly<{ documentEpoch: number; sourceDocument: ProjectD
 
 export type MapDataImportOptions = {
   documentEpoch: number;
+  inputRef?: RefObject<HTMLInputElement | null>;
   sourceDocument: ProjectDocument;
   triggerRef: RefObject<HTMLButtonElement | null>;
   isWorkActive: boolean;
@@ -113,7 +114,8 @@ export function useMapDataImportReader(options: MapDataImportOptions) {
   const [selectedNames, setSelectedNames] = useState<readonly string[]>([]);
   const [dialogError, setDialogError] = useState<string | null>(null);
   const [shouldFitView, setShouldFitView] = useState(true);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const localInputRef = useRef<HTMLInputElement>(null);
+  const inputRef = options.inputRef ?? localInputRef;
   const requestIdRef = useRef(0);
   const onImportRef = useRef(onImport);
   const isReadingRef = useRef(false);

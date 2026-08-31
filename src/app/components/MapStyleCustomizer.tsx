@@ -1,4 +1,4 @@
-import { ArrowLeft, ChevronRight, Link2, RotateCcw, SlidersHorizontal } from 'lucide-react';
+import { ArrowLeft, ChevronRight, RotateCcw, SlidersHorizontal } from 'lucide-react';
 import { useEffect, useRef, type RefObject } from 'react';
 import {
   isMapStyleCustomized,
@@ -148,7 +148,6 @@ export function MapStyleCustomizeTrigger({
       </span>
       <span>
         <strong>{customized ? 'Edit custom palette' : 'Customize colors'}</strong>
-        <small>{customized ? 'Quick Tune and color overrides applied' : 'Quick Tune and 11 semantic colors'}</small>
       </span>
       {customized ? <em>Custom</em> : null}
       <ChevronRight aria-hidden="true" size={15} />
@@ -214,11 +213,6 @@ export function MapStyleCustomizer({
           <button className="map-style-clear-tuning" disabled={!customized} type="button" onClick={onReset}>Clear tuning and overrides</button>
         </section>
         <section>
-          <div className="map-style-customizer-section-heading">
-            <span><Link2 size={14} /><h3>Fine-tune colors</h3></span>
-            <small>{Object.keys(customization.colors).length} custom</small>
-          </div>
-          <p>Override only what matters. Reset a color to link it back to Quick Tune.</p>
           <div className="map-style-color-list">
             {MAP_STYLE_TOKEN_ROLES.map((role) => (
               <SemanticColorRow

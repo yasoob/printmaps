@@ -35,7 +35,7 @@ test('a maker quick-tunes, overrides one semantic color, and returns to the main
 
   await page.getByRole('button', { name: 'Back to project properties' }).click();
   await expect(page.getByRole('button', { name: /Edit custom palette/ })).toBeFocused();
-  await expect(page.getByRole('button', { name: /Edit custom palette/ })).toContainText('Quick Tune and color overrides applied');
+  await expect(page.getByRole('button', { name: /Edit custom palette/ })).not.toContainText('Quick Tune');
   await page.waitForTimeout(200);
   await page.screenshot({ path: 'docs/screenshots/map-style-customization-main-20260830.png' });
 

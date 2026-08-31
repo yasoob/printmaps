@@ -53,6 +53,7 @@ type MapCanvasControllerOptions = {
   assets: Record<string, CustomMarkerAsset>;
   onBackgroundClick: () => void;
   onExporterChange?: (exporter: PreviewPngExporter | null) => void;
+  onFitPage: () => void;
   onLayerSelect: (id: string) => void;
   onCameraViewportChange?: (center: readonly [number, number], zoom: number, mode: CameraViewportChangeMode) => void;
   onMapClick?: (coordinate: [number, number]) => void;
@@ -194,7 +195,7 @@ export function useMapCanvasController({
   basemapVisible, camera, stylePreset, styleCustomization, language, textScalePercent, featureVisibility,
   fitRequest, fitLayerId, fitLayerRequest, fitImportBounds, fitImportRequest, locationRequest,
   layers, assets,
-  onBackgroundClick, onExporterChange, onLayerSelect,
+  onBackgroundClick, onExporterChange, onFitPage, onLayerSelect,
   onCameraViewportChange, onMapClick, onPoiCoordinatesChange,
   onRouteEditorError, onRouteGeometryChange, onRouteVertexChange, onRouteVertexInsert,
   routeAuthoring, routeDraftEditing,
@@ -207,6 +208,7 @@ export function useMapCanvasController({
   const layerSelect = useRef(onLayerSelect), backgroundClick = useRef(onBackgroundClick);
   const mapClick = useRef(routeAuthoring?.active && routeEditing.isAuthoringReady ? undefined : onMapClick);
   const cameraViewportChange = useRef(onCameraViewportChange), cameraState = useRef(camera), exporterChangeRef = useRef(onExporterChange);
+  const fitPage = useRef(onFitPage);
   const cameraViewportChangeMode = useRef<CameraViewportChangeMode>('history'), availableExporterRef = useRef<PreviewPngExporter | null>(null);
   const [mapError, setMapError] = useState<MapError | null>(null), [contentError, setContentError] = useState<ContentError | null>(null);
 
@@ -252,9 +254,10 @@ export function useMapCanvasController({
     cameraState.current = camera;
     backgroundClick.current = onBackgroundClick;
     cameraViewportChange.current = onCameraViewportChange;
+    fitPage.current = onFitPage;
     layerSelect.current = onLayerSelect;
     mapClick.current = routeAuthoring?.active && routeEditing.isAuthoringReady ? undefined : onMapClick;
-  }, [camera, onBackgroundClick, onCameraViewportChange, onLayerSelect, onMapClick, routeAuthoring?.active, routeEditing.isAuthoringReady]);
+  }, [camera, onBackgroundClick, onCameraViewportChange, onFitPage, onLayerSelect, onMapClick, routeAuthoring?.active, routeEditing.isAuthoringReady]);
 
   useExporterSubscription(onExporterChange, availableExporterRef, exporterChangeRef);
 
@@ -289,6 +292,7 @@ export function useMapCanvasController({
         contentState,
         contentSyncDeferred,
         exporterChange: exporterChangeRef,
+        fitPage,
         ignoreNextMapClick: ignoreNextMapClickRef,
         layerSelect,
         mapClick,

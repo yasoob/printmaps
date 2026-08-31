@@ -1,6 +1,7 @@
 import { FileUp, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useEffect, useRef, type RefObject } from 'react';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import type { ContentLayer } from '../../domain/project';
 import {
   POI_MARKER_SHAPES,
@@ -9,26 +10,6 @@ import {
 } from '../../domain/poiMarkers';
 import type { ParsedMapDataBatch } from '../../import/mapDataBatch';
 import type { MapDataBatchAppearance } from '../../import/mapDataBatchAppearance';
-
-function trapDialogFocus(event: React.KeyboardEvent<HTMLDialogElement>) {
-  if (event.key !== 'Tab') return;
-  const focusable = [...event.currentTarget.querySelectorAll<HTMLElement>(
-    'button:not([disabled]), input:not([disabled]), select:not([disabled])',
-  )].filter((element) => !element.hidden);
-  if (focusable.length === 0) {
-    event.preventDefault();
-    event.currentTarget.focus();
-    return;
-  }
-  const currentIndex = focusable.indexOf(document.activeElement as HTMLElement);
-  if (event.shiftKey && currentIndex <= 0) {
-    event.preventDefault();
-    focusable.at(-1)?.focus();
-  } else if (!event.shiftKey && currentIndex === focusable.length - 1) {
-    event.preventDefault();
-    focusable[0].focus();
-  }
-}
 
 function importDialogCopy(target: ContentLayer | null) {
   if (target) return {
@@ -143,7 +124,7 @@ export function MapDataImportPortals({
 }: MapDataImportPortalsProps) {
   const { isDragActive, isOpen, isReading, shouldFitView } = state;
   const copy = importDialogCopy(replacementTarget);
-  const dialogRef = useRef<HTMLDialogElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
   const importButtonRef = useRef<HTMLButtonElement>(null);
   const replaceButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -154,34 +135,27 @@ export function MapDataImportPortals({
     else replaceButtonRef.current?.focus();
   }, [batch, isOpen, isReading]);
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLDialogElement>) => {
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      event.stopPropagation();
-      onClose();
-      return;
-    }
-    trapDialogFocus(event);
-  };
+  const initialFocus = isReading
+    ? dialogRef
+    : (batch ? importButtonRef : replaceButtonRef);
 
-  return createPortal(<>
-    {isDragActive && (
+  return <>
+    {isDragActive && createPortal(
       <div className="map-data-drop-overlay" aria-hidden="true">
         <div><FileUp size={22} /> <strong>Drop GeoJSON, GPX, or KML files</strong></div>
-      </div>
+      </div>,
+      document.body,
     )}
-    {isOpen && (
-      <div className="map-data-import-overlay">
-        <button className="export-backdrop" type="button" aria-label="Cancel map data import" onClick={onClose} />
-        <dialog
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent
           ref={dialogRef}
           className="map-data-import-dialog"
-          open
-          aria-modal="true"
+          overlayClassName="map-data-import-backdrop"
+          showCloseButton={false}
+          initialFocus={initialFocus}
           aria-labelledby="map-data-import-title"
           aria-busy={isReading}
           tabIndex={-1}
-          onKeyDown={handleKeyDown}
         >
           <header className="export-dialog-header">
             <div>
@@ -211,8 +185,7 @@ export function MapDataImportPortals({
             <button type="button" disabled={isReading} onClick={onClose}>Cancel</button>
             {batch && <button ref={importButtonRef} className="primary-button" type="button" disabled={!isBatchAppearanceValid} onClick={onCommit}>{commitLabel(copy.commitLabel, batch.files.length)}</button>}
           </footer>
-        </dialog>
-      </div>
-    )}
-  </>, document.body);
+      </DialogContent>
+    </Dialog>
+  </>;
 }

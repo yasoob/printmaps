@@ -94,8 +94,10 @@ describe('editor autosave startup', () => {
     const dialog = screen.getByRole('dialog', { name: 'Local draft unavailable' });
     const discard = screen.getByRole('button', { name: 'Discard damaged draft' });
     expect(dialog).toHaveTextContent('damaged or unsupported');
-    expect(discard).toHaveFocus();
-    expect(document.querySelector('.studio-shell')).toHaveAttribute('inert');
+    await waitFor(() => expect(discard).toHaveFocus());
+    const inertRoot = document.querySelector('body > [data-base-ui-inert]');
+    expect(inertRoot).toHaveAttribute('aria-hidden', 'true');
+    expect(inertRoot).toHaveAttribute('data-base-ui-inert');
     await user.keyboard('{Escape}');
     expect(dialog).toBeInTheDocument();
     await user.click(discard);

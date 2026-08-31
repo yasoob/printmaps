@@ -44,7 +44,7 @@ export function ProjectAutosaveStatus({ autosave }: { autosave: ProjectAutosaveS
 }
 
 export function ProjectAutosaveErrorNotice({ autosave }: { autosave: ProjectAutosaveState }) {
-  return autosave.statusKind === 'error'
+  return autosave.statusKind === 'error' && !autosave.corrupted
     ? <div className="autosave-error-notice" role="alert" aria-label="Autosave status">{autosave.status}</div>
     : null;
 }
@@ -64,6 +64,6 @@ export function ProjectAutosaveDialogs({
   };
 
   return autosave.corrupted
-    ? <AutosaveCorruptionDialog busy={autosave.decisionPending} onDiscard={discard} />
+    ? <AutosaveCorruptionDialog busy={autosave.decisionPending} error={autosave.statusKind === 'error' ? autosave.status : null} onDiscard={discard} />
     : null;
 }

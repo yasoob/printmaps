@@ -66,7 +66,7 @@ describe('editor selection context', () => {
     await user.click(coffee);
     fireEvent.mouseEnter(coffee);
     expect(map).toHaveAttribute('data-previewed-layer', 'poi-cafe');
-    fireEvent.click(screen.getByRole('button', { name: 'Layer menu' }));
+    fireEvent.mouseDown(screen.getByRole('button', { name: 'Layer menu' }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Delete layer' }));
 
     expect(map).toHaveAttribute('data-previewed-layer', '');
@@ -80,7 +80,7 @@ describe('editor selection context', () => {
 
     await user.click(coffee);
     fireEvent.mouseEnter(coffee);
-    fireEvent.click(screen.getByRole('button', { name: 'Layer menu' }));
+    fireEvent.mouseDown(screen.getByRole('button', { name: 'Layer menu' }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Delete layer' }));
     await user.click(screen.getByRole('button', { name: 'Undo' }));
 

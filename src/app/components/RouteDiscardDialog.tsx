@@ -1,4 +1,7 @@
-import { useLayoutEffect, useRef } from "react";
+import {
+  Dialog,
+  DialogContent,
+} from "@/components/ui/dialog";
 
 export function RouteDiscardDialog({
   onDiscard,
@@ -7,41 +10,13 @@ export function RouteDiscardDialog({
   onDiscard: () => void;
   onKeepEditing: () => void;
 }>) {
-  const keepButtonRef = useRef<HTMLButtonElement>(null);
-
-  useLayoutEffect(() => {
-    keepButtonRef.current?.focus();
-  }, []);
-
   return (
-    <div className="route-discard-overlay">
-      <div className="export-backdrop" aria-hidden="true" />
-      <dialog
+    <Dialog open onOpenChange={(open) => { if (!open) onKeepEditing(); }}>
+      <DialogContent
         className="route-discard-dialog"
-        open
-        aria-modal="true"
+        overlayClassName="route-discard-backdrop"
+        showCloseButton={false}
         aria-labelledby="route-discard-title"
-        onKeyDown={(event) => {
-          if (event.key === "Escape") {
-            event.preventDefault();
-            event.stopPropagation();
-            onKeepEditing();
-          } else if (event.key === "Tab") {
-            const buttons = [
-              ...event.currentTarget.querySelectorAll<HTMLButtonElement>(
-                "button:not([disabled])",
-              ),
-            ];
-            const current = buttons.indexOf(
-              document.activeElement as HTMLButtonElement,
-            );
-            const next =
-              (current + (event.shiftKey ? buttons.length - 1 : 1)) %
-              buttons.length;
-            event.preventDefault();
-            buttons[next]?.focus();
-          }
-        }}
       >
         <h2 id="route-discard-title">Discard route changes?</h2>
         <p>
@@ -49,14 +24,14 @@ export function RouteDiscardDialog({
           lost.
         </p>
         <div className="route-discard-actions">
-          <button ref={keepButtonRef} type="button" onClick={onKeepEditing}>
+          <button type="button" onClick={onKeepEditing}>
             Keep editing
           </button>
           <button className="primary-button" type="button" onClick={onDiscard}>
             Discard changes
           </button>
         </div>
-      </dialog>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

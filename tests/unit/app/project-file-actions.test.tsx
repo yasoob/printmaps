@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { DropdownMenuItem } from '../../../src/components/ui/dropdown-menu';
 import { createInitialProjectDocument } from '../../../src/domain/project';
 
 const { downloadProjectDocument } = vi.hoisted(() => ({
@@ -17,7 +18,7 @@ describe('project file actions', () => {
     const user = userEvent.setup();
     render(
       <ProjectFileActions getDocument={() => createInitialProjectDocument()} onOpen={vi.fn()}>
-        <button type="button" role="menuitem">Import map data</button>
+        <DropdownMenuItem>Import map data</DropdownMenuItem>
       </ProjectFileActions>,
     );
 
@@ -26,12 +27,12 @@ describe('project file actions', () => {
     const trigger = screen.getByRole('button', { name: 'Project' });
     expect(trigger).toHaveAttribute('aria-expanded', 'false');
 
-    await user.click(trigger);
+    fireEvent.mouseDown(trigger);
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByRole('menu')).toBeInTheDocument();
-    const openProject = screen.getByRole('menuitem', { name: 'Open project' });
-    const downloadProject = screen.getByRole('menuitem', { name: 'Download project' });
-    const importMapData = screen.getByRole('menuitem', { name: 'Import map data' });
+    let openProject = screen.getByRole('menuitem', { name: 'Open project' });
+    let downloadProject = screen.getByRole('menuitem', { name: 'Download project' });
+    let importMapData = screen.getByRole('menuitem', { name: 'Import map data' });
     expect(openProject).toHaveFocus();
     await user.keyboard('{ArrowDown}');
     expect(downloadProject).toHaveFocus();
@@ -42,17 +43,20 @@ describe('project file actions', () => {
     await user.keyboard('{Escape}');
     expect(trigger).toHaveFocus();
 
-    await user.click(trigger);
+    fireEvent.mouseDown(trigger);
+    openProject = screen.getByRole('menuitem', { name: 'Open project' });
     await user.click(openProject);
     expect(trigger).toHaveAttribute('aria-expanded', 'false');
     expect(trigger).toHaveFocus();
 
-    await user.click(trigger);
+    fireEvent.mouseDown(trigger);
+    importMapData = screen.getByRole('menuitem', { name: 'Import map data' });
     await user.click(importMapData);
     expect(trigger).toHaveAttribute('aria-expanded', 'false');
     expect(trigger).toHaveFocus();
 
-    await user.click(trigger);
+    fireEvent.mouseDown(trigger);
+    downloadProject = screen.getByRole('menuitem', { name: 'Download project' });
     await user.click(downloadProject);
     expect(downloadProjectDocument).toHaveBeenCalledOnce();
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
@@ -73,7 +77,7 @@ describe('project file actions', () => {
 
     downloadProjectDocument.mockImplementationOnce(() => { throw new Error('Browser storage is unavailable.'); });
     const trigger = screen.getByRole('button', { name: 'Project' });
-    await user.click(trigger);
+    fireEvent.mouseDown(trigger);
     await user.click(screen.getByRole('menuitem', { name: 'Download project' }));
     expect(screen.getByRole('alert', { name: 'Project save status' })).toHaveTextContent('Browser storage is unavailable');
     expect(trigger).toHaveFocus();

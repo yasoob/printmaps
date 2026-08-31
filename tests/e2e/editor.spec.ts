@@ -177,7 +177,7 @@ test('browser location centers the map and map-area lock gates movement commands
   expect(consoleProblems).toEqual([]);
 });
 
-test('desktop Fit and Zoom stack stays aligned and clear of centered route authoring', async ({ page }) => {
+test('desktop canvas controls stay anchored and clear of every authoring panel', async ({ page }) => {
   for (const viewport of [
     { width: 2000, height: 600 },
     { width: 1440, height: 900 },
@@ -186,37 +186,49 @@ test('desktop Fit and Zoom stack stays aligned and clear of centered route autho
     await page.setViewportSize(viewport);
     await page.goto('./');
     await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
-    await page.getByRole('button', { name: 'Route (R)' }).click();
+    const baselineFit = await page.getByRole('button', { name: 'Fit page' }).boundingBox();
+    const baselineZoom = await page.locator('.maplibregl-ctrl-group').first().boundingBox();
+    expect(baselineFit).not.toBeNull();
+    expect(baselineZoom).not.toBeNull();
 
-    const fitBox = await page.getByRole('button', { name: 'Fit page' }).boundingBox();
-    const zoomBox = await page.locator('.maplibregl-ctrl-group').first().boundingBox();
-    const panelBox = await page.locator('.route-authoring-panel').boundingBox();
-    const canvasRegionBox = await page.locator('.canvas-region').boundingBox();
-    expect(fitBox).not.toBeNull();
-    expect(zoomBox).not.toBeNull();
-    expect(panelBox).not.toBeNull();
-    expect(canvasRegionBox).not.toBeNull();
-    expect(panelBox!.x).toBeGreaterThanOrEqual(canvasRegionBox!.x);
-    expect(panelBox!.x + panelBox!.width).toBeLessThanOrEqual(canvasRegionBox!.x + canvasRegionBox!.width);
-    expect(panelBox!.x + panelBox!.width / 2).toBeCloseTo(
-      canvasRegionBox!.x + canvasRegionBox!.width / 2,
-      0,
-    );
-    expect(fitBox!.x).toBe(zoomBox!.x);
-    expect(fitBox!.width).toBe(zoomBox!.width);
-    expect(zoomBox!.y - (fitBox!.y + fitBox!.height)).toBe(8);
-    expect(
-      fitBox!.x + fitBox!.width <= panelBox!.x
-      || panelBox!.x + panelBox!.width <= fitBox!.x
-      || fitBox!.y + fitBox!.height <= panelBox!.y
-      || panelBox!.y + panelBox!.height <= fitBox!.y,
-    ).toBe(true);
-    expect(
-      zoomBox!.x + zoomBox!.width <= panelBox!.x
-      || panelBox!.x + panelBox!.width <= zoomBox!.x
-      || zoomBox!.y + zoomBox!.height <= panelBox!.y
-      || panelBox!.y + panelBox!.height <= zoomBox!.y,
-    ).toBe(true);
+    for (const authoring of [
+      { button: 'Place (P)', panel: '.poi-authoring-panel' },
+      { button: 'Route (R)', panel: '.route-authoring-panel' },
+      { button: 'Area (S)', panel: '.shape-authoring-panel' },
+    ]) {
+      await page.getByRole('button', { name: authoring.button }).click();
+      const fitBox = await page.getByRole('button', { name: 'Fit page' }).boundingBox();
+      const zoomBox = await page.locator('.maplibregl-ctrl-group').first().boundingBox();
+      const panelBox = await page.locator(authoring.panel).boundingBox();
+      const canvasRegionBox = await page.locator('.canvas-region').boundingBox();
+      expect(fitBox).not.toBeNull();
+      expect(zoomBox).not.toBeNull();
+      expect(panelBox).not.toBeNull();
+      expect(canvasRegionBox).not.toBeNull();
+      expect(fitBox!.x).toBeCloseTo(baselineFit!.x, 0);
+      expect(fitBox!.y).toBeCloseTo(baselineFit!.y, 0);
+      expect(zoomBox!.x).toBeCloseTo(baselineZoom!.x, 0);
+      expect(zoomBox!.y).toBeCloseTo(baselineZoom!.y, 0);
+      expect(panelBox!.x).toBeGreaterThanOrEqual(canvasRegionBox!.x);
+      expect(panelBox!.x + panelBox!.width).toBeLessThanOrEqual(canvasRegionBox!.x + canvasRegionBox!.width);
+      expect(panelBox!.x + panelBox!.width / 2).toBeCloseTo(
+        canvasRegionBox!.x + canvasRegionBox!.width / 2,
+        0,
+      );
+      expect(
+        fitBox!.x + fitBox!.width <= panelBox!.x
+        || panelBox!.x + panelBox!.width <= fitBox!.x
+        || fitBox!.y + fitBox!.height <= panelBox!.y
+        || panelBox!.y + panelBox!.height <= fitBox!.y,
+      ).toBe(true);
+      expect(
+        zoomBox!.x + zoomBox!.width <= panelBox!.x
+        || panelBox!.x + panelBox!.width <= zoomBox!.x
+        || zoomBox!.y + zoomBox!.height <= panelBox!.y
+        || panelBox!.y + panelBox!.height <= zoomBox!.y,
+      ).toBe(true);
+      await page.getByRole('button', { name: 'Select (V)' }).click();
+    }
   }
 });
 

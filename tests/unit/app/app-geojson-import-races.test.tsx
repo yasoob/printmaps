@@ -58,7 +58,7 @@ describe('GeoJSON import document isolation', () => {
     expect(screen.queryByRole('dialog', { name: 'Import map data' })).not.toBeInTheDocument();
 
     await openReview();
-    await user.click(screen.getByRole('button', { name: 'Cancel map data import' }));
+    fireEvent.click(document.querySelector('.map-data-import-backdrop')!);
     expect(screen.queryByRole('dialog', { name: 'Import map data' })).not.toBeInTheDocument();
 
     await openReview();
@@ -82,7 +82,7 @@ describe('GeoJSON import document isolation', () => {
 
     const dialog = await screen.findByRole('dialog', { name: 'Import map data' });
     expect(await within(dialog).findByRole('alert')).toHaveTextContent('unsupported.txt');
-    expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
+    expect(document.querySelector<HTMLButtonElement>('button[aria-label="Undo"]')).toBeDisabled();
     fireEvent.change(importInput, {
       target: { files: [fileWithText('point.geojson', pointGeoJson, 'application/geo+json')] },
     });

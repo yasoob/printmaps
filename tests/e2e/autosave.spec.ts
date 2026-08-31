@@ -74,7 +74,8 @@ test('contains a corrupt IndexedDB draft until the user discards it', async ({ p
 
   const dialog = page.getByRole('dialog', { name: 'Local draft unavailable' });
   await expect(dialog).toBeVisible();
-  await expect(page.locator('.studio-shell')).toHaveAttribute('inert');
+  await expect(page.locator('#root')).toHaveAttribute('aria-hidden', 'true');
+  await expect(page.locator('#root')).toHaveAttribute('data-base-ui-inert');
   await expect(page.getByRole('button', { name: 'Discard damaged draft' })).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(dialog).toBeVisible();

@@ -32,6 +32,7 @@ export function useAppMapDataImport(
   const [isImportWorkActive, setIsImportWorkActive] = useState(false);
   const [importFitRequest, setImportFitRequest] = useState<ImportFitRequest>({ request: 0 });
   const [replacementRequest, setReplacementRequest] = useState<LayerReplacementRequest | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const activeWorkRef = useRef<number | null>(null);
   const nextWorkIdRef = useRef(0);
   const startImportWork = useCallback(() => {
@@ -75,11 +76,13 @@ export function useAppMapDataImport(
       target,
       trigger,
     }));
+    inputRef.current?.click();
   }, []);
 
   return {
     handleImportedLayers,
     importFitRequest,
+    inputRef,
     isImportOpen,
     isImportWorkActive,
     replacementRequest,

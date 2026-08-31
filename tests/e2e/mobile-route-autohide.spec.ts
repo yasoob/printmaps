@@ -17,24 +17,27 @@ test("centers and auto-hides route settings while preserving map drawing", async
   await expect(page.getByRole("button", { name: /Draw on map/i }))
     .toHaveCount(0);
   const expandedBox = await panel.boundingBox();
+  const toolbar = page.locator('.tool-palette');
+  const toolbarBox = await toolbar.boundingBox();
   expect(expandedBox).not.toBeNull();
+  expect(toolbarBox).not.toBeNull();
   expect(expandedBox!.y).toBeGreaterThanOrEqual(0);
   expect(expandedBox!.y + expandedBox!.height).toBeLessThanOrEqual(viewport.height);
   expect(expandedBox!.x + expandedBox!.width / 2).toBeCloseTo(viewport.width / 2, 0);
-  expect(expandedBox!.y + expandedBox!.height / 2).toBeCloseTo(viewport.height / 2, 0);
+  expect(toolbarBox!.y - (expandedBox!.y + expandedBox!.height)).toBeCloseTo(8, 0);
   await page.screenshot({
     animations: "disabled",
     path: testInfo.outputPath("mobile-route-settings.png"),
   });
 
   const canvas = page.locator(".maplibregl-canvas");
-  const canvasBox = await canvas.boundingBox();
+  const mapCanvasBox = await canvas.boundingBox();
   const panelBox = await panel.boundingBox();
-  expect(canvasBox).not.toBeNull();
+  expect(mapCanvasBox).not.toBeNull();
   expect(panelBox).not.toBeNull();
   const point = {
-    x: canvasBox!.width / 2,
-    y: panelBox!.y - canvasBox!.y - 24,
+    x: mapCanvasBox!.width / 2,
+    y: panelBox!.y - mapCanvasBox!.y - 24,
   };
   await canvas.click({ position: point });
 
@@ -50,6 +53,10 @@ test("centers and auto-hides route settings while preserving map drawing", async
     .boundingBox();
   expect(minimizedStatusBox?.width).toBeLessThanOrEqual(1);
   expect(minimizedStatusBox?.height).toBeLessThanOrEqual(1);
+  const minimizedBox = await panel.boundingBox();
+  expect(minimizedBox).not.toBeNull();
+  expect(minimizedBox!.x + minimizedBox!.width / 2).toBeCloseTo(viewport.width / 2, 0);
+  expect(toolbarBox!.y - (minimizedBox!.y + minimizedBox!.height)).toBeCloseTo(8, 0);
   await page.screenshot({
     animations: "disabled",
     path: testInfo.outputPath("mobile-route-minimized.png"),
@@ -59,13 +66,19 @@ test("centers and auto-hides route settings while preserving map drawing", async
   await expect(panel).toHaveAttribute("data-mobile-expanded", "true");
   const reopenedBox = await panel.boundingBox();
   expect(reopenedBox).not.toBeNull();
+  expect(reopenedBox!.x + reopenedBox!.width / 2).toBeCloseTo(viewport.width / 2, 0);
+  expect(toolbarBox!.y - (reopenedBox!.y + reopenedBox!.height)).toBeCloseTo(8, 0);
   await canvas.click({
     position: {
-      x: canvasBox!.width * 0.6,
-      y: reopenedBox!.y - canvasBox!.y - 24,
+      x: mapCanvasBox!.width * 0.6,
+      y: reopenedBox!.y - mapCanvasBox!.y - 24,
     },
   });
   await expect(panel).toHaveAttribute("data-mobile-expanded", "false");
+  const secondMinimizedBox = await panel.boundingBox();
+  expect(secondMinimizedBox).not.toBeNull();
+  expect(secondMinimizedBox!.x + secondMinimizedBox!.width / 2).toBeCloseTo(viewport.width / 2, 0);
+  expect(toolbarBox!.y - (secondMinimizedBox!.y + secondMinimizedBox!.height)).toBeCloseTo(8, 0);
   await expect(page.getByRole("status", { name: "Route drawing status" }))
     .toContainText("2 points");
 

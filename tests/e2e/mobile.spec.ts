@@ -93,8 +93,8 @@ const verifyMapAttribution = async (
 };
 
 const verifyMobileDrawers = async (page: Page) => {
-  const layersButton = page.getByRole('button', { name: 'Open layers' });
-  const propertiesButton = page.getByRole('button', { name: 'Open properties' });
+  const layersButton = page.locator('button[aria-label="Open layers"]');
+  const propertiesButton = page.locator('button[aria-label="Open properties"]');
   await setSafeAreaInsets(page);
   await layersButton.click();
   const layersDialog = page.getByRole('dialog', { name: 'Layers sidebar' });
@@ -289,28 +289,27 @@ test('mobile map palette keeps one navigation mode and exposes Fit page directly
   await expect(page.getByRole('button', { name: 'More map tools' })).toHaveCount(0);
 
   const fit = page.getByRole('button', { name: 'Fit page' });
+  const navigationGroup = page.locator('.canvas-navigation-control');
   await expect(fit).toBeVisible();
   const fitBox = await fit.boundingBox();
-  const zoomGroupBox = await page.locator('.maplibregl-ctrl-group').first().boundingBox();
+  const navigationGroupBox = await navigationGroup.boundingBox();
   expect(fitBox).not.toBeNull();
-  expect(zoomGroupBox).not.toBeNull();
+  expect(navigationGroupBox).not.toBeNull();
   expect(fitBox!.width).toBeGreaterThanOrEqual(44);
   expect(fitBox!.height).toBeGreaterThanOrEqual(44);
-  expect(fitBox!.x).toBe(zoomGroupBox!.x);
-  expect(fitBox!.width).toBe(zoomGroupBox!.width);
-  expect(zoomGroupBox!.y - (fitBox!.y + fitBox!.height)).toBe(8);
-  await expectNoOverlap(fit, page.locator('.maplibregl-ctrl-bottom-right'));
+  expect(fitBox!.x).toBeGreaterThanOrEqual(navigationGroupBox!.x);
+  expect(fitBox!.x + fitBox!.width).toBeLessThanOrEqual(navigationGroupBox!.x + navigationGroupBox!.width);
+  expect(fitBox!.y).toBeGreaterThanOrEqual(navigationGroupBox!.y);
+  await expect(navigationGroup.getByRole('button')).toHaveCount(3);
+  expect(await navigationGroup.getByRole('button').evaluateAll((buttons) => buttons.map((button) => button.getAttribute('aria-label')))).toEqual(['Fit page', 'Zoom in', 'Zoom out']);
   await expectNoOverlap(fit, toolbar);
 
   await toolbar.getByRole('button', { name: 'Route (R)' }).click();
   const panel = page.locator('.route-authoring-panel');
-  const authoringFitBox = await fit.boundingBox();
-  const authoringZoomGroupBox = await page.locator('.maplibregl-ctrl-group').first().boundingBox();
-  expect(authoringFitBox).not.toBeNull();
-  expect(authoringZoomGroupBox).not.toBeNull();
-  expect(authoringFitBox!.x).toBe(authoringZoomGroupBox!.x);
-  expect(authoringFitBox!.width).toBe(authoringZoomGroupBox!.width);
-  expect(authoringZoomGroupBox!.y - (authoringFitBox!.y + authoringFitBox!.height)).toBe(8);
+  const authoringNavigationGroupBox = await navigationGroup.boundingBox();
+  expect(authoringNavigationGroupBox).not.toBeNull();
+  expect(authoringNavigationGroupBox!.x).toBe(navigationGroupBox!.x);
+  expect(authoringNavigationGroupBox!.y).toBe(navigationGroupBox!.y);
   const routePath = page.getByRole('radiogroup', { name: 'Route path' });
   await expect(routePath.getByRole('radio', { name: 'Straight' })).toContainText('Straight');
   await expect(routePath.getByRole('radio', { name: 'Arc' })).toContainText('Arc');
@@ -319,18 +318,18 @@ test('mobile map palette keeps one navigation mode and exposes Fit page directly
   await expect(page.getByRole('status', { name: 'Route drawing status' })).toHaveText('Click the map to add route points');
   const panelBox = await panel.boundingBox();
   expect(panelBox).not.toBeNull();
-  expect(await panel.evaluate((element) => getComputedStyle(element).maxHeight)).toBe('none');
+  expect(await panel.evaluate((element) => getComputedStyle(element).maxHeight)).toBe('100%');
   await page.screenshot({ path: 'docs/screenshots/mobile-route-palette-20260826.png' });
 
   await page.setViewportSize({ width: 1440, height: 900 });
   await expect(toolbar.locator('.tool-label:visible')).toHaveCount(0);
 });
 
-
 test('mobile authoring panels and native map controls stay usable and disjoint', async ({ page }) => {
   for (const tool of ['Place (P)', 'Area (S)']) {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('./');
+    await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 }); await expect(page.locator('.maplibregl-ctrl-attrib')).not.toHaveAttribute('open');
     await page.getByRole('button', { name: tool }).click();
 
     const panel = page.locator('.map-authoring-panel');

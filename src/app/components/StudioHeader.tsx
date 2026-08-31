@@ -1,5 +1,6 @@
-import { Download, Redo2, Undo2 } from 'lucide-react';
+import { Download, FileUp, Redo2, Undo2 } from 'lucide-react';
 import { memo, useCallback, type RefObject } from 'react';
+import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import type { ProjectDocument } from '../../domain/project';
 import { publicAssetUrl } from '../../domain/publicAssetUrl';
 import type { LayerReplacementRequest, MapDataImportCommit } from '../hooks/useAppMapDataImport';
@@ -15,6 +16,7 @@ type StudioHeaderProps = {
   projectTitleRef: RefObject<HTMLButtonElement | null>;
   exportButtonRef: RefObject<HTMLButtonElement | null>;
   importButtonRef: RefObject<HTMLButtonElement | null>;
+  importInputRef: RefObject<HTMLInputElement | null>;
   openButtonRef?: RefObject<HTMLButtonElement | null>;
   finishImportWork: (workId: number) => void;
   isImportWorkActive: boolean;
@@ -54,6 +56,7 @@ export const StudioHeader = memo(function StudioHeader({
   projectTitleRef,
   exportButtonRef,
   importButtonRef,
+  importInputRef,
   openButtonRef,
   finishImportWork,
   isImportWorkActive,
@@ -85,21 +88,28 @@ export const StudioHeader = memo(function StudioHeader({
       </div>
       <div className="document-actions">
         <ProjectFileActions getDocument={getDocument} openButtonRef={openButtonRef} onOpen={onOpen}>
-          {(menuContainer) => <GeoJsonImportButton
-            buttonRef={importButtonRef}
-            isDisabled={importDisabled}
-            finishImportWork={finishImportWork}
-            isOpen={importOpen}
-            isWorkActive={isImportWorkActive}
-            onImport={onImport}
-            onOpenChange={onImportOpenChange}
-            replacementRequest={replacementRequest}
-            restoreFocusRef={openButtonRef}
-            startImportWork={startImportWork}
-            presentation="menuitem"
-            triggerContainer={menuContainer}
-          />}
+          <DropdownMenuItem
+            className="project-file-menu-item"
+            disabled={importDisabled || isImportWorkActive}
+            onClick={() => importButtonRef.current?.click()}
+          >
+            <FileUp aria-hidden="true" size={15} /> Import map data
+          </DropdownMenuItem>
         </ProjectFileActions>
+        <GeoJsonImportButton
+          buttonRef={importButtonRef}
+          inputRef={importInputRef}
+          isDisabled={importDisabled}
+          finishImportWork={finishImportWork}
+          isOpen={importOpen}
+          isWorkActive={isImportWorkActive}
+          onImport={onImport}
+          onOpenChange={onImportOpenChange}
+          replacementRequest={replacementRequest}
+          restoreFocusRef={openButtonRef}
+          startImportWork={startImportWork}
+          presentation="headless"
+        />
         <button ref={exportButtonRef} className="primary-button" type="button" disabled={exportDisabled} title={exportDisabled ? 'Finish or cancel map authoring before export' : undefined} onClick={onExport}><Download size={14} /><span>Export</span></button>
       </div>
     </header>

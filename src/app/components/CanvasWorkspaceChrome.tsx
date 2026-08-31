@@ -1,5 +1,6 @@
-import { Frame, Layers3, MapPin, MousePointer2, Route, Shapes, SlidersHorizontal } from 'lucide-react';
+import { Layers3, MapPin, MousePointer2, Route, Shapes, SlidersHorizontal } from 'lucide-react';
 import type { ComponentProps, Dispatch, ReactNode, RefObject, SetStateAction } from 'react';
+import { Button } from '@/components/ui/button';
 import type { ShapeEditMode } from '../../map/ShapeVertexEditing';
 import { preloadRouteEditor } from '../../map/useTerraDrawRoutes';
 import type { MobilePanel } from '../hooks/useMobilePanels';
@@ -27,12 +28,12 @@ type CanvasWorkspaceChromeProps = {
   activeTool: string;
   camera: { center: readonly [number, number]; locked: boolean; zoom: number };
   onActivateTool: (id: string) => void;
-  onFitPage: () => void;
   poiPanelProps: ComponentProps<typeof PoiAuthoringControls>;
   routePanelProps: ComponentProps<typeof RouteDrawingPanel>;
   selectToolRef: RefObject<HTMLButtonElement | null>;
   selectedShape: SelectedShapeControls;
   shapePanelProps: ComponentProps<typeof ShapeDrawingPanel>;
+  topDock: ReactNode;
 };
 
 export function MobilePanelActions({
@@ -63,26 +64,43 @@ function SelectedShapeEditControls(props: SelectedShapeControls & { isActive: bo
 }
 
 export function CanvasWorkspaceChrome({
-  activeTool, camera, onActivateTool, onFitPage, poiPanelProps, routePanelProps, selectToolRef, selectedShape, shapePanelProps,
+  activeTool, camera, onActivateTool, poiPanelProps, routePanelProps, selectToolRef, selectedShape, shapePanelProps, topDock,
 }: CanvasWorkspaceChromeProps) {
   return (
-    <>
-      <nav className="tool-palette" aria-label="Map tools">
-        {tools.map(({ id, label, mobileLabel, shortcut, icon: Icon }) => (
-          <div className="tool-slot" key={id}>
-            <button ref={id === 'select' ? selectToolRef : undefined} className={`tool-button${activeTool === id ? ' is-active' : ''}`} type="button" aria-label={`${label} (${shortcut})`} aria-pressed={activeTool === id} title={`${label} · ${shortcut}`} onPointerEnter={id === 'route' ? preloadRouteEditor : undefined} onFocus={id === 'route' ? preloadRouteEditor : undefined} onClick={() => onActivateTool(id)}>
-              <Icon size={17} strokeWidth={1.8} />
-              <span className="tool-label" aria-hidden="true">{mobileLabel}</span>
-            </button>
-          </div>
-        ))}
-      </nav>
-      <button className="map-fit-control" type="button" aria-label="Fit page" title="Fit page · Shift+1" disabled={camera.locked} onClick={onFitPage}><Frame size={17} strokeWidth={1.8} /></button>
-      <SelectedShapeEditControls {...selectedShape} isActive={activeTool === 'select'} />
-      {activeTool === 'route' && <RouteDrawingPanel {...routePanelProps} />}
-      <PoiAuthoringControls {...poiPanelProps} />
-      {activeTool === 'shape' && <ShapeDrawingPanel {...shapePanelProps} />}
-      <MapScale latitude={camera.center[1]} zoom={camera.zoom} />
-    </>
+    <div className="canvas-overlay">
+      <div className="canvas-top-dock">{topDock}</div>
+      <div className="canvas-authoring-dock">
+        <SelectedShapeEditControls {...selectedShape} isActive={activeTool === 'select'} />
+        {activeTool === 'route' && <RouteDrawingPanel {...routePanelProps} />}
+        <PoiAuthoringControls {...poiPanelProps} />
+        {activeTool === 'shape' && <ShapeDrawingPanel {...shapePanelProps} />}
+      </div>
+      <div className="canvas-tool-dock">
+        <nav className="tool-palette" aria-label="Map tools">
+          {tools.map(({ id, label, mobileLabel, shortcut, icon: Icon }) => (
+            <div className="tool-slot" key={id}>
+              <Button
+                ref={id === 'select' ? selectToolRef : undefined}
+                variant="ghost"
+                size="icon"
+                className={`tool-button${activeTool === id ? ' is-active' : ''}`}
+                aria-label={`${label} (${shortcut})`}
+                aria-pressed={activeTool === id}
+                title={`${label} · ${shortcut}`}
+                onPointerEnter={id === 'route' ? preloadRouteEditor : undefined}
+                onFocus={id === 'route' ? preloadRouteEditor : undefined}
+                onClick={() => onActivateTool(id)}
+              >
+                <Icon size={17} strokeWidth={1.8} />
+                <span className="tool-label" aria-hidden="true">{mobileLabel}</span>
+              </Button>
+            </div>
+          ))}
+        </nav>
+      </div>
+      <div className="canvas-scale-dock">
+        <MapScale latitude={camera.center[1]} zoom={camera.zoom} />
+      </div>
+    </div>
   );
 }

@@ -122,14 +122,14 @@ function StudioProperties({ m }: { m: StudioAppModel }) {
 }
 
 export function StudioAppView({ model: m }: { model: StudioAppModel }) {
-  const isImportOrExport = ["export", "import"].includes(m.modal.surface ?? "");
   return (
     <>
-      <main className="studio-shell" inert={m.autosave.corrupted || isImportOrExport} onKeyDown={m.handleDeleteKeyDown}>
+      <main className="studio-shell" onKeyDown={m.handleDeleteKeyDown}>
         <StudioHeader
           projectTitleRef={m.mobile.projectTitleRef}
           exportButtonRef={m.exportButtonRef}
           importButtonRef={m.importButtonRef}
+          importInputRef={m.mapDataImport.inputRef}
           openButtonRef={m.openButtonRef}
           finishImportWork={m.mapDataImport.finishImportWork}
           isImportWorkActive={m.mapDataImport.isImportWorkActive}

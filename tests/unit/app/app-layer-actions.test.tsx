@@ -84,6 +84,7 @@ describe('editor layer actions', () => {
     const user = userEvent.setup();
     render(<App />);
 
+    await user.click(screen.getByRole('button', { name: 'Open layers' }));
     await user.click(screen.getByRole('button', { name: 'Select Route 01' }));
     await user.click(screen.getByRole('button', { name: 'Open properties' }));
     await waitFor(() => expect(screen.getByRole('button', { name: 'Close properties' })).toHaveFocus());
@@ -163,6 +164,7 @@ describe('editor layer actions', () => {
     expect(replace).toBeInTheDocument();
     expect(duplicate).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: 'Delete layer' })).toBeInTheDocument();
+    await user.keyboard('{ArrowDown}');
     expect(replace).toHaveFocus();
     await user.keyboard('{ArrowDown}');
     expect(duplicate).toHaveFocus();

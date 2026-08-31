@@ -25,8 +25,8 @@ export function setMapInteractionLock(map: MapInteractionHandlers, isLocked: boo
   map.scrollZoom[action]();
   map.touchPitch[action]();
   map.touchZoomRotate[action]();
-  const zoomButtons = map.getContainer().querySelectorAll<HTMLButtonElement>(
-    '.maplibregl-ctrl-zoom-in, .maplibregl-ctrl-zoom-out',
+  const cameraButtons = map.getContainer().querySelectorAll<HTMLButtonElement>(
+    '.map-fit-control, .maplibregl-ctrl-zoom-in, .maplibregl-ctrl-zoom-out',
   );
-  for (const button of zoomButtons) button.disabled = isLocked;
+  for (const button of cameraButtons) button.disabled = isLocked;
 }

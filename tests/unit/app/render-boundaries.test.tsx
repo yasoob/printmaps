@@ -75,6 +75,7 @@ function headerProps() {
     projectTitleRef: createRef<HTMLButtonElement>(),
     exportButtonRef: createRef<HTMLButtonElement>(),
     importButtonRef: createRef<HTMLButtonElement>(),
+    importInputRef: createRef<HTMLInputElement>(),
     finishImportWork: vi.fn(),
     isImportWorkActive: false,
     startImportWork: vi.fn(() => 1),
@@ -248,7 +249,7 @@ describe('editor render boundaries', () => {
     const { rerender } = render(<LayerIdentityProperties {...stable} onDelete={firstDelete} />);
 
     rerender(<LayerIdentityProperties {...stable} onDelete={currentDelete} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Layer menu' }));
+    fireEvent.mouseDown(screen.getByRole('button', { name: 'Layer menu' }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Delete layer' }));
 
     expect(currentDelete).toHaveBeenCalledOnce();

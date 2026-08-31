@@ -28,6 +28,7 @@ type MapCanvasMockProps = {
   routeDraftEditing?: DraftRouteEditing;
   onBackgroundClick: () => void;
   onExporterChange?: (exporter: typeof exportMocks.exporter) => void;
+  onFitPage?: () => void;
   fitRequest?: number;
   fitLayerId?: string | null;
   fitImportBounds?: MapBounds;
@@ -71,6 +72,7 @@ export function MapCanvas({
   routeDraftEditing,
   onBackgroundClick,
   onExporterChange,
+  onFitPage,
   fitRequest,
   fitLayerId,
   fitImportRequest,
@@ -118,6 +120,7 @@ export function MapCanvas({
       data-shape-edit-mode={shapeEditModeDiagnostic(shapeEditMode)}
       data-previewed-layer={previewedId ?? ''}
     >
+      <button type="button" disabled={camera.locked} onClick={onFitPage}>Fit page</button>
       <button type="button" onClick={onBackgroundClick}>Map background</button>
       <button type="button" onClick={() => onCameraViewportChange?.([16.41, 48.23], 13.5, 'history')}>Finish map movement</button>
       <button type="button" onClick={() => onLayerSelect?.('poi-cafe')}>Map Coffee stop</button>
