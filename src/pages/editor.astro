@@ -1,4 +1,6 @@
 ---
+import GoogleAnalytics from '../components/GoogleAnalytics.astro';
+
 const canonicalUrl = new URL('/editor/', Astro.site);
 ---
 
@@ -13,6 +15,7 @@ const canonicalUrl = new URL('/editor/', Astro.site);
     <link rel="canonical" href={canonicalUrl} />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <title>Map editor | Print Map Studio</title>
+    <GoogleAnalytics />
   </head>
   <body>
     <div id="root"></div>

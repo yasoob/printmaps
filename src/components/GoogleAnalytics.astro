@@ -1,0 +1,17 @@
+---
+const enabled = import.meta.env.PROD;
+---
+
+{
+  enabled && (
+    <>
+      <script is:inline async src="https://www.googletagmanager.com/gtag/js?id=G-T6SVFKL7C4"></script>
+      <script is:inline>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-T6SVFKL7C4');
+      </script>
+    </>
+  )
+}
