@@ -142,6 +142,18 @@ test('keyboard and mobile users can enter, leave, and reset the customization fl
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole('button', { name: 'Open properties' }).click();
   await openCustomizer(page);
+  await expect.poll(async () => {
+    const [headingBox, resetBox] = await Promise.all([
+      page.getByRole('heading', { name: 'Customize map' }).boundingBox(),
+      page.getByRole('button', { name: 'Reset to Paper' }).boundingBox(),
+    ]);
+    return resetBox!.x - (headingBox!.x + headingBox!.width);
+  }).toBeGreaterThanOrEqual(32);
+  const [headerBox, headerResetBox] = await Promise.all([
+    page.locator('.map-style-customizer-header').boundingBox(),
+    page.getByRole('button', { name: 'Reset to Paper' }).boundingBox(),
+  ]);
+  expect(headerBox!.x + headerBox!.width - (headerResetBox!.x + headerResetBox!.width)).toBeLessThanOrEqual(16);
   await page.getByRole('button', { name: 'Cool' }).click();
   await page.screenshot({ path: 'docs/screenshots/map-style-customization-mobile-20260830.png' });
 

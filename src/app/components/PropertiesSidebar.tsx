@@ -61,7 +61,7 @@ export const PropertiesSidebar = memo(function PropertiesSidebar(props: Properti
 
   return (
     <aside ref={panelRef} id="properties-panel" className={`right-sidebar${activePanel === 'properties' ? ' is-mobile-open' : ''}`} aria-label="Properties sidebar" role={activePanel === 'properties' ? 'dialog' : undefined} aria-modal={activePanel === 'properties' ? true : undefined} inert={activePanel === 'layers'} onKeyDown={(event) => onKeyDown(event, 'properties')}>
-      <button className="mobile-drawer-close" type="button" aria-label="Close properties" onClick={() => closePanel('properties')}><X size={16} /></button>
+      <button className="mobile-drawer-close close-button" type="button" aria-label="Close properties" onClick={() => closePanel('properties')}><X size={16} /></button>
       {selectedLayer ? (
         <LayerProperties
           layer={selectedLayer}

@@ -154,6 +154,11 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   border-radius: var(--studio-radius-sm);
   color: var(--studio-text-secondary);
 }
+.close-button {
+  @apply grid h-7 w-7 shrink-0 place-items-center rounded-full;
+  color: var(--studio-text-muted);
+}
+.close-button:hover { background: var(--studio-field); }
 .quiet-button, .primary-button {
   @apply inline-flex items-center gap-1.5 px-2.5 font-medium;
   height: 1.875rem;
@@ -480,8 +485,6 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 .tool-card-heading { @apply flex items-center justify-between; width: 100%; }
 .tool-card-heading > strong { @apply flex items-center gap-2 text-sm font-semibold; color: var(--studio-text); }
-.tool-card-heading > button { @apply grid h-7 w-7 place-items-center rounded-full; color: var(--studio-text-muted); }
-.tool-card-heading > button:hover { background: var(--studio-field); }
 .tool-control-label,
 .shape-control-label { @apply text-[10px] font-semibold uppercase tracking-[0.1em]; color: var(--studio-text-muted); }
 .tool-card-actions { @apply flex items-center justify-end gap-1 pt-1; }
@@ -879,8 +882,8 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .map-style-default-reset { width: 100%; margin: -0.125rem 0 0.5rem; }
 .map-style-default-reset:hover:not(:disabled), .map-style-clear-tuning:hover:not(:disabled) { background: var(--studio-field); color: var(--studio-text-strong); }
 .map-style-default-reset:disabled, .map-style-clear-tuning:disabled { opacity: 0.35; cursor: default; }
-.map-style-customize-swatches, .map-style-customizer-palette { @apply flex items-center; }
-.map-style-customize-swatches i, .map-style-customizer-palette i {
+.map-style-customize-swatches { @apply flex items-center; }
+.map-style-customize-swatches i {
   display: block;
   width: 1rem;
   height: 1rem;
@@ -894,19 +897,18 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   @apply sticky top-0 z-10 grid items-center gap-2 px-3;
   grid-template-columns: auto minmax(0, 1fr) auto;
   min-height: 4rem;
-  border-bottom: var(--studio-border-width) solid var(--studio-line);
   background: color-mix(in srgb, var(--studio-surface) 96%, transparent);
   backdrop-filter: blur(8px);
 }
-.map-style-customizer-header > span { @apply grid min-w-0 gap-0.5; }
 .map-style-customizer-header h2 {
   @apply m-0 overflow-hidden text-ellipsis whitespace-nowrap;
+  justify-self: start;
   color: var(--studio-text-strong);
   font-size: var(--studio-font-control);
   font-weight: 650;
 }
-.map-style-customizer-header small { color: var(--studio-text-muted); font-size: var(--studio-font-meta); }
 .map-style-reset {
+  justify-self: end;
   min-height: 1.875rem;
   padding: 0 0.5rem;
   border-radius: var(--studio-radius-sm);
@@ -918,18 +920,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .map-style-reset:disabled { opacity: 0.35; cursor: default; }
 .map-style-reset-narrow { display: none; }
 .map-style-customizer-content { @apply px-4 pb-6; }
-.map-style-customizer-content > section { padding: 1rem 0; border-bottom: var(--studio-border-width) solid var(--studio-line); }
-.map-style-customizer-content > section:last-child { border-bottom: 0; }
-.map-style-customizer-content p {
-  margin: 0 0 0.75rem;
-  color: var(--studio-text-muted);
-  font-size: var(--studio-font-meta);
-  line-height: 1.45;
-}
-.map-style-customizer-section-heading { @apply mb-1.5 flex items-center justify-between gap-2; }
-.map-style-customizer-section-heading > span { @apply flex items-center gap-1.5; color: var(--studio-text-secondary); }
-.map-style-customizer-section-heading h3 { margin: 0; color: var(--studio-text-strong); font-size: var(--studio-font-label); font-weight: 650; }
-.map-style-customizer-section-heading > small { color: var(--studio-text-muted); font-size: var(--studio-font-meta); }
+.map-style-customizer-content > section { padding: 1rem 0; }
 .map-style-tone {
   @apply grid grid-cols-3 gap-1 rounded-md p-1;
   background: var(--studio-field);
@@ -1847,8 +1838,8 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
   .right-sidebar.is-mobile-open .segmented { height: calc(2.75rem + 2px); }
   .right-sidebar.is-mobile-open .map-style-customizer-header {
     min-height: 3.75rem;
-    padding-right: 4rem;
   }
+  .right-sidebar.is-mobile-open:has(.map-style-customizer) > .mobile-drawer-close { display: none; }
   .right-sidebar.is-mobile-open .map-style-reset-wide { display: none; }
   .right-sidebar.is-mobile-open .map-style-reset-narrow { display: inline; }
   .right-sidebar.is-mobile-open .mobile-drawer-close { z-index: 20; }
@@ -1866,7 +1857,7 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
     right: 0.5rem;
     width: 2.75rem;
     height: 2.75rem;
-    border-radius: var(--studio-radius-sm);
+    border-radius: 999px;
     color: var(--studio-text-secondary);
   }
   .mobile-drawer-close:hover { background: var(--studio-field); }

@@ -1,4 +1,4 @@
-import { ArrowLeft, ChevronRight, RotateCcw, SlidersHorizontal } from 'lucide-react';
+import { ArrowLeft, ChevronRight, RotateCcw } from 'lucide-react';
 import { useEffect, useRef, type RefObject } from 'react';
 import {
   isMapStyleCustomized,
@@ -6,12 +6,7 @@ import {
   type MapStyleCustomization,
   type MapStyleTone,
 } from '../../domain/mapStyleCustomization';
-import {
-  MAP_STYLE_PRESETS,
-  MAP_STYLE_TOKEN_ROLES,
-  type MapStylePreset,
-  type MapStyleTokenRole,
-} from '../../domain/mapStylePresets';
+import { MAP_STYLE_TOKEN_ROLES, type MapStylePreset, type MapStyleTokenRole } from '../../domain/mapStylePresets';
 
 type EditMode = 'history' | 'amend';
 
@@ -99,7 +94,7 @@ function SemanticColorRow({
   const finish = () => { isEditing.current = false; };
   return (
     <div className="map-style-color-row">
-      <span>{label}<small className={customColor ? 'is-custom' : undefined}>{customColor ? 'Custom' : 'Linked'}</small></span>
+      <span>{label}{customColor ? <small className="is-custom">Custom</small> : null}</span>
       <input
         aria-label={`${label} color`}
         type="color"
@@ -166,7 +161,6 @@ export function MapStyleCustomizer({
   preset,
 }: MapStyleCustomizerProps) {
   const headingRef = useRef<HTMLHeadingElement>(null);
-  const definition = MAP_STYLE_PRESETS.find(({ id }) => id === preset) ?? MAP_STYLE_PRESETS[0];
   const tokens = resolveMapStyleTokens(preset, customization);
   const customized = isMapStyleCustomized(customization);
   useEffect(() => { headingRef.current?.focus(); }, []);
@@ -180,7 +174,7 @@ export function MapStyleCustomizer({
     }}>
       <header className="map-style-customizer-header">
         <button className="icon-button" aria-label="Back to project properties" type="button" onClick={onBack}><ArrowLeft size={17} /></button>
-        <span><h2 ref={headingRef} tabIndex={-1}>Customize map</h2><small>{definition.label} base</small></span>
+        <h2 ref={headingRef} tabIndex={-1}>Customize map</h2>
         <button
           className="map-style-reset"
           aria-label="Reset to Paper"
@@ -194,13 +188,6 @@ export function MapStyleCustomizer({
       </header>
       <div className="map-style-customizer-content">
         <section>
-          <div className="map-style-customizer-section-heading">
-            <span><SlidersHorizontal size={14} /><h3>Quick Tune</h3></span>
-            <div className="map-style-customizer-palette" aria-label="Resolved map palette">
-              {PREVIEW_ROLES.map((role) => <i key={role} style={{ background: tokens[role] }} />)}
-            </div>
-          </div>
-          <p>Set the overall direction first. Linked colors below follow these adjustments.</p>
           <div className="map-style-tone" role="group" aria-label="Map tone">
             {(['cool', 'balanced', 'warm'] as const).map((tone) => (
               <button key={tone} aria-pressed={customization.tone === tone} type="button" onClick={() => onToneChange(tone)}>

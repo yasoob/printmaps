@@ -10,7 +10,7 @@ export function ToolCardHeader({ closeLabel, icon: Icon, onClose, title }: Reado
   return (
     <div className="tool-card-heading">
       <strong><Icon aria-hidden="true" size={17} />{title}</strong>
-      <button type="button" aria-label={closeLabel} onClick={onClose}><X aria-hidden="true" size={15} /></button>
+      <button className="close-button" type="button" aria-label={closeLabel} onClick={onClose}><X aria-hidden="true" size={15} /></button>
     </div>
   );
 }

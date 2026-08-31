@@ -162,7 +162,7 @@ export function MapDataImportPortals({
               <h2 id="map-data-import-title">{copy.title}</h2>
               <p>{copy.description}</p>
             </div>
-            <button className="icon-button" type="button" aria-label="Close map data import" onClick={onClose}><X size={15} /></button>
+            <button className="icon-button close-button" type="button" aria-label="Close map data import" onClick={onClose}><X size={15} /></button>
           </header>
           <div className="map-data-import-body">
             <ul aria-label="Selected map data files">

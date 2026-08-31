@@ -241,7 +241,7 @@ export function ExportDialogView(props: ExportDialogViewProps) {
       >
         <div className="export-dialog-header">
           <div><h2 id="export-title">Export map</h2><p>Choose a format for the current print frame.</p></div>
-          <button className="icon-button" type="button" aria-label="Close export" disabled={busy} onClick={onClose}><X size={16} /></button>
+          <button className="icon-button close-button" type="button" aria-label="Close export" disabled={busy} onClick={onClose}><X size={16} /></button>
         </div>
         <div className="export-dialog-body">
           <ExportFormatChoice busy={busy} onChange={onFormatChange} selectedFormat={selectedFormat} />

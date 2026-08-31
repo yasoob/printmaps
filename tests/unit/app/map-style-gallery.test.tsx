@@ -49,7 +49,7 @@ describe('map style preset gallery', () => {
     expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-style-preset', 'graphite');
   });
 
-  it('moves into color customization, keeps linked overrides clear, and returns focus to the main inspector', async () => {
+  it('moves into color customization, keeps overrides clear, and returns focus to the main inspector', async () => {
     const user = userEvent.setup();
     render(<App />);
 
@@ -57,6 +57,9 @@ describe('map style preset gallery', () => {
     await user.click(customize);
     const heading = screen.getByRole('heading', { name: 'Customize map' });
     expect(heading).toHaveFocus();
+    expect(screen.queryByRole('heading', { name: 'Quick Tune' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Paper base')).not.toBeInTheDocument();
+    expect(screen.queryByText('Linked')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Warm' }));
     fireEvent.change(screen.getByRole('slider', { name: 'Contrast' }), { target: { value: '72' } });

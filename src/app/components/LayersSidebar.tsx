@@ -122,7 +122,7 @@ export const LayersSidebar = memo(function LayersSidebar(props: LayersSidebarPro
       <div className="panel-header">
         <span>Layers</span>
         <button
-          className="icon-button"
+          className={`icon-button${activePanel === 'layers' ? ' close-button' : ''}`}
           type="button"
           aria-label={activePanel === 'layers' ? 'Close layers' : 'Collapse layers'}
           onClick={() => closePanel('layers')}
