@@ -2,6 +2,7 @@
 import ExportFormatRow from './ExportFormatRow.astro';
 import FeatureIconGrid from './FeatureIconGrid.astro';
 import MarketingLayout from './MarketingLayout.astro';
+import PhotoshopHandoff from './PhotoshopHandoff.astro';
 import SimpleFaqSection from './SimpleFaqSection.astro';
 import { SITE_NAME, SITE_URL } from './product';
 
@@ -64,6 +65,7 @@ type PageSection = {
   title: string;
   paragraphs: readonly string[];
   points?: readonly string[];
+  showPhotoshopHandoff?: boolean;
 };
 
 type RelatedLink = {
@@ -80,7 +82,10 @@ type Props = {
   heading: string;
   heroImage: {
     alt: string;
+    desktopAspect?: '16:10' | '2000:1155';
+    desktopHeight?: number;
     desktopSrc: string;
+    desktopWidth?: number;
     mobileSrc: string;
   };
   lead: string;
@@ -147,7 +152,18 @@ const structuredData = {
       <a class="group relative mx-auto mt-14 block max-w-[68rem] overflow-hidden rounded-t-xl border border-b-0 border-[#d2d2d7] bg-white focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[#8bb9ff]" href="/editor/" aria-label={`Open ${SITE_NAME} editor`}>
         <picture class="block">
           <source media="(max-width: 640px)" srcset={heroImage.mobileSrc} type="image/webp" />
-          <img class="aspect-[16/10] w-full object-cover object-top max-sm:aspect-[13/14]" src={heroImage.desktopSrc} alt={heroImage.alt} width="1440" height="900" loading="eager" fetchpriority="high" />
+          <img
+            class:list={[
+              'w-full object-cover object-top max-sm:aspect-[13/14]',
+              heroImage.desktopAspect === '2000:1155' ? 'sm:aspect-[2000/1155]' : 'sm:aspect-[16/10]',
+            ]}
+            src={heroImage.desktopSrc}
+            alt={heroImage.alt}
+            width={heroImage.desktopWidth ?? 1440}
+            height={heroImage.desktopHeight ?? 900}
+            loading="eager"
+            fetchpriority="high"
+          />
         </picture>
       </a>
     </div>
@@ -167,6 +183,7 @@ const structuredData = {
               </ul>
             )}
             {section.showExportFormats && <ExportFormatRow class="mt-8" />}
+            {section.showPhotoshopHandoff && <PhotoshopHandoff />}
             {section.image && (
               <figure class="mt-10">
                 <div class="overflow-hidden rounded-xl border border-[#d2d2d7] bg-white">

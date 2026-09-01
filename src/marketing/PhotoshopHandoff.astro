@@ -1,0 +1,48 @@
+---
+const editorImage = {
+  src: '/explore-shots/psd-workflow-editor.webp',
+  alt: 'Print Map Studio editor showing named map layers, a route, places, and a walking area',
+  width: 2000,
+  height: 1155,
+};
+const photoshopImage = {
+  src: '/explore-shots/psd-workflow-photoshop.webp',
+  alt: 'The exported map open in Adobe Photoshop with separately named layers and Smart Objects',
+  width: 1999,
+  height: 1186,
+};
+---
+
+<div
+  class="relative left-1/2 mt-12 w-[min(calc(100vw-2rem),68rem)] -translate-x-1/2"
+  role="group"
+  aria-label="Layered PSD handoff from Print Map Studio to Photoshop"
+>
+  <div class="md:relative md:aspect-[16/9]">
+    <div class="overflow-hidden rounded-xs border border-zinc-200 md:absolute md:top-[4%] md:left-[2%] md:w-[69%]">
+      <img
+        class="h-auto w-full"
+        src={editorImage.src}
+        alt={editorImage.alt}
+        width={editorImage.width}
+        height={editorImage.height}
+        loading="lazy"
+        decoding="async"
+      />
+    </div>
+    <div class="mt-3 overflow-hidden rounded-xs md:absolute md:right-[2%] md:bottom-[4%] md:mt-0 md:w-[60%]">
+      <img
+        class="h-auto w-full"
+        src={photoshopImage.src}
+        alt={photoshopImage.alt}
+        width={photoshopImage.width}
+        height={photoshopImage.height}
+        loading="lazy"
+        decoding="async"
+      />
+    </div>
+  </div>
+  <p class="mx-auto mt-4 max-w-3xl text-center text-xs leading-5 text-[#6e6e73] sm:text-sm sm:leading-6">
+    Design the map in Print Map Studio, then open the layered PSD in Photoshop with routes, places, areas, attribution, and the basemap kept separate.
+  </p>
+</div>

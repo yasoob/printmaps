@@ -120,7 +120,7 @@ test('explore pages use contextual product screenshots', async ({ page }) => {
     },
     {
       path: '../layered-map-export/',
-      hero: /export-editor-overview-desktop\.webp$/,
+      hero: /psd-workflow-editor\.webp$/,
       details: [
         /export-flat-map\.webp$/,
         /export-pdf-summary\.webp$/,
@@ -149,6 +149,16 @@ test('explore pages use contextual product screenshots', async ({ page }) => {
       await expect(detail).toHaveAttribute('alt', /Print Map Studio/i);
     }
   }
+});
+
+test('layered export shows the Photoshop handoff', async ({ page }) => {
+  await page.goto('../layered-map-export/');
+  const handoff = page.getByRole('group', { name: 'Layered PSD handoff from Print Map Studio to Photoshop' });
+  await expect(handoff.locator('img')).toHaveCount(2);
+  await expect(handoff.getByAltText(/Print Map Studio editor/)).toBeVisible();
+  await expect(handoff.getByAltText(/exported map open in Adobe Photoshop/)).toBeVisible();
+  await expect(handoff).toContainText('open the layered PSD in Photoshop');
+  await expect(page.getByRole('tablist', { name: 'Photoshop visual concepts' })).toHaveCount(0);
 });
 
 test('feature highlights use two mobile columns and four desktop columns', async ({ page }) => {
