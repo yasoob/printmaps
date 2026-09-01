@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
+    "@dnd-kit/react": "^0.5.0",
     "@math.gl/web-mercator": "^4.1.0",
     "ag-psd": "^31.0.2",
     "class-variance-authority": "^0.7.1",

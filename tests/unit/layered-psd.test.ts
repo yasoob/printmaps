@@ -172,11 +172,11 @@ describe('layered PSD writer', () => {
 
     expect(renderTile).toHaveBeenCalledOnce();
     expect(written?.children.map(({ name }) => name)).toEqual([
-      'Attribution',
-      'Route 01',
-      'Coffee stop',
-      'City center',
       'Paper basemap',
+      'City center',
+      'Coffee stop',
+      'Route 01',
+      'Attribution',
     ]);
     expect(written?.children.find(({ name }) => name === 'Route 01')).toMatchObject({
       hidden: true,
@@ -277,7 +277,9 @@ describe('layered PSD permutation order', () => {
     });
 
     const editorNames = editorOrder.map((type) => byType.get(type)?.name);
-    expect(children.map(({ name }) => name)).toEqual([
+    expect(children.map(({ name }) => name)).toEqual(paintOrder);
+    const photoshopPanelOrder = children.map((_, index) => children.at(-index - 1)?.name);
+    expect(photoshopPanelOrder).toEqual([
       'Attribution',
       ...editorNames,
       'Paper basemap',

@@ -130,7 +130,6 @@ describe('editor render boundaries', () => {
       activePanel: null,
       autosave,
       closePanel: vi.fn(),
-      draggedLayerIdRef: createRef<string | null>(),
       layers: initial.document.layers,
       onKeyDown: vi.fn(),
       panelRef: createRef<HTMLElement>(),
@@ -194,7 +193,6 @@ describe('editor render boundaries', () => {
             activePanel={null}
             autosave={autosaveState()}
             closePanel={vi.fn()}
-            draggedLayerIdRef={createRef<string | null>()}
             layers={store.getState().document.layers}
             onKeyDown={vi.fn()}
             panelRef={createRef<HTMLElement>()}

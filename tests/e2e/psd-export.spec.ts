@@ -111,9 +111,9 @@ async function downloadPsd(page: Page, testInfo: TestInfo, outputName: string): 
   return { dialog, psd: readValidatedPsd(await readFile(outputPath)) };
 }
 
-function expectSmartObjectStructure(psd: Psd, expectedChildren: string[]): void {
+function expectSmartObjectStructure(psd: Psd, expectedStorageOrder: string[]): void {
   expect(psd).toMatchObject({ width: 300, height: 300 });
-  expect(psd.children?.map(({ name }) => name)).toEqual(expectedChildren);
+  expect(psd.children?.map(({ name }) => name)).toEqual(expectedStorageOrder);
   const smartObjectLayers = psd.children?.filter(({ placedLayer }) => placedLayer) ?? [];
   expect(smartObjectLayers).toHaveLength(4);
   expect(smartObjectLayers.every(({ bottom, left, placedLayer, right, top }) => (
@@ -156,11 +156,11 @@ test('layered PSD respects editor order for real route and point overlaps', asyn
 
   const routeTop = await downloadPsd(page, testInfo, 'route-over-point.psd');
   expectSmartObjectStructure(routeTop.psd, [
-    'Attribution',
-    'Route 01',
-    'Coffee stop',
-    'City center',
     'Paper basemap',
+    'City center',
+    'Coffee stop',
+    'Route 01',
+    'Attribution',
   ]);
   expectCompositeWinner(routeTop.psd, 'Route 01', 'Coffee stop');
   const svgByFilename = new Map(routeTop.psd.linkedFiles?.map(({ data, name }) => [
@@ -179,11 +179,11 @@ test('layered PSD respects editor order for real route and point overlaps', asyn
 
   const pointTop = await downloadPsd(page, testInfo, 'point-over-route.psd');
   expectSmartObjectStructure(pointTop.psd, [
-    'Attribution',
-    'Coffee stop',
-    'Route 01',
-    'City center',
     'Paper basemap',
+    'City center',
+    'Route 01',
+    'Coffee stop',
+    'Attribution',
   ]);
   expectCompositeWinner(pointTop.psd, 'Coffee stop', 'Route 01');
   if (testInfo.project.name === 'chromium') {
@@ -198,11 +198,11 @@ test('layered PSD respects editor order for real route and point overlaps', asyn
 
   const shapeTop = await downloadPsd(page, testInfo, 'shape-over-point-and-route.psd');
   expectSmartObjectStructure(shapeTop.psd, [
-    'Attribution',
-    'City center',
-    'Coffee stop',
-    'Route 01',
     'Paper basemap',
+    'Route 01',
+    'Coffee stop',
+    'City center',
+    'Attribution',
   ]);
   expectOpacityComposite(pointTop.psd, shapeTop.psd, {
     layerName: 'City center',

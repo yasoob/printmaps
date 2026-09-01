@@ -1,5 +1,17 @@
 import '@testing-library/jest-dom/vitest';
 
+class TestResizeObserver implements ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
+Object.defineProperty(globalThis, 'ResizeObserver', {
+  configurable: true,
+  value: TestResizeObserver,
+  writable: true,
+});
+
 const inspectorPreferenceKeys = [
   'page',
   'map-style',

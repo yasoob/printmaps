@@ -198,7 +198,6 @@ function useStudioAppModel(props: StudioAppProps) {
   } | null>(null);
   const mapExporter = useMapExporter();
   const mapLocation = useMapLocationCommand(documentEpoch);
-  const draggedLayerIdRef = useRef<string | null>(null);
   const exportButtonRef = useRef<HTMLButtonElement>(null);
   const importButtonRef = useRef<HTMLButtonElement>(null);
   const openButtonRef = useRef<HTMLButtonElement>(null);
@@ -261,7 +260,7 @@ function useStudioAppModel(props: StudioAppProps) {
   });
   return {
     assets, autosave, clearSelection, deleteSelectedLayer, directionsProvider,
-    directionsRouteEditing: directions.editing, documentEpoch, draggedLayerIdRef,
+    directionsRouteEditing: directions.editing, documentEpoch,
     exportButtonRef, handleAuthoringChange, handleDeleteKeyDown, handleOpenedDocument,
     importButtonRef, isAuthoring, layers, mapDataImport, mapExporter,
     mapLayers: directions.mapLayers, mapLocation, mapMatchingProvider,

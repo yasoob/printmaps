@@ -125,6 +125,15 @@ function psdLayer(layer: PsdRasterLayer): Layer {
   };
 }
 
+function reverseLayerOrder(layers: readonly PsdRasterLayer[]): PsdRasterLayer[] {
+  const reversed: PsdRasterLayer[] = [];
+  for (let index = layers.length - 1; index >= 0; index -= 1) {
+    const layer = layers[index];
+    if (layer) reversed.push(layer);
+  }
+  return reversed;
+}
+
 function psdBlobBuffer(bytes: Uint8Array): ArrayBuffer {
   if (bytes.buffer instanceof ArrayBuffer) {
     if (bytes.byteOffset === 0 && bytes.byteLength === bytes.buffer.byteLength) return bytes.buffer;
@@ -191,22 +200,19 @@ export async function createLayeredPsd(
     const attributionLayer = smartObjectLayers.find(({ role }) => role === 'attribution');
     if (!attributionLayer) throw new Error('The PSD attribution layer is unavailable.');
 
-    drawCompositeLayer(compositeContext, basemapLayerSource);
-    for (let index = contentLayers.length - 1; index >= 0; index -= 1) {
-      const layer = contentLayers[index];
-      if (layer) drawCompositeLayer(compositeContext, layer);
-    }
-    drawCompositeLayer(compositeContext, attributionLayer);
+    const bottomToTopLayers: PsdRasterLayer[] = [
+      basemapLayerSource,
+      ...reverseLayerOrder(contentLayers),
+      attributionLayer,
+    ];
+    for (const layer of bottomToTopLayers) drawCompositeLayer(compositeContext, layer);
 
     throwIfPsdCancelled(options.signal);
     options.onStage?.('packaging');
     await yieldToBrowserTask();
     throwIfPsdCancelled(options.signal);
-    const children: Layer[] = [
-      psdLayer(attributionLayer),
-      ...contentLayers.map((layer) => psdLayer(layer)),
-      psdLayer(basemapLayerSource),
-    ];
+    // ag-psd writes this array directly as layer records; Photoshop displays those records in reverse.
+    const children: Layer[] = bottomToTopLayers.map((layer) => psdLayer(layer));
     const psd: Psd = {
       width: output.width,
       height: output.height,

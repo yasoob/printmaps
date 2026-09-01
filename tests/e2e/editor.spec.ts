@@ -122,7 +122,17 @@ test('desktop commands, orientation, reorder, and overflow menu work in a real b
 
   const routeHandle = page.getByRole('button', { name: 'Reorder Route 01' });
   const coffeeHandle = page.getByRole('button', { name: 'Reorder Coffee stop' });
-  await routeHandle.dragTo(coffeeHandle);
+  const routeBounds = await routeHandle.boundingBox();
+  const coffeeBounds = await coffeeHandle.boundingBox();
+  expect(routeBounds).not.toBeNull();
+  expect(coffeeBounds).not.toBeNull();
+  await page.mouse.move(routeBounds!.x + routeBounds!.width / 2, routeBounds!.y + routeBounds!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(coffeeBounds!.x + coffeeBounds!.width / 2, coffeeBounds!.y + coffeeBounds!.height / 2, { steps: 8 });
+  await expect(page.locator('[data-layer-id="route-01"]')).toHaveClass(/is-dragging/);
+  await expect(page.locator('.layer-drag-overlay')).toBeVisible();
+  await expect(page.getByRole('list', { name: 'Map layers' }).getByRole('button', { name: /^Select / }).nth(0)).toHaveAccessibleName('Select Coffee stop');
+  await page.mouse.up();
   await expect(page.getByRole('list', { name: 'Map layers' }).getByRole('button', { name: /^Select / }).nth(0)).toHaveAccessibleName('Select Coffee stop');
   await page.getByRole('button', { name: 'Reorder Route 01' }).press('Alt+ArrowUp');
   await expect(page.getByRole('list', { name: 'Map layers' }).getByRole('button', { name: /^Select / }).nth(0)).toHaveAccessibleName('Select Route 01');

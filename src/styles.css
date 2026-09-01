@@ -210,11 +210,20 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 .layer-row:hover { background: var(--studio-hover); }
 .layer-row.is-selected { border-left-color: var(--studio-accent); background: var(--studio-accent-soft); }
+.layer-row.is-dragging {
+  border-left-color: var(--studio-accent);
+  outline: 1px dashed var(--studio-accent);
+  outline-offset: -1px;
+  opacity: .28;
+  background: var(--studio-accent-soft);
+}
 .layer-lock, .layer-drag { opacity: 0; }
 .layer-row:hover .layer-lock,
 .layer-row:hover .layer-drag,
 .layer-row.is-selected .layer-lock,
 .layer-row.is-selected .layer-drag,
+.layer-row.is-dragging .layer-lock,
+.layer-row.is-dragging .layer-drag,
 .layer-lock:focus-visible,
 .layer-drag:focus-visible { opacity: 1; }
 .layer-select {
@@ -232,9 +241,21 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 .layer-lock, .layer-drag { opacity: .55; }
 .layer-row:hover .layer-lock, .layer-row:hover .layer-drag, .layer-row.is-selected .layer-lock, .layer-row.is-selected .layer-drag, .layer-lock:focus-visible, .layer-drag:focus-visible { opacity: 1; }
-.layer-drag { cursor: grab; }
+.layer-drag { touch-action: none; cursor: grab; }
 .layer-drag:active { cursor: grabbing; }
 .layer-drag:disabled { cursor: default; opacity: .25; }
+.layer-drag-overlay-wrapper { pointer-events: none; }
+.layer-drag-overlay {
+  width: 100%;
+  height: 100%;
+  border: var(--studio-border-width) solid var(--studio-accent);
+  border-left-width: 2px;
+  border-radius: var(--studio-radius-sm);
+  opacity: .96;
+  background: var(--studio-surface);
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--studio-text) 20%, transparent);
+}
+.layer-drag-overlay .layer-lock, .layer-drag-overlay .layer-drag { opacity: 1; }
 .sidebar-footer {
   @apply mt-auto flex justify-between px-3 py-2.5;
   border-top: var(--studio-border-width) solid var(--studio-line);

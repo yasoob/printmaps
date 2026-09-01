@@ -144,7 +144,7 @@ export function StudioAppView({ model: m }: { model: StudioAppModel }) {
           onImportOpenChange={m.mapDataImport.setIsImportOpen}
           onExport={m.openExport}
         />
-        <LayersSidebar layers={m.layers} activePanel={m.modal.mobilePanel} draggedLayerIdRef={m.draggedLayerIdRef} setPreviewedLayerId={m.setPreviewedLayerId} closePanel={m.mobile.closePanel} panelRef={m.mobile.layersPanelRef} onKeyDown={m.mobile.handlePanelKeyDown} autosave={m.autosave} />
+        <LayersSidebar layers={m.layers} activePanel={m.modal.mobilePanel} setPreviewedLayerId={m.setPreviewedLayerId} closePanel={m.mobile.closePanel} panelRef={m.mobile.layersPanelRef} onKeyDown={m.mobile.handlePanelKeyDown} autosave={m.autosave} />
         <StudioCanvas m={m} />
         {m.modal.mobilePanel && <button className="mobile-panel-backdrop" type="button" aria-label="Close open panel" onClick={() => m.mobile.closePanel()} />}
         <StudioProperties m={m} />
