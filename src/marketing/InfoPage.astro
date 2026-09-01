@@ -1,0 +1,62 @@
+---
+import MarketingLayout from './MarketingLayout.astro';
+import { SITE_NAME, SITE_URL } from './product';
+
+type Props = {
+  description: string;
+  eyebrow: string;
+  heading: string;
+  title: string;
+  updated?: string;
+};
+
+const {
+  description,
+  eyebrow,
+  heading,
+  title,
+  updated,
+} = Astro.props;
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@type': 'WebPage',
+  '@id': `${canonicalUrl}#webpage`,
+  name: `${title} | ${SITE_NAME}`,
+  url: canonicalUrl,
+  description,
+  isPartOf: {
+    '@id': `${SITE_URL}/#website`,
+  },
+};
+---
+
+<MarketingLayout title={title} description={description} structuredData={structuredData}>
+  <section class="bg-[#f5f5f7] px-4 py-20 font-inter text-[#1d1d1f] sm:px-8 sm:py-28">
+    <div class="mx-auto max-w-[68rem]">
+      <span class="text-[0.72rem] font-semibold tracking-[0.1em] text-[#6e6e73] uppercase">{eyebrow}</span>
+      <h1 class="mt-4 max-w-4xl text-4xl leading-[0.95] font-semibold tracking-[-0.045em] sm:text-5xl lg:text-6xl">
+        {heading}
+      </h1>
+      <p class="mt-7 max-w-2xl text-base leading-7 text-[#6e6e73] sm:text-lg sm:leading-8">
+        {description}
+      </p>
+      {updated && <p class="mt-5 text-sm text-[#86868b]">Last updated {updated}</p>}
+    </div>
+  </section>
+
+  <article
+    class="bg-white px-4 py-18 font-inter text-[#1d1d1f] sm:px-8 sm:py-24
+      [&_a]:font-medium [&_a]:text-[#0071e3] [&_a]:underline [&_a]:decoration-[#b9d7f7] [&_a]:underline-offset-4
+      [&_h2]:mt-14 [&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:tracking-[-0.025em] [&_h2]:first:mt-0
+      [&_h3]:mt-8 [&_h3]:text-lg [&_h3]:font-semibold
+      [&_li]:pl-1 [&_li]:text-base [&_li]:leading-7 [&_li]:text-[#515154]
+      [&_p]:mt-4 [&_p]:text-base [&_p]:leading-7 [&_p]:text-[#515154]
+      [&_strong]:font-semibold [&_strong]:text-[#1d1d1f]
+      [&_ul]:mt-4 [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:pl-6"
+  >
+    <div class="mx-auto max-w-[52rem]">
+      <slot />
+    </div>
+  </article>
+</MarketingLayout>

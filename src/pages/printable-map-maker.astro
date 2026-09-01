@@ -1,0 +1,117 @@
+---
+import SeoLandingPage from '../marketing/SeoLandingPage.astro';
+
+const description = 'Design a custom printable map in your browser. Set any page size, pick a style, add routes and places, then export PNG, PDF, layered SVG, or PSD.';
+const sections = [
+  {
+    title: 'Set the page size before you design',
+    paragraphs: [
+      'Choose A2, A3, A4, A5, A6, or US Letter, switch between portrait and landscape, or enter a custom width and height in millimetres. The editor shows a print frame at that size, so you compose against the final page.',
+      'Print Map Studio saves the page settings with the project. Autosave stays in browser storage. Download a project file when you want a separate backup.',
+    ],
+    highlights: [
+      { icon: 'a-series', label: 'A2-A6 presets' },
+      { icon: 'us-letter', label: 'US Letter' },
+      { icon: 'orientation', label: 'Portrait or landscape' },
+      { icon: 'dimensions', label: 'Custom millimetres' },
+    ],
+    image: {
+      src: '/explore-shots/printable-page-frame.webp',
+      alt: 'Visible A4 landscape print frame over a styled Vienna map in Print Map Studio',
+      width: 915,
+      height: 715,
+      title: 'Keep the print boundary visible.',
+      caption: 'The frame shows which map details and overlays will fit on the selected page.',
+    },
+  },
+  {
+    title: 'Pick a style and control the labels',
+    paragraphs: [
+      'Print Map Studio includes 12 styles, from Paper and Sandstone to Night Ink, Blueprint, Alpine, and Coastal. Each style sets the colors for land, water, roads, parks, buildings, boundaries, transit, and labels.',
+      'Show labels in the local language, English, German, French, Italian, Spanish, or Chinese. You can also change the text scale or hide map details that compete with your own routes and markers.',
+    ],
+    highlights: [
+      { icon: 'palette', label: '12 map styles' },
+      { icon: 'language', label: '7 label languages' },
+      { icon: 'text-scale', label: '50-200% text scale' },
+      { icon: 'visibility', label: '8 visibility controls' },
+    ],
+    imageRow: [
+      {
+        src: '/explore-shots/custom-colors.webp',
+        alt: 'Print Map Studio custom palette with tone contrast detail and color controls',
+        width: 1130,
+        height: 1716,
+        title: 'Customize the palette',
+        caption: 'Adjust tone, contrast, detail, and individual map colors.',
+      },
+      {
+        src: '/explore-shots/map-features.webp',
+        alt: 'Print Map Studio map detail controls with roads buildings and transit turned off',
+        width: 1130,
+        height: 1716,
+        title: 'Toggle map details',
+        caption: 'Show or hide roads, buildings, labels, water, parks, land detail, and transit.',
+      },
+      {
+        src: '/explore-shots/labels-and-text.webp',
+        alt: 'Print Map Studio language selector and text scale controls set to German',
+        width: 1130,
+        height: 1716,
+        title: 'Change labels and text size',
+        caption: 'Choose a label language, then scale the map text from 50% to 200%.',
+      },
+    ],
+  },
+  {
+    title: 'Add routes, places, and boundaries',
+    paragraphs: [
+      'Draw routes, add individual places, paste a list of locations, and create or select shape boundaries. GPX, KML, and GeoJSON imports become editable project content rather than a flattened screenshot.',
+      'Each route, place, and shape can be styled, reordered, hidden, duplicated, or removed. Reduce the base-map detail when your own routes or markers need more contrast.',
+    ],
+    highlights: [
+      { icon: 'route', label: 'Routes and waypoints' },
+      { icon: 'marker', label: 'Places and markers' },
+      { icon: 'region', label: 'Countries and regions' },
+      { icon: 'import', label: 'GPX, KML, GeoJSON' },
+    ],
+  },
+  {
+    title: 'Choose PNG, PDF, SVG, or PSD',
+    paragraphs: [
+      'PNG creates a flat raster at the selected physical page size. PDF preserves the page dimensions and keeps supported overlays as vector content. Layered SVG stores the basemap as an embedded raster while routes, places, and shapes remain named vector groups.',
+      'Layered PSD places content layers into separately named SVG Smart Objects over the raster basemap. The browser generates and downloads every export directly.',
+    ],
+    showExportFormats: true,
+  },
+] as const;
+const faq = [
+  { question: 'What page sizes can I use?', answer: 'Choose A2, A3, A4, A5, A6, US Letter, or enter a custom width and height in millimetres. Portrait and landscape orientations are both available.' },
+  { question: 'Do I need an account to export?', answer: 'No. The editor and all four export formats can be used without creating an account.' },
+  { question: 'Where is my project saved?', answer: 'The current project autosaves in browser storage. Download a portable project file as a backup before clearing browser data.' },
+  { question: 'Does Print Map Studio print physical maps?', answer: 'No. It creates digital map files that you can use in a layout, share, or send to the print provider of your choice.' },
+  { question: 'Which export format should I choose?', answer: 'Use PNG for a flat image, PDF for an exact page with supported vector overlays, layered SVG for named vector groups, or layered PSD for separately named Smart Object layers in Photoshop.' },
+] as const;
+const relatedLinks = [
+  { href: '/gpx-map-maker/', label: 'Turn a GPX track into a map', description: 'Import a recorded route and style it for a printed page.' },
+  { href: '/layered-map-export/', label: 'Compare layered export formats', description: 'See how PNG, PDF, layered SVG, and layered PSD differ.' },
+] as const;
+---
+
+<SeoLandingPage
+  title="Printable Map Maker"
+  description={description}
+  eyebrow="Free browser-based map editor"
+  heading="Build a printable map at the exact page size."
+  heroImage={{
+    desktopSrc: '/feature-shots/design-desktop.webp',
+    mobileSrc: '/feature-shots/design-mobile.webp',
+    alt: 'Print Map Studio showing page size and map style controls around a Vienna print frame',
+  }}
+  lead="Set the page size, choose a map style, add routes and places, then export for print or further editing. The editor runs in your browser with no account and no watermark."
+  primaryCta="Open the map editor"
+  facts={['Free to use', 'No account', 'Custom page sizes', 'Four export formats']}
+  sections={sections}
+  relatedLinks={relatedLinks}
+  faq={faq}
+/>

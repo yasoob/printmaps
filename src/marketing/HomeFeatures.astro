@@ -3,11 +3,11 @@
     <div data-feature-tour data-autoplay-paused="false" class="grid overflow-hidden lg:min-h-[42rem] lg:grid-cols-2">
       <div class="flex flex-col px-6 py-12 sm:px-12 sm:py-16 lg:px-16 lg:py-18">
         <div>
-          <h2 id="home-features-title" class="max-w-md text-3xl font-semibold tracking-[-0.035em] sm:text-5xl">
-            The complete map workflow
+          <h2 id="home-features-title" class="max-w-md text-2xl font-semibold tracking-[-0.03em] sm:text-3xl lg:text-4xl">
+            Design, add content, and export
           </h2>
           <p class="mt-4 max-w-md text-sm leading-6 text-[#6e6e73] sm:text-base">
-            Design a custom printable map in three focused steps.
+            Design a custom printable map in three steps.
           </p>
         </div>
 
@@ -79,20 +79,26 @@
         <div class="relative z-10 w-full overflow-hidden rounded-l-xs bg-white shadow-[0_1.5rem_4rem_rgba(0,0,0,0.2)]">
           <div id="feature-panel-design" role="tabpanel" aria-labelledby="feature-tab-design">
             <picture class="block">
-              <source media="(max-width: 640px)" srcset="/feature-shots/design-mobile.png" />
-              <img class="h-auto w-full" src="/feature-shots/design-desktop.png" alt="Print Map Studio page sizing and map style controls" width="1440" height="900" loading="lazy" />
+              <source media="(max-width: 640px)" srcset="/feature-shots/design-mobile.webp" type="image/webp" />
+              <source srcset="/feature-shots/design-desktop.webp" type="image/webp" />
+              <source media="(max-width: 640px)" srcset="/feature-shots/design-mobile.png" type="image/png" />
+              <img class="h-auto w-full" src="/feature-shots/design-desktop.png" alt="Print Map Studio page sizing and map style controls" width="1440" height="900" loading="lazy" decoding="async" />
             </picture>
           </div>
           <div id="feature-panel-content" role="tabpanel" aria-labelledby="feature-tab-content" hidden>
             <picture class="block">
-              <source media="(max-width: 640px)" srcset="/feature-shots/content-mobile.png" />
-              <img class="h-auto w-full" src="/feature-shots/content-desktop.png" alt="Print Map Studio editing a route as a selected map layer" width="1440" height="900" loading="lazy" />
+              <source media="(max-width: 640px)" srcset="/feature-shots/content-mobile.webp" type="image/webp" />
+              <source srcset="/feature-shots/content-desktop.webp" type="image/webp" />
+              <source media="(max-width: 640px)" srcset="/feature-shots/content-mobile.png" type="image/png" />
+              <img class="h-auto w-full" src="/feature-shots/content-desktop.png" alt="Print Map Studio editing a route as a selected map layer" width="1440" height="900" loading="lazy" decoding="async" />
             </picture>
           </div>
           <div id="feature-panel-export" role="tabpanel" aria-labelledby="feature-tab-export" hidden>
             <picture class="block">
-              <source media="(max-width: 640px)" srcset="/feature-shots/export-mobile.png" />
-              <img class="h-auto w-full" src="/feature-shots/export-desktop.png" alt="Print Map Studio export choices for PNG, layered SVG, layered PSD and PDF" width="1440" height="900" loading="lazy" />
+              <source media="(max-width: 640px)" srcset="/feature-shots/export-mobile.webp" type="image/webp" />
+              <source srcset="/feature-shots/export-desktop.webp" type="image/webp" />
+              <source media="(max-width: 640px)" srcset="/feature-shots/export-mobile.png" type="image/png" />
+              <img class="h-auto w-full" src="/feature-shots/export-desktop.png" alt="Print Map Studio export choices for PNG, layered SVG, layered PSD and PDF" width="1440" height="900" loading="lazy" decoding="async" />
             </picture>
           </div>
         </div>

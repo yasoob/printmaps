@@ -1,0 +1,40 @@
+---
+import InfoPage from '../marketing/InfoPage.astro';
+import {
+  CREATOR_NAME,
+  CREATOR_URL,
+  GITHUB_URL,
+} from '../marketing/product';
+
+const description = 'Learn why Print Map Studio was created, how project files stay local, and where to find the source code or ask for help.';
+---
+
+<InfoPage
+  title="About"
+  description={description}
+  eyebrow="About the project"
+  heading="A map editor built for print."
+>
+  <h2>Why Print Map Studio exists</h2>
+  <p>
+    Print Map Studio creates static maps for brochures, reports, guidebooks, posters, presentations, event handouts, and personal prints. Set the page size, style the map, add routes, places, or shapes, and export the result without leaving the browser.
+  </p>
+  <p>
+    The editor is free to use and does not require an account. Projects autosave in your browser, and you can download a portable project file when you want a backup or need to continue later.
+  </p>
+
+  <h2>Projects and exports stay on your device</h2>
+  <p>
+    The browser parses imported GPX, KML, and GeoJSON files and generates PNG, PDF, layered SVG, and layered PSD exports. Optional search, routing, map matching, travel-time, and elevation features contact the relevant map or elevation provider when you use them.
+  </p>
+
+  <h2>Open source</h2>
+  <p>
+    The project is created and maintained by <a href={CREATOR_URL}>{CREATOR_NAME}</a>. The source code, issue tracker, and implementation history are available in the <a href={GITHUB_URL}>Print Map Studio GitHub repository</a>.
+  </p>
+
+  <h2>Questions and support</h2>
+  <p>
+    For a bug report, feature request, or support question, <a href={`${GITHUB_URL}/issues`}>open an issue on GitHub</a>. Include the browser you are using and the steps that led to the problem. To speed up the process, also share a save file from when the problem occurred.
+  </p>
+</InfoPage>

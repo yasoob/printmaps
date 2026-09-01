@@ -1,0 +1,40 @@
+---
+type Props = {
+  class?: string;
+  compact?: boolean;
+};
+
+const {
+  class: className,
+  compact = false,
+} = Astro.props;
+---
+
+<a
+  data-hero-image-link
+  class:list={[
+    'group relative block overflow-hidden bg-white shadow-[0_2rem_5rem_rgba(0,0,0,0.12)] transition-transform duration-500 ease-out hover:scale-[1.012] focus-visible:scale-[1.012] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[#8bb9ff] motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:focus-visible:scale-100',
+    compact ? 'rounded-2xl' : 'rounded-t-xs lg:aspect-[2000/770]',
+    className,
+  ]}
+  href="/editor/"
+  aria-label="Open Print Map Studio editor"
+>
+  <picture class="block">
+    <source media="(max-width: 640px)" srcset="/hero-assets/editor-mobile.webp" type="image/webp" />
+    <source media="(max-width: 1024px)" srcset="/hero-assets/editor-tablet.webp" type="image/webp" />
+    <img
+      class:list={['h-auto w-full', compact && 'lg:min-h-[34rem] lg:object-cover']}
+      src="/hero-assets/editor-new-york.webp"
+      alt="Print Map Studio showing a map with responsive editing controls"
+      width="1600"
+      height="924"
+      loading="eager"
+      fetchpriority="high"
+    />
+  </picture>
+  <span class="pointer-events-none absolute inset-0 bg-black/0 transition-colors duration-500 group-hover:bg-black/20 group-focus-visible:bg-black/20 motion-reduce:transition-none" aria-hidden="true"></span>
+  <span class="pointer-events-none absolute top-1/2 left-1/2 inline-flex -translate-x-1/2 -translate-y-1/2 scale-95 items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-[#1d1d1f] opacity-0 shadow-lg transition duration-300 group-hover:scale-100 group-hover:opacity-100 group-focus-visible:scale-100 group-focus-visible:opacity-100 motion-reduce:transition-none">
+    Open Editor
+  </span>
+</a>

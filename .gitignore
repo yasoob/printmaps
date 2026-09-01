@@ -1,6 +1,8 @@
 node_modules/
 dist/
 .astro/
+.seo-cache/
+output/
 playwright-report/
 test-results/
 coverage/
@@ -9,6 +11,8 @@ coverage/
 __pycache__/
 .env
 .env.local
+.secrets/
+.github/skills/seo/.venv/
 *.log
 *.tsbuildinfo
 .DS_Store

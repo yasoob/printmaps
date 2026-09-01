@@ -6,19 +6,28 @@ type FaqItem = {
 
 type Props = {
   items: readonly FaqItem[];
+  description?: string;
+  id?: string;
+  title?: string;
 };
 
-const { items } = Astro.props;
+const {
+  items,
+  description = 'The essentials about creating, saving, and exporting your map.',
+  id = 'faq',
+  title = 'Frequently asked questions.',
+} = Astro.props;
+const titleId = `${id}-title`;
 ---
 
-<section id="faq" class="scroll-mt-8 bg-[#f5f5f7] py-18 font-inter text-[#1d1d1f] sm:py-24" aria-labelledby="homepage-faq-title">
+<section id={id} class="scroll-mt-8 bg-[#f5f5f7] py-18 font-inter text-[#1d1d1f] sm:py-24" aria-labelledby={titleId}>
   <div class="mx-auto w-[calc(100%_-_2rem)] max-w-[56rem]">
     <div class="text-center">
-      <h2 id="homepage-faq-title" class="text-3xl font-semibold tracking-[-0.03em] sm:text-5xl">
-        Frequently asked questions.
+      <h2 id={titleId} class="text-2xl font-semibold tracking-[-0.03em] sm:text-3xl lg:text-4xl">
+        {title}
       </h2>
       <p class="mx-auto mt-4 max-w-xl text-sm leading-6 text-[#6e6e73] sm:text-base">
-        The essentials about creating, saving, and exporting your map.
+        {description}
       </p>
     </div>
 

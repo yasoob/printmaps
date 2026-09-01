@@ -1,0 +1,29 @@
+{
+  "inputs": [
+    {
+      "id": "dataforseo-basic-token",
+      "type": "promptString",
+      "description": "Pre-encoded DataForSEO Basic authentication token",
+      "password": true
+    }
+  ],
+  "servers": {
+    "gscServer": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "mcp-search-console"
+      ],
+      "env": {
+        "GSC_OAUTH_CLIENT_SECRETS_FILE": "${workspaceFolder}/.secrets/google-search-console-client.json"
+      }
+    },
+    "dataforseo": {
+      "type": "http",
+      "url": "https://mcp.dataforseo.com/v3/mcp",
+      "headers": {
+        "Authorization": "Basic ${input:dataforseo-basic-token}"
+      }
+    }
+  }
+}

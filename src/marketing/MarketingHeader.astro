@@ -1,51 +1,24 @@
 ---
 import { navigation, SITE_NAME } from './product';
-
-type Props = {
-  currentPath: string;
-};
-
-const { currentPath } = Astro.props;
-const isCurrent = (href: string) => currentPath === href;
 ---
 
-<header class="site-header">
-  <div class="site-header__inner">
-    <a class="brand-link" href="/" aria-label={`${SITE_NAME} home`}>
-      <img src="/logo.png" alt="" width="45" height="30" />
-      <span>{SITE_NAME}</span>
+<header class="bg-[#f5f5f7] font-inter text-[#1d1d1f]">
+  <div class="mx-auto grid min-h-18 w-[calc(100%_-_4rem)] max-w-[76rem] grid-cols-[1fr_auto_1fr] items-center max-md:w-[calc(100%_-_2rem)] max-md:grid-cols-[1fr_auto]">
+    <a class="flex w-max items-center gap-2.5 text-base font-semibold tracking-[-0.015em] no-underline focus-visible:rounded focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#8bb9ff]" href="/" aria-label={`${SITE_NAME} home`}>
+      <img class="h-8 w-12 rounded-[0.35rem] object-cover" src="/logo.png" alt="" width="48" height="32" />
+      <span class="max-sm:text-sm">{SITE_NAME}</span>
     </a>
 
-    <nav class="desktop-nav" aria-label="Main navigation">
+    <nav class="flex items-center gap-7 max-md:hidden" aria-label="Main navigation">
       {
         navigation.map((item) => (
-          <a href={item.href} aria-current={isCurrent(item.href) ? 'page' : undefined}>
+          <a class="text-sm font-medium text-[#6e6e73] no-underline hover:text-[#1d1d1f] focus-visible:rounded focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#8bb9ff]" href={item.href}>
             {item.label}
           </a>
         ))
       }
     </nav>
 
-    <a class="button button--small button--ink desktop-cta" href="/editor/">
-      Open editor
-      <span aria-hidden="true">-&gt;</span>
-    </a>
-
-    <details class="mobile-nav">
-      <summary aria-label="Open navigation">
-        <span></span>
-        <span></span>
-      </summary>
-      <nav aria-label="Mobile navigation">
-        {
-          navigation.map((item) => (
-            <a href={item.href} aria-current={isCurrent(item.href) ? 'page' : undefined}>
-              {item.label}
-            </a>
-          ))
-        }
-        <a class="button button--ink" href="/editor/">Open editor</a>
-      </nav>
-    </details>
+    <a class="justify-self-end rounded-full bg-[#0071e3] px-4.5 py-3 text-sm font-semibold text-white no-underline transition hover:-translate-y-0.5 hover:bg-[#0077ed] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#8bb9ff] motion-reduce:transition-none" href="/editor/">Open Editor</a>
   </div>
 </header>

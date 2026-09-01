@@ -1,5 +1,8 @@
 export const SITE_NAME = 'Print Map Studio';
 export const SITE_URL = 'https://printmaps.yasoob.me';
+export const CREATOR_NAME = 'Yasoob Khalid';
+export const CREATOR_URL = 'https://yasoob.me';
+export const GITHUB_URL = 'https://github.com/yasoob/printmaps';
 
 export const navigation = [
   { href: '/#features', label: 'Features' },
@@ -7,10 +10,22 @@ export const navigation = [
   { href: '/#faq', label: 'FAQ' },
 ] as const;
 
+export const resourceNavigation = [
+  { href: '/printable-map-maker/', label: 'Printable map maker' },
+  { href: '/gpx-map-maker/', label: 'GPX map maker' },
+  { href: '/layered-map-export/', label: 'Layered map export' },
+] as const;
+
+export const companyNavigation = [
+  { href: '/about/', label: 'About' },
+  { href: '/privacy/', label: 'Privacy' },
+  { href: GITHUB_URL, label: 'GitHub' },
+] as const;
+
 export const faqItems = [
   {
     question: 'What is Print Map Studio?',
-    answer: 'Print Map Studio is a free browser-based design tool for creating static, print-ready maps. It combines page sizing, map styles, routes, places, shapes, imported geographic data and high-resolution export in one visual workspace.',
+    answer: 'Print Map Studio is a free browser-based editor for static, print-ready maps. Set the page size, choose a style, add routes, places, or shapes, import geographic data, and export the finished map.',
   },
   {
     question: 'How do I design a map?',

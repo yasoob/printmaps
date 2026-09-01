@@ -1,0 +1,58 @@
+---
+type Props = {
+  class?: string;
+  eager?: boolean;
+};
+
+const {
+  class: className,
+  eager = false,
+} = Astro.props;
+const formats = [
+  {
+    name: 'PNG',
+    description: 'Flat image',
+    src: '/export-formats/png.png',
+    width: 512,
+    height: 512,
+  },
+  {
+    name: 'PDF',
+    description: 'Exact page',
+    src: '/export-formats/pdf.png',
+    width: 330,
+    height: 406,
+  },
+  {
+    name: 'SVG',
+    description: 'Vector groups',
+    src: '/export-formats/svg.png',
+    width: 512,
+    height: 512,
+  },
+  {
+    name: 'PSD',
+    description: 'Smart Objects',
+    src: '/export-formats/psd.png',
+    width: 512,
+    height: 512,
+  },
+] as const;
+---
+
+<ul class:list={['grid max-w-2xl list-none grid-cols-4 gap-4 p-0', className]} aria-label="Available export formats">
+  {formats.map((format) => (
+    <li class="text-center">
+      <img
+        class="mx-auto h-14 w-14 object-contain sm:h-18 sm:w-18"
+        src={format.src}
+        alt={`${format.name} file format`}
+        width={format.width}
+        height={format.height}
+        loading={eager ? 'eager' : 'lazy'}
+        decoding="async"
+      /      >
+      <span class="mt-2 block text-[0.65rem] text-[#6e6e73] sm:text-xs">{format.description}</span>
+    </li>
+  ))}
+</ul>

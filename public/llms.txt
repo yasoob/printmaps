@@ -1,0 +1,29 @@
+# Print Map Studio
+
+> Print Map Studio is a free browser-based editor for creating static, print-ready maps. It requires no account and adds no watermark to exports.
+
+## Start
+
+- [Homepage](https://printmaps.yasoob.me/): Product overview, features, use cases, and frequently asked questions.
+- [Map editor](https://printmaps.yasoob.me/editor/): Create and export a map in the browser.
+
+## Workflows
+
+- [Printable map maker](https://printmaps.yasoob.me/printable-map-maker/): Set a physical page size, choose a style, add content, and export.
+- [GPX map maker](https://printmaps.yasoob.me/gpx-map-maker/): Import GPX, KML, or GeoJSON tracks as editable map layers.
+- [Layered map export](https://printmaps.yasoob.me/layered-map-export/): Compare PNG, PDF, layered SVG, and layered PSD output.
+
+## Product facts
+
+- Standard page presets include A2, A3, A4, A5, A6, and US Letter, with portrait, landscape, and custom dimensions.
+- Content can include routes, places, custom markers, shapes, countries, regions, and imported geographic data.
+- PDF, layered SVG, and layered PSD preserve supported content overlays as vectors over a raster basemap.
+- Imported files and generated exports are processed locally in the browser.
+- Search, road routing, map matching, travel-time areas, and elevation profiles use external providers when those optional features are available and requested.
+- Standard map styles use OpenFreeMap and OpenMapTiles data derived from OpenStreetMap.
+
+## Project
+
+- [About](https://printmaps.yasoob.me/about/): Project purpose, local-first design, creator, and support links.
+- [Privacy](https://printmaps.yasoob.me/privacy/): Browser storage, analytics, map services, imports, and exports.
+- [Source code](https://github.com/yasoob/printmaps): Public repository and issue tracker.

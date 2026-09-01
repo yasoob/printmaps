@@ -1,0 +1,126 @@
+---
+import SeoLandingPage from '../marketing/SeoLandingPage.astro';
+
+const description = 'Download your map as a high-resolution PNG, print-ready PDF, editable SVG, or layered PSD. No account, no watermark, and no upload queue.';
+const sections = [
+  {
+    title: 'PNG for a finished image',
+    paragraphs: [
+      'PNG downloads the complete map as one high-resolution image at the page size you chose. Place it in a presentation, document, image editor, or print layout.',
+      'Choose PNG when you want a file that is easy to place and share. Print Map Studio keeps the selected dimensions and adds no watermark.',
+    ],
+    highlights: [
+      { icon: 'pixels', label: 'High-resolution image' },
+      { icon: 'dimensions', label: 'Selected page size' },
+      { icon: 'share', label: 'Easy to place and share' },
+      { icon: 'layout', label: 'Ready for print layouts' },
+    ],
+    image: {
+      src: '/explore-shots/export-flat-map.webp',
+      alt: 'Print Map Studio map composition inside an A4 landscape print frame',
+      width: 1400,
+      height: 1040,
+      title: 'Download the map inside the print frame.',
+      caption: 'The PNG includes the map, routes, places, and shapes shown inside the selected page.',
+    },
+  },
+  {
+    title: 'PDF for exact-size printing',
+    paragraphs: [
+      'PDF keeps the physical page size you set in the editor. Routes, markers, and shapes stay sharp when the file is opened or printed.',
+      'Choose PDF for print shops, reports, brochures, or any layout that must preserve exact dimensions.',
+    ],
+    highlights: [
+      { icon: 'us-letter', label: 'Exact page dimensions' },
+      { icon: 'route', label: 'Sharp routes and markers' },
+      { icon: 'pdf-reader', label: 'Opens in PDF readers' },
+      { icon: 'print', label: 'Ready to print' },
+    ],
+    image: {
+      src: '/explore-shots/export-pdf-summary.webp',
+      alt: 'Print Map Studio PDF export summary with page size and download button',
+      width: 1024,
+      height: 852,
+      title: 'Confirm the page size before downloading.',
+      caption: 'The PDF summary shows the selected orientation and physical dimensions.',
+    },
+  },
+  {
+    title: 'Layered SVG for flexible editing',
+    paragraphs: [
+      'Layered SVG keeps routes, markers, and shapes in named groups. Open the file in Illustrator, Inkscape, or another SVG editor to recolor, hide, or move them.',
+      'Choose SVG when you want to keep editing the map after download or reuse individual map elements in another layout.',
+    ],
+    highlights: [
+      { icon: 'layers', label: 'Named content groups' },
+      { icon: 'color-edit', label: 'Edit route and marker colors' },
+      { icon: 'transform', label: 'Hide or move content' },
+      { icon: 'svg-editor', label: 'Works in SVG editors' },
+    ],
+  },
+  {
+    title: 'Layered PSD for Photoshop',
+    paragraphs: [
+      'Layered PSD opens as an organized Photoshop document. Routes, places, shapes, and attribution arrive as separately named Smart Objects, so they are easy to find and adjust.',
+      'Choose PSD when Photoshop is the next step and you want map elements separated instead of flattened into one image.',
+    ],
+    highlights: [
+      { icon: 'psd-file', label: 'Photoshop-ready' },
+      { icon: 'layer-labels', label: 'Named content layers' },
+      { icon: 'smart-object', label: 'Smart Objects' },
+      { icon: 'separate-elements', label: 'Separate map elements' },
+    ],
+  },
+  {
+    title: 'Export without uploading your project',
+    paragraphs: [
+      'Print Map Studio builds each file in your browser and downloads it directly. There is no account and no waiting for a server job.',
+      'Download the project file too if you want to return and change the map later.',
+    ],
+    highlights: [
+      { icon: 'browser', label: 'Stays in your browser' },
+      { icon: 'download', label: 'Direct download' },
+      { icon: 'no-account', label: 'No account' },
+      { icon: 'save', label: 'Save for later' },
+    ],
+    image: {
+      src: '/explore-shots/export-project-download.webp',
+      alt: 'Print Map Studio Project menu with Download project action',
+      width: 860,
+      height: 780,
+      title: 'Save the project for later edits.',
+      caption: 'Use the Project menu to download a copy that you can open again.',
+    },
+  },
+] as const;
+const faq = [
+  { question: 'Which export format should I choose?', answer: 'Choose PNG for a finished image, PDF for exact-size printing, SVG for editing in a vector design tool, or PSD for an organized Photoshop file.' },
+  { question: 'Can I edit the map after exporting?', answer: 'Yes. Choose layered SVG or layered PSD when you want routes, places, and shapes kept in separate named groups or Smart Objects.' },
+  { question: 'Does PDF keep the page size I selected?', answer: 'Yes. PDF preserves the physical page dimensions set in the editor, including standard and custom page sizes.' },
+  { question: 'Do I need Photoshop?', answer: 'Only for the layered PSD format. PNG works in image and layout tools, PDF opens in standard PDF readers, and SVG opens in vector design tools.' },
+  { question: 'Are exports uploaded to a server?', answer: 'No. Export files are generated in your browser and downloaded directly to your device.' },
+] as const;
+const relatedLinks = [
+  { href: '/printable-map-maker/', label: 'Set up a printable map', description: 'Choose page dimensions, style the basemap, and add content.' },
+  { href: '/gpx-map-maker/', label: 'Import a GPX route', description: 'Turn recorded tracks and waypoints into editable map layers.' },
+] as const;
+---
+
+<SeoLandingPage
+  title="Layered Map Export"
+  description={description}
+  eyebrow="PNG, PDF, SVG, and PSD"
+  heading="Download the map in the format you need."
+  heroImage={{
+    desktopSrc: '/explore-shots/export-editor-overview-desktop.webp',
+    mobileSrc: '/explore-shots/export-editor-overview-mobile.webp',
+    alt: 'Print Map Studio editor with a styled Vienna map and export button',
+  }}
+  lead="Download a high-resolution image, a print-ready PDF, an editable SVG, or a layered PSD. Every export is made in your browser with no account or watermark."
+  primaryCta="Create an export"
+  facts={['High-resolution exports', 'No account', 'No watermark']}
+  showHeroExportFormats
+  sections={sections}
+  relatedLinks={relatedLinks}
+  faq={faq}
+/>

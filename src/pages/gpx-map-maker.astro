@@ -1,0 +1,127 @@
+---
+import SeoLandingPage from '../marketing/SeoLandingPage.astro';
+
+const description = 'Upload GPX, KML, or GeoJSON and turn a recorded track into a print-ready map. Style routes and waypoints, set the page size, and export PNG, PDF, SVG, or PSD.';
+const sections = [
+  {
+    title: 'Import a recorded track',
+    paragraphs: [
+      'Upload a GPX file from a hike, ride, run, or road trip. KML and GeoJSON imports work the same way, whether the data came from a GPS device, another map tool, or a geographic dataset.',
+      'The importer validates the file before adding its tracks, routes, waypoints, and shapes to the project. GPX and KML files can be up to 5 MB and contain up to 1,000 features and 200,000 coordinate points.',
+    ],
+    highlights: [
+      { icon: 'gpx', label: 'GPX 1.0 and 1.1' },
+      { icon: 'kml', label: 'KML files' },
+      { icon: 'geojson', label: 'GeoJSON files' },
+      { icon: 'validation', label: 'File validation' },
+    ],
+    image: {
+      src: '/explore-shots/imported-layers-overview.webp',
+      alt: 'Route waypoint and shape listed as separate layers beside the Print Map Studio map',
+      width: 1840,
+      height: 1300,
+      title: 'Imported data becomes map layers.',
+      caption: 'Routes, waypoints, and shapes stay separate so you can style, reorder, or hide them.',
+    },
+  },
+  {
+    title: 'Style the route and its context',
+    paragraphs: [
+      'Tracks and waypoints become separate editable layers. Change the route line, style waypoint markers, reorder layers, or hide anything you do not need.',
+      'Pick a map style with enough contrast for the route. Then reduce labels, roads, buildings, or transit detail if the base map is too busy.',
+      'Route controls cover line color, width, outline, opacity, and structure. Use them to separate several tracks on one page or keep one route visible over a detailed street map.',
+    ],
+    highlights: [
+      { icon: 'route', label: 'Editable route lines' },
+      { icon: 'marker', label: 'Waypoint styling' },
+      { icon: 'layers', label: 'Layer order and visibility' },
+      { icon: 'palette', label: '12 map styles' },
+    ],
+    imageRow: [
+      {
+        src: '/explore-shots/route-appearance.webp',
+        alt: 'Print Map Studio route line color width and travel marker controls',
+        width: 1130,
+        height: 1716,
+        title: 'Style the route line',
+        caption: 'Set the color, width, line pattern, travel marker, visibility, and opacity.',
+      },
+      {
+        src: '/explore-shots/route-advanced.webp',
+        alt: 'Print Map Studio advanced route structure and editing controls',
+        width: 1130,
+        height: 1716,
+        title: 'Open advanced route tools',
+        caption: 'Convert, reverse, close, match, edit vertices, or generate an elevation profile.',
+      },
+      {
+        src: '/explore-shots/waypoint-style.webp',
+        alt: 'Print Map Studio waypoint color size shape symbol and label controls',
+        width: 1130,
+        height: 1716,
+        title: 'Style each waypoint',
+        caption: 'Change the marker color, size, shape, symbol, label, or coordinates.',
+      },
+    ],
+  },
+  {
+    title: 'Set the print area and page size',
+    paragraphs: [
+      'Fit the map around the full track or focus on one section. Use a standard page preset from A2 through A6 or US Letter, choose portrait or landscape, or enter custom dimensions in millimetres.',
+      'The project autosaves in browser storage. Download a project file if you want a backup, because clearing browser data removes the local autosave.',
+    ],
+    highlights: [
+      { icon: 'fit', label: 'Fit the full route' },
+      { icon: 'orientation', label: 'Portrait or landscape' },
+      { icon: 'dimensions', label: 'Custom millimetres' },
+      { icon: 'save', label: 'Local autosave' },
+    ],
+    image: {
+      src: '/explore-shots/gpx-print-frame.webp',
+      alt: 'Alpine route positioned inside an A3 portrait print frame in Print Map Studio',
+      width: 913,
+      height: 715,
+      title: 'Fit the route inside the print frame.',
+      caption: 'Adjust the map until the full track and surrounding context fit the selected page.',
+    },
+  },
+  {
+    title: 'Export the route as raster or vector content',
+    paragraphs: [
+      'Use PNG for a flat high-resolution image or PDF for an exact physical page with supported routes and waypoints retained as vector content. Layered SVG keeps content as named vector groups over an embedded raster basemap.',
+      'Layered PSD creates separately named SVG Smart Objects for the content layers in Photoshop. The browser generates and downloads every format directly.',
+    ],
+    showExportFormats: true,
+  },
+] as const;
+const faq = [
+  { question: 'Which GPS file formats are supported?', answer: 'You can import GPX, KML, and GeoJSON files. GPX versions 1.0 and 1.1 are supported.' },
+  { question: 'How large can a GPX or KML file be?', answer: 'The importer accepts files up to 5 MB, with up to 1,000 features and 200,000 coordinates.' },
+  { question: 'What happens to waypoints?', answer: 'Waypoints are imported as place content that can be styled and managed separately from route layers.' },
+  { question: 'Can I change the map after importing?', answer: 'Yes. Imported routes, places, and shapes become editable layers that can be styled, reordered, hidden, duplicated, or deleted.' },
+  { question: 'Does the export keep my route as a vector?', answer: 'PDF, layered SVG, and layered PSD preserve supported route overlays as vector content. The basemap remains raster.' },
+  { question: 'Can I add an elevation profile?', answer: 'Yes. An elevation profile can be requested for a route when the external elevation service is available. Sampled route coordinates are sent to Open-Meteo for this optional feature.' },
+] as const;
+const relatedLinks = [
+  { href: '/printable-map-maker/', label: 'Design a printable map', description: 'Explore page sizes, map styles, labels, places, and shapes.' },
+  { href: '/layered-map-export/', label: 'Choose an export format', description: 'Compare PNG, PDF, layered SVG, and layered PSD.' },
+] as const;
+---
+
+<SeoLandingPage
+  title="GPX Map Maker"
+  description={description}
+  eyebrow="Import your recorded tracks"
+  heading="Turn a GPX file into a print-ready map."
+  heroImage={{
+    desktopSrc: '/feature-shots/content-desktop.webp',
+    mobileSrc: '/feature-shots/content-mobile.webp',
+    alt: 'Print Map Studio showing an Alpine route as an editable map layer',
+  }}
+  lead="Upload a recorded route, style the track and waypoints, set the page size, and export the finished map. You do not need GIS software or an account."
+  primaryCta="Import your track"
+  facts={['GPX, KML, and GeoJSON', 'Editable route layers', 'No account', 'Browser-based export']}
+  sections={sections}
+  relatedLinks={relatedLinks}
+  faq={faq}
+/>

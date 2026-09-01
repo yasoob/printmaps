@@ -10,14 +10,21 @@ import './styles.css';
 type Props = {
   title: string;
   description: string;
+  includeSiteNameSuffix?: boolean;
   showHeader?: boolean;
   structuredData?: object | readonly object[];
 };
 
-const { title, description, showHeader = true, structuredData } = Astro.props;
+const {
+  title,
+  description,
+  includeSiteNameSuffix = true,
+  showHeader = true,
+  structuredData,
+} = Astro.props;
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
 const socialImageUrl = new URL('/social-preview.png', Astro.site);
-const fullTitle = title === SITE_NAME ? title : `${title} | ${SITE_NAME}`;
+const fullTitle = includeSiteNameSuffix ? `${title} | ${SITE_NAME}` : title;
 ---
 
 <!doctype html>
@@ -58,7 +65,7 @@ const fullTitle = title === SITE_NAME ? title : `${title} | ${SITE_NAME}`;
   </head>
   <body class="marketing-body">
     <a class="skip-link" href="#main-content">Skip to content</a>
-    {showHeader && <MarketingHeader currentPath={Astro.url.pathname} />}
+    {showHeader && <MarketingHeader />}
     <main id="main-content">
       <slot />
     </main>

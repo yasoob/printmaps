@@ -5,27 +5,75 @@ import MapCapabilityStrip from '../marketing/MapCapabilityStrip.astro';
 import MarketingHero from '../marketing/MarketingHero.astro';
 import MarketingLayout from '../marketing/MarketingLayout.astro';
 import SimpleFaqSection from '../marketing/SimpleFaqSection.astro';
-import { faqItems, SITE_NAME, SITE_URL } from '../marketing/product';
+import {
+  CREATOR_NAME,
+  CREATOR_URL,
+  faqItems,
+  GITHUB_URL,
+  SITE_NAME,
+  SITE_URL,
+} from '../marketing/product';
 
-const description = 'Create custom print-ready maps in your browser. Style the map, draw routes, add places and regions, import GPX, KML or GeoJSON, then export PNG, PDF, layered SVG or layered PSD.';
+const title = 'Free Printable Map Maker - Print Map Studio';
+const description = 'Free browser-based map maker for print. Import GPX, KML or GeoJSON, add routes and places, then export PNG, PDF, layered SVG or PSD - no account or watermark.';
 const structuredData = {
   '@context': 'https://schema.org',
   '@graph': [
+    {
+      '@type': 'Person',
+      '@id': `${CREATOR_URL}/#person`,
+      name: CREATOR_NAME,
+      url: CREATOR_URL,
+      sameAs: ['https://github.com/yasoob'],
+    },
     {
       '@type': 'WebSite',
       '@id': `${SITE_URL}/#website`,
       name: SITE_NAME,
       url: SITE_URL,
       description,
+      publisher: {
+        '@id': `${CREATOR_URL}/#person`,
+      },
+    },
+    {
+      '@type': 'WebPage',
+      '@id': `${SITE_URL}/#webpage`,
+      name: title,
+      url: `${SITE_URL}/`,
+      description,
+      isPartOf: {
+        '@id': `${SITE_URL}/#website`,
+      },
+      about: {
+        '@id': `${SITE_URL}/#application`,
+      },
     },
     {
       '@type': 'SoftwareApplication',
       '@id': `${SITE_URL}/#application`,
       name: SITE_NAME,
-      url: `${SITE_URL}/editor/`,
+      url: SITE_URL,
+      sameAs: [GITHUB_URL],
       applicationCategory: 'DesignApplication',
-      operatingSystem: 'Any modern web browser',
+      applicationSubCategory: 'Map design software',
+      operatingSystem: 'Web',
+      browserRequirements: 'Requires a modern browser with JavaScript enabled',
+      inLanguage: 'en',
+      isAccessibleForFree: true,
       description,
+      screenshot: {
+        '@type': 'ImageObject',
+        url: `${SITE_URL}/hero-assets/editor-new-york.webp`,
+        width: 1600,
+        height: 924,
+      },
+      author: {
+        '@id': `${CREATOR_URL}/#person`,
+      },
+      creator: {
+        '@id': `${CREATOR_URL}/#person`,
+      },
       offers: {
         '@type': 'Offer',
         price: '0',
@@ -54,7 +102,13 @@ const structuredData = {
 };
 ---
 
-<MarketingLayout title={SITE_NAME} description={description} showHeader={false} structuredData={structuredData}>
+<MarketingLayout
+  title={title}
+  description={description}
+  includeSiteNameSuffix={false}
+  showHeader={false}
+  structuredData={structuredData}
+>
   <MarketingHero />
   <MapCapabilityStrip />
   <HomeFeatures />
