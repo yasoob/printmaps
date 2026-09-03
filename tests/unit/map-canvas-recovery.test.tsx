@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
   mapOff: vi.fn(),
   mapRemove: vi.fn(),
   mapJumpTo: vi.fn(), mapFitBounds: vi.fn(), mapEaseTo: vi.fn(),
-  mapCenter: { lng: 16.3725, lat: 48.2084 },
+  mapBearing: 0, mapCenter: { lng: 16.3725, lat: 48.2084 }, mapPitch: 0,
   mapZoom: 11.2,
   mapCreateOptions: [] as unknown[],
   mapHandlers: [] as Array<Record<string, Array<(event?: unknown) => void>>>,
@@ -87,10 +87,9 @@ vi.mock('maplibre-gl', () => {
     getStyle() { return { layers: [] }; }
     loaded() { return false; }
     setLayoutProperty() {} triggerRepaint() {}
-    fitBounds(...arguments_: unknown[]) { mocks.mapFitBounds(...arguments_); }
-    easeTo(options: unknown) { mocks.mapEaseTo(options); }
-    getCenter() { return mocks.mapCenter; }
-    getZoom() { return mocks.mapZoom; }
+    fitBounds(...arguments_: unknown[]) { mocks.mapFitBounds(...arguments_); } easeTo(options: unknown) { mocks.mapEaseTo(options); }
+    getBearing() { return mocks.mapBearing; } getCenter() { return mocks.mapCenter; }
+    getPitch() { return mocks.mapPitch; } getZoom() { return mocks.mapZoom; }
     jumpTo(options: unknown) { mocks.mapJumpTo(options); }
     once(event: string, callback: (event?: unknown) => void) {
       (this.handlers[event] ??= []).push(callback);
@@ -240,7 +239,7 @@ function resetHarness() {
   mocks.mapRemove.mockReset();
   mocks.mapJumpTo.mockReset();
   mocks.mapFitBounds.mockReset();
-  mocks.mapCenter = { lng: 16.3725, lat: 48.2084 }; mocks.mapZoom = 11.2;
+  mocks.mapBearing = 0; mocks.mapCenter = { lng: 16.3725, lat: 48.2084 }; mocks.mapPitch = 0; mocks.mapZoom = 11.2;
   mocks.mapCreateOptions = [];
 
   mocks.mapHandlers = []; mocks.activeAdapterIds.clear(); mocks.activeMapIds.clear();
@@ -272,18 +271,19 @@ describe('MapCanvas camera synchronization', () => {
     expect(mocks.mapJumpTo).toHaveBeenLastCalledWith({ ...updatedJump, bearing: 45 }); expect(mocks.mapFitBounds).toHaveBeenCalledOnce();
   });
 
-  it('publishes one canonical viewport update when map movement finishes', async () => {
+  it('publishes the complete canonical camera when map movement finishes', async () => {
     const onCameraViewportChange = vi.fn(); render(<MapCanvas {...baseProps} selectedId={null} onCameraViewportChange={onCameraViewportChange} />);
     await waitFor(() => expect(mocks.adapterSync).toHaveBeenCalledTimes(1));
-    mocks.mapCenter = { lng: 16.41, lat: 48.23 }; mocks.mapZoom = 13.5;
+    mocks.mapBearing = 35; mocks.mapCenter = { lng: 16.41, lat: 48.23 }; mocks.mapPitch = 20; mocks.mapZoom = 13.5;
     act(() => emitLatestMapEvent('moveend'));
-    expect(onCameraViewportChange).toHaveBeenCalledOnce(); expect(onCameraViewportChange).toHaveBeenCalledWith([16.41, 48.23], 13.5, 'history');
+    expect(onCameraViewportChange).toHaveBeenCalledOnce();
+    expect(onCameraViewportChange).toHaveBeenCalledWith([16.41, 48.23], 13.5, 'history', { bearing: 35, pitch: 20 });
   });
 
   it('normalizes a wrapped world longitude before publishing the viewport', async () => {
     const onCameraViewportChange = vi.fn(); render(<MapCanvas {...baseProps} selectedId={null} onCameraViewportChange={onCameraViewportChange} />);
     await waitFor(() => expect(mocks.adapterSync).toHaveBeenCalledTimes(1)); mocks.mapCenter = { lng: 190, lat: 48.23 }; act(() => emitLatestMapEvent('moveend'));
-    expect(onCameraViewportChange).toHaveBeenCalledWith([-170, 48.23], 11.2, 'history');
+    expect(onCameraViewportChange).toHaveBeenCalledWith([-170, 48.23], 11.2, 'history', { bearing: 0, pitch: 0 });
   });
 
   it('creates every style lifecycle at the canonical viewport', async () => {

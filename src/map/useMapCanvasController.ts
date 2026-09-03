@@ -59,7 +59,12 @@ type MapCanvasControllerOptions = {
   onExporterChange?: (exporter: PreviewPngExporter | null) => void;
   onFitPage: () => void;
   onLayerSelect: (id: string) => void;
-  onCameraViewportChange?: (center: readonly [number, number], zoom: number, mode: CameraViewportChangeMode) => void;
+  onCameraViewportChange?: (
+    center: readonly [number, number],
+    zoom: number,
+    mode: CameraViewportChangeMode,
+    orientation: Pick<CameraSettings, 'bearing' | 'pitch'>,
+  ) => void;
   onMapClick?: (coordinate: [number, number]) => void;
   onPoiCoordinatesChange?: (id: string, coordinate: readonly [number, number]) => void;
   onRouteEditorError?: (message: string | null) => void;

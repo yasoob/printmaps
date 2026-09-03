@@ -25,7 +25,12 @@ type MapCanvasProps = {
   previewedId: string | null;
   shapeEditMode?: ShapeEditMode;
   onLayerSelect: (id: string) => void;
-  onCameraViewportChange?: (center: readonly [number, number], zoom: number, mode: CameraViewportChangeMode) => void;
+  onCameraViewportChange?: (
+    center: readonly [number, number],
+    zoom: number,
+    mode: CameraViewportChangeMode,
+    orientation: Pick<CameraSettings, 'bearing' | 'pitch'>,
+  ) => void;
   onMapClick?: (coordinate: [number, number]) => void;
   onPoiCoordinatesChange?: (id: string, coordinate: readonly [number, number]) => void;
   onRouteGeometryChange?: (id: string, coordinates: readonly (readonly [number, number])[]) => void;

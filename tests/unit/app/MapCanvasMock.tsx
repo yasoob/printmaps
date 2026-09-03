@@ -22,7 +22,12 @@ type MapCanvasMockProps = {
   previewedId?: string | null;
   shapeEditMode?: ShapeEditMode;
   onLayerSelect?: (id: string) => void;
-  onCameraViewportChange?: (center: readonly [number, number], zoom: number, mode: CameraViewportChangeMode) => void;
+  onCameraViewportChange?: (
+    center: readonly [number, number],
+    zoom: number,
+    mode: CameraViewportChangeMode,
+    orientation: Pick<CameraSettings, 'bearing' | 'pitch'>,
+  ) => void;
   onMapClick?: (coordinate: [number, number]) => void;
   routeAuthoring?: RouteAuthoring;
   routeDraftEditing?: DraftRouteEditing;
@@ -122,7 +127,17 @@ export function MapCanvas({
     >
       <button type="button" disabled={camera.locked} onClick={onFitPage}>Fit page</button>
       <button type="button" onClick={onBackgroundClick}>Map background</button>
-      <button type="button" onClick={() => onCameraViewportChange?.([16.41, 48.23], 13.5, 'history')}>Finish map movement</button>
+      <button
+        type="button"
+        onClick={() => onCameraViewportChange?.(
+          [16.41, 48.23],
+          13.5,
+          'history',
+          { bearing: camera.bearing, pitch: camera.pitch },
+        )}
+      >
+        Finish map movement
+      </button>
       <button type="button" onClick={() => onLayerSelect?.('poi-cafe')}>Map Coffee stop</button>
       <button type="button" onClick={() => routeAuthoring?.active
         ? routeAuthoring.onPreview([[16.31, 48.19]])

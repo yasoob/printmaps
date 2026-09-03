@@ -299,6 +299,7 @@ test('aligns markers and segment styles across live, SVG, PDF, and reverse', asy
     { color: '#112233', width: '2.4', dash: '4.8 3.6' },
     { color: '#d9363e', width: '1.2', dash: null },
   ]);
+  expect(styled.markers).toHaveLength(2);
 
   const pdf = await downloadPdf(page, testInfo, 'route-marker-parity');
   for (const pictogram of ['air', 'rail', 'car', 'walk', 'bike', 'ship']) {

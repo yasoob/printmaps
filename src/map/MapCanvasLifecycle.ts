@@ -22,7 +22,14 @@ type MutableReference<T> = { current: T };
 
 type LifecycleReferences = LifecycleExportReferences & {
   backgroundClick: MutableReference<() => void>;
-  cameraViewportChange: MutableReference<((center: readonly [number, number], zoom: number, mode: CameraViewportChangeMode) => void) | undefined>;
+  cameraViewportChange: MutableReference<(
+    (
+      center: readonly [number, number],
+      zoom: number,
+      mode: CameraViewportChangeMode,
+      orientation: Pick<CameraSettings, 'bearing' | 'pitch'>,
+    ) => void
+  ) | undefined>;
   cameraViewportChangeMode: MutableReference<CameraViewportChangeMode>;
   container: MutableReference<HTMLDivElement | null>;
   contentAdapter: MutableReference<MapContentAdapter | null>;
@@ -92,6 +99,24 @@ function createAttributionController(container: HTMLDivElement) {
   };
 }
 
+function publishCameraViewport(
+  map: MapLibreMap,
+  references: LifecycleReferences,
+) {
+  const center = map.getCenter();
+  const longitude = Math.abs(center.lng) <= 180
+    ? center.lng
+    : ((center.lng + 180) % 360 + 360) % 360 - 180;
+  const mode = references.cameraViewportChangeMode.current;
+  references.cameraViewportChangeMode.current = 'history';
+  references.cameraViewportChange.current?.(
+    [longitude, center.lat],
+    map.getZoom(),
+    mode,
+    { bearing: map.getBearing(), pitch: map.getPitch() },
+  );
+}
+
 function createMapEventHandlers(
   map: MapLibreMap,
   state: MapLifecycleDeadlineState,
@@ -150,13 +175,7 @@ function createMapEventHandlers(
   };
   const handleMoveEnd = () => {
     if (state.isDisposed) return;
-    const center = map.getCenter();
-    const longitude = Math.abs(center.lng) <= 180
-      ? center.lng
-      : ((center.lng + 180) % 360 + 360) % 360 - 180;
-    const mode = references.cameraViewportChangeMode.current;
-    references.cameraViewportChangeMode.current = 'history';
-    references.cameraViewportChange.current?.([longitude, center.lat], map.getZoom(), mode);
+    publishCameraViewport(map, references);
   };
   const handleClick = (event: { point: Parameters<MapContentAdapter['hitTest']>[0]; lngLat: { lng: number; lat: number } }) => {
     if (state.isDisposed) return;

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-export function useMobileRoutePanel(pointCount: number) {
+export function useRoutePanelDisclosure(pointCount: number) {
   const [settingsOpen, setSettingsOpen] = useState(true);
   const previousPointCountRef = useRef(pointCount);
 

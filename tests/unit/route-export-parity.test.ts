@@ -39,7 +39,7 @@ describe('route SVG and PDF parity', () => {
     expect(legs[0].getAttribute('stroke-width')).toBe('2.4');
     expect(legs[0].getAttribute('stroke-dasharray')).toBe('4.8 3.6');
     expect(legs[2].getAttribute('stroke')).toBe('#abcdef');
-    expect(routeGroup.querySelectorAll('[data-route-pictogram="ship"]')).toHaveLength(4);
+    expect(routeGroup.querySelectorAll('[data-route-pictogram="ship"]')).toHaveLength(12);
   });
 
   it('emits matching per-leg PDF strokes, normalized dashes, and vector pictograms', () => {
@@ -56,7 +56,7 @@ describe('route SVG and PDF parity', () => {
     expect(commands).toContain('0.066667 0.133333 0.2 RG');
     expect(commands).toContain('6.80315 w');
     expect(commands).toContain('[13.606299 10.204724] 0 d');
-    expect(commands.match(/% Route pictogram: ship/g)).toHaveLength(4);
+    expect(commands.match(/% Route pictogram: ship/g)).toHaveLength(12);
     expect(commands).not.toContain('(SHIP) Tj');
   });
 
@@ -76,7 +76,7 @@ describe('route SVG and PDF parity', () => {
 
     expect(commands).not.toContain('% Route leg:');
     expect(commands).not.toContain('\n0 w\n');
-    expect(commands.match(/% Route pictogram: ship/g)).toHaveLength(4);
+    expect(commands.match(/% Route pictogram: ship/g)).toHaveLength(12);
   });
 
   it('orients SVG and PDF pictograms from each output projector tangent', () => {
@@ -96,7 +96,7 @@ describe('route SVG and PDF parity', () => {
       basemap: { dataUri: onePixelPng, pixelWidth: 1, pixelHeight: 1 },
       project: ([longitude, latitude]) => ({ x: latitude, y: longitude }),
     });
-    expect(svg).toContain('rotate(180)');
+    expect(svg).toContain('rotate(90)');
 
     const commands = pdfVectorCommands(route, {
       blob: new Blob(),
@@ -109,7 +109,7 @@ describe('route SVG and PDF parity', () => {
       }),
       referenceLongitude: 0,
     }, 100, 100);
-    expect(commands).toContain('8.503937 95.944882 m');
+    expect(commands).toContain('-0.774803 101.973228 m');
   });
 
   it('rebases dateline routes and markers into the captured world copy', () => {

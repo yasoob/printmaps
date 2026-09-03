@@ -7,6 +7,7 @@ import { createArcGeometry } from '../../src/domain/routeArcGeometry';
 import {
   deriveRenderedRoute,
   partitionRoadGeometry,
+  projectedRouteMarkerBearing,
 } from '../../src/domain/renderedRoute';
 import { reverseRoute } from '../../src/domain/routeTransformations';
 
@@ -97,7 +98,7 @@ describe('shared rendered-route derivation', () => {
 
     expect(deriveRenderedRoute(centered)?.markers[0]).toMatchObject({
       position: [1, 0],
-      bearing: 90,
+      bearing: 0,
       fraction: 0.5,
     });
 
@@ -110,7 +111,7 @@ describe('shared rendered-route derivation', () => {
     };
     expect(deriveRenderedRoute(centered)?.markers[0]).toMatchObject({
       position: [0, 0],
-      bearing: 270,
+      bearing: 180,
       fraction: 0,
     });
 
@@ -122,6 +123,43 @@ describe('shared rendered-route derivation', () => {
     };
     expect(deriveRenderedRoute(centered)?.markers.map(({ fraction, bearing }) => [fraction, bearing])).toEqual([
       [0.125, 0], [0.375, 0], [0.625, 0], [0.875, 0],
+    ]);
+  });
+
+  it('applies marker placement independently within every semantic segment', () => {
+    const segmented = route([[0, 0], [2, 0], [5, 0], [9, 0]], {
+      pictogram: 'air',
+      placement: { type: 'center' },
+      orientToPath: true,
+      reverseFacing: false,
+    });
+
+    expect(deriveRenderedRoute(segmented)?.markers.map(({ fraction, legIndex, position }) => ({
+      fraction,
+      legIndex,
+      position,
+    }))).toEqual([
+      { fraction: 0.5, legIndex: 0, position: [1, 0] },
+      { fraction: 0.5, legIndex: 1, position: [3.5, 0] },
+      { fraction: 0.5, legIndex: 2, position: [7, 0] },
+    ]);
+
+    if (segmented.appearance?.kind !== 'route' || !segmented.appearance.marker) {
+      throw new Error('Expected marker appearance.');
+    }
+    segmented.appearance.marker.placement = { type: 'fraction', fraction: 0.2 };
+    expect(deriveRenderedRoute(segmented)?.markers.map(({ position }) => position)).toEqual([
+      [0.4, 0], [2.6, 0], [5.8, 0],
+    ]);
+
+    segmented.appearance.marker.placement = { type: 'repeat', spacing: 0.5 };
+    expect(deriveRenderedRoute(segmented)?.markers.map(({ fraction, legIndex }) => [
+      legIndex,
+      fraction,
+    ])).toEqual([
+      [0, 0.25], [0, 0.75],
+      [1, 0.25], [1, 0.75],
+      [2, 0.25], [2, 0.75],
     ]);
   });
 
@@ -161,6 +199,22 @@ describe('shared rendered-route derivation', () => {
     expect(before.position).toEqual([1, 0]);
     expect(after.position).toEqual([3, 0]);
     expect(after.fraction).toBe(0.25);
-    expect(after.bearing).toBe(270);
+    expect(after.bearing).toBe(180);
+  });
+
+  it('keeps projected export markers perpendicular to their route tangent', () => {
+    const bearing = projectedRouteMarkerBearing(
+      { tangent: { start: [0, 0], end: [2, 0] } },
+      {
+        pictogram: 'air',
+        placement: { type: 'center' },
+        orientToPath: true,
+        reverseFacing: false,
+      },
+      ([x, y]) => ({ x, y }),
+      'down',
+    );
+
+    expect(bearing).toBe(0);
   });
 });

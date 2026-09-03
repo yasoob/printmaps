@@ -70,6 +70,7 @@ export type CanvasWorkspaceProps = {
     center: readonly [number, number],
     zoom: number,
     mode: CameraViewportChangeMode,
+    orientation: Pick<CameraSettings, "bearing" | "pitch">,
   ) => void;
   onCreateAdministrativeArea: (area: AdministrativeArea) => string | null;
   onCreateDirectionsRoute: CreateDirectionsRoute;

@@ -216,7 +216,7 @@ describe('print PDF', () => {
 
     const text = await pdfText(document);
 
-    expect(text).toContain('% Route pictogram: air');
+    expect(text.match(/% Route pictogram: air/g)).toHaveLength(3);
     expect(text).not.toContain('(AIR) Tj');
   });
 

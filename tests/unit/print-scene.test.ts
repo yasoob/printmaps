@@ -197,7 +197,7 @@ describe('layered SVG print scene', () => {
     }));
     const routeGroup = requiredElement(svgDocument, '[data-layer-id="route-01"]');
     expect(routeGroup.querySelector(':scope > path')?.getAttribute('stroke-width')).toBe('0');
-    expect(routeGroup.querySelector('[data-route-pictogram="walk"]')).not.toBeNull();
+    expect(routeGroup.querySelectorAll('[data-route-pictogram="walk"]')).toHaveLength(3);
   });
 
 });

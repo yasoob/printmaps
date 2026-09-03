@@ -46,7 +46,7 @@ function RouteMarkerSettings({
 }) {
   return (
     <>
-      <PropertyRow label="Placement">
+      <PropertyRow label="Placement per segment">
         <select
           aria-label="Route marker placement"
           disabled={disabled}
@@ -55,9 +55,9 @@ function RouteMarkerSettings({
             placement: markerPlacement(event.currentTarget.value),
           })}
         >
-          <option value="center">Center</option>
-          <option value="fraction">Position</option>
-          <option value="repeat">Repeat</option>
+          <option value="center">Segment center</option>
+          <option value="fraction">Same position per segment</option>
+          <option value="repeat">Repeat per segment</option>
         </select>
       </PropertyRow>
       {marker.placement.type === 'fraction' ? (

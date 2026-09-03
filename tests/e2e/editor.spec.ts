@@ -89,6 +89,39 @@ test('map content overlays preview on list hover and select from the canvas', as
   await expect(mapRoot).toHaveAttribute('data-map-layer-order', 'area-center,poi-cafe');
 });
 
+test('preserves an interactive map rotation through pan and zoom', async ({ page }) => {
+  await page.goto('./');
+  const map = page.getByTestId('map-canvas');
+  const canvas = page.locator('.maplibregl-canvas');
+  await expect(map).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
+  const bounds = await canvas.boundingBox();
+  expect(bounds).not.toBeNull();
+  const center = {
+    x: bounds!.x + bounds!.width / 2,
+    y: bounds!.y + bounds!.height / 2,
+  };
+  const bearingField = page.getByRole('spinbutton', { name: 'Bearing' });
+
+  await canvas.focus();
+  await page.keyboard.press('Shift+ArrowRight');
+  await expect.poll(async () => Number(await bearingField.inputValue())).not.toBe(0);
+  const rotatedBearing = await bearingField.inputValue();
+  await expect(map).toHaveAttribute('data-map-bearing', rotatedBearing);
+
+  await page.mouse.move(center.x, center.y);
+  await page.mouse.down();
+  await page.mouse.move(center.x + 60, center.y + 30, { steps: 8 });
+  await page.mouse.up();
+  await expect(bearingField).toHaveValue(rotatedBearing);
+
+  const zoom = await map.getAttribute('data-map-zoom');
+  await page.mouse.move(center.x, center.y);
+  await page.mouse.wheel(0, -400);
+  await expect(map).not.toHaveAttribute('data-map-zoom', zoom!);
+  await expect(bearingField).toHaveValue(rotatedBearing);
+  await expect(map).toHaveAttribute('data-map-bearing', rotatedBearing);
+});
+
 test('desktop commands, orientation, reorder, and overflow menu work in a real browser', async ({ page }) => {
   await page.goto('./');
   await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });

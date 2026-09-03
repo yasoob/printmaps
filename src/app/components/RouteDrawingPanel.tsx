@@ -15,8 +15,8 @@ import {
 } from "../../domain/routeProfiles";
 import type { ContentLayer } from "../../domain/project";
 import { didHandleRovingSelection } from "./rovingSelection";
-import { MobileRouteSettingsButton } from "./MobileRouteSettingsButton";
-import { useMobileRoutePanel } from "../hooks/useMobileRoutePanel";
+import { RouteSettingsButton } from "./RouteSettingsButton";
+import { useRoutePanelDisclosure } from "../hooks/useRoutePanelDisclosure";
 import { RoutePointInputs } from "./RoutePointInputs";
 import { ToolCardActions, ToolCardHeader } from "./ToolAuthoringCard";
 import { RouteDraftPointList } from "./RouteDraftPointList";
@@ -216,12 +216,12 @@ function RouteDrawingActions({
 
 export function RouteDrawingPanel(props: RouteDrawingPanelProps) {
   const finishExplanationId = "route-finish-explanation";
-  const mobile = useMobileRoutePanel(props.pointCount);
+  const disclosure = useRoutePanelDisclosure(props.pointCount);
 
   return (
     <div
       className="map-authoring-panel tool-authoring-card route-authoring-panel"
-      data-mobile-expanded={mobile.settingsOpen}
+      data-settings-expanded={disclosure.settingsOpen}
     >
       <ToolCardHeader
         closeLabel="Close Route menu"
@@ -229,8 +229,8 @@ export function RouteDrawingPanel(props: RouteDrawingPanelProps) {
         onClose={props.onCancel}
         title={props.title ?? "Route"}
       />
-      {!mobile.settingsOpen && (
-        <MobileRouteSettingsButton onOpen={mobile.openSettings} />
+      {!disclosure.settingsOpen && (
+        <RouteSettingsButton onOpen={disclosure.openSettings} />
       )}
       <div className="route-authoring-settings">
         <RoutePathControl {...props} />

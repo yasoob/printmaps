@@ -116,21 +116,21 @@ it('cancels pending road routing when a searched waypoint is selected', async ()
 });
 
 describe('straight route authoring', () => {
-  it('auto-hides mobile route settings after each new point', async () => {
+  it('auto-hides route settings after each new point', async () => {
     const user = userEvent.setup();
     render(<App autosaveRepository={null} />);
     await user.click(screen.getByRole('button', { name: 'Route (R)' }));
 
     const panel = screen.getByRole('status', { name: 'Route drawing status' })
       .closest('.route-authoring-panel');
-    expect(panel).toHaveAttribute('data-mobile-expanded', 'true');
+    expect(panel).toHaveAttribute('data-settings-expanded', 'true');
     await user.click(screen.getByRole('button', { name: 'Map route point 1' }));
-    expect(panel).toHaveAttribute('data-mobile-expanded', 'false');
+    expect(panel).toHaveAttribute('data-settings-expanded', 'false');
     expect(screen.getByRole('button', { name: 'Route (R)' })).toHaveAttribute('aria-pressed', 'true');
     await user.click(screen.getByRole('button', { name: 'Show route settings' }));
-    expect(panel).toHaveAttribute('data-mobile-expanded', 'true');
+    expect(panel).toHaveAttribute('data-settings-expanded', 'true');
     await user.click(screen.getByRole('button', { name: 'Map route point 2' }));
-    expect(panel).toHaveAttribute('data-mobile-expanded', 'false');
+    expect(panel).toHaveAttribute('data-settings-expanded', 'false');
     expect(screen.getByRole('status', { name: 'Route drawing status' })).toHaveTextContent('2 points');
   });
 

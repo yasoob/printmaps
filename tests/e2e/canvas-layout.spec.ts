@@ -168,34 +168,22 @@ test('compact Route stays centered and docked after every drawing transition', a
     expect(mapBox).not.toBeNull();
 
     await mapCanvas.click({ position: { x: 100, y: Math.min(250, mapBox!.height - 70) } });
-    await expect(route).toHaveAttribute('data-mobile-expanded', 'false');
+    await expect(route).toHaveAttribute('data-settings-expanded', 'false');
     await expectDockContract(route, toolbar, canvasRegion, initialBox!.width);
     await page.screenshot({ path: testInfo.outputPath(`${viewport.name}-route-one-point.png`), animations: 'disabled' });
 
     await mapCanvas.click({ position: { x: 180, y: Math.min(280, mapBox!.height - 60) } });
-    await expect(route).toHaveAttribute('data-mobile-expanded', 'false');
+    await expect(route).toHaveAttribute('data-settings-expanded', 'false');
     await expectDockContract(route, toolbar, canvasRegion, initialBox!.width);
     await page.screenshot({ path: testInfo.outputPath(`${viewport.name}-route-two-points.png`), animations: 'disabled' });
 
     await page.getByRole('button', { name: 'Show route settings' }).click();
-    await expect(route).toHaveAttribute('data-mobile-expanded', 'true');
+    await expect(route).toHaveAttribute('data-settings-expanded', 'true');
     await expectDockContract(route, toolbar, canvasRegion, initialBox!.width);
     await page.screenshot({ path: testInfo.outputPath(`${viewport.name}-route-reopened.png`), animations: 'disabled' });
     await page.getByRole('button', { name: 'Cancel route' }).click();
     await page.getByRole('button', { name: 'Discard changes' }).click();
   }
-});
-
-test('desktop Route never exposes the mobile settings toggle', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto('./');
-  await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
-  await page.getByRole('button', { name: 'Route (R)' }).click();
-  const mobileSettings = page.getByRole('button', { name: 'Show route settings' });
-  await expect(mobileSettings).toBeHidden();
-  const mapCanvas = page.locator('.maplibregl-canvas');
-  await mapCanvas.click({ position: { x: 40, y: 180 } });
-  await expect(mobileSettings).toBeHidden();
 });
 
 test('compact attribution disclosure does not collide with the scale', async ({ page }) => {

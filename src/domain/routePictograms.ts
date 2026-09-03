@@ -1,6 +1,7 @@
 import type { RouteTravelMarker } from './routeProfiles';
 
 export const ROUTE_PICTOGRAM_VIEWBOX = 24;
+export const ROUTE_PICTOGRAM_CONTENT_SCALE = 0.82;
 
 export type PictogramPrimitive =
   | Readonly<{ type: 'circle'; cx: number; cy: number; r: number; fill?: boolean; strokeWidth?: number }>
@@ -93,6 +94,9 @@ export function drawRoutePictogram(
   context.lineCap = 'round';
   context.lineJoin = 'round';
   context.fillStyle = '#ffffff';
+  context.translate(12, 12);
+  context.scale(ROUTE_PICTOGRAM_CONTENT_SCALE, ROUTE_PICTOGRAM_CONTENT_SCALE);
+  context.translate(-12, -12);
   const primitives = ROUTE_PICTOGRAMS[pictogram];
   for (const primitive of primitives) traceCanvasPrimitive(context, primitive);
   context.restore();
@@ -138,7 +142,7 @@ export function routePictogramSvg(
   const primitives = ROUTE_PICTOGRAMS[pictogram]
     .map((primitive) => svgPrimitive(primitive))
     .join('');
-  return `<g data-route-pictogram="${pictogram}" transform="translate(${options.point.x} ${options.point.y}) rotate(${options.bearing}) scale(${scale}) translate(-12 -12)" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="11" fill="${color}"/>${primitives}</g>`;
+  return `<g data-route-pictogram="${pictogram}" transform="translate(${options.point.x} ${options.point.y}) rotate(${options.bearing}) scale(${scale}) translate(-12 -12)" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="11" fill="${color}"/><g transform="translate(12 12) scale(${ROUTE_PICTOGRAM_CONTENT_SCALE}) translate(-12 -12)">${primitives}</g></g>`;
 }
 
 function transformPoint(
@@ -168,22 +172,24 @@ export function routePictogramPdfGeometry(
   bearing: number,
 ): readonly PdfPictogramPrimitive[] {
   const scale = radius * 2 / ROUTE_PICTOGRAM_VIEWBOX;
+  const contentRadius = radius * ROUTE_PICTOGRAM_CONTENT_SCALE;
+  const contentScale = scale * ROUTE_PICTOGRAM_CONTENT_SCALE;
   return [
     { type: 'circle', center, radius: radius * 11 / 12, fill: true, strokeWidth: 0 },
     ...ROUTE_PICTOGRAMS[pictogram].map((primitive): PdfPictogramPrimitive => primitive.type === 'circle'
       ? {
           type: 'circle',
-          center: transformPoint([primitive.cx, primitive.cy], center, radius, bearing),
-          radius: primitive.r * scale,
+          center: transformPoint([primitive.cx, primitive.cy], center, contentRadius, bearing),
+          radius: primitive.r * contentScale,
           fill: primitive.fill ?? false,
-          strokeWidth: (primitive.strokeWidth ?? 1.8) * scale,
+          strokeWidth: (primitive.strokeWidth ?? 1.8) * contentScale,
         }
       : {
           type: 'path',
-          points: primitive.points.map((point) => transformPoint(point, center, radius, bearing)),
+          points: primitive.points.map((point) => transformPoint(point, center, contentRadius, bearing)),
           closed: primitive.closed ?? false,
           fill: primitive.fill ?? false,
-          strokeWidth: (primitive.strokeWidth ?? 1.8) * scale,
+          strokeWidth: (primitive.strokeWidth ?? 1.8) * contentScale,
         }),
   ];
 }

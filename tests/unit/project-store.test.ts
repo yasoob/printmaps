@@ -63,11 +63,11 @@ describe('project store camera history', () => {
   it('commits a finished viewport movement as one undoable camera edit', () => {
     const store = createProjectStore(createDocument());
 
-    store.getState().setCameraViewport([16.41, 48.23], 13.5);
+    store.getState().setCameraViewport([16.41, 48.23], 13.5, 'history', { bearing: 35, pitch: 20 });
 
-    expect(store.getState().document.camera).toMatchObject({ center: [16.41, 48.23], zoom: 13.5 });
+    expect(store.getState().document.camera).toMatchObject({ bearing: 35, center: [16.41, 48.23], pitch: 20, zoom: 13.5 });
     store.getState().undo();
-    expect(store.getState().document.camera).toMatchObject({ center: [16.3725, 48.2084], zoom: 11.2 });
+    expect(store.getState().document.camera).toMatchObject({ bearing: 0, center: [16.3725, 48.2084], pitch: 0, zoom: 11.2 });
   });
 
   it.each([

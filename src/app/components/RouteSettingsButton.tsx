@@ -1,13 +1,13 @@
 import { Settings2 } from "lucide-react";
 
-export function MobileRouteSettingsButton({
+export function RouteSettingsButton({
   onOpen,
 }: Readonly<{
   onOpen: () => void;
 }>) {
   return (
     <button
-      className="route-mobile-settings-toggle"
+      className="route-settings-toggle"
       type="button"
       aria-label="Show route settings"
       onClick={onOpen}

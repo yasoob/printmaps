@@ -2,6 +2,7 @@ import { createStore } from "zustand/vanilla";
 import {
   createNewProjectDocument,
   type ContentLayer,
+  type CameraSettings,
   type DirectionsRouteInput,
   type ArcGeometry,
   type LayerAppearance,
@@ -151,6 +152,7 @@ export type ProjectState = {
     center: readonly [number, number],
     zoom: number,
     mode?: "amend" | "history",
+    orientation?: Pick<CameraSettings, "bearing" | "pitch">,
   ) => void;
   setMapAreaLocked: (isLocked: boolean) => void;
   setCameraPitch: (pitch: number) => void;

@@ -594,11 +594,11 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .administrative-boundary-picker > [role="status"] { @apply flex items-center justify-center gap-1 text-center text-[10px]; color: var(--studio-danger); }
 .administrative-boundary-picker > [role="status"]:empty { display: none; }
 .map-authoring-panel > span { @apply whitespace-nowrap px-1; }
-.map-authoring-panel > button:not(.primary-button):not(.route-mobile-settings-toggle) {
+.map-authoring-panel > button:not(.primary-button):not(.route-settings-toggle) {
   @apply inline-flex h-7 items-center gap-1 px-2;
   border-radius: var(--studio-radius-md);
 }
-.map-authoring-panel > button:not(.primary-button):not(.route-mobile-settings-toggle):hover { background: var(--studio-field); }
+.map-authoring-panel > button:not(.primary-button):not(.route-settings-toggle):hover { background: var(--studio-field); }
 .map-authoring-panel > .primary-button { @apply h-7 px-2.5; }
 .tool-segmented-control { @apply grid grid-cols-3 gap-1 rounded-lg p-1; background: var(--studio-field); }
 .tool-segmented-control > button { @apply flex min-h-10 items-center justify-center gap-1.5 rounded px-2 text-xs font-medium; color: var(--studio-text-muted); }
@@ -608,7 +608,14 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .route-path-field > legend { @apply mb-1.5; }
 .route-authoring-settings { @apply grid gap-3; gap: var(--studio-tool-card-gap); }
 .route-authoring-settings > .route-marker-field { @apply grid gap-1.5 whitespace-normal; }
-.route-mobile-settings-toggle { display: none; }
+.route-settings-toggle {
+  @apply min-h-11 items-center justify-center gap-1.5 rounded-md px-3 text-xs font-medium;
+  display: inline-flex;
+  border: 0;
+  color: var(--studio-tool-card-accent);
+  background: transparent;
+}
+.route-settings-toggle:hover { background: var(--studio-field); }
 .route-marker-field > select { @apply h-10 w-full rounded-md px-3 text-xs outline-none; border: var(--studio-border-width) solid var(--studio-line-strong); background: var(--studio-surface); }
 .route-marker-field > select:focus-visible { border-color: var(--studio-tool-card-accent); box-shadow: var(--studio-tool-card-focus-shadow); }
 .route-progress { @apply flex items-center justify-between gap-3 py-1; }
@@ -621,6 +628,72 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   flex-wrap: nowrap;
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+.route-authoring-panel[data-settings-expanded="false"] {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.375rem;
+  width: 100%;
+  min-height: 3.5rem;
+  max-height: none;
+  padding: 0.75rem 0.375rem 0.375rem;
+  border-radius: var(--studio-tool-card-radius) var(--studio-tool-card-radius) var(--studio-radius-md) var(--studio-radius-md);
+  overflow: visible;
+}
+.route-authoring-panel[data-settings-expanded="false"]::before {
+  position: absolute;
+  top: 0.25rem;
+  left: 50%;
+  width: 2rem;
+  height: 0.1875rem;
+  border-radius: 999px;
+  background: var(--studio-line-strong);
+  content: "";
+  transform: translateX(-50%);
+}
+.route-authoring-panel[data-settings-expanded="false"] > .tool-card-heading,
+.route-authoring-panel[data-settings-expanded="false"] > .route-authoring-settings,
+.route-authoring-panel[data-settings-expanded="false"] > .route-finish-explanation {
+  display: none;
+}
+.route-authoring-panel[data-settings-expanded="false"] > .route-announcement {
+  @apply sr-only;
+}
+.route-authoring-panel[data-settings-expanded="false"] > .route-settings-toggle {
+  grid-column: 1;
+}
+.route-authoring-panel[data-settings-expanded="false"] > .route-progress {
+  grid-column: 2;
+  min-width: 0;
+  gap: 0.25rem;
+  padding: 0;
+}
+.route-authoring-panel[data-settings-expanded="false"] > .route-progress > span {
+  @apply sr-only;
+}
+.route-authoring-panel[data-settings-expanded="false"] .route-finish-full { display: none; }
+.route-authoring-panel[data-settings-expanded="false"] .route-finish-compact {
+  display: inline;
+}
+.route-authoring-panel[data-settings-expanded="false"] > .route-progress > button {
+  width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0;
+  justify-content: center;
+}
+.route-authoring-panel[data-settings-expanded="false"] > .route-progress > button > span {
+  display: none;
+}
+.route-authoring-panel[data-settings-expanded="false"] > .tool-card-actions {
+  grid-column: 3;
+  padding: 0;
+}
+.route-authoring-panel[data-settings-expanded="false"] > .tool-card-actions > [aria-label="Cancel route"] {
+  display: none;
+}
+.route-authoring-panel[data-settings-expanded="false"] > .tool-card-actions > .primary-button {
+  min-height: 2.75rem;
 }
 .route-point-sources {
   @apply min-w-0 rounded-md;
@@ -1937,82 +2010,8 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
     padding-top: 0.5rem;
     background: var(--studio-surface-raised);
   }
-  .route-mobile-settings-toggle {
-    @apply min-h-11 items-center justify-center gap-1.5 rounded-md px-3 text-xs font-medium;
-    display: inline-flex;
-    border: 0;
-    color: var(--studio-tool-card-accent);
-    background: transparent;
-  }
-  .route-mobile-settings-toggle:hover { background: var(--studio-field); }
-  .route-authoring-panel[data-mobile-expanded="true"] > .tool-card-heading > button {
+  .route-authoring-panel[data-settings-expanded="true"] > .tool-card-heading > button {
     display: none;
-  }
-  .route-authoring-panel[data-mobile-expanded="false"] {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 0.375rem;
-    width: 100%;
-    min-height: 3.5rem;
-    max-height: none;
-    padding: 0.75rem 0.375rem 0.375rem;
-    border-radius: var(--studio-tool-card-radius) var(--studio-tool-card-radius) var(--studio-radius-md) var(--studio-radius-md);
-    overflow: visible;
-  }
-  .route-authoring-panel[data-mobile-expanded="false"]::before {
-    position: absolute;
-    top: 0.25rem;
-    left: 50%;
-    width: 2rem;
-    height: 0.1875rem;
-    border-radius: 999px;
-    background: var(--studio-line-strong);
-    content: "";
-    transform: translateX(-50%);
-  }
-  .route-authoring-panel[data-mobile-expanded="false"] > .tool-card-heading,
-  .route-authoring-panel[data-mobile-expanded="false"] > .route-authoring-settings,
-  .route-authoring-panel[data-mobile-expanded="false"] > .route-finish-explanation {
-    display: none;
-  }
-  .route-authoring-panel[data-mobile-expanded="false"] > .route-announcement {
-    @apply sr-only;
-  }
-  .route-authoring-panel[data-mobile-expanded="false"] > .route-mobile-settings-toggle {
-    grid-column: 1;
-  }
-  .route-authoring-panel[data-mobile-expanded="false"] > .route-progress {
-    grid-column: 2;
-    min-width: 0;
-    gap: 0.25rem;
-    padding: 0;
-  }
-  .route-authoring-panel[data-mobile-expanded="false"] > .route-progress > span {
-    @apply sr-only;
-  }
-  .route-authoring-panel[data-mobile-expanded="false"] .route-finish-full { display: none; }
-  .route-authoring-panel[data-mobile-expanded="false"] .route-finish-compact {
-    display: inline;
-  }
-  .route-authoring-panel[data-mobile-expanded="false"] > .route-progress > button {
-    width: 2.75rem;
-    min-height: 2.75rem;
-    padding: 0;
-    justify-content: center;
-  }
-  .route-authoring-panel[data-mobile-expanded="false"] > .route-progress > button > span {
-    display: none;
-  }
-  .route-authoring-panel[data-mobile-expanded="false"] > .tool-card-actions {
-    grid-column: 3;
-    padding: 0;
-  }
-  .route-authoring-panel[data-mobile-expanded="false"] > .tool-card-actions > [aria-label="Cancel route"] {
-    display: none;
-  }
-  .route-authoring-panel[data-mobile-expanded="false"] > .tool-card-actions > .primary-button {
-    min-height: 2.75rem;
   }
   .shadcn-combobox-input-group,
   .shadcn-combobox-input-group > input { min-height: 2.75rem; }

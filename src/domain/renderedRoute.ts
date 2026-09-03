@@ -18,6 +18,17 @@ import {
 } from './routeModel';
 
 type ProjectedPosition = { x: number; y: number };
+const ROUTE_MARKER_PERPENDICULAR_OFFSET = -90;
+
+function orientedMarkerBearing(
+  tangentBearing: number,
+  isReverseFacing: boolean,
+) {
+  const bearing = tangentBearing
+    + ROUTE_MARKER_PERPENDICULAR_OFFSET
+    + (isReverseFacing ? 180 : 0);
+  return ((bearing % 360) + 360) % 360;
+}
 
 export type RenderedRouteLeg = {
   index: number;
@@ -69,7 +80,7 @@ export function projectedRouteMarkerBearing(
   const end = projectPoint(marker.tangent.end);
   const deltaY = yAxis === 'down' ? start.y - end.y : end.y - start.y;
   const bearing = Math.atan2(end.x - start.x, deltaY) * 180 / Math.PI;
-  return ((bearing + (appearance.reverseFacing ? 180 : 0)) % 360 + 360) % 360;
+  return orientedMarkerBearing(bearing, appearance.reverseFacing);
 }
 
 function project([longitude, latitude]: readonly [number, number]): ProjectedPosition {
@@ -171,7 +182,7 @@ function renderedEdges(legs: readonly RenderedRouteLeg[]): RenderedEdge[] {
 function normalizedBearing(edge: RenderedEdge, marker: RouteMarkerAppearance): number {
   if (!marker.orientToPath) return 0;
   const bearing = Math.atan2(edge.end.x - edge.start.x, edge.start.y - edge.end.y) * 180 / Math.PI;
-  return ((bearing + (marker.reverseFacing ? 180 : 0)) % 360 + 360) % 360;
+  return orientedMarkerBearing(bearing, marker.reverseFacing);
 }
 
 function markerFractions(marker: RouteMarkerAppearance): number[] {
@@ -233,12 +244,15 @@ export function deriveRenderedRoute(layer: ContentLayer): RenderedRoute | null {
   const edges = renderedEdges(legs);
   if (edges.length === 0) return null;
   const markers = layer.appearance.marker
-    ? markerFractions(layer.appearance.marker).map((fraction) => markerAtFraction(
-        fraction,
-        edges,
-        legs,
-        layer.appearance.marker!,
-      ))
+    ? legs.flatMap((leg) => {
+        const legEdges = edges.filter((edge) => edge.legIndex === leg.index);
+        return markerFractions(layer.appearance.marker!).map((fraction) => markerAtFraction(
+          fraction,
+          legEdges,
+          legs,
+          layer.appearance.marker!,
+        ));
+      })
     : [];
   return { path: completePath(legs), legs, markers };
 }

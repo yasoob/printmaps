@@ -1,6 +1,7 @@
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import { createDefaultRouteAppearance, type ContentLayer } from '../../src/domain/project';
 import {
+  ROUTE_PICTOGRAM_CONTENT_SCALE,
   ROUTE_PICTOGRAMS,
   createRoutePictogramImage,
   routePictogramPdfGeometry,
@@ -45,6 +46,7 @@ describe('shared original route pictograms', () => {
       });
       const pdf = routePictogramPdfGeometry(pictogram, { x: 10, y: 20 }, 8, 90);
       expect(svg).toContain(`data-route-pictogram="${pictogram}"`);
+      expect(svg).toContain(`scale(${ROUTE_PICTOGRAM_CONTENT_SCALE})`);
       expect(svg).not.toContain('<text');
       expect(pdf).toHaveLength(ROUTE_PICTOGRAMS[pictogram].length + 1);
     }
@@ -56,15 +58,20 @@ describe('shared original route pictograms', () => {
       width,
       height,
     }));
+    const scale = vi.fn();
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
       arc: vi.fn(), beginPath: vi.fn(), closePath: vi.fn(), fill: vi.fn(),
       getImageData, lineTo: vi.fn(), moveTo: vi.fn(), restore: vi.fn(),
-      save: vi.fn(), scale: vi.fn(), stroke: vi.fn(),
+      save: vi.fn(), scale, stroke: vi.fn(), translate: vi.fn(),
     } as unknown as CanvasRenderingContext2D);
     for (const pictogram of ROUTE_TRAVEL_MARKERS) {
       expect(createRoutePictogramImage(pictogram, '#123456')).toMatchObject({ width: 48, height: 48 });
     }
     expect(getImageData).toHaveBeenCalledTimes(6);
+    expect(scale).toHaveBeenCalledWith(
+      ROUTE_PICTOGRAM_CONTENT_SCALE,
+      ROUTE_PICTOGRAM_CONTENT_SCALE,
+    );
   });
 });
 
@@ -76,7 +83,9 @@ describe('route MapLibre features and layers', () => {
       expect.objectContaining({ properties: expect.objectContaining({ segmentIndex: 0, color: '#112233', width: 7, strokeStyle: 'dashed' }) }),
       expect.objectContaining({ properties: expect.objectContaining({ segmentIndex: 1, color: '#d9363e', width: 4, strokeStyle: 'solid' }) }),
     ]);
-    expect(data.features.filter(({ properties }) => properties.featureKind === 'marker')).toHaveLength(2);
+    const markers = data.features.filter(({ properties }) => properties.featureKind === 'marker');
+    expect(markers).toHaveLength(4);
+    expect(markers.map(({ properties }) => properties.segmentIndex)).toEqual([0, 0, 1, 1]);
 
     const descriptors = mapLayerDescriptors(route(), { selectedId: 'route', previewedId: null });
     expect(descriptors.map(({ id }) => id)).toEqual([
@@ -94,7 +103,8 @@ describe('route MapLibre features and layers', () => {
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
       arc: vi.fn(), beginPath: vi.fn(), closePath: vi.fn(), fill: vi.fn(),
       getImageData: vi.fn(() => ({ data: new Uint8ClampedArray(48 * 48 * 4), width: 48, height: 48 })),
-      lineTo: vi.fn(), moveTo: vi.fn(), restore: vi.fn(), save: vi.fn(), scale: vi.fn(), stroke: vi.fn(),
+      lineTo: vi.fn(), moveTo: vi.fn(), restore: vi.fn(), save: vi.fn(),
+      scale: vi.fn(), stroke: vi.fn(), translate: vi.fn(),
     } as unknown as CanvasRenderingContext2D);
     const images = new Set<string>();
     const map = {

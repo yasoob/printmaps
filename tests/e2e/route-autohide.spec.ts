@@ -11,7 +11,7 @@ test("centers and auto-hides route settings while preserving map drawing", async
 
   await page.getByRole("button", { name: "Route (R)" }).click();
   const panel = page.locator(".route-authoring-panel");
-  await expect(panel).toHaveAttribute("data-mobile-expanded", "true");
+  await expect(panel).toHaveAttribute("data-settings-expanded", "true");
   await expect(page.getByRole("button", { name: "Show route settings" }))
     .toHaveCount(0);
   await expect(page.getByRole("button", { name: /Draw on map/i }))
@@ -43,7 +43,7 @@ test("centers and auto-hides route settings while preserving map drawing", async
 
   await expect(page.getByRole("status", { name: "Route drawing status" }))
     .toContainText("1 point");
-  await expect(panel).toHaveAttribute("data-mobile-expanded", "false");
+  await expect(panel).toHaveAttribute("data-settings-expanded", "false");
   const settings = page.getByRole("button", { name: "Show route settings" });
   await expect(settings).toBeVisible();
   expect(await settings.evaluate((element) => getComputedStyle(element).borderWidth))
@@ -63,7 +63,7 @@ test("centers and auto-hides route settings while preserving map drawing", async
   });
 
   await settings.click();
-  await expect(panel).toHaveAttribute("data-mobile-expanded", "true");
+  await expect(panel).toHaveAttribute("data-settings-expanded", "true");
   const reopenedBox = await panel.boundingBox();
   expect(reopenedBox).not.toBeNull();
   expect(reopenedBox!.x + reopenedBox!.width / 2).toBeCloseTo(viewport.width / 2, 0);
@@ -74,7 +74,7 @@ test("centers and auto-hides route settings while preserving map drawing", async
       y: reopenedBox!.y - mapCanvasBox!.y - 24,
     },
   });
-  await expect(panel).toHaveAttribute("data-mobile-expanded", "false");
+  await expect(panel).toHaveAttribute("data-settings-expanded", "false");
   const secondMinimizedBox = await panel.boundingBox();
   expect(secondMinimizedBox).not.toBeNull();
   expect(secondMinimizedBox!.x + secondMinimizedBox!.width / 2).toBeCloseTo(viewport.width / 2, 0);
@@ -85,4 +85,39 @@ test("centers and auto-hides route settings while preserving map drawing", async
   await page.getByRole("button", { name: "Finish route" }).click();
   await expect(page.getByTestId("map-canvas"))
     .toHaveAttribute("data-map-layer-order", /route-02/);
+});
+
+test("auto-hides route settings after drawing starts on desktop", async ({ page }) => {
+  await page.goto("./");
+  const mapReady = page.locator('[data-map-ready="true"]');
+  const mapFallback = page.getByText("Map preview unavailable");
+  await expect(mapReady.or(mapFallback)).toBeVisible({ timeout: 20_000 });
+  test.skip(await mapFallback.isVisible(), "This browser fixture has no WebGL 2 renderer.");
+
+  await page.getByRole("button", { name: "Route (R)" }).click();
+  const panel = page.locator(".route-authoring-panel");
+  const settingsContent = panel.locator(".route-authoring-settings");
+  await expect(panel).toHaveAttribute("data-settings-expanded", "true");
+  await expect(settingsContent).toBeVisible();
+
+  const canvas = page.locator(".maplibregl-canvas");
+  const mapCanvasBox = await canvas.boundingBox();
+  const panelBox = await panel.boundingBox();
+  expect(mapCanvasBox).not.toBeNull();
+  expect(panelBox).not.toBeNull();
+  await canvas.click({
+    position: {
+      x: mapCanvasBox!.width / 2,
+      y: panelBox!.y - mapCanvasBox!.y - 24,
+    },
+  });
+
+  await expect(page.getByRole("status", { name: "Route drawing status" }))
+    .toContainText("1 point");
+  await expect(panel).toHaveAttribute("data-settings-expanded", "false");
+  await expect(settingsContent).not.toBeVisible();
+
+  await page.getByRole("button", { name: "Show route settings" }).click();
+  await expect(panel).toHaveAttribute("data-settings-expanded", "true");
+  await expect(settingsContent).toBeVisible();
 });
