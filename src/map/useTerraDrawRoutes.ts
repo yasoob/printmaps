@@ -191,8 +191,13 @@ function useRouteSession(
   } | null>(null);
   const isAuthoring = options.authoring?.active === true;
   const editableRoute = editableRouteFor(options);
+  const editableRouteRef = useRef(editableRoute);
+  const editableRouteId = editableRoute?.id ?? null;
   const lineShape = isAuthoring ? options.authoring?.lineShape : routeLineShape(editableRoute);
   const { map } = options;
+  useLayoutEffect(() => {
+    editableRouteRef.current = editableRoute;
+  }, [editableRoute]);
 
   useEffect(() => {
     if (!lineShape || !map) {
@@ -200,6 +205,7 @@ function useRouteSession(
       return;
     }
     const { onRoutePreview } = callbacks.current;
+    const currentEditableRoute = editableRouteRef.current;
     let isCancelled = false;
     let owned: RouteSession | null = null;
     // terra-draw only matters once a route is being drawn or edited, so the
@@ -212,7 +218,7 @@ function useRouteSession(
           authoringPoints: authoringPoints.current ?? [],
           callbacks,
           draw: loaded.createTerraRouteDraw(map, lineShape, isAuthoring),
-          editableRoute,
+          editableRoute: currentEditableRoute,
           isAuthoring,
         });
         session.current = owned;
@@ -231,27 +237,47 @@ function useRouteSession(
       isCancelled = true;
       owned?.destroy();
       if (session.current === owned) session.current = null;
-      if (editableRoute) onRoutePreview(editableRoute.id, null);
+      if (currentEditableRoute) onRoutePreview(currentEditableRoute.id, null);
     };
-  }, [authoringPoints, callbacks, editableRoute, isAuthoring, lineShape, map, options.loadRouteEditor]);
+  }, [authoringPoints, callbacks, editableRouteId, isAuthoring, lineShape, map, options.loadRouteEditor]);
 
   const isAuthoringReady = isAuthoring
     && readyAuthoring?.lineShape === lineShape
     && readyAuthoring?.map === map;
-  return { isAuthoring, isAuthoringReady, session };
+  return { editableRoute, isAuthoring, isAuthoringReady, session };
 }
 
 export function useTerraDrawRoutes(options: TerraDrawRoutesOptions) {
-  const callbacks = useLatestCallbacks(options);
+  const lastEditingGeometry = useRef<{
+    routeId: string;
+    signature: string;
+  } | null>(null);
+  const trackedOptions = {
+    ...options,
+    onRoutePreview: (
+      routeId: string,
+      coordinates: [number, number][] | null,
+    ) => {
+      if (coordinates) {
+        lastEditingGeometry.current = {
+          routeId,
+          signature: JSON.stringify(coordinates),
+        };
+      }
+      options.onRoutePreview(routeId, coordinates);
+    },
+  };
+  const callbacks = useLatestCallbacks(trackedOptions);
   const authoringPoints = useRef(options.authoring?.points);
   useLayoutEffect(() => {
     authoringPoints.current = options.authoring?.points;
   }, [options.authoring?.points]);
   const {
+    editableRoute,
     isAuthoring,
     isAuthoringReady,
     session,
-  } = useRouteSession(options, callbacks, authoringPoints);
+  } = useRouteSession(trackedOptions, callbacks, authoringPoints);
   const lastUndoRequest = useRef(options.authoring?.undoRequest ?? 0);
 
   useEffect(() => {
@@ -270,8 +296,31 @@ export function useTerraDrawRoutes(options: TerraDrawRoutesOptions) {
     session,
   ]);
 
-  const updateEditingGeometry = useCallback((coordinates: [number, number][]) => (
-    session.current?.updateGeometry(coordinates) ?? false
-  ), [session]);
+  const editingCoordinates = routeCoordinates(editableRoute);
+  useLayoutEffect(() => {
+    if (isAuthoring || !editableRoute || !editingCoordinates) return;
+    const signature = JSON.stringify(editingCoordinates);
+    const previous = lastEditingGeometry.current;
+    if (previous?.routeId === editableRoute.id && previous.signature === signature) {
+      return;
+    }
+    if (session.current?.updateGeometry(editingCoordinates)) {
+      lastEditingGeometry.current = {
+        routeId: editableRoute.id,
+        signature,
+      };
+    }
+  }, [editableRoute, editingCoordinates, isAuthoring, session]);
+
+  const updateEditingGeometry = useCallback((coordinates: [number, number][]) => {
+    const didUpdate = session.current?.updateGeometry(coordinates) ?? false;
+    if (didUpdate && editableRoute) {
+      lastEditingGeometry.current = {
+        routeId: editableRoute.id,
+        signature: JSON.stringify(coordinates),
+      };
+    }
+    return didUpdate;
+  }, [editableRoute, session]);
   return { isAuthoringReady, updateEditingGeometry };
 }

@@ -1,8 +1,9 @@
-import { memo, useCallback, useLayoutEffect, useRef, useState } from 'react';
+import { memo, useState } from 'react';
 import { MAX_MERCATOR_LATITUDE, type ContentLayer, type LayerAppearance, type MapMatchingInput, type ShapeAppearance } from '../../domain/project';
 import type { CustomMarkerAsset } from '../../domain/customMarkerAssets';
 import type { DirectionsProvider, MapMatchingProvider } from '../../services/mapbox/contracts';
 import type { ProjectState } from '../store';
+import { useOptionalStableEvent, useStableEvent } from '../hooks/useStableEvent';
 import { CoordinateField } from './CoordinateField';
 import { LayerIdentityProperties } from './LayerIdentityProperties';
 import { MultiPartGeometryStatus } from './MultiPartGeometryStatus';
@@ -13,12 +14,6 @@ import { ShapeVertexControls } from './ShapeVertexControls';
 import { Switch } from './UiControls';
 import { InputGroup, InputGroupAddon, InputNumber } from './InputGroup';
 import type { RouteExtensionEndpoint } from './routeAuthoringActions';
-
-function useStableEvent<Arguments extends unknown[], Result>(callback: (...arguments_: Arguments) => Result) {
-  const callbackRef = useRef(callback);
-  useLayoutEffect(() => { callbackRef.current = callback; }, [callback]);
-  return useCallback((...arguments_: Arguments) => callbackRef.current(...arguments_), []);
-}
 
 type LayerPropertiesProps = {
   layer: ContentLayer;
@@ -262,6 +257,19 @@ export function LayerProperties({
   const replaceLayer = useStableEvent(onReplace);
   const toggleLayerLock = useStableEvent(onToggleLock);
   const toggleLayerVisibility = useStableEvent(onToggleVisibility);
+  const applyMapMatching = useOptionalStableEvent(onApplyMapMatching);
+  const changeAppearance = useStableEvent(onAppearanceChange);
+  const beginRouteExtend = useOptionalStableEvent(onBeginRouteExtend);
+  const changeArcCurvature = useOptionalStableEvent(onArcCurvatureChange);
+  const changePoiCoordinates = useStableEvent(onPoiCoordinatesChange);
+  const changePoiCustomMarker = useStableEvent(onPoiCustomMarkerChange);
+  const insertRouteVertex = useStableEvent(onRouteVertexInsert);
+  const removeRouteVertex = useStableEvent(onRouteVertexRemove);
+  const changeRouteVertex = useStableEvent(onRouteVertexChange);
+  const changeShapeVertex = useStableEvent(onShapeVertexChange);
+  const retryDirectionsRouteEdit = useOptionalStableEvent(onRetryDirectionsRouteEdit);
+  const cancelDirectionsRouteEdit = useOptionalStableEvent(onCancelDirectionsRouteEdit);
+  const transformRoute = useOptionalStableEvent(onTransformRoute);
   const changeNameDraft = useStableEvent((value: string) => setNameEdit({ source: layer.name, value }));
   const changeOpacityDraft = useStableEvent((value: string) => setOpacityEdit({ source: layer.opacity, value }));
   const commitNameDraft = useStableEvent(commitName);
@@ -283,7 +291,7 @@ export function LayerProperties({
         onToggleLock={toggleLayerLock}
         onToggleVisibility={toggleLayerVisibility}
       />
-      <LayerTypeProperties documentEpoch={documentEpoch} layer={layer} assets={assets} directionsProvider={directionsProvider} mapMatchingProvider={mapMatchingProvider} onApplyMapMatching={onApplyMapMatching} onAppearanceChange={onAppearanceChange} onBeginRouteExtend={onBeginRouteExtend} onArcCurvatureChange={onArcCurvatureChange} onPoiCoordinatesChange={onPoiCoordinatesChange} onPoiCustomMarkerChange={onPoiCustomMarkerChange} onRouteVertexInsert={onRouteVertexInsert} onRouteVertexRemove={onRouteVertexRemove} onRouteVertexChange={onRouteVertexChange} onShapeVertexChange={onShapeVertexChange} directionsRouteEditError={directionsRouteEditError} directionsRouteEditIsRouting={directionsRouteEditIsRouting} directionsRouteEditWaypoints={directionsRouteEditWaypoints} onRetryDirectionsRouteEdit={onRetryDirectionsRouteEdit} onCancelDirectionsRouteEdit={onCancelDirectionsRouteEdit} onTransformRoute={onTransformRoute} />
+      <LayerTypeProperties documentEpoch={documentEpoch} layer={layer} assets={assets} directionsProvider={directionsProvider} mapMatchingProvider={mapMatchingProvider} onApplyMapMatching={applyMapMatching} onAppearanceChange={changeAppearance} onBeginRouteExtend={beginRouteExtend} onArcCurvatureChange={changeArcCurvature} onPoiCoordinatesChange={changePoiCoordinates} onPoiCustomMarkerChange={changePoiCustomMarker} onRouteVertexInsert={insertRouteVertex} onRouteVertexRemove={removeRouteVertex} onRouteVertexChange={changeRouteVertex} onShapeVertexChange={changeShapeVertex} directionsRouteEditError={directionsRouteEditError} directionsRouteEditIsRouting={directionsRouteEditIsRouting} directionsRouteEditWaypoints={directionsRouteEditWaypoints} onRetryDirectionsRouteEdit={retryDirectionsRouteEdit} onCancelDirectionsRouteEdit={cancelDirectionsRouteEdit} onTransformRoute={transformRoute} />
     </div>
   );
 }

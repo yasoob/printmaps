@@ -3,7 +3,7 @@ import { useCallback, useEffect, type RefObject } from 'react';
 import type { LayerReplacementRequest, MapDataImportCommit } from '../hooks/useAppMapDataImport';
 import { useMapDataDrop } from '../hooks/useMapDataDrop';
 import { useMapDataImport } from '../hooks/useMapDataImport';
-import { useProject, useProjectDocumentContent } from '../projectStoreContext';
+import { useProject, useProjectStoreApi } from '../projectStoreContext';
 import { MapDataImportPortals } from './MapDataImportPortals';
 
 type GeoJsonImportButtonProps = {
@@ -56,10 +56,11 @@ export function GeoJsonImportButton({
   onImport,
   presentation = 'trigger',
 }: GeoJsonImportButtonProps) {
-  // The import guard compares content, so this snapshot only has to refresh when
-  // content does. Subscribing to the document itself would rebuild it on every
-  // camera write, which land at pointer rate while a file is being read.
-  const sourceDocument = useProjectDocumentContent();
+  const projectStore = useProjectStoreApi();
+  const getSourceDocument = useCallback(
+    () => projectStore.getState().document,
+    [projectStore],
+  );
   const documentEpoch = useProject((state) => state.documentEpoch);
   const {
     batch,
@@ -83,11 +84,11 @@ export function GeoJsonImportButton({
   } = useMapDataImport({
     documentEpoch,
     finishImportWork,
+    getSourceDocument,
     isOpen,
     isWorkActive,
     onImport,
     onOpenChange,
-    sourceDocument,
     startImportWork,
     triggerRef: restoreFocusRef ?? buttonRef,
     inputRef: providedInputRef,

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import type {
   RouteAppearance,
   RouteMarkerAppearance,
@@ -125,7 +125,7 @@ function RouteMarkerSettings({
   );
 }
 
-export function RouteMarkerControls({
+export const RouteMarkerControls = memo(function RouteMarkerControls({
   appearance,
   disabled,
   onChange,
@@ -162,13 +162,13 @@ export function RouteMarkerControls({
         : null}
     </>
   );
-}
+});
 
 function normalizedOverride(override: RouteSegmentStyleOverride): RouteSegmentStyleOverride | null {
   return Object.keys(override).length === 0 ? null : override;
 }
 
-export function RouteSegmentControls({
+export const RouteSegmentControls = memo(function RouteSegmentControls({
   appearance,
   disabled,
   onChange,
@@ -285,4 +285,4 @@ export function RouteSegmentControls({
       </button>
     </>
   );
-}
+});

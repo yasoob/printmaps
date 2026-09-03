@@ -4,12 +4,10 @@ import type { ContentLayer } from '../domain/project';
 import { decodeCustomMarkerImage, type CustomMarkerAsset, type DecodedCustomMarkerImage } from '../domain/customMarkerAssets';
 import {
   addContentLayer,
-  contentStructure,
-  updateLayerPaint,
-  visibleContentLayers,
   type RenderedMapContent,
 } from './MapContentLayerRendering';
 import { registerRoutePictogramImages } from './RoutePictogramMapImages';
+import { createMapContentIncrementalState } from './MapContentIncremental';
 
 export type MapContentState = {
   layers: ContentLayer[];
@@ -22,7 +20,7 @@ export type MapContentState = {
   contentRevision?: object;
 };
 
-export type MapContentSyncResult = 'synced' | 'deferred' | 'failed';
+export type MapContentSyncResult = 'synced' | 'unchanged' | 'deferred' | 'failed';
 
 export type MapContentAdapter = {
   sync: (state: MapContentState) => MapContentSyncResult;
@@ -94,15 +92,6 @@ function removeRenderedContent(map: MapLibreMap, rendered: RenderedMapContent) {
   const isCleanupPending = rendered.mapLayerIds.length > 0 || rendered.sourceIds.length > 0;
   if (!isCleanupPending) rendered.structure = '';
   return !isCleanupPending;
-}
-
-function updateRenderedContent(
-  map: MapLibreMap,
-  visibleLayers: ContentLayer[],
-  state: MapContentState,
-) {
-  const highlight = { selectedId: state.selectedId, previewedId: state.previewedId };
-  for (const layer of visibleLayers) updateLayerPaint(map, layer, highlight, state.assets ?? {});
 }
 
 function addRenderedContent(
@@ -222,29 +211,9 @@ export function createMapLibreContentAdapter(
   options: MapContentAdapterOptions = {},
 ): MapContentAdapter {
   const rendered: RenderedMapContent = { mapLayerIds: [], hitTestLayerIds: [], sourceIds: [], structure: '' };
-  let cachedContentRevision: object | undefined, cachedVisibleLayers: ContentLayer[] = [];
-  let cachedStructure = '', cachedGeometry = '';
   let isCleanupPending = false;
   const markerImages = createMarkerImageRegistry(map, options.decodeImage ?? decodeCustomMarkerImage);
-
-  const layerSnapshot = (layers: ContentLayer[], contentRevision?: object) => {
-    if (contentRevision !== undefined && contentRevision === cachedContentRevision) {
-      return { geometry: cachedGeometry, structure: cachedStructure, visibleLayers: cachedVisibleLayers };
-    }
-    const visibleLayers = visibleContentLayers(layers);
-    const structure = contentStructure(visibleLayers);
-    const geometry = visibleLayers.map((layer) => {
-      const positions = layer.geometry?.type === 'Arc' ? layer.geometry.anchors : layer.geometry?.coordinates;
-      return `${layer.id}:${JSON.stringify(positions)}`;
-    }).join('|');
-    if (contentRevision !== undefined) {
-      cachedContentRevision = contentRevision;
-      cachedVisibleLayers = visibleLayers;
-      cachedStructure = structure;
-      cachedGeometry = geometry;
-    }
-    return { geometry, structure, visibleLayers };
-  };
+  const incremental = createMapContentIncrementalState(map);
 
   const cleanup = () => {
     const isComplete = removeRenderedContent(map, rendered);
@@ -252,25 +221,45 @@ export function createMapLibreContentAdapter(
     return isComplete;
   };
 
+  const rebuild = (
+    visibleLayers: ContentLayer[],
+    state: MapContentState,
+    structure: string,
+    geometry: string,
+  ): MapContentSyncResult => {
+    if (!cleanup()) throw new Error('Map content cleanup incomplete');
+    markerImages.prune(visibleLayers);
+    addRenderedContent(map, visibleLayers, state, rendered);
+    rendered.structure = structure;
+    incremental.cache(visibleLayers, state);
+    updateContainerState(container, state, visibleLayers, geometry);
+    return 'synced';
+  };
+
   const sync = ({ layers, assets, selectedId, previewedId, contentRevision }: MapContentState) => {
     const state = { layers, assets, selectedId, previewedId, contentRevision };
     try {
       if (!map.isStyleLoaded()) return 'deferred';
-      const { geometry, structure: nextStructure, visibleLayers } = layerSnapshot(layers, contentRevision);
+      const {
+        isSameRevision,
+        value: { geometry, structure: nextStructure, visibleLayers },
+      } = incremental.snapshot(layers, contentRevision);
       if (!markerImages.ensure(state, visibleLayers)) return 'deferred';
-      if (!isCleanupPending && nextStructure === rendered.structure) {
+      if (incremental.canUpdate(assets, nextStructure, rendered.structure, isCleanupPending)) {
         markerImages.prune(visibleLayers);
-        updateRenderedContent(map, visibleLayers, state);
+        const update = incremental.update(
+          visibleLayers,
+          state,
+          isSameRevision,
+        );
+        if (!update) {
+          return rebuild(visibleLayers, state, nextStructure, geometry);
+        }
         updateContainerState(container, state, visibleLayers, geometry);
-        return 'synced';
+        return update.didMutate ? 'synced' : 'unchanged';
       }
 
-      if (!cleanup()) throw new Error('Map content cleanup incomplete');
-      markerImages.prune(visibleLayers);
-      addRenderedContent(map, visibleLayers, state, rendered);
-      rendered.structure = nextStructure;
-      updateContainerState(container, state, visibleLayers, geometry);
-      return 'synced';
+      return rebuild(visibleLayers, state, nextStructure, geometry);
     } catch (error) {
       cleanup();
       markContainerFailure(container, error);

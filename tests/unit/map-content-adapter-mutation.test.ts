@@ -1,6 +1,8 @@
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import { createDefaultRouteAppearance, type ContentLayer } from '../../src/domain/project';
 import { createMapLibreContentAdapter } from '../../src/map/MapContentAdapter';
+import { mapContentSourceId } from '../../src/map/MapContentGeometry';
+import { markMapContentSourceData } from '../../src/map/MapContentSourceState';
 
 type AddedLayer = {
   id: string;
@@ -9,6 +11,7 @@ type AddedLayer = {
 
 type AddedSource = {
   data: Record<string, unknown>;
+  setData: ReturnType<typeof vi.fn>;
 };
 
 function sourceGeometry(source: AddedSource | undefined): unknown {
@@ -22,25 +25,43 @@ function sourceGeometry(source: AddedSource | undefined): unknown {
 function createMapHarness() {
   const sources = new Map<string, AddedSource>();
   const layers = new Map<string, AddedLayer>();
+  const addLayer = vi.fn((layer: AddedLayer) => {
+    if (layers.has(layer.id)) throw new Error(`Layer ${layer.id} already exists`);
+    layers.set(layer.id, layer);
+  });
+  const removeLayer = vi.fn((id: string) => layers.delete(id));
+  const removeSource = vi.fn((id: string) => sources.delete(id));
+  const setPaintProperty = vi.fn();
   const map = {
     isStyleLoaded: () => true,
     addControl: vi.fn(),
-    addSource: (id: string, source: AddedSource) => {
+    addSource: (id: string, source: { data: Record<string, unknown> }) => {
       if (sources.has(id)) throw new Error(`Source ${id} already exists`);
-      sources.set(id, structuredClone(source));
+      const stored: AddedSource = {
+        data: structuredClone(source.data),
+        setData: vi.fn((data: Record<string, unknown>) => {
+          stored.data = structuredClone(data);
+        }),
+      };
+      sources.set(id, stored);
     },
     getSource: (id: string) => sources.get(id),
-    removeSource: (id: string) => sources.delete(id),
-    addLayer: (layer: AddedLayer) => {
-      if (layers.has(layer.id)) throw new Error(`Layer ${layer.id} already exists`);
-      layers.set(layer.id, layer);
-    },
+    removeSource,
+    addLayer,
     getLayer: (id: string) => layers.get(id),
-    removeLayer: (id: string) => layers.delete(id),
-    setPaintProperty: () => null,
+    removeLayer,
+    setPaintProperty,
     queryRenderedFeatures: () => [],
   } as unknown as MapLibreMap;
-  return { layers, map, sources };
+  return {
+    addLayer,
+    layers,
+    map,
+    removeLayer,
+    removeSource,
+    setPaintProperty,
+    sources,
+  };
 }
 
 function contentLayer(
@@ -83,6 +104,191 @@ describe('MapLibre content adapter mutable input safety', () => {
     });
   });
 
+});
+
+describe('MapLibre content adapter incremental layer updates', () => {
+  it('updates only a route whose geometry changed', () => {
+    const {
+      addLayer,
+      map,
+      removeLayer,
+      removeSource,
+      setPaintProperty,
+      sources,
+    } = createMapHarness();
+    const route = contentLayer('route', 'route', {
+      type: 'LineString',
+      coordinates: [[0, 0], [1, 1]],
+    });
+
+    const poi = contentLayer('poi', 'poi', {
+      type: 'Point',
+      coordinates: [2, 2],
+    });
+    const adapter = createMapLibreContentAdapter(
+      map,
+      document.createElement('div'),
+    );
+    adapter.sync({
+      contentRevision: {},
+      layers: [route, poi],
+      previewedId: null,
+      selectedId: 'route',
+    });
+    addLayer.mockClear();
+    removeLayer.mockClear();
+    removeSource.mockClear();
+    setPaintProperty.mockClear();
+    const routeSource = sources.get('studio-source-5:route');
+    const poiSource = sources.get('studio-source-3:poi');
+    routeSource?.setData.mockClear();
+    poiSource?.setData.mockClear();
+    const movedRoute = contentLayer('route', 'route', {
+      type: 'LineString',
+      coordinates: [[0, 0], [7, 1]],
+    });
+
+    adapter.sync({
+      contentRevision: {},
+      layers: [movedRoute, poi],
+      previewedId: null,
+      selectedId: 'route',
+    });
+
+    expect(routeSource?.setData).toHaveBeenCalledOnce();
+    expect(poiSource?.setData).not.toHaveBeenCalled();
+    expect(addLayer).not.toHaveBeenCalled();
+    expect(removeLayer).not.toHaveBeenCalled();
+    expect(removeSource).not.toHaveBeenCalled();
+    expect(setPaintProperty).not.toHaveBeenCalled();
+  });
+
+  it('does not rewrite route data already applied by a live preview', () => {
+    const {
+      addLayer,
+      map,
+      removeLayer,
+      removeSource,
+      setPaintProperty,
+      sources,
+    } = createMapHarness();
+    const route = contentLayer('route', 'route', {
+      type: 'LineString',
+      coordinates: [[0, 0], [1, 1]],
+    });
+    const adapter = createMapLibreContentAdapter(
+      map,
+      document.createElement('div'),
+    );
+    adapter.sync({
+      contentRevision: {},
+      layers: [route],
+      previewedId: null,
+      selectedId: 'route',
+    });
+    const routeSource = sources.get(mapContentSourceId(route.id));
+    expect(routeSource).toBeDefined();
+    if (!routeSource) return;
+    const movedRoute = contentLayer('route', 'route', {
+      type: 'LineString',
+      coordinates: [[0, 0], [7, 1]],
+    });
+    routeSource.setData.mockClear();
+    setPaintProperty.mockClear();
+    addLayer.mockClear();
+    removeLayer.mockClear();
+    removeSource.mockClear();
+    markMapContentSourceData(routeSource, movedRoute);
+
+    const result = adapter.sync({
+      contentRevision: {},
+      layers: [movedRoute],
+      previewedId: null,
+      selectedId: 'route',
+    });
+
+    expect(routeSource.setData).not.toHaveBeenCalled();
+    expect(setPaintProperty).not.toHaveBeenCalled();
+    expect(addLayer).not.toHaveBeenCalled();
+    expect(removeLayer).not.toHaveBeenCalled();
+    expect(removeSource).not.toHaveBeenCalled();
+    expect(result).toBe('unchanged');
+  });
+
+  it.each([
+    {
+      id: 'poi',
+      type: 'poi' as const,
+      initial: { type: 'Point' as const, coordinates: [2, 2] as [number, number] },
+      updated: { type: 'Point' as const, coordinates: [3, 4] as [number, number] },
+    },
+    {
+      id: 'shape',
+      type: 'shape' as const,
+      initial: {
+        type: 'Polygon' as const,
+        coordinates: [[[0, 0], [2, 0], [2, 2], [0, 0]]] as [number, number][][],
+      },
+      updated: {
+        type: 'Polygon' as const,
+        coordinates: [[[0, 0], [3, 0], [3, 3], [0, 0]]] as [number, number][][],
+      },
+    },
+  ])('updates only a changed $type source without rebuilding', ({
+    id,
+    initial,
+    type,
+    updated,
+  }) => {
+    const {
+      addLayer,
+      map,
+      removeLayer,
+      removeSource,
+      setPaintProperty,
+      sources,
+    } = createMapHarness();
+    const route = contentLayer('route', 'route', {
+      type: 'LineString',
+      coordinates: [[0, 0], [1, 1]],
+    });
+    const target = contentLayer(id, type, initial);
+    const adapter = createMapLibreContentAdapter(
+      map,
+      document.createElement('div'),
+    );
+    adapter.sync({
+      contentRevision: {},
+      layers: [route, target],
+      previewedId: null,
+      selectedId: id,
+    });
+    addLayer.mockClear();
+    removeLayer.mockClear();
+    removeSource.mockClear();
+    setPaintProperty.mockClear();
+    const routeSource = sources.get(mapContentSourceId(route.id));
+    const targetSource = sources.get(mapContentSourceId(id));
+    routeSource?.setData.mockClear();
+    targetSource?.setData.mockClear();
+
+    adapter.sync({
+      contentRevision: {},
+      layers: [route, contentLayer(id, type, updated)],
+      previewedId: null,
+      selectedId: id,
+    });
+
+    expect(targetSource?.setData).toHaveBeenCalledOnce();
+    expect(routeSource?.setData).not.toHaveBeenCalled();
+    expect(addLayer).not.toHaveBeenCalled();
+    expect(removeLayer).not.toHaveBeenCalled();
+    expect(removeSource).not.toHaveBeenCalled();
+    expect(setPaintProperty).not.toHaveBeenCalled();
+  });
+});
+
+describe('MapLibre content adapter mutable input safety', () => {
   it('rebuilds after a nested coordinate mutates in the same layer array', () => {
     const { map, sources } = createMapHarness();
     const adapter = createMapLibreContentAdapter(map, document.createElement('div'));

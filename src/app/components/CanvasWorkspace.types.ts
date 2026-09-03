@@ -41,7 +41,6 @@ export type CanvasWorkspaceProps = {
   textScalePercent: number;
   featureVisibility: MapFeatureVisibility;
   selectedId: string | null;
-  previewedId: string | null;
   page: PageSettings;
   pageBoundaryVisible: boolean;
   documentEpoch: number;

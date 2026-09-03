@@ -1,5 +1,4 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import type { StoreApi } from "zustand/vanilla";
 import {
   createInitialProjectDocument,
   type ContentLayer,
@@ -12,10 +11,10 @@ import type {
   SearchProvider,
 } from "../services/mapbox/contracts";
 import {
-  createIndexedDbAutosaveRepository,
   type AutosaveRepository,
 } from "../storage/autosave";
-import { useProjectAutosave } from "../storage/useProjectAutosave";
+import { ProjectAutosaveProvider } from "../storage/ProjectAutosaveProvider";
+import { useIsAutosaveCorrupted } from "../storage/projectAutosaveContext";
 import { StudioAppView } from "./components/StudioAppView";
 import { useAppMapDataImport } from "./hooks/useAppMapDataImport";
 import { useModalSurfaces } from "./hooks/useModalSurfaces";
@@ -28,8 +27,10 @@ import {
   useProject,
   useProjectActions,
 } from "./projectStoreContext";
-import { createProjectStore, type ProjectState } from "./store";
+import { createProjectStore } from "./store";
 import type { RouteExtensionEndpoint } from "./components/routeAuthoringActions";
+import { LayerPreviewProvider } from "./LayerPreviewProvider";
+import { useSetLayerPreviewId } from "./layerPreviewContext";
 
 type AppProps = {
   autosaveRepository?: AutosaveRepository | null;
@@ -46,15 +47,6 @@ function resolveInitialDocument(initialDocument: ProjectDocument | undefined) {
   throw new Error("App requires an initial project document.");
 }
 
-function visiblePreviewLayerId(
-  layers: readonly ContentLayer[],
-  previewedLayerId: string | null,
-) {
-  if (previewedLayerId === null) return null;
-  const layer = layers.find(({ id }) => id === previewedLayerId);
-  return layer?.visible && layer.geometry ? previewedLayerId : null;
-}
-
 export function App({
   autosaveLoadError = null,
   autosaveRepository,
@@ -68,31 +60,21 @@ export function App({
   );
   return (
     <ProjectStoreContext value={projectStore}>
-      <StudioApp
-        autosaveRepository={autosaveRepository}
-        autosaveLoadError={autosaveLoadError}
-        directionsProvider={directionsProvider}
-        mapMatchingProvider={mapMatchingProvider}
+      <ProjectAutosaveProvider
+        loadError={autosaveLoadError}
         projectStore={projectStore}
-        searchProvider={searchProvider}
-      />
+        repository={autosaveRepository}
+      >
+        <LayerPreviewProvider>
+          <StudioApp
+            directionsProvider={directionsProvider}
+            mapMatchingProvider={mapMatchingProvider}
+            searchProvider={searchProvider}
+          />
+        </LayerPreviewProvider>
+      </ProjectAutosaveProvider>
     </ProjectStoreContext>
   );
-}
-
-function useResolvedAutosave(
-  projectStore: StoreApi<ProjectState>,
-  autosaveRepository: AutosaveRepository | null | undefined,
-  autosaveLoadError: unknown | null,
-) {
-  const [resolved] = useState(() =>
-    autosaveRepository === undefined
-      ? (typeof indexedDB === "undefined"
-        ? null
-        : createIndexedDbAutosaveRepository())
-      : autosaveRepository,
-  );
-  return useProjectAutosave(projectStore, resolved, autosaveLoadError);
 }
 
 function useMapExporter() {
@@ -105,7 +87,35 @@ function useMapExporter() {
   return { run: exporter?.run ?? null, onExporterChange };
 }
 
-type StudioAppProps = AppProps & { projectStore: StoreApi<ProjectState> };
+type StudioAppProps = Omit<
+  AppProps,
+  "autosaveLoadError" | "autosaveRepository" | "initialDocument"
+>;
+
+function useRouteExtensionRequest() {
+  const [request, setRequest] = useState<{
+    endpoint: RouteExtensionEndpoint;
+    layer: ContentLayer;
+    request: number;
+    trigger: HTMLButtonElement;
+  } | null>(null);
+  const begin = useCallback(
+    (
+      layer: ContentLayer,
+      endpoint: RouteExtensionEndpoint,
+      trigger: HTMLButtonElement,
+    ) => {
+      setRequest((current) => ({
+        endpoint,
+        layer,
+        request: (current?.request ?? 0) + 1,
+        trigger,
+      }));
+    },
+    [],
+  );
+  return { begin, request };
+}
 
 function copyPosition([longitude, latitude]: readonly [number, number]): [number, number] {
   return [longitude, latitude];
@@ -123,6 +133,10 @@ function useStudioDirectionsEditing(
     ...(directionsProvider && { provider: directionsProvider }),
     replaceDirectionsRoute: project.replaceDirectionsRoute,
   });
+  const changeWaypoint = editing.changeWaypoint;
+  const removeWaypoint = editing.removeWaypoint;
+  const setRouteVertex = project.setRouteVertex;
+  const removeRouteVertexAction = project.removeRouteVertex;
   const mapLayers = useMemo(() => {
     const pendingWaypoints = editing.pendingWaypoints;
     if (!pendingWaypoints || !editing.pendingLayerId) return layers;
@@ -145,29 +159,26 @@ function useStudioDirectionsEditing(
       vertexIndex: number,
       coordinate: readonly [number, number],
     ) => {
-      if (!editing.changeWaypoint(id, vertexIndex, coordinate)) {
-        project.setRouteVertex(id, vertexIndex, coordinate);
+      if (!changeWaypoint(id, vertexIndex, coordinate)) {
+        setRouteVertex(id, vertexIndex, coordinate);
       }
     },
-    [editing, project],
+    [changeWaypoint, setRouteVertex],
   );
   const removeRouteVertex = useCallback(
     (id: string, vertexIndex: number) => {
-      if (!editing.removeWaypoint(id, vertexIndex))
-        project.removeRouteVertex(id, vertexIndex);
+      if (!removeWaypoint(id, vertexIndex))
+        removeRouteVertexAction(id, vertexIndex);
     },
-    [editing, project],
+    [removeRouteVertexAction, removeWaypoint],
   );
   return { changeRouteVertex, editing, mapLayers, removeRouteVertex };
 }
 
 function useStudioAppModel(props: StudioAppProps) {
   const {
-    autosaveLoadError = null,
-    autosaveRepository,
     directionsProvider,
     mapMatchingProvider,
-    projectStore,
     searchProvider,
   } = props;
   const project = useProjectActions();
@@ -178,24 +189,15 @@ function useStudioAppModel(props: StudioAppProps) {
   const style = useProject((state) => state.document.style);
   const selectedId = useProject((state) => state.selectedId);
   const documentEpoch = useProject((state) => state.documentEpoch);
-  const autosave = useResolvedAutosave(
-    projectStore,
-    autosaveRepository,
-    autosaveLoadError,
-  );
-  const [previewedLayerId, setPreviewedLayerId] = useState<string | null>(null);
+  const isAutosaveCorrupted = useIsAutosaveCorrupted();
+  const setPreviewedLayerId = useSetLayerPreviewId();
   const [exportOpen, setExportOpen] = useState(false);
   const openExport = useCallback(() => setExportOpen(true), []);
   const [authoringState, setAuthoringState] = useState({
     documentEpoch: 0,
     active: false,
   });
-  const [routeExtensionRequest, setRouteExtensionRequest] = useState<{
-    endpoint: RouteExtensionEndpoint;
-    layer: ContentLayer;
-    request: number;
-    trigger: HTMLButtonElement;
-  } | null>(null);
+  const routeExtension = useRouteExtensionRequest();
   const mapExporter = useMapExporter();
   const mapLocation = useMapLocationCommand(documentEpoch);
   const exportButtonRef = useRef<HTMLButtonElement>(null);
@@ -204,12 +206,12 @@ function useStudioAppModel(props: StudioAppProps) {
   const mobile = useMobilePanels();
   const handleMapDataImported = useCallback(
     () => setPreviewedLayerId(null),
-    [],
+    [setPreviewedLayerId],
   );
   const mapDataImport = useAppMapDataImport(
     project.importLayers,
     project.replaceLayerFromImport,
-    autosave.corrupted,
+    isAutosaveCorrupted,
     handleMapDataImported,
   );
   const modal = useModalSurfaces({
@@ -219,7 +221,6 @@ function useStudioAppModel(props: StudioAppProps) {
     mobile,
     setExportOpen,
   });
-  const mapPreviewedLayerId = visiblePreviewLayerId(layers, previewedLayerId);
   const selectedLayer = layers.find((layer) => layer.id === selectedId) ?? null;
   const isAuthoring =
     authoringState.documentEpoch === documentEpoch && authoringState.active;
@@ -237,7 +238,7 @@ function useStudioAppModel(props: StudioAppProps) {
       openDocument(document);
       setPreviewedLayerId(null);
     },
-    [openDocument],
+    [openDocument, setPreviewedLayerId],
   );
   const handleAuthoringChange = useCallback(
     (nextDocumentEpoch: number, isActive: boolean) => {
@@ -253,20 +254,20 @@ function useStudioAppModel(props: StudioAppProps) {
           ) ?? null)
         : null,
     isAuthoring,
-    isModalOpen: modal.surface !== null || autosave.corrupted,
+    isModalOpen: modal.surface !== null || isAutosaveCorrupted,
     layers,
     selectedLayer,
     setPreviewedLayerId,
   });
   return {
-    assets, autosave, clearSelection, deleteSelectedLayer, directionsProvider,
+    assets, isAutosaveCorrupted, beginRouteExtend: routeExtension.begin, clearSelection, deleteSelectedLayer, directionsProvider,
     directionsRouteEditing: directions.editing, documentEpoch,
     exportButtonRef, handleAuthoringChange, handleDeleteKeyDown, handleOpenedDocument,
     importButtonRef, isAuthoring, layers, mapDataImport, mapExporter,
     mapLayers: directions.mapLayers, mapLocation, mapMatchingProvider,
-    mapPreviewedLayerId, mobile, modal, openButtonRef, openExport, page, pageBoundaryVisible, project,
-    routeExtensionRequest, searchProvider, selectedId, selectedLayer,
-    setPreviewedLayerId, setRouteExtensionRequest, style,
+    mobile, modal, openButtonRef, openExport, page, pageBoundaryVisible, project,
+    routeExtensionRequest: routeExtension.request, searchProvider, selectedId, selectedLayer,
+    setPreviewedLayerId, style,
     changeRouteVertex: directions.changeRouteVertex,
     removeRouteVertex: directions.removeRouteVertex,
   };

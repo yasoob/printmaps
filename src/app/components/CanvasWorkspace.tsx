@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -7,18 +8,22 @@ import {
   type SetStateAction,
 } from "react";
 import type { ContentLayer } from "../../domain/project";
-import { usePoiAuthoring } from "../hooks/usePoiAuthoring";
 import type { ShapeAuthoringMode } from "./ShapeDrawingPanel";
 import {
   createIsochroneCenterLayer,
   createRouteDraftLayers,
   createShapeDraftLayers,
 } from "./authoringDraftLayers";
-import { useCanvasRouteAuthoring } from "../hooks/useCanvasRouteAuthoring";
-import { useCanvasShapeAuthoring } from "../hooks/useCanvasShapeAuthoring";
 import { CanvasWorkspaceView } from "./CanvasWorkspaceView";
 import { createCanvasWorkspaceViewProps } from "./createCanvasWorkspaceViewProps";
 import type { CanvasWorkspaceProps } from "./CanvasWorkspace.types";
+import type { useCanvasRouteAuthoring } from "../hooks/useCanvasRouteAuthoring";
+import type { useCanvasShapeAuthoring } from "../hooks/useCanvasShapeAuthoring";
+import {
+  useCanvasSearchSelection,
+  useCanvasToolActivation,
+} from "../hooks/useCanvasWorkspaceInteractions";
+import { useCanvasAuthoringModels } from "../hooks/useCanvasAuthoringModels";
 
 export type { CanvasWorkspaceProps } from "./CanvasWorkspace.types";
 
@@ -167,54 +172,18 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
   const [fitLayerRequest, setFitLayerRequest] = useState({ id: null as string | null, request: 0 });
   const selectToolRef = useRef<HTMLButtonElement>(null);
   const {
-    camera, directionsProvider, documentEpoch, layers, onAuthoringChange,
-    onCreateAdministrativeArea, onCreateDirectionsRoute, onCreateIsochroneArea,
-    onCreatePoi, onCreatePoiBatch, onCreateRoute, onCreateSearchPoi, onCreateShape,
-    onLayerSelect, onReplaceAuthoredRoute, onReplaceDirectionsRoute,
-    onReplaceRouteDraft,
-    routeExtensionRequest, selectedId,
+    camera, documentEpoch, layers, onAuthoringChange, onLayerSelect,
   } = props;
   const activeTool =
     toolDocumentEpoch === documentEpoch ? storedActiveTool : "select";
-  const poiAuthoring = usePoiAuthoring({
-    active: activeTool === "pin",
-    documentEpoch,
-    selectToolRef,
-    setActiveTool: setStoredActiveTool,
-    onAuthoringChange,
-    onCreatePoi,
-    onCreatePoiBatch,
-    onCreateSearchPoi,
-  });
-  const route = useCanvasRouteAuthoring({
+  const {
+    poi: poiAuthoring,
+    route,
+    shape,
+  } = useCanvasAuthoringModels({
     activeTool,
-    camera,
-    directionsProvider,
-    documentEpoch,
-    layers,
-    onAuthoringChange,
-    onCreateDirectionsRoute,
-    onCreateRoute,
-    onLayerSelect,
-    onReplaceAuthoredRoute,
-    onReplaceDirectionsRoute,
-    onReplaceRouteDraft,
-    routeExtensionRequest,
+    props,
     selectToolRef,
-    setActiveTool: setStoredActiveTool,
-    setToolDocumentEpoch,
-    toolDocumentEpoch,
-  });
-  const shape = useCanvasShapeAuthoring({
-    activeTool,
-    documentEpoch,
-    layers,
-    onAuthoringChange,
-    onCreateAdministrativeArea,
-    onCreateIsochroneArea,
-    onCreateShape,
-    selectToolRef,
-    selectedId,
     setActiveTool: setStoredActiveTool,
     setFitLayerRequest,
     setToolDocumentEpoch,
@@ -226,20 +195,23 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
     route,
     shape,
   );
-  const activateTool = (id: string) => {
-    if (!route.requestToolChange(id)) return;
-    setToolDocumentEpoch(documentEpoch);
-    setStoredActiveTool(id);
-    if (["route", "pin", "shape"].includes(id)) onLayerSelect(null);
-    if (id === storedActiveTool && toolDocumentEpoch === documentEpoch) return;
-    if (id !== "shape" || toolDocumentEpoch !== documentEpoch)
-      shape.setPoints([]);
-    if (id === "shape") shape.setMode("administrative");
-    if (id !== "pin" || toolDocumentEpoch !== documentEpoch)
-      poiAuthoring.resetSpreadsheet();
-    onAuthoringChange(documentEpoch, ["route", "pin", "shape"].includes(id));
-  };
-  const fitPage = () => setFitRequest((request) => request + 1);
+  const activateTool = useCanvasToolActivation({
+    activeTool,
+    documentEpoch,
+    onAuthoringChange,
+    onLayerSelect,
+    poi: poiAuthoring,
+    route,
+    setStoredActiveTool,
+    setToolDocumentEpoch,
+    shape,
+    storedActiveTool,
+    toolDocumentEpoch,
+  });
+  const fitPage = useCallback(
+    () => setFitRequest((request) => request + 1),
+    [],
+  );
   useToolShortcuts({ activateTool, fitPage, isMapLocked: camera.locked });
   const handleMapClick =
     activeTool === "route"
@@ -261,6 +233,13 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
           shapeMode: shape.mode,
           toolDocumentEpoch,
         });
+  const handleSearchSelect = useCanvasSearchSelection({
+    activeTool,
+    onLocate: props.onLocate,
+    poi: poiAuthoring,
+    route,
+    shape,
+  });
 
   return (
     <CanvasWorkspaceView
@@ -272,6 +251,7 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
         fitRequest,
         geometryLayers,
         handleMapClick,
+        handleSearchSelect,
         poi: poiAuthoring,
         props,
         route,

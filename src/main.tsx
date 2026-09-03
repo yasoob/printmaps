@@ -39,10 +39,12 @@ function showStartupError(): void {
 
 async function startApplication() {
   try {
-    if (import.meta.env.DEV && import.meta.env.VITE_REACT_SCAN === 'true') {
-      const { scan } = await import('react-scan');
-      scan({
+    if (import.meta.env.DEV && import.meta.env.VITE_REACT_SCAN !== 'false') {
+      const reactScan = await import('react-scan');
+      const { installReactScanProbe } = await import('./dev/reactScanProbe');
+      reactScan.scan({
         enabled: true,
+        onRender: installReactScanProbe(),
         showToolbar: true,
       });
     }

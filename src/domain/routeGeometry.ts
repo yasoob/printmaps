@@ -130,12 +130,39 @@ function localEditableRoute(
   return layer.route.kind === "road" ? convertRoute(layer, "straight") : layer;
 }
 
+function moveOpenRouteVertex(
+  source: CompleteRouteLayer,
+  vertexIndex: number,
+  coordinate: [number, number],
+) {
+  const current = semanticRoutePoints(source);
+  if (!current) return null;
+  const coordinates = current.map((position, index) =>
+    index === vertexIndex
+      ? coordinate
+      : [position[0], position[1]] as [number, number]);
+  const geometry = source.geometry.type === "Arc"
+    ? createArcGeometry(coordinates, source.geometry.curvatures)
+    : { type: "LineString" as const, coordinates };
+  if (!geometry) return null;
+  return editedRouteLayer(source, geometry);
+}
+
+function isValidRouteVertexRequest(
+  vertexIndex: number,
+  longitude: number,
+  latitude: number,
+) {
+  return Number.isSafeInteger(vertexIndex)
+    && isValidPosition(longitude, latitude);
+}
+
 export function moveRouteVertex(
   layer: ContentLayer | undefined,
   vertexIndex: number,
   [longitude, latitude]: readonly [number, number],
 ): ContentLayer | null {
-  if (!Number.isSafeInteger(vertexIndex) || !isValidPosition(longitude, latitude)) return null;
+  if (!isValidRouteVertexRequest(vertexIndex, longitude, latitude)) return null;
   const source = localEditableRoute(layer);
   const current = source && semanticRoutePoints(source);
   if (!source || !current || vertexIndex < 0 || vertexIndex >= current.length) return null;
@@ -143,6 +170,13 @@ export function moveRouteVertex(
   const semanticIndex = source.route.closed && vertexIndex === current.length - 1
     ? 0
     : vertexIndex;
+  if (!source.route.closed) {
+    return moveOpenRouteVertex(
+      source,
+      semanticIndex,
+      [longitude, latitude],
+    );
+  }
   const unique = source.route.closed ? current.slice(0, -1) : current;
   const coordinates = unique.map((position, index) =>
     index === semanticIndex

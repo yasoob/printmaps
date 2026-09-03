@@ -1,10 +1,11 @@
 import { DragDropProvider, DragOverlay, type DragEndEvent } from '@dnd-kit/react';
 import { isSortable, useSortable } from '@dnd-kit/react/sortable';
 import { Eye, EyeOff, GripVertical, Layers3, Lock, MapPin, PanelLeftClose, Route, Shapes, Unlock, X } from 'lucide-react';
-import { memo, type Dispatch, type RefObject, type SetStateAction } from 'react';
+import { memo, useContext, type Dispatch, type RefObject, type SetStateAction } from 'react';
 import type { ContentLayer, LayerType } from '../../domain/project';
 import { ProjectAutosaveStatus } from '../../storage/ProjectAutosaveUi';
 import type { ProjectAutosaveState } from '../../storage/useProjectAutosave';
+import { ProjectAutosaveContext } from '../../storage/projectAutosaveContext';
 import { useProject, useProjectActions } from '../projectStoreContext';
 import type { MobilePanel } from '../hooks/useMobilePanels';
 
@@ -104,7 +105,7 @@ type LayersSidebarProps = {
   activePanel: MobilePanel | null;
   setPreviewedLayerId: Dispatch<SetStateAction<string | null>>;
   closePanel: (panel?: MobilePanel | null, shouldRestoreFocus?: boolean) => void;
-  autosave: ProjectAutosaveState;
+  autosave?: ProjectAutosaveState;
   panelRef: RefObject<HTMLElement | null>;
   onKeyDown: (event: React.KeyboardEvent<HTMLElement>, panel: MobilePanel) => void;
 };
@@ -117,6 +118,21 @@ function haveSameLayerRows(previous: readonly ContentLayer[], next: readonly Con
     });
 }
 
+const SidebarAutosaveStatus = memo(function SidebarAutosaveStatus({
+  autosave: providedAutosave,
+}: {
+  autosave?: ProjectAutosaveState;
+}) {
+  const contextAutosave = useContext(ProjectAutosaveContext);
+  const autosave = providedAutosave ?? contextAutosave;
+  if (!autosave) {
+    throw new Error(
+      'LayersSidebar requires autosave state or ProjectAutosaveProvider.',
+    );
+  }
+  return <ProjectAutosaveStatus autosave={autosave} />;
+});
+
 function isSameLayersSidebarProps(previous: LayersSidebarProps, next: LayersSidebarProps) {
   return previous.activePanel === next.activePanel
     && haveSameLayerRows(previous.layers, next.layers)
@@ -124,8 +140,8 @@ function isSameLayersSidebarProps(previous: LayersSidebarProps, next: LayersSide
     && previous.setPreviewedLayerId === next.setPreviewedLayerId
     && previous.closePanel === next.closePanel
     && previous.onKeyDown === next.onKeyDown
-    && previous.autosave.status === next.autosave.status
-    && previous.autosave.statusKind === next.autosave.statusKind;
+    && previous.autosave?.status === next.autosave?.status
+    && previous.autosave?.statusKind === next.autosave?.statusKind;
 }
 
 export const LayersSidebar = memo(function LayersSidebar(props: LayersSidebarProps) {
@@ -173,7 +189,7 @@ export const LayersSidebar = memo(function LayersSidebar(props: LayersSidebarPro
           }}
         </DragOverlay>
       </DragDropProvider>
-      <div className="sidebar-footer"><ProjectAutosaveStatus autosave={autosave} /></div>
+      <div className="sidebar-footer"><SidebarAutosaveStatus autosave={autosave} /></div>
     </aside>
   );
 }, isSameLayersSidebarProps);

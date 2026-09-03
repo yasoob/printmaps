@@ -11,6 +11,7 @@
     "typecheck": "tsc -b --pretty false",
     "lint": "eslint .",
     "doctor": "react-doctor . --no-score --blocking warning --no-telemetry",
+    "audit:renders": "PLAYWRIGHT_EDITOR_PORT=4176 VITE_REACT_SCAN=true playwright test tests/e2e/react-scan-render-probe.spec.ts --project=chromium --workers=1",
     "generate:administrative-boundaries": "uv run scripts/generate_administrative_boundaries.py",
     "test": "vitest",
     "test:e2e": "LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a -s '-screen 0 1440x900x24 +extension GLX +render -noreset' npm run test:e2e:release",

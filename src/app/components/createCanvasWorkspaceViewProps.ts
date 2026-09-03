@@ -16,23 +16,12 @@ type ViewInputs = {
   fitRequest: number;
   geometryLayers: CanvasWorkspaceProps["layers"];
   handleMapClick?: (coordinate: [number, number]) => void;
+  handleSearchSelect: ComponentProps<typeof LocationSearch>["onSelect"];
   poi: ReturnType<typeof usePoiAuthoring>;
   props: CanvasWorkspaceProps;
   route: ReturnType<typeof useCanvasRouteAuthoring>;
   shape: ReturnType<typeof useCanvasShapeAuthoring>;
 };
-
-function isSearchResultConsumed(
-  activeTool: string,
-  shapeMode: string,
-  isSpreadsheetOpen: boolean,
-) {
-  return (
-    activeTool === "route" ||
-    (activeTool === "pin" && !isSpreadsheetOpen) ||
-    (activeTool === "shape" && shapeMode === "isochrone")
-  );
-}
 
 function createSearchProps(
   inputs: ViewInputs,
@@ -40,31 +29,13 @@ function createSearchProps(
   return {
     provider: inputs.props.searchProvider,
     proximity: inputs.props.camera.center,
-    onSelect: (coordinate, result) => {
-      const isConsumed = isSearchResultConsumed(
-        inputs.activeTool,
-        inputs.shape.mode,
-        inputs.poi.spreadsheetOpen,
-      );
-      if (!isConsumed) inputs.props.onLocate?.(coordinate, () => {});
-      if (inputs.activeTool === "route") {
-        inputs.route.addPoint(coordinate, `search result ${result.label}`);
-      }
-      if (inputs.activeTool === "pin" && !inputs.poi.spreadsheetOpen) {
-        inputs.poi.placeSearchResult(
-          coordinate,
-          result.label,
-          result.providerFeatureId,
-        );
-      }
-      if (inputs.activeTool === "shape" && inputs.shape.mode === "isochrone") {
-        inputs.shape.isochrone.setCenter({ coordinate, label: result.label });
-      }
-    },
+    onSelect: inputs.handleSearchSelect,
   };
 }
 
-function createMapProps(inputs: ViewInputs): ComponentProps<typeof MapCanvas> {
+function createMapProps(
+  inputs: ViewInputs,
+): Omit<ComponentProps<typeof MapCanvas>, "previewedId"> {
   const props = inputs.props;
   const basemap = props.layers.find(({ type }) => type === 'basemap');
   return {
@@ -98,7 +69,6 @@ function createMapProps(inputs: ViewInputs): ComponentProps<typeof MapCanvas> {
     orientation: props.page.orientation,
     page: props.page,
     pageBoundaryVisible: props.pageBoundaryVisible,
-    previewedId: props.previewedId,
     selectedId: props.selectedId,
     shapeEditMode: inputs.shape.editMode,
     stylePreset: props.stylePreset,
@@ -112,7 +82,6 @@ function createChromeProps(
 ): Omit<ComponentProps<typeof CanvasWorkspaceChrome>, "selectToolRef" | "topDock"> {
   return {
     activeTool: inputs.activeTool,
-    camera: inputs.props.camera,
     onActivateTool: inputs.activateTool,
     poiPanelProps: {
       active: inputs.activeTool === "pin",

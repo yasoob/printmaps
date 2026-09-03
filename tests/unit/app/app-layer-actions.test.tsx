@@ -179,15 +179,12 @@ describe('editor layer actions', () => {
     expect(menuButton).toHaveFocus();
   });
 
-  it('reorders layers by dragging a layer handle', () => {
+  it('reorders layers with the keyboard', () => {
     render(<App />);
     const routeHandle = screen.getByRole('button', { name: 'Reorder Route 01' });
-    const coffeeHandle = screen.getByRole('button', { name: 'Reorder Coffee stop' });
     expect(screen.getByRole('button', { name: 'Reorder Paper basemap' })).toBeDisabled();
 
-    fireEvent.dragStart(routeHandle);
-    fireEvent.dragOver(coffeeHandle);
-    fireEvent.drop(coffeeHandle);
+    fireEvent.keyDown(routeHandle, { key: 'ArrowDown', altKey: true });
 
     expect(screen.getAllByRole('button', { name: /Select (Route 01|Coffee stop)/ }).map((button) => button.getAttribute('aria-label')))
       .toEqual(['Select Coffee stop', 'Select Route 01']);

@@ -1293,6 +1293,7 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
 .shape-vertex-marker,
 .shape-midpoint-marker,
 .shape-transform-marker {
+  z-index: 3;
   touch-action: none;
   user-select: none;
 }

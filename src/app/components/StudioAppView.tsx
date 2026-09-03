@@ -4,6 +4,10 @@ import {
   ProjectAutosaveDialogs,
   ProjectAutosaveErrorNotice,
 } from "../../storage/ProjectAutosaveUi";
+import {
+  useAutosaveCorruptionState,
+  useAutosaveErrorState,
+} from "../../storage/projectAutosaveContext";
 import type { PreviewPngExporter } from "../../export/previewPng";
 import { useProject } from "../projectStoreContext";
 import type { StudioAppModel } from "../App";
@@ -31,7 +35,6 @@ function StudioCanvas({ m }: { m: StudioAppModel }) {
       layers={m.mapLayers}
       assets={m.assets}
       selectedId={m.selectedId}
-      previewedId={m.mapPreviewedLayerId}
       page={m.page}
       pageBoundaryVisible={m.pageBoundaryVisible}
       stylePreset={m.style.preset}
@@ -83,7 +86,7 @@ function StudioProperties({ m }: { m: StudioAppModel }) {
     : null;
   return (
     <PropertiesSidebar
-      selectedLayer={m.selectedLayer}
+      selectedLayerId={m.selectedLayer?.id ?? null}
       directionsRouteEditError={
         isSelectedDirectionsEdit ? m.directionsRouteEditing.error : null
       }
@@ -101,14 +104,7 @@ function StudioProperties({ m }: { m: StudioAppModel }) {
       onKeyDown={m.mobile.handlePanelKeyDown}
       onLocate={m.mapLocation.locate}
       onReplaceLayerData={m.mapDataImport.requestLayerReplacement}
-      onBeginRouteExtend={(layer, endpoint, trigger) =>
-        m.setRouteExtensionRequest((current) => ({
-          endpoint,
-          layer,
-          request: (current?.request ?? 0) + 1,
-          trigger,
-        }))
-      }
+      onBeginRouteExtend={m.beginRouteExtend}
       onRouteVertexChange={m.changeRouteVertex}
       onRouteVertexRemove={m.removeRouteVertex}
       onRetryDirectionsRouteEdit={
@@ -120,6 +116,28 @@ function StudioProperties({ m }: { m: StudioAppModel }) {
     />
   );
 }
+
+function StudioLayers({ m }: { m: StudioAppModel }) {
+  return <LayersSidebar layers={m.layers} activePanel={m.modal.mobilePanel} setPreviewedLayerId={m.setPreviewedLayerId} closePanel={m.mobile.closePanel} panelRef={m.mobile.layersPanelRef} onKeyDown={m.mobile.handlePanelKeyDown} />;
+}
+
+const ProjectAutosaveSurfaces = memo(function ProjectAutosaveSurfaces({ fallbackFocusRef }: {
+  fallbackFocusRef: StudioAppModel["openButtonRef"];
+}) {
+  const errorState = useAutosaveErrorState();
+  const corruptionState = useAutosaveCorruptionState();
+  return (
+    <>
+      {errorState && <ProjectAutosaveErrorNotice autosave={errorState} />}
+      {corruptionState && (
+        <ProjectAutosaveDialogs
+          autosave={corruptionState}
+          fallbackFocusRef={fallbackFocusRef}
+        />
+      )}
+    </>
+  );
+});
 
 export function StudioAppView({ model: m }: { model: StudioAppModel }) {
   return (
@@ -135,7 +153,7 @@ export function StudioAppView({ model: m }: { model: StudioAppModel }) {
           isImportWorkActive={m.mapDataImport.isImportWorkActive}
           startImportWork={m.mapDataImport.startImportWork}
           exportDisabled={m.isAuthoring}
-          importDisabled={m.autosave.corrupted || (m.modal.surface !== null && m.modal.surface !== "import")}
+          importDisabled={m.isAutosaveCorrupted || (m.modal.surface !== null && m.modal.surface !== "import")}
           importOpen={m.modal.surface === "import"}
           replacementRequest={m.mapDataImport.replacementRequest}
           inert={m.modal.mobilePanel !== null}
@@ -144,14 +162,13 @@ export function StudioAppView({ model: m }: { model: StudioAppModel }) {
           onImportOpenChange={m.mapDataImport.setIsImportOpen}
           onExport={m.openExport}
         />
-        <LayersSidebar layers={m.layers} activePanel={m.modal.mobilePanel} setPreviewedLayerId={m.setPreviewedLayerId} closePanel={m.mobile.closePanel} panelRef={m.mobile.layersPanelRef} onKeyDown={m.mobile.handlePanelKeyDown} autosave={m.autosave} />
+        <StudioLayers m={m} />
         <StudioCanvas m={m} />
         {m.modal.mobilePanel && <button className="mobile-panel-backdrop" type="button" aria-label="Close open panel" onClick={() => m.mobile.closePanel()} />}
         <StudioProperties m={m} />
       </main>
-      <ProjectAutosaveErrorNotice autosave={m.autosave} />
       {m.modal.surface === "export" && <ExportDialogSurface exporter={m.mapExporter.run} onClose={m.modal.closeExport} />}
-      <ProjectAutosaveDialogs autosave={m.autosave} fallbackFocusRef={m.openButtonRef} />
+      <ProjectAutosaveSurfaces fallbackFocusRef={m.openButtonRef} />
     </>
   );
 }

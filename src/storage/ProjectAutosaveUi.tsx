@@ -1,4 +1,4 @@
-import type { RefObject } from 'react';
+import { memo, type RefObject } from 'react';
 import { AutosaveCorruptionDialog } from './AutosaveCorruptionDialog';
 import type { ProjectAutosaveState } from './useProjectAutosave';
 
@@ -34,22 +34,22 @@ function restoreInteractiveFocus(fallbackFocusRef: RefObject<HTMLElement | null>
   }, 0);
 }
 
-export function ProjectAutosaveStatus({ autosave }: { autosave: ProjectAutosaveState }) {
+export const ProjectAutosaveStatus = memo(function ProjectAutosaveStatus({ autosave }: { autosave: ProjectAutosaveState }) {
   const isEnabled = autosave.status !== 'Local draft';
   return (
     <span role={isEnabled ? 'status' : undefined} aria-label={isEnabled ? 'Autosave status' : undefined}>
       {autosave.statusKind === 'error' ? 'Autosave paused' : autosave.status}
     </span>
   );
-}
+});
 
-export function ProjectAutosaveErrorNotice({ autosave }: { autosave: ProjectAutosaveState }) {
+export const ProjectAutosaveErrorNotice = memo(function ProjectAutosaveErrorNotice({ autosave }: { autosave: ProjectAutosaveState }) {
   return autosave.statusKind === 'error' && !autosave.corrupted
     ? <div className="autosave-error-notice" role="alert" aria-label="Autosave status">{autosave.status}</div>
     : null;
-}
+});
 
-export function ProjectAutosaveDialogs({
+export const ProjectAutosaveDialogs = memo(function ProjectAutosaveDialogs({
   autosave,
   fallbackFocusRef,
 }: {
@@ -66,4 +66,4 @@ export function ProjectAutosaveDialogs({
   return autosave.corrupted
     ? <AutosaveCorruptionDialog busy={autosave.decisionPending} error={autosave.statusKind === 'error' ? autosave.status : null} onDiscard={discard} />
     : null;
-}
+});

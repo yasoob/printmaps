@@ -1,8 +1,20 @@
 import { Marker, type Map as MapLibreMap } from 'maplibre-gl';
 import { createArcGeometry, sampleArc } from '../domain/routeArcGeometry';
 import type { ContentLayer } from '../domain/project';
-import { isValidPosition, semanticRoutePointLabel, semanticRoutePositions } from '../domain/routeGeometry';
+import { isValidPosition, semanticRoutePointLabel } from '../domain/routeGeometry';
 import { mapContentSourceId, routeMapFeatures } from './MapContentGeometry';
+import { markMapContentSourceData } from './MapContentSourceState';
+import {
+  arcInsertionCoordinates,
+  canonicalRouteCoordinates,
+} from './RouteVertexCoordinates';
+import {
+  clearRouteVertexPreview,
+  createRouteVertexPreviewState,
+  isCurrentRouteVertexPreview,
+  recordRouteVertexPreview,
+  type RouteVertexPreviewState,
+} from './RouteVertexPreviewState';
 
 export type RouteVertexMarker = {
   addTo: (map: RouteVertexMap) => RouteVertexMarker;
@@ -12,20 +24,15 @@ export type RouteVertexMarker = {
   remove: () => void;
   setLngLat: (coordinate: readonly [number, number]) => RouteVertexMarker;
 };
-
 type RouteVertexMap = Pick<MapLibreMap, 'getSource' | 'project' | 'unproject'>;
-
 type MarkerFactory = (element: HTMLElement) => RouteVertexMarker;
 type RouteVertexEditingOptions = {
   createMarker?: MarkerFactory;
   onInsert?: (segmentIndex: number) => void;
   onPreview?: (coordinates: [number, number][]) => boolean | void;
 };
-
-export type RouteVertexEditingSession = (() => void) & {
-  focusVertex: (vertexIndex: number) => void;
-};
-
+export type RouteVertexEditingSession = (() => void)
+  & { focusVertex: (vertexIndex: number) => void; synchronizeLayer: (layer: ContentLayer) => boolean };
 const createMapLibreMarker: MarkerFactory = (element) => (
   new Marker({ draggable: true, element }) as unknown as RouteVertexMarker
 );
@@ -52,9 +59,11 @@ function didSetRouteSourceGeometry(
           coordinates: coordinates.map((coordinate) => [...coordinate] as [number, number]),
         };
     if (!geometry) return false;
-    const data = routeMapFeatures({ ...layer, geometry });
+    const previewLayer = { ...layer, geometry };
+    const data = routeMapFeatures(previewLayer);
     if (!data) return false;
     source.setData(data);
+    markMapContentSourceData(source, previewLayer);
     return true;
   } catch {
     return false;
@@ -81,18 +90,14 @@ function didUpdateGuidance(
 type EditableRouteLayer = ContentLayer & {
   geometry: Extract<NonNullable<ContentLayer['geometry']>, { type: 'Arc' | 'LineString' }>;
 };
-
 function isEditableRouteLayer(layer: ContentLayer): layer is EditableRouteLayer {
   return layer.type === 'route'
     && !layer.locked
     && layer.visible
     && (layer.geometry?.type === 'LineString' || layer.geometry?.type === 'Arc');
 }
-
 type RestorePreviewOptions = {
-  canonicalCoordinates: [number, number][];
-  isArc: boolean;
-  layer: ContentLayer;
+  canonicalCoordinates: [number, number][]; isArc: boolean; layer: ContentLayer;
   map: RouteVertexMap;
   onPreview: NonNullable<RouteVertexEditingOptions['onPreview']>;
 };
@@ -109,8 +114,6 @@ function restoreRoutePreview(options: RestorePreviewOptions) {
   return didRestoreSource && didRestoreGuidance;
 }
 
-type PreviewState = { hasUncommitted: boolean };
-
 type VertexMarkerOptions = {
   canonicalCoordinates: [number, number][];
   createMarker: MarkerFactory;
@@ -118,7 +121,7 @@ type VertexMarkerOptions = {
   markers: RouteVertexMarker[];
   onCommit: (vertexIndex: number, coordinate: readonly [number, number]) => void;
   preview: (vertexIndex: number, coordinate: readonly [number, number]) => boolean;
-  previewState: PreviewState;
+  previewState: RouteVertexPreviewState;
   restoreCanonicalPreview: () => boolean;
   layer: ContentLayer;
 };
@@ -148,11 +151,16 @@ function addVertexMarkers(options: VertexMarkerOptions) {
         options.restoreCanonicalPreview();
         return;
       }
-      if (!options.preview(vertexIndex, nextCoordinate)) {
+      const isAlreadyPreviewed = isCurrentRouteVertexPreview(
+        options.previewState,
+        vertexIndex,
+        nextCoordinate,
+      );
+      if (!isAlreadyPreviewed && !options.preview(vertexIndex, nextCoordinate)) {
         marker.setLngLat(coordinate);
         return;
       }
-      options.previewState.hasUncommitted = false;
+      clearRouteVertexPreview(options.previewState);
       options.onCommit(vertexIndex, nextCoordinate);
     });
     element.addEventListener('keydown', (event) => {
@@ -172,7 +180,7 @@ function addVertexMarkers(options: VertexMarkerOptions) {
       const nextCoordinate = normalizedMapCoordinate(next.lng, next.lat);
       if (!nextCoordinate || !options.preview(vertexIndex, nextCoordinate)) return;
       marker.setLngLat(nextCoordinate);
-      options.previewState.hasUncommitted = false;
+      clearRouteVertexPreview(options.previewState);
       options.onCommit(vertexIndex, nextCoordinate);
     });
     options.markers.push(marker);
@@ -186,11 +194,7 @@ function addArcInsertionMarkers(
   markers: RouteVertexMarker[],
 ) {
   const createMarker = options.createMarker ?? createMapLibreMarker;
-  const coordinates = sampleArc(geometry);
-  const samplesPerSegment = (coordinates.length - 1) / geometry.curvatures.length;
-  for (let segmentIndex = 0; segmentIndex < geometry.curvatures.length; segmentIndex += 1) {
-    const coordinate = coordinates[segmentIndex * samplesPerSegment + Math.floor(samplesPerSegment / 2)];
-    if (!coordinate) continue;
+  for (const [segmentIndex, coordinate] of arcInsertionCoordinates(geometry).entries()) {
     const element = document.createElement('button');
     element.type = 'button';
     element.className = 'route-midpoint-marker';
@@ -219,24 +223,24 @@ export function installRouteVertexEditing(
 
   const createMarker = options.createMarker ?? createMapLibreMarker;
   const onPreview = options.onPreview ?? (() => true);
-  const isDirectionsRoute = layer.provenance?.service === 'directions-v5';
-  const canonicalCoordinates = (semanticRoutePositions(layer) ?? [])
-    .map((coordinate) => [...coordinate] as [number, number]);
+  let currentLayer = layer;
+  const canonicalCoordinates = canonicalRouteCoordinates(layer);
+  let isDirectionsRoute = layer.provenance?.service === 'directions-v5';
   const canonicalDisplayCoordinates = isDirectionsRoute
     ? (layer.geometry.type === 'LineString' ? layer.geometry.coordinates.map((coordinate) => [...coordinate] as [number, number]) : null)
     : displayCoordinates(layer, canonicalCoordinates);
   if (!canonicalDisplayCoordinates) throw new Error('The selected route cannot be previewed.');
   const markers: RouteVertexMarker[] = [];
-  const previewState: PreviewState = { hasUncommitted: false };
+  const previewState = createRouteVertexPreviewState();
   const restoreCanonicalPreview = () => {
     const didRestore = restoreRoutePreview({
       canonicalCoordinates,
-      isArc: layer.geometry?.type === 'Arc',
-      layer,
+      isArc: currentLayer.geometry?.type === 'Arc',
+      layer: currentLayer,
       map,
       onPreview,
     });
-    previewState.hasUncommitted = !didRestore;
+    clearRouteVertexPreview(previewState, !didRestore);
     return !previewState.hasUncommitted;
   };
   const preview = (vertexIndex: number, coordinate: readonly [number, number]) => {
@@ -245,22 +249,22 @@ export function installRouteVertexEditing(
       index === vertexIndex ? [coordinate[0], coordinate[1]] as [number, number] : candidate
     ));
     if (
-      layer.route?.closed
+      currentLayer.route?.closed
       && coordinates.length > 1
       && (vertexIndex === 0 || vertexIndex === coordinates.length - 1)
     ) {
       coordinates[0] = [coordinate[0], coordinate[1]];
       coordinates[coordinates.length - 1] = [coordinate[0], coordinate[1]];
     }
-    const nextDisplayCoordinates = displayCoordinates(layer, coordinates);
+    const nextDisplayCoordinates = displayCoordinates(currentLayer, coordinates);
     if (!nextDisplayCoordinates) return false;
-    const didUpdateSource = didSetRouteSourceGeometry(map, layer, coordinates);
-    const didUpdateTerraGuidance = layer.geometry?.type === 'Arc' || didUpdateGuidance(onPreview, coordinates);
+    const didUpdateSource = didSetRouteSourceGeometry(map, currentLayer, coordinates);
+    const didUpdateTerraGuidance = currentLayer.geometry?.type === 'Arc' || didUpdateGuidance(onPreview, coordinates);
     if (!didUpdateSource || !didUpdateTerraGuidance) {
       restoreCanonicalPreview();
       return false;
     }
-    previewState.hasUncommitted = true;
+    recordRouteVertexPreview(previewState, vertexIndex, coordinate);
     return true;
   };
   addVertexMarkers({
@@ -278,5 +282,32 @@ export function installRouteVertexEditing(
     for (const marker of markers) marker.remove();
   }) as RouteVertexEditingSession;
   cleanup.focusVertex = (vertexIndex) => markers[vertexIndex]?.getElement().focus();
+  cleanup.synchronizeLayer = (nextLayer) => {
+    if (
+      !isEditableRouteLayer(nextLayer)
+      || nextLayer.id !== currentLayer.id
+      || nextLayer.geometry.type !== currentLayer.geometry.type
+    ) {
+      return false;
+    }
+    const nextCoordinates = canonicalRouteCoordinates(nextLayer);
+    const arcMidpoints = nextLayer.geometry.type === 'Arc'
+      ? arcInsertionCoordinates(nextLayer.geometry)
+      : [];
+    if (markers.length !== nextCoordinates.length + arcMidpoints.length) {
+      return false;
+    }
+    currentLayer = nextLayer;
+    isDirectionsRoute = nextLayer.provenance?.service === 'directions-v5';
+    canonicalCoordinates.splice(0, canonicalCoordinates.length, ...nextCoordinates);
+    for (const [index, coordinate] of [
+      ...nextCoordinates,
+      ...arcMidpoints,
+    ].entries()) {
+      markers[index].setLngLat(coordinate);
+    }
+    clearRouteVertexPreview(previewState);
+    return true;
+  };
   return cleanup;
 }

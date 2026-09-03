@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type Dispatch, type RefObject, type SetStateAction } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { CustomMarkerAsset } from '../domain/customMarkerAssets';
 import type { CameraSettings, ContentLayer, MapFeatureVisibility, MapLanguage, MapStylePreset, ShapeGeometry } from '../domain/project';
@@ -23,7 +23,6 @@ import { useMapLocationRequest } from './useMapLocationRequest';
 import { useMapCameraSynchronization } from './useMapCameraSynchronization';
 import type { CameraViewportChangeMode } from './MapCameraViewport';
 import { useTerraDrawRoutes, type RouteAuthoring } from './useTerraDrawRoutes';
-import { bringTerraRouteHandlesToFront } from './TerraDrawRouteHandles';
 import { useRouteVertexEditing } from './useRouteVertexEditing';
 import { useShapeTransformEditing } from './useShapeTransformEditing';
 import { useShapeVertexEditing } from './useShapeVertexEditing';
@@ -32,6 +31,11 @@ import type { ShapeEditMode } from './ShapeVertexEditing';
 import { createArcGeometry } from '../domain/routeArcGeometry';
 import type { DraftRouteEditing } from './DraftRouteEditing';
 import { useDraftRouteEditing } from './useDraftRouteEditing';
+import {
+  useMapContentSyncResult,
+} from './useMapContentSyncResult';
+
+export { scheduleTerraRouteHandleOrder } from './useMapContentSyncResult';
 
 const ignoreRouteGeometryChange = () => {};
 
@@ -140,29 +144,6 @@ function clearMapStateAttributes(container: HTMLDivElement | null) {
   container?.removeAttribute('data-map-pitch');
 }
 
-export function scheduleTerraRouteHandleOrder(map: MapLibreMap) {
-  const result = bringTerraRouteHandlesToFront(map);
-  if (result === 'moved' || typeof map.isStyleLoaded !== 'function' || typeof map.once !== 'function') {
-    return result;
-  }
-  const event = map.isStyleLoaded() ? 'render' : 'style.load';
-  map.once(event, () => bringTerraRouteHandlesToFront(map));
-  return result;
-}
-
-function scheduleContentReady(
-  readyMap: MapLibreMap | null,
-  setContentError: Dispatch<SetStateAction<ContentError | null>>,
-  setTerraMap: Dispatch<SetStateAction<MapLibreMap | null>>,
-) {
-  queueMicrotask(() => {
-    setContentError((error) => error?.source === 'sync' ? null : error);
-    if (!readyMap) return;
-    scheduleTerraRouteHandleOrder(readyMap);
-    setTerraMap((current) => current === readyMap ? current : readyMap);
-  });
-}
-
 function useShapeEditing({ layers, map, onShapeGeometryChange, selectedId, shapeEditMode, stylePreset }: Pick<MapCanvasControllerOptions, 'layers' | 'onShapeGeometryChange' | 'selectedId' | 'shapeEditMode' | 'stylePreset'> & { map: RefObject<MapLibreMap | null> }) {
   useShapeVertexEditing({ active: shapeEditMode === 'points', layers, map, onShapeGeometryChange, selectedId, stylePreset });
   useShapeTransformEditing({ active: shapeEditMode === 'transform', layers, map, onShapeGeometryChange, selectedId, stylePreset });
@@ -231,24 +212,15 @@ export function useMapCanvasController({
   const mapVisibility = useMapFeatureVisibility({ basemapVisible, containerRef: container, contentReadyRef: contentReady, featureVisibility, invalidateExporter, mapFailedRef: mapFailed, mapRef: map, setMapError }), { resetFeatureVisibility, resolveExportStyle, setBasemapExportVisibility, synchronizeFeatureVisibility } = mapVisibility;
   const { resetMapLanguage, synchronizeMapLanguage } = useMapLanguage({ containerRef: container, contentReadyRef: contentReady, invalidateExporter, language, mapFailedRef: mapFailed, mapRef: map, setMapError });
 
-  const handleContentSyncResult = useCallback((result: ReturnType<MapContentAdapter['sync']> | undefined) => {
-    contentSyncDeferred.current = result === 'deferred';
-    if (result === 'failed' || result === 'deferred') {
-      contentReady.current = false;
-      container.current?.removeAttribute('data-map-ready');
-      invalidateExporter();
-    }
-    if (result === 'failed') {
-      queueMicrotask(() => setContentError({
-        kind: 'content',
-        source: 'sync',
-        message: 'The map content could not be rendered. Review the layer data and retry.',
-      }));
-    } else if (result === 'synced') {
-      contentReady.current = true;
-      scheduleContentReady(map.current, setContentError, setTerraMap);
-    }
-  }, [invalidateExporter]);
+  const handleContentSyncResult = useMapContentSyncResult({
+    contentReadyRef: contentReady,
+    contentSyncDeferredRef: contentSyncDeferred,
+    containerRef: container,
+    invalidateExporter,
+    mapRef: map,
+    setContentError,
+    setTerraMap,
+  });
 
   useLayoutEffect(() => {
     cameraState.current = camera;

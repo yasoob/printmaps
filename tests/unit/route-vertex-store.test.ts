@@ -172,6 +172,18 @@ describe('route vertex structure history', () => {
     expect(routeLayerValidationError(updated)).toBeNull();
   });
 
+  it('preserves open-route appearance identity when a vertex moves', () => {
+    const store = createProjectStore(createInitialProjectDocument());
+    const before = store.getState().document.layers
+      .find(({ id }) => id === 'route-01')?.appearance;
+
+    store.getState().setRouteVertex('route-01', 1, [16.4, 48.25]);
+
+    const after = store.getState().document.layers
+      .find(({ id }) => id === 'route-01')?.appearance;
+    expect(after).toBe(before);
+  });
+
   it.each(['locked', 'hidden'] as const)('rejects every route geometry edit while the route is %s', (state) => {
     const document = createInitialProjectDocument();
     const route = document.layers.find((layer) => layer.id === 'route-01')!;

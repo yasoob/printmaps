@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react';
+import { memo, useState, type CSSProperties } from 'react';
 import type { CustomMarkerAsset } from '../domain/customMarkerAssets';
 import type { CameraSettings, ContentLayer, MapFeatureVisibility, MapLanguage, MapStylePreset, PageSettings, ShapeGeometry } from '../domain/project';
 import { createDefaultMapStyleCustomization, type MapStyleCustomization } from '../domain/mapStyleCustomization';
@@ -72,9 +72,9 @@ const printFrameClassName = (orientation: 'landscape' | 'portrait', isVisible?: 
   `print-frame is-${orientation}${isVisible === false ? ' is-boundary-hidden' : ''}`
 );
 
-function RouteEditorError({ message }: { message: string | null }) {
+const RouteEditorError = memo(function RouteEditorError({ message }: { message: string | null }) {
   return message ? <div className="map-route-editor-error" role="alert">{message}</div> : null;
-}
+});
 
 export function MapCanvas({
   basemapVisible,

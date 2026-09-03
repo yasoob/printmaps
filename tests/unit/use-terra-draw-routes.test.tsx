@@ -99,6 +99,7 @@ describe('Terra Draw route hook', () => {
         revision: 0,
       },
     });
+
     await waitFor(() => expect(metrics.createSession).toHaveBeenCalled());
     const draw = metrics.createDraw.mock.results[0].value;
 
@@ -108,6 +109,39 @@ describe('Terra Draw route hook', () => {
     expect(draw.setMode).toHaveBeenLastCalledWith('linestring');
     metrics.createSession.mock.calls[0][0].onPreview([[3, 3]]);
     expect(onPreview).toHaveBeenLastCalledWith([[0, 0], [2, 2], [3, 3]]);
+  });
+
+  it('keeps one editing session while canonical route geometry changes', async () => {
+    const layers = createInitialProjectDocument().layers;
+    const route = layers[0];
+    const { rerender } = renderHook(({ currentLayers }) =>
+      useTerraDrawRoutes({
+        layers: currentLayers,
+        map,
+        onRouteGeometryChange: vi.fn(),
+        onRoutePreview: vi.fn(),
+        selectedId: route.id,
+      }), {
+        initialProps: { currentLayers: layers },
+      });
+    await waitFor(() => expect(metrics.createSession).toHaveBeenCalledOnce());
+    const session = metrics.createSession.mock.results[0].value;
+    const coordinates: [number, number][] = [
+      [16.326, 48.194],
+      [16.4, 48.25],
+      [16.391, 48.215],
+      [16.429, 48.226],
+    ];
+    const movedRoute = {
+      ...route,
+      geometry: { type: 'LineString' as const, coordinates },
+    };
+
+    rerender({ currentLayers: [movedRoute, ...layers.slice(1)] });
+
+    expect(metrics.createSession).toHaveBeenCalledOnce();
+    expect(session.destroy).not.toHaveBeenCalled();
+    expect(session.updateGeometry).toHaveBeenCalledWith(coordinates);
   });
 
   it('announces an activating route-editor load failure', async () => {

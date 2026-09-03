@@ -154,7 +154,7 @@ describe('editor render boundaries', () => {
     );
 
     expect(renderMetrics.layerIcon).toHaveBeenCalledTimes(initial.document.layers.length + 2);
-    expect(renderMetrics.sidebarStatus).toHaveBeenCalledTimes(2);
+    expect(renderMetrics.sidebarStatus).toHaveBeenCalledOnce();
   });
 
   it('does not rerender project controls for camera center and zoom changes', () => {
@@ -167,7 +167,7 @@ describe('editor render boundaries', () => {
       onLocate: vi.fn(),
       onReplaceLayerData: vi.fn(),
       panelRef: createRef<HTMLElement>(),
-      selectedLayer: null,
+      selectedLayerId: null,
       setPreviewedLayerId: vi.fn(),
     };
     render(
@@ -208,7 +208,7 @@ describe('editor render boundaries', () => {
             onLocate={vi.fn()}
             onReplaceLayerData={vi.fn()}
             panelRef={createRef<HTMLElement>()}
-            selectedLayer={null}
+            selectedLayerId={null}
             setPreviewedLayerId={vi.fn()}
           />
         </Profiler>

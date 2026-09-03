@@ -264,8 +264,8 @@ describe('MapLibre content adapter updates', () => {
     expect(finalStringifyCalls).toBe(initialStringifyCalls);
   });
 
-  it('reapplies every initial paint descriptor during an incremental update', () => {
-    const { map, layers: renderedLayers, paintUpdates } = createMapHarness();
+  it('does not reapply paint when map content state is unchanged', () => {
+    const { map, paintUpdates } = createMapHarness();
     const adapter = createMapLibreContentAdapter(map, document.createElement('div'));
     const layers = [
       contentLayer('route', 'route', { type: 'LineString', coordinates: [[0, 0], [1, 1]] }),
@@ -278,15 +278,11 @@ describe('MapLibre content adapter updates', () => {
     const state = { layers, selectedId: 'route', previewedId: 'shape' };
 
     adapter.sync(state);
-    const initialPaint = [...renderedLayers.values()].flatMap(({ id, paint = {} }) => (
-      Object.entries(paint).map(([property, value]) => [id, property, value] as const)
-    ));
     paintUpdates.length = 0;
 
     adapter.sync(state);
 
-    expect(paintUpdates).toHaveLength(initialPaint.length);
-    expect(paintUpdates).toEqual(expect.arrayContaining(initialPaint));
+    expect(paintUpdates).toEqual([]);
   });
 
   it('adds rendered MapLibre layers from bottom to top in content stacking order', () => {

@@ -11,6 +11,7 @@ import {
   type DirectionsRouteEditingOptions,
   type PendingDirectionsEdit,
 } from "./directionsRouteEditingSupport";
+import { useLatestValue } from "./useLatestValue";
 
 const defaultProvider = createMapboxDirectionsProvider({
   token: import.meta.env.VITE_MAPBOX_PUBLIC_ACCESS,
@@ -120,65 +121,81 @@ function useDirectionsRouteRequest(options: DirectionsRouteEditingOptions) {
 
 export function useDirectionsRouteEditing(options: DirectionsRouteEditingOptions) {
   const request = useDirectionsRouteRequest(options);
+  const getCurrentEditScope = useLatestValue({
+    documentEpoch: options.documentEpoch,
+    layers: options.layers,
+  });
+  const {
+    cancel,
+    currentPending,
+    error,
+    errorLayerId,
+    isRouting,
+    pending,
+    reportError,
+    routePending,
+  } = request;
 
   const preparedEdit = useCallback((id: string) => {
-    const layer = directionsLayer(options.layers, id);
+    const { documentEpoch, layers } = getCurrentEditScope();
+    const layer = directionsLayer(layers, id);
     if (!layer) return null;
     const prepared = baseDirectionsEdit(
       layer,
-      request.currentPending(),
-      options.documentEpoch,
+      currentPending(),
+      documentEpoch,
     );
-    if (!prepared.ok) request.reportError(id, prepared.error);
+    if (!prepared.ok) reportError(id, prepared.error);
     return prepared;
-  }, [options.documentEpoch, options.layers, request]);
+  }, [currentPending, getCurrentEditScope, reportError]);
 
   const changeWaypoint = useCallback((id: string, waypointIndex: number, coordinate: readonly [number, number]) => {
     const prepared = preparedEdit(id);
     if (!prepared) return false;
     if (!prepared.ok) return true;
     const changed = changedWaypointEdit(prepared.edit, waypointIndex, coordinate);
-    if (changed.ok) void request.routePending(changed.edit);
-    else request.reportError(id, changed.error);
+    if (changed.ok) void routePending(changed.edit);
+    else reportError(id, changed.error);
     return true;
-  }, [preparedEdit, request]);
+  }, [preparedEdit, reportError, routePending]);
 
   const removeWaypoint = useCallback((id: string, waypointIndex: number) => {
     const prepared = preparedEdit(id);
     if (!prepared) return false;
     if (!prepared.ok) return true;
     const removed = removedWaypointEdit(prepared.edit, waypointIndex);
-    if (removed.ok) void request.routePending(removed.edit);
-    else request.reportError(id, removed.error);
+    if (removed.ok) void routePending(removed.edit);
+    else reportError(id, removed.error);
     return true;
-  }, [preparedEdit, request]);
+  }, [preparedEdit, reportError, routePending]);
 
   const retry = useCallback(() => {
-    const edit = request.currentPending();
+    const edit = currentPending();
     if (!edit) return;
-    const layer = options.layers.find(({ id }) => id === edit.expectedLayer.id);
+    const { documentEpoch, layers } = getCurrentEditScope();
+    const layer = layers.find(({ id }) => id === edit.expectedLayer.id);
     if (!layer) {
-      request.reportError(
+      reportError(
         edit.expectedLayer.id,
         "This Road route no longer exists. Cancel the pending edit.",
       );
       return;
     }
-    const rebased = rebasePendingDirectionsEdit(edit, layer, options.documentEpoch);
-    if (rebased.ok) void request.routePending(rebased.edit);
-    else request.reportError(edit.expectedLayer.id, rebased.error);
-  }, [options.documentEpoch, options.layers, request]);
+    const rebased = rebasePendingDirectionsEdit(edit, layer, documentEpoch);
+    if (rebased.ok) void routePending(rebased.edit);
+    else reportError(edit.expectedLayer.id, rebased.error);
+  }, [currentPending, getCurrentEditScope, reportError, routePending]);
 
   return {
-    cancel: request.cancel,
+    cancel,
     changeWaypoint,
-    error: request.error,
-    isRouting: request.isRouting,
-    pendingWaypoints: request.pending?.waypoints ?? null,
-    pendingLayerId: request.pending?.expectedLayer.id ?? null,
+    error,
+    isRouting,
+    pendingWaypoints: pending?.waypoints ?? null,
+    pendingLayerId: pending?.expectedLayer.id ?? null,
     removeWaypoint,
     statusLayerId:
-      request.pending?.expectedLayer.id ?? request.errorLayerId,
+      pending?.expectedLayer.id ?? errorLayerId,
     retry,
   };
 }

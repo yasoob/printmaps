@@ -9,9 +9,9 @@ import { RouteMapMatchingControl } from "./RouteMapMatchingControl";
 import { RouteVertexControls } from "./RouteVertexControls";
 import { RouteStructureControls } from "./RouteStructureControls";
 import {
-  RouteMarkerControls,
-  RouteSegmentControls,
-} from "./RouteAppearanceAdvancedControls";
+  RouteMarkerSection,
+  RouteSegmentSection,
+} from "./RouteAppearanceSections";
 import { DirectionsEditStatus } from "./DirectionsEditStatus";
 
 type RouteAdvancedPropertiesProps = Omit<
@@ -152,12 +152,8 @@ function ArcRouteAdvanced({
         layer={layer}
         onTransformRoute={onTransformRoute}
       />
-      <PropertySection title="Marker">
-        <RouteMarkerControls appearance={layer.appearance as RouteAppearance} disabled={disabled} onChange={onAppearanceChange} />
-      </PropertySection>
-      <PropertySection title="Segments">
-        <RouteSegmentControls appearance={layer.appearance as RouteAppearance} disabled={disabled} onChange={onAppearanceChange} />
-      </PropertySection>
+      <RouteMarkerSection appearance={layer.appearance as RouteAppearance} disabled={disabled} onChange={onAppearanceChange} />
+      <RouteSegmentSection appearance={layer.appearance as RouteAppearance} disabled={disabled} onChange={onAppearanceChange} />
       <PropertySection title="Curvature">
         <ArcCurvatureControls
           curvatures={curvatures}
@@ -221,7 +217,7 @@ function LineRouteAdvanced({
   const isDirectionsRoute = layer.provenance?.service === "directions-v5";
   return (
     <>
-      <DirectionsProvenanceSummary layer={layer} />
+      <DirectionsProvenanceSummary provenance={layer.provenance} />
       <DirectionsEditStatus
         error={directionsRouteEditError}
         isRouting={directionsRouteEditIsRouting}
@@ -244,12 +240,8 @@ function LineRouteAdvanced({
           layer={layer}
           onTransformRoute={onTransformRoute}
         />
-        <PropertySection title="Marker">
-          <RouteMarkerControls appearance={appearance} disabled={disabled} onChange={onAppearanceChange} />
-        </PropertySection>
-        <PropertySection title="Segments">
-          <RouteSegmentControls appearance={appearance} disabled={disabled} onChange={onAppearanceChange} />
-        </PropertySection>
+        <RouteMarkerSection appearance={appearance} disabled={disabled} onChange={onAppearanceChange} />
+        <RouteSegmentSection appearance={appearance} disabled={disabled} onChange={onAppearanceChange} />
         {onApplyMapMatching && !isDirectionsRoute && (
           <PropertySection title="Road matching">
             <RouteMapMatchingControl

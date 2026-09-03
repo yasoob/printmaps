@@ -1,10 +1,9 @@
 import { Layers3, MapPin, MousePointer2, Route, Shapes, SlidersHorizontal } from 'lucide-react';
-import type { ComponentProps, Dispatch, ReactNode, RefObject, SetStateAction } from 'react';
+import { memo, type ComponentProps, type Dispatch, type ReactNode, type RefObject, type SetStateAction } from 'react';
 import { Button } from '@/components/ui/button';
 import type { ShapeEditMode } from '../../map/ShapeVertexEditing';
 import { preloadRouteEditor } from '../../map/useTerraDrawRoutes';
 import type { MobilePanel } from '../hooks/useMobilePanels';
-import { MapScale } from './MapScale';
 import { PoiAuthoringControls } from './PoiAuthoringControls';
 import { RouteDrawingPanel } from './RouteDrawingPanel';
 import { ShapeDrawingPanel } from './ShapeDrawingPanel';
@@ -17,6 +16,36 @@ const tools = [
   { id: 'shape', label: 'Area', mobileLabel: 'Area', shortcut: 'S', icon: Shapes },
 ];
 
+const CanvasToolPalette = memo(function CanvasToolPalette({
+  activeTool,
+  onActivateTool,
+  selectToolRef,
+}: Pick<CanvasWorkspaceChromeProps, "activeTool" | "onActivateTool" | "selectToolRef">) {
+  return (
+    <nav className="tool-palette" aria-label="Map tools">
+      {tools.map(({ id, label, mobileLabel, shortcut, icon: Icon }) => (
+        <div className="tool-slot" key={id}>
+          <Button
+            ref={id === 'select' ? selectToolRef : undefined}
+            variant="ghost"
+            size="icon"
+            className={`tool-button${activeTool === id ? ' is-active' : ''}`}
+            aria-label={`${label} (${shortcut})`}
+            aria-pressed={activeTool === id}
+            title={`${label} · ${shortcut}`}
+            onPointerEnter={id === 'route' ? preloadRouteEditor : undefined}
+            onFocus={id === 'route' ? preloadRouteEditor : undefined}
+            onClick={() => onActivateTool(id)}
+          >
+            <Icon size={17} strokeWidth={1.8} />
+            <span className="tool-label" aria-hidden="true">{mobileLabel}</span>
+          </Button>
+        </div>
+      ))}
+    </nav>
+  );
+});
+
 type SelectedShapeControls = {
   canEditPoints: boolean;
   mode: ShapeEditMode;
@@ -26,7 +55,6 @@ type SelectedShapeControls = {
 
 type CanvasWorkspaceChromeProps = {
   activeTool: string;
-  camera: { center: readonly [number, number]; locked: boolean; zoom: number };
   onActivateTool: (id: string) => void;
   poiPanelProps: ComponentProps<typeof PoiAuthoringControls>;
   routePanelProps: ComponentProps<typeof RouteDrawingPanel>;
@@ -35,6 +63,41 @@ type CanvasWorkspaceChromeProps = {
   shapePanelProps: ComponentProps<typeof ShapeDrawingPanel>;
   topDock: ReactNode;
 };
+
+function haveSameObjectProps(previous: object, next: object) {
+  const keys = Object.keys(previous);
+  return keys.length === Object.keys(next).length
+    && keys.every((key) =>
+      Object.hasOwn(next, key)
+      && Object.is(Reflect.get(previous, key), Reflect.get(next, key)));
+}
+
+function isSameCanvasWorkspaceChromeProps(
+  previous: CanvasWorkspaceChromeProps,
+  next: CanvasWorkspaceChromeProps,
+) {
+  if (
+    previous.activeTool !== next.activeTool
+    || previous.onActivateTool !== next.onActivateTool
+    || previous.selectToolRef !== next.selectToolRef
+    || previous.topDock !== next.topDock
+  ) {
+    return false;
+  }
+  if (next.activeTool === 'pin') {
+    return haveSameObjectProps(previous.poiPanelProps, next.poiPanelProps);
+  }
+  if (next.activeTool === 'route') {
+    return haveSameObjectProps(previous.routePanelProps, next.routePanelProps);
+  }
+  if (next.activeTool === 'shape') {
+    return haveSameObjectProps(previous.shapePanelProps, next.shapePanelProps);
+  }
+  return previous.selectedShape.canEditPoints === next.selectedShape.canEditPoints
+    && previous.selectedShape.mode === next.selectedShape.mode
+    && previous.selectedShape.onChange === next.selectedShape.onChange
+    && previous.selectedShape.selectedId === next.selectedShape.selectedId;
+}
 
 export function MobilePanelActions({
   activePanel,
@@ -63,44 +126,27 @@ function SelectedShapeEditControls(props: SelectedShapeControls & { isActive: bo
   return <ShapeEditingToolbar mode={props.mode} onChange={(mode) => props.onChange({ id: props.selectedId as string, mode })} />;
 }
 
-export function CanvasWorkspaceChrome({
-  activeTool, camera, onActivateTool, poiPanelProps, routePanelProps, selectToolRef, selectedShape, shapePanelProps, topDock,
+export const CanvasWorkspaceChrome = memo(function CanvasWorkspaceChrome({
+  activeTool, onActivateTool, poiPanelProps, routePanelProps, selectToolRef, selectedShape, shapePanelProps, topDock,
 }: CanvasWorkspaceChromeProps) {
   return (
-    <div className="canvas-overlay">
+    <>
       <div className="canvas-top-dock">{topDock}</div>
       <div className="canvas-authoring-dock">
-        <SelectedShapeEditControls {...selectedShape} isActive={activeTool === 'select'} />
+        {activeTool === 'select' && selectedShape.canEditPoints && selectedShape.selectedId && (
+          <SelectedShapeEditControls {...selectedShape} isActive />
+        )}
         {activeTool === 'route' && <RouteDrawingPanel {...routePanelProps} />}
-        <PoiAuthoringControls {...poiPanelProps} />
+        {activeTool === 'pin' && <PoiAuthoringControls {...poiPanelProps} />}
         {activeTool === 'shape' && <ShapeDrawingPanel {...shapePanelProps} />}
       </div>
       <div className="canvas-tool-dock">
-        <nav className="tool-palette" aria-label="Map tools">
-          {tools.map(({ id, label, mobileLabel, shortcut, icon: Icon }) => (
-            <div className="tool-slot" key={id}>
-              <Button
-                ref={id === 'select' ? selectToolRef : undefined}
-                variant="ghost"
-                size="icon"
-                className={`tool-button${activeTool === id ? ' is-active' : ''}`}
-                aria-label={`${label} (${shortcut})`}
-                aria-pressed={activeTool === id}
-                title={`${label} · ${shortcut}`}
-                onPointerEnter={id === 'route' ? preloadRouteEditor : undefined}
-                onFocus={id === 'route' ? preloadRouteEditor : undefined}
-                onClick={() => onActivateTool(id)}
-              >
-                <Icon size={17} strokeWidth={1.8} />
-                <span className="tool-label" aria-hidden="true">{mobileLabel}</span>
-              </Button>
-            </div>
-          ))}
-        </nav>
+        <CanvasToolPalette
+          activeTool={activeTool}
+          onActivateTool={onActivateTool}
+          selectToolRef={selectToolRef}
+        />
       </div>
-      <div className="canvas-scale-dock">
-        <MapScale latitude={camera.center[1]} zoom={camera.zoom} />
-      </div>
-    </div>
+    </>
   );
-}
+}, isSameCanvasWorkspaceChromeProps);
