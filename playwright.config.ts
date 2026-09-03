@@ -34,10 +34,12 @@ export default defineConfig({
     command: `npm run dev:editor -- --port ${editorPort}`,
     env: {
       VITE_MAPBOX_PUBLIC_ACCESS: 'pk.fake-public-segment.fake-signature',
+      VITE_REACT_SCAN: process.env.VITE_REACT_SCAN ?? 'false',
       VITE_TEST_INITIAL_PROJECT: 'true',
     },
     url: `http://127.0.0.1:${editorPort}`,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer:
+      !process.env.CI && process.env.VITE_REACT_SCAN !== 'true',
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } } },

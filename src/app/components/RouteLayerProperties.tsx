@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 import type {
   ContentLayer,
   LayerAppearance,
@@ -36,7 +36,7 @@ function markerForPictogram(
   return markerAppearanceFor(pictogram as RouteTravelMarker);
 }
 
-function RouteAppearanceControls({
+const RouteAppearanceControls = memo(function RouteAppearanceControls({
   appearance,
   onChange,
 }: {
@@ -144,7 +144,7 @@ function RouteAppearanceControls({
       </PropertyRow>
     </>
   );
-}
+});
 
 export type RouteLayerPropertiesProps = {
   documentEpoch?: number;
@@ -175,12 +175,14 @@ export type RouteLayerPropertiesProps = {
   onTransformRoute?: ProjectState["transformRoute"];
 };
 
-function RouteExtensionControls({
-  layer,
+const RouteExtensionControls = memo(function RouteExtensionControls({
+  isDisabled,
   onBeginExtend,
-}: Pick<RouteLayerPropertiesProps, "layer" | "onBeginExtend">) {
+}: {
+  isDisabled: boolean;
+  onBeginExtend?: RouteLayerPropertiesProps["onBeginExtend"];
+}) {
   if (!onBeginExtend) return null;
-  const isDisabled = layer.locked || !layer.visible;
   return (
     <PropertySection title="Extend/Edit route">
       <p className="property-note">
@@ -204,7 +206,7 @@ function RouteExtensionControls({
       </div>
     </PropertySection>
   );
-}
+});
 
 export function RouteLayerProperties(props: RouteLayerPropertiesProps) {
   const { layer } = props;
@@ -223,7 +225,7 @@ export function RouteLayerProperties(props: RouteLayerPropertiesProps) {
         />
       </PropertySection>
       <RouteExtensionControls
-        layer={layer}
+        isDisabled={layer.locked || !layer.visible}
         onBeginExtend={props.onBeginExtend}
       />
       <RouteAdvancedProperties

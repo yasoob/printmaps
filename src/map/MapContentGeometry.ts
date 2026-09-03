@@ -16,6 +16,10 @@ export function mapContentSourceId(id: string, role?: string): string {
 
 type GeoJsonGeometry = Exclude<LayerGeometry, { type: 'Arc' }>;
 type MapGeoJson = GeoJsonGeometry | {
+  type: 'Feature';
+  properties: Record<string, string | number>;
+  geometry: GeoJsonGeometry;
+} | {
   type: 'FeatureCollection';
   features: {
     type: 'Feature';
@@ -23,6 +27,21 @@ type MapGeoJson = GeoJsonGeometry | {
     geometry: GeoJsonGeometry;
   }[];
 };
+
+export function mapContentDataForLayer(
+  layer: ContentLayer,
+  geometry: GeoJsonGeometry = mapGeometryForLayer(layer),
+): MapGeoJson {
+  const data = layer.type === 'route' ? routeMapFeatures(layer) : null;
+  if (!data && layer.type === 'route') {
+    throw new Error(`Route layer "${layer.id}" cannot be rendered.`);
+  }
+  return data ?? {
+    type: 'Feature',
+    properties: { layerId: layer.id },
+    geometry,
+  };
+}
 
 function isInvertedShape(layer: ContentLayer, geometry: LayerGeometry | undefined): geometry is ShapeGeometry {
   return (geometry?.type === 'Polygon' || geometry?.type === 'MultiPolygon')
@@ -91,10 +110,8 @@ export function addMapContentSource(
   layer: ContentLayer,
   geometry: GeoJsonGeometry,
 ) {
-  const data = layer.type === 'route' ? routeMapFeatures(layer) : null;
-  if (!data && layer.type === 'route') throw new Error(`Route layer "${layer.id}" cannot be rendered.`);
   map.addSource(id, {
     type: 'geojson',
-    data: data ?? { type: 'Feature', properties: { layerId: layer.id }, geometry },
+    data: mapContentDataForLayer(layer, geometry),
   });
 }

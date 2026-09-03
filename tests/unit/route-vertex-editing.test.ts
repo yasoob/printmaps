@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { ContentLayer } from '../../src/domain/project';
+import { moveRouteVertex } from '../../src/domain/routeGeometry';
+import { hasMapContentSourceData } from '../../src/map/MapContentSourceState';
 import {
   installRouteVertexEditing,
   type RouteVertexMarker,
@@ -42,8 +44,9 @@ function routeHarness() {
     markers.push(marker);
     return marker;
   };
+  const source = { setData };
   const map = {
-    getSource: () => ({ setData }),
+    getSource: () => source,
     project: ([lng, lat]: readonly [number, number]) => ({ x: lng, y: lat }),
     unproject: ({ x, y }: { x: number; y: number }) => ({ lng: x, lat: y }),
   };
@@ -52,6 +55,7 @@ function routeHarness() {
     map: map as unknown as Parameters<typeof installRouteVertexEditing>[0],
     markers,
     setData,
+    source,
     sourceCoordinates: () => sourceCoordinates,
   };
 }
@@ -102,6 +106,55 @@ describe('route vertex map editing', () => {
     expect(markers[3].element).toHaveAttribute('aria-label', 'Add route vertex between 1 and 2');
     markers[3].element.click();
     expect(onInsert).toHaveBeenCalledWith(0);
+  });
+
+  it('synchronizes moved route coordinates without replacing marker nodes', () => {
+    const { createMarker, map, markers } = routeHarness();
+    const editing = installRouteVertexEditing(
+      map,
+      route,
+      vi.fn(),
+      { createMarker },
+    );
+    const markerElements = markers.map(({ element }) => element);
+    const movedRoute: ContentLayer = {
+      ...route,
+      geometry: {
+        type: 'LineString',
+        coordinates: [[0, 0], [3, 2], [2, 0]],
+      },
+    };
+
+    expect(editing.synchronizeLayer(movedRoute)).toBe(true);
+    expect(markers.map(({ element }) => element)).toEqual(markerElements);
+    expect(markers[1].coordinate).toEqual({ lng: 3, lat: 2 });
+  });
+
+  it('marks a live preview so canonical sync can skip duplicate source data', () => {
+    const { createMarker, map, markers, source } = routeHarness();
+    installRouteVertexEditing(map, route, vi.fn(), { createMarker });
+    markers[1].coordinate = { lng: 3, lat: 2 };
+
+    markers[1].trigger('drag');
+
+    const movedRoute = moveRouteVertex(route, 1, [3, 2]);
+    expect(movedRoute).not.toBeNull();
+    if (!movedRoute) return;
+    expect(hasMapContentSourceData(source, movedRoute)).toBe(true);
+  });
+
+  it('does not replay an accepted drag preview at drag end', () => {
+    const { createMarker, map, markers, setData } = routeHarness();
+    const commit = vi.fn();
+    installRouteVertexEditing(map, route, commit, { createMarker });
+    markers[1].coordinate = { lng: 3, lat: 2 };
+    markers[1].trigger('drag');
+    const previewCalls = setData.mock.calls.length;
+
+    markers[1].trigger('dragend');
+
+    expect(setData).toHaveBeenCalledTimes(previewCalls);
+    expect(commit).toHaveBeenCalledWith(1, [3, 2]);
   });
 
   it('restores Terra guidance when canonical MapLibre source restoration fails', () => {

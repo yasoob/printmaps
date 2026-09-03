@@ -57,6 +57,52 @@ it('reroutes a moved semantic waypoint and refreshes all provider provenance', a
   }));
 });
 
+it('keeps action identities stable while reading the latest layer scope', async () => {
+  const directions = vi.fn<DirectionsProvider['directions']>().mockResolvedValue({
+    routes: [{ geometry: [[0, 0], [1, 1.5], [2, 2]], distanceMeters: 120, durationSeconds: 60 }],
+    useBoundary: 'provider-response-use-requires-terms-review',
+  });
+  const provider = { directions };
+  const replaceDirectionsRoute = vi.fn(() => ({ ok: true as const, routeId: 'road' }));
+  const updatedLayer = {
+    ...layer,
+    appearance: { ...layer.appearance!, color: '#000000' },
+  } as ContentLayer;
+  const { result, rerender } = renderHook(
+    ({ documentEpoch, layers }) => useDirectionsRouteEditing({
+      documentEpoch,
+      layers,
+      provider,
+      replaceDirectionsRoute,
+    }),
+    {
+      initialProps: {
+        documentEpoch: 4,
+        layers: [layer] as ContentLayer[],
+      },
+    },
+  );
+  const initialActions = {
+    changeWaypoint: result.current.changeWaypoint,
+    removeWaypoint: result.current.removeWaypoint,
+    retry: result.current.retry,
+  };
+
+  rerender({ documentEpoch: 5, layers: [updatedLayer] });
+
+  expect(result.current.changeWaypoint).toBe(initialActions.changeWaypoint);
+  expect(result.current.removeWaypoint).toBe(initialActions.removeWaypoint);
+  expect(result.current.retry).toBe(initialActions.retry);
+  act(() => {
+    result.current.changeWaypoint('road', 1, [1, 1.5]);
+  });
+  await waitFor(() => expect(replaceDirectionsRoute).toHaveBeenCalled());
+  expect(replaceDirectionsRoute).toHaveBeenCalledWith(expect.objectContaining({
+    expectedDocumentEpoch: 5,
+    expectedLayer: updatedLayer,
+  }));
+});
+
 it('keeps a closed Road endpoint canonical when either duplicate is edited', async () => {
   const closedLayer: ContentLayer = {
     ...layer,

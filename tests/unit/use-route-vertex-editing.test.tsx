@@ -5,8 +5,12 @@ import { createInitialProjectDocument, type ContentLayer, type MapStylePreset } 
 import { useRouteVertexEditing } from '../../src/map/useRouteVertexEditing';
 
 function createSession() {
-  const cleanup = vi.fn() as ReturnType<typeof vi.fn> & { focusVertex: ReturnType<typeof vi.fn> };
+  const cleanup = vi.fn() as ReturnType<typeof vi.fn> & {
+    focusVertex: ReturnType<typeof vi.fn>;
+    synchronizeLayer: ReturnType<typeof vi.fn>;
+  };
   cleanup.focusVertex = vi.fn();
+  cleanup.synchronizeLayer = vi.fn(() => true);
   return cleanup;
 }
 
@@ -79,7 +83,7 @@ describe('route vertex editing lifecycle', () => {
     expect(secondChange).toHaveBeenCalledWith('route-01', 1, [16.4, 48.25]);
   });
 
-  it('restores a focused handle across a geometry rerender of the same route', () => {
+  it('keeps the marker session across a geometry rerender of the same route', () => {
     const onChange = vi.fn();
     const { rerender } = renderRouteHook({
       layers: createInitialProjectDocument().layers,
@@ -96,7 +100,9 @@ describe('route vertex editing lifecycle', () => {
       stylePreset: 'paper',
     });
 
-    expect(metrics.sessions[1].focusVertex).toHaveBeenCalledWith(1);
+    expect(metrics.sessions).toHaveLength(1);
+    expect(metrics.sessions[0]).not.toHaveBeenCalled();
+    expect(metrics.sessions[0].synchronizeLayer).toHaveBeenCalled();
   });
 
   it('does not restore stale handle focus after selection leaves the route', () => {

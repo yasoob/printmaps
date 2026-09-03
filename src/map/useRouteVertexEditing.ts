@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, type RefObject } from 'react';
+import { useLayoutEffect, useRef, type RefObject } from 'react';
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { ContentLayer, MapStylePreset } from '../domain/project';
 import { installRouteVertexEditing } from './RouteVertexEditing';
@@ -13,6 +13,39 @@ type RouteVertexEditingOptions = {
   stylePreset: MapStylePreset;
 };
 
+type EditableRouteLayer = ContentLayer & {
+  geometry: Extract<
+    NonNullable<ContentLayer['geometry']>,
+    { type: 'Arc' | 'LineString' }
+  >;
+};
+
+function isEditableRouteLayer(
+  layer: ContentLayer | undefined,
+): layer is EditableRouteLayer {
+  return layer?.type === 'route'
+    && !layer.locked
+    && layer.visible
+    && (layer.geometry?.type === 'LineString' || layer.geometry?.type === 'Arc');
+}
+
+function routeEditingPointCount(layer: EditableRouteLayer) {
+  if (layer.geometry.type === 'Arc') return layer.geometry.anchors.length;
+  if (layer.provenance?.service === 'directions-v5') {
+    return layer.provenance.waypoints.length;
+  }
+  return layer.geometry.coordinates.length;
+}
+
+function routeEditingSessionKey(layer: ContentLayer | undefined) {
+  if (!isEditableRouteLayer(layer)) return null;
+  const pointCount = routeEditingPointCount(layer);
+  const midpointCount = layer.geometry.type === 'Arc'
+    ? layer.geometry.curvatures.length
+    : 0;
+  return `${layer.id}:${layer.geometry.type}:${pointCount}:${midpointCount}:${layer.provenance?.service ?? ''}`;
+}
+
 export function useRouteVertexEditing({
   layers,
   map,
@@ -25,31 +58,39 @@ export function useRouteVertexEditing({
   const routeVertexChange = useRef(onRouteVertexChange);
   const routeVertexInsert = useRef(onRouteVertexInsert);
   const routeVertexPreview = useRef(onRouteVertexPreview);
+  const editingSession = useRef<ReturnType<typeof installRouteVertexEditing> | null>(null);
   const pendingFocus = useRef<{ layerId: string; vertexIndex: number } | null>(null);
   const canCommit = typeof onRouteVertexChange === 'function';
+  const selectedLayer = layers.find((layer) => layer.id === selectedId);
+  const selectedLayerRef = useRef(selectedLayer);
+  const sessionKey = routeEditingSessionKey(selectedLayer);
   useLayoutEffect(() => {
     routeVertexChange.current = onRouteVertexChange;
     routeVertexInsert.current = onRouteVertexInsert;
     routeVertexPreview.current = onRouteVertexPreview;
   }, [onRouteVertexChange, onRouteVertexInsert, onRouteVertexPreview]);
+  useLayoutEffect(() => {
+    selectedLayerRef.current = selectedLayer;
+  }, [selectedLayer]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const activeMap = map.current;
-    const selectedLayer = layers.find((layer) => layer.id === selectedId);
-    if (!activeMap || !selectedLayer || !canCommit) {
+    const currentLayer = selectedLayerRef.current;
+    if (!activeMap || !currentLayer || !canCommit || !sessionKey) {
       pendingFocus.current = null;
       return;
     }
     const editing = installRouteVertexEditing(
       activeMap,
-      selectedLayer,
-      (vertexIndex, coordinate) => routeVertexChange.current?.(selectedLayer.id, vertexIndex, coordinate),
+      currentLayer,
+      (vertexIndex, coordinate) => routeVertexChange.current?.(currentLayer.id, vertexIndex, coordinate),
       {
-        onInsert: (segmentIndex) => routeVertexInsert.current?.(selectedLayer.id, segmentIndex),
+        onInsert: (segmentIndex) => routeVertexInsert.current?.(currentLayer.id, segmentIndex),
         onPreview: (coordinates) => routeVertexPreview.current?.(coordinates),
       },
     );
-    if (pendingFocus.current?.layerId === selectedLayer.id) {
+    editingSession.current = editing;
+    if (pendingFocus.current?.layerId === currentLayer.id) {
       editing.focusVertex(pendingFocus.current.vertexIndex);
     }
     pendingFocus.current = null;
@@ -59,14 +100,18 @@ export function useRouteVertexEditing({
         ? activeElement.dataset.routeVertexIndex
         : undefined;
       if (focusedIndex !== undefined) {
-        pendingFocus.current = { layerId: selectedLayer.id, vertexIndex: Number(focusedIndex) };
+        pendingFocus.current = { layerId: currentLayer.id, vertexIndex: Number(focusedIndex) };
       } else if (activeElement instanceof HTMLElement && activeElement.dataset.routeSegmentIndex !== undefined) {
         pendingFocus.current = {
-          layerId: selectedLayer.id,
+          layerId: currentLayer.id,
           vertexIndex: Number(activeElement.dataset.routeSegmentIndex) + 1,
         };
       }
+      if (editingSession.current === editing) editingSession.current = null;
       editing();
     };
-  }, [canCommit, layers, map, selectedId, stylePreset]);
+  }, [canCommit, map, sessionKey, stylePreset]);
+  useLayoutEffect(() => {
+    if (selectedLayer) editingSession.current?.synchronizeLayer(selectedLayer);
+  }, [selectedLayer]);
 }

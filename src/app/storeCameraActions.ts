@@ -4,6 +4,20 @@ import { commitDocument, type ProjectSet } from './storeDocument';
 
 type CameraActions = Pick<ProjectState, 'setCameraBearing' | 'setCameraPitch' | 'setCameraViewport' | 'setMapAreaLocked'>;
 
+function isValidCameraViewport(
+  center: readonly [number, number],
+  zoom: number,
+) {
+  const [longitude, latitude] = center;
+  return Number.isFinite(longitude)
+    && Math.abs(longitude) <= 180
+    && Number.isFinite(latitude)
+    && Math.abs(latitude) <= MAX_MERCATOR_LATITUDE
+    && Number.isFinite(zoom)
+    && zoom >= 0
+    && zoom <= MAX_MAP_ZOOM;
+}
+
 export function createCameraActions(set: ProjectSet): CameraActions {
   return {
     setCameraBearing: (bearing) => set((state) => {
@@ -16,23 +30,23 @@ export function createCameraActions(set: ProjectSet): CameraActions {
       });
     }),
     setCameraViewport: (center, zoom, mode = 'history') => set((state) => {
+      if (!isValidCameraViewport(center, zoom)) return state;
       const [longitude, latitude] = center;
-      if (!Number.isFinite(longitude) || Math.abs(longitude) > 180
-        || !Number.isFinite(latitude) || Math.abs(latitude) > MAX_MERCATOR_LATITUDE
-        || !Number.isFinite(zoom) || zoom < 0 || zoom > MAX_MAP_ZOOM) {
-        return state;
-      }
       const normalizedCenter: [number, number] = [
         normalizeCameraPrecision(longitude),
         normalizeCameraPrecision(latitude),
       ];
       const normalizedZoom = normalizeCameraPrecision(zoom);
-      if (state.document.camera.center[0] === normalizedCenter[0]
-        && state.document.camera.center[1] === normalizedCenter[1]
-        && state.document.camera.zoom === normalizedZoom) return state;
+      const hasSameCenter = state.document.camera.center[0] === normalizedCenter[0]
+        && state.document.camera.center[1] === normalizedCenter[1];
+      if (hasSameCenter && state.document.camera.zoom === normalizedZoom) return state;
       const document = {
         ...state.document,
-        camera: { ...state.document.camera, center: normalizedCenter, zoom: normalizedZoom },
+        camera: {
+          ...state.document.camera,
+          center: hasSameCenter ? state.document.camera.center : normalizedCenter,
+          zoom: normalizedZoom,
+        },
       };
       return mode === 'amend' ? { document } : commitDocument(state, document);
     }),

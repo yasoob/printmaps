@@ -7,9 +7,10 @@ import { useProject, useProjectActions } from '../projectStoreContext';
 import { LayerProperties } from './LayerProperties';
 import { ProjectProperties, type CameraInspectorView } from './ProjectProperties';
 import type { RouteExtensionEndpoint } from './routeAuthoringActions';
+import { useLatestValue } from '../hooks/useLatestValue';
 
 type PropertiesSidebarProps = {
-  selectedLayer: ContentLayer | null;
+  selectedLayerId: string | null;
   mapMatchingProvider?: MapMatchingProvider;
   directionsProvider?: DirectionsProvider;
   activePanel: MobilePanel | null;
@@ -34,22 +35,46 @@ function selectedLayerButton() {
   return document.querySelector<HTMLElement>('[data-layer-select][aria-current="true"]');
 }
 
-export const PropertiesSidebar = memo(function PropertiesSidebar(props: PropertiesSidebarProps) {
-  const { activePanel, closePanel, directionsProvider, directionsRouteEditError, directionsRouteEditIsRouting, directionsRouteEditWaypoints, mapMatchingProvider, onBeginRouteExtend, onCancelDirectionsRouteEdit, onDeleteSelected, onKeyDown, onLocate, onReplaceLayerData, onRetryDirectionsRouteEdit, onRouteVertexChange, onRouteVertexRemove, panelRef, selectedLayer, setPreviewedLayerId } = props;
+const SelectedLayerProperties = memo(function SelectedLayerProperties({
+  props,
+  selectedLayerId,
+}: {
+  props: PropertiesSidebarProps;
+  selectedLayerId: string;
+}) {
+  const { activePanel, closePanel, directionsProvider, directionsRouteEditError, directionsRouteEditIsRouting, directionsRouteEditWaypoints, mapMatchingProvider, onBeginRouteExtend, onCancelDirectionsRouteEdit, onDeleteSelected, onReplaceLayerData, onRetryDirectionsRouteEdit, onRouteVertexChange, onRouteVertexRemove, panelRef, setPreviewedLayerId } = props;
+  const selectedLayer = useProject((state) =>
+    state.document.layers.find(({ id }) => id === selectedLayerId) ?? null);
   const project = useProjectActions();
   const documentEpoch = useProject((state) => state.documentEpoch);
   const assets = useProject((state) => state.document.assets);
+  const getSelectedLayer = useLatestValue(selectedLayer);
   const activePanelRef = useRef(activePanel);
   useLayoutEffect(() => {
     activePanelRef.current = activePanel;
   }, [activePanel]);
-  const selectedLayerId = selectedLayer?.id;
   const duplicateLayer = project.duplicateLayer;
+  const setLayerAppearance = project.setLayerAppearance;
+  const changeAppearance = useCallback(
+    (appearance: Parameters<typeof setLayerAppearance>[1]) => {
+      setLayerAppearance(selectedLayerId, appearance);
+    },
+    [selectedLayerId, setLayerAppearance],
+  );
+  const beginRouteExtend = useCallback(
+    (endpoint: RouteExtensionEndpoint, trigger: HTMLButtonElement) => {
+      const currentLayer = getSelectedLayer();
+      if (!currentLayer || !onBeginRouteExtend) return;
+      onBeginRouteExtend(currentLayer, endpoint, trigger);
+      closePanel('properties');
+    },
+    [closePanel, getSelectedLayer, onBeginRouteExtend],
+  );
   const clearSelectedPreview = () => {
-    if (selectedLayer) setPreviewedLayerId((current) => current === selectedLayer.id ? null : current);
+    setPreviewedLayerId((current) =>
+      current === selectedLayerId ? null : current);
   };
   const duplicateSelected = useCallback(() => {
-    if (!selectedLayerId) return;
     duplicateLayer(selectedLayerId);
     window.setTimeout(() => {
       const focusTarget = activePanelRef.current === 'properties'
@@ -59,52 +84,58 @@ export const PropertiesSidebar = memo(function PropertiesSidebar(props: Properti
     }, 0);
   }, [duplicateLayer, panelRef, selectedLayerId]);
 
+  if (!selectedLayer) return null;
+  return (
+    <LayerProperties
+      layer={selectedLayer}
+      assets={assets}
+      documentEpoch={documentEpoch}
+      {...(directionsProvider ? { directionsProvider } : {})}
+      {...(mapMatchingProvider ? { mapMatchingProvider } : {})}
+      onApplyMapMatching={(input, expectedDocumentEpoch) => project.applyMapMatching(selectedLayer.id, input, expectedDocumentEpoch)}
+      onRename={(name) => project.renameLayer(selectedLayer.id, name)}
+      onOpacityChange={(opacity) => project.setLayerOpacity(selectedLayer.id, opacity)}
+      onAppearanceChange={changeAppearance}
+      onBeginRouteExtend={onBeginRouteExtend ? beginRouteExtend : undefined}
+      onArcCurvatureChange={(segmentIndex, curvature) => project.setArcSegmentCurvature(selectedLayer.id, segmentIndex, curvature)}
+      onPoiCoordinatesChange={(coordinates) => project.setPoiCoordinates(selectedLayer.id, coordinates)}
+      onPoiCustomMarkerChange={(asset) => project.setPoiCustomMarker(selectedLayer.id, asset)}
+      onRouteVertexInsert={(vertexIndex) => project.insertRouteVertex(selectedLayer.id, vertexIndex)}
+      onRouteVertexRemove={(vertexIndex) => {
+        if (onRouteVertexRemove) onRouteVertexRemove(selectedLayer.id, vertexIndex);
+        else project.removeRouteVertex(selectedLayer.id, vertexIndex);
+      }}
+      onRouteVertexChange={(vertexIndex, coordinates) => {
+        if (onRouteVertexChange) onRouteVertexChange(selectedLayer.id, vertexIndex, coordinates);
+        else project.setRouteVertex(selectedLayer.id, vertexIndex, coordinates);
+      }}
+      directionsRouteEditError={directionsRouteEditError}
+      directionsRouteEditIsRouting={directionsRouteEditIsRouting}
+      directionsRouteEditWaypoints={directionsRouteEditWaypoints}
+      onRetryDirectionsRouteEdit={onRetryDirectionsRouteEdit}
+      onCancelDirectionsRouteEdit={onCancelDirectionsRouteEdit}
+      onTransformRoute={project.transformRoute}
+      onShapeVertexChange={(ringIndex, vertexIndex, coordinates) => project.setShapeVertex(selectedLayer.id, ringIndex, vertexIndex, coordinates)}
+      onToggleVisibility={() => { clearSelectedPreview(); project.toggleLayerVisibility(selectedLayer.id); }}
+      onToggleLock={() => project.toggleLayerLock(selectedLayer.id)}
+      onReplace={(trigger) => onReplaceLayerData(selectedLayer, trigger)}
+      onDuplicate={duplicateSelected}
+      onDelete={onDeleteSelected}
+    />
+  );
+});
+
+export const PropertiesSidebar = memo(function PropertiesSidebar(props: PropertiesSidebarProps) {
+  const { activePanel, closePanel, onKeyDown, onLocate, panelRef, selectedLayerId } = props;
   return (
     <aside ref={panelRef} id="properties-panel" className={`right-sidebar${activePanel === 'properties' ? ' is-mobile-open' : ''}`} aria-label="Properties sidebar" role={activePanel === 'properties' ? 'dialog' : undefined} aria-modal={activePanel === 'properties' ? true : undefined} inert={activePanel === 'layers'} onKeyDown={(event) => onKeyDown(event, 'properties')}>
       <button className="mobile-drawer-close close-button" type="button" aria-label="Close properties" onClick={() => closePanel('properties')}><X size={16} /></button>
-      {selectedLayer ? (
-        <LayerProperties
-          layer={selectedLayer}
-          assets={assets}
-          documentEpoch={documentEpoch}
-          {...(directionsProvider ? { directionsProvider } : {})}
-          {...(mapMatchingProvider ? { mapMatchingProvider } : {})}
-          onApplyMapMatching={(input, expectedDocumentEpoch) => project.applyMapMatching(selectedLayer.id, input, expectedDocumentEpoch)}
-          onRename={(name) => project.renameLayer(selectedLayer.id, name)}
-          onOpacityChange={(opacity) => project.setLayerOpacity(selectedLayer.id, opacity)}
-          onAppearanceChange={(appearance) => project.setLayerAppearance(selectedLayer.id, appearance)}
-          onBeginRouteExtend={onBeginRouteExtend ? (endpoint, trigger) => {
-            onBeginRouteExtend(selectedLayer, endpoint, trigger);
-            closePanel('properties');
-          } : undefined}
-          onArcCurvatureChange={(segmentIndex, curvature) => project.setArcSegmentCurvature(selectedLayer.id, segmentIndex, curvature)}
-          onPoiCoordinatesChange={(coordinates) => project.setPoiCoordinates(selectedLayer.id, coordinates)}
-          onPoiCustomMarkerChange={(asset) => project.setPoiCustomMarker(selectedLayer.id, asset)}
-          onRouteVertexInsert={(vertexIndex) => project.insertRouteVertex(selectedLayer.id, vertexIndex)}
-          onRouteVertexRemove={(vertexIndex) => {
-            if (onRouteVertexRemove) onRouteVertexRemove(selectedLayer.id, vertexIndex);
-            else project.removeRouteVertex(selectedLayer.id, vertexIndex);
-          }}
-          onRouteVertexChange={(vertexIndex, coordinates) => {
-            if (onRouteVertexChange) onRouteVertexChange(selectedLayer.id, vertexIndex, coordinates);
-            else project.setRouteVertex(selectedLayer.id, vertexIndex, coordinates);
-          }}
-          directionsRouteEditError={directionsRouteEditError}
-          directionsRouteEditIsRouting={directionsRouteEditIsRouting}
-          directionsRouteEditWaypoints={directionsRouteEditWaypoints}
-          onRetryDirectionsRouteEdit={onRetryDirectionsRouteEdit}
-          onCancelDirectionsRouteEdit={onCancelDirectionsRouteEdit}
-          onTransformRoute={project.transformRoute}
-          onShapeVertexChange={(ringIndex, vertexIndex, coordinates) => project.setShapeVertex(selectedLayer.id, ringIndex, vertexIndex, coordinates)}
-          onToggleVisibility={() => { clearSelectedPreview(); project.toggleLayerVisibility(selectedLayer.id); }}
-          onToggleLock={() => project.toggleLayerLock(selectedLayer.id)}
-          onReplace={(trigger) => onReplaceLayerData(selectedLayer, trigger)}
-          onDuplicate={duplicateSelected}
-          onDelete={onDeleteSelected}
+      {selectedLayerId ? (
+        <SelectedLayerProperties
+          props={props}
+          selectedLayerId={selectedLayerId}
         />
-      ) : (
-        <ProjectPropertiesPanel onLocate={onLocate} />
-      )}
+      ) : <ProjectPropertiesPanel onLocate={onLocate} />}
     </aside>
   );
 });

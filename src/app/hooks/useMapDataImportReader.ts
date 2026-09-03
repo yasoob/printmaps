@@ -13,11 +13,18 @@ import type { MapDataImportCommit } from './useAppMapDataImport';
 type ImportStatus = { documentEpoch: number; kind: 'success' | 'error'; message: string };
 type ImportPhase = 'idle' | 'reading';
 type ReviewedSource = Readonly<{ documentEpoch: number; sourceDocument: ProjectDocument }>;
+type AcceptedBatch = {
+  parsed: ParsedMapDataBatch;
+  requestId: number;
+  requestedReplacement: ContentLayer | null;
+  shouldReview: boolean;
+  sourceDocument: ProjectDocument;
+};
 
 export type MapDataImportOptions = {
   documentEpoch: number;
+  getSourceDocument: () => ProjectDocument;
   inputRef?: RefObject<HTMLInputElement | null>;
-  sourceDocument: ProjectDocument;
   triggerRef: RefObject<HTMLButtonElement | null>;
   isWorkActive: boolean;
   finishImportWork: (workId: number) => void;
@@ -106,7 +113,7 @@ function useImportLifecycle(isMountedRef: RefObject<boolean>, requestIdRef: RefO
 }
 
 export function useMapDataImportReader(options: MapDataImportOptions) {
-  const { documentEpoch, finishImportWork, isOpen, isWorkActive, onImport, onOpenChange, sourceDocument, startImportWork, triggerRef } = options;
+  const { documentEpoch, finishImportWork, getSourceDocument, isOpen, isWorkActive, onImport, onOpenChange, startImportWork, triggerRef } = options;
   const [phase, setPhase] = useState<ImportPhase>('idle');
   const [status, setStatus] = useState<ImportStatus | null>(null);
   const [batch, setBatch] = useState<ParsedMapDataBatch | null>(null);
@@ -130,7 +137,13 @@ export function useMapDataImportReader(options: MapDataImportOptions) {
   useReadCompletionFocus(inputRef, isReading, shouldRestoreAfterReadRef, triggerRef);
   useImportLifecycle(isMountedRef, requestIdRef);
 
-  const acceptParsedBatch = useCallback((parsed: ParsedMapDataBatch, requestId: number, shouldReview: boolean, requestedReplacement: ContentLayer | null) => {
+  const acceptParsedBatch = useCallback(({
+    parsed,
+    requestId,
+    requestedReplacement,
+    shouldReview,
+    sourceDocument,
+  }: AcceptedBatch) => {
     if (requestIdRef.current !== requestId) return;
     if (shouldReview) {
       reviewedSourceRef.current = { documentEpoch, sourceDocument };
@@ -140,7 +153,7 @@ export function useMapDataImportReader(options: MapDataImportOptions) {
     if (onImportRef.current({ documentEpoch, layers: parsed.layers, replacementTarget: requestedReplacement, shouldFitView: false, sourceDocument })) {
       setStatus(immediateSuccess(parsed, documentEpoch));
     }
-  }, [documentEpoch, sourceDocument]);
+  }, [documentEpoch]);
 
   const settleRead = useCallback((requestId: number, workId: number, shouldReview: boolean) => {
     finishImportWork(workId);
@@ -151,6 +164,7 @@ export function useMapDataImportReader(options: MapDataImportOptions) {
   }, [finishImportWork]);
 
   const prepareFiles = useCallback(async (files: readonly File[], shouldReview: boolean, requestedReplacement: ContentLayer | null = replacementTargetRef.current) => {
+    const sourceDocument = getSourceDocument();
     replacementTargetRef.current = requestedReplacement;
     const workId = startImportWork();
     if (workId === null) return;
@@ -177,7 +191,15 @@ export function useMapDataImportReader(options: MapDataImportOptions) {
         : sourceDocument.layers;
       const parsed = await parseMapDataFiles(files, existingLayers);
       if (requestedReplacement) validateReplacementBatch(parsed, requestedReplacement);
-      acceptParsedBatch(parsed, requestId, shouldReview, requestedReplacement);
+      acceptParsedBatch(
+        {
+          parsed,
+          requestId,
+          requestedReplacement,
+          shouldReview,
+          sourceDocument,
+        },
+      );
     } catch (error) {
       if (requestIdRef.current === requestId) {
         const message = errorMessage(error);
@@ -187,7 +209,7 @@ export function useMapDataImportReader(options: MapDataImportOptions) {
     } finally {
       settleRead(requestId, workId, shouldReview);
     }
-  }, [acceptParsedBatch, documentEpoch, isOpen, onOpenChange, settleRead, sourceDocument.layers, startImportWork]);
+  }, [acceptParsedBatch, documentEpoch, getSourceDocument, isOpen, onOpenChange, settleRead, startImportWork]);
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const input = event.currentTarget;

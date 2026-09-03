@@ -55,13 +55,13 @@ export const visibleContentLayers = (layers: ContentLayer[]) => (
 export const contentStructure = (layers: ContentLayer[]) => layers
   .map((layer) => {
     const routeMarker = layer.appearance?.kind === 'route'
-      ? `:${JSON.stringify(layer.appearance)}`
+      ? `:${layer.appearance.marker !== null}`
       : '';
     const poiMarker = layer.appearance?.kind === 'poi'
       ? `:${layer.appearance.markerShape}:${layer.appearance.markerSymbol}:${layer.appearance.label}:${layer.appearance.size}:${layer.appearance.customAssetId ?? ''}`
       : '';
     const shapeMask = layer.appearance?.kind === 'shape' ? `:${layer.appearance.invert}` : '';
-    return `${encodedContentId(layer.id)}:${layer.type}:${JSON.stringify(layer.geometry)}${routeMarker}${poiMarker}${shapeMask}`;
+    return `${encodedContentId(layer.id)}:${layer.type}:${layer.geometry?.type}${routeMarker}${poiMarker}${shapeMask}`;
   })
   .join('|');
 

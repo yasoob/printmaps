@@ -52,6 +52,34 @@ const StudioBrand = memo(function StudioBrand({
   );
 });
 
+const StudioProjectIdentity = memo(function StudioProjectIdentity({
+  projectTitleRef,
+}: {
+  projectTitleRef: RefObject<HTMLButtonElement | null>;
+}) {
+  const { setProjectTitle } = useProjectActions();
+  const title = useProject((state) => state.document.title);
+  return (
+    <StudioBrand
+      buttonRef={projectTitleRef}
+      title={title}
+      onChange={setProjectTitle}
+    />
+  );
+});
+
+function HistoryActions() {
+  const { redo, undo } = useProjectActions();
+  const canUndo = useProject((state) => state.canUndo);
+  const canRedo = useProject((state) => state.canRedo);
+  return (
+    <div className="history-actions" aria-label="History">
+      <button className="icon-button" type="button" aria-label="Undo" title="Undo" disabled={!canUndo} onClick={undo}><Undo2 size={15} /></button>
+      <button className="icon-button" type="button" aria-label="Redo" title="Redo" disabled={!canRedo} onClick={redo}><Redo2 size={15} /></button>
+    </div>
+  );
+}
+
 export const StudioHeader = memo(function StudioHeader({
   projectTitleRef,
   exportButtonRef,
@@ -72,20 +100,13 @@ export const StudioHeader = memo(function StudioHeader({
   onExport,
 }: StudioHeaderProps) {
   const store = useProjectStoreApi();
-  const { redo, setProjectTitle, undo } = useProjectActions();
-  const title = useProject((state) => state.document.title);
-  const canUndo = useProject((state) => state.canUndo);
-  const canRedo = useProject((state) => state.canRedo);
   // Read on demand so header renders stay independent of camera-rate document writes.
   const getDocument = useCallback(() => store.getState().document, [store]);
 
   return (
     <header className="topbar" inert={inert}>
-      <StudioBrand buttonRef={projectTitleRef} title={title} onChange={setProjectTitle} />
-      <div className="history-actions" aria-label="History">
-        <button className="icon-button" type="button" aria-label="Undo" title="Undo" disabled={!canUndo} onClick={undo}><Undo2 size={15} /></button>
-        <button className="icon-button" type="button" aria-label="Redo" title="Redo" disabled={!canRedo} onClick={redo}><Redo2 size={15} /></button>
-      </div>
+      <StudioProjectIdentity projectTitleRef={projectTitleRef} />
+      <HistoryActions />
       <div className="document-actions">
         <ProjectFileActions getDocument={getDocument} openButtonRef={openButtonRef} onOpen={onOpen}>
           <DropdownMenuItem

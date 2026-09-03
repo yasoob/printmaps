@@ -16,6 +16,7 @@ import {
 } from "../../domain/routeProfiles";
 import { routeSnapCandidates } from "../../map/RouteSnapping";
 import { canFinishRoute } from "../components/routeAuthoringActions";
+import { useLatestValue } from "./useLatestValue";
 import {
   useRouteExtensionActivation,
   type RouteAuthoringParameters,
@@ -126,14 +127,6 @@ function useSemanticDraftState() {
     takeMoveOrigin,
     terraSyncRevision,
   };
-}
-
-function useLatestValue<T>(value: T) {
-  const reference = useRef(value);
-  useLayoutEffect(() => {
-    reference.current = value;
-  }, [value]);
-  return useCallback(() => reference.current, []);
 }
 
 function useDraftMovement(

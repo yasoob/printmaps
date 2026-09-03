@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { StoreApi } from 'zustand';
 import type { ProjectState } from '../app/store';
 import {
@@ -57,7 +57,7 @@ export function useProjectAutosave(
     return session.start();
   }, [enabled, repository, store]);
 
-  const discard = async () => {
+  const discard = useCallback(async () => {
     if (!repository || !corrupted || decisionPending) return false;
     setDecisionPending(true);
     try {
@@ -77,13 +77,16 @@ export function useProjectAutosave(
     setStatusKind('status');
     setStatus('Autosave ready');
     return true;
-  };
+  }, [corrupted, decisionPending, repository]);
 
-  return {
-    corrupted,
-    decisionPending,
-    status,
-    statusKind,
-    discard,
-  };
+  return useMemo(
+    () => ({
+      corrupted,
+      decisionPending,
+      status,
+      statusKind,
+      discard,
+    }),
+    [corrupted, decisionPending, discard, status, statusKind],
+  );
 }

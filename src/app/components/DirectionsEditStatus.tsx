@@ -1,4 +1,6 @@
-export function DirectionsEditStatus({
+import { memo } from "react";
+
+export const DirectionsEditStatus = memo(function DirectionsEditStatus({
   error,
   isRouting,
   onCancel,
@@ -23,4 +25,4 @@ export function DirectionsEditStatus({
       ) : null}
     </>
   );
-}
+});

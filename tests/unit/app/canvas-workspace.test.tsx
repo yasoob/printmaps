@@ -1,7 +1,8 @@
-import { createRef } from 'react';
+import { createRef, type ReactElement } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ContentLayer } from '../../../src/domain/project';
 import { CanvasWorkspace } from '../../../src/app/components/CanvasWorkspace';
+import { LayerPreviewProvider } from '../../../src/app/LayerPreviewProvider';
 
 const preloadRouteEditor = vi.hoisted(() => vi.fn());
 vi.mock('../../../src/map/useTerraDrawRoutes', () => ({ preloadRouteEditor }));
@@ -40,6 +41,10 @@ const layers: ContentLayer[] = [
   },
 ];
 
+function renderWorkspace(element: ReactElement) {
+  return render(element, { wrapper: LayerPreviewProvider });
+}
+
 const sharedProps = {
   layers,
   assets: {},
@@ -49,7 +54,6 @@ const sharedProps = {
   language: 'local' as const,
   textScalePercent: 100,
   featureVisibility: { roads: true, buildings: true, labels: true, water: true, parks: true, landuse: true, transit: true },
-  previewedId: null,
   documentEpoch: 0,
   importFitRequest: { request: 0 },
   page: { preset: 'A4', widthMm: 297, heightMm: 210, orientation: 'landscape' } as const,
@@ -87,7 +91,7 @@ describe('CanvasWorkspace map content', () => {
   });
 
   it('reuses the geometry layer array when unrelated selection state changes', () => {
-    const { rerender } = render(<CanvasWorkspace {...sharedProps} selectedId={null} />);
+    const { rerender } = renderWorkspace(<CanvasWorkspace {...sharedProps} selectedId={null} />);
     const initialLayers = renderedLayerArrays.at(-1);
 
     rerender(<CanvasWorkspace {...sharedProps} selectedId="route" />);
@@ -97,7 +101,7 @@ describe('CanvasWorkspace map content', () => {
   });
 
   it('advances the content revision after an immutable layer update', () => {
-    const { rerender } = render(<CanvasWorkspace {...sharedProps} selectedId={null} />);
+    const { rerender } = renderWorkspace(<CanvasWorkspace {...sharedProps} selectedId={null} />);
     const initialRevision = renderedContentRevisions.at(-1);
     const updatedLayers = layers.map((layer) => (
       layer.id === 'route' ? { ...layer, opacity: 50 } : layer
@@ -114,7 +118,7 @@ describe('route editor warm-up', () => {
   beforeEach(() => preloadRouteEditor.mockClear());
 
   it('fetches the route editor when the route tool is hovered, before it is activated', () => {
-    render(<CanvasWorkspace {...sharedProps} selectedId={null} />);
+    renderWorkspace(<CanvasWorkspace {...sharedProps} selectedId={null} />);
     const routeTool = screen.getByRole('button', { name: 'Route (R)' });
 
     expect(preloadRouteEditor).not.toHaveBeenCalled();
@@ -124,7 +128,7 @@ describe('route editor warm-up', () => {
   });
 
   it('fetches the route editor when the route tool receives keyboard focus', () => {
-    render(<CanvasWorkspace {...sharedProps} selectedId={null} />);
+    renderWorkspace(<CanvasWorkspace {...sharedProps} selectedId={null} />);
 
     fireEvent.focus(screen.getByRole('button', { name: 'Route (R)' }));
 
@@ -132,7 +136,7 @@ describe('route editor warm-up', () => {
   });
 
   it('leaves other tools alone', () => {
-    render(<CanvasWorkspace {...sharedProps} selectedId={null} />);
+    renderWorkspace(<CanvasWorkspace {...sharedProps} selectedId={null} />);
 
     fireEvent.pointerEnter(screen.getByRole('button', { name: 'Area (S)' }));
 
