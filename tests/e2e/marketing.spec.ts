@@ -236,6 +236,6 @@ test('mobile homepage CTA leads to the relocated editor', async ({ page }) => {
   await page.locator('[data-hero-image-link]').click();
   await expect(page).toHaveURL(/\/editor\/$/);
   await expect(page.locator('.studio-shell')).toBeVisible();
-  await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex,follow');
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'index,follow');
   await expect(page.getByRole('link', { name: 'Print Map Studio home' })).toHaveAttribute('href', '/');
 });

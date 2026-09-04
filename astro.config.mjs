@@ -19,9 +19,7 @@ export default defineConfig({
     enabled: false,
   },
   integrations: [
-    sitemap({
-      filter: (page) => !page.endsWith('/editor/'),
-    }),
+    sitemap(),
   ],
   vite: {
     plugins: [tailwindcss()],
