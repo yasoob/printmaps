@@ -277,7 +277,7 @@ describe('editor map detail and page commands', () => {
     act(() => succeed?.({ coords: { longitude: 16.37, latitude: 48.21 } } as GeolocationPosition));
 
     expect(map).toHaveAttribute('data-map-location-request', '1:16.37,48.21');
-    expect(screen.getByRole('status')).toHaveTextContent('Map centered');
+    expect(screen.getByText('Map centered on your current location.')).toHaveAttribute('role', 'status');
 
     await user.click(screen.getByRole('switch', { name: 'Lock map area' }));
     expect(screen.getByRole('button', { name: 'Use my location' })).toBeDisabled();

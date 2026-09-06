@@ -1,6 +1,6 @@
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { ContentLayer, PoiAppearance } from '../domain/project';
-import type { CustomMarkerAsset } from '../domain/customMarkerAssets';
+import { customMarkerRasterDimensions, type CustomMarkerAsset } from '../domain/customMarkerAssets';
 import { POI_MARKER_SYMBOL_GLYPHS } from '../domain/poiMarkers';
 import { addMapContentSource, mapContentSourceId, mapGeometryForLayer } from './MapContentGeometry';
 import { customMarkerImageId, encodedContentId, mapContentLayerId } from './MapContentLayerIds';
@@ -113,12 +113,13 @@ const routeLayerDescriptor = (layer: ContentLayer, isHighlighted: boolean) => {
 };
 
 function customPoiMarkerDescriptor(layer: ContentLayer, appearance: PoiAppearance, asset: CustomMarkerAsset): MapLayerDescriptor {
+  const { width, height } = customMarkerRasterDimensions(asset);
   return {
     id: mapContentLayerId(layer.id),
     type: 'symbol',
     layout: {
       'icon-image': customMarkerImageId(asset.id),
-      'icon-size': appearance.size / Math.max(asset.width, asset.height),
+      'icon-size': appearance.size / Math.max(width, height),
       'icon-allow-overlap': true,
       'icon-ignore-placement': true,
     },

@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import type { ContentLayer, ProjectDocument } from '../../domain/project';
 import { combinedLayerBounds, type MapBounds } from '../../map/MapLayerBounds';
 import type { ProjectState } from '../store';
+import { mutationRejected } from '../../domain/projectMutation';
 
 export type ImportFitRequest = {
   bounds?: MapBounds;
@@ -9,6 +10,7 @@ export type ImportFitRequest = {
 };
 
 export type LayerReplacementRequest = Readonly<{
+  documentEpoch: number;
   request: number;
   target: ContentLayer;
   trigger: HTMLElement | null;
@@ -22,13 +24,22 @@ export type MapDataImportCommit = Readonly<{
   sourceDocument: ProjectDocument;
 }>;
 
-export function useAppMapDataImport(
+type AppMapDataImportOptions = {
+  documentEpoch: number;
   importLayers: ProjectState['importLayers'],
   replaceLayerFromImport: ProjectState['replaceLayerFromImport'],
   isCommitBlocked: boolean,
   onImported: () => void,
-) {
-  const [isImportOpen, setIsImportOpen] = useState(false);
+};
+
+export function useAppMapDataImport({
+  documentEpoch, importLayers, replaceLayerFromImport, isCommitBlocked, onImported,
+}: AppMapDataImportOptions) {
+  const [importOpenEpoch, setImportOpenEpoch] = useState<number | null>(null);
+  const isImportOpen = importOpenEpoch === documentEpoch;
+  const setIsImportOpen = useCallback((isOpen: boolean) => {
+    setImportOpenEpoch(isOpen ? documentEpoch : null);
+  }, [documentEpoch]);
   const [isImportWorkActive, setIsImportWorkActive] = useState(false);
   const [importFitRequest, setImportFitRequest] = useState<ImportFitRequest>({ request: 0 });
   const [replacementRequest, setReplacementRequest] = useState<LayerReplacementRequest | null>(null);
@@ -49,17 +60,17 @@ export function useAppMapDataImport(
   }, []);
   const handleImportedLayers = useCallback((commit: MapDataImportCommit) => {
     const { documentEpoch, layers, replacementTarget, shouldFitView, sourceDocument } = commit;
-    if (isCommitBlocked) return false;
+    if (isCommitBlocked) return mutationRejected('Close the other dialog before applying this import.', 'unavailable');
     const [replacement] = layers;
-    const wasImported = replacementTarget
-      ? Boolean(replacement) && replaceLayerFromImport(
+    const result = replacementTarget
+      ? (replacement ? replaceLayerFromImport(
         replacementTarget.id,
         replacement,
         documentEpoch,
         sourceDocument,
-      )
+      ) : mutationRejected('Choose replacement data first.'))
       : importLayers(layers, documentEpoch, sourceDocument);
-    if (!wasImported) return false;
+    if (!result.ok) return result;
     onImported();
     const fittedLayers = replacementTarget && replacement?.geometry
       ? [{ ...replacementTarget, geometry: replacement.geometry }]
@@ -68,16 +79,17 @@ export function useAppMapDataImport(
     if (bounds) {
       setImportFitRequest((current) => ({ bounds, request: current.request + 1 }));
     }
-    return true;
+    return result;
   }, [importLayers, isCommitBlocked, onImported, replaceLayerFromImport]);
   const requestLayerReplacement = useCallback((target: ContentLayer, trigger: HTMLElement | null) => {
     setReplacementRequest((current) => ({
+      documentEpoch,
       request: (current?.request ?? 0) + 1,
       target,
       trigger,
     }));
     inputRef.current?.click();
-  }, []);
+  }, [documentEpoch]);
 
   return {
     handleImportedLayers,

@@ -66,9 +66,22 @@ function lastGeometry(setData: ReturnType<typeof vi.fn>): ShapeGeometry {
 }
 
 describe('selected shape transform editing', () => {
+  it('restores canonical geometry and handles when a transform is rejected', () => {
+    const { createMarker, layer, map, markers, setData } = harness();
+    const commit = vi.fn(() => ({ ok: false as const, error: 'The area changed.' }));
+    installShapeTransformEditing(map, layer, commit, createMarker);
+    const handles = markers.map(({ coordinate }) => ({ ...coordinate }));
+    markers[0].coordinate = { lng: 7, lat: 8 };
+    markers[0].trigger('drag');
+    markers[0].trigger('dragend');
+    expect(commit).toHaveBeenCalledOnce();
+    expect(lastGeometry(setData)).toEqual(layer.geometry);
+    expect(markers.map(({ coordinate }) => coordinate)).toEqual(handles);
+  });
+
   it('moves the complete polygon through one center handle and commits once', () => {
     const { createMarker, layer, map, markers, setData } = harness();
-    const commit = vi.fn();
+    const commit = vi.fn(() => ({ ok: true as const }));
     const cleanup = installShapeTransformEditing(map, layer, commit, createMarker);
 
     expect(markers).toHaveLength(5);
@@ -102,7 +115,7 @@ describe('selected shape transform editing', () => {
 
   it('uses the current map projection when moving after the map pans', () => {
     const { createMarker, layer, map, markers, setData, setProjectionOffset } = harness();
-    installShapeTransformEditing(map, layer, vi.fn(), createMarker);
+    installShapeTransformEditing(map, layer, vi.fn(() => ({ ok: true as const })), createMarker);
 
     setProjectionOffset(100, 50);
     markers[0].coordinate = { lng: 7, lat: 8 };
@@ -124,7 +137,7 @@ describe('selected shape transform editing', () => {
       },
     });
     const { createMarker, map, markers, setData } = harness(layer);
-    const commit = vi.fn();
+    const commit = vi.fn(() => ({ ok: true as const }));
     installShapeTransformEditing(map, layer, commit, createMarker);
 
     const bottomRight = markers[3];
@@ -145,7 +158,7 @@ describe('selected shape transform editing', () => {
 
   it('restores a resize marker when a keyboard nudge is rejected', () => {
     const { createMarker, layer, map, markers, setData } = harness();
-    const commit = vi.fn();
+    const commit = vi.fn(() => ({ ok: true as const }));
     installShapeTransformEditing(map, layer, commit, createMarker);
 
     const topLeft = markers[1];

@@ -4,8 +4,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type Dispatch,
-  type SetStateAction,
 } from "react";
 import type { ContentLayer } from "../../domain/project";
 import type { ShapeAuthoringMode } from "./ShapeDrawingPanel";
@@ -24,6 +22,8 @@ import {
   useCanvasToolActivation,
 } from "../hooks/useCanvasWorkspaceInteractions";
 import { useCanvasAuthoringModels } from "../hooks/useCanvasAuthoringModels";
+import { shouldBlockEditorShortcuts } from "../keyboardScope";
+import { useUnfinishedDrawingProtection } from "../hooks/useUnfinishedDrawingProtection";
 
 export type { CanvasWorkspaceProps } from "./CanvasWorkspace.types";
 
@@ -34,15 +34,6 @@ const TOOL_SHORTCUTS: Record<string, string> = {
   s: "shape",
 };
 
-function isTypingTarget(target: EventTarget | null) {
-  return (
-    target instanceof HTMLElement &&
-    target.closest(
-      'input, textarea, select, [contenteditable="true"], [role="textbox"]',
-    ) !== null
-  );
-}
-
 function shouldIgnoreToolShortcut(event: KeyboardEvent) {
   return (
     event.defaultPrevented ||
@@ -51,7 +42,7 @@ function shouldIgnoreToolShortcut(event: KeyboardEvent) {
     event.altKey ||
     event.ctrlKey ||
     event.metaKey ||
-    isTypingTarget(event.target)
+    shouldBlockEditorShortcuts(event.target)
   );
 }
 
@@ -59,7 +50,7 @@ function resolvedToolShortcut(
   event: KeyboardEvent,
   isMapLocked: boolean,
 ): string | null {
-  if (event.key === "1" && event.shiftKey) return isMapLocked ? null : "frame";
+  if (event.shiftKey && (event.code === "Digit1" || event.key === "1")) return isMapLocked ? null : "frame";
   if (event.shiftKey) return null;
   const toolId = TOOL_SHORTCUTS[event.key.toLowerCase()];
   return toolId ?? null;
@@ -69,14 +60,16 @@ function useToolShortcuts({
   activateTool,
   fitPage,
   isMapLocked,
+  isBlocked,
 }: {
   activateTool: (id: string) => void;
   fitPage: () => void;
   isMapLocked: boolean;
+  isBlocked: boolean;
 }) {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (shouldIgnoreToolShortcut(event)) return;
+      if (isBlocked || shouldIgnoreToolShortcut(event)) return;
       const toolId = resolvedToolShortcut(event, isMapLocked);
       if (!toolId) return;
       event.preventDefault();
@@ -85,18 +78,15 @@ function useToolShortcuts({
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [activateTool, fitPage, isMapLocked]);
+  }, [activateTool, fitPage, isBlocked, isMapLocked]);
 }
 
 type MapClickOptions = {
   activeTool: string;
-  documentEpoch: number;
   placePoi?: (coordinate: [number, number]) => void;
-  setShapePoints: Dispatch<SetStateAction<[number, number][]>>;
+  addShapePoint: (coordinate: readonly [number, number]) => void;
   setIsochroneCenter?: (coordinate: [number, number]) => void;
-  setToolDocumentEpoch: Dispatch<SetStateAction<number>>;
   shapeMode: ShapeAuthoringMode;
-  toolDocumentEpoch: number;
 };
 
 function mapClickForAuthoring(options: MapClickOptions) {
@@ -104,14 +94,7 @@ function mapClickForAuthoring(options: MapClickOptions) {
   if (options.activeTool === "shape" && options.shapeMode === "isochrone")
     return options.setIsochroneCenter;
   if (options.activeTool !== "shape" || options.shapeMode !== "draw") return;
-  return (coordinate: [number, number]) => {
-    options.setToolDocumentEpoch(options.documentEpoch);
-    options.setShapePoints((points) =>
-      options.toolDocumentEpoch === options.documentEpoch
-        ? [...points, coordinate]
-        : [coordinate],
-    );
-  };
+  return options.addShapePoint;
 }
 
 function useCanvasGeometryLayers(
@@ -136,7 +119,7 @@ function useCanvasGeometryLayers(
           roadPreview: route.preview,
         },
       ),
-      ...(shape.mode === "draw"
+      ...(activeTool === "shape" && shape.mode === "draw"
         ? createShapeDraftLayers(shape.points, layers)
         : []),
       ...createIsochroneCenterLayer(
@@ -189,6 +172,9 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
     setToolDocumentEpoch,
     toolDocumentEpoch,
   });
+  useUnfinishedDrawingProtection(
+    documentEpoch, route.hasUnfinishedWork || shape.hasUnfinishedWork || poiAuthoring.hasUnfinishedWork, props.onUnfinishedDrawingChange,
+  );
   const geometryLayers = useCanvasGeometryLayers(
     activeTool,
     layers,
@@ -204,7 +190,6 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
     route,
     setStoredActiveTool,
     setToolDocumentEpoch,
-    shape,
     storedActiveTool,
     toolDocumentEpoch,
   });
@@ -212,14 +197,18 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
     () => setFitRequest((request) => request + 1),
     [],
   );
-  useToolShortcuts({ activateTool, fitPage, isMapLocked: camera.locked });
+  useToolShortcuts({
+    activateTool,
+    fitPage,
+    isMapLocked: camera.locked,
+    isBlocked: props.isModalOpen || route.isDiscardOpen || (activeTool === "pin" && poiAuthoring.spreadsheetOpen),
+  });
   const handleMapClick =
     activeTool === "route"
       ? (coordinate: [number, number]) =>
           route.addPoint(coordinate, "map click", true)
       : mapClickForAuthoring({
           activeTool,
-          documentEpoch,
           placePoi: poiAuthoring.spreadsheetOpen
             ? undefined
             : poiAuthoring.place,
@@ -228,13 +217,15 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
               coordinate,
               label: "Selected map point",
             }),
-          setShapePoints: shape.setPoints,
-          setToolDocumentEpoch,
+          addShapePoint: shape.addPoint,
           shapeMode: shape.mode,
-          toolDocumentEpoch,
         });
-  const handleSearchSelect = useCanvasSearchSelection({
+  const searchSelection = useCanvasSearchSelection({
     activeTool,
+    documentEpoch,
+    isMapLocked: camera.locked,
+    layers,
+    selectToolRef,
     onLocate: props.onLocate,
     poi: poiAuthoring,
     route,
@@ -251,7 +242,7 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
         fitRequest,
         geometryLayers,
         handleMapClick,
-        handleSearchSelect,
+        searchSelection,
         poi: poiAuthoring,
         props,
         route,

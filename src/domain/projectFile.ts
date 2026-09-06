@@ -7,7 +7,6 @@ import {
   type PagePreset,
   type ProjectDocument,
 } from './project';
-import { parseLayerGeometry } from './projectGeometry';
 import { parseProjectCamera } from './projectCamera';
 import { parseLayerAppearance, type LayerAppearance } from './layerAppearance';
 import type { CustomMarkerAsset } from './customMarkerAssets';
@@ -26,12 +25,16 @@ import {
   semanticRoutePoints,
 } from './routeModel';
 import { parseProjectStyle } from './projectStyleFile';
+import { MAX_PROJECT_LAYERS, MAX_PROJECT_NAME_LENGTH } from './projectLimits';
+import { countCachedPositions, geometryAt, validateAssetReferences, type ProjectValidationCache } from './projectValidationCache';
+import { assertProjectByteBudget, MAX_PROJECT_FILE_BYTES, ProjectSizeError, utf8Bytes } from './projectSerialization';
+export { ProjectValidationCache } from './projectValidationCache';
 
 export { ProjectFileError } from './projectFileError';
 
-export const MAX_PROJECT_FILE_BYTES = 10 * 1024 * 1024;
-export const MAX_PROJECT_LAYERS = 1000;
-export const MAX_PROJECT_COORDINATES = 200_000;
+export { MAX_PROJECT_FILE_BYTES } from './projectSerialization';
+export { MAX_PROJECT_LAYERS, MAX_PROJECT_COORDINATES } from './projectLimits';
+
 const LAYER_TYPES = new Set<LayerType>(['route', 'poi', 'shape', 'basemap']);
 const PAGE_PRESETS = new Set<PagePreset>([
   ...PAGE_PRESET_DEFINITIONS.map(({ id }) => id),
@@ -55,7 +58,7 @@ function nonEmptyString(value: unknown, label: string) {
   if (typeof value !== 'string' || value.trim().length === 0) {
     throw new ProjectFileError(`${label} must be a non-empty string.`);
   }
-  if (value.length > 200) throw new ProjectFileError(`${label} must be 200 characters or fewer.`);
+  if (value.length > MAX_PROJECT_NAME_LENGTH) throw new ProjectFileError(`${label} must be ${MAX_PROJECT_NAME_LENGTH} characters or fewer.`);
   return value;
 }
 
@@ -75,13 +78,6 @@ function positiveNumber(value: unknown, label: string) {
   const number = finiteNumber(value, label);
   if (number <= 0) throw new ProjectFileError(`${label} must be a positive finite number.`);
   return number;
-}
-
-function geometryAt(value: unknown, label: string, coordinateCount: { value: number }): LayerGeometry {
-  return parseLayerGeometry(value, label, coordinateCount, {
-    maximumCoordinates: MAX_PROJECT_COORDINATES,
-    fail: (message) => { throw new ProjectFileError(message); },
-  });
 }
 
 function optionalAppearance(appearance: LayerAppearance | undefined) {
@@ -146,10 +142,10 @@ function validatedLayerGeometry(
   value: unknown,
   type: LayerType,
   index: number,
-  coordinateCount: { value: number },
+  context: { coordinateCount: { value: number }; cache?: ProjectValidationCache },
 ): LayerGeometry | undefined {
   if (value === undefined) return;
-  const geometry = geometryAt(value, `Layer ${index + 1}`, coordinateCount);
+  const geometry = geometryAt(value, `Layer ${index + 1}`, context.coordinateCount, context.cache);
   if (isLayerGeometryAllowed(type, geometry)) return geometry;
   const layerLabel = type === 'poi' ? 'POI' : `${type[0].toUpperCase()}${type.slice(1)}`;
   throw new ProjectFileError(`${layerLabel} layers may only contain ${expectedGeometryLabel(type)} geometry.`);
@@ -173,12 +169,19 @@ function layerAt(
     ids: Set<string>;
     coordinateCount: { value: number };
     assets: Record<string, CustomMarkerAsset>;
+    cache?: ProjectValidationCache;
   }>,
 ): ContentLayer {
   const layer = objectAt(candidate, `Layer ${index + 1}`);
   const id = nonEmptyString(layer.id, `Layer ${index + 1} ID`);
   if (context.ids.has(id)) throw new ProjectFileError('Layer IDs must be unique.');
   context.ids.add(id);
+  const cached = context.cache?.layers.get(layer);
+  if (cached) {
+    countCachedPositions(context.coordinateCount, cached.positions);
+    return cached.parsed;
+  }
+  const initialCount = context.coordinateCount.value;
   const type = layerTypeAt(layer.type, index);
   const route = parseRouteMetadata(
     layer.route,
@@ -186,7 +189,7 @@ function layerAt(
     `Layer ${index + 1}`,
     (message) => { throw new ProjectFileError(message); },
   );
-  const geometry = validatedLayerGeometry(layer.geometry, type, index, context.coordinateCount);
+  const geometry = validatedLayerGeometry(layer.geometry, type, index, context);
   const provenance = parseLayerProvenance(layer.provenance, type, index, context.coordinateCount);
   validateProviderGeometry(provenance, geometry, (message) => {
     throw new ProjectFileError(message);
@@ -209,15 +212,19 @@ function layerAt(
     ...(provenance && { provenance }),
   };
   validateParsedRoute(parsed, index);
+  context.cache?.layers.set(layer, { parsed, positions: context.coordinateCount.value - initialCount });
   return parsed;
 }
 
-function layersAt(value: unknown, assets: Record<string, CustomMarkerAsset>) {
+function layersAt(value: unknown, assets: Record<string, CustomMarkerAsset>, cache?: ProjectValidationCache) {
   if (!Array.isArray(value)) throw new ProjectFileError('Project layers must be an array.');
   if (value.length > MAX_PROJECT_LAYERS) throw new ProjectFileError(`Projects may contain at most ${MAX_PROJECT_LAYERS} layers.`);
-  const context = { ids: new Set<string>(), coordinateCount: { value: 0 }, assets };
+  const cached = cache?.layerArrays.get(value);
+  if (cached) return cached;
+  const context = { ids: new Set<string>(), coordinateCount: { value: 0 }, assets, cache };
   const layers = value.map((candidate, index) => layerAt(candidate, index, context));
   if (!hasExactlyOneBottomBasemap(layers)) throw new ProjectFileError('Projects must contain exactly one basemap as the final layer.');
+  cache?.layerArrays.set(value, layers);
   return layers;
 }
 
@@ -261,7 +268,14 @@ function migrateProjectRoot(root: JsonObject): JsonObject {
   };
 }
 
-function currentDocumentAt(value: unknown): ProjectDocument {
+function validatePortableDocument(root: JsonObject, document: ProjectDocument, cache?: ProjectValidationCache) {
+  assertProjectByteBudget(root, cache?.compactBytes);
+  assertProjectByteBudget(document, cache?.compactBytes);
+  cache?.snapshots.set(root, document);
+  return document;
+}
+
+export function parseProjectDocument(value: unknown, cache?: ProjectValidationCache): ProjectDocument {
   const root = migrateProjectRoot(objectAt(value, 'Project file'));
   const schemaVersion = root.schemaVersion;
   if (!isCurrentSchemaVersion(schemaVersion)) {
@@ -275,37 +289,36 @@ function currentDocumentAt(value: unknown): ProjectDocument {
       : 'missing';
     throw new ProjectFileError(`Schema version ${displayed} is not supported.`);
   }
-  const assets = parseProjectAssets(root.assets, (message) => { throw new ProjectFileError(message); });
-  const layers = layersAt(root.layers, assets);
-  const referencedAssets = new Set(layers.flatMap(({ appearance }) => (
-    appearance?.kind === 'poi' && appearance.customAssetId ? [appearance.customAssetId] : []
-  )));
-  for (const assetId of Object.keys(assets)) {
-    if (!referencedAssets.has(assetId)) {
-      throw new ProjectFileError(`Custom marker asset ${assetId} is not referenced by a POI layer.`);
-    }
-  }
+  const assetKey = objectAt(root.assets, 'Project assets');
+  const assets = cache?.assets.get(assetKey)
+    ?? parseProjectAssets(root.assets, (message) => { throw new ProjectFileError(message); });
+  cache?.assets.set(assetKey, assets);
+  const layers = layersAt(root.layers, assets, cache);
+  validateAssetReferences(layers, assets, cache);
   const common = {
     id: nonEmptyString(root.id, 'Project ID'),
     title: nonEmptyString(root.title, 'Project title'),
     assets,
     layers,
   };
-  return {
+  const document = {
     schemaVersion,
     ...common,
     page: pageAt(root.page),
     camera: parseProjectCamera(root.camera, (message) => { throw new ProjectFileError(message); }),
     style: parseProjectStyle(root.style),
   } satisfies ProjectDocument;
+  return validatePortableDocument(root, document, cache);
 }
 
 export function parseProjectFileText(text: string): ProjectDocument {
+  const bytes = utf8Bytes(text);
+  if (bytes > MAX_PROJECT_FILE_BYTES) throw new ProjectSizeError(bytes);
   let value: unknown;
   try {
     value = JSON.parse(text) as unknown;
   } catch {
     throw new ProjectFileError('This file is not valid JSON.');
   }
-  return currentDocumentAt(value);
+  return parseProjectDocument(value);
 }

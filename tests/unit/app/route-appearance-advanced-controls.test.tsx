@@ -15,6 +15,7 @@ function Controls({ initial, onChange }: {
   const update = (next: RouteAppearance) => {
     setAppearance(next);
     onChange(next);
+    return { ok: true as const };
   };
   return (
     <>

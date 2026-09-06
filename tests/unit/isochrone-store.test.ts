@@ -21,9 +21,11 @@ describe('isochrone project transaction', () => {
     const store = createProjectStore(createInitialProjectDocument());
     const epoch = store.getState().documentEpoch;
 
-    const id = store.getState().createIsochroneArea(input, epoch);
+    const result = store.getState().createIsochroneArea(input, epoch);
 
-    expect(id).toBe('isochrone-01');
+    expect(result).toEqual({ ok: true, layerId: 'isochrone-01' });
+    if (!result.ok) throw new Error(result.error);
+    const id = result.layerId;
     const state = store.getState();
     const layer = state.document.layers.find((candidate) => candidate.id === id);
     expect(state.selectedId).toBe(id);
@@ -55,7 +57,7 @@ describe('isochrone project transaction', () => {
     const staleEpoch = store.getState().documentEpoch;
     store.getState().openDocument(createInitialProjectDocument());
 
-    expect(store.getState().createIsochroneArea(input, staleEpoch)).toBeNull();
+    expect(store.getState().createIsochroneArea(input, staleEpoch)).toMatchObject({ ok: false, code: 'stale' });
     expect(store.getState().document.layers.some(({ id }) => id.startsWith('isochrone-'))).toBe(false);
     expect(store.getState().canUndo).toBe(false);
   });

@@ -2,6 +2,8 @@ import { useLayoutEffect, useRef, useState, type Dispatch, type RefObject, type 
 import type { PoiSpreadsheetEntry } from '../../domain/poiSpreadsheet';
 import { MAX_POI_LABEL_CHARACTERS } from '../../domain/poiMarkers';
 import type { SearchPoiInput } from '../../domain/project';
+import type { LayerMutationResult, ProjectMutationResult } from '../../domain/projectMutation';
+import { usePoiSpreadsheetRegistration } from './usePoiSpreadsheetRegistration';
 
 function boundedSearchLabel(label: string) {
   const printable = label.trim().replaceAll(/[\p{Cc}\p{Cf}]/gu, '');
@@ -14,12 +16,13 @@ type UsePoiAuthoringOptions = {
   selectToolRef: RefObject<HTMLButtonElement | null>;
   setActiveTool: Dispatch<SetStateAction<string>>;
   onAuthoringChange: (documentEpoch: number, isActive: boolean) => void;
-  onCreatePoi: (coordinates: readonly [number, number]) => void;
-  onCreatePoiBatch: (entries: readonly PoiSpreadsheetEntry[], expectedDocumentEpoch?: number) => void;
-  onCreateSearchPoi: (input: SearchPoiInput, expectedDocumentEpoch: number) => string | null;
+  onCreatePoi: (coordinates: readonly [number, number]) => ProjectMutationResult;
+  onCreatePoiBatch: (entries: readonly PoiSpreadsheetEntry[], expectedDocumentEpoch?: number) => ProjectMutationResult;
+  onCreateSearchPoi: (input: SearchPoiInput, expectedDocumentEpoch: number) => LayerMutationResult;
 };
 
 export function usePoiAuthoring(options: UsePoiAuthoringOptions) {
+  const spreadsheet = usePoiSpreadsheetRegistration(options.documentEpoch);
   const [spreadsheetOpen, setSpreadsheetOpen] = useState(false);
   const [placementError, setPlacementError] = useState<string | null>(null);
   const spreadsheetTriggerRef = useRef<HTMLButtonElement>(null);
@@ -33,6 +36,7 @@ export function usePoiAuthoring(options: UsePoiAuthoringOptions) {
   }, [active, spreadsheetOpen]);
 
   const finish = () => {
+    spreadsheet.retire();
     selectToolRef.current?.focus();
     setPlacementError(null);
     setSpreadsheetOpen(false);
@@ -43,37 +47,44 @@ export function usePoiAuthoring(options: UsePoiAuthoringOptions) {
   return {
     placementError,
     spreadsheetOpen,
+    spreadsheetRegistration: spreadsheet.registration,
+    hasUnfinishedWork: active && spreadsheetOpen && spreadsheet.hasWork,
+    requestToolChange: spreadsheet.requestToolChange,
+    completeSpreadsheet: finish,
     spreadsheetTriggerRef,
     openSpreadsheet: () => { setPlacementError(null); setSpreadsheetOpen(true); },
     resetSpreadsheet: () => {
+      spreadsheet.retire();
       setPlacementError(null);
       restoreSpreadsheetTriggerRef.current = false;
       setSpreadsheetOpen(false);
     },
     cancelSpreadsheet: () => {
+      spreadsheet.retire();
       restoreSpreadsheetTriggerRef.current = true;
       setSpreadsheetOpen(false);
     },
     cancel: finish,
     place: (coordinates: readonly [number, number]) => {
-      onCreatePoi(coordinates);
-      finish();
+      const result = onCreatePoi(coordinates);
+      if (result.ok) finish();
+      else setPlacementError(result.error);
     },
     placeSearchResult: (coordinates: readonly [number, number], label: string, providerFeatureId: string) => {
-      const id = onCreateSearchPoi({
+      const result = onCreateSearchPoi({
         coordinate: [...coordinates] as [number, number],
         label: boundedSearchLabel(label),
         providerFeatureId,
       }, documentEpoch);
-      if (!id) {
-        setPlacementError('That search result could not be added. Choose another result or place the POI on the map.');
-        return;
+      if (!result.ok) {
+        setPlacementError(result.error);
+        return null;
       }
       finish();
+      return result.layerId;
     },
     submitSpreadsheet: (entries: readonly PoiSpreadsheetEntry[]) => {
-      onCreatePoiBatch(entries, documentEpoch);
-      finish();
+      return onCreatePoiBatch(entries, documentEpoch);
     },
   };
 }

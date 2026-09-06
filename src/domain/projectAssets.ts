@@ -22,9 +22,6 @@ function finiteNumber(value: unknown, label: string, fail: Fail): number {
 function dimensions(asset: JsonObject, key: string, fail: Fail) {
   const width = finiteNumber(asset.width, `Custom marker asset ${key} width`, fail);
   const height = finiteNumber(asset.height, `Custom marker asset ${key} height`, fail);
-  if (!Number.isSafeInteger(width) || !Number.isSafeInteger(height) || width < 100 || height < 100 || width > 2048 || height > 2048) {
-    fail('Custom marker asset dimensions must be integers from 100 through 2048 pixels.');
-  }
   return { height, width };
 }
 

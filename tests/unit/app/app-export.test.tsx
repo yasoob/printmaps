@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../../../src/app/App';
-import type { PreviewPng } from '../../../src/export/previewPng';
+import type { PreviewPng, PreviewPngExporter } from '../../../src/export/previewPng';
 import { exportMocks } from './exportMocks';
 
 vi.mock('../../../src/map/MapCanvas', async () => import('./MapCanvasMock'));
@@ -44,7 +44,7 @@ async function verifyLayeredSvgDownload() {
   await user.click(within(dialog).getByRole('radio', { name: /Layered SVG/ }));
   await user.click(screen.getByRole('button', { name: 'Download layered SVG' }));
 
-  await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Download started for layered SVG'));
+  await waitFor(() => expect(screen.getByRole('status', { name: 'Export status' })).toHaveTextContent('Download started for layered SVG'));
   expect(exportMocks.exporter).toHaveBeenCalledWith({
     content: 'basemap',
     signal: expect.any(AbortSignal),
@@ -78,7 +78,7 @@ async function verifyLayeredMapCaptureCancellation() {
 
   expect(receivedSignal).toBeInstanceOf(AbortSignal);
   await user.click(screen.getByRole('button', { name: 'Cancel export' }));
-  await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Export cancelled'));
+  await waitFor(() => expect(screen.getByRole('status', { name: 'Export status' })).toHaveTextContent('Export cancelled'));
   expect(downloadClick).not.toHaveBeenCalled();
 }
 
@@ -139,7 +139,7 @@ async function verifyPdfDownload() {
   await user.click(within(dialog).getByRole('radio', { name: /PDF/ }));
   await user.click(screen.getByRole('button', { name: 'Download PDF' }));
 
-  await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Download started for PDF'));
+  await waitFor(() => expect(screen.getByRole('status', { name: 'Export status' })).toHaveTextContent('Download started for PDF'));
   expect(exporter).toHaveBeenCalledWith({
     content: 'basemap',
     signal: expect.any(AbortSignal),
@@ -197,7 +197,7 @@ async function verifyPdfCancellation() {
   await waitFor(() => expect(receivedSignal).toBeInstanceOf(AbortSignal));
   await user.click(cancel);
 
-  await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Export cancelled'));
+  await waitFor(() => expect(screen.getByRole('status', { name: 'Export status' })).toHaveTextContent('Export cancelled'));
   expect(downloadClick).not.toHaveBeenCalled();
   expect(source).toMatchObject({ width: 0, height: 0 });
 }
@@ -240,16 +240,16 @@ async function verifyNativeTileProgressCancellation() {
   });
 
   const cancel = screen.getByRole('button', { name: 'Cancel export' });
-  expect(screen.getByRole('status')).toHaveTextContent('1/2 regions (50%)');
+  expect(screen.getByRole('status', { name: 'Export status' })).toHaveTextContent('1/2 regions (50%)');
   expect(cancel).toHaveFocus();
   fireEvent.click(cancel);
-  expect(screen.getByRole('status')).toHaveTextContent('Cancelling export');
+  expect(screen.getByRole('status', { name: 'Export status' })).toHaveTextContent('Cancelling export');
 
   await act(async () => {
     await vi.runOnlyPendingTimersAsync();
   });
 
-  expect(screen.getByRole('status')).toHaveTextContent('Export cancelled');
+  expect(screen.getByRole('status', { name: 'Export status' })).toHaveTextContent('Export cancelled');
   expect(renderPrintTile).toHaveBeenCalledOnce();
   expect(exporter).not.toHaveBeenCalled();
   expect(drawImage).toHaveBeenCalledOnce();
@@ -269,6 +269,16 @@ async function verifyPngMetadataDisclosure() {
   expect(dialog).not.toHaveTextContent('physical-resolution metadata is not embedded');
 }
 
+async function verifyBusyFocusLoop(user: ReturnType<typeof userEvent.setup>, dialog: HTMLElement, cancel: HTMLElement) {
+  const settings = within(dialog).getByRole('region', { name: 'Export settings' });
+  for (const key of ['{Tab}', '{Shift>}{Tab}{/Shift}']) {
+    await user.keyboard(key);
+    await waitFor(() => expect(settings).toHaveFocus());
+    await user.keyboard(key);
+    await waitFor(() => expect(cancel).toHaveFocus());
+  }
+}
+
 describe('editor export', () => {
   beforeEach(() => {
     exportMocks.exporter = null;
@@ -279,7 +289,7 @@ describe('editor export', () => {
     vi.restoreAllMocks();
   });
 
-  it('opens Export and reports when the live preview is unavailable', async () => {
+  it('keeps export configuration accessible but disables downloading until the preview is ready', async () => {
     const user = userEvent.setup();
     render(<App />);
 
@@ -288,14 +298,14 @@ describe('editor export', () => {
     const dialog = screen.getByRole('dialog', { name: 'Export map' });
     const download = screen.getByRole('button', { name: 'Download PNG' });
     expect(dialog).toBeInTheDocument();
-    await waitFor(() => expect(download).toHaveFocus());
+    await waitFor(() => expect(within(dialog).getByRole('button', { name: 'Cancel' })).toHaveFocus());
     expect(dialog).toHaveTextContent('3508 × 2480 px — 300 DPI pixel target');
     expect(dialog).toHaveTextContent('PNG embeds 300 DPI physical-resolution metadata');
     expect(dialog).toHaveTextContent('renders bounded map regions at their target pixel dimensions');
     expect(dialog).not.toHaveTextContent('resamples the current browser render');
 
-    await user.click(download);
-    expect(within(dialog).getByRole('alert')).toHaveTextContent('live map preview is not ready');
+    expect(download).toBeDisabled();
+    expect(within(dialog).getByRole('status')).toHaveTextContent('map preview is not ready to export');
     await user.keyboard('{Escape}');
     expect(dialog).not.toBeInTheDocument();
     expect(trigger).toHaveFocus();
@@ -304,6 +314,7 @@ describe('editor export', () => {
   it('discloses embedded 300 DPI metadata for PNG output', verifyPngMetadataDisclosure);
 
   it('presents PNG as one file without exposing internal tile delivery choices', async () => {
+    exportMocks.exporter = vi.fn<PreviewPngExporter>();
     const user = userEvent.setup();
     Object.defineProperty(window, 'showSaveFilePicker', { configurable: true, value: vi.fn() });
     render(<App />);
@@ -316,6 +327,7 @@ describe('editor export', () => {
   });
 
   it('chooses one export format and progressively discloses technical details', async () => {
+    exportMocks.exporter = vi.fn<PreviewPngExporter>();
     const user = userEvent.setup();
     render(<App />);
 
@@ -411,21 +423,18 @@ describe('editor export', () => {
     const cancel = await screen.findByRole('button', { name: 'Cancel export' });
     expect(cancel).toHaveFocus();
     expect(document.querySelector('.export-dialog-backdrop')?.tagName).toBe('DIV');
-    await user.keyboard('{Tab}');
-    await waitFor(() => expect(cancel).toHaveFocus());
-    await user.keyboard('{Shift>}{Tab}{/Shift}');
-    await waitFor(() => expect(cancel).toHaveFocus());
+    await verifyBusyFocusLoop(user, dialog, cancel);
     await user.keyboard('{Escape}');
     expect(dialog).toBeInTheDocument();
     expect(cancel).toHaveFocus();
 
     await user.click(cancel);
-    expect(screen.getByRole('status')).toHaveTextContent('Cancelling export');
+    expect(screen.getByRole('status', { name: 'Export status' })).toHaveTextContent('Cancelling export');
     const surface = document.createElement('canvas');
     surface.width = 3508;
     surface.height = 2480;
     finishExport?.(surface);
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Export cancelled'));
+    await waitFor(() => expect(screen.getByRole('status', { name: 'Export status' })).toHaveTextContent('Export cancelled'));
     expect(downloadClick).not.toHaveBeenCalled();
   });
 
@@ -468,7 +477,7 @@ describe('editor export', () => {
     await user.click(screen.getByRole('button', { name: 'Download PNG' }));
 
     await waitFor(() => expect(within(dialog).getByRole('alert')).toHaveTextContent('Download initiation failed'));
-    expect(screen.getByRole('status')).toHaveTextContent('Export failed');
+    expect(screen.getByRole('status', { name: 'Export status' })).toHaveTextContent('Export failed');
     expect(created.length).toBeGreaterThan(0);
     expect(created.every(({ width, height }) => width === 0 && height === 0)).toBe(true);
   });

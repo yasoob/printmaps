@@ -38,6 +38,9 @@ import { createPageActions } from "./storePageActions";
 import { createShapeGeometryActions } from "./storeShapeActions";
 import { createStyleActions } from "./storeStyleActions";
 import { createIsochroneActions } from "./storeIsochroneActions";
+import { parseProjectDocument, ProjectValidationCache } from "../domain/projectFile";
+import { createProjectSetter } from "./storeMutation";
+import type { LayerMutationResult, ProjectMutationResult } from "../domain/projectMutation";
 
 export type RouteMutationResult =
   { ok: true; routeId: string } | { ok: false; error: string };
@@ -77,6 +80,8 @@ export type ReplaceRouteDraftRequest = {
 export type ProjectState = {
   document: ProjectDocument;
   documentEpoch: number;
+  hasUnfinishedDrawing: boolean;
+  setHasUnfinishedDrawing: (documentEpoch: number, hasUnfinishedDrawing: boolean) => void;
   pageBoundaryVisible: boolean;
   selectedId: string | null;
   past: ProjectDocument[];
@@ -87,12 +92,12 @@ export type ProjectState = {
     id: string,
     input: MapMatchingInput,
     expectedDocumentEpoch: number,
-  ) => boolean;
-  createAdministrativeArea: (area: AdministrativeArea) => string | null;
+  ) => ProjectMutationResult;
+  createAdministrativeArea: (area: AdministrativeArea) => LayerMutationResult;
   createIsochroneArea: (
     input: IsochroneAreaInput,
     expectedDocumentEpoch: number,
-  ) => string | null;
+  ) => LayerMutationResult;
   createDirectionsRoute: (
     input: DirectionsRouteInput,
     options: RouteAuthoringOptions,
@@ -103,15 +108,15 @@ export type ProjectState = {
   ) => RouteMutationResult;
   replaceRouteDraft: (request: ReplaceRouteDraftRequest) => RouteMutationResult;
   transformRoute: (request: TransformRouteRequest) => RouteMutationResult;
-  createPoi: (coordinates: readonly [number, number]) => void;
+  createPoi: (coordinates: readonly [number, number]) => ProjectMutationResult;
   createPoiBatch: (
     entries: readonly PoiSpreadsheetEntry[],
     expectedDocumentEpoch?: number,
-  ) => void;
+  ) => ProjectMutationResult;
   createSearchPoi: (
     input: SearchPoiInput,
     expectedDocumentEpoch: number,
-  ) => string | null;
+  ) => LayerMutationResult;
   createRoute: (
     coordinates: readonly (readonly [number, number])[],
     options?: RouteAuthoringOptions,
@@ -123,113 +128,123 @@ export type ProjectState = {
     travelMarker: RouteTravelMarker | null,
     expectedLayer: ContentLayer,
   ) => RouteMutationResult;
-  createShape: (coordinates: readonly (readonly [number, number])[]) => void;
+  createShape: (coordinates: readonly (readonly [number, number])[]) => ProjectMutationResult;
   deleteLayer: (id: string) => void;
-  duplicateLayer: (id: string) => void;
+  duplicateLayer: (id: string) => ProjectMutationResult;
   importLayers: (
     layers: readonly ContentLayer[],
     documentEpoch: number,
     sourceDocument: ProjectDocument,
-  ) => boolean;
+  ) => ProjectMutationResult;
   insertRouteVertex: (
     id: string,
     vertexIndex: number,
     coordinate?: readonly [number, number],
-  ) => void;
+  ) => ProjectMutationResult;
   moveLayer: (id: string, toIndex: number) => void;
-  openDocument: (document: ProjectDocument) => void;
-  setProjectTitle: (title: string) => void;
-  renameLayer: (id: string, name: string) => void;
+  openDocument: (document: ProjectDocument) => ProjectMutationResult;
+  setProjectTitle: (title: string) => ProjectMutationResult;
+  renameLayer: (id: string, name: string) => ProjectMutationResult;
   replaceLayerFromImport: (
     id: string,
     layer: ContentLayer,
     documentEpoch: number,
     sourceDocument: ProjectDocument,
-  ) => boolean;
+  ) => ProjectMutationResult;
   selectLayer: (id: string | null) => void;
-  setCameraBearing: (bearing: number) => void;
+  setCameraBearing: (bearing: number) => ProjectMutationResult;
   setCameraViewport: (
     center: readonly [number, number],
     zoom: number,
     mode?: "amend" | "history",
     orientation?: Pick<CameraSettings, "bearing" | "pitch">,
-  ) => void;
-  setMapAreaLocked: (isLocked: boolean) => void;
-  setCameraPitch: (pitch: number) => void;
-  setPageDimension: (dimension: "widthMm" | "heightMm", value: number) => void;
+  ) => ProjectMutationResult;
+  setMapAreaLocked: (isLocked: boolean) => ProjectMutationResult;
+  setCameraPitch: (pitch: number) => ProjectMutationResult;
+  setPageDimension: (dimension: "widthMm" | "heightMm", value: number) => ProjectMutationResult;
   setPageBoundaryVisible: (isVisible: boolean) => void;
-  setPageOrientation: (orientation: PageOrientation) => void;
-  setPagePreset: (preset: PagePreset) => void;
-  setLayerAppearance: (id: string, appearance: LayerAppearance) => void;
-  setRouteMarker: (id: string, marker: RouteMarkerAppearance | null) => void;
+  setPageOrientation: (orientation: PageOrientation) => ProjectMutationResult;
+  setPagePreset: (preset: PagePreset) => ProjectMutationResult;
+  setLayerAppearance: (id: string, appearance: LayerAppearance) => ProjectMutationResult;
+  setRouteMarker: (id: string, marker: RouteMarkerAppearance | null) => ProjectMutationResult;
   setRouteSegmentStyle: (
     id: string,
     segmentIndex: number,
     style: RouteSegmentStyleOverride | null,
-  ) => void;
+  ) => ProjectMutationResult;
   setPoiCoordinates: (
     id: string,
     coordinates: readonly [number, number],
-  ) => void;
-  setPoiCustomMarker: (id: string, asset: CustomMarkerAsset | null) => void;
+  ) => ProjectMutationResult;
+  setPoiCustomMarker: (id: string, asset: CustomMarkerAsset | null) => ProjectMutationResult;
   setRouteVertex: (
     id: string,
     vertexIndex: number,
     coordinates: readonly [number, number],
-  ) => void;
+  ) => ProjectMutationResult;
   setArcSegmentCurvature: (
     id: string,
     segmentIndex: number,
     curvature: number,
-  ) => void;
+  ) => ProjectMutationResult;
   setShapeGeometry: (
     id: string,
     geometry: import("../domain/project").ShapeGeometry,
-  ) => void;
+  ) => ProjectMutationResult;
   setShapeVertex: (
     id: string,
     ringIndex: number,
     vertexIndex: number,
     coordinates: readonly [number, number],
-  ) => void;
-  setLayerOpacity: (id: string, opacity: number) => void;
-  setMapStyle: (preset: MapStylePreset) => void;
+  ) => ProjectMutationResult;
+  setLayerOpacity: (id: string, opacity: number) => ProjectMutationResult;
+  setMapStyle: (preset: MapStylePreset) => ProjectMutationResult;
   setMapStyleAdjustment: (
     adjustment: "contrast" | "detail",
     value: number,
     mode?: "history" | "amend",
-  ) => void;
+  ) => ProjectMutationResult;
   setMapStyleColor: (
     role: MapStyleTokenRole,
     color: string | null,
     mode?: "history" | "amend",
-  ) => void;
-  setMapStyleTone: (tone: MapStyleTone) => void;
-  resetMapStyle: () => void;
-  resetMapStyleCustomization: () => void;
-  setMapLanguage: (language: MapLanguage) => void;
-  setMapTextScale: (textScalePercent: number) => void;
+  ) => ProjectMutationResult;
+  setMapStyleTone: (tone: MapStyleTone) => ProjectMutationResult;
+  resetMapStyle: () => ProjectMutationResult;
+  resetMapStyleCustomization: () => ProjectMutationResult;
+  setMapLanguage: (language: MapLanguage) => ProjectMutationResult;
+  setMapTextScale: (textScalePercent: number) => ProjectMutationResult;
   setMapFeatureVisibility: (
     category: MapFeatureVisibilityCategory,
     isVisible: boolean,
-  ) => void;
-  toggleLayerVisibility: (id: string) => void;
-  toggleLayerLock: (id: string) => void;
+  ) => ProjectMutationResult;
+  toggleLayerVisibility: (id: string) => ProjectMutationResult;
+  toggleLayerLock: (id: string) => ProjectMutationResult;
   undo: () => void;
   redo: () => void;
-  removeRouteVertex: (id: string, vertexIndex: number) => void;
+  removeRouteVertex: (id: string, vertexIndex: number) => ProjectMutationResult;
   replaceRouteGeometry: (
     id: string,
     coordinates: readonly (readonly [number, number])[],
-  ) => void;
+  ) => ProjectMutationResult;
 };
 
 export function createProjectStore(
   initialDocument: ProjectDocument = createNewProjectDocument(),
 ) {
-  return createStore<ProjectState>((set) => ({
-    document: copyDocument(initialDocument),
+  const document = copyDocument(initialDocument);
+  const cache = new ProjectValidationCache();
+  parseProjectDocument(document, cache);
+  return createStore<ProjectState>((rawSet) => {
+    const set = createProjectSetter(rawSet, cache);
+    return {
+    document,
     documentEpoch: 0,
+    hasUnfinishedDrawing: false,
+    setHasUnfinishedDrawing: (documentEpoch, hasUnfinishedDrawing) => set((state) => (
+      state.documentEpoch !== documentEpoch || state.hasUnfinishedDrawing === hasUnfinishedDrawing
+        ? state : { hasUnfinishedDrawing }
+    )),
     pageBoundaryVisible: true,
     selectedId: null,
     past: [],
@@ -247,5 +262,6 @@ export function createProjectStore(
     ...createPageActions(set),
     ...createStyleActions(set),
     ...createDocumentActions(set),
-  }));
+    };
+  });
 }

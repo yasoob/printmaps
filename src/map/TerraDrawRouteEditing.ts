@@ -1,4 +1,5 @@
 import { isValidPosition } from '../domain/routeGeometry';
+import { synchronizeRouteMoveClosure } from '../domain/routePointMovement';
 
 type Position = [number, number];
 type TerraFeature = {
@@ -23,12 +24,41 @@ export type TerraRouteDrawLike = {
 
 type RouteSessionOptions = {
   draw: TerraRouteDrawLike;
+  pointerTarget?: HTMLElement;
   initial?: { id: string; coordinates: readonly (readonly [number, number])[] };
   mode: 'draw' | 'edit';
+  onCancel?: () => void;
   onCommit?: (coordinates: Position[]) => void;
   onFinish?: (coordinates: Position[]) => void;
   onPreview: (coordinates: Position[]) => void;
 };
+
+function trackPointerGesture(target: HTMLElement | undefined, onCancel: () => void) {
+  let activePointer: number | null = null;
+  const view = target?.ownerDocument.defaultView;
+  const start = (event: PointerEvent) => {
+    if (activePointer === null && event.isPrimary) activePointer = event.pointerId;
+  };
+  const end = (event: PointerEvent) => {
+    if (activePointer === event.pointerId) activePointer = null;
+  };
+  const cancel = (event: PointerEvent) => {
+    if (!event.isPrimary || activePointer !== event.pointerId) return;
+    try { onCancel(); } finally { activePointer = null; }
+  };
+  target?.addEventListener('pointerdown', start, true);
+  view?.addEventListener('pointerup', end, true);
+  view?.addEventListener('pointercancel', cancel, true);
+  return {
+    isActive: () => activePointer !== null,
+    destroy: () => {
+      target?.removeEventListener('pointerdown', start, true);
+      view?.removeEventListener('pointerup', end, true);
+      activePointer = null;
+      view?.removeEventListener('pointercancel', cancel, true);
+    },
+  };
+}
 
 function routeCoordinates(draw: TerraRouteDrawLike, id?: string | number): Position[] | null {
   const feature = draw.getSnapshot().find((candidate) => id === undefined || candidate.id === id);
@@ -70,28 +100,55 @@ function initializeSession(options: RouteSessionOptions) {
   return validation.id;
 }
 
+function isUserGeometryChange(context?: { origin?: string; target?: string }) {
+  return context?.origin !== 'api' && context?.target !== 'properties';
+}
+
 export function createTerraRouteSession(options: RouteSessionOptions) {
   const { draw } = options;
   const editingId = initializeSession(options);
+  let isDestroyed = false;
+  const gesture = trackPointerGesture(options.pointerTarget, () => options.onCancel?.());
+  let currentCoordinates = options.initial?.coordinates ?? [];
   const handleChange = ((ids: Array<string | number>, _type: string, context?: { origin?: string; target?: string }) => {
-    if (context?.origin === 'api' || context?.target === 'properties') return;
+    if (isDestroyed || !isUserGeometryChange(context)) return;
     const coordinates = routeCoordinates(draw, ids[0]);
     if (!coordinates) return;
-    const preview = options.mode === 'draw' ? coordinates.slice(0, -1) : coordinates;
+    const preview = options.mode === 'draw' ? coordinates.slice(0, -1)
+      : synchronizeRouteMoveClosure(currentCoordinates, coordinates);
     options.onPreview(preview);
   }) as TerraRouteListener;
   const handleFinish = ((id: string | number, context: { action: string }) => {
+    if (isDestroyed) return;
     const coordinates = routeCoordinates(draw, id);
     if (!coordinates || coordinates.length < 2) return;
-    options.onPreview(coordinates);
-    if (options.mode === 'draw' && context.action === 'draw') options.onFinish?.(coordinates);
-    if (options.mode === 'edit' && context.action !== 'draw') options.onCommit?.(coordinates);
+    const next = options.mode === 'edit'
+      ? synchronizeRouteMoveClosure(currentCoordinates, coordinates) : coordinates;
+    options.onPreview(next);
+    // Terra finishes insertion at drag start; commit the combined gesture at drag end.
+    if (context.action === 'insertMidpoint' && gesture.isActive()) return;
+    if (context.action === 'draw') {
+      if (options.mode === 'draw') options.onFinish?.(next);
+      return;
+    }
+    if (options.mode === 'edit') {
+      currentCoordinates = next;
+      options.onCommit?.(next);
+    }
   }) as TerraRouteListener;
   draw.on('change', handleChange);
   draw.on('finish', handleFinish);
   return {
-    destroy: () => draw.stop(),
+    destroy: () => {
+      if (isDestroyed) return false;
+      const wasInteracting = gesture.isActive();
+      isDestroyed = true;
+      gesture.destroy();
+      draw.stop();
+      return wasInteracting;
+    },
     updateGeometry: (coordinates: Position[]) => {
+      if (isDestroyed) return false;
       const targetId = editingId
         ?? (options.mode === 'draw' ? draw.getSnapshot()[0]?.id : undefined);
       if (targetId === undefined) return false;
@@ -99,11 +156,12 @@ export function createTerraRouteSession(options: RouteSessionOptions) {
         draw.updateFeatureGeometry(targetId, {
           type: 'LineString', coordinates: coordinates.map((coordinate) => [...coordinate]),
         });
+        currentCoordinates = coordinates.map((coordinate) => [...coordinate]);
         return true;
       } catch {
         return false;
       }
     },
-    undo: () => draw.undo(),
+    undo: () => !isDestroyed && draw.undo(),
   };
 }

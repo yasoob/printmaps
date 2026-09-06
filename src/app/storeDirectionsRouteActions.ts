@@ -190,7 +190,7 @@ export function createDirectionsRouteActions(
       error:
         "The road route response was invalid. Keep the waypoints and try routing again.",
     };
-    set((state) => {
+    const admission = set((state) => {
       if (state.documentEpoch !== expectedDocumentEpoch) {
         result = {
           ok: false,
@@ -216,7 +216,7 @@ export function createDirectionsRouteActions(
         selectedId: route.id,
       };
     });
-    return result;
+    return admission.ok ? result : admission;
   };
 
   const replaceDirectionsRoute: ProjectState["replaceDirectionsRoute"] = ({
@@ -230,7 +230,7 @@ export function createDirectionsRouteActions(
     let result = mutationFailure(
       "The road route response was invalid. Keep the waypoints and try routing again.",
     );
-    set((state) => {
+    const admission = set((state) => {
       if (state.documentEpoch !== expectedDocumentEpoch) {
         result = mutationFailure(
           "The project changed before the road route finished. Review the waypoints and try again.",
@@ -274,7 +274,7 @@ export function createDirectionsRouteActions(
         selectedId: selectRoute ? id : state.selectedId,
       };
     });
-    return result;
+    return admission.ok ? result : admission;
   };
 
   return { createDirectionsRoute, replaceDirectionsRoute };

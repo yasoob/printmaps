@@ -24,11 +24,13 @@ export function scheduleTerraRouteHandleOrder(map: MapLibreMap) {
 }
 
 function scheduleContentReady(
-  readyMap: MapLibreMap | null,
+  mapRef: RefObject<MapLibreMap | null>,
   setContentError: Dispatch<SetStateAction<ContentError | null>>,
   setTerraMap: Dispatch<SetStateAction<MapLibreMap | null>>,
 ) {
+  const readyMap = mapRef.current;
   queueMicrotask(() => {
+    if (mapRef.current !== readyMap) return;
     setContentError((error) => error?.source === "sync" ? null : error);
     if (!readyMap) return;
     scheduleTerraRouteHandleOrder(readyMap);
@@ -81,7 +83,7 @@ export function useMapContentSyncResult(options: ContentSyncResultOptions) {
       case "synced": {
         contentReadyRef.current = true;
         scheduleContentReady(
-          mapRef.current,
+          mapRef,
           setContentError,
           setTerraMap,
         );

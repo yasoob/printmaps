@@ -1,6 +1,11 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { RouteLayerProperties } from "../../../src/app/components/RouteLayerProperties";
+import { RouteLayerProperties as RouteProperties, type RouteLayerPropertiesProps } from "../../../src/app/components/RouteLayerProperties";
+import { useState } from 'react';
+import { createNewProjectDocument } from "../../../src/domain/project";
+import { ProjectStoreContext } from "../../../src/app/projectStoreContext";
+import { createProjectStore } from "../../../src/app/store";
+import { ElevationProfileProvider } from "../../../src/app/elevation/ElevationProfileProvider";
 import type { ContentLayer } from "../../../src/domain/project";
 import type { DirectionsProvider } from "../../../src/services/mapbox/contracts";
 
@@ -31,6 +36,17 @@ const baseProps = {
   onRouteVertexInsert: vi.fn(),
   onRouteVertexRemove: vi.fn(),
 };
+
+function RouteLayerProperties(props: RouteLayerPropertiesProps) {
+  const [store] = useState(() => {
+    const document = createNewProjectDocument();
+    document.layers.unshift(props.layer);
+    const project = createProjectStore(document);
+    project.setState({ documentEpoch: props.documentEpoch ?? 0 });
+    return project;
+  });
+  return <ProjectStoreContext value={store}><ElevationProfileProvider><RouteProperties {...props} /></ElevationProfileProvider></ProjectStoreContext>;
+}
 
 describe("Advanced route structure controls", () => {
   beforeEach(() => {
@@ -149,5 +165,17 @@ describe("Advanced route structure controls", () => {
     expect(close).toHaveAccessibleDescription(
       "Closed Road routes support at most 24 distinct waypoints.",
     );
+  });
+
+  it("passes canonical closure to the inspector's removal eligibility", async () => {
+    const user = userEvent.setup();
+    const layer = route([[0, 0], [1, 1], [2, 0], [0, 0]]);
+    layer.route = { kind: "straight", closed: true };
+    render(<RouteLayerProperties {...baseProps} layer={layer} />);
+    await user.click(screen.getByRole("button", { name: /Advanced/ }));
+    await user.selectOptions(screen.getByRole("combobox", { name: "Route anchor" }), "1");
+    expect(screen.getByRole("button", { name: "Remove selected route anchor" }))
+      .toHaveAccessibleDescription("Closed routes need at least three distinct points.");
+    expect(screen.getByRole("button", { name: "Remove selected route anchor" })).toBeDisabled();
   });
 });

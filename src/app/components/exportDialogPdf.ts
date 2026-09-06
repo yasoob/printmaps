@@ -1,7 +1,7 @@
 import type React from 'react';
 import type { ProjectDocument } from '../../domain/project';
 import { projectAttributions } from '../../domain/projectAttributions';
-import { planExportPreflight, type ExportPreflightResult } from '../../export/preflight';
+import { DEFAULT_EXPORT_PREFLIGHT_LIMITS, planExportPreflight, type ExportPreflightResult } from '../../export/preflight';
 import type { PreviewPngExporter } from '../../export/previewPng';
 import { createPrintRegionExportPlan, NATIVE_SYMBOL_BUFFER_PX } from './exportDialogRaster';
 
@@ -20,7 +20,9 @@ type ReadyPreflight = ExportPreflightResult & {
   plan: NonNullable<ExportPreflightResult['plan']>;
 };
 
-function pdfPreflight(document: ProjectDocument) {
+export const PDF_PREFLIGHT_GUIDANCE = 'Reduce the page dimensions in Project settings for a 300 DPI PDF, or choose Layered SVG to keep the page size with a preview-resolution raster basemap and vector overlays.';
+
+export function planPdfExport(document: ProjectDocument) {
   return planExportPreflight({
     format: 'pdf',
     page: { widthMm: document.page.widthMm, heightMm: document.page.heightMm },
@@ -32,6 +34,15 @@ function pdfPreflight(document: ProjectDocument) {
     rasterLayers: [],
     cancellationSupported: true,
   }, document.style.visibility.labels ? { tileOverlapPx: NATIVE_SYMBOL_BUFFER_PX } : {});
+}
+
+export function pdfPreflightErrorMessage(preflight: ExportPreflightResult): string {
+  if (preflight.estimates && preflight.errors.some(({ code }) => code === 'MEMORY_BUDGET_EXCEEDED')) {
+    const required = (preflight.estimates.peakBytes / (1024 * 1024)).toFixed(1);
+    const budget = DEFAULT_EXPORT_PREFLIGHT_LIMITS.memoryBudgetBytes / (1024 * 1024);
+    return `At 300 DPI, this PDF needs about ${required} MiB of memory, above the ${budget} MiB safety limit.`;
+  }
+  return preflight.errors[0]?.message ?? 'This PDF cannot be rendered safely at 300 DPI.';
 }
 
 function isAbort(error: unknown, signal: AbortSignal): boolean {
@@ -55,9 +66,9 @@ function preparePdfJob(options: Options): Readonly<{
     setError('The live map preview is not ready yet. Wait for the map to load and try again.');
     return null;
   }
-  const preflight = pdfPreflight(document);
+  const preflight = planPdfExport(document);
   if (!preflight.safe || !preflight.dimensions || !preflight.plan) {
-    setError(preflight.errors[0]?.message ?? 'This PDF cannot be rendered safely at 300 DPI.');
+    setError(`${pdfPreflightErrorMessage(preflight)} ${PDF_PREFLIGHT_GUIDANCE}`);
     return null;
   }
   return {

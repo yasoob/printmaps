@@ -14,6 +14,9 @@ import type {
   CreateDirectionsRoute,
   RouteExtensionEndpoint,
 } from "../components/routeAuthoringActions";
+import { isNativeActivationTarget, shouldBlockEditorShortcuts } from "../keyboardScope";
+import { mutationRejected, type ProjectMutationResult } from "../../domain/projectMutation";
+import { useStableEvent } from "./useStableEvent";
 
 export type RouteExtensionRequest = {
   endpoint: RouteExtensionEndpoint;
@@ -24,6 +27,8 @@ export type RouteExtensionRequest = {
 
 export type RouteAuthoringParameters = {
   activeTool: string;
+  isModalOpen: boolean;
+  isMobileViewport: boolean;
   camera: CameraSettings;
   directionsProvider?: DirectionsProvider;
   documentEpoch: number;
@@ -46,6 +51,8 @@ export type RouteAuthoringParameters = {
   onReplaceDirectionsRoute: ProjectState["replaceDirectionsRoute"];
   onReplaceRouteDraft: ProjectState["replaceRouteDraft"];
   routeExtensionRequest: RouteExtensionRequest | null;
+  requestExtensionActivation?: (onApproved: () => ProjectMutationResult) => boolean;
+  onExtensionActivated?: () => void;
   selectToolRef: RefObject<HTMLButtonElement | null>;
   setActiveTool: (id: string) => void;
   setToolDocumentEpoch: (epoch: number) => void;
@@ -75,59 +82,70 @@ function routeRoadMode(layer: ContentLayer): RoadTravelMode {
   return layer.provenance.profile === "cycling" ? "bike" : "car";
 }
 
+function isExtensionTarget(layer: ContentLayer | undefined, expected: ContentLayer): layer is ContentLayer {
+  return layer === expected && layer.type === 'route' && !layer.locked && layer.visible;
+}
+
+type ExtensionActivationParameters = Pick<RouteAuthoringParameters,
+  'documentEpoch' | 'layers' | 'routeExtensionRequest' | 'requestExtensionActivation' | 'onExtensionActivated'
+  | 'setToolDocumentEpoch' | 'setActiveTool' | 'onLayerSelect' | 'onAuthoringChange'>;
+
+function isCurrentExtensionRequest(parameters: ExtensionActivationParameters, request: RouteExtensionRequest, epoch: number) {
+  const latest = parameters.routeExtensionRequest;
+  return parameters.documentEpoch === epoch && latest?.request === request.request
+    && latest.layer === request.layer && latest.endpoint === request.endpoint;
+}
+
 export function useRouteExtensionActivation(
-  parameters: RouteAuthoringParameters,
-  extension: RouteExtensionRequest | null,
+  parameters: ExtensionActivationParameters,
   setters: RouteStateSetters,
 ) {
   const handledRequest = useRef<number | null>(null);
+  const activate = useStableEvent((request: RouteExtensionRequest, documentEpoch: number): ProjectMutationResult => {
+    if (!isCurrentExtensionRequest(parameters, request, documentEpoch)) {
+      return mutationRejected('This extension request is no longer current. Keep editing and select the route again.', 'stale');
+    }
+    const current = parameters.layers.find((layer) => layer.id === request.layer.id);
+    if (!isExtensionTarget(current, request.layer)) {
+      return mutationRejected('This route changed before extension could start. Keep editing and select it again.', 'stale');
+    }
+    setters.setExtension(request);
+    const semanticPoints = semanticRoutePositions(current) ?? [];
+    setters.setPoints(
+      (current.route?.closed ? semanticPoints.slice(0, -1) : semanticPoints)
+        .map(([longitude, latitude]) => [longitude, latitude]),
+    );
+    setters.setError(null);
+    setters.setAnnouncement(`Extending ${current.name} from its ${request.endpoint}.`);
+    setters.setLineShape(routeLineShape(current));
+    setters.setRoadTravelMode(routeRoadMode(current));
+    setters.setTravelMarker(
+      current.appearance?.kind === "route" ? current.appearance.marker?.pictogram ?? null : null,
+    );
+    parameters.setToolDocumentEpoch(parameters.documentEpoch);
+    parameters.onExtensionActivated?.();
+    parameters.setActiveTool("route");
+    parameters.onLayerSelect(null);
+    parameters.onAuthoringChange(parameters.documentEpoch, true);
+    return { ok: true };
+  });
+  const requestActivation = useStableEvent((request: RouteExtensionRequest, documentEpoch: number) => {
+    const proceed = () => activate(request, documentEpoch);
+    if (parameters.requestExtensionActivation && !parameters.requestExtensionActivation(proceed)) return;
+    const result = proceed();
+    if (!result.ok) setters.setError(result.error);
+  });
   useEffect(() => {
     const request = parameters.routeExtensionRequest;
     if (!request || request.request === handledRequest.current) return;
     handledRequest.current = request.request;
-    const timeout = window.setTimeout(() => {
-      const current = parameters.layers.find(
-        (layer) => layer.id === request.layer.id,
-      );
-      if (
-        current !== request.layer ||
-        current.type !== "route" ||
-        current.locked ||
-        !current.visible
-      ) {
-        setters.setError(
-          "This route changed before extension could start. Select it and try again.",
-        );
-        return;
-      }
-      setters.setExtension(request);
-      const semanticPoints = semanticRoutePositions(current) ?? [];
-      setters.setPoints(
-        (current.route?.closed ? semanticPoints.slice(0, -1) : semanticPoints)
-          .map(([longitude, latitude]) => [longitude, latitude]),
-      );
-      setters.setError(null);
-      setters.setAnnouncement(
-        `Extending ${current.name} from its ${request.endpoint}.`,
-      );
-      setters.setLineShape(routeLineShape(current));
-      setters.setRoadTravelMode(routeRoadMode(current));
-      setters.setTravelMarker(
-        current.appearance?.kind === "route"
-          ? current.appearance.marker?.pictogram ?? null
-          : null,
-      );
-      parameters.setToolDocumentEpoch(parameters.documentEpoch);
-      parameters.setActiveTool("route");
-      parameters.onLayerSelect(null);
-      parameters.onAuthoringChange(parameters.documentEpoch, true);
-    }, 0);
-    return () => window.clearTimeout(timeout);
-  }, [extension?.request, parameters, setters]);
+    requestActivation(request, parameters.documentEpoch);
+  }, [parameters.documentEpoch, parameters.routeExtensionRequest, requestActivation]);
 }
 
 type RouteKeyboardOptions = {
   active: boolean;
+  isModalOpen: boolean;
   canFinish: boolean;
   canUndo: boolean;
   isDiscardOpen: boolean;
@@ -143,6 +161,7 @@ function shouldIgnoreRouteKey(
 ) {
   return (
     !options.active ||
+    options.isModalOpen ||
     options.isDiscardOpen ||
     event.defaultPrevented ||
     event.repeat ||
@@ -151,18 +170,6 @@ function shouldIgnoreRouteKey(
     event.ctrlKey ||
     event.metaKey
   );
-}
-
-function isRouteTypingTarget(target: HTMLElement | null) {
-  return (
-    target?.closest(
-      'input, textarea, select, [contenteditable="true"], [role="textbox"]',
-    ) !== null
-  );
-}
-
-function isRouteInteractiveTarget(target: HTMLElement | null) {
-  return target?.closest('button, a, [role="button"], [role="radio"]') !== null;
 }
 
 function isFinishRouteKey(event: KeyboardEvent, options: RouteKeyboardOptions) {
@@ -180,13 +187,13 @@ function isUndoRouteKey(event: KeyboardEvent, options: RouteKeyboardOptions) {
 function handleRouteKey(event: KeyboardEvent, options: RouteKeyboardOptions) {
   if (shouldIgnoreRouteKey(event, options)) return;
   const target = event.target instanceof HTMLElement ? event.target : null;
-  if (isRouteTypingTarget(target)) return;
+  if (!target || shouldBlockEditorShortcuts(target)) return;
   if (event.key === "Escape") {
     event.preventDefault();
     options.onCancel(target);
     return;
   }
-  if (isRouteInteractiveTarget(target)) return;
+  if (isNativeActivationTarget(target)) return;
   if (isFinishRouteKey(event, options)) {
     event.preventDefault();
     options.onFinish();

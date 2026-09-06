@@ -41,6 +41,8 @@ export function useCanvasAuthoringModels({
   });
   const route = useCanvasRouteAuthoring({
     activeTool,
+    isModalOpen: props.isModalOpen,
+    isMobileViewport: props.isMobileViewport,
     camera: props.camera,
     directionsProvider: props.directionsProvider,
     documentEpoch: props.documentEpoch,
@@ -53,6 +55,8 @@ export function useCanvasAuthoringModels({
     onReplaceDirectionsRoute: props.onReplaceDirectionsRoute,
     onReplaceRouteDraft: props.onReplaceRouteDraft,
     routeExtensionRequest: props.routeExtensionRequest,
+    requestExtensionActivation: (onApproved) => poi.requestToolChange('route', onApproved),
+    onExtensionActivated: poi.resetSpreadsheet,
     selectToolRef,
     setActiveTool,
     setToolDocumentEpoch,
@@ -60,6 +64,9 @@ export function useCanvasAuthoringModels({
   });
   const shape = useCanvasShapeAuthoring({
     activeTool,
+    isModalOpen: props.isModalOpen,
+    isMobileViewport: props.isMobileViewport,
+    center: props.camera.center,
     documentEpoch: props.documentEpoch,
     layers: props.layers,
     onAuthoringChange: props.onAuthoringChange,
@@ -70,8 +77,6 @@ export function useCanvasAuthoringModels({
     selectedId: props.selectedId,
     setActiveTool,
     setFitLayerRequest,
-    setToolDocumentEpoch,
-    toolDocumentEpoch,
   });
   return { poi, route, shape };
 }

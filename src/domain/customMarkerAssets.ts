@@ -21,24 +21,46 @@ export type CustomMarkerAsset = Readonly<{
 
 export type DecodedCustomMarkerImage = ImageBitmap | ImageData;
 
+export function customMarkerRasterDimensions(asset: Pick<CustomMarkerAsset, 'mimeType' | 'width' | 'height'>) {
+  assertCustomMarkerDimensions(asset.mimeType, asset.width, asset.height);
+  const longest = Math.max(asset.width, asset.height);
+  const drawWidth = asset.mimeType === 'image/svg+xml' ? asset.width / longest * MIN_CUSTOM_MARKER_PIXELS : asset.width;
+  const drawHeight = asset.mimeType === 'image/svg+xml' ? asset.height / longest * MIN_CUSTOM_MARKER_PIXELS : asset.height;
+  // Round allocation up, but center the exact aspect inside it instead of stretching the artwork.
+  return { width: Math.ceil(drawWidth), height: Math.ceil(drawHeight), drawWidth, drawHeight };
+}
+
+function nativeImageSource(asset: CustomMarkerAsset, width: number, height: number): string {
+  if (asset.mimeType !== 'image/svg+xml') return asset.dataUri;
+  const encoded = asset.dataUri.slice(asset.dataUri.indexOf(',') + 1);
+  const bytes = Uint8Array.from(atob(encoded), (character) => character.codePointAt(0) ?? 0);
+  const source = new TextDecoder().decode(bytes);
+  const root = new DOMParser().parseFromString(source, 'image/svg+xml').documentElement;
+  if (!root.hasAttribute('viewBox')) root.setAttribute('viewBox', `0 0 ${asset.width} ${asset.height}`);
+  root.setAttribute('width', String(width));
+  root.setAttribute('height', String(height));
+  return `data:image/svg+xml;base64,${bytesToBase64(new TextEncoder().encode(new XMLSerializer().serializeToString(root)))}`;
+}
+
 export function decodeCustomMarkerImage(asset: CustomMarkerAsset): Promise<DecodedCustomMarkerImage> {
   return new Promise((resolve, reject) => {
+    const { width, height, drawWidth, drawHeight } = customMarkerRasterDimensions(asset);
     const image = new Image();
     image.addEventListener('load', () => {
       try {
         const canvas = document.createElement('canvas');
-        canvas.width = asset.width;
-        canvas.height = asset.height;
+        canvas.width = width;
+        canvas.height = height;
         const context = canvas.getContext('2d');
         if (!context) throw new Error('The browser cannot decode the custom marker image.');
-        context.drawImage(image, 0, 0, asset.width, asset.height);
-        resolve(context.getImageData(0, 0, asset.width, asset.height));
+        context.drawImage(image, (width - drawWidth) / 2, (height - drawHeight) / 2, drawWidth, drawHeight);
+        resolve(context.getImageData(0, 0, width, height));
       } catch {
         reject(new Error('The custom marker image could not be decoded.'));
       }
     }, { once: true });
     image.addEventListener('error', () => reject(new Error('The custom marker image could not be decoded.')), { once: true });
-    image.src = asset.dataUri;
+    image.src = nativeImageSource(asset, drawWidth, drawHeight);
   });
 }
 
@@ -69,7 +91,15 @@ function bytesToBase64(bytes: Uint8Array): string {
 }
 
 
-function assertDimensions(width: number, height: number): void {
+function assertVectorDimensions(width: number, height: number): void {
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0
+    || Math.min(width, height) / Math.max(width, height) === 0) {
+    throw new Error('Custom SVG markers need positive, finite dimensions with a representable aspect ratio.');
+  }
+}
+
+export function assertCustomMarkerDimensions(mimeType: CustomMarkerMimeType, width: number, height: number): void {
+  if (mimeType === 'image/svg+xml') return assertVectorDimensions(width, height);
   if (!Number.isSafeInteger(width) || !Number.isSafeInteger(height)) {
     throw new TypeError('Custom markers must use whole-pixel dimensions.');
   }
@@ -143,6 +173,9 @@ function validateSvgAttribute(attribute: Attr): void {
 }
 
 function validateSvgElement(element: Element): void {
+  if (element.namespaceURI !== 'http://www.w3.org/2000/svg') {
+    throw new Error('Custom SVG markers must use xmlns="http://www.w3.org/2000/svg" throughout so they render in exported maps.');
+  }
   const localName = element.localName.toLowerCase();
   if (FORBIDDEN_SVG_ELEMENTS.has(localName)) {
     throw new Error('Custom SVG markers may not contain active content or embedded resources.');
@@ -163,7 +196,7 @@ function svgRootDimensions(root: Element): [number, number] {
   const viewBox = root.getAttribute('viewBox')?.trim().split(/[\s,]+/).map(Number);
   if (!viewBox || viewBox.length !== 4 || viewBox.some((value) => !Number.isFinite(value))
     || viewBox[2] <= 0 || viewBox[3] <= 0) {
-    throw new Error('Custom SVG markers need positive pixel width and height or a valid viewBox.');
+    throw new Error('Custom SVG markers need positive width and height or a valid viewBox.');
   }
   return [viewBox[2], viewBox[3]];
 }
@@ -214,7 +247,7 @@ export function validateStoredCustomMarkerAsset(asset: CustomMarkerAsset): void 
     throw new Error('Custom marker asset data must be between 1 byte and 1 MB.');
   }
   const [width, height] = markerDimensions(asset.mimeType, bytes);
-  assertDimensions(width, height);
+  assertCustomMarkerDimensions(asset.mimeType, width, height);
   if (width !== asset.width || height !== asset.height) {
     throw new Error('Custom marker asset dimensions do not match its image data.');
   }
@@ -226,14 +259,18 @@ export function validateStoredCustomMarkerAsset(asset: CustomMarkerAsset): void 
 export function validateCustomMarkerAssetCollection(assets: Record<string, CustomMarkerAsset>): void {
   const values = Object.values(assets);
   if (values.length > MAX_CUSTOM_MARKER_PROJECT_ASSETS) {
-    throw new Error(`Projects may contain at most ${MAX_CUSTOM_MARKER_PROJECT_ASSETS} custom marker assets.`);
+    throw new Error(`Projects may contain at most ${MAX_CUSTOM_MARKER_PROJECT_ASSETS} custom marker assets. Replace an existing marker, reuse the same image, or remove an unused marker from its places and try again.`);
   }
   const encodedBytes = values.reduce((total, asset) => total + asset.dataUri.length, 0);
   if (encodedBytes > MAX_CUSTOM_MARKER_PROJECT_BYTES) {
-    throw new Error('Custom marker assets exceed the 8 MiB encoded project budget.');
+    throw new Error('Custom marker assets exceed the 8 MiB encoded project budget. Choose a smaller file or remove a marker from all its places and try again.');
   }
-  const pixels = values.reduce((total, asset) => total + asset.width * asset.height, 0);
-  if (pixels > MAX_CUSTOM_MARKER_PROJECT_PIXELS) throw new Error('Custom marker assets exceed the decoded pixel budget.');
+  let pixels = 0;
+  for (const asset of values) {
+    const { width, height } = customMarkerRasterDimensions(asset);
+    pixels += width * height;
+  }
+  if (pixels > MAX_CUSTOM_MARKER_PROJECT_PIXELS) throw new Error('Custom marker assets exceed the 16,777,216 decoded pixel budget. Choose a lower-resolution raster image or an SVG, or remove a marker from all its places and try again.');
 }
 
 export async function validateCustomMarkerFile(file: File): Promise<CustomMarkerAsset> {
@@ -247,7 +284,7 @@ export async function validateCustomMarkerFile(file: File): Promise<CustomMarker
   const bytes = new Uint8Array(await file.arrayBuffer());
   const mimeType = file.type as CustomMarkerMimeType;
   const [width, height] = markerDimensions(mimeType, bytes);
-  assertDimensions(width, height);
+  assertCustomMarkerDimensions(mimeType, width, height);
   return {
     id: `sha256-${sha256Hex(bytes)}`,
     mimeType,

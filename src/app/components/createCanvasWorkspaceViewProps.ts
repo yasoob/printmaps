@@ -7,6 +7,7 @@ import type { CanvasWorkspaceViewProps } from "./CanvasWorkspaceView";
 import type { useCanvasRouteAuthoring } from "../hooks/useCanvasRouteAuthoring";
 import type { useCanvasShapeAuthoring } from "../hooks/useCanvasShapeAuthoring";
 import type { usePoiAuthoring } from "../hooks/usePoiAuthoring";
+import type { useCanvasSearchSelection } from "../hooks/useCanvasWorkspaceInteractions";
 
 type ViewInputs = {
   activeTool: string;
@@ -16,7 +17,7 @@ type ViewInputs = {
   fitRequest: number;
   geometryLayers: CanvasWorkspaceProps["layers"];
   handleMapClick?: (coordinate: [number, number]) => void;
-  handleSearchSelect: ComponentProps<typeof LocationSearch>["onSelect"];
+  searchSelection: ReturnType<typeof useCanvasSearchSelection>;
   poi: ReturnType<typeof usePoiAuthoring>;
   props: CanvasWorkspaceProps;
   route: ReturnType<typeof useCanvasRouteAuthoring>;
@@ -29,7 +30,9 @@ function createSearchProps(
   return {
     provider: inputs.props.searchProvider,
     proximity: inputs.props.camera.center,
-    onSelect: inputs.handleSearchSelect,
+    onSelect: inputs.searchSelection.onSelect,
+    feedback: inputs.searchSelection.feedback,
+    onClearFeedback: inputs.searchSelection.clearFeedback,
   };
 }
 
@@ -42,6 +45,7 @@ function createMapProps(
     assets: props.assets,
     basemapVisible: basemap?.visible ?? true,
     camera: props.camera,
+    getCanonicalCamera: props.getCanonicalCamera,
     contentRevision: inputs.geometryLayers,
     featureVisibility: props.featureVisibility,
     fitImportBounds: props.importFitRequest.bounds,
@@ -82,7 +86,10 @@ function createChromeProps(
 ): Omit<ComponentProps<typeof CanvasWorkspaceChrome>, "selectToolRef" | "topDock"> {
   return {
     activeTool: inputs.activeTool,
+    statusNotice: inputs.props.statusNotice,
     onActivateTool: inputs.activateTool,
+    hasUnfinishedDrawing: inputs.route.hasUnfinishedWork || inputs.shape.hasUnfinishedWork,
+    hasUnfinishedPoiList: inputs.poi.hasUnfinishedWork,
     poiPanelProps: {
       active: inputs.activeTool === "pin",
       documentEpoch: inputs.props.documentEpoch,
@@ -94,6 +101,9 @@ function createChromeProps(
       onCancelSpreadsheet: inputs.poi.cancelSpreadsheet,
       onOpenSpreadsheet: inputs.poi.openSpreadsheet,
       onSubmitSpreadsheet: inputs.poi.submitSpreadsheet,
+      onCompleteSpreadsheet: inputs.poi.completeSpreadsheet,
+      onChangeTool: inputs.activateTool,
+      spreadsheetRegistration: inputs.poi.spreadsheetRegistration,
     },
     routePanelProps: inputs.route.panelProps,
     selectedShape: {

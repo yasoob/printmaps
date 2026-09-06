@@ -4,6 +4,8 @@ import type { PoiSpreadsheetEntry } from '../../domain/poiSpreadsheet';
 import type { SearchProvider } from '../../services/mapbox/contracts';
 import { PoiSpreadsheetPanel } from './PoiSpreadsheetPanel';
 import { ToolCardActions, ToolCardHeader } from './ToolAuthoringCard';
+import type { ProjectMutationResult } from '../../domain/projectMutation';
+import type { PoiSpreadsheetRegistration } from '../hooks/poiSpreadsheetController';
 
 type PoiAuthoringControlsProps = {
   active: boolean;
@@ -15,14 +17,17 @@ type PoiAuthoringControlsProps = {
   onCancel: () => void;
   onCancelSpreadsheet: () => void;
   onOpenSpreadsheet: () => void;
-  onSubmitSpreadsheet: (entries: readonly PoiSpreadsheetEntry[]) => void;
+  onSubmitSpreadsheet: (entries: readonly PoiSpreadsheetEntry[]) => ProjectMutationResult;
+  onCompleteSpreadsheet: () => void;
+  onChangeTool: (tool: string) => void;
+  spreadsheetRegistration: PoiSpreadsheetRegistration;
 };
 
 export function PoiAuthoringControls(props: PoiAuthoringControlsProps) {
   const { active, documentEpoch, error, onCancel, onCancelSpreadsheet, onOpenSpreadsheet, onSubmitSpreadsheet, searchProvider, spreadsheetOpen, spreadsheetTriggerRef } = props;
   if (!active) return null;
   if (spreadsheetOpen) {
-    return <PoiSpreadsheetPanel documentEpoch={documentEpoch} onCancel={onCancelSpreadsheet} onSubmit={onSubmitSpreadsheet} searchProvider={searchProvider} />;
+    return <PoiSpreadsheetPanel key={documentEpoch} documentEpoch={documentEpoch} onCancel={onCancelSpreadsheet} onComplete={props.onCompleteSpreadsheet} onSubmit={onSubmitSpreadsheet} onChangeTool={props.onChangeTool} registration={props.spreadsheetRegistration} searchProvider={searchProvider} />;
   }
   return (
     <div className="map-authoring-panel tool-authoring-card poi-authoring-panel">

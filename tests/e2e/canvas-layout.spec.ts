@@ -1,4 +1,5 @@
 import { expect, type Locator, test } from '@playwright/test';
+import { expandToolSettings } from './authoring-panel-support';
 
 const expectNoOverlap = async (first: Locator, second: Locator) => {
   const firstBox = await first.boundingBox();
@@ -112,7 +113,16 @@ test('Place, Route, and Area share one centered authoring dock contract', async 
     await page.screenshot({ path: testInfo.outputPath(`${viewport.name}-place-initial.png`), animations: 'disabled' });
     await page.getByRole('button', { name: 'Paste POI list' }).click();
     const placeMultiple = page.locator('.poi-spreadsheet-panel');
-    await expectDockContract(placeMultiple, toolbar, canvas, placeBox!.width);
+    if (viewport.name === 'landscape') {
+      await expect(page.getByRole('dialog', { name: 'POI list workspace' })).toBeVisible();
+      await expect(page.getByRole('textbox', { name: 'POI spreadsheet rows' })).toBeFocused();
+      await expect(page.getByRole('button', { name: 'Add POIs', exact: true })).toBeInViewport();
+      const box = await placeMultiple.boundingBox();
+      expect(box!.x).toBeGreaterThanOrEqual(0);
+      expect(box!.y).toBeGreaterThanOrEqual(0);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(viewport.width);
+      expect(box!.y + box!.height).toBeLessThanOrEqual(viewport.height);
+    } else await expectDockContract(placeMultiple, toolbar, canvas, placeBox!.width);
     await expectPanelStartsAtTop(placeMultiple);
     await page.screenshot({ path: testInfo.outputPath(`${viewport.name}-place-multiple.png`), animations: 'disabled' });
     await page.getByRole('button', { name: 'Cancel list' }).click();
@@ -139,6 +149,7 @@ test('Place, Route, and Area share one centered authoring dock contract', async 
       expect(await area.evaluate((element) => element.scrollHeight - element.clientHeight)).toBeLessThanOrEqual(1);
     }
     await page.screenshot({ path: testInfo.outputPath(`${viewport.name}-area-draw.png`), animations: 'disabled' });
+    await expandToolSettings(page, 'area');
     await page.getByRole('tab', { name: 'Travel time' }).click();
     await expectDockContract(area, toolbar, canvas, placeBox!.width);
     if (viewport.name !== 'landscape') {

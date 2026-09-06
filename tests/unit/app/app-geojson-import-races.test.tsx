@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../../../src/app/App';
 import { createInitialProjectDocument } from '../../../src/domain/project';
@@ -86,13 +86,13 @@ describe('GeoJSON import document isolation', () => {
     fireEvent.change(importInput, {
       target: { files: [fileWithText('point.geojson', pointGeoJson, 'application/geo+json')] },
     });
-    await user.click(await screen.findByRole('button', { name: 'Import 1 files' }));
+    await user.click(await screen.findByRole('button', { name: 'Import 1 file' }));
 
     expect(await screen.findByRole('button', { name: 'Select Slow café' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Undo' })).toBeEnabled();
   });
 
-  it('keeps the concurrency guard active until a cancelled batch finishes reading', async () => {
+  it('retires a cancelled read without letting its completion settle a newer read', async () => {
     const user = userEvent.setup();
     let finishReads: ((text: string) => void) | undefined;
     const slowText = new Promise<string>((resolve) => { finishReads = resolve; });
@@ -107,10 +107,19 @@ describe('GeoJSON import document isolation', () => {
       },
     });
 
-    await user.click(await screen.findByRole('button', { name: 'Close map data import' }));
-    expect(importInput).toBeDisabled();
-    await act(async () => { finishReads?.(pointGeoJson); });
+    await user.click(await screen.findByRole('button', { name: 'Cancel' }));
     expect(importInput).toBeEnabled();
+    let finishNewRead: ((text: string) => void) | undefined;
+    fireEvent.change(importInput, { target: { files: [fileWithText(
+      'new.geojson', new Promise<string>((resolve) => { finishNewRead = resolve; }), 'application/geo+json',
+    )] } });
+    await act(async () => { finishReads?.(pointGeoJson); });
+    expect(importInput).toBeDisabled();
+    expect(screen.getByText('Checking files…')).toBeVisible();
+    expect(screen.getByRole('list', { name: 'Selected map data files' })).toHaveTextContent('new.geojson');
+    await act(async () => { finishNewRead?.(pointGeoJson); });
+    expect(importInput).toBeEnabled();
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
   });
 
@@ -122,12 +131,13 @@ describe('GeoJSON import document isolation', () => {
     fireEvent.change(importInput, {
       target: { files: [fileWithText('slow.geojson', slowText, 'application/geo+json')] },
     });
-    const projectTitle = screen.getByRole('button', { name: 'Vienna field guide' });
-    projectTitle.focus();
+    const close = screen.getByRole('button', { name: 'Close map data import' });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus());
+    close.focus();
 
     await act(async () => { finishImport?.(pointGeoJson); });
 
-    expect(projectTitle).toHaveFocus();
+    expect(close).toHaveFocus();
   });
 
   it('rejects a single-file result when the canonical document changed during its read', async () => {
@@ -135,16 +145,18 @@ describe('GeoJSON import document isolation', () => {
     const slowText = new Promise<string>((resolve) => { finishImport = resolve; });
     const { container } = render(<App autosaveRepository={null} />);
     const { importInput } = fileInputs(container);
+    const portrait = screen.getByRole('button', { name: 'Portrait' });
     fireEvent.change(importInput, {
       target: { files: [fileWithText('slow.geojson', slowText, 'application/geo+json')] },
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Portrait' }));
+    fireEvent.click(portrait);
     await act(async () => { finishImport?.(pointGeoJson); });
 
     expect(screen.queryByRole('button', { name: 'Select Slow café' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Portrait' })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: 'Undo' })).toBeEnabled();
+    expect(portrait).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('alert')).toHaveTextContent('The project changed while checking these files');
+    expect(document.querySelector<HTMLButtonElement>('button[aria-label="Undo"]')).toBeEnabled();
   });
 });
 
@@ -166,7 +178,7 @@ describe('reviewed import replacement isolation', () => {
       target: { files: [fileWithText('route.geojson', routeGeoJson, 'application/geo+json')] },
     });
 
-    expect(await within(dialog).findByRole('button', { name: 'Import 1 files' })).toBeInTheDocument();
+    expect(await within(dialog).findByRole('button', { name: 'Import 1 file' })).toBeInTheDocument();
     expect(dialog).toHaveAccessibleName('Import map data');
     expect(screen.queryByRole('button', { name: 'Replace Route 01' })).not.toBeInTheDocument();
   });
@@ -191,7 +203,7 @@ describe('reviewed import replacement isolation', () => {
     await user.click(commit);
 
     expect(screen.getByRole('alert')).toHaveTextContent(
-      'The project changed before this data could be applied. Choose the replacement again.',
+      'The project changed before the replacement could be applied. Choose the data again.',
     );
     expect(layerName).toHaveValue('Route changed during review');
     expect(routeLongitude).toHaveValue('16.326');
@@ -223,8 +235,9 @@ describe('GeoJSON import document isolation', () => {
         )],
       },
     });
+    fireEvent.click(await screen.findByRole('button', { name: 'Replace project' }));
     expect(await screen.findByRole('button', { name: 'Opened while importing' })).toBeInTheDocument();
-    expect(importInput).toBeDisabled();
+    expect(importInput).toBeEnabled();
 
     await act(async () => { finishImport?.(pointGeoJson); });
 
@@ -241,6 +254,7 @@ describe('GeoJSON import document isolation', () => {
     fireEvent.change(importInput, {
       target: { files: [fileWithText('point.geojson', pointGeoJson, 'application/geo+json')] },
     });
+    fireEvent.click(await screen.findByRole('button', { name: 'Import 1 file' }));
     expect(await screen.findByRole('status', { name: 'Map data import status' }))
       .toHaveTextContent('Imported 1 GeoJSON layer');
 
@@ -255,6 +269,7 @@ describe('GeoJSON import document isolation', () => {
         )],
       },
     });
+    fireEvent.click(await screen.findByRole('button', { name: 'Replace project' }));
     expect(await screen.findByRole('button', { name: 'Opened after import' })).toBeInTheDocument();
 
     expect(screen.queryByRole('status', { name: 'Map data import status' })).not.toBeInTheDocument();

@@ -57,6 +57,19 @@ function isValidShapeGeometry(geometry: ShapeGeometry): boolean {
     && polygons.every((polygon) => polygon.length > 0 && polygon.every((ring) => isValidRing(ring)));
 }
 
+export function areShapeGeometriesEqual(first: ShapeGeometry, second: ShapeGeometry): boolean {
+  if (first === second) return true;
+  if (first.type !== second.type) return false;
+  const left = first.type === 'Polygon' ? [first.coordinates] : first.coordinates;
+  const right = second.type === 'Polygon' ? [second.coordinates] : second.coordinates;
+  return left.length === right.length && left.every((polygon, polygonIndex) => (
+    polygon.length === right[polygonIndex].length && polygon.every((ring, ringIndex) => {
+      const other = right[polygonIndex][ringIndex];
+      return ring.length === other.length && ring.every((point, pointIndex) => isSamePosition(point, other[pointIndex]));
+    })
+  ));
+}
+
 export function replaceShapeGeometry(
   layer: ContentLayer | undefined,
   geometry: ShapeGeometry,
@@ -66,7 +79,7 @@ export function replaceShapeGeometry(
     || (layer.geometry?.type !== 'Polygon' && layer.geometry?.type !== 'MultiPolygon')
     || layer.geometry.type !== geometry.type
     || !isValidShapeGeometry(geometry)
-    || JSON.stringify(layer.geometry) === JSON.stringify(geometry)
+    || areShapeGeometriesEqual(layer.geometry, geometry)
   ) return null;
   return { ...layer, geometry: structuredClone(geometry) };
 }

@@ -22,11 +22,15 @@ vi.mock('maplibre-gl', () => {
     private readonly handlers: Record<string, Array<(event?: unknown) => void>> = {};
     boxZoom = { disable: vi.fn(), enable: vi.fn() }; doubleClickZoom = { disable: vi.fn(), enable: vi.fn() }; dragPan = { disable: vi.fn(), enable: vi.fn() }; dragRotate = { disable: vi.fn(), enable: vi.fn() };
     keyboard = { disable: vi.fn(), enable: vi.fn() }; scrollZoom = { disable: vi.fn(), enable: vi.fn() }; touchPitch = { disable: vi.fn(), enable: vi.fn() }; touchZoomRotate = { disable: vi.fn(), enable: vi.fn() };
-    constructor() { mocks.mapHandlers.push(this.handlers); }
+    constructor(private readonly camera: { center: [number, number]; zoom: number; bearing: number; pitch: number }) { mocks.mapHandlers.push(this.handlers); }
     addControl() {}
     fitBounds() {}
+    getBearing() { return this.camera.bearing; }
     getCanvas() { return document.createElement('canvas'); }
+    getCenter() { return { lng: this.camera.center[0], lat: this.camera.center[1] }; }
     getContainer() { return document.createElement('div'); }
+    getPitch() { return this.camera.pitch; }
+    getZoom() { return this.camera.zoom; }
     getStyle() {
       return {
         layers: [
@@ -49,7 +53,7 @@ vi.mock('maplibre-gl', () => {
       (this.handlers[event] ??= []).push(callback);
       if (event === 'load') queueMicrotask(callback);
     }
-    loaded() { return false; }
+    loaded() { return true; }
     remove() {}
     setLayoutProperty(layerId: string, property: string, value: unknown) {
       if (property === 'visibility') mocks.visibilityUpdates.push([this.mapIndex, layerId, value]);

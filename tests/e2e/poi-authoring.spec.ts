@@ -103,7 +103,8 @@ test('pasted address rows become one durable geocoded POI batch', async ({ page 
   await page.getByRole('textbox', { name: 'POI spreadsheet rows' }).fill(
     'Name\tAddress\nCafé Central\tHerrengasse 14, Vienna\nMuseum Quarter\tMuseumsplatz 1, Vienna',
   );
-  await page.getByRole('button', { name: 'Find and add POIs' }).click();
+  await page.getByRole('button', { name: 'Look up addresses' }).click();
+  await page.getByRole('button', { name: 'Add selected POIs' }).click();
 
   const firstPoi = page.getByRole('button', { name: 'Select Café Central' });
   const secondPoi = page.getByRole('button', { name: 'Select Museum Quarter' });
@@ -123,7 +124,7 @@ test('pasted address rows become one durable geocoded POI batch', async ({ page 
     { name: 'Museum Quarter', geometry: { coordinates: [16.3599, 48.2034] }, provenance: { provider: 'mapbox', service: 'geocoding-v6', providerFeatureId: 'address.museum' } },
   ]);
 
-  await page.screenshot({ path: 'docs/screenshots/batch-address-geocoding-20260826.png' });
+  await page.screenshot({ path: testInfo.outputPath('ux-fix-033-batch-address-geocoding.png'), animations: 'disabled' });
   await page.getByRole('button', { name: 'Undo' }).click();
   await expect(firstPoi).toHaveCount(0);
   await expect(secondPoi).toHaveCount(0);

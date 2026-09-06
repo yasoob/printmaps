@@ -22,7 +22,7 @@ test('Download project saves the current portable versioned JSON', async ({ cont
   await page.getByRole('combobox', { name: 'Map language' }).selectOption('de');
 
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
+  await page.getByRole('button', { name: 'Project', exact: true }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe('vienna-field-guide.printmap.json');
 
@@ -57,22 +57,23 @@ test('Project download and open restore the current project as a fresh history r
   await page.getByRole('checkbox', { name: 'Show roads' }).uncheck();
 
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
+  await page.getByRole('button', { name: 'Project', exact: true }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
   const download = await downloadPromise;
   const projectPath = testInfo.outputPath('saved-project.printmap.json');
   await download.saveAs(projectPath);
 
   await page.getByRole('button', { name: 'Portrait' }).click();
   const chooserPromise = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Open project' }).click();
+  await page.getByRole('button', { name: 'Project', exact: true }).click(); await page.getByRole('menuitem', { name: 'Open project' }).click();
   const chooser = await chooserPromise;
   await chooser.setFiles(projectPath);
+  await page.getByRole('button', { name: 'Replace project', exact: true }).click();
 
   await expect(page.getByRole('spinbutton', { name: 'Bearing' })).toHaveValue('35');
   await expect(page.getByRole('checkbox', { name: 'Show roads' })).not.toBeChecked();
   await expect(page.getByRole('button', { name: 'Landscape' })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
-  await expect(page.getByRole('button', { name: 'Project' })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Project', exact: true })).toBeFocused();
 });
 
 test('opens a validated portable project as a focused fresh history root', async ({ page }) => {
@@ -91,13 +92,14 @@ test('opens a validated portable project as a focused fresh history root', async
   alpineProject.layers.find((layer: { type: string }) => layer.type === 'basemap').name = 'Night Ink basemap';
 
   const chooserPromise = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Open project' }).click();
+  await page.getByRole('button', { name: 'Project', exact: true }).click(); await page.getByRole('menuitem', { name: 'Open project' }).click();
   const chooser = await chooserPromise;
   await chooser.setFiles({
     name: 'alpine-poster.printmap.json',
     mimeType: 'application/json',
     buffer: Buffer.from(JSON.stringify(alpineProject)),
   });
+  await page.getByRole('button', { name: 'Replace project', exact: true }).click();
 
   await expect(page.getByRole('button', { name: 'Alpine poster' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Project' })).toBeVisible();
@@ -127,7 +129,7 @@ test('opens a validated portable project as a focused fresh history root', async
   );
   await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Redo' })).toBeDisabled();
-  await expect(page.getByRole('button', { name: 'Project' })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Project', exact: true })).toBeFocused();
 });
 
 test('rejects invalid project files without replacing work and allows a retry', async ({ page }) => {
@@ -161,7 +163,7 @@ test('rejects invalid project files without replacing work and allows a retry', 
     },
   ]) {
     const chooserPromise = page.waitForEvent('filechooser');
-    await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Open project' }).click();
+    await page.getByRole('button', { name: 'Project', exact: true }).click(); await page.getByRole('menuitem', { name: 'Open project' }).click();
     const chooser = await chooserPromise;
     await chooser.setFiles(invalidFile.file);
 
@@ -169,27 +171,29 @@ test('rejects invalid project files without replacing work and allows a retry', 
     await expect(page.getByRole('button', { name: 'Vienna field guide' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Portrait' })).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByRole('button', { name: 'Undo' })).toBeEnabled();
-    await expect(page.getByRole('button', { name: 'Project' })).toBeFocused();
+    await expect(page.getByRole('button', { name: 'Project', exact: true })).toBeFocused();
   }
 
   const retryChooserPromise = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Open project' }).click();
+  await page.getByRole('button', { name: 'Project', exact: true }).click(); await page.getByRole('menuitem', { name: 'Open project' }).click();
   const retryChooser = await retryChooserPromise;
   await retryChooser.setFiles(path.resolve('tests/fixtures/alpine-poster.printmap.json'));
+  await page.getByRole('button', { name: 'Replace project', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Alpine poster' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Project' })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Project', exact: true })).toBeFocused();
 });
 
 test('imports supported GeoJSON as one undoable editable layer batch', async ({ page }) => {
   await page.goto('./');
 
   const chooserPromise = page.waitForEvent('filechooser');
-  const project = page.getByRole('button', { name: 'Project' });
+  const project = page.getByRole('button', { name: 'Project', exact: true });
   await project.click();
   await page.getByRole('menuitem', { name: 'Import map data' }).click();
   await expect(project).toHaveAttribute('aria-expanded', 'false');
   const chooser = await chooserPromise;
   await chooser.setFiles(path.resolve('tests/fixtures/import/supported.geojson'));
+  await page.getByRole('dialog', { name: 'Import map data' }).getByRole('button', { name: 'Import 1 file', exact: true }).click();
 
   await expect(page.getByRole('heading', { name: 'Café Central' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Select Café Central' })).toBeVisible();
@@ -264,7 +268,7 @@ test('replaces a reviewed import batch without changing the explicit retain-view
   await expect(dialog.getByRole('radio', { name: 'Keep current view' })).toBeChecked();
   await expect(dialog.getByText('namespaced.kml')).toBeVisible();
   await expect(dialog.getByText('supported.geojson')).not.toBeVisible();
-  await dialog.getByRole('button', { name: 'Import 1 files' }).click();
+  await dialog.getByRole('button', { name: 'Import 1 file', exact: true }).click();
 
   await expect(page.getByRole('button', { name: 'Select Café point' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Select Café Central' })).not.toBeVisible();
@@ -309,7 +313,9 @@ test('contains import review focus and restores it after cancelling a dropped ba
   await page.locator('.canvas-region').dispatchEvent('drop', { dataTransfer: transfer });
 
   const dialog = page.getByRole('dialog', { name: 'Import map data' });
-  const addFiles = dialog.getByRole('button', { name: 'Import 1 files' });
+  const addFiles = dialog.getByRole('button', { name: 'Import 1 file', exact: true });
+  await expect(dialog.getByRole('button', { name: 'Cancel', exact: true })).toBeFocused();
+  await page.keyboard.press('Tab');
   await expect(addFiles).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(dialog.getByRole('button', { name: 'Close map data import' })).toBeFocused();
@@ -318,7 +324,7 @@ test('contains import review focus and restores it after cancelling a dropped ba
   await page.keyboard.press('Escape');
 
   await expect(dialog).not.toBeVisible();
-  await expect(page.getByRole('button', { name: 'Project' })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Project', exact: true })).toBeFocused();
   await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
 });
 
@@ -326,6 +332,7 @@ test('imports GPX as one undoable editable layer batch', async ({ page }) => {
   await page.goto('./');
 
   await page.locator('input[accept^=".geojson"]').setInputFiles(path.resolve('tests/fixtures/import/wave2/namespaced.gpx'));
+  await page.getByRole('dialog', { name: 'Import map data' }).getByRole('button', { name: 'Import 1 file', exact: true }).click();
 
   await expect(page.getByRole('heading', { name: 'Café Central' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Select Café Central' })).toBeVisible();
@@ -343,6 +350,7 @@ test('imports KML as one undoable editable layer batch', async ({ page }) => {
   await page.goto('./');
 
   await page.locator('input[accept^=".geojson"]').setInputFiles(path.resolve('tests/fixtures/import/wave2/namespaced.kml'));
+  await page.getByRole('dialog', { name: 'Import map data' }).getByRole('button', { name: 'Import 1 file', exact: true }).click();
 
   await expect(page.getByRole('heading', { name: 'Café point' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Select Café point' })).toBeVisible();
@@ -375,11 +383,13 @@ test('rejects invalid GPX and KML without changing history and allows a retry', 
   ]) {
     await page.locator('input[accept^=".geojson"]').setInputFiles(invalidFile.file);
 
-    await expect(page.getByRole('alert', { name: 'Map data import status' })).toContainText(invalidFile.error);
+    await expect(page.getByRole('dialog', { name: 'Import map data' }).getByRole('alert')).toContainText(invalidFile.error);
+    await page.getByRole('button', { name: 'Cancel', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
     }
 
   await page.locator('input[accept^=".geojson"]').setInputFiles(path.resolve('tests/fixtures/import/wave2/namespaced.kml'));
+  await page.getByRole('dialog', { name: 'Import map data' }).getByRole('button', { name: 'Import 1 file', exact: true }).click();
   await expect(page.getByRole('status', { name: 'Map data import status' })).toContainText('Imported 3 KML layers');
 });
 
@@ -392,11 +402,13 @@ test('rejects empty GeoJSON without changing history and allows the same chooser
     buffer: Buffer.from('{"type":"FeatureCollection","features":[]}'),
   });
 
-  await expect(page.getByRole('alert', { name: 'Map data import status' }))
+  await expect(page.getByRole('dialog', { name: 'Import map data' }).getByRole('alert'))
     .toContainText('at least one supported Point, LineString, or Polygon feature');
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
 
   await page.locator('input[accept^=".geojson"]').setInputFiles(path.resolve('tests/fixtures/import/supported.geojson'));
+  await page.getByRole('dialog', { name: 'Import map data' }).getByRole('button', { name: 'Import 1 file', exact: true }).click();
   await expect(page.getByRole('status', { name: 'Map data import status' })).toContainText('Imported 3');
   await expect(page.getByRole('button', { name: 'Select Café Central' })).toBeVisible();
 });

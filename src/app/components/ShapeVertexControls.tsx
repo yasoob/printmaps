@@ -11,7 +11,7 @@ type ShapeVertexControlsProps = {
     ringIndex: number,
     vertexIndex: number,
     coordinates: readonly [number, number],
-  ) => void;
+  ) => import("../../domain/projectMutation").ProjectMutationResult;
 };
 
 function optionKeys<T>(items: readonly T[], serialize: (item: T) => string) {

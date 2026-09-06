@@ -1,5 +1,5 @@
 import type { ContentLayer } from '../domain/project';
-import { geometryPositionCount } from '../domain/projectGeometry';
+import { projectLayerPositionCount } from '../domain/projectGeometry';
 import {
   MAX_PROJECT_COORDINATES,
   MAX_PROJECT_LAYERS,
@@ -89,7 +89,9 @@ function settledTexts(results: readonly PromiseSettledResult<string>[]) {
 export async function parseMapDataFiles(
   files: readonly File[],
   existingLayers: readonly ContentLayer[],
+  signal?: AbortSignal,
 ): Promise<ParsedMapDataBatch> {
+  signal?.throwIfAborted();
   if (files.length === 0) throw new Error('Choose at least one GeoJSON, GPX, or KML file.');
   if (files.length > MAX_MAP_DATA_FILES) {
     throw new Error(`Import at most ${MAX_MAP_DATA_FILES} map-data files at once.`);
@@ -100,13 +102,16 @@ export async function parseMapDataFiles(
   }
 
   const preparedFiles = files.map((file) => preflightMapDataFile(file));
-  const texts = settledTexts(await Promise.allSettled(
+  const results = await Promise.allSettled(
     preparedFiles.map(({ file }) => file.text()),
-  ));
+  );
+  // File.text cannot be interrupted; retired reads must not proceed into geometry parsing.
+  signal?.throwIfAborted();
+  const texts = settledTexts(results);
   const usedIds = new Set(existingLayers.map(({ id }) => id));
   const layers: ContentLayer[] = [];
   let positionCount = existingLayers.reduce(
-    (total, layer) => total + geometryPositionCount(layer.geometry),
+    (total, layer) => total + projectLayerPositionCount(layer),
     0,
   );
   const parsedFiles = preparedFiles.map(({ file, importer }, index) => {
@@ -118,7 +123,7 @@ export async function parseMapDataFiles(
       throw new Error(`Projects may contain at most ${MAX_PROJECT_LAYERS} layers.`);
     }
     positionCount += fileLayers.reduce(
-      (total, layer) => total + geometryPositionCount(layer.geometry),
+      (total, layer) => total + projectLayerPositionCount(layer),
       0,
     );
     if (positionCount > MAX_PROJECT_COORDINATES) {

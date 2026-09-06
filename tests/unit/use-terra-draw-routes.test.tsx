@@ -1,10 +1,11 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import { createInitialProjectDocument } from '../../src/domain/project';
 import { useTerraDrawRoutes } from '../../src/map/useTerraDrawRoutes';
 
 type MockSessionOptions = {
   onPreview: (coordinates: [number, number][]) => void;
+  onCommit?: (coordinates: [number, number][]) => void;
 };
 
 const metrics = vi.hoisted(() => ({
@@ -22,10 +23,54 @@ const metrics = vi.hoisted(() => ({
 vi.mock('../../src/map/TerraDrawRouteFactory', () => ({ createTerraRouteDraw: metrics.createDraw }));
 vi.mock('../../src/map/TerraDrawRouteEditing', () => ({ createTerraRouteSession: metrics.createSession }));
 
-const map = {} as MapLibreMap;
+const canvas = document.createElement('canvas');
+const interaction = { enable: vi.fn(), disable: vi.fn() };
+const map = {
+  getCanvas: () => canvas, getContainer: () => canvas,
+  boxZoom: interaction, doubleClickZoom: interaction, dragPan: interaction, dragRotate: interaction,
+  keyboard: interaction, scrollZoom: interaction, touchPitch: interaction, touchZoomRotate: interaction,
+} as unknown as MapLibreMap;
 
 describe('Terra Draw route hook', () => {
   beforeEach(() => vi.clearAllMocks());
+
+  it('synchronizes accepted canonical geometry even when it equals the rendered preview', async () => {
+    const layers = createInitialProjectDocument().layers;
+    const { rerender } = renderHook(({ currentLayers }) => useTerraDrawRoutes({
+      layers: currentLayers, map, selectedId: 'route-01',
+      onRoutePreview: vi.fn(), onRouteGeometryChange: vi.fn(() => ({ ok: true as const })),
+    }), { initialProps: { currentLayers: layers } });
+    await waitFor(() => expect(metrics.createSession).toHaveBeenCalled());
+    const session = metrics.createSession.mock.results.at(-1)!.value;
+    const callbacks = metrics.createSession.mock.calls.at(-1)![0];
+    const coordinates: [number, number][] = [[16, 48], [17, 49], [18, 48], [16, 48]];
+    act(() => { callbacks.onPreview(coordinates); callbacks.onCommit?.(coordinates); });
+    session.updateGeometry.mockClear();
+    rerender({ currentLayers: layers.map((layer) => layer.id === 'route-01'
+      ? { ...layer, geometry: { type: 'LineString' as const, coordinates } } : layer) });
+    expect(session.updateGeometry).toHaveBeenCalledExactlyOnceWith(coordinates);
+    expect(session.destroy).not.toHaveBeenCalled();
+  });
+
+  it('rolls a rejected edit back to the latest canonical route, not the session opening geometry', async () => {
+    const layers = createInitialProjectDocument().layers;
+    const onEditorError = vi.fn();
+    const { rerender } = renderHook(({ currentLayers }) => useTerraDrawRoutes({
+      layers: currentLayers, map, selectedId: 'route-01', onEditorError,
+      onRoutePreview: vi.fn(), onRouteGeometryChange: vi.fn(() => ({ ok: false as const, error: 'Project position limit reached.' })),
+    }), { initialProps: { currentLayers: layers } });
+    await waitFor(() => expect(metrics.createSession).toHaveBeenCalled());
+    const session = metrics.createSession.mock.results.at(-1)!.value;
+    const callbacks = metrics.createSession.mock.calls.at(-1)![0];
+    const coordinates: [number, number][] = [[16, 48], [17, 49]];
+    const updated = layers.map((layer) => layer.id === 'route-01' ? {
+      ...layer, geometry: { type: 'LineString' as const, coordinates },
+    } : layer);
+    rerender({ currentLayers: updated });
+    act(() => callbacks.onCommit?.([[16, 48], [16.5, 48.5], [17, 49]]));
+    expect(session.updateGeometry).toHaveBeenLastCalledWith(coordinates);
+    expect(onEditorError).toHaveBeenLastCalledWith('Project position limit reached.');
+  });
 
   it('leaves Arc editing to the accessible DOM marker editor', async () => {
     const layers = createInitialProjectDocument().layers;
@@ -144,6 +189,11 @@ describe('Terra Draw route hook', () => {
     expect(session.updateGeometry).toHaveBeenCalledWith(coordinates);
   });
 
+});
+
+describe('Terra Draw loading and error feedback', () => {
+  beforeEach(() => vi.clearAllMocks());
+
   it('announces an activating route-editor load failure', async () => {
     const onError = vi.fn();
     renderHook(() => useTerraDrawRoutes({
@@ -212,5 +262,41 @@ describe('Terra Draw route hook', () => {
     }));
     expect(live.destroy).not.toHaveBeenCalled();
     expect(result.current.updateEditingGeometry([[16.3, 48.2]])).toBe(true);
+  });
+
+});
+
+describe('Terra Draw native renderer lifetime', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('stops drawing before native context-loss teardown and never destroys a session twice', async () => {
+    const layers = createInitialProjectDocument().layers;
+    const nativeTeardown = vi.fn();
+    canvas.addEventListener('webglcontextlost', nativeTeardown);
+    const { unmount } = renderHook(() => useTerraDrawRoutes({
+      layers, map, onRouteGeometryChange: vi.fn(), onRoutePreview: vi.fn(), selectedId: layers[0].id,
+    }));
+    await waitFor(() => expect(metrics.createSession).toHaveBeenCalledOnce());
+    const session = metrics.createSession.mock.results[0].value;
+    canvas.dispatchEvent(new Event('webglcontextlost'));
+    expect(session.destroy).toHaveBeenCalledOnce();
+    expect(session.destroy.mock.invocationCallOrder[0]).toBeLessThan(nativeTeardown.mock.invocationCallOrder[0]);
+    unmount();
+    expect(session.destroy).toHaveBeenCalledOnce();
+    canvas.removeEventListener('webglcontextlost', nativeTeardown);
+  });
+
+  it('does not start a late-loading route editor after its renderer loses context', async () => {
+    const module = await import('../../src/map/TerraDrawRouteFactory');
+    const layers = createInitialProjectDocument().layers;
+    let complete!: (module: typeof import('../../src/map/TerraDrawRouteFactory')) => void;
+    renderHook(() => useTerraDrawRoutes({
+      layers, map, onRouteGeometryChange: vi.fn(), onRoutePreview: vi.fn(), selectedId: layers[0].id,
+      loadRouteEditor: () => new Promise((resolve) => { complete = resolve; }),
+    }));
+    canvas.dispatchEvent(new Event('webglcontextlost'));
+    complete(module);
+    await Promise.resolve();
+    expect(metrics.createDraw).not.toHaveBeenCalled();
   });
 });

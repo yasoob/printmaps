@@ -15,13 +15,15 @@ import {
 } from "../../domain/routeProfiles";
 import type { ContentLayer } from "../../domain/project";
 import { didHandleRovingSelection } from "./rovingSelection";
-import { RouteSettingsButton } from "./RouteSettingsButton";
-import { useRoutePanelDisclosure } from "../hooks/useRoutePanelDisclosure";
+import { ToolSettingsButton } from "./ToolSettingsButton";
+import { useAuthoringPanelDisclosure } from "../hooks/useAuthoringPanelDisclosure";
 import { RoutePointInputs } from "./RoutePointInputs";
 import { ToolCardActions, ToolCardHeader } from "./ToolAuthoringCard";
 import { RouteDraftPointList } from "./RouteDraftPointList";
+import type { RoutePointInput } from "../hooks/useRoutePointInput";
 
 export type RouteDrawingPanelProps = Readonly<{
+  isCompactViewport: boolean;
   pointCount: number;
   points: readonly (readonly [number, number])[];
   canFinish: boolean;
@@ -36,13 +38,13 @@ export type RouteDrawingPanelProps = Readonly<{
   isRouting: boolean;
   error: string | null;
   announcement: string | null;
-  initialCoordinate: readonly [number, number];
+  pointInput: RoutePointInput;
   pois: readonly ContentLayer[];
   snapEnabled: boolean;
   onLineShapeChange: (shape: RouteLineShape) => void;
   onRoadTravelModeChange: (mode: RoadTravelMode) => void;
   onTravelMarkerChange: (marker: RouteTravelMarker | null) => void;
-  onAddPoint: (coordinate: readonly [number, number], label: string) => void;
+  onAddPoint: (coordinate: readonly [number, number], label: string) => boolean;
   onSnapChange: (isEnabled: boolean) => void;
   onCancel: () => void;
   onUndo: () => void;
@@ -214,9 +216,15 @@ function RouteDrawingActions({
   );
 }
 
+function compactRouteSummary(pointCount: number) {
+  if (pointCount === 0) return "Add route points";
+  return `${pointCount} ${pointCount === 1 ? "point" : "points"}`;
+}
+
 export function RouteDrawingPanel(props: RouteDrawingPanelProps) {
   const finishExplanationId = "route-finish-explanation";
-  const disclosure = useRoutePanelDisclosure(props.pointCount);
+  const disclosure = useAuthoringPanelDisclosure(props.pointCount, props.isCompactViewport);
+  const compactSummary = compactRouteSummary(props.pointCount);
 
   return (
     <div
@@ -225,12 +233,16 @@ export function RouteDrawingPanel(props: RouteDrawingPanelProps) {
     >
       <ToolCardHeader
         closeLabel="Close Route menu"
+        collapse={{ label: "Hide route settings", onCollapse: disclosure.closeSettings }}
         icon={Route}
         onClose={props.onCancel}
         title={props.title ?? "Route"}
       />
       {!disclosure.settingsOpen && (
-        <RouteSettingsButton onOpen={disclosure.openSettings} />
+        <>
+          <p className="tool-compact-summary" aria-hidden="true">{compactSummary}</p>
+          <ToolSettingsButton buttonRef={disclosure.settingsButtonRef} label="Show route settings" onOpen={disclosure.openSettings} />
+        </>
       )}
       <div className="route-authoring-settings">
         <RoutePathControl {...props} />
@@ -239,7 +251,7 @@ export function RouteDrawingPanel(props: RouteDrawingPanelProps) {
           <summary>Add by coordinates or existing place</summary>
           <RoutePointInputs
             disabled={props.isRouting}
-            initialCoordinate={props.initialCoordinate}
+            pointInput={props.pointInput}
             onAdd={props.onAddPoint}
             onSnapChange={props.onSnapChange}
             pois={props.pois}

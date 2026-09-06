@@ -6,13 +6,15 @@ describe('searched POI project transaction', () => {
     const store = createProjectStore(createInitialProjectDocument());
     const epoch = store.getState().documentEpoch;
 
-    const id = store.getState().createSearchPoi({
+    const result = store.getState().createSearchPoi({
       coordinate: [16.365, 48.2105],
       label: 'Café Central, Herrengasse 14, Vienna',
       providerFeatureId: 'address.cafe-central',
     }, epoch);
 
-    expect(id).toBe('poi-01');
+    expect(result).toEqual({ ok: true, layerId: 'poi-01' });
+    if (!result.ok) throw new Error(result.error);
+    const id = result.layerId;
     expect(store.getState().document.layers.find((layer) => layer.id === id)).toMatchObject({
       name: 'Café Central, Herrengasse 14, Vienna',
       type: 'poi',
@@ -33,10 +35,11 @@ describe('searched POI project transaction', () => {
   it('drops geocoding provenance after a manual coordinate edit', () => {
     const store = createProjectStore(createInitialProjectDocument());
     const epoch = store.getState().documentEpoch;
-    const id = store.getState().createSearchPoi({
+    const result = store.getState().createSearchPoi({
       coordinate: [16.365, 48.2105], label: 'Café Central', providerFeatureId: 'address.cafe-central',
     }, epoch);
-    if (!id) throw new Error('Expected searched POI creation.');
+    if (!result.ok) throw new Error(result.error);
+    const id = result.layerId;
 
     store.getState().setPoiCoordinates(id, [16.4, 48.25]);
 

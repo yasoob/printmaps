@@ -9,6 +9,7 @@ import { createArcGeometry } from "../domain/routeArcGeometry";
 import type { ContentLayer } from "../domain/project";
 import { isCompleteRouteLayer } from "../domain/routeModel";
 import { markerAppearanceFor } from "../domain/routeProfiles";
+import { mutationRejected } from "../domain/projectMutation";
 import type { ProjectState } from "./store";
 import {
   commitDocument,
@@ -32,14 +33,16 @@ function commitRouteGeometry(
   update: (
     layer: ProjectState["document"]["layers"][number] | undefined,
   ) => ProjectState["document"]["layers"][number] | null,
+  isUnchanged?: (layer: ContentLayer) => boolean,
 ) {
-  set((state) => {
+  return set((state) => {
     const layer = state.document.layers.find(
       (candidate) => candidate.id === id,
     );
-    if (layer?.type !== "route" || layer.locked || !layer.visible) return state;
+    if (layer?.type !== "route" || layer.locked || !layer.visible) return mutationRejected("Unlock and show this route before editing it.", 'unavailable');
+    if (isUnchanged?.(layer)) return state;
     const updatedLayer = update(layer);
-    if (!updatedLayer || !isCompleteRouteLayer(updatedLayer)) return state;
+    if (!updatedLayer || !isCompleteRouteLayer(updatedLayer)) return mutationRejected("This route edit is invalid. The original route was kept.");
     return commitDocument(
       state,
       replaceLayers(
@@ -50,6 +53,21 @@ function commitRouteGeometry(
       ),
     );
   });
+}
+
+function geometryPoints(layer: ContentLayer) {
+  return layer.geometry?.type === 'Arc' ? layer.geometry.anchors
+    : (layer.geometry?.type === 'LineString' ? layer.geometry.coordinates : null);
+}
+
+function sameRoutePositions(layer: ContentLayer, positions: readonly (readonly [number, number])[]) {
+  const current = geometryPoints(layer);
+  if (!current) return false;
+  const closing = layer.route?.closed && positions.length > 1
+    && positions[0][0] === positions.at(-1)![0] && positions[0][1] === positions.at(-1)![1];
+  const length = positions.length - (closing ? 1 : 0);
+  return length === current.length - (layer.route?.closed ? 1 : 0)
+    && positions.slice(0, length).every(([lng, lat], index) => current[index][0] === lng && current[index][1] === lat);
 }
 
 function validateAuthoredRoute(
@@ -124,8 +142,9 @@ export function createRouteGeometryActions(
         removeRouteVertex(layer, vertexIndex),
       ),
     replaceRouteGeometry: (id, coordinates) =>
-      commitRouteGeometry(set, id, (layer) =>
-        replaceRouteGeometry(layer, coordinates),
+      commitRouteGeometry(set, id,
+        (layer) => replaceRouteGeometry(layer, coordinates),
+        (layer) => sameRoutePositions(layer, coordinates),
       ),
     replaceAuthoredRoute: (id, candidate, travelMarker, expectedLayer) => {
       let result: ReturnType<ProjectState["replaceAuthoredRoute"]> = {
@@ -133,7 +152,7 @@ export function createRouteGeometryActions(
         error:
           "The route update is invalid. Review the draft points and try again.",
       };
-      set((state) => {
+      const admission = set((state) => {
         const current = state.document.layers.find((layer) => layer.id === id);
         const validation = validateAuthoredRoute(current, expectedLayer);
         if (!validation.ok) {
@@ -175,15 +194,22 @@ export function createRouteGeometryActions(
           selectedId: id,
         };
       });
-      return result;
+      return admission.ok ? result : admission;
     },
     setRouteVertex: (id, vertexIndex, coordinates) =>
-      commitRouteGeometry(set, id, (layer) =>
-        moveRouteVertex(layer, vertexIndex, coordinates),
+      commitRouteGeometry(set, id,
+        (layer) => moveRouteVertex(layer, vertexIndex, coordinates),
+        (layer) => {
+          const point = geometryPoints(layer)?.[vertexIndex];
+          return Boolean(point && point[0] === coordinates[0] && point[1] === coordinates[1]);
+        },
       ),
     setArcSegmentCurvature: (id, segmentIndex, curvature) =>
-      commitRouteGeometry(set, id, (layer) =>
-        setArcSegmentCurvature(layer, segmentIndex, curvature),
+      commitRouteGeometry(set, id,
+        (layer) => setArcSegmentCurvature(layer, segmentIndex, curvature),
+        (layer) => layer.geometry?.type === 'Arc'
+          && Number.isSafeInteger(segmentIndex) && segmentIndex >= 0 && segmentIndex < layer.geometry.curvatures.length
+          && layer.geometry.curvatures[segmentIndex] === curvature,
       ),
   };
 }

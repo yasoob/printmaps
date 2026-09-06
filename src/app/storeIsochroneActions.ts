@@ -3,26 +3,30 @@ import { parseLayerGeometry } from '../domain/projectGeometry';
 import { isValidPosition } from '../domain/routeGeometry';
 import type { ProjectState } from './store';
 import { commitDocument, replaceLayers, type ProjectSet } from './storeDocument';
+import { mutationRejected } from '../domain/projectMutation';
+import { ProjectFileError } from '../domain/projectFileError';
+import { MAX_POI_LABEL_CHARACTERS } from '../domain/poiMarkers';
 
 const PROFILES = ['driving', 'cycling', 'walking'] as const;
-const MAX_LABEL_CHARACTERS = 120;
 const MAX_POSITIONS = 50_000;
+const isValidLabel = (label: string) => Boolean(label) && label.trim() === label && [...label].length <= MAX_POI_LABEL_CHARACTERS;
 
 function canonicalInput(input: IsochroneAreaInput) {
   if (!isValidPosition(input.center[0], input.center[1])) return null;
   if (!PROFILES.includes(input.profile)) return null;
   if (!Number.isSafeInteger(input.minutes) || input.minutes < 5 || input.minutes > 60) return null;
-  if (!input.label || input.label.trim() !== input.label || [...input.label].length > MAX_LABEL_CHARACTERS) return null;
+  if (!isValidLabel(input.label)) return null;
   try {
     const geometry = parseLayerGeometry(
       input.geometry,
       'Travel-time area',
       { value: 0 },
-      { fail: (message) => { throw new Error(message); }, maximumCoordinates: MAX_POSITIONS },
+      { fail: (message) => { throw new ProjectFileError(message); }, maximumCoordinates: MAX_POSITIONS },
     );
     if (geometry.type !== 'Polygon' && geometry.type !== 'MultiPolygon') return null;
     return { ...input, center: [...input.center] as [number, number], geometry };
-  } catch {
+  } catch (error) {
+    if (!(error instanceof ProjectFileError)) throw error;
     return null;
   }
 }
@@ -61,12 +65,12 @@ export function createIsochroneActions(set: ProjectSet): Pick<ProjectState, 'cre
   return {
     createIsochroneArea: (candidate, expectedDocumentEpoch) => {
       let createdId: string | null = null;
-      set((state) => {
-        if (state.documentEpoch !== expectedDocumentEpoch) return state;
+      const admission = set((state) => {
+        if (state.documentEpoch !== expectedDocumentEpoch) return mutationRejected('The project changed before the area was ready. Generate the area again.', 'stale');
         const input = canonicalInput(candidate);
         const id = nextIsochroneId(state.document.layers);
         const layer = isochroneLayer(id, input);
-        if (!layer) return state;
+        if (!layer) return mutationRejected('The travel-time area is invalid. Check its location and options and try again.');
         createdId = id;
         const layers = [...state.document.layers];
         const basemapIndex = layers.findIndex(({ type }) => type === 'basemap');
@@ -76,7 +80,8 @@ export function createIsochroneActions(set: ProjectSet): Pick<ProjectState, 'cre
           selectedId: id,
         };
       });
-      return createdId;
+      if (!admission.ok) return admission;
+      return createdId ? { ok: true, layerId: createdId } : mutationRejected('The area could not be added. Nothing was changed.');
     },
   };
 }

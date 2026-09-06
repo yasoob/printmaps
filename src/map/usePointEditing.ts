@@ -2,11 +2,12 @@ import { useEffect, useLayoutEffect, useRef, type RefObject } from 'react';
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { ContentLayer, MapStylePreset } from '../domain/project';
 import { installPointEditing } from './PointEditing';
+import { mutationRejected, type ProjectMutationResult } from '../domain/projectMutation';
 
 type PointEditingOptions = {
   layers: ContentLayer[];
   map: RefObject<MapLibreMap | null>;
-  onPoiCoordinatesChange?: (id: string, coordinate: readonly [number, number]) => void;
+  onPoiCoordinatesChange?: (id: string, coordinate: readonly [number, number]) => ProjectMutationResult;
   selectedId: string | null;
   stylePreset: MapStylePreset;
 };
@@ -35,7 +36,10 @@ export function usePointEditing({
     const editing = installPointEditing(
       activeMap,
       selectedLayer,
-      (coordinate) => coordinatesChange.current?.(selectedLayer.id, coordinate),
+      (coordinate) => {
+        const commit = coordinatesChange.current;
+        return commit ? commit(selectedLayer.id, coordinate) : mutationRejected('Point editing is no longer available.', 'unavailable');
+      },
     );
     if (pendingFocus.current === selectedLayer.id) editing.focusHandle();
     pendingFocus.current = null;

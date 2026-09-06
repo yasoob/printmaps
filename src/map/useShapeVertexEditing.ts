@@ -2,12 +2,13 @@ import { useEffect, useLayoutEffect, useRef, type RefObject } from 'react';
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { ContentLayer, MapStylePreset, ShapeGeometry } from '../domain/project';
 import { installShapeVertexEditing } from './ShapeVertexEditing';
+import { mutationRejected, type ProjectMutationResult } from '../domain/projectMutation';
 
 type ShapeVertexEditingOptions = {
   active: boolean;
   layers: ContentLayer[];
   map: RefObject<MapLibreMap | null>;
-  onShapeGeometryChange?: (id: string, geometry: ShapeGeometry) => void;
+  onShapeGeometryChange?: (id: string, geometry: ShapeGeometry) => ProjectMutationResult;
   selectedId: string | null;
   stylePreset: MapStylePreset;
 };
@@ -36,7 +37,7 @@ export function useShapeVertexEditing({
     const editing = installShapeVertexEditing(
       activeMap,
       selectedLayer,
-      (geometry) => shapeGeometryChange.current?.(selectedLayer.id, geometry),
+      (geometry) => shapeGeometryChange.current?.(selectedLayer.id, geometry) ?? mutationRejected('Area editing is no longer available.', 'unavailable'),
     );
     if (pendingFocus.current?.layerId === selectedLayer.id) {
       editing.focusPoint(pendingFocus.current.ringIndex, pendingFocus.current.vertexIndex);

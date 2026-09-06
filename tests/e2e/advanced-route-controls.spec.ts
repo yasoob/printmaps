@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { expandToolSettings } from './authoring-panel-support';
 import {
   basicRouteProject,
   convertRoute,
@@ -97,6 +98,7 @@ test('converts every route-kind pair and atomically remaps local structure', asy
   await page.getByRole('menuitem', { name: 'Open project' }).click();
   const chooser = await chooserPromise;
   await chooser.setFiles(saved.path);
+  await page.getByRole('button', { name: 'Replace project', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
   await page.getByRole('button', { name: 'Select Route 01' }).click();
   await openAdvanced(page);
@@ -214,6 +216,7 @@ test('edits draft points and reuses an explicit Road Preview on Finish', async (
     await page.getByRole('option', { name: `${name}, Austria` }).click();
   }
 
+  await expandToolSettings(page, 'route');
   await page.getByText('Draft points (3)').click();
   const list = page.getByRole('list', { name: 'Draft route points' });
   const firstRow = list.getByRole('listitem').first();
@@ -257,9 +260,11 @@ test('edits draft points and reuses an explicit Road Preview on Finish', async (
   await page.getByRole('button', { name: 'Remove draft point 2' }).click();
   await expect(list.getByRole('listitem')).toHaveCount(2);
   await page.getByRole('button', { name: 'Undo last route point' }).click();
+  await expandToolSettings(page, 'route');
   await expect(list.getByRole('listitem')).toHaveCount(3);
   await page.getByRole('button', { name: 'Undo last route point' }).click();
 
+  await expandToolSettings(page, 'route');
   await page.getByRole('button', { name: 'Road Preview' }).click();
   await expect(page.getByText('Road preview updated.')).toBeVisible();
   expect(directions.requests).toHaveLength(1);
@@ -336,7 +341,6 @@ test('keeps advanced routes accessible at 320 and 390px', async ({ page }) => {
   await openProject(page, project);
   await page.getByRole('button', { name: 'Open layers' }).click();
   await page.getByRole('button', { name: 'Select Route 01' }).click();
-  await page.getByRole('button', { name: 'Open properties' }).click();
   await openAdvanced(page);
   const close = page.getByRole('button', { name: 'Close loop' });
   await expect(close).toBeDisabled();

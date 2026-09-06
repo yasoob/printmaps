@@ -17,7 +17,7 @@ describe('canonical map-matched routes', () => {
       sourcePointCount: 4,
     }, 0);
 
-    expect(applied).toBe(true);
+    expect(applied).toMatchObject({ ok: true });
     expect(store.getState().document.schemaVersion).toBe(25);
     expect(store.getState().document.layers.find(({ id }) => id === 'route-01')).toMatchObject({
       geometry: { type: 'LineString', coordinates: geometry },
@@ -46,15 +46,15 @@ describe('canonical map-matched routes', () => {
     }, store.getState().documentEpoch);
     const provenance = () => store.getState().document.layers.find(({ id }) => id === 'route-01')?.provenance;
 
-    expect(apply()).toBe(true);
+    expect(apply()).toMatchObject({ ok: true });
     store.getState().setRouteVertex('route-01', 1, [16.361, 48.211]);
     expect(provenance()).toBeUndefined();
 
-    expect(apply()).toBe(true);
+    expect(apply()).toMatchObject({ ok: true });
     store.getState().insertRouteVertex('route-01', 0);
     expect(provenance()).toBeUndefined();
 
-    expect(apply()).toBe(true);
+    expect(apply()).toMatchObject({ ok: true });
     store.getState().removeRouteVertex('route-01', 1);
     expect(provenance()).toBeUndefined();
   });
@@ -73,7 +73,7 @@ describe('canonical map-matched routes', () => {
       geometry: [first, second, [16.5, 48.3]],
       profile: 'walking',
       sourcePointCount: 4,
-    }, 0)).toBe(true);
+    }, 0)).toMatchObject({ ok: true });
 
     const matched = store.getState().document.layers.find(({ id }) => id === 'route-01')!;
     expect(matched.route).toEqual({ kind: 'straight', closed: false });
@@ -92,7 +92,7 @@ describe('canonical map-matched routes', () => {
       geometry: [[0, 0], [1, 1], [0, 0]],
       profile: 'walking',
       sourcePointCount: 3,
-    }, 0)).toBe(false);
+    }, 0)).toMatchObject({ ok: false });
     expect(store.getState().canUndo).toBe(false);
   });
 
@@ -103,7 +103,7 @@ describe('canonical map-matched routes', () => {
       geometry: [[16.3261, 48.1941], [16.4291, 48.2261]],
       profile: 'walking',
       sourcePointCount: 2,
-    }, 0)).toBe(false);
+    }, 0)).toMatchObject({ ok: false });
     expect(store.getState().canUndo).toBe(false);
   });
 });

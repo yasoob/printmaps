@@ -21,6 +21,8 @@ import { InputGroup, InputGroupAddon, InputNumber } from "./InputGroup";
 import { PropertyRow, PropertySection } from "./PropertyControls";
 import { RouteAdvancedProperties } from "./RouteAdvancedProperties";
 import type { RouteExtensionEndpoint } from "./routeAuthoringActions";
+import type { ProjectMutationResult } from "../../domain/projectMutation";
+import { useMutationFeedback } from "../hooks/useMutationFeedback";
 
 function markerForPictogram(
   appearance: RouteAppearance,
@@ -38,11 +40,13 @@ function markerForPictogram(
 
 const RouteAppearanceControls = memo(function RouteAppearanceControls({
   appearance,
-  onChange,
+  onChange: commit,
 }: {
   appearance: RouteAppearance;
-  onChange: (appearance: RouteAppearance) => void;
+  onChange: (appearance: RouteAppearance) => ProjectMutationResult;
 }) {
+  const feedback = useMutationFeedback(appearance);
+  const onChange = (next: RouteAppearance) => feedback.report(commit(next));
   const [widthEdit, setWidthEdit] = useState(() => ({
     source: appearance.width,
     value: String(appearance.width),
@@ -69,8 +73,8 @@ const RouteAppearanceControls = memo(function RouteAppearanceControls({
       });
       return;
     }
-    setWidthEdit({ source: width, value: String(width) });
-    onChange({ ...appearance, width });
+    const result = onChange({ ...appearance, width });
+    if (result.ok) setWidthEdit({ source: width, value: String(width) });
   };
   return (
     <>
@@ -122,6 +126,7 @@ const RouteAppearanceControls = memo(function RouteAppearanceControls({
           <option value="dashed">Dashed</option>
         </select>
       </PropertyRow>
+      {feedback.error && <p className="coordinate-validation" role="alert">{feedback.error}</p>}
       <PropertyRow label="Travel marker">
         <select
           aria-label="Route travel marker"
@@ -154,19 +159,19 @@ export type RouteLayerPropertiesProps = {
   onApplyMapMatching?: (
     input: MapMatchingInput,
     expectedDocumentEpoch: number,
-  ) => boolean;
-  onAppearanceChange: (appearance: LayerAppearance) => void;
+  ) => import("../../domain/projectMutation").ProjectMutationResult;
+  onAppearanceChange: (appearance: LayerAppearance) => ProjectMutationResult;
   onBeginExtend?: (
     endpoint: RouteExtensionEndpoint,
     trigger: HTMLButtonElement,
   ) => void;
-  onArcCurvatureChange?: (segmentIndex: number, curvature: number) => void;
-  onRouteVertexInsert: (vertexIndex: number) => void;
-  onRouteVertexRemove: (vertexIndex: number) => void;
+  onArcCurvatureChange?: (segmentIndex: number, curvature: number) => import("../../domain/projectMutation").ProjectMutationResult;
+  onRouteVertexInsert: (vertexIndex: number) => import("../../domain/projectMutation").ProjectMutationResult;
+  onRouteVertexRemove: (vertexIndex: number) => import("../../domain/projectMutation").GeometryEditResult;
   onRouteVertexChange: (
     vertexIndex: number,
     coordinates: readonly [number, number],
-  ) => void;
+  ) => import("../../domain/projectMutation").GeometryEditResult;
   directionsRouteEditError?: string | null;
   directionsRouteEditIsRouting?: boolean;
   directionsRouteEditWaypoints?: readonly (readonly [number, number])[] | null;

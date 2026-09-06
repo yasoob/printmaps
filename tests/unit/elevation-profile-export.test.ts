@@ -5,6 +5,8 @@ import {
 } from '../../src/export/elevationProfile';
 import { createElevationProfilePdf } from '../../src/export/elevationProfilePdf';
 import type { ElevationProfile } from '../../src/elevation/profile';
+import { validProfilePng, profilePngChunks } from '../fixtures/profilePng';
+import { createElevationProfileScene } from '../../src/export/elevationProfileScene';
 
 const profile: ElevationProfile = {
   samples: [
@@ -53,26 +55,29 @@ describe('elevation profile exports', () => {
   });
 
   it('rasterizes the same attributed SVG into a PNG', async () => {
-    const expected = new Blob(['png'], { type: 'image/png' });
+    const expected = await validProfilePng();
     const rasterize = vi.fn(async (svg: string) => {
       expect(svg).toContain('data-elevation-profile="true"');
       expect(svg).toContain('Copernicus DEM GLO-90 via Open-Meteo');
       return expected;
     });
 
-    await expect(createElevationProfilePng(profile, 'Alpine Route', { rasterize })).resolves.toBe(expected);
+    const png = await createElevationProfilePng(profile, 'Alpine Route', { rasterize });
+    expect(png.type).toBe('image/png');
+    const chunks = profilePngChunks(new Uint8Array(await png.arrayBuffer()));
+    expect(chunks.map((chunk) => chunk.type)).toContain('pHYs');
   });
 
   it('rasterizes PNG output at twelve pixels per selected print millimetre', async () => {
-    const expected = new Blob(['png'], { type: 'image/png' });
+    const expected = await validProfilePng();
     const rasterize = vi.fn(async (_svg: string, width: number, height: number) => {
       expect(width).toBe(2640);
       expect(height).toBe(1320);
       return expected;
     });
 
-    await expect(createElevationProfilePng(profile, 'Alpine Route', { printWidthMm: 220, rasterize }))
-      .resolves.toBe(expected);
+    const png = await createElevationProfilePng(profile, 'Alpine Route', { printWidthMm: 220, rasterize });
+    expect(png.type).toBe('image/png');
   });
 
   it('uses imperial distances and elevations consistently in SVG and PDF exports', async () => {
@@ -114,7 +119,7 @@ describe('elevation profile exports', () => {
 
     const rasterize = vi.fn(async (pngSvg: string) => {
       expect(pngSvg).not.toContain('fill="none" stroke="#0d79c7"');
-      return new Blob(['png'], { type: 'image/png' });
+      return validProfilePng();
     });
     await createElevationProfilePng(profile, 'Alpine Route', { showCurve: false, rasterize });
     expect(rasterize).toHaveBeenCalledOnce();
@@ -192,11 +197,11 @@ describe('elevation profile export safeguards', () => {
         { coordinate: [16.2, 48.2], distanceMeters: 20_000, elevationMeters: 120 },
       ],
     };
-    const svgLayout = createElevationProfileLayout(descendingProfile);
+    const svgLayout = createElevationProfileScene(descendingProfile, 'Descending Route', { fontSize: 70 }).layout;
     const svg = serializeElevationProfileSvg(descendingProfile, 'Descending Route', { fontSize: 70 });
-    const svgMarkerLabel = /<text x="81" y="([\d.]+)"[^>]*>260 m<\/text>/.exec(svg);
-    expect(svgMarkerLabel).not.toBeNull();
-    expect(Number(svgMarkerLabel?.[1])).toBeGreaterThan(svgLayout.points[0].y);
+    const svgMarkerLabel = [...new DOMParser().parseFromString(svg, 'image/svg+xml').querySelectorAll('[data-profile-text="marker"]')].find((text) => text.textContent === '260 m');
+    expect(svgMarkerLabel).toBeDefined();
+    expect(Number(svgMarkerLabel?.getAttribute('y'))).toBeGreaterThan(svgLayout.points[0].y);
 
     const pdf = await createElevationProfilePdf(descendingProfile, 'Descending Route', { fontSize: 70, units: 'imperial' });
     const pdfText = new TextDecoder().decode(await pdf.arrayBuffer());
@@ -217,16 +222,20 @@ describe('elevation profile export safeguards', () => {
     };
 
     const svg = serializeElevationProfileSvg(nearEdgeProfile, 'Near-edge Route', { fontSize: 70 });
-    expect(svg).toMatch(/<text x="119\.25"[^>]+text-anchor="start"[^>]*>260 m<\/text>/);
+    const marker = [...new DOMParser().parseFromString(svg, 'image/svg+xml').querySelectorAll('[data-profile-text="marker"]')].find((text) => text.textContent === '260 m');
+    const scene = createElevationProfileScene(nearEdgeProfile, 'Near-edge Route', { fontSize: 70 });
+    expect(Number(marker?.getAttribute('x'))).toBeGreaterThanOrEqual(scene.layout.plot.left);
+    expect(marker?.getAttribute('text-anchor')).toBe('start');
   });
 
   it('keeps maximum-size vector footers on separate bounded lines', async () => {
     const svg = serializeElevationProfileSvg(profile, 'Alpine Route', { fontSize: 70 });
-    const svgSummaryPosition = /<text x="81" y="([\d.]+)">20\.0 km/.exec(svg);
-    const svgSourcePosition = /<text x="819" y="([\d.]+)" text-anchor="end">Copernicus DEM GLO-90 via Open-Meteo<\/text>/.exec(svg);
+    const document = new DOMParser().parseFromString(svg, 'image/svg+xml');
+    const svgSummaryPosition = document.querySelector('[data-profile-text="summary"]');
+    const svgSourcePosition = document.querySelector('[data-profile-text="source"]');
     expect(svgSummaryPosition).not.toBeNull();
     expect(svgSourcePosition).not.toBeNull();
-    expect(Number(svgSourcePosition?.[1])).toBeGreaterThan(Number(svgSummaryPosition?.[1]));
+    expect(Number(svgSourcePosition?.getAttribute('y'))).toBeGreaterThan(Number(svgSummaryPosition?.getAttribute('y')));
 
     const pdf = await createElevationProfilePdf(profile, 'Alpine Route', { fontSize: 70 });
     const pdfText = new TextDecoder().decode(await pdf.arrayBuffer());

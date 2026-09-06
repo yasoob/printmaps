@@ -1,6 +1,7 @@
 import { Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { MAX_MERCATOR_LATITUDE } from "../../domain/project";
+import { routePointRemovalError } from "../../domain/routePointConstraints";
 import { CoordinateField } from "./CoordinateField";
 import { PropertyRow } from "./PropertyControls";
 
@@ -10,12 +11,13 @@ type RouteVertexControlsProps = {
   onChange: (
     vertexIndex: number,
     coordinates: readonly [number, number],
-  ) => void;
-  onInsert: (vertexIndex: number) => void;
-  onRemove: (vertexIndex: number) => void;
+  ) => import("../../domain/projectMutation").GeometryEditResult;
+  onInsert: (vertexIndex: number) => import("../../domain/projectMutation").ProjectMutationResult;
+  onRemove: (vertexIndex: number) => import("../../domain/projectMutation").GeometryEditResult;
   noun?: "Anchor" | "Vertex" | "Waypoint";
   allowInsert?: boolean;
   middleOnlyRemove?: boolean;
+  isClosed?: boolean;
 };
 
 function routeVertexOptions(
@@ -30,25 +32,18 @@ function routeVertexOptions(
   });
 }
 
-function canRemoveRouteVertex(
-  vertexIndex: number,
-  count: number,
-  isMiddleOnly: boolean,
-) {
-  if (count <= 2) return false;
-  return !isMiddleOnly || (vertexIndex > 0 && vertexIndex < count - 1);
-}
-
 export function RouteVertexControls({
   coordinates,
   disabled = false,
   noun = "Vertex",
   allowInsert = true,
   middleOnlyRemove = false,
+  isClosed,
   onChange,
   onInsert,
   onRemove,
 }: RouteVertexControlsProps) {
+  const removalHintId = useId();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const vertexIndex = Math.min(
     selectedIndex,
@@ -57,6 +52,9 @@ export function RouteVertexControls({
   const selectedCoordinates = coordinates[vertexIndex];
   if (!selectedCoordinates) return null;
   const options = routeVertexOptions(coordinates);
+  const removalError = routePointRemovalError({
+    pointCount: coordinates.length, pointIndex: vertexIndex, isClosed: isClosed === true, isMiddleOnly: middleOnlyRemove,
+  });
 
   return (
     <>
@@ -104,8 +102,8 @@ export function RouteVertexControls({
             aria-label={`Insert route ${noun.toLowerCase()} after selected`}
             disabled={disabled || vertexIndex >= coordinates.length - 1}
             onClick={() => {
-              setSelectedIndex(vertexIndex + 1);
-              onInsert(vertexIndex);
+              const result = onInsert(vertexIndex);
+              if (result.ok) setSelectedIndex(vertexIndex + 1);
             }}
           >
             <Plus size={13} /> Insert after
@@ -114,22 +112,17 @@ export function RouteVertexControls({
         <button
           type="button"
           aria-label={`Remove selected route ${noun.toLowerCase()}`}
-          disabled={
-            disabled ||
-            !canRemoveRouteVertex(
-              vertexIndex,
-              coordinates.length,
-              middleOnlyRemove,
-            )
-          }
+          disabled={disabled || removalError !== null}
+          aria-describedby={removalError ? removalHintId : undefined}
           onClick={() => {
-            setSelectedIndex(Math.min(vertexIndex, coordinates.length - 2));
-            onRemove(vertexIndex);
+            const result = onRemove(vertexIndex);
+            if ('pending' in result || result.ok) setSelectedIndex(Math.min(vertexIndex, coordinates.length - 2));
           }}
         >
           <Trash2 size={13} /> Remove
         </button>
       </div>
+      {removalError && <small id={removalHintId} className="route-vertex-hint route-removal-hint">{removalError}</small>}
       {!disabled && (
         <small className="route-vertex-hint">
           Drag the visible map handles or use the coordinate fields.

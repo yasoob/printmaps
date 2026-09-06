@@ -26,6 +26,7 @@ function useRouteCommitActions(
     const extensionTrigger = core.extension?.trigger;
     core.directions.cancel();
     core.resetPoints([]);
+    core.pointInput.reset();
     core.setError(null);
     core.setAnnouncement(null);
     core.setExtension(null);
@@ -111,7 +112,7 @@ function useRouteCommitActions(
 
   const requestCancel = useCallback(
     (trigger: HTMLElement | null = null) => {
-      if (core.currentDraft.history.length === 0) {
+      if (!core.hasUnfinishedWork) {
         exit();
         return;
       }
@@ -137,6 +138,7 @@ export function useCanvasRouteAuthoring(parameters: RouteAuthoringParameters) {
   const inputActions = routeInputActions(parameters, core, commitActions.exit);
   useRouteKeyboard({
     active: parameters.activeTool === "route",
+    isModalOpen: parameters.isModalOpen,
     canFinish: core.canFinish,
     canUndo: core.currentDraft.history.length > 0,
     isDiscardOpen: core.isDiscardOpen,
@@ -179,6 +181,7 @@ export function useCanvasRouteAuthoring(parameters: RouteAuthoringParameters) {
     },
     draftPoints: core.commitPoints,
     extensionLayerId: core.extension?.layer.id ?? null,
+    hasUnfinishedWork: core.hasUnfinishedWork,
     isClosed: core.isClosed,
     isDiscardOpen: core.isDiscardOpen,
     keepEditing: inputActions.keepEditing,

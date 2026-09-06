@@ -1,9 +1,10 @@
-import { useCallback, useState } from 'react';
-import type { ContentLayer } from '../../domain/project';
+import { useCallback, useMemo, useState } from 'react';
+import { mutationRejected } from '../../domain/projectMutation';
 import {
   applyMapDataBatchAppearance,
   createMapDataBatchAppearance,
-  isMapDataBatchAppearanceValid,
+  MapDataBatchAppearanceError,
+  validateMapDataBatchAppearance,
   type MapDataBatchAppearance,
 } from '../../import/mapDataBatchAppearance';
 import {
@@ -14,107 +15,58 @@ import {
 } from './useMapDataImportReader';
 
 export function useMapDataImport(options: MapDataImportOptions) {
-  const { documentEpoch, onImport, onOpenChange, triggerRef } = options;
   const reader = useMapDataImportReader(options);
-  const {
-    batch, dialogError, handleInputChange, inputRef, isReading, isReadingRef, prepareFiles,
-    replacementTarget, replacementTargetRef, requestIdRef, returnFocusRef, selectedNames,
-    reviewedSourceRef,
-    setBatch, setDialogError, setPhase, setReplacementTarget, setShouldFitView, setStatus,
-    shouldFitView, status,
-  } = reader;
+  const { batch, replacementTarget, shouldFitView } = reader;
   const [appearanceState, setAppearanceState] = useState<{
     batch: NonNullable<typeof batch>;
     settings: MapDataBatchAppearance;
   } | null>(null);
-  const batchAppearance = batch
-    ? (appearanceState?.batch === batch
-        ? appearanceState.settings
-        : createMapDataBatchAppearance(batch.layers))
-    : null;
-  const isBatchAppearanceValid = !batch
-    || replacementTarget !== null
-    || (batchAppearance !== null && isMapDataBatchAppearanceValid(batch.layers, batchAppearance));
+  const [appearanceFailure, setAppearanceFailure] = useState<{
+    batch: NonNullable<typeof batch>; settings: MapDataBatchAppearance; error: string;
+  } | null>(null);
+  const defaults = useMemo(() => batch ? createMapDataBatchAppearance(batch.layers) : null, [batch]);
+  const batchAppearance = appearanceState?.batch === batch ? appearanceState.settings : defaults;
+  const batchAppearanceValidation = useMemo(
+    () => batch && batchAppearance ? validateMapDataBatchAppearance(batch.layers, batchAppearance) : null,
+    [batch, batchAppearance],
+  );
   const setBatchAppearance = useCallback((settings: MapDataBatchAppearance) => {
     if (batch) setAppearanceState({ batch, settings });
   }, [batch]);
 
-  const closeDialog = useCallback((shouldRestoreFocus = true) => {
-    requestIdRef.current += 1;
-    if (!isReadingRef.current) setPhase('idle');
-    setBatch(null);
-    setDialogError(null);
-    setReplacementTarget(null);
-    replacementTargetRef.current = null;
-    onOpenChange(false);
-    if (shouldRestoreFocus) {
-      window.setTimeout(() => {
-        const target = returnFocusRef.current;
-        (target?.isConnected ? target : triggerRef.current)?.focus();
-      }, 0);
-    }
-  }, [isReadingRef, onOpenChange, replacementTargetRef, requestIdRef, returnFocusRef, setBatch, setDialogError, setPhase, setReplacementTarget, triggerRef]);
-
   const commitReviewedImport = () => {
-    const reviewedSource = reviewedSourceRef.current;
-    if (!batch || !reviewedSource) return;
+    const review = reader.getReview(batch);
+    if (!review || !batch) return mutationRejected('This import review is no longer active. Choose the files again.', 'stale');
     let layers = batch.layers;
-    if (!replacementTarget && batchAppearance) {
+    if (!replacementTarget) {
+      if (!batchAppearance) return mutationRejected('Choose import styling before adding this batch.');
       try {
         layers = applyMapDataBatchAppearance(batch.layers, batchAppearance);
       } catch (error) {
-        setDialogError(error instanceof Error ? error.message : 'Choose valid import styling values before adding this batch.');
-        return;
+        if (!(error instanceof MapDataBatchAppearanceError)) throw error;
+        setAppearanceFailure({ batch, settings: batchAppearance, error: error.message });
+        return mutationRejected(error.message);
       }
     }
-    if (!onImport({
-      documentEpoch: reviewedSource.documentEpoch,
+    const result = options.onImport({
+      ...review.source,
       layers,
       replacementTarget,
       shouldFitView,
-      sourceDocument: reviewedSource.sourceDocument,
-    })) {
-      setDialogError('The project changed before this data could be applied. Choose the replacement again.');
-      return;
+    });
+    if (!reader.getReview(batch)) return result;
+    if (!result.ok) {
+      reader.setDialogError(result.error);
+      return result;
     }
-    setStatus(replacementTarget
-      ? replacementSuccess(replacementTarget, reviewedSource.documentEpoch)
-      : reviewedSuccess(batch, reviewedSource.documentEpoch));
-    closeDialog();
+    reader.setStatus(replacementTarget
+      ? replacementSuccess(replacementTarget, review.source.documentEpoch)
+      : reviewedSuccess(batch, review.source.documentEpoch));
+    reader.closeDialog();
+    return result;
   };
 
-  const chooseImportFiles = useCallback(() => {
-    replacementTargetRef.current = null;
-    setReplacementTarget(null);
-    returnFocusRef.current = triggerRef.current;
-    inputRef.current?.click();
-  }, [inputRef, replacementTargetRef, returnFocusRef, setReplacementTarget, triggerRef]);
-
-  const prepareReplacement = useCallback((target: ContentLayer, trigger: HTMLElement | null) => {
-    replacementTargetRef.current = target;
-    setReplacementTarget(target);
-    returnFocusRef.current = trigger;
-  }, [replacementTargetRef, returnFocusRef, setReplacementTarget]);
-
-  return {
-    batch,
-    batchAppearance,
-    chooseImportFiles,
-    prepareReplacement,
-    closeDialog,
-    commitReviewedImport,
-    dialogError,
-    handleInputChange,
-    inputRef,
-    isReading,
-    isBatchAppearanceValid,
-    prepareFiles,
-    replacementTarget,
-    selectedNames,
-    setBatchAppearance,
-    setShouldFitView,
-    shouldFitView,
-    status: status?.documentEpoch === documentEpoch ? status : null,
-    triggerRef,
-  };
+  const appearanceError = appearanceFailure?.batch === batch && appearanceFailure?.settings === batchAppearance
+    ? appearanceFailure.error : null;
+  return { ...reader, dialogError: reader.dialogError ?? appearanceError, batchAppearance, batchAppearanceValidation, commitReviewedImport, setBatchAppearance };
 }

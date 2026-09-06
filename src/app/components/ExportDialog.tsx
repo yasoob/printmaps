@@ -5,7 +5,7 @@ import { canStreamLargeRasterPng } from '../../export/largeRasterPng';
 import { planLayeredPsdExport } from '../../export/layeredPsdPlan';
 import { planExportPreflight, type RasterDelivery } from '../../export/preflight';
 import type { PreviewPngExporter } from '../../export/previewPng';
-import { runPdfExport } from './exportDialogPdf';
+import { planPdfExport, runPdfExport } from './exportDialogPdf';
 import { runPngExport } from './exportDialogPng';
 import { runPsdExport } from './exportDialogPsd';
 import { NATIVE_SYMBOL_BUFFER_PX } from './exportDialogRaster';
@@ -77,6 +77,7 @@ export function ExportDialog({ exporter, filename, document, onClose }: ExportDi
   const [error, setError] = useState<string | null>(null);
   const { preflight, rasterDelivery } = useExportPreflight(document);
   const psdPlan = useMemo(() => planLayeredPsdExport(document), [document]);
+  const pdfPreflight = useMemo(() => planPdfExport(document), [document]);
   const largeRasterSupported = canStreamLargeRasterPng();
 
   useEffect(() => {
@@ -156,5 +157,5 @@ export function ExportDialog({ exporter, filename, document, onClose }: ExportDi
     svg: () => void downloadLayeredSvg(),
   });
 
-  return <ExportDialogView busy={busy} cancellationAvailable={cancellationAvailable} cancelButtonRef={cancelButtonRef} dialogRef={dialogRef} document={document} downloadButtonRef={downloadButtonRef} error={error} largeRasterSupported={largeRasterSupported} onCancel={cancelExport} onClose={onClose} onDownload={downloadSelectedFormat} onFormatChange={changeFormat} onTechnicalDetailsToggle={() => setTechnicalDetailsExpanded((expanded) => !expanded)} preflight={preflight} psdPlan={psdPlan} rasterDelivery={rasterDelivery} selectedFormat={selectedFormat} status={status} technicalDetailsExpanded={technicalDetailsExpanded} />;
+  return <ExportDialogView busy={busy} isMapReady={exporter !== null} cancellationAvailable={cancellationAvailable} cancelButtonRef={cancelButtonRef} dialogRef={dialogRef} document={document} downloadButtonRef={downloadButtonRef} error={error} largeRasterSupported={largeRasterSupported} onCancel={cancelExport} onClose={onClose} onDownload={downloadSelectedFormat} onFormatChange={changeFormat} onTechnicalDetailsToggle={() => setTechnicalDetailsExpanded((expanded) => !expanded)} preflight={preflight} pdfPreflight={pdfPreflight} psdPlan={psdPlan} rasterDelivery={rasterDelivery} selectedFormat={selectedFormat} status={status} technicalDetailsExpanded={technicalDetailsExpanded} />;
 }

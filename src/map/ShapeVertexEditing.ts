@@ -129,10 +129,31 @@ function nudgeCoordinate(
   return normalizedCoordinate(next.lng, next.lat);
 }
 
+function restoreVertexHandles(
+  geometry: EditableShapeLayer['geometry'],
+  points: Map<PointKey, ShapeVertexMarker>,
+  midpoints: Map<PointKey, ShapeVertexMarker>,
+) {
+  for (const [ringIndex, ring] of geometry.coordinates.entries()) {
+    for (let index = 0; index < ring.length - 1; index += 1) {
+      points.get(pointKey(ringIndex, index))?.setLngLat(ring[index]);
+      midpoints.get(pointKey(ringIndex, index))?.setLngLat(midpointPosition(ring[index], ring[index + 1]));
+    }
+  }
+}
+
+function updateAdjacentMidpoints(geometry: EditableShapeLayer['geometry'], markers: Map<PointKey, ShapeVertexMarker>, ringIndex: number, vertexIndex: number) {
+  const ring = geometry.coordinates[ringIndex];
+  const pointCount = ring.length - 1;
+  for (const edgeIndex of [(vertexIndex - 1 + pointCount) % pointCount, vertexIndex]) {
+    markers.get(pointKey(ringIndex, edgeIndex))?.setLngLat(midpointPosition(ring[edgeIndex], ring[(edgeIndex + 1) % pointCount]));
+  }
+}
+
 export function installShapeVertexEditing(
   map: ShapeVertexMap,
   layer: ContentLayer,
-  onCommit: (geometry: ShapeGeometry) => void,
+  onCommit: (geometry: ShapeGeometry) => import('../domain/projectMutation').ProjectMutationResult,
   createMarker: MarkerFactory = createMapLibreMarker,
 ): ShapeVertexEditingSession {
   const empty = (() => {}) as ShapeVertexEditingSession;
@@ -143,15 +164,14 @@ export function installShapeVertexEditing(
   const midpointMarkers = new Map<PointKey, ShapeVertexMarker>();
   let hasUncommittedPreview = false;
 
-  const updateAdjacentMidpoints = (ringIndex: number, vertexIndex: number, nextGeometry: typeof geometry) => {
-    const ring = nextGeometry.coordinates[ringIndex];
-    const pointCount = ring.length - 1;
-    const adjacentEdgeIndexes = [(vertexIndex - 1 + pointCount) % pointCount, vertexIndex];
-    for (const edgeIndex of adjacentEdgeIndexes) {
-      midpointMarkers.get(pointKey(ringIndex, edgeIndex))?.setLngLat(midpointPosition(ring[edgeIndex], ring[(edgeIndex + 1) % pointCount]));
+  const commit = (next: ShapeGeometry) => {
+    const result = onCommit(next);
+    if (!result.ok) {
+      didUpdateSourceGeometry(map, layer, geometry);
+      restoreVertexHandles(geometry, pointMarkers, midpointMarkers);
     }
+    hasUncommittedPreview = false;
   };
-
   for (const [ringIndex, ring] of geometry.coordinates.entries()) {
     const editableCoordinates = ring.slice(0, -1);
     for (const [vertexIndex, coordinate] of editableCoordinates.entries()) {
@@ -169,7 +189,7 @@ export function installShapeVertexEditing(
         const nextCoordinate = normalizedCoordinate(lng, lat);
         const next = nextCoordinate ? movedGeometry(geometry, ringIndex, vertexIndex, nextCoordinate) : null;
         if (!next || !didUpdateSourceGeometry(map, layer, next)) return null;
-        updateAdjacentMidpoints(ringIndex, vertexIndex, next);
+        updateAdjacentMidpoints(next, midpointMarkers, ringIndex, vertexIndex);
         hasUncommittedPreview = true;
         return next;
       };
@@ -183,7 +203,7 @@ export function installShapeVertexEditing(
           return;
         }
         hasUncommittedPreview = false;
-        onCommit(next);
+        commit(next);
       });
       element.addEventListener('keydown', (event) => {
         if (event.key === 'Delete' || event.key === 'Backspace') {
@@ -191,7 +211,7 @@ export function installShapeVertexEditing(
           if (!next) return;
           event.preventDefault();
           event.stopPropagation();
-          onCommit(next);
+          commit(next);
           return;
         }
         if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
@@ -202,7 +222,7 @@ export function installShapeVertexEditing(
         if (!next || !didUpdateSourceGeometry(map, layer, next)) return;
         marker.setLngLat(nextCoordinate!);
         hasUncommittedPreview = false;
-        onCommit(next);
+        commit(next);
       });
       markers.push(marker);
     }
@@ -234,13 +254,13 @@ export function installShapeVertexEditing(
         const next = geometryAtMarker();
         if (!next || !didUpdateSourceGeometry(map, layer, next)) return;
         hasUncommittedPreview = false;
-        onCommit(next);
+        commit(next);
       });
       element.addEventListener('click', (event) => {
         event.stopPropagation();
         if (wasDragged) { wasDragged = false; return; }
         const next = insertedGeometry(geometry, ringIndex, vertexIndex, initial);
-        if (next) onCommit(next);
+        if (next) commit(next);
       });
       markers.push(marker);
     }

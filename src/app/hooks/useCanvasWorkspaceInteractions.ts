@@ -1,9 +1,14 @@
 import {
   useCallback,
+  useMemo,
+  useState,
   type Dispatch,
+  type RefObject,
   type SetStateAction,
 } from "react";
 import type { SearchResult } from "../../services/mapbox/contracts";
+import type { ContentLayer, LayerGeometry } from "../../domain/project";
+import type { SearchSelectionFeedback } from "../components/LocationSearchFeedback";
 import type { CanvasWorkspaceProps } from "../components/CanvasWorkspace.types";
 import type { useCanvasRouteAuthoring } from "./useCanvasRouteAuthoring";
 import type { useCanvasShapeAuthoring } from "./useCanvasShapeAuthoring";
@@ -23,7 +28,6 @@ type ToolActivationOptions = {
   route: RouteAuthoring;
   setStoredActiveTool: Dispatch<SetStateAction<string>>;
   setToolDocumentEpoch: Dispatch<SetStateAction<number>>;
-  shape: ShapeAuthoring;
   storedActiveTool: string;
   toolDocumentEpoch: number;
 };
@@ -33,6 +37,7 @@ export function useCanvasToolActivation(options: ToolActivationOptions) {
   return useCallback((id: string) => {
     const current = getCurrent();
     if (!current.route.requestToolChange(id)) return;
+    if (!current.poi.requestToolChange(id)) return;
     current.setToolDocumentEpoch(current.documentEpoch);
     current.setStoredActiveTool(id);
     if (["route", "pin", "shape"].includes(id)) current.onLayerSelect(null);
@@ -42,13 +47,6 @@ export function useCanvasToolActivation(options: ToolActivationOptions) {
     ) {
       return;
     }
-    if (
-      id !== "shape"
-      || current.toolDocumentEpoch !== current.documentEpoch
-    ) {
-      current.shape.setPoints([]);
-    }
-    if (id === "shape") current.shape.setMode("administrative");
     if (
       id !== "pin"
       || current.toolDocumentEpoch !== current.documentEpoch
@@ -64,11 +62,24 @@ export function useCanvasToolActivation(options: ToolActivationOptions) {
 
 type SearchSelectionOptions = {
   activeTool: string;
+  documentEpoch: number;
+  isMapLocked: boolean;
+  layers: readonly ContentLayer[];
+  selectToolRef: RefObject<HTMLButtonElement | null>;
   onLocate: CanvasWorkspaceProps["onLocate"];
   poi: PoiAuthoring;
   route: RouteAuthoring;
   shape: ShapeAuthoring;
 };
+
+type CreatedPlace = { documentEpoch: number; id: string; providerFeatureId: string };
+type SearchPointLayer = ContentLayer & { geometry: Extract<LayerGeometry, { type: "Point" }> };
+
+function isCreatedPlace(layer: ContentLayer | undefined, placement: CreatedPlace): layer is SearchPointLayer {
+  return layer !== undefined && layer.id === placement.id && layer.type === "poi"
+    && layer.geometry?.type === "Point" && layer.provenance?.service === "geocoding-v6"
+    && layer.provenance.providerFeatureId === placement.providerFeatureId;
+}
 
 function isSearchResultConsumed(options: SearchSelectionOptions) {
   return (
@@ -80,9 +91,43 @@ function isSearchResultConsumed(options: SearchSelectionOptions) {
 
 export function useCanvasSearchSelection(options: SearchSelectionOptions) {
   const getCurrent = useLatestValue(options);
-  return useCallback(
+  const [placement, setPlacement] = useState<CreatedPlace | null>(null);
+  const createdLayer = placement && placement.documentEpoch === options.documentEpoch
+    ? options.layers.find((layer) => layer.id === placement.id) : undefined;
+  const clearFeedback = useCallback(() => setPlacement(null), []);
+  const dismissFeedback = useCallback(() => {
+    clearFeedback();
+    getCurrent().selectToolRef.current?.focus();
+  }, [clearFeedback, getCurrent]);
+  // Retire obsolete confirmation state so Undo cannot revive an old action.
+  if (placement && (options.activeTool !== "select" || !isCreatedPlace(createdLayer, placement))) {
+    setPlacement(null);
+  }
+  const reveal = useCallback(() => {
+    if (!placement) return;
+    const current = getCurrent();
+    const layer = current.layers.find((candidate) => candidate.id === placement.id);
+    if (current.documentEpoch !== placement.documentEpoch || current.activeTool !== "select"
+      || current.isMapLocked || !isCreatedPlace(layer, placement) || !layer.visible) return;
+    current.selectToolRef.current?.focus();
+    current.onLocate?.([layer.geometry.coordinates[0], layer.geometry.coordinates[1]], () => {
+      setPlacement((latest) => latest === placement ? null : latest);
+    });
+  }, [getCurrent, placement]);
+  const feedback = useMemo<SearchSelectionFeedback | null>(() => {
+    if (!placement || options.activeTool !== "select" || !isCreatedPlace(createdLayer, placement)) return null;
+    const disabledReason = options.isMapLocked ? "Unlock the map area to show this location."
+      : (createdLayer.visible ? undefined : "Show this layer before locating it.");
+    return {
+      message: `Added ${createdLayer.name}.`,
+      onDismiss: dismissFeedback,
+      action: options.onLocate ? { label: "Show on map", onInvoke: reveal, disabledReason } : undefined,
+    };
+  }, [createdLayer, dismissFeedback, options.activeTool, options.isMapLocked, options.onLocate, placement, reveal]);
+  const onSelect = useCallback(
     (coordinate: [number, number], result: SearchResult) => {
       const current = getCurrent();
+      setPlacement(null);
       if (!isSearchResultConsumed(current)) {
         current.onLocate?.(coordinate, () => {});
       }
@@ -93,11 +138,12 @@ export function useCanvasSearchSelection(options: SearchSelectionOptions) {
         );
       }
       if (current.activeTool === "pin" && !current.poi.spreadsheetOpen) {
-        current.poi.placeSearchResult(
+        const id = current.poi.placeSearchResult(
           coordinate,
           result.label,
           result.providerFeatureId,
         );
+        if (id) setPlacement({ documentEpoch: current.documentEpoch, id, providerFeatureId: result.providerFeatureId });
       }
       if (
         current.activeTool === "shape"
@@ -111,4 +157,5 @@ export function useCanvasSearchSelection(options: SearchSelectionOptions) {
     },
     [getCurrent],
   );
+  return { onSelect, feedback, clearFeedback };
 }

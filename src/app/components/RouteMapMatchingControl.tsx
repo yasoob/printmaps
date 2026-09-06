@@ -14,6 +14,7 @@ import type {
 } from "../../services/mapbox/contracts";
 import { createMapboxMapMatchingProvider } from "../../services/mapbox/mapMatching";
 import { PropertyRow } from "./PropertyControls";
+import type { ProjectMutationResult } from "../../domain/projectMutation";
 
 const defaultProvider = createMapboxMapMatchingProvider({
   token: import.meta.env.VITE_MAPBOX_PUBLIC_ACCESS,
@@ -29,7 +30,7 @@ type RouteMapMatchingControlProps = {
   coordinates: readonly (readonly [number, number])[];
   disabled: boolean;
   documentEpoch: number;
-  onApply: (input: MapMatchingInput, expectedDocumentEpoch: number) => boolean;
+  onApply: (input: MapMatchingInput, expectedDocumentEpoch: number) => ProjectMutationResult;
   provenance?: MapMatchingProvenance;
   provider?: MapMatchingProvider;
 };
@@ -144,10 +145,10 @@ export function RouteMapMatchingControl({
         },
         documentEpoch,
       );
-      if (!didApply)
-        throw new Error(
-          "The project changed before the matched route could be applied. Try again.",
-        );
+      if (!didApply.ok) {
+        setState({ kind: "error", message: didApply.error });
+        return;
+      }
       setState({
         kind: "success",
         message: "Route matched to roads. Undo is available.",

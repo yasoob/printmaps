@@ -1,4 +1,5 @@
-import { X } from 'lucide-react';
+import { SlidersHorizontal, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { memo, useCallback, useLayoutEffect, useMemo, useRef, type Dispatch, type RefObject, type SetStateAction } from 'react';
 import type { ContentLayer } from '../../domain/project';
 import type { DirectionsProvider, MapMatchingProvider } from '../../services/mapbox/contracts';
@@ -25,8 +26,8 @@ type PropertiesSidebarProps = {
   directionsRouteEditError?: string | null;
   directionsRouteEditIsRouting?: boolean;
   directionsRouteEditWaypoints?: readonly (readonly [number, number])[] | null;
-  onRouteVertexChange?: (id: string, vertexIndex: number, coordinates: readonly [number, number]) => void;
-  onRouteVertexRemove?: (id: string, vertexIndex: number) => void;
+  onRouteVertexChange?: (id: string, vertexIndex: number, coordinates: readonly [number, number]) => import('../../domain/projectMutation').GeometryEditResult;
+  onRouteVertexRemove?: (id: string, vertexIndex: number) => import('../../domain/projectMutation').GeometryEditResult;
   onRetryDirectionsRouteEdit?: () => void;
   onCancelDirectionsRouteEdit?: () => void;
 };
@@ -54,10 +55,15 @@ const SelectedLayerProperties = memo(function SelectedLayerProperties({
     activePanelRef.current = activePanel;
   }, [activePanel]);
   const duplicateLayer = project.duplicateLayer;
+  const selectLayer = project.selectLayer;
   const setLayerAppearance = project.setLayerAppearance;
+  const openProjectSettings = useCallback(() => {
+    selectLayer(null);
+    queueMicrotask(() => panelRef.current?.querySelector<HTMLElement>('[data-project-heading]')?.focus());
+  }, [panelRef, selectLayer]);
   const changeAppearance = useCallback(
     (appearance: Parameters<typeof setLayerAppearance>[1]) => {
-      setLayerAppearance(selectedLayerId, appearance);
+      return setLayerAppearance(selectedLayerId, appearance);
     },
     [selectedLayerId, setLayerAppearance],
   );
@@ -75,17 +81,20 @@ const SelectedLayerProperties = memo(function SelectedLayerProperties({
       current === selectedLayerId ? null : current);
   };
   const duplicateSelected = useCallback(() => {
-    duplicateLayer(selectedLayerId);
+    const result = duplicateLayer(selectedLayerId);
+    if (!result.ok) return result;
     window.setTimeout(() => {
       const focusTarget = activePanelRef.current === 'properties'
         ? panelRef.current?.querySelector<HTMLElement>('[aria-label="Layer menu"]')
         : selectedLayerButton();
       focusTarget?.focus();
     }, 0);
+    return result;
   }, [duplicateLayer, panelRef, selectedLayerId]);
 
   if (!selectedLayer) return null;
   return (
+    <>
     <LayerProperties
       layer={selectedLayer}
       assets={assets}
@@ -102,12 +111,12 @@ const SelectedLayerProperties = memo(function SelectedLayerProperties({
       onPoiCustomMarkerChange={(asset) => project.setPoiCustomMarker(selectedLayer.id, asset)}
       onRouteVertexInsert={(vertexIndex) => project.insertRouteVertex(selectedLayer.id, vertexIndex)}
       onRouteVertexRemove={(vertexIndex) => {
-        if (onRouteVertexRemove) onRouteVertexRemove(selectedLayer.id, vertexIndex);
-        else project.removeRouteVertex(selectedLayer.id, vertexIndex);
+        return onRouteVertexRemove ? onRouteVertexRemove(selectedLayer.id, vertexIndex)
+          : project.removeRouteVertex(selectedLayer.id, vertexIndex);
       }}
       onRouteVertexChange={(vertexIndex, coordinates) => {
-        if (onRouteVertexChange) onRouteVertexChange(selectedLayer.id, vertexIndex, coordinates);
-        else project.setRouteVertex(selectedLayer.id, vertexIndex, coordinates);
+        return onRouteVertexChange ? onRouteVertexChange(selectedLayer.id, vertexIndex, coordinates)
+          : project.setRouteVertex(selectedLayer.id, vertexIndex, coordinates);
       }}
       directionsRouteEditError={directionsRouteEditError}
       directionsRouteEditIsRouting={directionsRouteEditIsRouting}
@@ -116,12 +125,24 @@ const SelectedLayerProperties = memo(function SelectedLayerProperties({
       onCancelDirectionsRouteEdit={onCancelDirectionsRouteEdit}
       onTransformRoute={project.transformRoute}
       onShapeVertexChange={(ringIndex, vertexIndex, coordinates) => project.setShapeVertex(selectedLayer.id, ringIndex, vertexIndex, coordinates)}
-      onToggleVisibility={() => { clearSelectedPreview(); project.toggleLayerVisibility(selectedLayer.id); }}
+      onToggleVisibility={() => {
+        const result = project.toggleLayerVisibility(selectedLayer.id);
+        if (result.ok) clearSelectedPreview();
+        return result;
+      }}
       onToggleLock={() => project.toggleLayerLock(selectedLayer.id)}
       onReplace={(trigger) => onReplaceLayerData(selectedLayer, trigger)}
       onDuplicate={duplicateSelected}
       onDelete={onDeleteSelected}
     />
+    {selectedLayer.type === 'basemap' && (
+      <div className="map-settings-navigation">
+        <Button variant="outline" onClick={openProjectSettings}>
+          <SlidersHorizontal aria-hidden="true" size={16} /> Map design settings
+        </Button>
+      </div>
+    )}
+    </>
   );
 });
 
@@ -130,12 +151,14 @@ export const PropertiesSidebar = memo(function PropertiesSidebar(props: Properti
   return (
     <aside ref={panelRef} id="properties-panel" className={`right-sidebar${activePanel === 'properties' ? ' is-mobile-open' : ''}`} aria-label="Properties sidebar" role={activePanel === 'properties' ? 'dialog' : undefined} aria-modal={activePanel === 'properties' ? true : undefined} inert={activePanel === 'layers'} onKeyDown={(event) => onKeyDown(event, 'properties')}>
       <button className="mobile-drawer-close close-button" type="button" aria-label="Close properties" onClick={() => closePanel('properties')}><X size={16} /></button>
-      {selectedLayerId ? (
-        <SelectedLayerProperties
-          props={props}
-          selectedLayerId={selectedLayerId}
-        />
-      ) : <ProjectPropertiesPanel onLocate={onLocate} />}
+      <div className="properties-scroll-region">
+        {selectedLayerId ? (
+          <SelectedLayerProperties
+            props={props}
+            selectedLayerId={selectedLayerId}
+          />
+        ) : <ProjectPropertiesPanel onLocate={onLocate} />}
+      </div>
     </aside>
   );
 });

@@ -34,7 +34,7 @@ vi.mock('../../src/map/RouteVertexEditing', () => ({
 
 type HookProps = {
   layers: ContentLayer[];
-  onChange: (id: string, vertexIndex: number, coordinate: readonly [number, number]) => void;
+  onChange: (id: string, vertexIndex: number, coordinate: readonly [number, number]) => import('../../src/domain/projectMutation').GeometryEditResult;
   selectedId: string | null;
   stylePreset: MapStylePreset;
 };

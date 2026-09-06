@@ -153,7 +153,7 @@ export async function waitForMap(page: Page) {
 
 export async function openProject(page: Page, project: ProjectDocument) {
   const chooserPromise = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Project' }).click();
+  await page.getByRole('button', { name: 'Project', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Open project' }).click();
   const chooser = await chooserPromise;
   await chooser.setFiles({
@@ -161,7 +161,8 @@ export async function openProject(page: Page, project: ProjectDocument) {
     mimeType: 'application/json',
     buffer: Buffer.from(JSON.stringify(project)),
   });
-  await expect(page.getByRole('button', { name: 'Project' })).toBeFocused();
+  await page.getByRole('button', { name: 'Replace project', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Project', exact: true })).toBeFocused();
 }
 
 export async function downloadProject(
@@ -170,7 +171,7 @@ export async function downloadProject(
   label: string,
 ) {
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Project' }).click();
+  await page.getByRole('button', { name: 'Project', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Download project' }).click();
   const download = await downloadPromise;
   const path = testInfo.outputPath(`${label}.printmap.json`);
@@ -214,7 +215,7 @@ export async function downloadPdf(page: Page, testInfo: TestInfo, label: string)
 }
 
 export async function openAdvanced(page: Page) {
-  const advanced = page.getByRole('button', { name: /Advanced/ });
+  const advanced = page.getByRole('button', { name: 'Advanced', exact: true });
   if (await advanced.getAttribute('aria-expanded') !== 'true') await advanced.click();
 }
 

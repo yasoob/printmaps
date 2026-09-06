@@ -3,7 +3,7 @@ import type { MapMatchingProvider } from "../../services/mapbox/contracts";
 import type { RouteLayerPropertiesProps } from "./RouteLayerProperties";
 import { ArcCurvatureControls } from "./ArcCurvatureControls";
 import { DirectionsProvenanceSummary } from "./DirectionsProvenanceSummary";
-import { ElevationProfilePanel } from "./ElevationProfilePanel";
+import { RouteElevationProfilePanel } from "./ElevationProfilePanel";
 import { InspectorAccordion, PropertySection } from "./PropertyControls";
 import { RouteMapMatchingControl } from "./RouteMapMatchingControl";
 import { RouteVertexControls } from "./RouteVertexControls";
@@ -152,8 +152,8 @@ function ArcRouteAdvanced({
         layer={layer}
         onTransformRoute={onTransformRoute}
       />
-      <RouteMarkerSection appearance={layer.appearance as RouteAppearance} disabled={disabled} onChange={onAppearanceChange} />
-      <RouteSegmentSection appearance={layer.appearance as RouteAppearance} disabled={disabled} onChange={onAppearanceChange} />
+      <RouteMarkerSection appearance={layer.appearance as RouteAppearance} onChange={onAppearanceChange} />
+      <RouteSegmentSection appearance={layer.appearance as RouteAppearance} onChange={onAppearanceChange} />
       <PropertySection title="Curvature">
         <ArcCurvatureControls
           curvatures={curvatures}
@@ -167,6 +167,7 @@ function ArcRouteAdvanced({
         <RouteVertexControls
           key={routeId}
           coordinates={positions}
+          isClosed={layer.route?.closed === true}
           disabled={disabled}
           noun="Anchor"
           middleOnlyRemove
@@ -240,8 +241,8 @@ function LineRouteAdvanced({
           layer={layer}
           onTransformRoute={onTransformRoute}
         />
-        <RouteMarkerSection appearance={appearance} disabled={disabled} onChange={onAppearanceChange} />
-        <RouteSegmentSection appearance={appearance} disabled={disabled} onChange={onAppearanceChange} />
+        <RouteMarkerSection appearance={appearance} onChange={onAppearanceChange} />
+        <RouteSegmentSection appearance={appearance} onChange={onAppearanceChange} />
         {onApplyMapMatching && !isDirectionsRoute && (
           <PropertySection title="Road matching">
             <RouteMapMatchingControl
@@ -263,6 +264,7 @@ function LineRouteAdvanced({
           <RouteVertexControls
             key={routeId}
             coordinates={positions}
+            isClosed={layer.route?.closed === true}
             disabled={disabled || directionsRouteEditIsRouting}
             noun={isDirectionsRoute ? "Waypoint" : "Anchor"}
             allowInsert={!isDirectionsRoute}
@@ -273,12 +275,7 @@ function LineRouteAdvanced({
           />
         </PropertySection>
         <PropertySection title="Elevation">
-          <ElevationProfilePanel
-            key={`${layer.id}-${JSON.stringify(coordinates)}`}
-            coordinates={coordinates}
-            routeName={layer.name}
-            routeColor={appearance.color}
-          />
+          <RouteElevationProfilePanel routeId={layer.id} documentEpoch={documentEpoch} />
         </PropertySection>
       </InspectorAccordion>
     </>

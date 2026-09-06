@@ -90,7 +90,7 @@ export async function captureBasemapOnly(
   if (restoreFailure) {
     releasePreviewCapture(result);
     onRestoreFailure();
-    throw restoreFailure;
+    throw captureFailure ?? restoreFailure;
   }
   if (captureFailure) throw captureFailure;
   if (!result) throw new Error('The raster basemap capture did not produce an export surface.');

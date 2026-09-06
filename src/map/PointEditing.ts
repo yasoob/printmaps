@@ -2,6 +2,7 @@ import { Marker, type Map as MapLibreMap } from 'maplibre-gl';
 import type { ContentLayer, LayerGeometry } from '../domain/project';
 import { isValidPosition } from '../domain/routeGeometry';
 import { mapContentSourceId } from './MapContentGeometry';
+import type { ProjectMutationResult } from '../domain/projectMutation';
 
 type PointGeometry = Extract<LayerGeometry, { type: 'Point' }>;
 type PointEditingMap = Pick<MapLibreMap, 'getSource' | 'project' | 'unproject'>;
@@ -62,7 +63,7 @@ function isEditablePoint(layer: ContentLayer): layer is ContentLayer & { geometr
 export function installPointEditing(
   map: PointEditingMap,
   layer: ContentLayer,
-  onCommit: (coordinate: readonly [number, number]) => void,
+  onCommit: (coordinate: readonly [number, number]) => ProjectMutationResult,
   createMarker: MarkerFactory = createMapLibreMarker,
 ): PointEditingSession {
   if (!isEditablePoint(layer)) return emptySession();
@@ -77,6 +78,14 @@ export function installPointEditing(
   element.style.setProperty('--studio-poi-move-size', `${Math.max(28, size + 12)}px`);
   const marker = createMarker(element).setLngLat(original).addTo(map);
   let hasPreview = false;
+  const commit = (coordinate: readonly [number, number]) => {
+    const result = onCommit(coordinate);
+    if (!result.ok) {
+      marker.setLngLat(original);
+      didSetPointSourceGeometry(map, layer.id, original);
+    }
+    hasPreview = false;
+  };
 
   const preview = () => {
     const { lng, lat } = marker.getLngLat();
@@ -95,12 +104,12 @@ export function installPointEditing(
       hasPreview = false;
       return;
     }
-    hasPreview = false;
-    onCommit(coordinate);
+    commit(coordinate);
   });
   element.addEventListener('keydown', (event) => {
     if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
     event.preventDefault();
+    event.stopPropagation();
     const current = marker.getLngLat();
     const point = map.project([current.lng, current.lat]);
     const step = event.shiftKey ? 1 : 8;
@@ -115,8 +124,7 @@ export function installPointEditing(
     if (!coordinate) return;
     marker.setLngLat(coordinate);
     if (!didSetPointSourceGeometry(map, layer.id, coordinate)) return;
-    hasPreview = false;
-    onCommit(coordinate);
+    commit(coordinate);
   });
 
   const cleanup = (() => {

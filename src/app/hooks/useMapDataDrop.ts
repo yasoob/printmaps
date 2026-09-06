@@ -8,22 +8,23 @@ type MapDataDropOptions = {
   isDisabled: boolean;
   isOpen: boolean;
   onFiles: (files: readonly File[]) => void;
+  onBlockedDrop: () => void;
 };
 
-export function useMapDataDrop({ isDisabled, isOpen, onFiles }: MapDataDropOptions) {
+export function useMapDataDrop({ isDisabled, isOpen, onFiles, onBlockedDrop }: MapDataDropOptions) {
   const [isDragActive, setIsDragActive] = useState(false);
 
   useLayoutEffect(() => {
-    if (isDisabled || isOpen) return;
+    const isBlocked = isDisabled || isOpen;
     const handleDragEnter = (event: DragEvent) => {
       if (!hasFiles(event)) return;
       event.preventDefault();
-      setIsDragActive(true);
+      if (!isBlocked) setIsDragActive(true);
     };
     const handleDragOver = (event: DragEvent) => {
       if (!hasFiles(event)) return;
       event.preventDefault();
-      if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+      if (event.dataTransfer) event.dataTransfer.dropEffect = isBlocked ? 'none' : 'copy';
     };
     const handleDragLeave = (event: DragEvent) => {
       if (event.relatedTarget === null) setIsDragActive(false);
@@ -33,7 +34,10 @@ export function useMapDataDrop({ isDisabled, isOpen, onFiles }: MapDataDropOptio
       event.preventDefault();
       setIsDragActive(false);
       const files = [...(event.dataTransfer?.files ?? [])];
-      if (files.length > 0) onFiles(files);
+      if (files.length > 0) {
+        if (isBlocked) onBlockedDrop();
+        else onFiles(files);
+      }
     };
     window.addEventListener('dragenter', handleDragEnter);
     window.addEventListener('dragover', handleDragOver);
@@ -45,7 +49,7 @@ export function useMapDataDrop({ isDisabled, isOpen, onFiles }: MapDataDropOptio
       window.removeEventListener('dragleave', handleDragLeave);
       window.removeEventListener('drop', handleDrop);
     };
-  }, [isDisabled, isOpen, onFiles]);
+  }, [isDisabled, isOpen, onBlockedDrop, onFiles]);
 
   return isDisabled || isOpen ? false : isDragActive;
 }

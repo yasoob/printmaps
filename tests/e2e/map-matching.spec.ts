@@ -54,7 +54,7 @@ test('selected route matches to roads and remains durable editable and exportabl
   await expect(page.getByText('Matched to roads · 93% confidence · 4 source points')).toBeVisible();
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-geometry', /route-01:.*16\.3261/);
   expect(matchingRequests).toBe(1);
-  await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/map-matching-20260826.png' });
+  await page.screenshot({ animations: 'disabled', path: testInfo.outputPath('UX041-existing-open.png') });
 
   const savePromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();

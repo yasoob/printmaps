@@ -51,7 +51,7 @@ export function createRouteTransformActions(
 ): Pick<ProjectState, "replaceRouteDraft" | "transformRoute"> {
   const transformRoute: ProjectState["transformRoute"] = (request) => {
     let result = failure(invalidOperationMessage(request.operation));
-    set((state) => {
+    const admission = set((state) => {
       if (state.documentEpoch !== request.expectedDocumentEpoch) {
         result = failure(
           "The project changed before the route operation finished. Review the route and try again.",
@@ -82,11 +82,11 @@ export function createRouteTransformActions(
       result = { ok: true, routeId: current.id };
       return commitDocument(state, replaceLayers(state.document, layers));
     });
-    return result;
+    return admission.ok ? result : admission;
   };
   const replaceRouteDraft: ProjectState["replaceRouteDraft"] = (request) => {
     let result = failure("The route draft is invalid. Review its points and try again.");
-    set((state) => {
+    const admission = set((state) => {
       if (state.documentEpoch !== request.expectedDocumentEpoch) {
         result = failure(
           "The project changed while this draft was open. Cancel it and try again.",
@@ -136,7 +136,7 @@ export function createRouteTransformActions(
         selectedId: current.id,
       };
     });
-    return result;
+    return admission.ok ? result : admission;
   };
   return { replaceRouteDraft, transformRoute };
 }

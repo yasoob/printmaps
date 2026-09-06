@@ -28,9 +28,11 @@ test('a selected route generates an attributed elevation profile with SVG, PNG, 
     ) consoleProblems.push(message.text());
   });
   let requestedSamples = 0;
+  let terrainRequests = 0;
   await page.route('https://api.open-meteo.com/v1/elevation**', async (route) => {
     const requestUrl = new URL(route.request().url());
     requestedSamples = requestUrl.searchParams.get('latitude')?.split(',').length ?? 0;
+    terrainRequests += 1;
     await route.fulfill({
       body: JSON.stringify({ elevation: Array.from({ length: requestedSamples }, (_, index) => 160 + index * 3) }),
       contentType: 'application/json',
@@ -63,7 +65,7 @@ test('a selected route generates an attributed elevation profile with SVG, PNG, 
   await expect(travelEstimates).toContainText('Walking · 5 km/h');
   await expect(travelEstimates).toContainText('Cycling · 15 km/h');
   await expect(travelEstimates).toContainText('Distance-only estimates');
-  await expect(page.getByText('Copernicus DEM GLO-90 via Open-Meteo')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Copernicus DEM GLO-90 via Open-Meteo' })).toBeVisible();
 
   await page.getByRole('radio', { name: 'Imperial' }).check();
   await page.getByRole('spinbutton', { name: 'Profile print width' }).fill('220');
@@ -71,7 +73,7 @@ test('a selected route generates an attributed elevation profile with SVG, PNG, 
   await page.getByLabel('Profile fill color').fill('#f2b84b');
   await page.getByRole('checkbox', { name: 'Gradient fill' }).check();
   await page.getByLabel('Profile gradient color').fill('#ffffff');
-  await expect(chart.locator('.elevation-area')).toHaveCSS('fill', /elevation-fill-gradient/);
+  await expect(chart.locator('.elevation-area')).toHaveCSS('fill', /elevation-profile-.*-gradient/);
   await page.getByLabel('Elevation marker color').fill('#7c3aed');
   await page.getByRole('combobox', { name: 'Profile font' }).selectOption('serif');
   await expect(chart.locator('.elevation-marker-label').first()).toHaveCSS('font-family', /Georgia/);
@@ -89,7 +91,7 @@ test('a selected route generates an attributed elevation profile with SVG, PNG, 
   await expect(chart.locator('.elevation-marker-label')).toHaveCount(2);
   if (testInfo.project.name === 'chromium') {
     await profileSource.scrollIntoViewIfNeeded();
-    await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/elevation-profile-file-status-20260826.png' });
+    await page.screenshot({ animations: 'disabled', path: testInfo.outputPath('ux-fix-039-profile-file-status.png') });
   }
 
   const svgBytes = await downloadFormat(page, 'Download elevation SVG', testInfo.outputPath('route-01.elevation.svg'));
@@ -143,12 +145,12 @@ test('a selected route generates an attributed elevation profile with SVG, PNG, 
   await page.getByRole('button', { name: 'Close properties' }).click();
   await page.getByRole('button', { name: 'Open layers' }).click();
   await page.getByRole('button', { name: 'Select Coffee stop' }).click();
+  await page.getByRole('button', { name: 'Close properties' }).click();
   await page.getByRole('button', { name: 'Open layers' }).click();
   await page.getByRole('button', { name: 'Select Route 01' }).click();
-  await page.getByRole('button', { name: 'Open properties' }).click();
-  const mobileGenerate = page.getByRole('button', { name: 'Generate elevation profile' });
-  await expect(mobileGenerate).toBeVisible();
-  await mobileGenerate.click();
-  await expect(page.getByRole('img', { name: 'Route 01 elevation profile' })).toBeVisible();
+  await expect(chart).toBeVisible();
+  await expect(page.getByRole('radio', { name: 'Imperial' })).toBeChecked();
+  await expect(page.getByRole('spinbutton', { name: 'Profile print width' })).toHaveValue('220');
+  expect(terrainRequests).toBe(1);
   expect(consoleProblems).toEqual([]);
 });

@@ -41,7 +41,7 @@ export function useMapLanguage(options: MapLanguageOptions) {
       invalidateExporter();
       queueMicrotask(() => setMapError({
         kind: 'renderer',
-        message: 'Map label language could not be applied. Reload the page and retry.',
+        message: 'Map label language could not be applied. Retry the map without reloading your project.',
       }));
       return false;
     }

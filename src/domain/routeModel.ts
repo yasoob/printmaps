@@ -11,6 +11,7 @@ import {
   type RouteAppearance,
 } from './layerAppearance';
 import { partitionRoadGeometry } from './routeRoadGeometry';
+import { minimumRoutePointCount } from './routePointConstraints';
 
 export type RoutePosition = [number, number];
 export type CompleteRouteLayer = ContentLayer & {
@@ -91,7 +92,7 @@ function routePointCountError(
   distinctPointCount: number,
   route: RouteMetadata,
 ): string | null {
-  const minimum = route.closed ? 3 : 2;
+  const minimum = minimumRoutePointCount(route.closed);
   if (distinctPointCount < minimum) {
     return route.closed
       ? 'Closed routes need at least three distinct semantic points.'

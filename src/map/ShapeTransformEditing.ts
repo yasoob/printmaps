@@ -171,7 +171,7 @@ function emptyShapeTransformSession(): ShapeTransformEditingSession {
 export function installShapeTransformEditing(
   map: ShapeTransformMap,
   layer: ContentLayer,
-  onCommit: (geometry: ShapeGeometry) => void,
+  onCommit: (geometry: ShapeGeometry) => import('../domain/projectMutation').ProjectMutationResult,
   createMarker: MarkerFactory = createMapLibreMarker,
 ): ShapeTransformEditingSession {
   if (!isEditableShapeLayer(layer)) return emptyShapeTransformSession();
@@ -191,6 +191,14 @@ export function installShapeTransformEditing(
       const coordinate = normalizedCoordinate(map, handlePoint(nextRole, nextBounds));
       if (nextMarker && coordinate) nextMarker.setLngLat(coordinate);
     }
+  };
+  const commit = (next: ShapeGeometry) => {
+    const result = onCommit(next);
+    if (!result.ok) {
+      positionMarkers(geometry);
+      didUpdateSourceGeometry(map, layer, geometry);
+    }
+    hasUncommittedPreview = false;
   };
 
   for (const role of roles) {
@@ -232,7 +240,7 @@ export function installShapeTransformEditing(
         return;
       }
       hasUncommittedPreview = false;
-      onCommit(transformed);
+      commit(transformed);
     });
     element.addEventListener('keydown', (event) => {
       if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
@@ -254,7 +262,7 @@ export function installShapeTransformEditing(
         return;
       }
       hasUncommittedPreview = false;
-      onCommit(transformed);
+      commit(transformed);
     });
     markers.push(marker);
   }

@@ -344,6 +344,7 @@ describe('straight route draft lifecycle', () => {
       },
     });
 
+    await user.click(await screen.findByRole('button', { name: 'Discard unfinished work and open' }));
     expect(await screen.findByRole('button', { name: 'Opened project' })).toBeInTheDocument();
     expect(screen.queryByRole('status', { name: 'Route drawing status' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Select (V)' })).toHaveAttribute('aria-pressed', 'true');

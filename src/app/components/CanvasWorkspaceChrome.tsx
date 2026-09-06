@@ -8,6 +8,7 @@ import { PoiAuthoringControls } from './PoiAuthoringControls';
 import { RouteDrawingPanel } from './RouteDrawingPanel';
 import { ShapeDrawingPanel } from './ShapeDrawingPanel';
 import { ShapeEditingToolbar } from './ShapeEditingToolbar';
+import { UnfinishedDrawingNotice } from './UnfinishedDrawingNotice';
 
 const tools = [
   { id: 'select', label: 'Select', mobileLabel: 'Select', shortcut: 'V', icon: MousePointer2 },
@@ -54,7 +55,10 @@ type SelectedShapeControls = {
 };
 
 type CanvasWorkspaceChromeProps = {
+  statusNotice?: ReactNode;
   activeTool: string;
+  hasUnfinishedDrawing: boolean;
+  hasUnfinishedPoiList: boolean;
   onActivateTool: (id: string) => void;
   poiPanelProps: ComponentProps<typeof PoiAuthoringControls>;
   routePanelProps: ComponentProps<typeof RouteDrawingPanel>;
@@ -72,16 +76,15 @@ function haveSameObjectProps(previous: object, next: object) {
       && Object.is(Reflect.get(previous, key), Reflect.get(next, key)));
 }
 
+const chromeControlKeys = [
+  'activeTool', 'hasUnfinishedDrawing', 'hasUnfinishedPoiList', 'onActivateTool', 'selectToolRef', 'topDock', 'statusNotice',
+] as const;
+
 function isSameCanvasWorkspaceChromeProps(
   previous: CanvasWorkspaceChromeProps,
   next: CanvasWorkspaceChromeProps,
 ) {
-  if (
-    previous.activeTool !== next.activeTool
-    || previous.onActivateTool !== next.onActivateTool
-    || previous.selectToolRef !== next.selectToolRef
-    || previous.topDock !== next.topDock
-  ) {
+  if (chromeControlKeys.some((key) => previous[key] !== next[key])) {
     return false;
   }
   if (next.activeTool === 'pin') {
@@ -114,9 +117,9 @@ export function MobilePanelActions({
 }) {
   return (
     <div className="mobile-panel-actions" aria-label="Editor panels">
-      <button ref={layersTriggerRef} type="button" aria-label="Open layers" aria-controls="layers-panel" aria-expanded={activePanel === 'layers'} onClick={() => onOpenPanel('layers')}><Layers3 size={15} /><span>Layers</span></button>
+      <button ref={layersTriggerRef} type="button" aria-label="Open layers" title="Layers" aria-controls="layers-panel" aria-expanded={activePanel === 'layers'} onClick={() => onOpenPanel('layers')}><Layers3 size={15} /><span>Layers</span></button>
       {children}
-      <button ref={propertiesTriggerRef} type="button" aria-label="Open properties" aria-controls="properties-panel" aria-expanded={activePanel === 'properties'} onClick={() => onOpenPanel('properties')}><SlidersHorizontal size={15} /><span>Properties</span></button>
+      <button ref={propertiesTriggerRef} type="button" aria-label="Open properties" title="Properties" aria-controls="properties-panel" aria-expanded={activePanel === 'properties'} onClick={() => onOpenPanel('properties')}><SlidersHorizontal size={15} /><span>Properties</span></button>
     </div>
   );
 }
@@ -127,11 +130,11 @@ function SelectedShapeEditControls(props: SelectedShapeControls & { isActive: bo
 }
 
 export const CanvasWorkspaceChrome = memo(function CanvasWorkspaceChrome({
-  activeTool, onActivateTool, poiPanelProps, routePanelProps, selectToolRef, selectedShape, shapePanelProps, topDock,
+  activeTool, hasUnfinishedDrawing, hasUnfinishedPoiList, onActivateTool, poiPanelProps, routePanelProps, selectToolRef, selectedShape, shapePanelProps, statusNotice, topDock,
 }: CanvasWorkspaceChromeProps) {
   return (
     <>
-      <div className="canvas-top-dock">{topDock}</div>
+      <div className="canvas-top-dock">{topDock}{statusNotice}{(hasUnfinishedDrawing || hasUnfinishedPoiList) && <UnfinishedDrawingNotice hasPoiList={hasUnfinishedPoiList} hasDrawing={hasUnfinishedDrawing} />}</div>
       <div className="canvas-authoring-dock">
         {activeTool === 'select' && selectedShape.canEditPoints && selectedShape.selectedId && (
           <SelectedShapeEditControls {...selectedShape} isActive />

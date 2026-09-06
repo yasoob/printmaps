@@ -4,6 +4,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import type { ProjectDocument } from '../../domain/project';
 import type { LayeredPsdExportPlan } from '../../export/layeredPsdPlan';
 import { planExportPreflight, type RasterDelivery } from '../../export/preflight';
+import { PDF_PREFLIGHT_GUIDANCE, pdfPreflightErrorMessage } from './exportDialogPdf';
 
 export type ExportFormat = 'png' | 'svg' | 'psd' | 'pdf';
 
@@ -31,6 +32,15 @@ function downloadLabel(format: ExportFormat): string {
   return DOWNLOAD_LABEL[format];
 }
 
+function exportStatus(status: string, isMapReady: boolean, isBusy: boolean) {
+  return isMapReady || isBusy ? status
+    : 'The map preview is not ready to export. Wait for recovery, or close this dialog and retry the map.';
+}
+
+function canStartExport(isBusy: boolean, isMapReady: boolean, canDownloadSelectedFormat: boolean) {
+  return !isBusy && isMapReady && canDownloadSelectedFormat;
+}
+
 function cancelLabel(isBusy: boolean, isCancellationAvailable: boolean): string {
   if (!isBusy) return 'Cancel';
   return isCancellationAvailable ? 'Cancel export' : 'Finishing export…';
@@ -42,10 +52,12 @@ function canDownload(
     canStreamLargePng: boolean;
     delivery: RasterDelivery;
     preflight: ExportPreflight;
+    pdfPreflight: ExportPreflight;
     psdPlan: LayeredPsdExportPlan;
   }>,
 ): boolean {
   if (format === 'psd') return options.psdPlan.preflight.safe;
+  if (format === 'pdf') return options.pdfPreflight.safe;
   if (format === 'png') {
     return options.preflight.safe
       && (options.delivery !== 'streaming-png' || options.canStreamLargePng);
@@ -55,6 +67,22 @@ function canDownload(
 
 function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MiB`;
+}
+
+function PreflightNotice({ format, preflight }: { format: ExportFormat; preflight: ExportPreflight }) {
+  if (format === 'svg' || preflight.errors.length === 0) return null;
+  if (format === 'pdf') {
+    return <div id="export-preflight-error" className="export-error" role="alert">
+      <strong>PDF export blocked</strong>
+      <p>{pdfPreflightErrorMessage(preflight)}</p>
+      <p>{PDF_PREFLIGHT_GUIDANCE}</p>
+    </div>;
+  }
+  return <div id="export-preflight-error" className="export-error" role="alert">
+    <strong>Export blocked</strong>
+    <ul>{preflight.errors.map((issue) => <li key={issue.code}>{issue.message}</li>)}</ul>
+    <p>Reduce the page dimensions before retrying.</p>
+  </div>;
 }
 
 function nextFormatIndex(key: string, currentIndex: number): number {
@@ -171,9 +199,9 @@ function ExportTechnicalDetails({ busy, expanded, onToggle, preflight, psdPlan, 
         </button>
       </h3>
       <div id="export-technical-content" hidden={!expanded}>
+        {(selectedFormat === 'png' || selectedFormat === 'pdf') && preflight.estimates && <p>Estimated peak memory {formatBytes(preflight.estimates.peakBytes)}.</p>}
         {selectedFormat === 'png' ? (
           <>
-            {preflight.estimates && <p>Estimated peak memory {formatBytes(preflight.estimates.peakBytes)}.</p>}
             <p>PNG embeds 300 DPI physical-resolution metadata.</p>
             <p>The PNG renderer renders bounded map regions at their target pixel dimensions from the live vector map style instead of enlarging the browser preview.</p>
           </>
@@ -190,6 +218,7 @@ function ExportTechnicalDetails({ busy, expanded, onToggle, preflight, psdPlan, 
 }
 
 type ExportDialogViewProps = {
+  isMapReady: boolean;
   busy: boolean;
   cancellationAvailable: boolean;
   cancelButtonRef: React.RefObject<HTMLButtonElement | null>;
@@ -204,6 +233,7 @@ type ExportDialogViewProps = {
   onFormatChange: (format: ExportFormat) => void;
   onTechnicalDetailsToggle: () => void;
   preflight: ExportPreflight;
+  pdfPreflight: ExportPreflight;
   psdPlan: LayeredPsdExportPlan;
   rasterDelivery: RasterDelivery;
   selectedFormat: ExportFormat;
@@ -212,14 +242,15 @@ type ExportDialogViewProps = {
 };
 
 export function ExportDialogView(props: ExportDialogViewProps) {
-  const { busy, cancellationAvailable, cancelButtonRef, dialogRef, document, downloadButtonRef, error, largeRasterSupported, onCancel, onClose, onDownload, onFormatChange, onTechnicalDetailsToggle, preflight, psdPlan, rasterDelivery, selectedFormat, status, technicalDetailsExpanded } = props;
+  const { busy, cancellationAvailable, cancelButtonRef, dialogRef, document, downloadButtonRef, error, largeRasterSupported, onCancel, onClose, onDownload, onFormatChange, onTechnicalDetailsToggle, preflight, pdfPreflight, psdPlan, rasterDelivery, selectedFormat, status, technicalDetailsExpanded } = props;
   const canDownloadSelectedFormat = canDownload(selectedFormat, {
     canStreamLargePng: largeRasterSupported,
     delivery: rasterDelivery,
     preflight,
+    pdfPreflight,
     psdPlan,
   });
-  const selectedPreflight = selectedFormat === 'psd' ? psdPlan.preflight : preflight;
+  const selectedPreflight = selectedFormat === 'psd' ? psdPlan.preflight : (selectedFormat === 'pdf' ? pdfPreflight : preflight);
   return (
     <Dialog
       open
@@ -234,7 +265,7 @@ export function ExportDialogView(props: ExportDialogViewProps) {
         className="export-dialog"
         overlayClassName="export-dialog-backdrop"
         showCloseButton={false}
-        initialFocus={preflight.safe ? downloadButtonRef : cancelButtonRef}
+        initialFocus={canDownloadSelectedFormat && props.isMapReady ? downloadButtonRef : cancelButtonRef}
         aria-labelledby="export-title"
         aria-busy={busy}
         tabIndex={-1}
@@ -243,25 +274,19 @@ export function ExportDialogView(props: ExportDialogViewProps) {
           <div><h2 id="export-title">Export map</h2><p>Choose a format for the current print frame.</p></div>
           <button className="icon-button close-button" type="button" aria-label="Close export" disabled={busy} onClick={onClose}><X size={16} /></button>
         </div>
-        <div className="export-dialog-body">
+        <div className="export-dialog-body" role="region" aria-label="Export settings" tabIndex={0}>
           <ExportFormatChoice busy={busy} onChange={onFormatChange} selectedFormat={selectedFormat} />
           <StreamingPngNotice canStreamLargePng={largeRasterSupported} delivery={rasterDelivery} selectedFormat={selectedFormat} />
           <ExportOutputSummary document={document} preflight={preflight} psdPlan={psdPlan} selectedFormat={selectedFormat} />
-          <ExportTechnicalDetails busy={busy} expanded={technicalDetailsExpanded} onToggle={onTechnicalDetailsToggle} preflight={preflight} psdPlan={psdPlan} selectedFormat={selectedFormat} />
-          {(selectedFormat === 'png' || selectedFormat === 'psd') && selectedPreflight.errors.length > 0 && (
-            <div className="export-error" role="alert">
-              <strong>Export blocked</strong>
-              <ul>{selectedPreflight.errors.map((issue) => <li key={issue.code}>{issue.message}</li>)}</ul>
-              <p>Reduce the page dimensions before retrying.</p>
-            </div>
-          )}
+          <PreflightNotice format={selectedFormat} preflight={selectedPreflight} />
+          <ExportTechnicalDetails busy={busy} expanded={technicalDetailsExpanded} onToggle={onTechnicalDetailsToggle} preflight={selectedPreflight} psdPlan={psdPlan} selectedFormat={selectedFormat} />
 
-          <p className="export-status" role="status">{status}</p>
+          <p className="export-status" role="status" aria-label="Export status">{exportStatus(status, props.isMapReady, busy)}</p>
           {error && <p className="export-error" role="alert">{error}</p>}
         </div>
         <div className="export-dialog-actions">
           <button ref={cancelButtonRef} type="button" disabled={busy && !cancellationAvailable} onClick={busy ? onCancel : onClose}>{cancelLabel(busy, cancellationAvailable)}</button>
-          <button ref={downloadButtonRef} className="primary-button" type="button" disabled={busy || !canDownloadSelectedFormat} onClick={onDownload}>{busy ? 'Preparing…' : downloadLabel(selectedFormat)}</button>
+          <button ref={downloadButtonRef} className="primary-button" type="button" disabled={!canStartExport(busy, props.isMapReady, canDownloadSelectedFormat)} aria-describedby={selectedFormat !== 'svg' && selectedPreflight.errors.length > 0 ? 'export-preflight-error' : undefined} onClick={onDownload}>{busy ? 'Preparing…' : downloadLabel(selectedFormat)}</button>
         </div>
       </DialogContent>
     </Dialog>

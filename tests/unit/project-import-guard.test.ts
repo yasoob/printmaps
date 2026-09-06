@@ -1,5 +1,5 @@
 import { createProjectStore, type ProjectState } from '../../src/app/store';
-import { createInitialProjectDocument, type ContentLayer } from '../../src/domain/project';
+import { createDefaultRouteAppearance, createInitialProjectDocument, type ContentLayer } from '../../src/domain/project';
 import type { StoreApi } from 'zustand/vanilla';
 
 /**
@@ -13,6 +13,8 @@ const importedLayer: ContentLayer = {
   id: 'imported-route',
   name: 'Imported route',
   type: 'route',
+  route: { kind: 'straight', closed: false },
+  appearance: createDefaultRouteAppearance(1),
   visible: true,
   locked: false,
   opacity: 100,
@@ -41,7 +43,7 @@ describe('import staleness guard', () => {
     const staged = stage();
     staged.store.getState().setCameraViewport([16.4, 48.2], 12, mode);
 
-    expect(commitImport(staged)).toBe(true);
+    expect(commitImport(staged)).toMatchObject({ ok: true });
     expect(hasImportedLayer(staged.store)).toBe(true);
   });
 
@@ -57,7 +59,7 @@ describe('import staleness guard', () => {
     const staged = stage();
     mutate(staged.store);
 
-    expect(commitImport(staged)).toBe(false);
+    expect(commitImport(staged)).toMatchObject({ ok: false });
     expect(hasImportedLayer(staged.store)).toBe(false);
   });
 
@@ -65,7 +67,7 @@ describe('import staleness guard', () => {
     const staged = stage();
     staged.store.getState().openDocument(createInitialProjectDocument());
 
-    expect(commitImport(staged)).toBe(false);
+    expect(commitImport(staged)).toMatchObject({ ok: false });
     expect(hasImportedLayer(staged.store)).toBe(false);
   });
 
@@ -80,7 +82,7 @@ describe('import staleness guard', () => {
       staged.sourceDocument,
     );
 
-    expect(imported).toBe(false);
+    expect(imported).toMatchObject({ ok: false });
     expect(staged.store.getState().document.layers.filter(({ type }) => type === 'basemap')).toHaveLength(1);
   });
 });

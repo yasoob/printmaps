@@ -4,9 +4,35 @@ import { createDefaultLayerAppearance, type SearchPoiInput } from '../domain/pro
 import { isValidPosition } from '../domain/routeGeometry';
 import type { ProjectState } from './store';
 import { commitDocument, replaceLayers, type ProjectSet } from './storeDocument';
+import { mutationRejected } from '../domain/projectMutation';
 
 type PoiStructureActions = Pick<ProjectState, 'createPoi' | 'createPoiBatch' | 'createSearchPoi'>;
 const MAX_PROVIDER_FEATURE_ID_CHARACTERS = 256;
+
+export function createPoiCoordinateAction(set: ProjectSet): ProjectState['setPoiCoordinates'] {
+  return (id, [longitude, latitude]) => set((state) => {
+    const layer = state.document.layers.find((candidate) => candidate.id === id);
+    if (
+      layer?.type !== 'poi'
+      || layer.locked
+      || layer.geometry?.type !== 'Point'
+      || !isValidPosition(longitude, latitude)
+      || (layer.geometry.coordinates[0] === longitude && layer.geometry.coordinates[1] === latitude)
+    ) return state;
+    return commitDocument(state, replaceLayers(
+      state.document,
+      state.document.layers.map((candidate) => (
+        candidate.id === id
+          ? {
+              ...candidate,
+              ...(candidate.provenance?.service === 'geocoding-v6' && { provenance: undefined }),
+              geometry: { type: 'Point', coordinates: [longitude, latitude] },
+            }
+          : candidate
+      )),
+    ));
+  });
+}
 
 function validSearchInput(input: SearchPoiInput) {
   return isValidPosition(input.coordinate[0], input.coordinate[1])
@@ -41,7 +67,7 @@ function nextPoiIdentity(usedIds: Set<string>): { id: string; number: number } {
 export function createPoiStructureActions(set: ProjectSet): PoiStructureActions {
   return {
     createPoi: ([longitude, latitude]) => set((state) => {
-      if (!isValidPosition(longitude, latitude)) return state;
+      if (!isValidPosition(longitude, latitude)) return mutationRejected('Choose a valid location for this POI.');
       const usedIds = new Set(state.document.layers.map((layer) => layer.id));
       const identity = nextPoiIdentity(usedIds);
       const poi = {
@@ -67,8 +93,9 @@ export function createPoiStructureActions(set: ProjectSet): PoiStructureActions 
     }),
     createSearchPoi: (input, expectedDocumentEpoch) => {
       let createdId: string | null = null;
-      set((state) => {
-        if (state.documentEpoch !== expectedDocumentEpoch || !validSearchInput(input)) return state;
+      const admission = set((state) => {
+        if (state.documentEpoch !== expectedDocumentEpoch) return mutationRejected('The project changed. Select the location again.', 'stale');
+        if (!validSearchInput(input)) return mutationRejected('This search result has invalid location or label data.');
         const usedIds = new Set(state.document.layers.map((layer) => layer.id));
         const identity = nextPoiIdentity(usedIds);
         const appearance = createDefaultLayerAppearance('poi');
@@ -97,7 +124,8 @@ export function createPoiStructureActions(set: ProjectSet): PoiStructureActions 
           selectedId: identity.id,
         };
       });
-      return createdId;
+      if (!admission.ok) return admission;
+      return createdId ? { ok: true, layerId: createdId } : mutationRejected('This POI could not be added. Nothing was changed.');
     },
     createPoiBatch: (entries, expectedDocumentEpoch) => set((state) => {
       if (
@@ -110,7 +138,7 @@ export function createPoiStructureActions(set: ProjectSet): PoiStructureActions 
           || !isValidPosition(entry.coordinates[0], entry.coordinates[1])
           || !isValidProviderFeatureId(entry.providerFeatureId)
         ))
-      ) return state;
+      ) return mutationRejected('The POI list is invalid or belongs to a different project. Check its rows and try again.');
 
       const appearance = createDefaultLayerAppearance('poi');
       if (appearance?.kind !== 'poi') return state;

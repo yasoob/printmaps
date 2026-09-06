@@ -4,12 +4,19 @@ import {
   MIN_ARC_CURVATURE,
   createArcGeometry,
 } from './routeArcGeometry';
-import { MAX_MERCATOR_LATITUDE, type LayerGeometry } from './project';
+import { MAX_MERCATOR_LATITUDE, type ContentLayer, type LayerGeometry } from './project';
+
+export function projectLayerPositionCount(layer: ContentLayer): number {
+  const provenancePositions = layer.provenance?.service === 'isochrone-v1'
+    ? 1
+    : (layer.provenance?.service === 'directions-v5' ? layer.provenance.waypoints.length : 0);
+  return geometryPositionCount(layer.geometry) + provenancePositions;
+}
 
 export function geometryPositionCount(geometry: LayerGeometry | undefined): number {
   if (!geometry) return 0;
   if (geometry.type === 'Point') return 1;
-  if (geometry.type === 'Arc') return geometry.anchors.length;
+  if (geometry.type === 'Arc') return geometry.anchors.length + (geometry.anchors.length - 1) * (DEFAULT_ARC_SEGMENTS - 1);
   if (geometry.type === 'LineString') return geometry.coordinates.length;
   if (geometry.type === 'Polygon') {
     return geometry.coordinates.reduce((total, ring) => total + ring.length, 0);

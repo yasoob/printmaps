@@ -90,7 +90,7 @@ describe('large raster export', () => {
     await user.click(screen.getByRole('button', { name: 'Export' }));
     await user.click(screen.getByRole('button', { name: 'Download PNG' }));
 
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Export cancelled'));
+    await waitFor(() => expect(screen.getByRole('status', { name: 'Export status' })).toHaveTextContent('Export cancelled'));
     expect(rendererFactory).not.toHaveBeenCalled();
   });
 

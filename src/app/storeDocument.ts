@@ -1,4 +1,3 @@
-import type { StoreApi } from 'zustand/vanilla';
 import {
   cloneContentLayer,
   type ContentLayer,
@@ -6,17 +5,18 @@ import {
 } from '../domain/project';
 import { hasExactlyOneBottomBasemap } from '../domain/projectLayerStructure';
 import type { ProjectState } from './store';
+import { commitDocument, type ProjectSet } from './storeMutation';
 
-export type ProjectSet = StoreApi<ProjectState>['setState'];
+export { commitDocument, type ProjectSet } from './storeMutation';
 
 /**
- * Upper bound on retained undo steps. Each entry is a deep copy of the whole
- * document, so an uncapped stack grows without limit for the lifetime of the
- * session (a 2,000-point route costs ~31KB per entry).
+ * Bound retained undo steps. Admission provides detached snapshots with shared
+ * validated immutable fragments, so camera-only commits do not recopy geometry.
+ * Content changes still retain older geometry until their history entries expire.
  */
 export const MAX_HISTORY_ENTRIES = 100;
 
-function pushHistoryEntry(past: readonly ProjectDocument[], entry: ProjectDocument): ProjectDocument[] {
+export function pushHistoryEntry(past: readonly ProjectDocument[], entry: ProjectDocument): ProjectDocument[] {
   return past.length >= MAX_HISTORY_ENTRIES
     ? [...past.slice(past.length - MAX_HISTORY_ENTRIES + 1), entry]
     : [...past, entry];
@@ -57,16 +57,6 @@ export function replaceLayers(document: ProjectDocument, layers: ContentLayer[])
   return { ...document, layers };
 }
 
-export function commitDocument(state: ProjectState, document: ProjectDocument) {
-  return {
-    document,
-    past: pushHistoryEntry(state.past, copyDocument(state.document)),
-    future: [],
-    canUndo: true,
-    canRedo: false,
-  };
-}
-
 export function createDocumentActions(set: ProjectSet): Pick<ProjectState, 'openDocument' | 'setProjectTitle' | 'undo' | 'redo'> {
   return {
     openDocument: (storedDocument) => {
@@ -74,9 +64,10 @@ export function createDocumentActions(set: ProjectSet): Pick<ProjectState, 'open
         throw new Error('Opened projects must contain exactly one basemap as the final layer.');
       }
       const openedDocument = copyDocument(storedDocument);
-      set((state) => ({
+      return set((state) => ({
         document: openedDocument,
         documentEpoch: state.documentEpoch + 1,
+        hasUnfinishedDrawing: false,
         selectedId: null,
         past: [],
         future: [],
@@ -85,7 +76,7 @@ export function createDocumentActions(set: ProjectSet): Pick<ProjectState, 'open
       }));
     },
     setProjectTitle: (title) => set((state) => {
-      const normalizedTitle = title.trim().slice(0, 120);
+      const normalizedTitle = title.trim();
       if (!normalizedTitle || normalizedTitle === state.document.title) return state;
       return commitDocument(state, { ...state.document, title: normalizedTitle });
     }),

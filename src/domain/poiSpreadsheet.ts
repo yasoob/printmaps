@@ -15,7 +15,7 @@ export type PoiAddressSpreadsheetEntry = {
 export const MAX_POI_SPREADSHEET_ROWS = 300;
 export const MAX_POI_ADDRESS_ROWS = 25;
 export const MAX_POI_SPREADSHEET_CHARACTERS = 64_000;
-const MAX_POI_ADDRESS_CHARACTERS = 160;
+export const MAX_POI_ADDRESS_CHARACTERS = 160;
 const DECIMAL_NUMBER = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/iu;
 
 function coordinateValue(value: string, bounds: readonly [number, number], label: string, row: number): number {

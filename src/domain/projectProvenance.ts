@@ -9,6 +9,7 @@ import type {
 } from './project';
 import { parseLayerGeometry } from './projectGeometry';
 import { ProjectFileError } from './projectFileError';
+import { MAX_PROJECT_COORDINATES } from './projectLimits';
 
 type JsonObject = Record<string, unknown>;
 const PROFILES = new Set<IsochroneProvenance['profile']>(['driving', 'cycling', 'walking']);
@@ -42,7 +43,7 @@ function finiteNumber(value: unknown, label: string) {
 
 function geometryAt(value: unknown, label: string, coordinateCount: { value: number }) {
   return parseLayerGeometry(value, label, coordinateCount, {
-    maximumCoordinates: 200_000,
+    maximumCoordinates: MAX_PROJECT_COORDINATES,
     fail: (message) => { throw new ProjectFileError(message); },
   });
 }

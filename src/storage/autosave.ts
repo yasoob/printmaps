@@ -28,7 +28,10 @@ export type AutosaveStartup = {
 };
 
 export class AutosaveCorruptionError extends Error {
-  constructor(message = 'The local autosave is damaged or uses an unsupported version.') {
+  constructor(
+    message = 'The local autosave is damaged or uses an unsupported version.',
+    readonly recoveryData?: { record: unknown },
+  ) {
     super(message);
     this.name = 'AutosaveCorruptionError';
   }
@@ -169,18 +172,26 @@ function addRecordIdentity(value: unknown) {
   };
 }
 
-export function getAutosaveFailureMessage(reason: unknown) {
-  const errorName = typeof reason === 'object' && reason !== null && 'name' in reason
+export function getAutosaveErrorName(reason: unknown) {
+  return typeof reason === 'object' && reason !== null && 'name' in reason
     ? String(reason.name)
     : '';
+}
+
+export function isAutosaveConflict(reason: unknown): boolean {
+  return reason instanceof AutosaveConflictError || getAutosaveErrorName(reason) === 'AutosaveConflictError';
+}
+
+export function getAutosaveFailureMessage(reason: unknown) {
+  const errorName = getAutosaveErrorName(reason);
   if (
     errorName === 'QuotaExceededError'
     || errorName === 'NS_ERROR_DOM_QUOTA_REACHED'
   ) {
     return 'Autosave paused because browser storage is full. Use Save to download a project file, then free browser storage.';
   }
-  if (errorName === 'AutosaveConflictError' || reason instanceof AutosaveConflictError) {
-    return 'Autosave paused because this draft changed in another tab. Reload to review the newer draft before continuing.';
+  if (isAutosaveConflict(reason)) {
+    return 'Autosave paused because another tab changed the saved project. This tab’s changes are not saved locally. Download this tab’s version before choosing to discard it and load the saved version.';
   }
   if (
     errorName === 'AutosaveRevisionExhaustedError'
@@ -230,9 +241,16 @@ export function createIndexedDbAutosaveRepository({
       }
       await complete;
       knownIdentity = storedIdentity(value);
-      storedRevision(value);
-      if (value === undefined || isDiscardedRecord(value)) return null;
-      return validatedDraft(value);
+      try {
+        storedRevision(value);
+        if (value === undefined || isDiscardedRecord(value)) return null;
+        return validatedDraft(value);
+      } catch (error) {
+        if (error instanceof AutosaveCorruptionError) {
+          throw new AutosaveCorruptionError(error.message, { record: value });
+        }
+        throw error;
+      }
     },
     async save(document, savedAt = new Date().toISOString()) {
       const record = validatedDraft({

@@ -76,16 +76,18 @@ function interpolateLongitude(from: number, to: number, fraction: number): numbe
   return ((longitude + 540) % 360) - 180;
 }
 
-export function sampleRouteCoordinates(coordinates: readonly Position[]): readonly Position[] {
+function planRouteSamples(coordinates: readonly Position[]) {
   const { cumulative, totalDistanceMeters } = routeSegments(coordinates);
   const sampleCount = Math.min(
     MAX_ELEVATION_SAMPLES,
     Math.max(2, coordinates.length, Math.ceil(totalDistanceMeters / TARGET_SAMPLE_SPACING_METERS) + 1),
   );
-  const samples: Position[] = [];
+  const samples: Pick<ElevationSample, 'coordinate' | 'distanceMeters'>[] = [];
   let segmentIndex = 1;
   for (let index = 0; index < sampleCount; index += 1) {
-    const targetDistance = totalDistanceMeters * index / (sampleCount - 1);
+    const targetDistance = index === sampleCount - 1
+      ? totalDistanceMeters
+      : totalDistanceMeters * index / (sampleCount - 1);
     while (segmentIndex < cumulative.length - 1 && cumulative[segmentIndex] < targetDistance) {
       segmentIndex += 1;
     }
@@ -94,12 +96,19 @@ export function sampleRouteCoordinates(coordinates: readonly Position[]): readon
     const fraction = segmentLength === 0 ? 0 : (targetDistance - cumulative[startIndex]) / segmentLength;
     const from = coordinates[startIndex];
     const to = coordinates[segmentIndex];
-    samples.push([
-      interpolateLongitude(from[0], to[0], fraction),
-      from[1] + (to[1] - from[1]) * fraction,
-    ]);
+    samples.push({
+      coordinate: [
+        interpolateLongitude(from[0], to[0], fraction),
+        from[1] + (to[1] - from[1]) * fraction,
+      ],
+      distanceMeters: targetDistance,
+    });
   }
-  return samples;
+  return { samples, totalDistanceMeters };
+}
+
+export function sampleRouteCoordinates(coordinates: readonly Position[]): readonly Position[] {
+  return planRouteSamples(coordinates).samples.map(({ coordinate }) => coordinate);
 }
 
 function terrainServiceError(error: unknown): Error {
@@ -150,7 +159,8 @@ export async function loadElevationProfile(
   coordinates: readonly Position[],
   options: LoadElevationProfileOptions = {},
 ): Promise<ElevationProfile> {
-  const requestCoordinates = sampleRouteCoordinates(coordinates);
+  const { samples, totalDistanceMeters } = planRouteSamples(coordinates);
+  const requestCoordinates = samples.map(({ coordinate }) => coordinate);
   const url = new URL(ELEVATION_API_URL);
   url.searchParams.set('latitude', requestCoordinates.map((coordinate) => coordinate[1].toFixed(6)).join(','));
   url.searchParams.set('longitude', requestCoordinates.map((coordinate) => coordinate[0].toFixed(6)).join(','));
@@ -161,10 +171,6 @@ export async function loadElevationProfile(
     requestCoordinates.length,
   );
 
-  const distances = [0];
-  for (let index = 1; index < requestCoordinates.length; index += 1) {
-    distances.push(distances[index - 1] + distanceBetweenPositions(requestCoordinates[index - 1], requestCoordinates[index]));
-  }
   let totalAscentMeters = 0;
   let totalDescentMeters = 0;
   for (let index = 1; index < elevations.length; index += 1) {
@@ -173,12 +179,12 @@ export async function loadElevationProfile(
     else totalDescentMeters -= change;
   }
   return {
-    samples: requestCoordinates.map((coordinate, index) => ({
+    samples: samples.map(({ coordinate, distanceMeters }, index) => ({
       coordinate,
-      distanceMeters: distances[index],
+      distanceMeters,
       elevationMeters: elevations[index],
     })),
-    totalDistanceMeters: distances.at(-1) ?? 0,
+    totalDistanceMeters,
     minimumElevationMeters: Math.min(...elevations),
     maximumElevationMeters: Math.max(...elevations),
     totalAscentMeters,

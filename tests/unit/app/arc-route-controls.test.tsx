@@ -28,10 +28,10 @@ const arcRoute: ContentLayer = {
 
 it('exposes Arc coordinates, structure, and per-segment curvature controls', async () => {
   const user = userEvent.setup();
-  const onArcCurvatureChange = vi.fn();
-  const onRouteVertexChange = vi.fn();
-  const onRouteVertexInsert = vi.fn();
-  const onRouteVertexRemove = vi.fn();
+  const onArcCurvatureChange = vi.fn().mockReturnValue({ ok: true });
+  const onRouteVertexChange = vi.fn().mockReturnValue({ ok: true });
+  const onRouteVertexInsert = vi.fn().mockReturnValue({ ok: true });
+  const onRouteVertexRemove = vi.fn().mockReturnValue({ ok: true });
   render(
     <RouteLayerProperties
       layer={arcRoute}

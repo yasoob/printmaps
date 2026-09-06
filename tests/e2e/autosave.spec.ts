@@ -76,7 +76,7 @@ test('contains a corrupt IndexedDB draft until the user discards it', async ({ p
   await expect(dialog).toBeVisible();
   await expect(page.locator('#root')).toHaveAttribute('aria-hidden', 'true');
   await expect(page.locator('#root')).toHaveAttribute('data-base-ui-inert');
-  await expect(page.getByRole('button', { name: 'Discard damaged draft' })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Continue without autosave' })).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(dialog).toBeVisible();
   await page.getByRole('button', { name: 'Discard damaged draft' }).click();

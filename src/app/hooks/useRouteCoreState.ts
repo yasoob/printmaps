@@ -2,11 +2,10 @@ import {
   useCallback,
   useLayoutEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import { createArcGeometry } from "../../domain/routeArcGeometry";
-import type { DirectionsRouteInput } from "../../domain/project";
+import { semanticRoutePositions } from "../../domain/routeGeometry";
 import {
   DEFAULT_ROUTE_AUTHORING_OPTIONS,
   type RoadTravelMode,
@@ -24,6 +23,8 @@ import {
   type RouteStateSetters,
 } from "./canvasRouteAuthoringSupport";
 import { useDirectionsAuthoring } from "./useDirectionsAuthoring";
+import { useRoutePointInput } from "./useRoutePointInput";
+import { useRouteSemanticDraftState } from "./useRouteSemanticDraftState";
 import {
   areDraftPointsEqual,
   canonicalDraftPoints,
@@ -34,14 +35,7 @@ import {
   editableSemanticPoints,
   previewRouteSemanticDraft,
   replaceDraftPoint,
-  type RouteSemanticDraft,
 } from "./routeSemanticDraft";
-
-type RoadPreview = {
-  input: DirectionsRouteInput;
-  mode: RoadTravelMode;
-  revision: number;
-};
 
 function useRouteUIState() {
   const [error, setError] = useState<string | null>(null);
@@ -84,58 +78,13 @@ function useRouteUIState() {
   };
 }
 
-function useSemanticDraftState() {
-  const [draft, setDraft] = useState<RouteSemanticDraft>(() =>
-    createRouteSemanticDraft()
-  );
-  const [roadPreview, setRoadPreview] = useState<RoadPreview | null>(null);
-  const [focusRequest, setFocusRequest] = useState({ index: -1, request: 0 });
-  const [terraSyncRevision, setTerraSyncRevision] = useState(0);
-  const dragOriginRef = useRef<[number, number][] | null>(null);
-  const draftRef = useRef(draft);
-  useLayoutEffect(() => {
-    draftRef.current = draft;
-  }, [draft]);
-  const beginMove = useCallback((points: readonly [number, number][]) => {
-    dragOriginRef.current = points.map((point) => [...point]);
-  }, []);
-  const resetDraft = useCallback((points: [number, number][]) => {
-    setDraft(createRouteSemanticDraft(points));
-    setRoadPreview(null);
-    dragOriginRef.current = null;
-  }, []);
-  const takeMoveOrigin = useCallback(() => {
-    const origin = dragOriginRef.current;
-    dragOriginRef.current = null;
-    return origin;
-  }, []);
-  const getCurrentDraft = useCallback(() => draftRef.current, []);
-  const requestTerraSync = useCallback(() => {
-    setTerraSyncRevision((revision) => revision + 1);
-  }, []);
-  return {
-    beginMove,
-    draft,
-    focusRequest,
-    getCurrentDraft,
-    resetDraft,
-    requestTerraSync,
-    roadPreview,
-    setDraft,
-    setFocusRequest,
-    setRoadPreview,
-    takeMoveOrigin,
-    terraSyncRevision,
-  };
-}
-
 function useDraftMovement(
   options: {
     currentPoints: [number, number][];
     directions: ReturnType<typeof useDirectionsAuthoring>;
     isClosed: boolean;
     lineShape: RouteLineShape;
-    semantic: ReturnType<typeof useSemanticDraftState>;
+    semantic: ReturnType<typeof useRouteSemanticDraftState>;
   },
 ) {
   const { currentPoints, directions, isClosed, lineShape, semantic } = options;
@@ -191,7 +140,17 @@ function useDraftMovement(
 
 export function useRouteCoreState(parameters: RouteAuthoringParameters) {
   const ui = useRouteUIState();
-  const semantic = useSemanticDraftState();
+  const semantic = useRouteSemanticDraftState(parameters.documentEpoch);
+  const pointInput = useRoutePointInput(parameters.documentEpoch, parameters.camera.center);
+  const { resetDraft } = semantic;
+  const { setExtension, setIsDiscardOpen, setError, setAnnouncement } = ui;
+  useLayoutEffect(() => {
+    resetDraft([]);
+    setExtension(null);
+    setIsDiscardOpen(false);
+    setError(null);
+    setAnnouncement(null);
+  }, [parameters.documentEpoch, resetDraft, setExtension, setIsDiscardOpen, setError, setAnnouncement]);
   const currentRoadTravelMode = useLatestValue(ui.roadTravelMode);
   const options = useMemo<RouteAuthoringOptions>(
     () => ({
@@ -238,12 +197,19 @@ export function useRouteCoreState(parameters: RouteAuthoringParameters) {
     setRoadTravelMode: ui.setRoadTravelMode,
     setTravelMarker: ui.setTravelMarker,
   }), [resetPoints, ui]);
-  useRouteExtensionActivation(parameters, ui.extension, setters);
+  useRouteExtensionActivation(parameters, setters);
   const currentDraft = parameters.toolDocumentEpoch === parameters.documentEpoch
     ? semantic.draft
     : createRouteSemanticDraft();
   const currentPoints = currentDraft.points;
   const isClosed = ui.extension?.layer.route?.closed === true;
+  const hasGeometryChanges = parameters.toolDocumentEpoch === parameters.documentEpoch && (
+    ui.extension
+      ? !areDraftPointsEqual(currentPoints, editableSemanticPoints(
+          semanticRoutePositions(ui.extension.layer) ?? [], isClosed,
+        ))
+      : currentPoints.length > 0
+  );
   const commitPoints = useMemo(
     () => canonicalDraftPoints(currentPoints, isClosed),
     [currentPoints, isClosed],
@@ -267,6 +233,8 @@ export function useRouteCoreState(parameters: RouteAuthoringParameters) {
     currentDraft,
     currentPoints,
     directions,
+    hasUnfinishedWork: hasGeometryChanges || pointInput.hasUnfinishedInput,
+    pointInput,
     isClosed,
     options,
     points: currentPoints,

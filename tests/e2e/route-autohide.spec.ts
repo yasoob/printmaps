@@ -11,6 +11,8 @@ test("centers and auto-hides route settings while preserving map drawing", async
 
   await page.getByRole("button", { name: "Route (R)" }).click();
   const panel = page.locator(".route-authoring-panel");
+  await expect(panel).toHaveAttribute("data-settings-expanded", "false");
+  await page.getByRole("button", { name: "Show route settings" }).click();
   await expect(panel).toHaveAttribute("data-settings-expanded", "true");
   await expect(page.getByRole("button", { name: "Show route settings" }))
     .toHaveCount(0);

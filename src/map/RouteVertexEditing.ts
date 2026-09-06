@@ -1,12 +1,14 @@
 import { Marker, type Map as MapLibreMap } from 'maplibre-gl';
-import { createArcGeometry, sampleArc } from '../domain/routeArcGeometry';
+import { createArcGeometry } from '../domain/routeArcGeometry';
 import type { ContentLayer } from '../domain/project';
-import { isValidPosition, semanticRoutePointLabel } from '../domain/routeGeometry';
+import { semanticRoutePointLabel } from '../domain/routeGeometry';
 import { mapContentSourceId, routeMapFeatures } from './MapContentGeometry';
 import { markMapContentSourceData } from './MapContentSourceState';
 import {
   arcInsertionCoordinates,
   canonicalRouteCoordinates,
+  displayCoordinates,
+  normalizedMapCoordinate,
 } from './RouteVertexCoordinates';
 import {
   clearRouteVertexPreview,
@@ -28,7 +30,7 @@ type RouteVertexMap = Pick<MapLibreMap, 'getSource' | 'project' | 'unproject'>;
 type MarkerFactory = (element: HTMLElement) => RouteVertexMarker;
 type RouteVertexEditingOptions = {
   createMarker?: MarkerFactory;
-  onInsert?: (segmentIndex: number) => void;
+  onInsert?: (segmentIndex: number) => import('../domain/projectMutation').ProjectMutationResult;
   onPreview?: (coordinates: [number, number][]) => boolean | void;
 };
 export type RouteVertexEditingSession = (() => void)
@@ -36,11 +38,6 @@ export type RouteVertexEditingSession = (() => void)
 const createMapLibreMarker: MarkerFactory = (element) => (
   new Marker({ draggable: true, element }) as unknown as RouteVertexMarker
 );
-
-function normalizedMapCoordinate(longitude: number, latitude: number): [number, number] | null {
-  if (!isValidPosition(longitude, latitude)) return null;
-  return [Number(longitude.toFixed(6)), Number(latitude.toFixed(6))];
-}
 
 function didSetRouteSourceGeometry(
   map: RouteVertexMap,
@@ -70,12 +67,6 @@ function didSetRouteSourceGeometry(
   }
 }
 
-function displayCoordinates(layer: ContentLayer, coordinates: [number, number][]) {
-  if (layer.geometry?.type !== 'Arc') return coordinates;
-  const arc = createArcGeometry(coordinates, layer.geometry.curvatures);
-  return arc ? sampleArc(arc) : null;
-}
-
 function didUpdateGuidance(
   onPreview: NonNullable<RouteVertexEditingOptions['onPreview']>,
   coordinates: [number, number][],
@@ -97,20 +88,17 @@ function isEditableRouteLayer(layer: ContentLayer): layer is EditableRouteLayer 
     && (layer.geometry?.type === 'LineString' || layer.geometry?.type === 'Arc');
 }
 type RestorePreviewOptions = {
-  canonicalCoordinates: [number, number][]; isArc: boolean; layer: ContentLayer;
+  sourceCoordinates: [number, number][]; shouldRestoreGuidance: boolean; layer: ContentLayer;
   map: RouteVertexMap;
   onPreview: NonNullable<RouteVertexEditingOptions['onPreview']>;
 };
 
 function restoreRoutePreview(options: RestorePreviewOptions) {
-  const didRestoreSource = didSetRouteSourceGeometry(
-    options.map,
-    options.layer,
-    options.canonicalCoordinates,
-  ) || didSetRouteSourceGeometry(options.map, options.layer, options.canonicalCoordinates);
-  const didRestoreGuidance = options.isArc
-    || didUpdateGuidance(options.onPreview, options.canonicalCoordinates)
-    || didUpdateGuidance(options.onPreview, options.canonicalCoordinates);
+  const didRestoreSource = didSetRouteSourceGeometry(options.map, options.layer, options.sourceCoordinates)
+    || didSetRouteSourceGeometry(options.map, options.layer, options.sourceCoordinates);
+  const didRestoreGuidance = !options.shouldRestoreGuidance
+    || didUpdateGuidance(options.onPreview, options.sourceCoordinates)
+    || didUpdateGuidance(options.onPreview, options.sourceCoordinates);
   return didRestoreSource && didRestoreGuidance;
 }
 
@@ -119,7 +107,7 @@ type VertexMarkerOptions = {
   createMarker: MarkerFactory;
   map: RouteVertexMap;
   markers: RouteVertexMarker[];
-  onCommit: (vertexIndex: number, coordinate: readonly [number, number]) => void;
+  onCommit: (vertexIndex: number, coordinate: readonly [number, number]) => import('../domain/projectMutation').GeometryEditResult;
   preview: (vertexIndex: number, coordinate: readonly [number, number]) => boolean;
   previewState: RouteVertexPreviewState;
   restoreCanonicalPreview: () => boolean;
@@ -147,7 +135,7 @@ function addVertexMarkers(options: VertexMarkerOptions) {
       const { lng, lat } = marker.getLngLat();
       const nextCoordinate = normalizedMapCoordinate(lng, lat);
       if (!nextCoordinate) {
-        marker.setLngLat(coordinate);
+        marker.setLngLat(options.canonicalCoordinates[vertexIndex]);
         options.restoreCanonicalPreview();
         return;
       }
@@ -157,11 +145,14 @@ function addVertexMarkers(options: VertexMarkerOptions) {
         nextCoordinate,
       );
       if (!isAlreadyPreviewed && !options.preview(vertexIndex, nextCoordinate)) {
-        marker.setLngLat(coordinate);
+        marker.setLngLat(options.canonicalCoordinates[vertexIndex]);
         return;
       }
-      clearRouteVertexPreview(options.previewState);
-      options.onCommit(vertexIndex, nextCoordinate);
+      const result = options.onCommit(vertexIndex, nextCoordinate);
+      if ('ok' in result && !result.ok) {
+        marker.setLngLat(options.canonicalCoordinates[vertexIndex]);
+        options.restoreCanonicalPreview();
+      } else clearRouteVertexPreview(options.previewState);
     });
     element.addEventListener('keydown', (event) => {
       if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
@@ -180,8 +171,11 @@ function addVertexMarkers(options: VertexMarkerOptions) {
       const nextCoordinate = normalizedMapCoordinate(next.lng, next.lat);
       if (!nextCoordinate || !options.preview(vertexIndex, nextCoordinate)) return;
       marker.setLngLat(nextCoordinate);
-      clearRouteVertexPreview(options.previewState);
-      options.onCommit(vertexIndex, nextCoordinate);
+      const result = options.onCommit(vertexIndex, nextCoordinate);
+      if ('ok' in result && !result.ok) {
+        marker.setLngLat([currentCoordinate.lng, currentCoordinate.lat]);
+        options.restoreCanonicalPreview();
+      } else clearRouteVertexPreview(options.previewState);
     });
     options.markers.push(marker);
   }
@@ -212,7 +206,7 @@ function addArcInsertionMarkers(
 export function installRouteVertexEditing(
   map: RouteVertexMap,
   layer: ContentLayer,
-  onCommit: (vertexIndex: number, coordinate: readonly [number, number]) => void,
+  onCommit: (vertexIndex: number, coordinate: readonly [number, number]) => import('../domain/projectMutation').GeometryEditResult,
   options: RouteVertexEditingOptions = {},
 ): RouteVertexEditingSession {
   if (!isEditableRouteLayer(layer)) {
@@ -234,8 +228,10 @@ export function installRouteVertexEditing(
   const previewState = createRouteVertexPreviewState();
   const restoreCanonicalPreview = () => {
     const didRestore = restoreRoutePreview({
-      canonicalCoordinates,
-      isArc: currentLayer.geometry?.type === 'Arc',
+      sourceCoordinates: isDirectionsRoute && currentLayer.geometry.type === 'LineString'
+        ? currentLayer.geometry.coordinates
+        : canonicalCoordinates,
+      shouldRestoreGuidance: !isDirectionsRoute && currentLayer.geometry.type !== 'Arc',
       layer: currentLayer,
       map,
       onPreview,

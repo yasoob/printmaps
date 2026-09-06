@@ -37,8 +37,8 @@ describe('editor autosave lifecycle', () => {
     await user.click(discard);
 
     expect(dialog).toBeInTheDocument();
-    expect(discard).toHaveFocus();
-    expect(await screen.findByRole('alert', { name: 'Autosave status' })).toHaveTextContent('Save a project file');
+    expect(screen.getByRole('button', { name: 'Continue without autosave' })).toHaveFocus();
+    expect(await screen.findByRole('alert', { name: 'Autosave status' })).toHaveTextContent('continue without autosave');
   });
 
   it('does not run a queued stale save after the editor unmounts', async () => {

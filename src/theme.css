@@ -14,7 +14,7 @@
   --studio-line: #e7e4df;
   --studio-line-strong: #d8d4ce;
   --studio-line-hover: #d3cfc8;
-  --studio-accent: #1aa2e6;
+  --studio-accent: #0d78b5;
   --studio-focus: var(--studio-accent);
   --studio-accent-strong: color-mix(in srgb, var(--studio-accent) 86%, var(--studio-text-strong));
   --studio-accent-soft: color-mix(in srgb, var(--studio-accent) 12%, var(--studio-surface));
@@ -47,6 +47,7 @@
   --studio-left-panel-width: 15rem;
   --studio-right-panel-width: 19rem;
   --studio-control-height: 2rem;
+  --studio-touch-target: 2.75rem;
   --studio-tool-size: 2rem;
   --studio-radius-xs: 0.1875rem;
   --studio-radius-sm: 0.25rem;

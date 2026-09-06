@@ -6,6 +6,50 @@ import { LocationSearch } from '../../../src/app/components/LocationSearch';
 const provider = (search: SearchProvider['search']): SearchProvider => ({ search });
 
 describe('map location search', () => {
+  it('announces pending work and prevents late results from reopening after an outside click', async () => {
+    const user = userEvent.setup();
+    let resolveSearch!: (response: Awaited<ReturnType<SearchProvider['search']>>) => void;
+    let signal: AbortSignal | undefined;
+    const search = vi.fn((request: Parameters<SearchProvider['search']>[0]) => {
+      signal = request.signal;
+      return new Promise<Awaited<ReturnType<SearchProvider['search']>>>((resolve) => { resolveSearch = resolve; });
+    });
+    render(<><LocationSearch provider={provider(search)} proximity={[0, 0]} onSelect={vi.fn()} /><button type="button">Outside search</button></>);
+    const input = screen.getByRole('combobox');
+    await user.type(input, 'Vienna{Enter}');
+    expect(input).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getByRole('status', { name: 'Place search status' })).toHaveTextContent('Searching places');
+    await user.click(screen.getByRole('button', { name: 'Outside search' }));
+    expect(signal?.aborted).toBe(true);
+    expect(input).toHaveValue('Vienna');
+    expect(input).toHaveAttribute('aria-busy', 'false');
+    await act(async () => resolveSearch({
+      results: [{ providerFeatureId: 'vienna', label: 'Vienna', center: [16.37, 48.21] }],
+      useBoundary: 'provider-response-use-requires-terms-review',
+    }));
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+  });
+
+  it('resets active-descendant state when a new query removes the old options', async () => {
+    const user = userEvent.setup();
+    const search = vi.fn(async () => ({
+      results: [
+        { providerFeatureId: 'first', label: 'First result', center: [0, 0] as const },
+        { providerFeatureId: 'last', label: 'Last result', center: [1, 1] as const },
+      ],
+      useBoundary: 'provider-response-use-requires-terms-review' as const,
+    }));
+    render(<LocationSearch provider={provider(search)} proximity={[0, 0]} onSelect={vi.fn()} />);
+    const input = screen.getByRole('combobox');
+    await user.type(input, 'Somewhere{Enter}');
+    await screen.findByRole('option', { name: 'Last result' });
+    await user.keyboard('{ArrowUp}');
+    expect(input).toHaveAttribute('aria-activedescendant', 'location-result-1');
+    fireEvent.change(input, { target: { value: 'Next query' } });
+    expect(input).not.toHaveAttribute('aria-activedescendant');
+    expect(input).toHaveAttribute('aria-expanded', 'false');
+  });
+
   it('searches from the initial workspace and jumps to a keyboard-selected result', async () => {
     const user = userEvent.setup();
     const search = vi.fn(async () => ({

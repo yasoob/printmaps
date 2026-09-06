@@ -35,6 +35,9 @@ describe('reviewed map-data batch styling', () => {
     expect(within(dialog).getByRole('group', { name: 'Style imported shapes' })).toBeInTheDocument();
 
     await user.clear(within(dialog).getByRole('textbox', { name: 'Import route width' }));
+    expect(within(dialog).getByRole('textbox', { name: 'Import route width' }))
+      .toHaveAccessibleDescription('Route width is required. Enter 0 px or greater.');
+    expect(commit).toBeDisabled();
     await user.type(within(dialog).getByRole('textbox', { name: 'Import route width' }), '-1');
     expect(within(dialog).getByRole('textbox', { name: 'Import route width' })).toHaveAttribute('aria-invalid', 'true');
     expect(commit).toBeDisabled();

@@ -84,7 +84,7 @@ describe('editor autosave startup', () => {
     expect(screen.getByRole('button', { name: 'Undo' })).toBeEnabled();
   });
 
-  it('blocks the editor until a damaged local draft is discarded', async () => {
+  it('offers a non-destructive initial choice while preserving deliberate discard', async () => {
     const user = userEvent.setup();
     const repository = repositoryWith({
       load: vi.fn().mockRejectedValue(new AutosaveCorruptionError()),
@@ -94,7 +94,7 @@ describe('editor autosave startup', () => {
     const dialog = screen.getByRole('dialog', { name: 'Local draft unavailable' });
     const discard = screen.getByRole('button', { name: 'Discard damaged draft' });
     expect(dialog).toHaveTextContent('damaged or unsupported');
-    await waitFor(() => expect(discard).toHaveFocus());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Continue without autosave' })).toHaveFocus());
     const inertRoot = document.querySelector('body > [data-base-ui-inert]');
     expect(inertRoot).toHaveAttribute('aria-hidden', 'true');
     expect(inertRoot).toHaveAttribute('data-base-ui-inert');

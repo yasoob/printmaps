@@ -39,7 +39,7 @@ export function createRouteAction(
       ok: false,
       error: "The route needs at least two valid, distinct points.",
     };
-    set((state) => {
+    const admission = set((state) => {
       if (!isValidLocalRouteInput(coordinates, options)) return state;
       const usedIds = new Set(state.document.layers.map((layer) => layer.id));
       let routeNumber = 0;
@@ -101,6 +101,6 @@ export function createRouteAction(
         selectedId: id,
       };
     });
-    return result;
+    return admission.ok ? result : admission;
   };
 }

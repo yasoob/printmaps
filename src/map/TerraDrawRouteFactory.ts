@@ -37,7 +37,6 @@ function selectMode(lineShape: RouteLineShape) {
     ? { draggable: true }
     : { deletable: true, draggable: true, midpoints: { draggable: true } };
   return new TerraDrawSelectMode({
-    dragEventThrottle: 1,
     pointerDistance: 22,
     projection: 'web-mercator',
     flags: {

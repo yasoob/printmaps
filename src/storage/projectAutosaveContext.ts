@@ -7,6 +7,7 @@ export const ProjectAutosaveContext = createContext<
 export const AutosaveCorruptedContext = createContext<boolean | undefined>(
   undefined,
 );
+export const AutosaveConflictOpenContext = createContext(false);
 export const AutosaveErrorContext = createContext<
   ProjectAutosaveState | null | undefined
 >(undefined);
@@ -32,6 +33,10 @@ export function useIsAutosaveCorrupted(): boolean {
     );
   }
   return isCorrupted;
+}
+
+export function useIsAutosaveConflictOpen(): boolean {
+  return useContext(AutosaveConflictOpenContext);
 }
 
 export function useAutosaveErrorState(): ProjectAutosaveState | null {

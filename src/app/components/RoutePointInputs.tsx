@@ -1,11 +1,12 @@
-import { useState } from "react";
-import { MAX_MERCATOR_LATITUDE, type ContentLayer } from "../../domain/project";
-import { CoordinateField } from "./CoordinateField";
+import { useId } from "react";
+import type { ContentLayer } from "../../domain/project";
+import type { RoutePointInput } from "../hooks/useRoutePointInput";
+import { PropertyRow } from "./PropertyControls";
 
 type RoutePointInputsProps = Readonly<{
   disabled: boolean;
-  initialCoordinate: readonly [number, number];
-  onAdd: (coordinate: readonly [number, number], label: string) => void;
+  pointInput: RoutePointInput;
+  onAdd: (coordinate: readonly [number, number], label: string) => boolean;
   onSnapChange: (isEnabled: boolean) => void;
   pois: readonly ContentLayer[];
   snapEnabled: boolean;
@@ -13,55 +14,62 @@ type RoutePointInputsProps = Readonly<{
 
 export function RoutePointInputs({
   disabled,
-  initialCoordinate,
+  pointInput,
   onAdd,
   onSnapChange,
   pois,
   snapEnabled,
 }: RoutePointInputsProps) {
-  const [coordinate, setCoordinate] = useState<[number, number]>([
-    initialCoordinate[0],
-    initialCoordinate[1],
-  ]);
-  const [poiId, setPoiId] = useState("");
-  const selectedPoi = pois.find((layer) => layer.id === poiId);
+  const id = useId();
+  const selectedPoi = pois.find((layer) => layer.id === pointInput.poiId);
 
   return (
     <div className="route-point-inputs">
-      <div className="route-coordinate-entry">
-        <CoordinateField
-          ariaLabel="New route point longitude"
-          disabled={disabled}
-          label="Longitude"
-          minimum={-180}
-          maximum={180}
-          value={coordinate[0]}
-          onCommit={(longitude) => setCoordinate([longitude, coordinate[1]])}
-        />
-        <CoordinateField
-          ariaLabel="New route point latitude"
-          disabled={disabled}
-          label="Latitude"
-          minimum={-MAX_MERCATOR_LATITUDE}
-          maximum={MAX_MERCATOR_LATITUDE}
-          value={coordinate[1]}
-          onCommit={(latitude) => setCoordinate([coordinate[0], latitude])}
-        />
+      <form className="route-coordinate-entry" aria-label="Route point coordinates" noValidate onSubmit={(event) => {
+        event.preventDefault();
+        if (pointInput.errors.some(Boolean)) return;
+        const coordinate: [number, number] = pointInput.coordinates.map(Number) as [number, number];
+        if (onAdd(coordinate, "typed coordinates")) pointInput.acknowledgeCoordinates();
+      }}>
+        {(["Longitude", "Latitude"] as const).map((label, index) => {
+          const axis = index as 0 | 1;
+          const error = pointInput.errors[axis];
+          const errorId = `${id}-${axis}`;
+          return (
+            <PropertyRow key={label} label={label}>
+              <div className="coordinate-field">
+                <label className="number-field">
+                  <input
+                    aria-label={`New route point ${label.toLowerCase()}`}
+                    aria-invalid={Boolean(error) || undefined}
+                    aria-describedby={error ? errorId : undefined}
+                    disabled={disabled}
+                    inputMode="decimal"
+                    value={pointInput.coordinates[axis]}
+                    onChange={(event) => pointInput.onChange(axis, event.currentTarget.value)}
+                    onKeyDown={(event) => { if (event.key === "Enter") event.preventDefault(); }}
+                  />
+                  <small>°</small>
+                </label>
+                {error && <small id={errorId} className="coordinate-validation">{error}</small>}
+              </div>
+            </PropertyRow>
+          );
+        })}
         <button
-          type="button"
-          disabled={disabled}
-          onClick={() => onAdd(coordinate, "typed coordinates")}
+          type="submit"
+          disabled={disabled || pointInput.errors.some(Boolean)}
         >
           Add coordinates
         </button>
-      </div>
+      </form>
       <label className="route-poi-entry">
         <span className="tool-control-label">Existing place</span>
         <select
           aria-label="Existing place for route point"
           disabled={disabled || pois.length === 0}
-          value={poiId}
-          onChange={(event) => setPoiId(event.target.value)}
+          value={pointInput.poiId}
+          onChange={(event) => pointInput.onPoiChange(event.target.value)}
         >
           <option value="">
             {pois.length === 0 ? "No places available" : "Choose a place"}
@@ -81,8 +89,10 @@ export function RoutePointInputs({
         type="button"
         disabled={disabled || selectedPoi?.geometry?.type !== "Point"}
         onClick={() => {
-          if (selectedPoi?.geometry?.type === "Point")
-            onAdd(selectedPoi.geometry.coordinates, selectedPoi.name);
+          if (selectedPoi?.geometry?.type === "Point"
+            && onAdd(selectedPoi.geometry.coordinates, selectedPoi.name)) {
+            pointInput.onPoiChange("");
+          }
         }}
       >
         Add place

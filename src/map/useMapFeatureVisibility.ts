@@ -53,7 +53,7 @@ export function useMapFeatureVisibility(options: FeatureVisibilityOptions) {
       invalidateExporter();
       queueMicrotask(() => setMapError({
         kind: 'renderer',
-        message: 'Map feature visibility could not be applied. Reload the page and retry.',
+        message: 'Map feature visibility could not be applied. Retry the map without reloading your project.',
       }));
       return false;
     }

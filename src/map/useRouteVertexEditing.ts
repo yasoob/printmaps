@@ -2,12 +2,13 @@ import { useLayoutEffect, useRef, type RefObject } from 'react';
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { ContentLayer, MapStylePreset } from '../domain/project';
 import { installRouteVertexEditing } from './RouteVertexEditing';
+import { mutationRejected, type GeometryEditResult, type ProjectMutationResult } from '../domain/projectMutation';
 
 type RouteVertexEditingOptions = {
   layers: ContentLayer[];
   map: RefObject<MapLibreMap | null>;
-  onRouteVertexChange?: (id: string, vertexIndex: number, coordinate: readonly [number, number]) => void;
-  onRouteVertexInsert?: (id: string, segmentIndex: number) => void;
+  onRouteVertexChange?: (id: string, vertexIndex: number, coordinate: readonly [number, number]) => GeometryEditResult;
+  onRouteVertexInsert?: (id: string, segmentIndex: number) => ProjectMutationResult;
   onRouteVertexPreview?: (coordinates: [number, number][]) => boolean;
   selectedId: string | null;
   stylePreset: MapStylePreset;
@@ -83,9 +84,9 @@ export function useRouteVertexEditing({
     const editing = installRouteVertexEditing(
       activeMap,
       currentLayer,
-      (vertexIndex, coordinate) => routeVertexChange.current?.(currentLayer.id, vertexIndex, coordinate),
+      (vertexIndex, coordinate) => routeVertexChange.current?.(currentLayer.id, vertexIndex, coordinate) ?? mutationRejected('Route editing is no longer available.', 'unavailable'),
       {
-        onInsert: (segmentIndex) => routeVertexInsert.current?.(currentLayer.id, segmentIndex),
+        onInsert: (segmentIndex) => routeVertexInsert.current?.(currentLayer.id, segmentIndex) ?? mutationRejected('Route editing is no longer available.', 'unavailable'),
         onPreview: (coordinates) => routeVertexPreview.current?.(coordinates),
       },
     );

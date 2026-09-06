@@ -40,7 +40,7 @@ function coffee(): ContentLayer {
 describe('Place marker direct editing', () => {
   it('previews drag movement and commits the final coordinate once', () => {
     const session = harness();
-    const commit = vi.fn();
+    const commit = vi.fn(() => ({ ok: true as const }));
     const cleanup = installPointEditing(session.map as never, coffee(), commit, session.createMarker);
 
     expect(session.element).toHaveAccessibleName('Move Coffee stop');
@@ -60,7 +60,7 @@ describe('Place marker direct editing', () => {
 
   it('supports keyboard nudging and excludes locked Place layers', () => {
     const session = harness();
-    const commit = vi.fn();
+    const commit = vi.fn(() => ({ ok: true as const }));
     installPointEditing(session.map as never, coffee(), commit, session.createMarker);
     session.element.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight' }));
     expect(commit).toHaveBeenCalledWith([17.1725, 48.2084]);
@@ -70,5 +70,26 @@ describe('Place marker direct editing', () => {
     layer.locked = true;
     installPointEditing(lockedSession.map as never, layer, commit, lockedSession.createMarker);
     expect(lockedSession.marker.addTo).not.toHaveBeenCalled();
+  });
+
+  it('rolls back marker and source previews on rejected pointer and keyboard commits', () => {
+    const session = harness();
+    const layer = coffee();
+    const commit = vi.fn(() => ({ ok: false as const, error: 'Portable byte limit' }));
+    const parent = document.createElement('div');
+    const bubbledKey = vi.fn();
+    parent.append(session.element);
+    parent.addEventListener('keydown', bubbledKey);
+    installPointEditing(session.map as never, layer, commit, session.createMarker);
+    const original = layer.geometry?.type === 'Point' ? layer.geometry.coordinates : [];
+    session.setCoordinate({ lng: 16.4, lat: 48.25 });
+    session.trigger('drag');
+    session.trigger('dragend');
+    expect(session.marker.setLngLat).toHaveBeenLastCalledWith(original);
+    expect(session.setData).toHaveBeenLastCalledWith(expect.objectContaining({ geometry: { type: 'Point', coordinates: original } }));
+    session.element.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight' }));
+    expect(commit).toHaveBeenCalledTimes(2);
+    expect(bubbledKey).not.toHaveBeenCalled();
+    expect(session.marker.setLngLat).toHaveBeenLastCalledWith(original);
   });
 });

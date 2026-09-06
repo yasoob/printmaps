@@ -7,6 +7,8 @@ import {
   type MapStyleTone,
 } from '../../domain/mapStyleCustomization';
 import { MAP_STYLE_TOKEN_ROLES, type MapStylePreset, type MapStyleTokenRole } from '../../domain/mapStylePresets';
+import type { ProjectMutationResult } from '../../domain/projectMutation';
+import { useMutationFeedback } from '../hooks/useMutationFeedback';
 
 type EditMode = 'history' | 'amend';
 
@@ -27,33 +29,36 @@ const TOKEN_LABELS: Record<MapStyleTokenRole, string> = {
 const PREVIEW_ROLES = ['land', 'water', 'park', 'majorRoad', 'label'] as const;
 
 type CustomizationActions = {
-  onAdjustmentChange: (adjustment: 'contrast' | 'detail', value: number, mode?: EditMode) => void;
-  onColorChange: (role: MapStyleTokenRole, color: string | null, mode?: EditMode) => void;
-  onReset: () => void;
-  onToneChange: (tone: MapStyleTone) => void;
+  onAdjustmentChange: (adjustment: 'contrast' | 'detail', value: number, mode?: EditMode) => ProjectMutationResult;
+  onColorChange: (role: MapStyleTokenRole, color: string | null, mode?: EditMode) => ProjectMutationResult;
+  onReset: () => ProjectMutationResult;
+  onToneChange: (tone: MapStyleTone) => ProjectMutationResult;
 };
 
 type MapStyleCustomizerProps = CustomizationActions & {
   customization: MapStyleCustomization;
   onBack: () => void;
-  onResetMapStyle: () => void;
+  onResetMapStyle: () => ProjectMutationResult;
   preset: MapStylePreset;
 };
 
 function AdjustmentRange({
+  customization,
   label,
   value,
   low,
   high,
   onChange,
 }: {
+  customization: MapStyleCustomization;
   label: string;
   value: number;
   low: string;
   high: string;
-  onChange: (value: number, mode: EditMode) => void;
+  onChange: (value: number, mode: EditMode) => ProjectMutationResult;
 }) {
   const isEditing = useRef(false);
+  const feedback = useMutationFeedback(customization);
   const finish = () => { isEditing.current = false; };
   return (
     <label className="map-style-adjustment">
@@ -67,23 +72,26 @@ function AdjustmentRange({
         value={value}
         onBlur={finish}
         onChange={(event) => {
-          onChange(event.currentTarget.valueAsNumber, isEditing.current ? 'amend' : 'history');
-          isEditing.current = true;
+          const result = feedback.report(onChange(event.currentTarget.valueAsNumber, isEditing.current ? 'amend' : 'history'));
+          if (result.ok && result.changed !== false) isEditing.current = true;
         }}
         onPointerUp={finish}
       />
       <small><span>{low}</span><span>{high}</span></small>
+      {feedback.error && <small className="coordinate-validation" role="alert">{feedback.error}</small>}
     </label>
   );
 }
 
 function SemanticColorRow({
+  customization,
   color,
   customColor,
   label,
   role,
   onChange,
 }: {
+  customization: MapStyleCustomization;
   color: string;
   customColor?: string;
   label: string;
@@ -91,6 +99,7 @@ function SemanticColorRow({
   onChange: CustomizationActions['onColorChange'];
 }) {
   const isEditing = useRef(false);
+  const feedback = useMutationFeedback(customization);
   const finish = () => { isEditing.current = false; };
   return (
     <div className="map-style-color-row">
@@ -105,8 +114,8 @@ function SemanticColorRow({
         }}
         onPointerDown={finish}
         onInput={(event) => {
-          onChange(role, event.currentTarget.value, isEditing.current ? 'amend' : 'history');
-          isEditing.current = true;
+          const result = feedback.report(onChange(role, event.currentTarget.value, isEditing.current ? 'amend' : 'history'));
+          if (result.ok && result.changed !== false) isEditing.current = true;
         }}
       />
       <code>{color.toUpperCase()}</code>
@@ -115,10 +124,11 @@ function SemanticColorRow({
         disabled={!customColor}
         title={customColor ? `Reset ${label} to Quick Tune` : `${label} follows Quick Tune`}
         type="button"
-        onClick={() => onChange(role, null)}
+        onClick={() => feedback.report(onChange(role, null))}
       >
         <RotateCcw aria-hidden="true" size={12} />
       </button>
+      {feedback.error && <small className="coordinate-validation" role="alert">{feedback.error}</small>}
     </div>
   );
 }
@@ -163,6 +173,7 @@ export function MapStyleCustomizer({
   const headingRef = useRef<HTMLHeadingElement>(null);
   const tokens = resolveMapStyleTokens(preset, customization);
   const customized = isMapStyleCustomized(customization);
+  const feedback = useMutationFeedback(customization);
   useEffect(() => { headingRef.current?.focus(); }, []);
 
   return (
@@ -180,7 +191,7 @@ export function MapStyleCustomizer({
           aria-label="Reset to Paper"
           disabled={preset === 'paper' && !customized}
           type="button"
-          onClick={onResetMapStyle}
+          onClick={() => feedback.report(onResetMapStyle())}
         >
           <span className="map-style-reset-wide">Reset to Paper</span>
           <span className="map-style-reset-narrow">Reset map</span>
@@ -190,20 +201,22 @@ export function MapStyleCustomizer({
         <section>
           <div className="map-style-tone" role="group" aria-label="Map tone">
             {(['cool', 'balanced', 'warm'] as const).map((tone) => (
-              <button key={tone} aria-pressed={customization.tone === tone} type="button" onClick={() => onToneChange(tone)}>
+              <button key={tone} aria-pressed={customization.tone === tone} type="button" onClick={() => feedback.report(onToneChange(tone))}>
                 {tone[0]!.toUpperCase()}{tone.slice(1)}
               </button>
             ))}
           </div>
-          <AdjustmentRange label="Contrast" value={customization.contrast} low="Soft" high="Crisp" onChange={(value, mode) => onAdjustmentChange('contrast', value, mode)} />
-          <AdjustmentRange label="Detail" value={customization.detail} low="Quiet" high="Rich" onChange={(value, mode) => onAdjustmentChange('detail', value, mode)} />
-          <button className="map-style-clear-tuning" disabled={!customized} type="button" onClick={onReset}>Clear tuning and overrides</button>
+          <AdjustmentRange customization={customization} label="Contrast" value={customization.contrast} low="Soft" high="Crisp" onChange={(value, mode) => onAdjustmentChange('contrast', value, mode)} />
+          <AdjustmentRange customization={customization} label="Detail" value={customization.detail} low="Quiet" high="Rich" onChange={(value, mode) => onAdjustmentChange('detail', value, mode)} />
+          <button className="map-style-clear-tuning" disabled={!customized} type="button" onClick={() => feedback.report(onReset())}>Clear tuning and overrides</button>
+          {feedback.error && <p className="coordinate-validation" role="alert">{feedback.error}</p>}
         </section>
         <section>
           <div className="map-style-color-list">
             {MAP_STYLE_TOKEN_ROLES.map((role) => (
               <SemanticColorRow
                 key={role}
+                customization={customization}
                 color={tokens[role]}
                 customColor={customization.colors[role]}
                 label={TOKEN_LABELS[role]}

@@ -1,4 +1,4 @@
-import { memo, useMemo, type ComponentProps, type RefObject } from "react";
+import { memo, useMemo, useState, type ComponentProps, type RefObject } from "react";
 import type { MobilePanel } from "../hooks/useMobilePanels";
 import { MapCanvas } from "../../map/MapCanvas";
 import {
@@ -34,15 +34,17 @@ export type CanvasWorkspaceViewProps = {
 
 const MapCanvasWithLayerPreview = memo(function MapCanvasWithLayerPreview({
   mapProps,
+  cameraNoticeContainer,
 }: {
   mapProps: Omit<ComponentProps<typeof MapCanvas>, "previewedId">;
+  cameraNoticeContainer: HTMLDivElement | null;
 }) {
   const requestedPreviewId = useLayerPreviewId();
   const previewedId = visibleLayerPreviewId(
     mapProps.layers,
     requestedPreviewId,
   );
-  return <MapCanvas {...mapProps} previewedId={previewedId} />;
+  return <MapCanvas {...mapProps} cameraNoticeContainer={cameraNoticeContainer} previewedId={previewedId} />;
 });
 
 export function CanvasWorkspaceView({
@@ -60,14 +62,17 @@ export function CanvasWorkspaceView({
   searchKey,
   searchProps,
 }: CanvasWorkspaceViewProps) {
+  const [cameraNoticeContainer, setCameraNoticeContainer] = useState<HTMLDivElement | null>(null);
   const {
     onSelect: onSearchSelect,
     provider: searchProvider,
     proximity: searchProximity,
+    feedback: searchFeedback,
+    onClearFeedback,
   } = searchProps;
   const topDock = useMemo(
     () => (
-      <MobilePanelActions
+      <><MobilePanelActions
         activePanel={activePanel}
         layersTriggerRef={layersTriggerRef}
         onOpenPanel={onOpenPanel}
@@ -77,9 +82,11 @@ export function CanvasWorkspaceView({
           key={searchKey}
           onSelect={onSearchSelect}
           proximity={searchProximity}
+          feedback={searchFeedback}
+          onClearFeedback={onClearFeedback}
           {...(searchProvider && { provider: searchProvider })}
         />
-      </MobilePanelActions>
+      </MobilePanelActions><div ref={setCameraNoticeContainer} className="canvas-camera-notice" /></>
     ),
     [
       activePanel,
@@ -90,6 +97,8 @@ export function CanvasWorkspaceView({
       onSearchSelect,
       searchProvider,
       searchProximity,
+      searchFeedback,
+      onClearFeedback,
     ],
   );
   return (
@@ -98,7 +107,7 @@ export function CanvasWorkspaceView({
       data-active-tool={activeTool}
       inert={activePanel !== null}
     >
-      <MapCanvasWithLayerPreview mapProps={mapProps} />
+      <MapCanvasWithLayerPreview mapProps={mapProps} cameraNoticeContainer={cameraNoticeContainer} />
       <div className="canvas-overlay">
         <CanvasWorkspaceChrome
           {...chromeProps}

@@ -11,10 +11,10 @@ type LayerMenuProps = {
   onDelete: () => void;
   onDuplicate: () => void;
   onReplace: (trigger: HTMLElement | null) => void;
-  replaceDisabled: boolean;
+  isLocked: boolean;
 };
 
-export function LayerMenu({ onReplace, onDuplicate, onDelete, replaceDisabled }: LayerMenuProps) {
+export function LayerMenu({ onReplace, onDuplicate, onDelete, isLocked }: LayerMenuProps) {
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -44,11 +44,11 @@ export function LayerMenu({ onReplace, onDuplicate, onDelete, replaceDisabled }:
         )}
       />
       <DropdownMenuContent ref={menuRef} className="layer-menu" align="end">
-        <DropdownMenuItem disabled={replaceDisabled} onClick={() => onReplace(buttonRef.current)}>
+        <DropdownMenuItem disabled={isLocked} onClick={() => onReplace(buttonRef.current)}>
           Replace layer data
         </DropdownMenuItem>
         <DropdownMenuItem onClick={onDuplicate}>Duplicate layer</DropdownMenuItem>
-        <DropdownMenuItem variant="destructive" onClick={onDelete}>Delete layer</DropdownMenuItem>
+        <DropdownMenuItem variant="destructive" disabled={isLocked} onClick={onDelete}>Delete layer</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

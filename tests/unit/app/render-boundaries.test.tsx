@@ -84,10 +84,12 @@ function headerProps() {
     importOpen: false,
     replacementRequest: null,
     inert: false,
+    isMobileViewport: false,
     onOpen: vi.fn(),
-    onImport: vi.fn(() => true),
+    onImport: vi.fn(() => ({ ok: true as const })),
     onImportOpenChange: vi.fn(),
     onExport: vi.fn(),
+    onRenameProject: vi.fn(),
   };
 }
 
@@ -102,6 +104,14 @@ function autosaveState(): ProjectAutosaveState {
     status: 'Autosave ready',
     statusKind: 'status',
     discard: vi.fn(async () => true),
+    recoveryData: undefined,
+    continueWithoutAutosave: vi.fn(() => false),
+    conflictOpen: false,
+    conflictPending: false,
+    conflictError: null,
+    reviewConflict: vi.fn(),
+    keepEditingConflict: vi.fn(),
+    loadSavedVersion: vi.fn(async () => false),
   };
 }
 
@@ -130,8 +140,11 @@ describe('editor render boundaries', () => {
       activePanel: null,
       autosave,
       closePanel: vi.fn(),
+      desktopCollapsed: false,
+      openPanel: vi.fn(),
       layers: initial.document.layers,
       onKeyDown: vi.fn(),
+      onToggleCollapsed: vi.fn(),
       panelRef: createRef<HTMLElement>(),
       setPreviewedLayerId: vi.fn(),
     };
@@ -193,8 +206,11 @@ describe('editor render boundaries', () => {
             activePanel={null}
             autosave={autosaveState()}
             closePanel={vi.fn()}
+            desktopCollapsed={false}
+            openPanel={vi.fn()}
             layers={store.getState().document.layers}
             onKeyDown={vi.fn()}
+            onToggleCollapsed={vi.fn()}
             panelRef={createRef<HTMLElement>()}
             setPreviewedLayerId={vi.fn()}
           />

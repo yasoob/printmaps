@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page, test } from '@playwright/test';
+import { expandToolSettings } from './authoring-panel-support';
 
 const setSafeAreaInsets = async (page: Page) => {
   await page.evaluate(() => {
@@ -130,9 +131,7 @@ const verifyMobileDrawers = async (page: Page) => {
   await layersButton.click();
   await page.getByRole('button', { name: 'Select Route 01' }).click();
   await expect(layersDialog).not.toBeVisible();
-  await expect(layersButton).toBeFocused();
 
-  await propertiesButton.click();
   const propertiesDialog = page.getByRole('dialog', { name: 'Properties sidebar' });
   const closeProperties = page.getByRole('button', { name: 'Close properties' });
   await expect(propertiesDialog).toBeVisible();
@@ -305,11 +304,9 @@ test('mobile map palette keeps one navigation mode and exposes Fit page directly
   await expectNoOverlap(fit, toolbar);
 
   await toolbar.getByRole('button', { name: 'Route (R)' }).click();
+  await expandToolSettings(page, 'route');
   const panel = page.locator('.route-authoring-panel');
-  const authoringNavigationGroupBox = await navigationGroup.boundingBox();
-  expect(authoringNavigationGroupBox).not.toBeNull();
-  expect(authoringNavigationGroupBox!.x).toBe(navigationGroupBox!.x);
-  expect(authoringNavigationGroupBox!.y).toBe(navigationGroupBox!.y);
+  expect(await navigationGroup.boundingBox()).toEqual(navigationGroupBox);
   const routePath = page.getByRole('radiogroup', { name: 'Route path' });
   await expect(routePath.getByRole('radio', { name: 'Straight' })).toContainText('Straight');
   await expect(routePath.getByRole('radio', { name: 'Arc' })).toContainText('Arc');
@@ -432,7 +429,7 @@ test('mobile navigation buttons use full touch targets', async ({ page }) => {
 
     await page.getByRole('button', { name: 'Open properties' }).click();
     const propertiesDialog = page.getByRole('dialog', { name: 'Properties sidebar' });
-    await expect(propertiesDialog).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Close properties' })).toBeFocused();
     await expect(propertiesDialog.getByRole('heading', { name: 'Project' })).toBeVisible();
     await expectFullTouchTargets(propertiesDialog.getByRole('button'));
     const orientation = propertiesDialog.locator('.segmented').first();
@@ -445,8 +442,7 @@ test('mobile navigation buttons use full touch targets', async ({ page }) => {
     await expectFullTouchTargets(layersDialog.getByRole('button'));
     await layersDialog.getByRole('button', { name: 'Select Route 01' }).click();
 
-    await page.getByRole('button', { name: 'Open properties' }).click();
-    await expect(propertiesDialog).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Close properties' })).toBeFocused();
     await expect(propertiesDialog.getByRole('heading', { name: 'Route 01' })).toBeVisible();
     await expectFullTouchTargets(propertiesDialog.getByRole('button'));
     await expectNoOverlap(

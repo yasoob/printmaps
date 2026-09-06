@@ -13,8 +13,9 @@ import {
   convertRoute,
   insertRoutePoint,
   removeRoutePoint,
-  replaceRouteSemanticPoints,
+  replaceRouteDraftPoints,
 } from "./routeTransformations";
+import { isRouteCoordinateMove, moveRouteSemanticPoints } from "./routePointMovement";
 
 export function isValidPosition(longitude: number, latitude: number) {
   return (
@@ -120,7 +121,10 @@ export function replaceRouteGeometry(
         current[index][0] === longitude && current[index][1] === latitude,
     );
   if (isUnchanged) return null;
-  return replaceRouteSemanticPoints(source, coordinates);
+  const unique = source.route.closed ? current.slice(0, -1) : current;
+  return isRouteCoordinateMove(unique, coordinates)
+    ? moveRouteSemanticPoints(source, coordinates)
+    : replaceRouteDraftPoints(source, coordinates);
 }
 
 function localEditableRoute(
@@ -128,24 +132,6 @@ function localEditableRoute(
 ): CompleteRouteLayer | null {
   if (!layer || !isCompleteRouteLayer(layer)) return null;
   return layer.route.kind === "road" ? convertRoute(layer, "straight") : layer;
-}
-
-function moveOpenRouteVertex(
-  source: CompleteRouteLayer,
-  vertexIndex: number,
-  coordinate: [number, number],
-) {
-  const current = semanticRoutePoints(source);
-  if (!current) return null;
-  const coordinates = current.map((position, index) =>
-    index === vertexIndex
-      ? coordinate
-      : [position[0], position[1]] as [number, number]);
-  const geometry = source.geometry.type === "Arc"
-    ? createArcGeometry(coordinates, source.geometry.curvatures)
-    : { type: "LineString" as const, coordinates };
-  if (!geometry) return null;
-  return editedRouteLayer(source, geometry);
 }
 
 function isValidRouteVertexRequest(
@@ -170,20 +156,13 @@ export function moveRouteVertex(
   const semanticIndex = source.route.closed && vertexIndex === current.length - 1
     ? 0
     : vertexIndex;
-  if (!source.route.closed) {
-    return moveOpenRouteVertex(
-      source,
-      semanticIndex,
-      [longitude, latitude],
-    );
-  }
   const unique = source.route.closed ? current.slice(0, -1) : current;
   const coordinates = unique.map((position, index) =>
     index === semanticIndex
       ? ([longitude, latitude] as [number, number])
       : position,
   );
-  return replaceRouteSemanticPoints(source, coordinates);
+  return moveRouteSemanticPoints(source, coordinates);
 }
 
 export function insertRouteVertex(

@@ -9,18 +9,24 @@ import type { ShapeAuthoringMode } from "../components/ShapeDrawingPanel";
 import { IsochronePanel } from "../components/IsochronePanel";
 import { countDistinctPoints } from "../components/authoringDraftLayers";
 import { useIsochroneAuthoring } from "./useIsochroneAuthoring";
+import { useShapeDrawingDraft } from "./useShapeDrawingDraft";
+import { useShapeDrawingKeyboard } from "./useShapeDrawingKeyboard";
+import type { LayerMutationResult, ProjectMutationResult } from "../../domain/projectMutation";
 
 type CanvasShapeAuthoringParameters = {
   activeTool: string;
+  isModalOpen: boolean;
+  isMobileViewport: boolean;
+  center: readonly [number, number];
   documentEpoch: number;
   layers: ContentLayer[];
   onAuthoringChange: (documentEpoch: number, isActive: boolean) => void;
-  onCreateAdministrativeArea: (area: AdministrativeArea) => string | null;
+  onCreateAdministrativeArea: (area: AdministrativeArea) => LayerMutationResult;
   onCreateIsochroneArea: (
     input: IsochroneAreaInput,
     expectedDocumentEpoch: number,
-  ) => string | null;
-  onCreateShape: (coordinates: readonly (readonly [number, number])[]) => void;
+  ) => LayerMutationResult;
+  onCreateShape: (coordinates: readonly (readonly [number, number])[]) => ProjectMutationResult;
   selectToolRef: RefObject<HTMLButtonElement | null>;
   selectedId: string | null;
   setActiveTool: (id: string) => void;
@@ -30,8 +36,6 @@ type CanvasShapeAuthoringParameters = {
       request: number;
     },
   ) => void;
-  setToolDocumentEpoch: (epoch: number) => void;
-  toolDocumentEpoch: number;
 };
 
 function resolvedShapeEditMode(
@@ -46,8 +50,10 @@ function resolvedShapeEditMode(
 export function useCanvasShapeAuthoring(
   parameters: CanvasShapeAuthoringParameters,
 ) {
-  const [points, setPoints] = useState<[number, number][]>([]);
-  const [mode, setMode] = useState<ShapeAuthoringMode>("administrative");
+  const drawing = useShapeDrawingDraft(parameters.documentEpoch, parameters.center);
+  const [commitError, setCommitError] = useState<{ epoch: number; mode: ShapeAuthoringMode; message: string } | null>(null);
+  const error = commitError?.epoch === parameters.documentEpoch && commitError.mode === drawing.mode ? commitError.message : null;
+  const { mode, points } = drawing;
   const [storedEditMode, setStoredEditMode] = useState<{
     id: string;
     mode: ShapeEditMode;
@@ -61,11 +67,8 @@ export function useCanvasShapeAuthoring(
     canEditPoints,
     storedEditMode,
   );
-  const currentPoints =
-    parameters.toolDocumentEpoch === parameters.documentEpoch ? points : [];
-  const canFinish = countDistinctPoints(currentPoints) >= 3;
+  const canFinish = countDistinctPoints(points) >= 3;
   const exit = () => {
-    setPoints([]);
     parameters.setActiveTool("select");
     parameters.onAuthoringChange(parameters.documentEpoch, false);
     window.setTimeout(() => parameters.selectToolRef.current?.focus(), 0);
@@ -75,44 +78,65 @@ export function useCanvasShapeAuthoring(
     documentEpoch: parameters.documentEpoch,
     onCreate: parameters.onCreateIsochroneArea,
     onCreated: (id) => {
-      parameters.setFitLayerRequest((current) => ({
-        id,
-        request: current.request + 1,
-      }));
+      parameters.setFitLayerRequest((current) => ({ id, request: current.request + 1 }));
       exit();
     },
   });
   const finish = () => {
     if (!canFinish) return;
-    parameters.onCreateShape(currentPoints);
+    const result = parameters.onCreateShape(points);
+    if (!result.ok) {
+      setCommitError({ epoch: parameters.documentEpoch, mode: 'draw', message: result.error });
+      return;
+    }
+    setCommitError(null);
+    drawing.clear();
     exit();
   };
-  const cancel = () => {
+  const close = () => {
     isochrone.cancel();
     exit();
   };
+  const cancel = () => {
+    setCommitError(null);
+    if (mode === "draw") drawing.clear();
+    close();
+  };
+  useShapeDrawingKeyboard({
+    active: parameters.activeTool === "shape",
+    isDrawing: mode === "draw",
+    isModalOpen: parameters.isModalOpen,
+    canFinish,
+    canUndo: points.length > 0,
+    onClose: close,
+    onFinish: finish,
+    onUndo: drawing.undo,
+  });
   const addAdministrativeArea = (area: AdministrativeArea) => {
-    const createdId = parameters.onCreateAdministrativeArea(area);
-    if (createdId) {
-      parameters.setFitLayerRequest((current) => ({
-        id: createdId,
-        request: current.request + 1,
-      }));
-    }
-    exit();
+    const result = parameters.onCreateAdministrativeArea(area);
+    if (result.ok) {
+      setCommitError(null);
+      parameters.setFitLayerRequest((current) => ({ id: result.layerId, request: current.request + 1 }));
+      exit();
+    } else setCommitError({ epoch: parameters.documentEpoch, mode: 'administrative', message: result.error });
   };
   const panelProps = {
-    pointCount: currentPoints.length,
+    isCompactViewport: parameters.isMobileViewport,
+    pointCount: points.length,
+    pointInput: drawing.pointInput,
+    pointError: drawing.error ?? error,
+    admissionError: error,
+    shouldAutoCollapse: drawing.lastPointSource === "map",
     canFinish,
     mode,
     onModeChange: (nextMode: ShapeAuthoringMode) => {
       isochrone.cancel();
-      setMode(nextMode);
-      setPoints([]);
+      drawing.setMode(nextMode);
     },
     onAddAdministrativeArea: addAdministrativeArea,
     onCancel: cancel,
-    onUndo: () => setPoints((current) => current.slice(0, -1)),
+    onClose: close,
+    onUndo: drawing.undo,
     onFinish: finish,
     isochronePanel: (
       <IsochronePanel
@@ -131,14 +155,14 @@ export function useCanvasShapeAuthoring(
     ),
   };
   return {
+    addPoint: drawing.addPoint,
+    hasUnfinishedWork: drawing.hasUnfinishedWork,
     canEditPoints,
     editMode,
     isochrone,
     mode,
     panelProps,
-    points: currentPoints,
+    points,
     setEditMode: setStoredEditMode,
-    setMode,
-    setPoints,
   };
 }

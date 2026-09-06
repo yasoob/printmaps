@@ -35,7 +35,7 @@ export function useMapTextScale(options: TextScaleOptions) {
       invalidateExporter();
       queueMicrotask(() => setMapError({
         kind: 'renderer',
-        message: 'Map labels could not be resized. Reload the page and retry.',
+        message: 'Map labels could not be resized. Retry the map without reloading your project.',
       }));
       return false;
     }

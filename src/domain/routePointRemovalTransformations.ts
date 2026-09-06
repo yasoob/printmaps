@@ -16,6 +16,7 @@ import {
   sourcePoints,
   sourceRoute,
 } from './routeTransformationCandidate';
+import { routePointRemovalError } from './routePointConstraints';
 
 type RouteParts = {
   points: RoutePosition[];
@@ -114,10 +115,9 @@ export function removeRoutePoint(
   road?: DirectionsRouteInput,
 ): CompleteRouteLayer | null {
   const source = sourceRoute(layer);
-  if (!source || !Number.isSafeInteger(pointIndex)) return null;
-  const uniqueCount = sourcePoints(source).length - (source.route.closed ? 1 : 0);
-  const minimum = source.route.closed ? 3 : 2;
-  if (pointIndex < 0 || pointIndex >= uniqueCount || uniqueCount <= minimum) return null;
+  if (!source || routePointRemovalError({
+    pointCount: sourcePoints(source).length, pointIndex, isClosed: source.route.closed,
+  })) return null;
   const parts = source.route.closed
     ? closedRemovalParts(source, pointIndex)
     : openRemovalParts(source, pointIndex);

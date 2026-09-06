@@ -2,11 +2,14 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import type { ContentLayer } from '../../src/domain/project';
 
 const mocks = vi.hoisted(() => ({
+  capture: vi.fn(),
   adapterSync: vi.fn(() => 'synced' as const),
   adapterSetExportVisibility: vi.fn(() => true),
   mapHandlers: {} as Record<string, Array<(event?: unknown) => void>>,
   setLayoutProperty: vi.fn(),
 }));
+
+vi.mock('../../src/export/previewPng', () => ({ capturePrintFramePng: mocks.capture }));
 
 vi.mock('../../src/map/MapContentAdapter', () => ({
   createMapLibreContentAdapter: () => ({
@@ -21,10 +24,15 @@ vi.mock('maplibre-gl', () => {
   class MockMap {
     boxZoom = { disable: vi.fn(), enable: vi.fn() }; doubleClickZoom = { disable: vi.fn(), enable: vi.fn() }; dragPan = { disable: vi.fn(), enable: vi.fn() }; dragRotate = { disable: vi.fn(), enable: vi.fn() };
     keyboard = { disable: vi.fn(), enable: vi.fn() }; scrollZoom = { disable: vi.fn(), enable: vi.fn() }; touchPitch = { disable: vi.fn(), enable: vi.fn() }; touchZoomRotate = { disable: vi.fn(), enable: vi.fn() };
+    constructor(private readonly camera: { center: [number, number]; zoom: number; bearing: number; pitch: number }) {}
     addControl() {}
     fitBounds() {}
+    getBearing() { return this.camera.bearing; }
     getCanvas() { return document.createElement('canvas'); }
+    getCenter() { return { lng: this.camera.center[0], lat: this.camera.center[1] }; }
     getContainer() { return document.createElement('div'); }
+    getPitch() { return this.camera.pitch; }
+    getZoom() { return this.camera.zoom; }
     getStyle() {
       return {
         layers: [{
@@ -45,7 +53,7 @@ vi.mock('maplibre-gl', () => {
       (mocks.mapHandlers[event] ??= []).push(callback);
       if (event === 'load') queueMicrotask(callback);
     }
-    loaded() { return false; }
+    loaded() { return true; }
     remove() {}
     setLayoutProperty(...arguments_: unknown[]) { mocks.setLayoutProperty(...arguments_); }
     triggerRepaint() {}
@@ -112,7 +120,7 @@ it('keeps readiness invalid after a live label resize fails', async () => {
   rerender(<MapCanvas {...props} selectedId={null} textScalePercent={125} />);
 
   expect(await screen.findByRole('status')).toHaveTextContent(
-    'Map labels could not be resized. Reload the page and retry.',
+    'Map labels could not be resized. Retry the map without reloading your project.',
   );
   await waitFor(() => expect(onExporterChange).toHaveBeenLastCalledWith(null));
 
@@ -126,7 +134,7 @@ it('keeps readiness invalid after a live label resize fails', async () => {
     publishedExporterCount,
   );
   expect(screen.getByRole('status')).toHaveTextContent(
-    'Map labels could not be resized. Reload the page and retry.',
+    'Map labels could not be resized. Retry the map without reloading your project.',
   );
 });
 
@@ -140,28 +148,31 @@ it('keeps readiness invalid after overlay restoration fails', async () => {
     onBackgroundClick: vi.fn(),
     onExporterChange,
   };
-  const { rerender } = render(<MapCanvas {...props} selectedId={null} />);
+  const { rerender } = render(<div><MapCanvas {...props} selectedId={null} /><div className="print-frame" /></div>);
   const canvas = screen.getByTestId('map-canvas');
   await waitFor(() => expect(mocks.adapterSync).toHaveBeenCalledOnce());
   act(() => emitMapEvent('idle'));
   await waitFor(() => expect(onExporterChange).toHaveBeenCalledWith(expect.any(Function)));
   const exporter = onExporterChange.mock.calls.find(([value]) => typeof value === 'function')?.[0];
+  mocks.capture.mockResolvedValue({ surface: document.createElement('canvas'), width: 20, height: 10, blob: new Blob() });
   mocks.adapterSetExportVisibility.mockReturnValueOnce(true).mockReturnValueOnce(false);
 
-  const capture = exporter({ content: 'basemap' });
-  act(() => emitMapEvent('render'));
-  await expect(capture).rejects.toThrow('could not be restored after layered SVG export');
+  await act(async () => {
+    const capture = exporter({ content: 'basemap' });
+    emitMapEvent('render');
+    await expect(capture).rejects.toThrow('could not be restored after layered SVG export');
+  });
   await waitFor(() => expect(onExporterChange).toHaveBeenLastCalledWith(null));
   expect(screen.getByRole('status')).toHaveTextContent('could not restore content after export');
 
-  rerender(<MapCanvas {...props} selectedId="route-01" />);
+  rerender(<div><MapCanvas {...props} selectedId="route-01" /><div className="print-frame" /></div>);
   await waitFor(() => expect(mocks.adapterSync).toHaveBeenCalledTimes(2));
   act(() => emitMapEvent('idle'));
 
   expect(canvas).not.toHaveAttribute('data-map-ready');
   expect(onExporterChange).toHaveBeenLastCalledWith(null);
   expect(onExporterChange.mock.calls.filter(([value]) => typeof value === 'function')).toHaveLength(1);
-  expect(screen.getByRole('status')).toHaveTextContent('Reload the page and retry');
+  expect(screen.getByRole('status')).toHaveTextContent('Retry the map without reloading your project');
 });
 
 it('applies a language change live and republishes export readiness after the next idle frame', async () => {

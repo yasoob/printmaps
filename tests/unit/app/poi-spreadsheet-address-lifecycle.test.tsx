@@ -10,22 +10,24 @@ function deferred<T>() {
 }
 
 describe('POI spreadsheet address lifecycle', () => {
-  it('restores focus to the address rows after a lookup error', async () => {
+  it('keeps an unfound address correctable without adding a POI', async () => {
     const user = userEvent.setup();
     const search = vi.fn<SearchProvider['search']>().mockResolvedValue({
       results: [],
       useBoundary: 'provider-response-use-requires-terms-review',
     });
     render(
-      <PoiSpreadsheetPanel documentEpoch={1} onCancel={vi.fn()} onSubmit={vi.fn()} searchProvider={{ search }} />,
+      <PoiSpreadsheetPanel documentEpoch={1} onCancel={vi.fn()} onComplete={vi.fn()} onSubmit={vi.fn()} searchProvider={{ search }} />,
     );
     await user.click(screen.getByRole('radio', { name: 'Addresses' }));
     const rows = screen.getByRole('textbox', { name: 'POI spreadsheet rows' });
     await user.type(rows, 'Missing\tUnknown address');
-    await user.click(screen.getByRole('button', { name: 'Find and add POIs' }));
+    await user.click(screen.getByRole('button', { name: 'Look up addresses' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Spreadsheet row 1 address could not be found.');
-    expect(rows).toHaveFocus();
+    expect(await screen.findByText('No matches found. Correct the address, retry, or exclude this row.')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Add selected POIs' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Back to pasted rows' }));
+    expect(screen.getByRole('textbox', { name: 'POI spreadsheet rows' })).toHaveValue('Missing\tUnknown address');
   });
 
   it('cancels a stale address batch when the document changes', async () => {
@@ -34,15 +36,15 @@ describe('POI spreadsheet address lifecycle', () => {
     const search = vi.fn<SearchProvider['search']>(() => pending.promise);
     const onSubmit = vi.fn();
     const { rerender } = render(
-      <PoiSpreadsheetPanel documentEpoch={1} onCancel={vi.fn()} onSubmit={onSubmit} searchProvider={{ search }} />,
+      <PoiSpreadsheetPanel documentEpoch={1} onCancel={vi.fn()} onComplete={vi.fn()} onSubmit={onSubmit} searchProvider={{ search }} />,
     );
     await user.click(screen.getByRole('radio', { name: 'Addresses' }));
     await user.type(screen.getByRole('textbox', { name: 'POI spreadsheet rows' }), 'Café\tHerrengasse 14, Vienna');
-    await user.click(screen.getByRole('button', { name: 'Find and add POIs' }));
+    await user.click(screen.getByRole('button', { name: 'Look up addresses' }));
     await waitFor(() => expect(search).toHaveBeenCalledOnce());
     const signal = search.mock.calls[0][0].signal;
 
-    rerender(<PoiSpreadsheetPanel documentEpoch={2} onCancel={vi.fn()} onSubmit={onSubmit} searchProvider={{ search }} />);
+    rerender(<PoiSpreadsheetPanel documentEpoch={2} onCancel={vi.fn()} onComplete={vi.fn()} onSubmit={onSubmit} searchProvider={{ search }} />);
 
     expect(signal?.aborted).toBe(true);
     pending.resolve({

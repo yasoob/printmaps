@@ -1,4 +1,4 @@
-import type { RefObject } from "react";
+import type { ReactNode, RefObject } from "react";
 import type { AdministrativeArea } from "../../domain/administrativeAreas";
 import type { CustomMarkerAsset } from "../../domain/customMarkerAssets";
 import type { PoiSpreadsheetEntry } from "../../domain/poiSpreadsheet";
@@ -30,11 +30,14 @@ import type { MobilePanel } from "../hooks/useMobilePanels";
 import type { ProjectState, RouteMutationResult } from "../store";
 import type { CreateDirectionsRoute } from "./routeAuthoringActions";
 import type { RouteExtensionRequest } from "../hooks/useCanvasRouteAuthoring";
+import type { GeometryEditResult, LayerMutationResult, ProjectMutationResult } from "../../domain/projectMutation";
 
 export type CanvasWorkspaceProps = {
+  statusNotice?: ReactNode;
   layers: ContentLayer[];
   assets: Record<string, CustomMarkerAsset>;
   camera: CameraSettings;
+  getCanonicalCamera?: () => CameraSettings;
   stylePreset: MapStylePreset;
   styleCustomization: MapStyleCustomization;
   language: MapLanguage;
@@ -47,6 +50,8 @@ export type CanvasWorkspaceProps = {
   importFitRequest: { bounds?: MapBounds; request: number };
   locationRequest?: MapLocationRequest;
   activePanel: MobilePanel | null;
+  isModalOpen: boolean;
+  isMobileViewport: boolean;
   layersTriggerRef: RefObject<HTMLButtonElement | null>;
   propertiesTriggerRef: RefObject<HTMLButtonElement | null>;
   onLayerSelect: (id: string | null) => void;
@@ -54,25 +59,25 @@ export type CanvasWorkspaceProps = {
   onPoiCoordinatesChange?: (
     id: string,
     coordinate: readonly [number, number],
-  ) => void;
+  ) => ProjectMutationResult;
   onRouteGeometryChange?: (
     id: string,
     coordinates: readonly (readonly [number, number])[],
-  ) => void;
+  ) => ProjectMutationResult;
   onRouteVertexChange?: (
     id: string,
     vertexIndex: number,
     coordinate: readonly [number, number],
-  ) => void;
-  onRouteVertexInsert?: (id: string, segmentIndex: number) => void;
-  onShapeGeometryChange?: (id: string, geometry: ShapeGeometry) => void;
+  ) => GeometryEditResult;
+  onRouteVertexInsert?: (id: string, segmentIndex: number) => ProjectMutationResult;
+  onShapeGeometryChange?: (id: string, geometry: ShapeGeometry) => ProjectMutationResult;
   onCameraViewportChange: (
     center: readonly [number, number],
     zoom: number,
     mode: CameraViewportChangeMode,
     orientation: Pick<CameraSettings, "bearing" | "pitch">,
-  ) => void;
-  onCreateAdministrativeArea: (area: AdministrativeArea) => string | null;
+  ) => ProjectMutationResult;
+  onCreateAdministrativeArea: (area: AdministrativeArea) => LayerMutationResult;
   onCreateDirectionsRoute: CreateDirectionsRoute;
   onReplaceDirectionsRoute: ProjectState["replaceDirectionsRoute"];
   onReplaceRouteDraft: ProjectState["replaceRouteDraft"];
@@ -81,16 +86,16 @@ export type CanvasWorkspaceProps = {
   onCreateIsochroneArea: (
     input: IsochroneAreaInput,
     expectedDocumentEpoch: number,
-  ) => string | null;
-  onCreatePoi: (coordinates: readonly [number, number]) => void;
+  ) => LayerMutationResult;
+  onCreatePoi: (coordinates: readonly [number, number]) => ProjectMutationResult;
   onCreatePoiBatch: (
     entries: readonly PoiSpreadsheetEntry[],
     expectedDocumentEpoch?: number,
-  ) => void;
+  ) => ProjectMutationResult;
   onCreateSearchPoi: (
     input: SearchPoiInput,
     expectedDocumentEpoch: number,
-  ) => string | null;
+  ) => LayerMutationResult;
   onCreateRoute: (
     coordinates: readonly (readonly [number, number])[],
     options?: RouteAuthoringOptions,
@@ -103,8 +108,9 @@ export type CanvasWorkspaceProps = {
     travelMarker: RouteTravelMarker | null,
     expectedLayer: ContentLayer,
   ) => RouteMutationResult;
-  onCreateShape: (coordinates: readonly (readonly [number, number])[]) => void;
+  onCreateShape: (coordinates: readonly (readonly [number, number])[]) => ProjectMutationResult;
   onAuthoringChange: (documentEpoch: number, isActive: boolean) => void;
+  onUnfinishedDrawingChange?: ProjectState["setHasUnfinishedDrawing"];
   onBackgroundClick: () => void;
   onExporterChange: (exporter: PreviewPngExporter | null) => void;
   openPanel: (panel: MobilePanel) => void;

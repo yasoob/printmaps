@@ -1,24 +1,41 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { ContentLayer } from '../../src/domain/project';
-import { LayerProperties } from '../../src/app/components/LayerProperties';
+import { useState, type ComponentProps } from 'react';
+import { createNewProjectDocument, type ContentLayer } from '../../src/domain/project';
+import { LayerProperties as UnwrappedLayerProperties } from '../../src/app/components/LayerProperties';
+import { createProjectStore } from '../../src/app/store';
+import { ProjectStoreContext } from '../../src/app/projectStoreContext';
+import { ElevationProfileProvider } from '../../src/app/elevation/ElevationProfileProvider';
+
+function RouteLayerWithProfile(props: ComponentProps<typeof UnwrappedLayerProperties>) {
+  const [store] = useState(() => {
+    const document = createNewProjectDocument();
+    document.layers.unshift(props.layer);
+    return createProjectStore(document);
+  });
+  return <ProjectStoreContext value={store}><ElevationProfileProvider><UnwrappedLayerProperties {...props} /></ElevationProfileProvider></ProjectStoreContext>;
+}
+
+function LayerProperties(props: ComponentProps<typeof UnwrappedLayerProperties>) {
+  return props.layer.type === 'route' ? <RouteLayerWithProfile {...props} /> : <UnwrappedLayerProperties {...props} />;
+}
 
 const actions = {
   assets: {},
-  onAppearanceChange: vi.fn(),
+  onAppearanceChange: vi.fn(() => ({ ok: true as const })),
   onDelete: vi.fn(),
-  onDuplicate: vi.fn(),
-  onOpacityChange: vi.fn(),
-  onPoiCoordinatesChange: vi.fn(),
-  onPoiCustomMarkerChange: vi.fn(),
+  onDuplicate: vi.fn(() => ({ ok: true as const })),
+  onOpacityChange: vi.fn(() => ({ ok: true as const })),
+  onPoiCoordinatesChange: vi.fn(() => ({ ok: true as const })),
+  onPoiCustomMarkerChange: vi.fn(() => ({ ok: true as const })),
   onReplace: vi.fn(),
-  onRouteVertexInsert: vi.fn(),
-  onRouteVertexRemove: vi.fn(),
-  onRouteVertexChange: vi.fn(),
-  onShapeVertexChange: vi.fn(),
-  onRename: vi.fn(),
-  onToggleLock: vi.fn(),
-  onToggleVisibility: vi.fn(),
+  onRouteVertexInsert: vi.fn(() => ({ ok: true as const })),
+  onRouteVertexRemove: vi.fn(() => ({ ok: true as const })),
+  onRouteVertexChange: vi.fn(() => ({ ok: true as const })),
+  onShapeVertexChange: vi.fn(() => ({ ok: true as const })),
+  onRename: vi.fn(() => ({ ok: true as const })),
+  onToggleLock: vi.fn(() => ({ ok: true as const })),
+  onToggleVisibility: vi.fn(() => ({ ok: true as const })),
 };
 
 function route(width: number): ContentLayer {
@@ -26,6 +43,7 @@ function route(width: number): ContentLayer {
     id: 'route',
     name: 'Route',
     type: 'route',
+    route: { kind: 'straight', closed: false },
     visible: true,
     locked: false,
     opacity: 100,
@@ -59,6 +77,24 @@ describe('layer appearance draft boundaries', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     window.localStorage.removeItem('print-map-studio:inspector:layer:route-advanced');
+  });
+
+  it('keeps overlong names correctable without committing or silently truncating them', async () => {
+    const user = userEvent.setup();
+    render(<LayerProperties layer={route(4)} {...actions} />);
+    const input = screen.getByRole('textbox', { name: 'Layer name' });
+    const longName = 'x'.repeat(201);
+    fireEvent.change(input, { target: { value: longName } });
+    fireEvent.blur(input);
+    expect(input).toHaveValue(longName);
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+    expect(input).toHaveAccessibleDescription(expect.stringContaining('200 characters'));
+    expect(actions.onRename).not.toHaveBeenCalled();
+    fireEvent.change(input, { target: { value: 'Corrected name' } });
+    await user.click(input);
+    await user.tab();
+    expect(actions.onRename).toHaveBeenCalledWith('Corrected name');
+    expect(input).toHaveAttribute('aria-invalid', 'false');
   });
 
   it('keeps route vertices and elevation behind a collapsed Advanced section', async () => {
@@ -180,6 +216,7 @@ describe('layer appearance draft boundaries', () => {
   it('does not offer destructive map matching for a Directions route', async () => {
     const user = userEvent.setup();
     const directionsRoute = route(4);
+    directionsRoute.route = { kind: 'road', closed: false };
     directionsRoute.provenance = {
       provider: 'mapbox',
       service: 'directions-v5',

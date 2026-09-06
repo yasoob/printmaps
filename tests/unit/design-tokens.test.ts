@@ -15,7 +15,7 @@ describe('design token discipline', () => {
 
     expect(theme).toContain('@theme inline');
     expect(theme).toContain('--color-surface: var(--studio-surface)');
-    expect(theme).toContain('--studio-accent: #1aa2e6');
+    expect(theme).toContain('--studio-accent: #0d78b5');
     expect(theme).toContain('--studio-focus: var(--studio-accent)');
     expect(theme).toContain('--studio-tool-card-accent: var(--studio-accent)');
     expect(theme).toContain('--studio-text-muted: #6b6b6b');

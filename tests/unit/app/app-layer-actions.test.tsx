@@ -2,21 +2,9 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../../../src/app/App';
 import { exportMocks } from './exportMocks';
+import { stubMobileViewport } from './mobileViewport';
 
 vi.mock('../../../src/map/MapCanvas', async () => import('./MapCanvasMock'));
-
-function stubMobileViewport() {
-  vi.stubGlobal('matchMedia', vi.fn((query: string) => ({
-    matches: query === '(max-width: 899px)' || query === '(prefers-reduced-motion: reduce)',
-    media: query,
-    onchange: null,
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })));
-}
 
 describe('editor layer actions', () => {
   beforeEach(() => {
@@ -86,7 +74,6 @@ describe('editor layer actions', () => {
 
     await user.click(screen.getByRole('button', { name: 'Open layers' }));
     await user.click(screen.getByRole('button', { name: 'Select Route 01' }));
-    await user.click(screen.getByRole('button', { name: 'Open properties' }));
     await waitFor(() => expect(screen.getByRole('button', { name: 'Close properties' })).toHaveFocus());
     await user.click(screen.getByRole('button', { name: 'Layer menu' }));
     await user.click(screen.getByRole('menuitem', { name: 'Duplicate layer' }));

@@ -20,8 +20,8 @@ export function RouteDiscardDialog({
       >
         <h2 id="route-discard-title">Discard route changes?</h2>
         <p>
-          The saved map will stay unchanged, but the new draft points will be
-          lost.
+          Completed layers will stay unchanged, but unfinished route changes
+          and unadded point inputs will be lost.
         </p>
         <div className="route-discard-actions">
           <button type="button" onClick={onKeepEditing}>

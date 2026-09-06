@@ -9,7 +9,10 @@ import type {
   ProviderTravelProfile,
 } from "../../services/mapbox/contracts";
 import { MapboxProviderError } from "../../services/mapbox/errors";
+import { arePositionsEqual } from "../../domain/routeModel";
+import { routePointRemovalError } from "../../domain/routePointConstraints";
 import type { ProjectState, ReplaceDirectionsRouteRequest } from "../store";
+import { normalizedDraftPosition } from "./routeSemanticDraft";
 
 const ROAD_MODE: Record<ProviderTravelProfile, RoadTravelMode> = {
   driving: "car",
@@ -17,9 +20,12 @@ const ROAD_MODE: Record<ProviderTravelProfile, RoadTravelMode> = {
   cycling: "bike",
 };
 
-export type PendingDirectionsEdit = {
+export type DirectionsEditOwner = {
   expectedDocumentEpoch: number;
   expectedLayer: ContentLayer;
+};
+
+export type PendingDirectionsEdit = DirectionsEditOwner & {
   waypoints: [number, number][];
 };
 
@@ -38,6 +44,15 @@ export function directionsRouteErrorMessage(error: unknown) {
   return error instanceof MapboxProviderError || error instanceof Error
     ? error.message
     : "The road route could not be updated. Retry or cancel this waypoint edit.";
+}
+
+export async function requestDirectionsEdit(provider: DirectionsProvider, edit: PendingDirectionsEdit, signal: AbortSignal) {
+  const provenance = edit.expectedLayer.provenance;
+  if (provenance?.service !== "directions-v5") throw new Error("This route no longer has Road waypoint data.");
+  const response = await provider.directions({ profile: provenance.profile, signal, waypoints: edit.waypoints });
+  const route = response.routes[0];
+  if (!route) throw new Error("No road route matched these waypoints. Adjust the waypoint and retry.");
+  return { route, profile: provenance.profile };
 }
 
 export function directionsReplacementRequest(
@@ -81,19 +96,10 @@ function copyWaypoints(
 
 export function rebasePendingDirectionsEdit(
   edit: PendingDirectionsEdit,
-  layer: ContentLayer,
+  layer: ContentLayer | undefined,
   documentEpoch: number,
 ): RebaseResult {
-  if (layer === edit.expectedLayer) {
-    return {
-      ok: true,
-      edit: { ...edit, expectedDocumentEpoch: documentEpoch },
-    };
-  }
-  if (
-    layer.geometry !== edit.expectedLayer.geometry ||
-    layer.provenance !== edit.expectedLayer.provenance
-  ) {
+  if (!isCurrentDirectionsEdit(edit, layer, documentEpoch)) {
     return {
       ok: false,
       error:
@@ -102,8 +108,26 @@ export function rebasePendingDirectionsEdit(
   }
   return {
     ok: true,
-    edit: { ...edit, expectedDocumentEpoch: documentEpoch, expectedLayer: layer },
+    edit: layer === edit.expectedLayer ? edit : { ...edit, expectedLayer: layer! },
   };
+}
+
+export function isCurrentDirectionsEdit(
+  owner: DirectionsEditOwner,
+  layer: ContentLayer | undefined,
+  documentEpoch: number,
+): boolean {
+  if (!isDirectionsLayer(layer)) return false;
+  return documentEpoch === owner.expectedDocumentEpoch
+    && layer.id === owner.expectedLayer.id
+    && layer.route?.closed === owner.expectedLayer.route?.closed
+    && layer.geometry === owner.expectedLayer.geometry
+    && layer.provenance === owner.expectedLayer.provenance;
+}
+
+function isDirectionsLayer(layer: ContentLayer | undefined): layer is ContentLayer {
+  return layer?.type === "route" && layer.route?.kind === "road"
+    && layer.geometry?.type === "LineString" && layer.provenance?.service === "directions-v5";
 }
 
 export function baseDirectionsEdit(
@@ -111,7 +135,7 @@ export function baseDirectionsEdit(
   pending: PendingDirectionsEdit | null,
   documentEpoch: number,
 ): RebaseResult {
-  if (pending?.expectedLayer.id === layer.id) {
+  if (pending && isCurrentDirectionsEdit(pending, layer, documentEpoch)) {
     return rebasePendingDirectionsEdit(pending, layer, documentEpoch);
   }
   return {
@@ -126,7 +150,7 @@ export function baseDirectionsEdit(
 
 export function directionsLayer(layers: ContentLayer[], id: string) {
   const layer = layers.find((candidate) => candidate.id === id);
-  return layer?.provenance?.service === "directions-v5" ? layer : null;
+  return isDirectionsLayer(layer) ? layer : null;
 }
 
 export function changedWaypointEdit(
@@ -150,13 +174,17 @@ export function changedWaypointEdit(
         "That Road waypoint no longer exists. Cancel this edit and try again.",
     };
   }
+  const normalized = normalizedDraftPosition(coordinate);
+  if (arePositionsEqual(normalizedDraftPosition(edit.waypoints[waypointIndex]), normalized)) {
+    return { ok: true, edit };
+  }
   const waypoints = copyWaypoints(edit.waypoints);
-  waypoints[waypointIndex] = [coordinate[0], coordinate[1]];
+  waypoints[waypointIndex] = normalized;
   if (edit.expectedLayer.route?.closed === true) {
     if (waypointIndex === 0) {
-      waypoints[waypoints.length - 1] = [coordinate[0], coordinate[1]];
+      waypoints[waypoints.length - 1] = [...normalized];
     } else if (waypointIndex === waypoints.length - 1) {
-      waypoints[0] = [coordinate[0], coordinate[1]];
+      waypoints[0] = [...normalized];
     }
   }
   return { ok: true, edit: { ...edit, waypoints } };
@@ -166,15 +194,13 @@ export function removedWaypointEdit(
   edit: PendingDirectionsEdit,
   waypointIndex: number,
 ): RebaseResult {
-  if (
-    waypointIndex <= 0 ||
-    waypointIndex >= edit.waypoints.length - 1
-  ) {
-    return {
-      ok: false,
-      error: "Only a middle Road waypoint can be deleted.",
-    };
-  }
+  const error = routePointRemovalError({
+    pointCount: edit.waypoints.length,
+    pointIndex: waypointIndex,
+    isClosed: edit.expectedLayer.route?.closed === true,
+    isMiddleOnly: true,
+  });
+  if (error) return { ok: false, error };
   const waypoints = copyWaypoints(edit.waypoints);
   waypoints.splice(waypointIndex, 1);
   return { ok: true, edit: { ...edit, waypoints } };

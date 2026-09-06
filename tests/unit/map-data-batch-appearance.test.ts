@@ -6,6 +6,9 @@ import {
 import {
   applyMapDataBatchAppearance,
   createMapDataBatchAppearance,
+  isMapDataBatchAppearanceValid,
+  MapDataBatchAppearanceError,
+  validateMapDataBatchAppearance,
 } from '../../src/import/mapDataBatchAppearance';
 
 function importedLayer(type: 'route' | 'poi' | 'shape'): ContentLayer {
@@ -33,6 +36,52 @@ function importedLayer(type: 'route' | 'poi' | 'shape'): ContentLayer {
 }
 
 describe('reviewed map-data batch appearance', () => {
+  it.each(['', ' ', '\t', 'NaN', 'Infinity', '-1'])('rejects invalid numeric style %j consistently and without mutating layers', (value) => {
+    for (const type of ['route', 'poi', 'shape'] as const) {
+      const layers = [importedLayer(type)];
+      const before = structuredClone(layers);
+      const settings = createMapDataBatchAppearance(layers);
+      settings.route.width = value;
+      settings.poi.size = value;
+      settings.shape.strokeWidth = value;
+      const validation = validateMapDataBatchAppearance(layers, settings);
+      expect(validation.error).not.toBeNull();
+      expect(isMapDataBatchAppearanceValid(layers, settings)).toBe(false);
+      expect(() => applyMapDataBatchAppearance(layers, settings)).toThrow(MapDataBatchAppearanceError);
+      expect(() => applyMapDataBatchAppearance(layers, settings)).toThrow(validation.error!);
+      expect(layers).toEqual(before);
+    }
+  });
+
+  it('allows explicit zero route width and ignores style fields for absent content types', () => {
+    const layers = [importedLayer('route')];
+    const settings = createMapDataBatchAppearance(layers);
+    settings.route.width = ' 0 ';
+    settings.poi.size = '';
+    settings.shape.strokeWidth = '';
+    expect(validateMapDataBatchAppearance(layers, settings)).toMatchObject({
+      error: null, fields: { routeWidth: { ok: true, value: 0 } },
+    });
+    expect(applyMapDataBatchAppearance(layers, settings)[0].appearance).toMatchObject({ width: 0 });
+  });
+
+  it.each([['poi', '8', '48', '49'], ['shape', '0.5', '12', '12.1']] as const)(
+    'keeps the existing %s numeric boundaries', (type, minimum, maximum, tooLarge) => {
+      const layers = [importedLayer(type)];
+      const settings = createMapDataBatchAppearance(layers);
+      const setNumber = (value: string) => {
+        if (type === 'poi') settings.poi.size = value;
+        else settings.shape.strokeWidth = value;
+      };
+      for (const value of [minimum, maximum]) {
+        setNumber(value);
+        expect(isMapDataBatchAppearanceValid(layers, settings)).toBe(true);
+      }
+      setNumber(tooLarge);
+      expect(isMapDataBatchAppearanceValid(layers, settings)).toBe(false);
+    },
+  );
+
   it('applies one bounded style per imported layer type without mutating the review batch', () => {
     const layers = [importedLayer('route'), importedLayer('poi'), importedLayer('shape')];
     const settings = createMapDataBatchAppearance(layers);

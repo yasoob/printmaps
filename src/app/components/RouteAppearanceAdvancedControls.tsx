@@ -13,6 +13,8 @@ import {
 import { InputGroup, InputGroupAddon, InputNumber } from './InputGroup';
 import { PropertyRow } from './PropertyControls';
 import { Checkbox, Switch } from './UiControls';
+import { mutationRejected, type ProjectMutationResult } from '../../domain/projectMutation';
+import { useMutationFeedback } from '../hooks/useMutationFeedback';
 
 function percent(value: number) {
   return Number((value * 100).toFixed(4));
@@ -42,7 +44,7 @@ function RouteMarkerSettings({
 }: {
   disabled: boolean;
   marker: RouteMarkerAppearance;
-  updateMarker: (next: Partial<RouteMarkerAppearance>) => void;
+  updateMarker: (next: Partial<RouteMarkerAppearance>) => ProjectMutationResult;
 }) {
   return (
     <>
@@ -132,12 +134,13 @@ export const RouteMarkerControls = memo(function RouteMarkerControls({
 }: {
   appearance: RouteAppearance;
   disabled: boolean;
-  onChange: (appearance: RouteAppearance) => void;
+  onChange: (appearance: RouteAppearance) => ProjectMutationResult;
 }) {
+  const feedback = useMutationFeedback(appearance);
   const marker = appearance.marker;
-  const update = (next: RouteMarkerAppearance | null) => onChange({ ...appearance, marker: next });
+  const update = (next: RouteMarkerAppearance | null) => feedback.report(onChange({ ...appearance, marker: next }));
   const updateMarker = (next: Partial<RouteMarkerAppearance>) => {
-    if (marker) update({ ...marker, ...next });
+    return marker ? update({ ...marker, ...next }) : mutationRejected('This route no longer has a travel marker.', 'unavailable');
   };
   return (
     <>
@@ -160,6 +163,7 @@ export const RouteMarkerControls = memo(function RouteMarkerControls({
       {marker
         ? <RouteMarkerSettings disabled={disabled} marker={marker} updateMarker={updateMarker} />
         : null}
+      {feedback.error && <p className="coordinate-validation" role="alert">{feedback.error}</p>}
     </>
   );
 });
@@ -175,26 +179,27 @@ export const RouteSegmentControls = memo(function RouteSegmentControls({
 }: {
   appearance: RouteAppearance;
   disabled: boolean;
-  onChange: (appearance: RouteAppearance) => void;
+  onChange: (appearance: RouteAppearance) => ProjectMutationResult;
 }) {
+  const feedback = useMutationFeedback(appearance);
   const [selectedLeg, setSelectedLeg] = useState(0);
   if (appearance.segmentStyles.length === 0) return <p className="property-note">This route has no semantic legs.</p>;
   const legIndex = Math.min(selectedLeg, Math.max(0, appearance.segmentStyles.length - 1));
-  const override = appearance.segmentStyles[legIndex];
+  const override = appearance.segmentStyles[legIndex] ?? {};
   const updateOverride = (next: RouteSegmentStyleOverride | null) => {
     const segmentStyles = appearance.segmentStyles.map((style, index) => (
       index === legIndex ? normalizedOverride(next ?? {}) : style
     ));
-    onChange({ ...appearance, segmentStyles });
+    return feedback.report(onChange({ ...appearance, segmentStyles }));
   };
   const updateField = <Key extends keyof RouteSegmentStyleOverride>(
     key: Key,
     value: RouteSegmentStyleOverride[Key] | undefined,
   ) => {
-    const next = override ? { ...override } : {};
+    const next = { ...override };
     if (value === undefined) delete next[key];
     else next[key] = value;
-    updateOverride(next);
+    return updateOverride(next);
   };
   return (
     <>
@@ -213,11 +218,11 @@ export const RouteSegmentControls = memo(function RouteSegmentControls({
       <Checkbox
         aria-label="Inherit route segment color"
         disabled={disabled}
-        isChecked={override?.color === undefined}
+        isChecked={override.color === undefined}
         label="Inherit route color"
         onCheckedChange={(inherit) => updateField('color', inherit ? undefined : appearance.color)}
       />
-      {override?.color === undefined ? null : (
+      {override.color === undefined ? null : (
         <PropertyRow label="Color">
           <label className="color-field">
             <input
@@ -233,11 +238,11 @@ export const RouteSegmentControls = memo(function RouteSegmentControls({
       <Checkbox
         aria-label="Inherit route segment width"
         disabled={disabled}
-        isChecked={override?.width === undefined}
+        isChecked={override.width === undefined}
         label="Inherit route width"
         onCheckedChange={(inherit) => updateField('width', inherit ? undefined : appearance.width)}
       />
-      {override?.width === undefined ? null : (
+      {override.width === undefined ? null : (
         <PropertyRow label="Width">
           <InputGroup>
             <InputNumber
@@ -260,14 +265,14 @@ export const RouteSegmentControls = memo(function RouteSegmentControls({
       <Checkbox
         aria-label="Inherit route segment line style"
         disabled={disabled}
-        isChecked={override?.strokeStyle === undefined}
+        isChecked={override.strokeStyle === undefined}
         label="Inherit line style"
         onCheckedChange={(inherit) => updateField(
           'strokeStyle',
           inherit ? undefined : appearance.strokeStyle,
         )}
       />
-      {override?.strokeStyle === undefined ? null : (
+      {override.strokeStyle === undefined ? null : (
         <PropertyRow label="Line">
           <select
             aria-label="Route segment line style"
@@ -280,9 +285,10 @@ export const RouteSegmentControls = memo(function RouteSegmentControls({
           </select>
         </PropertyRow>
       )}
-      <button className="route-segment-clear" type="button" disabled={disabled || override === null} onClick={() => updateOverride(null)}>
+      <button className="route-segment-clear" type="button" disabled={disabled || appearance.segmentStyles[legIndex] === null} onClick={() => updateOverride(null)}>
         Clear leg override
       </button>
+      {feedback.error && <p className="coordinate-validation" role="alert">{feedback.error}</p>}
     </>
   );
 });

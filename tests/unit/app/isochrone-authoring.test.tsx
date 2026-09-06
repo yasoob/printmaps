@@ -20,7 +20,7 @@ function deferred<T>() {
 describe('isochrone authoring lifecycle', () => {
   it('generates one durable Area from the selected center and settings', async () => {
     const provider: IsochroneProvider = { isochrone: vi.fn(async () => response) };
-    const onCreate = vi.fn(() => 'isochrone-01');
+    const onCreate = vi.fn(() => ({ ok: true as const, layerId: 'isochrone-01' }));
     const onCreated = vi.fn();
     const { result } = renderHook(() => useIsochroneAuthoring({
       active: true, documentEpoch: 4, onCreate, onCreated, provider,
@@ -44,7 +44,7 @@ describe('isochrone authoring lifecycle', () => {
   it('cancels an in-flight generation when the center changes', async () => {
     const pending = deferred<IsochroneResponse>();
     const provider: IsochroneProvider = { isochrone: vi.fn(() => pending.promise) };
-    const onCreate = vi.fn(() => 'isochrone-01');
+    const onCreate = vi.fn(() => ({ ok: true as const, layerId: 'isochrone-01' }));
     const { result } = renderHook(() => useIsochroneAuthoring({
       active: true, documentEpoch: 1, onCreate, provider,
     }));
@@ -65,7 +65,7 @@ describe('isochrone authoring lifecycle', () => {
   it('cancels an in-flight generation when the travel mode changes', async () => {
     const pending = deferred<IsochroneResponse>();
     const provider: IsochroneProvider = { isochrone: vi.fn(() => pending.promise) };
-    const onCreate = vi.fn(() => 'isochrone-01');
+    const onCreate = vi.fn(() => ({ ok: true as const, layerId: 'isochrone-01' }));
     const { result } = renderHook(() => useIsochroneAuthoring({
       active: true, documentEpoch: 1, onCreate, provider,
     }));
@@ -86,7 +86,7 @@ describe('isochrone authoring lifecycle', () => {
   it('cancels an in-flight generation when the duration changes', async () => {
     const pending = deferred<IsochroneResponse>();
     const provider: IsochroneProvider = { isochrone: vi.fn(() => pending.promise) };
-    const onCreate = vi.fn(() => 'isochrone-01');
+    const onCreate = vi.fn(() => ({ ok: true as const, layerId: 'isochrone-01' }));
     const { result } = renderHook(() => useIsochroneAuthoring({
       active: true, documentEpoch: 1, onCreate, provider,
     }));
@@ -107,7 +107,7 @@ describe('isochrone authoring lifecycle', () => {
   it('clears the pending state when area authoring is deactivated', async () => {
     const pending = deferred<IsochroneResponse>();
     const provider: IsochroneProvider = { isochrone: vi.fn(() => pending.promise) };
-    const onCreate = vi.fn(() => 'isochrone-01');
+    const onCreate = vi.fn(() => ({ ok: true as const, layerId: 'isochrone-01' }));
     const { result, rerender } = renderHook(({ active }) => useIsochroneAuthoring({
       active, documentEpoch: 1, onCreate, provider,
     }), { initialProps: { active: true } });
@@ -126,7 +126,7 @@ describe('isochrone authoring lifecycle', () => {
   });
 
   it('clears the selected center when the document changes', () => {
-    const onCreate = vi.fn(() => 'isochrone-01');
+    const onCreate = vi.fn(() => ({ ok: true as const, layerId: 'isochrone-01' }));
     const { result, rerender } = renderHook(({ documentEpoch }) => useIsochroneAuthoring({
       active: true,
       documentEpoch,
@@ -150,7 +150,7 @@ describe('isochrone authoring lifecycle', () => {
         })
         .mockImplementationOnce(() => second.promise),
     };
-    const onCreate = vi.fn(() => 'isochrone-01');
+    const onCreate = vi.fn(() => ({ ok: true as const, layerId: 'isochrone-01' }));
     const { result, rerender } = renderHook(({ documentEpoch }) => useIsochroneAuthoring({
       active: true, documentEpoch, onCreate, provider,
     }), { initialProps: { documentEpoch: 1 } });

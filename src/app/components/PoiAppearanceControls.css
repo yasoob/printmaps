@@ -1,0 +1,18 @@
+.custom-marker-help {
+  grid-column: 1 / -1;
+  margin: 4px 0;
+  color: var(--studio-text-muted);
+  font-size: max(12px, var(--studio-font-meta));
+  line-height: 1.4;
+}
+
+.custom-marker-control [role="status"],
+.custom-marker-control [role="alert"] {
+  font-size: max(12px, var(--studio-font-meta));
+}
+
+@media (max-width: 767px) {
+  .custom-marker-control .secondary-action {
+    min-height: 44px;
+  }
+}

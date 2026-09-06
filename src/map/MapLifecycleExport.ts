@@ -5,6 +5,7 @@ import type { ContentLayer } from '../domain/project';
 import type { MapContentAdapter } from './MapContentAdapter';
 import { captureBasemapOnly } from './MapExportCapture';
 import { createNativePrintTileRenderer } from './NativePrintTileRenderer';
+import { waitForMapExportReady } from './MapExportReadiness';
 
 type MutableReference<T> = { current: T };
 
@@ -24,47 +25,19 @@ export type LifecycleExportReferences = {
   setBasemapExportVisibility: (map: MapLibreMap, override: boolean | null) => boolean;
 };
 
-function waitForMapRender(map: MapLibreMap, signal?: AbortSignal): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (signal?.aborted) {
-      reject(new DOMException('Export cancelled.', 'AbortError'));
-      return;
-    }
-    const cleanup = () => {
-      clearTimeout(timeout);
-      map.off('render', handleRender);
-      map.off('error', handleRendererError);
-      signal?.removeEventListener('abort', handleAbort);
-    };
-    const finish = (error?: unknown) => {
-      cleanup();
-      if (error) reject(error); else resolve();
-    };
-    const handleRender = () => finish();
-    const handleRendererError = (event?: { error?: unknown }) => finish(
-      event?.error instanceof Error
-        ? event.error
-        : new Error('The map renderer failed while preparing the export.'),
-    );
-    const handleAbort = () => finish(new DOMException('Export cancelled.', 'AbortError'));
-    const timeout = setTimeout(() => finish(new Error('The map renderer timed out while preparing the export.')), 1000);
-    signal?.addEventListener('abort', handleAbort, { once: true });
-    try {
-      map.once('render', handleRender);
-      map.once('error', handleRendererError);
-      map.triggerRepaint();
-    } catch (error) {
-      finish(error);
-    }
-  });
-}
-
 export function createLifecycleExportPreview(
   map: MapLibreMap,
   references: LifecycleExportReferences,
   onRestoreFailure: () => void,
 ): PreviewPngExporter {
+  const isCurrent = () => references.map.current === map && !references.mapFailed.current;
+  const isSourceReady = () => isCurrent()
+    && references.contentReady.current
+    && references.availableExporter.current === exportPreview;
   const exportPreview: PreviewPngExporter = async (exportOptions) => {
+    if (!isSourceReady()) {
+      throw new Error('The map is not ready to export. Wait for recovery or retry the map.');
+    }
     const printFrame = references.container.current?.parentElement?.querySelector<HTMLElement>('.print-frame');
     if (!printFrame) throw new Error('The print frame is not ready to export.');
     const attribution = references.container.current
@@ -87,10 +60,13 @@ export function createLifecycleExportPreview(
     return captureBasemapOnly(
       references.contentAdapter.current,
       () => capture(false),
-      (signal) => waitForMapRender(map, signal),
+      (signal) => waitForMapExportReady(map, { isCurrent, isReady: isSourceReady, signal }),
       {
-        onRestoreFailure,
-        setBasemapVisibility: (override) => references.setBasemapExportVisibility(map, override),
+        onRestoreFailure: () => {
+          if (references.map.current === map) onRestoreFailure();
+        },
+        setBasemapVisibility: (override) => references.map.current === map
+          && references.setBasemapExportVisibility(map, override),
         signal: exportOptions.signal,
       },
     );
@@ -100,10 +76,7 @@ export function createLifecycleExportPreview(
     resolveStyle: (content) => references.resolveExportStyle(map, content),
     resolveLayers: () => references.contentState.current.layers,
     resolveAssets: () => references.contentState.current.assets ?? {},
-    isSourceReady: () => !references.mapFailed.current
-      && references.contentReady.current
-      && references.map.current === map
-      && references.availableExporter.current === exportPreview,
+    isSourceReady,
   });
   return exportPreview;
 }

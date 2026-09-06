@@ -1,17 +1,19 @@
 import { createProjectStore } from '../../src/app/store';
 import {
   createInitialProjectDocument,
+  createDefaultLayerAppearance,
+  createDefaultRouteAppearance,
   PROJECT_SCHEMA_VERSION,
   type ContentLayer,
   type LayerGeometry,
   type ProjectDocument,
 } from '../../src/domain/project';
 
-const layers = [
-  { id: 'route-1', name: 'Route 1', type: 'route' as const, visible: true, locked: false, opacity: 100 },
-  { id: 'poi-1', name: 'Coffee', type: 'poi' as const, visible: true, locked: false, opacity: 100 },
-  { id: 'shape-1', name: 'Center', type: 'shape' as const, visible: true, locked: false, opacity: 30 },
-];
+const layers = createInitialProjectDocument().layers.map((layer, index) => ({
+  ...layer,
+  id: ['route-1', 'poi-1', 'shape-1', 'basemap'][index],
+  name: ['Route 1', 'Coffee', 'Center', 'Basemap'][index],
+}));
 
 function createDocument(): ProjectDocument {
   return {
@@ -178,20 +180,10 @@ describe('project store history', () => {
     expect(store.getState().canUndo).toBe(false);
   });
 
-  it('canonicalizes inconsistent dimensions when reselecting the current orientation', () => {
+  it('rejects inconsistent preset dimensions at the initial document boundary', () => {
     const document = createDocument();
     document.page = { preset: 'A4', widthMm: 210, heightMm: 297, orientation: 'landscape' };
-    const store = createProjectStore(document);
-
-    store.getState().setPageOrientation('landscape');
-
-    expect(store.getState().document.page).toEqual({
-      preset: 'A4',
-      widthMm: 297,
-      heightMm: 210,
-      orientation: 'landscape',
-    });
-    expect(store.getState().canUndo).toBe(true);
+    expect(() => createProjectStore(document)).toThrow('A4 page dimensions must be');
   });
 
   it('isolates nested geometry across documents, history snapshots, and duplicates', () => {
@@ -224,7 +216,7 @@ describe('project store history', () => {
 
     store.getState().moveLayer('shape-1', NaN);
 
-    expect(layerState(store).map((layer) => layer.id)).toEqual(['route-1', 'poi-1', 'shape-1']);
+    expect(layerState(store).map((layer) => layer.id)).toEqual(['route-1', 'poi-1', 'shape-1', 'basemap']);
     expect(store.getState().canUndo).toBe(false);
   });
 
@@ -283,21 +275,21 @@ describe('project store history', () => {
     store.getState().selectLayer('poi-1');
 
     store.getState().deleteLayer('poi-1');
-    expect(layerState(store).map((layer) => layer.id)).toEqual(['route-1', 'shape-1']);
+    expect(layerState(store).map((layer) => layer.id)).toEqual(['route-1', 'shape-1', 'basemap']);
     expect(store.getState().selectedId).toBeNull();
 
     store.getState().undo();
-    expect(layerState(store).map((layer) => layer.id)).toEqual(['route-1', 'poi-1', 'shape-1']);
+    expect(layerState(store).map((layer) => layer.id)).toEqual(['route-1', 'poi-1', 'shape-1', 'basemap']);
   });
 
   it('reorders layers and can undo the order change', () => {
     const store = createProjectStore(createDocument());
 
     store.getState().moveLayer('shape-1', 0);
-    expect(layerState(store).map((layer) => layer.id)).toEqual(['shape-1', 'route-1', 'poi-1']);
+    expect(layerState(store).map((layer) => layer.id)).toEqual(['shape-1', 'route-1', 'poi-1', 'basemap']);
 
     store.getState().undo();
-    expect(layerState(store).map((layer) => layer.id)).toEqual(['route-1', 'poi-1', 'shape-1']);
+    expect(layerState(store).map((layer) => layer.id)).toEqual(['route-1', 'poi-1', 'shape-1', 'basemap']);
   });
 
   it('renames a layer and records the edit in history', () => {
@@ -357,6 +349,7 @@ describe('project store layer imports', () => {
       id: 'poi-01',
       name: 'POI 01',
       type: 'poi',
+      appearance: createDefaultLayerAppearance('poi'),
       visible: true,
       locked: false,
       opacity: 100,
@@ -478,6 +471,9 @@ describe('project store layer imports', () => {
     expect(store.getState().selectedId).toBeNull();
   });
 
+});
+
+describe('project store imported transactions', () => {
   it('imports a layer batch before the basemap as one undoable edit', () => {
     const store = createProjectStore(createInitialProjectDocument());
     const importedLayers: ContentLayer[] = [
@@ -485,6 +481,7 @@ describe('project store layer imports', () => {
         id: 'geojson-cafe',
         name: 'Imported café',
         type: 'poi',
+        appearance: createDefaultLayerAppearance('poi'),
         visible: true,
         locked: false,
         opacity: 100,
@@ -494,6 +491,8 @@ describe('project store layer imports', () => {
         id: 'geojson-walk',
         name: 'Imported walk',
         type: 'route',
+        route: { kind: 'straight', closed: false },
+        appearance: createDefaultRouteAppearance(1),
         visible: true,
         locked: false,
         opacity: 100,
@@ -531,6 +530,8 @@ describe('project store layer imports', () => {
       id: 'route-01',
       name: 'Imported route',
       type: 'route',
+      route: { kind: 'straight', closed: false },
+      appearance: createDefaultRouteAppearance(1),
       visible: true,
       locked: false,
       opacity: 100,

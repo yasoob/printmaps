@@ -1,7 +1,6 @@
 import type { ContentLayer, LayerGeometry, LayerType } from '../domain/project';
 import { cloneContentLayer } from '../domain/project';
-import { MAX_PROJECT_COORDINATES } from '../domain/projectFile';
-import { geometryPositionCount } from '../domain/projectGeometry';
+import { mutationRejected } from '../domain/projectMutation';
 import { isValidPosition } from '../domain/routeGeometry';
 import {
   arePositionsEqual,
@@ -99,10 +98,8 @@ function replacementLayer(
 export function createReplaceLayerFromImportAction(
   set: ProjectSet,
 ): ProjectState['replaceLayerFromImport'] {
-  return (id, importedLayer, documentEpoch, sourceDocument) => {
-    let wasReplaced = false;
-    set((state) => {
-      if (documentEpoch !== state.documentEpoch || !hasSameDocumentContent(sourceDocument, state.document)) return state;
+  return (id, importedLayer, documentEpoch, sourceDocument) => set((state) => {
+      if (documentEpoch !== state.documentEpoch || !hasSameDocumentContent(sourceDocument, state.document)) return mutationRejected('The project changed before the replacement could be applied. Choose the data again.', 'stale');
       const target = state.document.layers.find((layer) => layer.id === id);
       const importedCopy = cloneContentLayer(importedLayer);
       const geometry = importedCopy.geometry;
@@ -113,14 +110,9 @@ export function createReplaceLayerFromImportAction(
         || target.type === 'basemap'
         || importedCopy.type !== target.type
         || !isGeometryCompatible(target.type, geometry)
-      ) return state;
-      const positionCount = state.document.layers.reduce((total, layer) => (
-        total + geometryPositionCount(layer.id === id ? geometry : layer.geometry)
-      ), 0);
-      if (positionCount > MAX_PROJECT_COORDINATES) return state;
+      ) return mutationRejected('This data cannot replace the selected layer. Use matching geometry and unlock the layer.');
       const replacement = replacementLayer(target, geometry);
-      if (!replacement) return state;
-      wasReplaced = true;
+      if (!replacement) return mutationRejected('The replacement geometry is invalid. The original layer was kept.');
       return commitDocument(state, replaceLayers(
         state.document,
         state.document.layers.map((layer) => (
@@ -128,6 +120,4 @@ export function createReplaceLayerFromImportAction(
         )),
       ));
     });
-    return wasReplaced;
-  };
 }

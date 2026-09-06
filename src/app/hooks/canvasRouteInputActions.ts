@@ -63,12 +63,12 @@ export function routeInputActions(
         : [];
     const next = appendRoutePoint(base, snapped.coordinate, core.lineShape);
     core.setError(next.error);
-    if (next.error) return;
+    if (next.error) return false;
     const editedPoints = pointsAfterAddition(core, base, next.points);
     const arcError = closedArcAdditionError(core, editedPoints);
     if (arcError) {
       core.setError(arcError);
-      return;
+      return false;
     }
     core.editPoints(editedPoints);
     core.setAnnouncement(
@@ -76,13 +76,14 @@ export function routeInputActions(
         ? `Snapped route point to ${snapped.label}.`
         : `Added route point from ${label}.`,
     );
+    return true;
   };
 
   const requestToolChange = (id: string) => {
     if (
       id !== "route" &&
       parameters.activeTool === "route" &&
-      core.currentDraft.history.length > 0
+      core.hasUnfinishedWork
     ) {
       core.setDiscardTrigger(
         document.activeElement instanceof HTMLElement
@@ -161,8 +162,9 @@ export function routePanelProps(
             core.options,
             core.directions.isRouting,
           ),
-    initialCoordinate: parameters.camera.center,
+    pointInput: core.pointInput,
     isRouting: core.directions.isRouting,
+    isCompactViewport: parameters.isMobileViewport,
     lineShape: core.lineShape,
     onAddPoint: (coordinate, label) => input.addPoint(coordinate, label),
     onCancel: () => commit.requestCancel(),

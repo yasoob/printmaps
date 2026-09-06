@@ -61,6 +61,51 @@ function routeHarness() {
 }
 
 describe('route vertex map editing', () => {
+  it.each(['drag', 'keyboard'] as const)('restores the latest routed source separately from Road waypoint handles after a rejected %s', (input) => {
+    const { createMarker, map, markers, sourceCoordinates } = routeHarness();
+    const road: ContentLayer = {
+      ...route, route: { kind: 'road', closed: false },
+      appearance: { kind: 'route', color: '#d9363e', width: 4, strokeStyle: 'solid', marker: null, segmentStyles: [null] },
+      provenance: { provider: 'mapbox', service: 'directions-v5', profile: 'walking', waypoints: [[0, 0], [2, 0]], distanceMeters: 1000, durationSeconds: 600 },
+      geometry: { type: 'LineString', coordinates: [[0, 0], [0.5, 1], [2, 0]] },
+    };
+    const commit = vi.fn(() => ({ ok: false as const, error: 'This Road route changed after the waypoint edit.' }));
+    const onPreview = vi.fn();
+    const editing = installRouteVertexEditing(map, road, commit, { createMarker, onPreview });
+    const current: ContentLayer = {
+      ...road,
+      provenance: { provider: 'mapbox', service: 'directions-v5', profile: 'walking', waypoints: [[0, 0], [3, 0]], distanceMeters: 1200, durationSeconds: 700 },
+      geometry: { type: 'LineString', coordinates: [[0, 0], [0.25, 1.25], [3, 0]] },
+    };
+    expect(editing.synchronizeLayer(current)).toBe(true);
+    if (input === 'drag') {
+      markers[1].coordinate = { lng: 4, lat: 2 };
+      markers[1].trigger('drag');
+      markers[1].trigger('dragend');
+    } else {
+      markers[1].element.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    }
+    expect(sourceCoordinates()).toEqual([[0, 0], [0.25, 1.25], [3, 0]]);
+    expect(markers[1].coordinate).toEqual({ lng: 3, lat: 0 });
+    expect(onPreview).not.toHaveBeenCalled();
+    expect(commit).toHaveBeenCalledOnce();
+  });
+
+  it('rolls back rejected drag and keyboard previews without a canonical rerender', () => {
+    const { createMarker, map, markers, sourceCoordinates } = routeHarness();
+    const commit = vi.fn(() => ({ ok: false as const, error: 'The route changed.' }));
+    installRouteVertexEditing(map, route, commit, { createMarker });
+    markers[1].coordinate = { lng: 3, lat: 3 };
+    markers[1].trigger('drag');
+    markers[1].trigger('dragend');
+    expect(sourceCoordinates()).toEqual([[0, 0], [1, 1], [2, 0]]);
+    expect(markers[1].coordinate).toEqual({ lng: 1, lat: 1 });
+    markers[1].element.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    expect(sourceCoordinates()).toEqual([[0, 0], [1, 1], [2, 0]]);
+    expect(markers[1].coordinate).toEqual({ lng: 1, lat: 1 });
+    expect(commit).toHaveBeenCalledTimes(2);
+  });
+
   it('previews Arc drag and keyboard edits on the canonical sampled source', () => {
     const { createMarker, map, markers, setData } = routeHarness();
     const arc = {
@@ -69,7 +114,7 @@ describe('route vertex map editing', () => {
       appearance: { ...route.appearance!, segmentStyles: [null] },
       geometry: { type: 'Arc' as const, anchors: [[0, 0], [2, 0]] as [[number, number], [number, number]], curvatures: [0.35] as [number] },
     };
-    const commit = vi.fn();
+    const commit = vi.fn(() => ({ ok: true as const }));
     installRouteVertexEditing(map, arc, commit, { createMarker });
 
     markers[1].coordinate = { lng: 3, lat: 0 };
@@ -145,7 +190,7 @@ describe('route vertex map editing', () => {
 
   it('does not replay an accepted drag preview at drag end', () => {
     const { createMarker, map, markers, setData } = routeHarness();
-    const commit = vi.fn();
+    const commit = vi.fn(() => ({ ok: true as const }));
     installRouteVertexEditing(map, route, commit, { createMarker });
     markers[1].coordinate = { lng: 3, lat: 2 };
     markers[1].trigger('drag');
@@ -160,7 +205,7 @@ describe('route vertex map editing', () => {
   it('restores Terra guidance when canonical MapLibre source restoration fails', () => {
     const { createMarker, map, markers, setData, sourceCoordinates } = routeHarness();
     const onPreview = vi.fn();
-    const commit = vi.fn();
+    const commit = vi.fn(() => ({ ok: true as const }));
     installRouteVertexEditing(map, route, commit, { createMarker, onPreview });
     markers[1].coordinate = { lng: 3, lat: 2 };
     markers[1].trigger('drag');
@@ -177,7 +222,7 @@ describe('route vertex map editing', () => {
   it('rolls a cancelled preview back to one canonical source and Terra geometry', () => {
     const { createMarker, map, markers, sourceCoordinates } = routeHarness();
     const onPreview = vi.fn();
-    const commit = vi.fn();
+    const commit = vi.fn(() => ({ ok: true as const }));
     const cleanup = installRouteVertexEditing(map, route, commit, { createMarker, onPreview });
     markers[1].coordinate = { lng: 3, lat: 2 };
     markers[1].trigger('drag');

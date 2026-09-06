@@ -25,7 +25,7 @@ describe('isochrone authoring deactivation race', () => {
   it('suppresses a successful response synchronously when authoring deactivates', async () => {
     const pending = deferred<IsochroneResponse>();
     const provider: IsochroneProvider = { isochrone: vi.fn(() => pending.promise) };
-    const onCreate = vi.fn(() => 'isochrone-01');
+    const onCreate = vi.fn(() => ({ ok: true as const, layerId: 'isochrone-01' }));
     const { result, rerender } = renderHook(({ active }) => useIsochroneAuthoring({
       active, documentEpoch: 1, onCreate, provider,
     }), { initialProps: { active: true } });

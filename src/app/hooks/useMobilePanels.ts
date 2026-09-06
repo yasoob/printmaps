@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { panelTabStops } from '../../lib/focus';
 
 export type MobilePanel = 'layers' | 'properties';
 
@@ -25,9 +26,7 @@ export function useMobilePanels() {
 
   const getPanelElements = useCallback((panel: MobilePanel) => {
     const panelElement = panel === 'layers' ? layersPanelRef.current : propertiesPanelRef.current;
-    return panelElement
-      ? [...panelElement.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])')]
-      : [];
+    return panelTabStops(panelElement);
   }, []);
 
   const scheduleFocus = useCallback((callback: () => void, delay = 180) => {
@@ -122,6 +121,7 @@ export function useMobilePanels() {
     activePanel,
     closePanel,
     handlePanelKeyDown,
+    isMobileViewport,
     layersPanelRef,
     layersTriggerRef,
     openPanel,

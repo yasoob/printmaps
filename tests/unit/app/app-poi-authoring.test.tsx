@@ -75,7 +75,7 @@ describe('POI authoring', () => {
     await user.click(screen.getByRole('button', { name: 'Search locations' }));
     await user.click(await screen.findByRole('option', { name: 'Rejected place' }));
 
-    expect(screen.getByText('That search result could not be added. Choose another result or place the POI on the map.')).toHaveAttribute('role', 'alert');
+    expect(screen.getByText('This search result has invalid location or label data.')).toHaveAttribute('role', 'alert');
     expect(screen.getByRole('status', { name: 'POI placement status' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Place (P)' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.queryByRole('button', { name: 'Select Rejected place' })).not.toBeInTheDocument();
@@ -103,6 +103,7 @@ describe('POI authoring', () => {
     fireEvent.change(fileInput, {
       target: { files: [new File([JSON.stringify(opened)], 'replacement.printmap.json', { type: 'application/json' })] },
     });
+    await user.click(await screen.findByRole('button', { name: 'Replace project' }));
     expect(await screen.findByRole('button', { name: 'Replacement project' })).toBeInTheDocument();
     expect(signal?.aborted).toBe(true);
     expect(screen.getByRole('combobox', { name: 'Search places and addresses' })).toHaveValue('');

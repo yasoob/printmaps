@@ -70,6 +70,7 @@ test('nominal design, author, import, persist, reopen, and export workflow', asy
   await expect(mapCanvas).toHaveAttribute('data-map-layer-order', /route-02/);
 
   await page.locator('input[accept^=".geojson"][multiple]').setInputFiles(path.resolve('tests/fixtures/import/supported.geojson'));
+  await page.getByRole('dialog', { name: 'Import map data' }).getByRole('button', { name: 'Import 1 file', exact: true }).click();
   await expect(page.getByRole('status', { name: 'Map data import status' }))
     .toHaveText('Imported 3 GeoJSON layers. Undo removes the whole import.');
   await expect(page.getByRole('button', { name: 'Select Café Central' })).toBeVisible();
@@ -100,6 +101,7 @@ test('nominal design, author, import, persist, reopen, and export workflow', asy
   await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Open project' }).click();
   const openChooser = await openChooserPromise;
   await openChooser.setFiles(projectPath);
+  await page.getByRole('button', { name: 'Replace project', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Portrait' })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Select Route 02' })).toBeVisible();

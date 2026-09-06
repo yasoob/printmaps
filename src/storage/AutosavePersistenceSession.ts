@@ -1,7 +1,7 @@
 import type { StoreApi } from 'zustand';
 import type { ProjectState } from '../app/store';
 import type { ProjectDocument } from '../domain/project';
-import type { AutosaveRepository } from './autosave';
+import { isAutosaveConflict, type AutosaveRepository } from './autosave';
 
 type SaveIntent = { document: ProjectDocument; revision: number; isLifecycle: boolean };
 
@@ -17,6 +17,7 @@ export class AutosavePersistenceSession {
   private isActive = true;
   private isClosing = false;
   private isClosed = false;
+  private isConflicted = false;
   private saveTimer: number | null = null;
   private saveRevision = 0;
   private isSaveInFlight = false;
@@ -25,6 +26,7 @@ export class AutosavePersistenceSession {
   private unsubscribe = () => {};
   private readonly handlePagehide = () => this.flushDebouncedSave(true);
   private readonly scheduleSave = (document: ProjectDocument) => {
+    if (this.isConflicted) return;
     this.debouncedDocument = document;
     if (this.saveTimer !== null) window.clearTimeout(this.saveTimer);
     const revision = ++this.saveRevision;
@@ -44,7 +46,7 @@ export class AutosavePersistenceSession {
   }
 
   private startNextSave() {
-    if (this.isSaveInFlight) return;
+    if (this.isSaveInFlight || this.isConflicted) return;
     const intent = this.pendingSaveIntent;
     if (!intent || (!this.isActive && !intent.isLifecycle)) return;
     this.pendingSaveIntent = null;
@@ -57,7 +59,14 @@ export class AutosavePersistenceSession {
       await this.options.repository.save(intent.document);
       if (this.isActive && intent.revision === this.saveRevision) this.options.onSaveSucceeded();
     } catch (error) {
-      if (this.isActive && intent.revision === this.saveRevision) this.options.onSaveFailed(error);
+      if (isAutosaveConflict(error)) {
+        this.isConflicted = true;
+        if (this.saveTimer !== null) window.clearTimeout(this.saveTimer);
+        this.saveTimer = null;
+        this.debouncedDocument = null;
+        this.pendingSaveIntent = null;
+      }
+      if (this.isActive && (this.isConflicted || intent.revision === this.saveRevision)) this.options.onSaveFailed(error);
     } finally {
       this.isSaveInFlight = false;
       if (this.isActive || this.pendingSaveIntent?.isLifecycle) this.startNextSave();
@@ -67,6 +76,7 @@ export class AutosavePersistenceSession {
   }
 
   private flushDebouncedSave(shouldPromotePending: boolean) {
+    if (this.isConflicted) return;
     if (this.saveTimer !== null && this.debouncedDocument) {
       const document = this.debouncedDocument;
       window.clearTimeout(this.saveTimer);

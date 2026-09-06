@@ -1,10 +1,74 @@
 import { readFile } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
+import { expandToolSettings } from './authoring-panel-support';
 
 const isHeadlessWebGlDiagnostic = (message: string) => (
   message.includes('GPU stall due to ReadPixels')
   || message.includes('AllowWebgl2:false restricts context creation on this system')
 );
+
+for (const viewport of [
+  { width: 1440, height: 900 },
+  { width: 390, height: 844 },
+]) {
+  test(`custom-area drafts survive source and tool navigation at ${viewport.width}px`, async ({ page }, testInfo) => {
+    await page.setViewportSize(viewport);
+    await page.goto('./');
+    const map = page.getByTestId('map-canvas');
+    await expect(map).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
+    await page.getByRole('button', { name: 'Area (S)' }).click();
+    await page.getByRole('tab', { name: 'Draw custom area' }).click();
+    const canvas = page.locator('.maplibregl-canvas');
+    const bounds = await canvas.boundingBox();
+    const point = (x: number, y: number) => ({
+      x: bounds!.width * x,
+      y: bounds!.height * y,
+    });
+    await canvas.click({ position: point(0.2, 0.18) });
+    await canvas.click({ position: point(0.75, 0.18) });
+    await canvas.click({ position: point(0.2, 0.35) });
+    const status = page.getByRole('status', { name: 'Area drawing status' });
+    await expect(status).toContainText('3 vertices');
+    const geometry = await map.getAttribute('data-map-layer-geometry');
+
+    for (const source of ['Find administrative area', 'Travel time']) {
+      await expandToolSettings(page, 'area');
+      await page.getByRole('tab', { name: source }).click();
+      await expect(map).not.toHaveAttribute('data-map-layer-order', /shape-draft/);
+      await page.getByRole('tab', { name: 'Draw custom area' }).click();
+      await expect(status).toContainText('3 vertices');
+      await expect(map).toHaveAttribute('data-map-layer-geometry', geometry!);
+    }
+
+    for (const tool of ['Select (V)', 'Place (P)', 'Route (R)', 'Close Area menu']) {
+      if (tool === 'Close Area menu') await expandToolSettings(page, 'area');
+      await page.getByRole('button', { name: tool }).click();
+      await expect(map).not.toHaveAttribute('data-map-layer-order', /shape-draft/);
+      await page.getByRole('button', { name: 'Area (S)' }).click();
+      await expect(page.getByRole('tab', { name: 'Draw custom area', includeHidden: true })).toHaveAttribute('aria-selected', 'true');
+      await expect(status).toContainText('3 vertices');
+      await expect(map).toHaveAttribute('data-map-layer-geometry', geometry!);
+    }
+    await page.screenshot({ path: testInfo.outputPath('resumed-area-draft.png') });
+
+    await expandToolSettings(page, 'area');
+    await page.getByRole('tab', { name: 'Find administrative area' }).click();
+    await page.getByRole('button', { name: 'Cancel area' }).click();
+    await page.getByRole('button', { name: 'Area (S)' }).click();
+    await page.getByRole('tab', { name: 'Draw custom area' }).click();
+    await expect(status).toContainText('3 vertices');
+    await page.getByRole('button', { name: 'Finish area' }).click();
+    await expect(map).toHaveAttribute('data-selected-layer', 'shape-01');
+    await expect(map).not.toHaveAttribute('data-map-layer-order', /shape-draft/);
+    await page.getByRole('button', { name: 'Area (S)' }).click();
+    await expect(status).toContainText('0 vertices');
+    await canvas.click({ position: point(0.2, 0.18) });
+    await expandToolSettings(page, 'area');
+    await page.getByRole('button', { name: 'Cancel area' }).click();
+    await page.getByRole('button', { name: 'Area (S)' }).click();
+    await expect(status).toContainText('0 vertices');
+  });
+}
 
 test('polygon authoring can be cancelled, undone, redone, and exported as vector content', async ({ page }, testInfo) => {
   const consoleProblems: string[] = [];
@@ -43,6 +107,7 @@ test('polygon authoring can be cancelled, undone, redone, and exported as vector
   await canvas.click({ position: point(0.8, 0.2) });
   await expect(page.getByRole('button', { name: 'Finish area' })).toBeDisabled();
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-order', /shape-draft-outline/);
+  await page.getByRole('button', { name: 'Hide area settings' }).click();
   await canvas.click({ position: point(0.2, 0.5) });
   await expect(page.getByRole('status', { name: 'Area drawing status' })).toContainText('3 vertices');
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-order', /shape-draft/);
@@ -95,6 +160,7 @@ test('a finished custom area supports point editing, insertion, undo, and explic
   });
   await canvas.click({ position: point(0.2, 0.2) });
   await canvas.click({ position: point(0.8, 0.2) });
+  await page.getByRole('button', { name: 'Hide area settings' }).click();
   await canvas.click({ position: point(0.2, 0.5) });
   await page.getByRole('button', { name: 'Finish area' }).click();
 

@@ -33,9 +33,9 @@ function formatNumber(value: number): string {
 }
 
 function customMarkerImage(asset: CustomMarkerAsset, point: PoiMarkerPoint, radius: number): string {
-  const scale = radius * 2 / Math.max(asset.width, asset.height);
-  const width = asset.width * scale;
-  const height = asset.height * scale;
+  const longest = Math.max(asset.width, asset.height);
+  const width = asset.width / longest * radius * 2;
+  const height = asset.height / longest * radius * 2;
   return `<image data-poi-custom-marker="${escapeXml(asset.id)}" href="${escapeXml(asset.dataUri)}" x="${formatNumber(point.x - width / 2)}" y="${formatNumber(point.y - height / 2)}" width="${formatNumber(width)}" height="${formatNumber(height)}" preserveAspectRatio="xMidYMid meet"/>`;
 }
 

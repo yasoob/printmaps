@@ -1,15 +1,17 @@
-import { memo } from "react";
+import { memo, useCallback, useState } from "react";
 import { createMapboxSearchProvider } from "../../services/mapbox/search";
 import {
   ProjectAutosaveDialogs,
   ProjectAutosaveErrorNotice,
+  ProjectAutosaveOfflineNotice,
 } from "../../storage/ProjectAutosaveUi";
+import { AutosaveConflictDialog } from "../../storage/AutosaveConflictDialog";
 import {
   useAutosaveCorruptionState,
   useAutosaveErrorState,
 } from "../../storage/projectAutosaveContext";
 import type { PreviewPngExporter } from "../../export/previewPng";
-import { useProject } from "../projectStoreContext";
+import { useProject, useProjectStoreApi } from "../projectStoreContext";
 import type { StudioAppModel } from "../App";
 import { CanvasWorkspace } from "./CanvasWorkspace";
 import type { CanvasWorkspaceProps } from "./CanvasWorkspace.types";
@@ -17,21 +19,27 @@ import { ExportDialog } from "./ExportDialog";
 import { LayersSidebar } from "./LayersSidebar";
 import { PropertiesSidebar } from "./PropertiesSidebar";
 import { StudioHeader } from "./StudioHeader";
+import { ProjectRenameDialog } from "./ProjectRenameDialog";
+import { ProjectReplacementDialog } from "./ProjectReplacementDialog";
 
 const defaultSearchProvider = createMapboxSearchProvider({
   token: import.meta.env.VITE_MAPBOX_PUBLIC_ACCESS,
 });
+const autosaveNotice = <ProjectAutosaveOfflineNotice />;
 
 const CanvasWorkspaceWithCamera = memo(function CanvasWorkspaceWithCamera(
   props: Omit<CanvasWorkspaceProps, "camera">,
 ) {
   const camera = useProject((state) => state.document.camera);
-  return <CanvasWorkspace {...props} camera={camera} />;
+  const store = useProjectStoreApi();
+  const getCanonicalCamera = useCallback(() => store.getState().document.camera, [store]);
+  return <CanvasWorkspace {...props} camera={camera} getCanonicalCamera={getCanonicalCamera} />;
 });
 
 function StudioCanvas({ m }: { m: StudioAppModel }) {
   return (
     <CanvasWorkspaceWithCamera
+      statusNotice={autosaveNotice}
       layers={m.mapLayers}
       assets={m.assets}
       selectedId={m.selectedId}
@@ -46,6 +54,8 @@ function StudioCanvas({ m }: { m: StudioAppModel }) {
       importFitRequest={m.mapDataImport.importFitRequest}
       locationRequest={m.mapLocation.request}
       activePanel={m.modal.mobilePanel}
+      isModalOpen={m.modal.surface !== null || m.isAutosaveCorrupted}
+      isMobileViewport={m.mobile.isMobileViewport}
       layersTriggerRef={m.mobile.layersTriggerRef}
       propertiesTriggerRef={m.mobile.propertiesTriggerRef}
       onLayerSelect={m.project.selectLayer}
@@ -71,6 +81,7 @@ function StudioCanvas({ m }: { m: StudioAppModel }) {
       routeExtensionRequest={m.routeExtensionRequest}
       onCreateShape={m.project.createShape}
       onAuthoringChange={m.handleAuthoringChange}
+      onUnfinishedDrawingChange={m.project.setHasUnfinishedDrawing}
       onBackgroundClick={m.clearSelection}
       onExporterChange={m.mapExporter.onExporterChange}
       openPanel={m.mobile.openPanel}
@@ -117,8 +128,12 @@ function StudioProperties({ m }: { m: StudioAppModel }) {
   );
 }
 
-function StudioLayers({ m }: { m: StudioAppModel }) {
-  return <LayersSidebar layers={m.layers} activePanel={m.modal.mobilePanel} setPreviewedLayerId={m.setPreviewedLayerId} closePanel={m.mobile.closePanel} panelRef={m.mobile.layersPanelRef} onKeyDown={m.mobile.handlePanelKeyDown} />;
+function StudioLayers({ m, desktopCollapsed, onToggleCollapsed }: {
+  m: StudioAppModel;
+  desktopCollapsed: boolean;
+  onToggleCollapsed: () => void;
+}) {
+  return <LayersSidebar layers={m.layers} activePanel={m.modal.mobilePanel} desktopCollapsed={desktopCollapsed} onToggleCollapsed={onToggleCollapsed} setPreviewedLayerId={m.setPreviewedLayerId} closePanel={m.mobile.closePanel} openPanel={m.mobile.openPanel} panelRef={m.mobile.layersPanelRef} onKeyDown={m.mobile.handlePanelKeyDown} />;
 }
 
 const ProjectAutosaveSurfaces = memo(function ProjectAutosaveSurfaces({ fallbackFocusRef }: {
@@ -140,9 +155,13 @@ const ProjectAutosaveSurfaces = memo(function ProjectAutosaveSurfaces({ fallback
 });
 
 export function StudioAppView({ model: m }: { model: StudioAppModel }) {
+  const [layersCollapsed, setLayersCollapsed] = useState(false);
+  const toggleLayersCollapsed = useCallback(() => {
+    setLayersCollapsed((collapsed) => !collapsed);
+  }, []);
   return (
     <>
-      <main className="studio-shell" onKeyDown={m.handleDeleteKeyDown}>
+      <main className={`studio-shell${layersCollapsed ? " is-layers-collapsed" : ""}`} onKeyDown={m.handleDeleteKeyDown}>
         <StudioHeader
           projectTitleRef={m.mobile.projectTitleRef}
           exportButtonRef={m.exportButtonRef}
@@ -157,17 +176,31 @@ export function StudioAppView({ model: m }: { model: StudioAppModel }) {
           importOpen={m.modal.surface === "import"}
           replacementRequest={m.mapDataImport.replacementRequest}
           inert={m.modal.mobilePanel !== null}
+          isMobileViewport={m.mobile.isMobileViewport}
           onOpen={m.handleOpenedDocument}
           onImport={m.mapDataImport.handleImportedLayers}
           onImportOpenChange={m.mapDataImport.setIsImportOpen}
           onExport={m.openExport}
+          onRenameProject={m.modal.openRename}
         />
-        <StudioLayers m={m} />
+        <StudioLayers m={m} desktopCollapsed={layersCollapsed} onToggleCollapsed={toggleLayersCollapsed} />
         <StudioCanvas m={m} />
-        {m.modal.mobilePanel && <button className="mobile-panel-backdrop" type="button" aria-label="Close open panel" onClick={() => m.mobile.closePanel()} />}
+        {m.modal.mobilePanel && <button className="mobile-panel-backdrop" data-panel={m.modal.mobilePanel} type="button" aria-label="Close open panel" onClick={() => m.mobile.closePanel()} />}
         <StudioProperties m={m} />
       </main>
       {m.modal.surface === "export" && <ExportDialogSurface exporter={m.mapExporter.run} onClose={m.modal.closeExport} />}
+      {m.modal.surface === "rename" && <ProjectRenameDialog onClose={m.modal.closeRename} returnFocusRef={m.openButtonRef} />}
+      {m.modal.surface === "project-open" && m.projectOpening.pendingDocument && (
+        <ProjectReplacementDialog
+          key={m.projectOpening.pendingRequestId}
+          title={m.projectOpening.pendingDocument.title}
+          intent={m.projectOpening.pendingIntent}
+          onKeepEditing={m.projectOpening.keepEditing}
+          onDiscardAndOpen={m.projectOpening.discardAndOpen}
+          returnFocusRef={m.openButtonRef}
+        />
+      )}
+      {m.modal.surface === "autosave-conflict" && <AutosaveConflictDialog returnFocusRef={m.openButtonRef} />}
       <ProjectAutosaveSurfaces fallbackFocusRef={m.openButtonRef} />
     </>
   );

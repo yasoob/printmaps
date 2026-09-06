@@ -26,7 +26,11 @@ describe('POI spreadsheet address geocoding', () => {
       screen.getByRole('textbox', { name: 'POI spreadsheet rows' }),
       'Name\tAddress\nCafé Central\tHerrengasse 14, Vienna\nMuseum Quarter\tMuseumsplatz 1, Vienna',
     );
-    await user.click(screen.getByRole('button', { name: 'Find and add POIs' }));
+    await user.click(screen.getByRole('button', { name: 'Look up addresses' }));
+    expect(await screen.findByText('Matched location: Café Central, Vienna')).toBeVisible();
+    expect(await screen.findByText('Matched location: MuseumsQuartier, Vienna')).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Select Café Central' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Add selected POIs' }));
 
     expect(await screen.findByRole('button', { name: 'Select Café Central' })).toHaveAttribute('aria-current', 'true');
     expect(screen.getByRole('button', { name: 'Select Museum Quarter' })).toBeInTheDocument();
@@ -34,8 +38,8 @@ describe('POI spreadsheet address geocoding', () => {
       'data-layer-geometry',
       expect.stringContaining('poi-02:[16.3599,48.2034]'),
     );
-    expect(search).toHaveBeenNthCalledWith(1, expect.objectContaining({ autocomplete: false, query: 'Herrengasse 14, Vienna', limit: 1 }));
-    expect(search).toHaveBeenNthCalledWith(2, expect.objectContaining({ autocomplete: false, query: 'Museumsplatz 1, Vienna', limit: 1 }));
+    expect(search).toHaveBeenNthCalledWith(1, expect.objectContaining({ autocomplete: false, query: 'Herrengasse 14, Vienna', limit: 5 }));
+    expect(search).toHaveBeenNthCalledWith(2, expect.objectContaining({ autocomplete: false, query: 'Museumsplatz 1, Vienna', limit: 5 }));
 
     await user.click(screen.getByRole('button', { name: 'Undo' }));
     expect(screen.queryByRole('button', { name: 'Select Café Central' })).not.toBeInTheDocument();

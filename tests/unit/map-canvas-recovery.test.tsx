@@ -51,7 +51,7 @@ vi.mock('../../src/map/MapContentAdapter', () => ({
 
 vi.mock('maplibre-gl', () => {
   class MockMap {
-    private readonly mapIndex: number; private readonly handlers: Record<string, Array<(event?: unknown) => void>>;
+    private isLoaded = false; private readonly mapIndex: number; private readonly handlers: Record<string, Array<(event?: unknown) => void>>;
     boxZoom = { disable: vi.fn(), enable: vi.fn() }; doubleClickZoom = { disable: vi.fn(), enable: vi.fn() }; dragPan = { disable: vi.fn(), enable: vi.fn() }; dragRotate = { disable: vi.fn(), enable: vi.fn() };
     keyboard = { disable: vi.fn(), enable: vi.fn() }; scrollZoom = { disable: vi.fn(), enable: vi.fn() }; touchPitch = { disable: vi.fn(), enable: vi.fn() }; touchZoomRotate = { disable: vi.fn(), enable: vi.fn() };
     constructor(options: unknown) {
@@ -64,7 +64,7 @@ vi.mock('maplibre-gl', () => {
     addControl() {}
     on(event: string, callback: (event?: unknown) => void) {
       (this.handlers[event] ??= []).push(callback);
-      if (event === 'idle') queueMicrotask(callback);
+      if (event === 'idle' && (mocks.autoRender || this.handlers.idle?.length === 1)) queueMicrotask(callback);
     }
     off(event: string, callback: (event?: unknown) => void) {
       mocks.mapOff(event, callback);
@@ -85,7 +85,7 @@ vi.mock('maplibre-gl', () => {
     }
     getCanvas() { return document.createElement('canvas'); } getContainer() { return document.createElement('div'); }
     getStyle() { return { layers: [] }; }
-    loaded() { return false; }
+    loaded() { return this.isLoaded; }
     setLayoutProperty() {} triggerRepaint() {}
     fitBounds(...arguments_: unknown[]) { mocks.mapFitBounds(...arguments_); } easeTo(options: unknown) { mocks.mapEaseTo(options); }
     getBearing() { return mocks.mapBearing; } getCenter() { return mocks.mapCenter; }
@@ -94,7 +94,7 @@ vi.mock('maplibre-gl', () => {
     once(event: string, callback: (event?: unknown) => void) {
       (this.handlers[event] ??= []).push(callback);
       if (event === 'load' && mocks.autoLoad) {
-        const load = () => {
+        const load = () => { this.isLoaded = true;
           if (mocks.styleErrorBeforeLoad) {
             const errorHandlers = this.handlers.error ?? [];
             for (const handler of errorHandlers) handler();
@@ -103,7 +103,7 @@ vi.mock('maplibre-gl', () => {
         };
         if (mocks.synchronousLoad) load();
         else queueMicrotask(load);
-      } else if (event === 'idle' || (event === 'render' && mocks.autoRender)) {
+      } else if ((event === 'idle' || event === 'render') && mocks.autoRender) {
         queueMicrotask(callback);
       }
     }
@@ -117,6 +117,7 @@ vi.mock('maplibre-gl', () => {
 });
 
 import { MapCanvas } from '../../src/map/MapCanvas';
+import { registerCameraCommitCases } from './map-camera-commit-cases';
 
 const latestMapHandlers = () => mocks.mapHandlers.at(-1) ?? {};
 const emitLatestMapEvent = (event: string, payload?: unknown) => {
@@ -183,8 +184,8 @@ async function verifyRenderTimeout() {
   const { exporter, onExporterChange } = await renderMapExporter();
   mocks.autoRender = false; vi.useFakeTimers();
   const capture = exporter({ content: 'basemap' });
-  const rejection = expect(capture).rejects.toThrow('could not finish restoring');
-  await act(async () => vi.advanceTimersByTimeAsync(2500));
+  const rejection = expect(capture).rejects.toThrow('timed out while preparing');
+  await act(async () => vi.advanceTimersByTimeAsync(61_000));
   await rejection;
   expect(mocks.adapterSetExportVisibility.mock.calls).toEqual([[false], [true]]); expect(onExporterChange).toHaveBeenLastCalledWith(null);
   expect(latestMapHandlers().render ?? []).toHaveLength(0); expect(latestMapHandlers().error ?? []).toHaveLength(1);
@@ -264,27 +265,14 @@ describe('MapCanvas camera synchronization', () => {
     await waitFor(() => expect(mocks.mapJumpTo).toHaveBeenLastCalledWith(updatedJump)); const cameraSyncCalls = mocks.mapJumpTo.mock.calls.length;
     rerender(<MapCanvas {...baseProps} selectedId={null} camera={updatedCamera} stylePreset="night-ink" />);
     await waitFor(() => expect(mocks.adapterSync).toHaveBeenCalledTimes(2));
-    expect(mocks.mapJumpTo).toHaveBeenCalledTimes(cameraSyncCalls + 1); expect(mocks.mapJumpTo).toHaveBeenLastCalledWith(updatedJump);
+    expect(mocks.mapJumpTo).toHaveBeenCalledTimes(cameraSyncCalls); expect(mocks.mapCreateOptions.at(-1)).toMatchObject(updatedJump);
     rerender(<MapCanvas {...baseProps} selectedId={null} camera={updatedCamera} fitRequest={1} />);
-    expect(mocks.mapFitBounds).toHaveBeenLastCalledWith([[16.32, 48.2], [16.4, 48.22]], { bearing: 35, duration: 0, maxZoom: 16, padding: 64, pitch: 40 });
+    await waitFor(() => expect(mocks.mapFitBounds).toHaveBeenLastCalledWith([[16.32, 48.2], [16.4, 48.22]], { bearing: 35, duration: 0, maxZoom: 16, padding: 64, pitch: 40 }));
     rerender(<MapCanvas {...baseProps} selectedId={null} camera={{ ...updatedCamera, bearing: 45 }} fitRequest={1} />);
     expect(mocks.mapJumpTo).toHaveBeenLastCalledWith({ ...updatedJump, bearing: 45 }); expect(mocks.mapFitBounds).toHaveBeenCalledOnce();
   });
 
-  it('publishes the complete canonical camera when map movement finishes', async () => {
-    const onCameraViewportChange = vi.fn(); render(<MapCanvas {...baseProps} selectedId={null} onCameraViewportChange={onCameraViewportChange} />);
-    await waitFor(() => expect(mocks.adapterSync).toHaveBeenCalledTimes(1));
-    mocks.mapBearing = 35; mocks.mapCenter = { lng: 16.41, lat: 48.23 }; mocks.mapPitch = 20; mocks.mapZoom = 13.5;
-    act(() => emitLatestMapEvent('moveend'));
-    expect(onCameraViewportChange).toHaveBeenCalledOnce();
-    expect(onCameraViewportChange).toHaveBeenCalledWith([16.41, 48.23], 13.5, 'history', { bearing: 35, pitch: 20 });
-  });
-
-  it('normalizes a wrapped world longitude before publishing the viewport', async () => {
-    const onCameraViewportChange = vi.fn(); render(<MapCanvas {...baseProps} selectedId={null} onCameraViewportChange={onCameraViewportChange} />);
-    await waitFor(() => expect(mocks.adapterSync).toHaveBeenCalledTimes(1)); mocks.mapCenter = { lng: 190, lat: 48.23 }; act(() => emitLatestMapEvent('moveend'));
-    expect(onCameraViewportChange).toHaveBeenCalledWith([-170, 48.23], 11.2, 'history', { bearing: 0, pitch: 0 });
-  });
+  registerCameraCommitCases(baseProps, mocks, emitLatestMapEvent);
 
   it('creates every style lifecycle at the canonical viewport', async () => {
     const camera = { bearing: 35, center: [11.34, 47.31] as [number, number], locked: false, pitch: 40, zoom: 13.5 }; const { rerender } = render(<MapCanvas {...baseProps} selectedId={null} camera={camera} />);
@@ -343,7 +331,7 @@ describe('MapCanvas content recovery', () => {
 
     const fallback = await screen.findByRole('status');
     expect(fallback).toHaveTextContent('map renderer encountered an error');
-    expect(fallback).toHaveTextContent('Reload the page and retry');
+    expect(fallback).toHaveTextContent('Retry the map without reloading your project');
   });
 
   it('invalidates export readiness when map content synchronization fails', async () => {
@@ -509,7 +497,7 @@ describe('MapCanvas content recovery', () => {
     expect([...mocks.activeMapIds]).toEqual([1]);
     expect([...mocks.activeAdapterIds]).toEqual([1]);
     expect(Object.values(mocks.mapHandlers[0]).every((handlers) => handlers.length === 0)).toBe(true);
-    expect(mocks.mapOff).toHaveBeenCalledTimes(14);
+    expect(mocks.mapOff).toHaveBeenCalledTimes(18);
     expect(mocks.mapOff.mock.calls.filter(([event]) => event === 'drag')).toHaveLength(2);
     expect(mocks.mapOff.mock.calls.filter(([event]) => event === 'moveend')).toHaveLength(2);
     expect(mocks.adapterDestroy).toHaveBeenCalledTimes(2);
@@ -521,7 +509,7 @@ describe('MapCanvas content recovery', () => {
     expect(mocks.mapHandlers.every((handlersByEvent) => (
       Object.values(handlersByEvent).every((handlers) => handlers.length === 0)
     ))).toBe(true);
-    expect(mocks.mapOff).toHaveBeenCalledTimes(21);
+    expect(mocks.mapOff).toHaveBeenCalledTimes(27);
     expect(mocks.mapOff.mock.calls.filter(([event]) => event === 'drag')).toHaveLength(3);
     expect(mocks.mapOff.mock.calls.filter(([event]) => event === 'moveend')).toHaveLength(3);
     expect(mocks.adapterDestroy).toHaveBeenCalledTimes(3);

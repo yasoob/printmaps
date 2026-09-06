@@ -5,13 +5,17 @@ import { createMapLibreContentAdapter, type MapContentAdapter, type MapContentSt
 import type { CameraSettings } from '../domain/project';
 import { createInteractiveMap } from './MapCanvasFactory';
 import { armLifecycleDeadline, clearLifecycleDeadline, MAP_READY_TIMEOUT_MS, MAP_STYLE_TIMEOUT_MS, type MapLifecycleDeadlineState } from './MapLifecycleDeadline';
-import type { CameraViewportChangeMode } from './MapCameraViewport';
+import { publishCameraViewport, readMapCameraViewport, writeCameraViewportAttributes, type CameraViewportPublication } from './MapCameraViewport';
 import { createLifecycleExportPreview, type LifecycleExportReferences } from './MapLifecycleExport';
 import { createPageNavigationControl } from './MapPageNavigationControl';
+import { setMapInteractionLock } from './MapInteractionLock';
+import { createAttributionController } from './MapAttributionController';
+import { createMapResourceRecovery, mapFailureMessage, type MapFailureEvent } from './MapResourceRecovery';
 
 export type MapError = {
-  kind: 'content' | 'renderer' | 'style';
+  kind: 'content' | 'renderer' | 'style' | 'resource';
   message: string;
+  retrying?: boolean;
 };
 
 export type ContentError = MapError & {
@@ -20,17 +24,8 @@ export type ContentError = MapError & {
 
 type MutableReference<T> = { current: T };
 
-type LifecycleReferences = LifecycleExportReferences & {
+type LifecycleReferences = LifecycleExportReferences & CameraViewportPublication & {
   backgroundClick: MutableReference<() => void>;
-  cameraViewportChange: MutableReference<(
-    (
-      center: readonly [number, number],
-      zoom: number,
-      mode: CameraViewportChangeMode,
-      orientation: Pick<CameraSettings, 'bearing' | 'pitch'>,
-    ) => void
-  ) | undefined>;
-  cameraViewportChangeMode: MutableReference<CameraViewportChangeMode>;
   container: MutableReference<HTMLDivElement | null>;
   contentAdapter: MutableReference<MapContentAdapter | null>;
   contentReady: MutableReference<boolean>;
@@ -50,71 +45,32 @@ type LifecycleReferences = LifecycleExportReferences & {
 export type MapLifecycleOptions = {
   handleContentSyncResult: (result: ReturnType<MapContentAdapter['sync']> | undefined) => void;
   initialCamera: CameraSettings;
+  getCanonicalCamera?: () => CameraSettings;
+  onCameraError?: (message: string | null) => void;
+  onMapCreated?: () => void;
   references: LifecycleReferences;
   setContentError: Dispatch<SetStateAction<ContentError | null>>;
   setMapError: Dispatch<SetStateAction<MapError | null>>;
   styleUrl: string;
 };
 
-
-function createAttributionController(container: HTMLDivElement) {
-  let isInitialized = false;
-  let resizeFrame: number | null = null;
-  const viewportQuery = typeof window.matchMedia === 'function'
-    ? window.matchMedia('(max-width: 899px)')
-    : null;
-  const sync = (isMobile: boolean) => {
-    const attribution = container.querySelector<HTMLDetailsElement>('.maplibregl-ctrl-attrib');
-    if (!attribution) return;
-    if (isMobile) {
-      attribution.removeAttribute('open');
-      attribution.classList.remove('maplibregl-compact-show');
-    } else {
-      attribution.setAttribute('open', '');
-      attribution.classList.add('maplibregl-compact-show');
+function createCameraMoveEnd(map: MapLibreMap, state: MapLifecycleDeadlineState, options: MapLifecycleOptions) {
+  const { references } = options;
+  let isRestoringCamera = false;
+  return () => {
+    if (isRestoringCamera || state.isDisposed || !references.cameraViewportChange.current) return;
+    const result = publishCameraViewport(readMapCameraViewport(map), references);
+    options.onCameraError?.(result.ok ? null : result.error);
+    if (result.ok) return;
+    const camera = options.getCanonicalCamera?.() ?? options.initialCamera;
+    isRestoringCamera = true;
+    try {
+      map.jumpTo({ center: camera.center, zoom: camera.zoom, bearing: camera.bearing, pitch: camera.pitch });
+      writeCameraViewportAttributes(references.container.current, camera);
+    } finally {
+      isRestoringCamera = false;
     }
   };
-  const handleViewportChange = (event: MediaQueryListEvent) => {
-    if (resizeFrame !== null) cancelAnimationFrame(resizeFrame);
-    resizeFrame = requestAnimationFrame(() => {
-      resizeFrame = null;
-      sync(event.matches);
-    });
-  };
-  const handleDrag = () => {
-    if (viewportQuery?.matches) sync(true);
-  };
-  return {
-    destroy: () => {
-      viewportQuery?.removeEventListener('change', handleViewportChange);
-      if (resizeFrame !== null) cancelAnimationFrame(resizeFrame);
-    },
-    handleDrag,
-    initialize: () => {
-      if (isInitialized) return;
-      sync(viewportQuery?.matches ?? false);
-      isInitialized = true;
-    },
-    listen: () => viewportQuery?.addEventListener('change', handleViewportChange),
-  };
-}
-
-function publishCameraViewport(
-  map: MapLibreMap,
-  references: LifecycleReferences,
-) {
-  const center = map.getCenter();
-  const longitude = Math.abs(center.lng) <= 180
-    ? center.lng
-    : ((center.lng + 180) % 360 + 360) % 360 - 180;
-  const mode = references.cameraViewportChangeMode.current;
-  references.cameraViewportChangeMode.current = 'history';
-  references.cameraViewportChange.current?.(
-    [longitude, center.lat],
-    map.getZoom(),
-    mode,
-    { bearing: map.getBearing(), pitch: map.getPitch() },
-  );
 }
 
 function createMapEventHandlers(
@@ -124,15 +80,26 @@ function createMapEventHandlers(
   initializeAttribution: () => void,
 ) {
   const { references, handleContentSyncResult, setContentError, setMapError } = options;
+  const invalidate = () => {
+    references.container.current?.removeAttribute('data-map-ready');
+    references.availableExporter.current = null;
+    references.exporterChange.current?.(null);
+  };
+  const recovery = createMapResourceRecovery(map, (error) => {
+    if (state.isDisposed || references.mapFailed.current) return;
+    if (error) setMapError(error);
+    else setMapError((current) => current?.kind === 'resource' ? null : current);
+  });
   const exportPreview = createLifecycleExportPreview(map, references, () => {
     references.mapFailed.current = true;
     references.contentReady.current = false;
     references.container.current?.removeAttribute('data-map-ready');
     references.availableExporter.current = null;
     references.exporterChange.current?.(null);
-    setMapError((error) => error ?? {
+    recovery.dispose();
+    setMapError({
       kind: 'renderer',
-      message: 'The map renderer could not restore content after export. Reload the page and retry.',
+      message: 'The map renderer could not restore content after export. Retry the map without reloading your project.',
     });
   });
   const handleLoadTimeout = () => {
@@ -141,7 +108,7 @@ function createMapEventHandlers(
     references.mapFailed.current = true;
     references.container.current?.removeAttribute('data-map-ready');
     setMapError(state.isStyleLoaded
-      ? { kind: 'renderer', message: 'The map preview timed out while preparing. Reload the page and retry.' }
+      ? { kind: 'renderer', message: 'The map preview timed out while preparing. Retry the map without reloading your project.' }
       : { kind: 'style', message: 'The map style timed out while loading. Check your connection and retry.' });
   };
   const handleStyleLoad = () => {
@@ -160,23 +127,21 @@ function createMapEventHandlers(
     map.triggerRepaint();
   };
   const handleIdle = () => {
-    if (state.isDisposed || references.mapFailed.current) return;
+    if (state.isDisposed || references.mapFailed.current || !map.loaded() || !recovery.canPublishReady()) return;
     initializeAttribution();
     if (references.contentSyncDeferred.current && references.contentAdapter.current) {
       handleContentSyncResult(references.contentAdapter.current.sync(references.contentState.current));
     }
-    if (!references.contentReady.current) return;
+    if (!references.contentReady.current || !map.loaded()) return;
     clearLifecycleDeadline(state);
     if (references.availableExporter.current !== exportPreview) {
       references.availableExporter.current = exportPreview;
       references.exporterChange.current?.(exportPreview);
     }
     references.container.current?.setAttribute('data-map-ready', 'true');
+    setMapError((error) => error?.retrying ? null : error);
   };
-  const handleMoveEnd = () => {
-    if (state.isDisposed) return;
-    publishCameraViewport(map, references);
-  };
+  const handleMoveEnd = createCameraMoveEnd(map, state, options);
   const handleClick = (event: { point: Parameters<MapContentAdapter['hitTest']>[0]; lngLat: { lng: number; lat: number } }) => {
     if (state.isDisposed) return;
     if (references.ignoreNextMapClick.current) {
@@ -198,32 +163,22 @@ function createMapEventHandlers(
     setContentError((error) => error?.source === 'hit-test' ? null : error);
     if (hitLayerId) references.layerSelect.current(hitLayerId); else references.backgroundClick.current();
   };
-  const handleError = () => {
-    if (state.isDisposed) return;
+  const handleError = (event?: MapFailureEvent) => {
+    if (state.isDisposed || references.mapFailed.current) return;
     clearLifecycleDeadline(state);
+    invalidate();
+    if (recovery.handleError(event)) return;
+    recovery.dispose();
     references.mapFailed.current = true;
-    references.container.current?.removeAttribute('data-map-ready');
-    if (references.availableExporter.current === exportPreview) {
-      references.availableExporter.current = null;
-      references.exporterChange.current?.(null);
-    }
-    if (state.isStyleLoaded) {
-      setMapError((error) => error ?? {
-        kind: 'renderer',
-        message: 'The map renderer encountered an error. Reload the page and retry.',
-      });
-    } else {
-      setMapError({
-        kind: 'style',
-        message: 'The map style could not be loaded. Check your connection and retry.',
-      });
-    }
+    setMapError(mapFailureMessage(event, state.isStyleLoaded));
   };
   return {
-    dispose: () => { state.isDisposed = true; clearLifecycleDeadline(state); },
+    dispose: () => { state.isDisposed = true; clearLifecycleDeadline(state); recovery.dispose(); },
     exportPreview,
     handleClick,
     handleError,
+    handleContextLost: () => handleError(),
+    handleDataLoading: () => { if (!state.isDisposed) invalidate(); },
     handleIdle,
     handleLoad,
     handleLoadTimeout,
@@ -261,6 +216,8 @@ function cleanupMap(
   retryCleanup(() => map.off('idle', handlers.handleIdle));
   retryCleanup(() => map.off('drag', attribution.handleDrag));
   retryCleanup(() => map.off('error', handlers.handleError));
+  retryCleanup(() => map.off('webglcontextlost', handlers.handleContextLost));
+  retryCleanup(() => map.off('dataloading', handlers.handleDataLoading));
   retryCleanup(() => map.off('moveend', handlers.handleMoveEnd));
   retryCleanup(() => map.off('click', handlers.handleClick));
   const adapter = references.contentAdapter.current;
@@ -277,12 +234,15 @@ function installMapLifecycle(map: MapLibreMap, options: MapLifecycleOptions) {
   const attribution = createAttributionController(container);
   const state: MapLifecycleDeadlineState = { isDisposed: false, isMapLoaded: false, isStyleLoaded: false, startupTimeout: null };
   options.references.mapFailed.current = false;
+  options.references.map.current = map;
+  writeCameraViewportAttributes(container, readMapCameraViewport(map));
   const handlers = createMapEventHandlers(map, state, options, attribution.initialize);
   map.addControl(
     createPageNavigationControl(() => options.references.fitPage.current()),
     'bottom-right',
   );
   map.addControl(new AttributionControl({ compact: true }), 'bottom-left');
+  setMapInteractionLock(map, options.initialCamera.locked);
   attribution.listen();
   armLifecycleDeadline(state, handlers.handleLoadTimeout, MAP_STYLE_TIMEOUT_MS);
   map.once('style.load', handlers.handleStyleLoad);
@@ -292,9 +252,10 @@ function installMapLifecycle(map: MapLibreMap, options: MapLifecycleOptions) {
   map.on('idle', handlers.handleIdle);
   map.on('drag', attribution.handleDrag);
   map.on('error', handlers.handleError);
+  map.on('webglcontextlost', handlers.handleContextLost);
+  map.on('dataloading', handlers.handleDataLoading);
   map.on('moveend', handlers.handleMoveEnd);
   map.on('click', handlers.handleClick);
-  options.references.map.current = map;
   return () => cleanupMap(map, handlers, attribution, options.references);
 }
 
@@ -307,5 +268,8 @@ export function startMapLifecycle(options: MapLifecycleOptions) {
     onError: (message) => options.setMapError({ kind: 'renderer', message }),
     styleUrl: options.styleUrl,
   });
-  return map ? installMapLifecycle(map, options) : undefined;
+  if (!map) return;
+  const cleanup = installMapLifecycle(map, options);
+  options.onMapCreated?.();
+  return cleanup;
 }

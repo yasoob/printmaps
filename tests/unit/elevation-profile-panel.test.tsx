@@ -1,7 +1,11 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { ElevationProfilePanel } from '../../src/app/components/ElevationProfilePanel';
+import { useEffect, useState } from 'react';
+import { ElevationProfilePanel as ProfilePanel } from '../../src/app/components/ElevationProfilePanel';
+import { ElevationProfileSession } from '../../src/app/elevation/ElevationProfileSession';
+import type { ProfileLoader, ProfilePosition } from '../../src/app/elevation/profileSessionTypes';
 import type { ElevationProfile } from '../../src/elevation/profile';
+import { serializeElevationProfileSvg } from '../../src/export/elevationProfile';
 
 const profile: ElevationProfile = {
   samples: [
@@ -15,6 +19,14 @@ const profile: ElevationProfile = {
   totalDescentMeters: 0,
   sourceLabel: 'Copernicus DEM GLO-90 via Open-Meteo',
 };
+
+function ElevationProfilePanel({ coordinates, routeName, routeColor = '#0d79c7', loadProfile }: {
+  coordinates: readonly ProfilePosition[]; routeName: string; routeColor?: string; loadProfile: ProfileLoader;
+}) {
+  const [model] = useState(() => new ElevationProfileSession({ coordinates, name: routeName, color: routeColor, kind: 'straight' }, { loadProfile }));
+  useEffect(() => () => model.dispose(), [model]);
+  return <ProfilePanel model={model} />;
+}
 
 describe('ElevationProfilePanel travel estimates', () => {
   it('shows transparent walking and cycling time estimates for the route distance', async () => {
@@ -108,6 +120,24 @@ describe('ElevationProfilePanel local route source', () => {
 });
 
 describe('ElevationProfilePanel print-safe fonts', () => {
+  it('uses the complete download serializer for the accessible SVG/PNG preview', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<ElevationProfilePanel coordinates={[[16, 48], [16.1, 48.1]]} routeName="Alpine <Route>" loadProfile={vi.fn(async () => profile)} />);
+    await user.click(screen.getByRole('button', { name: 'Generate elevation profile' }));
+    await user.selectOptions(screen.getByLabelText('Profile font', { exact: true }), 'serif');
+    await user.click(screen.getByRole('radio', { name: 'Imperial' }));
+    fireEvent.change(screen.getByLabelText('Profile font size', { exact: true }), { target: { value: '60' } });
+    fireEvent.change(screen.getByLabelText('Profile print width', { exact: true }), { target: { value: '220' } });
+    const chart = container.querySelector('svg.elevation-chart')!;
+    const id = chart.getAttribute('aria-labelledby')!.replace(/-title$/, '');
+    const expected = document.createElement('div');
+    expected.innerHTML = serializeElevationProfileSvg(profile, 'Alpine <Route>', { fontFamily: 'serif', fontSize: 60, units: 'imperial', printWidthMm: 220 }, id);
+    expect(chart.outerHTML).toBe(expected.querySelector('svg')?.outerHTML);
+    expect(screen.getByRole('img', { name: 'Alpine <Route> elevation profile' })).toBe(chart);
+    const roles = [...chart.querySelectorAll<SVGElement>('[data-profile-text]')].map((text) => text.dataset.profileText);
+    expect(roles).toEqual(expect.arrayContaining(['title', 'distance-axis', 'elevation-axis', 'summary', 'source']));
+  });
+
   it('lets the user choose a print-safe profile font', async () => {
     const user = userEvent.setup();
     const { container } = render(
@@ -122,10 +152,9 @@ describe('ElevationProfilePanel print-safe fonts', () => {
     const font = screen.getByRole('combobox', { name: 'Profile font' });
     await user.selectOptions(font, 'serif');
 
-    expect(container.querySelector('.elevation-chart')).toHaveStyle({ fontFamily: 'Georgia,Times New Roman,serif' });
+    expect(container.querySelector('.elevation-chart')).toHaveAttribute('font-family', 'Georgia,Times New Roman,serif');
     const markerLabel = container.querySelector('.elevation-marker-label');
-    expect(markerLabel).toHaveStyle({ fontFamily: 'Georgia,Times New Roman,serif' });
-    expect(markerLabel?.getAttribute('style')).toContain('font-family');
+    expect(markerLabel).toHaveAttribute('font-family', 'Georgia,Times New Roman,serif');
     expect(font).toHaveValue('serif');
   });
 });
@@ -146,11 +175,11 @@ describe('ElevationProfilePanel', () => {
 
     expect(await screen.findByRole('img', { name: 'Alpine Route elevation profile' })).toBeInTheDocument();
     expect(screen.getByRole('group', { name: 'Elevation summary' })).toBeInTheDocument();
-    expect(screen.getByText('20.0 km')).toBeInTheDocument();
+    expect(within(screen.getByRole('group', { name: 'Elevation summary' })).getByText('20.0 km')).toBeInTheDocument();
     expect(screen.getByText('120–260 m')).toBeInTheDocument();
     expect(screen.getByLabelText('Total ascent 140 m')).toHaveTextContent('140 m');
     expect(screen.getByText('Up to 100 sampled route coordinates are sent to Open-Meteo only when you generate a profile.')).toBeInTheDocument();
-    expect(screen.getByText('Copernicus DEM GLO-90 via Open-Meteo')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Copernicus DEM GLO-90 via Open-Meteo' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Download elevation SVG' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Download elevation PNG' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Download elevation PDF' })).toBeEnabled();
@@ -169,7 +198,7 @@ describe('ElevationProfilePanel', () => {
 
     await user.click(screen.getByRole('radio', { name: 'Imperial' }));
 
-    expect(screen.getByText('12.4 mi')).toBeInTheDocument();
+    expect(within(screen.getByRole('group', { name: 'Elevation summary' })).getByText('12.4 mi')).toBeInTheDocument();
     expect(screen.getByText('394–853 ft')).toBeInTheDocument();
     expect(screen.getByLabelText('Total ascent 459 ft')).toHaveTextContent('459 ft');
     expect(screen.getByRole('radio', { name: 'Metric' })).not.toBeChecked();
@@ -193,7 +222,7 @@ describe('ElevationProfilePanel', () => {
     await user.click(screen.getByRole('checkbox', { name: 'Fill below curve' }));
     await user.click(screen.getByRole('checkbox', { name: 'Horizontal grid' }));
 
-    expect(container.querySelector('.elevation-line')).toHaveStyle({ stroke: '#2457a6' });
+    expect(container.querySelector('.elevation-line')).toHaveAttribute('stroke', '#2457a6');
     expect(container.querySelector('.elevation-area')).not.toBeInTheDocument();
     expect(container.querySelector('.elevation-grid-horizontal')).not.toBeInTheDocument();
     expect(container.querySelector('.elevation-grid-vertical')).toBeInTheDocument();
@@ -222,7 +251,7 @@ describe('ElevationProfilePanel', () => {
     const fillColor = screen.getByLabelText('Profile fill color');
     fireEvent.input(fillColor, { target: { value: '#f2b84b' } });
 
-    expect(container.querySelector('.elevation-area')).toHaveStyle({ fill: '#f2b84b' });
+    expect(container.querySelector('.elevation-area')).toHaveAttribute('fill', '#f2b84b');
   });
 
   it('previews an optional two-color profile gradient', async () => {
@@ -239,9 +268,9 @@ describe('ElevationProfilePanel', () => {
     await user.click(screen.getByRole('checkbox', { name: 'Gradient fill' }));
     fireEvent.input(screen.getByLabelText('Profile gradient color'), { target: { value: '#f2b84b' } });
 
-    expect(container.querySelector('.elevation-area')).toHaveStyle({ fill: 'url(#elevation-fill-gradient)' });
-    expect(container.querySelector('.elevation-area')).not.toHaveAttribute('fill');
-    expect(container.querySelector(':scope .elevation-fill-gradient stop:last-child')).toHaveAttribute('stop-color', '#f2b84b');
+    const gradient = container.querySelector('linearGradient')!;
+    expect(container.querySelector('.elevation-area')).toHaveAttribute('fill', `url(#${gradient.id})`);
+    expect(gradient.querySelector('stop:last-child')).toHaveAttribute('stop-color', '#f2b84b');
   });
 
   it('previews bounded minimum and maximum elevation markers', async () => {
@@ -260,7 +289,7 @@ describe('ElevationProfilePanel', () => {
 
     const markers = container.querySelector('.elevation-markers');
     expect(markers?.querySelectorAll(':scope circle')).toHaveLength(2);
-    expect(markers?.querySelector(':scope circle')).toHaveStyle({ fill: '#7c3aed' });
+    expect(markers).toHaveAttribute('fill', '#7c3aed');
 
     await user.click(screen.getByRole('checkbox', { name: 'Elevation markers' }));
     expect(container.querySelector('.elevation-markers')).not.toBeInTheDocument();
@@ -281,13 +310,13 @@ describe('ElevationProfilePanel', () => {
     await user.clear(fontSize);
     await user.type(fontSize, '56');
     expect(fontSize).not.toHaveAttribute('aria-invalid');
-    expect(container.querySelector('.elevation-marker-label')).toHaveStyle({ fontSize: '56px' });
+    expect(container.querySelector('.elevation-marker-label')).toHaveAttribute('font-size', '56');
     expect(screen.getByRole('button', { name: 'Download elevation SVG' })).toBeEnabled();
 
     await user.clear(fontSize);
     await user.type(fontSize, '71');
     expect(fontSize).toHaveAttribute('aria-invalid', 'true');
-    expect(container.querySelector('.elevation-marker-label')).toHaveStyle({ fontSize: '56px' });
+    expect(container.querySelector('.elevation-marker-label')).toHaveAttribute('font-size', '56');
     expect(screen.getByRole('button', { name: 'Download elevation SVG' })).toBeDisabled();
   });
 

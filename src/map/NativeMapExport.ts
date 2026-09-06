@@ -9,7 +9,7 @@ import {
   type NativeTileRequest,
 } from './NativeMapCamera';
 import { visibleContentLayers } from './MapContentLayerRendering';
-import { registerCustomMarkerImages } from './CustomMarkerMapImages';
+import { deferCustomMarkerLayers, registerCustomMarkerImages } from './CustomMarkerMapImages';
 import { registerRoutePictogramImages } from './RoutePictogramMapImages';
 import {
   copyNativeMapCanvas,
@@ -44,6 +44,7 @@ type NativeMapRenderOptions = Readonly<{
 
 type NativeMapWaitOptions = Readonly<{
   assets: Record<string, CustomMarkerAsset>;
+  deferredMarkerLayerIds: string[];
   pixelsPerMillimetre: number;
   signal?: AbortSignal;
   timeoutMs: number;
@@ -87,6 +88,7 @@ function waitForNativeMap(
         try {
           const visibleLayers = visibleContentLayers(layers);
           await registerCustomMarkerImages(map, visibleLayers, options.assets);
+          for (const id of options.deferredMarkerLayerIds) map.setLayoutProperty(id, 'visibility', 'visible');
           registerRoutePictogramImages(map, visibleLayers);
           for (const layer of visibleLayers) {
             updatePrintLayerPaint(map, layer, options.pixelsPerMillimetre, options.assets);
@@ -186,6 +188,8 @@ async function renderNativeMapTileSnapshot(
   let map: MapLibreMap | null = null;
   try {
     const createMap = options.createMap ?? ((mapOptions) => new Map(mapOptions));
+    const style = structuredClone(snapshot.style);
+    const deferredMarkerLayerIds = deferCustomMarkerLayers(style);
     map = createMap({
       attributionControl: false,
       bearing: renderCamera.bearing,
@@ -197,7 +201,7 @@ async function renderNativeMapTileSnapshot(
       maxCanvasSize: [request.region.width, request.region.height],
       pitch: renderCamera.pitch,
       pixelRatio,
-      style: structuredClone(snapshot.style),
+      style,
       zoom: renderCamera.zoom,
     });
     verifyNativeTileCamera(map, renderCamera);
@@ -206,6 +210,7 @@ async function renderNativeMapTileSnapshot(
       snapshot.layers,
       {
         assets: snapshot.assets,
+        deferredMarkerLayerIds,
         pixelsPerMillimetre: snapshot.pixelsPerMillimetre / pixelRatio,
         signal: options.signal,
         timeoutMs: options.timeoutMs ?? 20_000,

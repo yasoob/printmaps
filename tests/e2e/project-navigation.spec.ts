@@ -16,6 +16,7 @@ test('Project menu actions round-trip the portable project', async ({ page }, te
   await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Open project' }).click();
   const chooser = await chooserPromise;
   await chooser.setFiles(projectPath);
+  await page.getByRole('button', { name: 'Replace project', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Portrait' })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Redo' })).toBeDisabled();
@@ -32,7 +33,7 @@ test('Project actions and Export remain reachable in the mobile header', async (
   await project.click();
   const menu = page.getByRole('menu', { name: 'Project actions' });
   const items = menu.getByRole('menuitem');
-  await expect(items).toHaveCount(3);
+  await expect(items).toHaveCount(7);
   const menuBox = await menu.boundingBox();
   expect(menuBox).not.toBeNull();
   expect(menuBox!.x).toBeGreaterThanOrEqual(8);

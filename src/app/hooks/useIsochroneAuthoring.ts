@@ -3,6 +3,7 @@ import type { IsochroneAreaInput } from '../../domain/project';
 import type { IsochroneProvider, ProviderTravelProfile } from '../../services/mapbox/contracts';
 import { MapboxProviderError } from '../../services/mapbox/errors';
 import { createMapboxIsochroneProvider } from '../../services/mapbox/isochrone';
+import type { LayerMutationResult } from '../../domain/projectMutation';
 
 export type IsochroneCenter = {
   coordinate: [number, number];
@@ -12,7 +13,7 @@ export type IsochroneCenter = {
 type IsochroneAuthoringOptions = {
   active: boolean;
   documentEpoch: number;
-  onCreate: (input: IsochroneAreaInput, expectedDocumentEpoch: number) => string | null;
+  onCreate: (input: IsochroneAreaInput, expectedDocumentEpoch: number) => LayerMutationResult;
   onCreated?: (id: string) => void;
   provider?: IsochroneProvider;
 };
@@ -141,14 +142,15 @@ export function useIsochroneAuthoring(options: IsochroneAuthoringOptions) {
         signal: controller.signal,
       })) return;
       const label = `${minutes} min ${profile} area`;
-      const id = options.onCreate({
+      const result = options.onCreate({
         center: [...center.coordinate],
         geometry: mutableGeometry(response.geometry),
         label,
         minutes,
         profile,
       }, expectedDocumentEpoch);
-      if (id) options.onCreated?.(id);
+      if (result.ok) options.onCreated?.(result.layerId);
+      else setRequestError({ lifecycleVersion: lifecycle.version, message: result.error });
     } catch (requestError) {
       if (controller.signal.aborted || requestId !== requestIdRef.current) return;
       setRequestError({ lifecycleVersion: lifecycle.version, message: requestErrorMessage(requestError) });

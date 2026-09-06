@@ -1,10 +1,11 @@
 import { FileUp } from 'lucide-react';
-import { useCallback, useEffect, type RefObject } from 'react';
+import { useCallback, useLayoutEffect, type RefObject } from 'react';
 import type { LayerReplacementRequest, MapDataImportCommit } from '../hooks/useAppMapDataImport';
 import { useMapDataDrop } from '../hooks/useMapDataDrop';
 import { useMapDataImport } from '../hooks/useMapDataImport';
 import { useProject, useProjectStoreApi } from '../projectStoreContext';
 import { MapDataImportPortals } from './MapDataImportPortals';
+import { FileFeedback } from './FileFeedback';
 
 type GeoJsonImportButtonProps = {
   isDisabled: boolean;
@@ -17,7 +18,7 @@ type GeoJsonImportButtonProps = {
   replacementRequest: LayerReplacementRequest | null;
   restoreFocusRef?: RefObject<HTMLButtonElement | null>;
   onOpenChange: (isOpen: boolean) => void;
-  onImport: (commit: MapDataImportCommit) => boolean;
+  onImport: (commit: MapDataImportCommit) => import('../../domain/projectMutation').ProjectMutationResult;
   presentation?: 'trigger' | 'headless';
 };
 
@@ -57,52 +58,57 @@ export function GeoJsonImportButton({
   presentation = 'trigger',
 }: GeoJsonImportButtonProps) {
   const projectStore = useProjectStoreApi();
-  const getSourceDocument = useCallback(
-    () => projectStore.getState().document,
-    [projectStore],
-  );
+  const getSource = useCallback(() => {
+    const state = projectStore.getState();
+    return { documentEpoch: state.documentEpoch, sourceDocument: state.document };
+  }, [projectStore]);
   const documentEpoch = useProject((state) => state.documentEpoch);
   const {
     batch,
     batchAppearance,
     chooseImportFiles,
+    chooseReviewFiles,
     closeDialog,
     commitReviewedImport,
     dialogError,
+    finalFocus,
     handleInputChange,
     inputRef,
     isReading,
-    isBatchAppearanceValid,
+    batchAppearanceValidation,
     prepareFiles,
     prepareReplacement,
     replacementTarget,
+    reportBlockedDrop,
     selectedNames,
     setBatchAppearance,
     setShouldFitView,
     shouldFitView,
     status,
+    setStatus,
+    triggerRef,
   } = useMapDataImport({
     documentEpoch,
     finishImportWork,
-    getSourceDocument,
+    getSource,
     isOpen,
-    isWorkActive,
     onImport,
     onOpenChange,
     startImportWork,
     triggerRef: restoreFocusRef ?? buttonRef,
     inputRef: providedInputRef,
   });
-  useEffect(() => {
-    if (replacementRequest) prepareReplacement(replacementRequest.target, replacementRequest.trigger);
+  useLayoutEffect(() => {
+    if (replacementRequest) prepareReplacement(replacementRequest);
   }, [prepareReplacement, replacementRequest]);
   const handleDroppedFiles = useCallback((files: readonly File[]) => {
-    void prepareFiles(files, true, null);
+    prepareFiles(files);
   }, [prepareFiles]);
   const isDragActive = useMapDataDrop({
     isDisabled: isDisabled || isWorkActive,
     isOpen,
     onFiles: handleDroppedFiles,
+    onBlockedDrop: reportBlockedDrop,
   });
 
   return (
@@ -118,22 +124,17 @@ export function GeoJsonImportButton({
       />
       <ImportTrigger buttonRef={buttonRef} isDisabled={isDisabled || isReading || isWorkActive} onClick={chooseImportFiles} presentation={presentation} />
       {status && (
-        <div
-          className={`project-file-status${status.kind === 'error' ? ' is-error' : ''}`}
-          role={status.kind === 'error' ? 'alert' : 'status'}
-          aria-label="Map data import status"
-        >
-          {status.message}
-        </div>
+        <FileFeedback kind={status.kind} label="Map data import status" message={status.message} onDismiss={() => setStatus(null)} returnFocusRef={triggerRef} />
       )}
       <MapDataImportPortals
         batch={batch}
         batchAppearance={batchAppearance}
         dialogError={dialogError}
-        isBatchAppearanceValid={isBatchAppearanceValid}
-        inputRef={inputRef}
+        batchAppearanceValidation={batchAppearanceValidation}
+        finalFocus={finalFocus}
+        onChooseFiles={chooseReviewFiles}
         replacementTarget={replacementTarget}
-        onClose={closeDialog}
+        onClose={() => closeDialog()}
         onCommit={commitReviewedImport}
         selectedNames={selectedNames}
         setBatchAppearance={setBatchAppearance}

@@ -2,10 +2,10 @@ import { canonicalLayerAppearance } from '../domain/layerAppearance';
 import { cloneContentLayer, createDefaultLayerAppearance, type ContentLayer } from '../domain/project';
 import { isValidPosition } from '../domain/routeGeometry';
 import { semanticLegCount, semanticRoutePoints } from '../domain/routeModel';
-import { validateCustomMarkerAssetCollection, validateStoredCustomMarkerAsset, type CustomMarkerAsset } from '../domain/customMarkerAssets';
+import type { CustomMarkerAsset } from '../domain/customMarkerAssets';
 import type { ProjectState } from './store';
 import { commitDocument, hasSameDocumentContent, replaceLayers, type ProjectSet } from './storeDocument';
-import { createPoiStructureActions } from './storePoiActions';
+import { createPoiCoordinateAction, createPoiStructureActions } from './storePoiActions';
 import { createAdministrativeAreaActions } from './storeAdministrativeAreaActions';
 import { createRouteGeometryActions } from './storeRouteGeometryActions';
 import { createDirectionsRouteActions } from './storeDirectionsRouteActions';
@@ -13,15 +13,14 @@ import { createRouteAction } from './storeRouteCreationAction';
 import { createMapMatchingAction } from './storeMapMatchingAction';
 import { createReplaceLayerFromImportAction } from './storeImportReplacementAction';
 import { createRouteTransformActions } from './storeRouteTransformActions';
+import { boundedGeneratedName, projectNameError } from '../domain/projectLimits';
+import { mutationRejected } from '../domain/projectMutation';
 type LayerPropertyActions = Pick<ProjectState, 'applyMapMatching' | 'insertRouteVertex' | 'removeRouteVertex' | 'renameLayer' | 'replaceAuthoredRoute' | 'replaceRouteGeometry' | 'selectLayer' | 'setArcSegmentCurvature' | 'setLayerAppearance' | 'setLayerOpacity' | 'setPoiCoordinates' | 'setPoiCustomMarker' | 'setRouteMarker' | 'setRouteSegmentStyle' | 'setRouteVertex' | 'toggleLayerVisibility' | 'toggleLayerLock'>;
 
-function isCanonicalCustomMarkerAsset(asset: CustomMarkerAsset): boolean {
-  try {
-    validateStoredCustomMarkerAsset(asset);
-    return true;
-  } catch {
-    return false;
-  }
+function isSameCustomMarkerAsset(current: CustomMarkerAsset | undefined, asset: CustomMarkerAsset | null): boolean {
+  if (!asset) return !current;
+  return !!current && current.id === asset.id && current.mimeType === asset.mimeType
+    && current.width === asset.width && current.height === asset.height && current.dataUri === asset.dataUri;
 }
 
 function assetsReferencedBy(layers: ProjectState['document']['layers']): Set<string> {
@@ -34,7 +33,7 @@ function createShapeAction(set: ProjectSet): ProjectState['createShape'] {
   return (coordinates) => set((state) => {
     const distinctVertices = new Set(coordinates.map(([longitude, latitude]) => `${longitude},${latitude}`));
     if (distinctVertices.size < 3
-      || coordinates.some(([longitude, latitude]) => !isValidPosition(longitude, latitude))) return state;
+      || coordinates.some(([longitude, latitude]) => !isValidPosition(longitude, latitude))) return mutationRejected('The area needs at least three valid, distinct points. The outline was kept.');
     const usedIds = new Set(state.document.layers.map((layer) => layer.id));
     let shapeNumber = 0;
     let id: string;
@@ -118,7 +117,8 @@ export function createLayerStructureActions(set: ProjectSet): Pick<ProjectState,
     createShape: createShapeAction(set),
     replaceLayerFromImport: createReplaceLayerFromImportAction(set),
     deleteLayer: (id) => set((state) => {
-      if (state.document.layers.find((layer) => layer.id === id)?.type === 'basemap' || state.document.layers.every((layer) => layer.id !== id)) return state;
+      const layer = state.document.layers.find((candidate) => candidate.id === id);
+      if (!layer || layer.type === 'basemap' || layer.locked) return state;
       const layers = state.document.layers.filter((layer) => layer.id !== id);
       const referencedAssets = assetsReferencedBy(layers);
       const assets = Object.fromEntries(Object.entries(state.document.assets)
@@ -133,18 +133,18 @@ export function createLayerStructureActions(set: ProjectSet): Pick<ProjectState,
     }),
     duplicateLayer: (id) => set((state) => {
       const sourceIndex = state.document.layers.findIndex((layer) => layer.id === id);
-      if (sourceIndex === -1 || state.document.layers[sourceIndex]?.type === 'basemap') return state;
+      if (sourceIndex === -1 || state.document.layers[sourceIndex]?.type === 'basemap') return mutationRejected('Choose a content layer to duplicate.', 'unavailable');
 
       const source = state.document.layers[sourceIndex];
       const usedIds = new Set(state.document.layers.map((layer) => layer.id));
       let suffix = 1;
-      let duplicateId = `${id}-copy`;
+      let duplicateId = boundedGeneratedName(id, '-copy');
       while (usedIds.has(duplicateId)) {
         suffix += 1;
-        duplicateId = `${id}-copy-${suffix}`;
+        duplicateId = boundedGeneratedName(id, `-copy-${suffix}`);
       }
 
-      const duplicate = { ...cloneContentLayer(source), id: duplicateId, name: `${source.name} copy` };
+      const duplicate = { ...cloneContentLayer(source), id: duplicateId, name: boundedGeneratedName(source.name, ' copy') };
       const layers = [...state.document.layers];
       layers.splice(sourceIndex + 1, 0, duplicate);
       return {
@@ -152,11 +152,9 @@ export function createLayerStructureActions(set: ProjectSet): Pick<ProjectState,
         selectedId: duplicateId,
       };
     }),
-    importLayers: (importedLayers, documentEpoch, sourceDocument) => {
-      let wasImported = false;
-      set((state) => {
-        if (importedLayers.length === 0 || importedLayers.some(({ type }) => type === 'basemap') || documentEpoch !== state.documentEpoch || !hasSameDocumentContent(sourceDocument, state.document)) return state;
-        wasImported = true;
+    importLayers: (importedLayers, documentEpoch, sourceDocument) => set((state) => {
+        if (documentEpoch !== state.documentEpoch || !hasSameDocumentContent(sourceDocument, state.document)) return mutationRejected('The project changed before this data could be applied. Choose the data again.', 'stale');
+        if (importedLayers.length === 0 || importedLayers.some(({ type }) => type === 'basemap')) return mutationRejected('Import at least one content layer, without a basemap.');
 
         const layers = [...state.document.layers];
         const basemapIndex = layers.findIndex((layer) => layer.type === 'basemap');
@@ -166,7 +164,7 @@ export function createLayerStructureActions(set: ProjectSet): Pick<ProjectState,
           let id = layer.id;
           let suffix = 2;
           while (usedIds.has(id)) {
-            id = `${layer.id}-${suffix}`;
+            id = boundedGeneratedName(layer.id, `-${suffix}`);
             suffix += 1;
           }
           usedIds.add(id);
@@ -177,9 +175,7 @@ export function createLayerStructureActions(set: ProjectSet): Pick<ProjectState,
           ...commitDocument(state, replaceLayers(state.document, layers)),
           selectedId: importedCopies[0].id,
         };
-      });
-      return wasImported;
-    },
+      }),
 
     moveLayer: (id, toIndex) => set((state) => {
       if (!Number.isFinite(toIndex)) return state;
@@ -206,7 +202,10 @@ export function createLayerPropertyActions(set: ProjectSet): LayerPropertyAction
     ...createRouteAppearanceActions(set),
     renameLayer: (id, name) => set((state) => {
       const layer = state.document.layers.find((candidate) => candidate.id === id);
-      if (!layer || !name.trim() || layer.name === name) return state;
+      if (!layer) return mutationRejected('This layer no longer exists.', 'unavailable');
+      const error = projectNameError(name);
+      if (error) return mutationRejected(error);
+      if (layer.name === name) return state;
 
       return commitDocument(state, replaceLayers(
         state.document,
@@ -237,35 +236,14 @@ export function createLayerPropertyActions(set: ProjectSet): LayerPropertyAction
         )),
       ));
     }),
-    setPoiCoordinates: (id, [longitude, latitude]) => set((state) => {
-      const layer = state.document.layers.find((candidate) => candidate.id === id);
-      if (
-        layer?.type !== 'poi'
-        || layer.geometry?.type !== 'Point'
-        || !isValidPosition(longitude, latitude)
-        || (layer.geometry.coordinates[0] === longitude && layer.geometry.coordinates[1] === latitude)
-      ) return state;
-
-      return commitDocument(state, replaceLayers(
-        state.document,
-        state.document.layers.map((candidate) => (
-          candidate.id === id
-            ? {
-                ...candidate,
-                ...(candidate.provenance?.service === 'geocoding-v6' && { provenance: undefined }),
-                geometry: { type: 'Point' as const, coordinates: [longitude, latitude] as [number, number] },
-              }
-            : candidate
-        )),
-      ));
-    }),
+    setPoiCoordinates: createPoiCoordinateAction(set),
     setPoiCustomMarker: (id, asset) => set((state) => {
       const layer = state.document.layers.find((candidate) => candidate.id === id);
-      if (layer?.type !== 'poi' || layer.appearance?.kind !== 'poi') return state;
-      if (asset && !isCanonicalCustomMarkerAsset(asset)) return state;
+      if (layer?.type !== 'poi' || layer.appearance?.kind !== 'poi') return mutationRejected('Choose an existing place before uploading a custom marker.', 'unavailable');
       const appearance = layer.appearance;
       const customAssetId = asset?.id ?? null;
-      if (appearance.customAssetId === customAssetId) return state;
+      const currentAsset = customAssetId ? state.document.assets[customAssetId] : undefined;
+      if ((appearance.customAssetId ?? null) === customAssetId && isSameCustomMarkerAsset(currentAsset, asset)) return state;
       const layers: ContentLayer[] = state.document.layers.map((candidate) => candidate.id === id
         ? { ...candidate, appearance: { ...appearance, customAssetId } }
         : candidate);
@@ -273,11 +251,6 @@ export function createLayerPropertyActions(set: ProjectSet): LayerPropertyAction
       const assets = Object.fromEntries(Object.entries(state.document.assets)
         .filter(([assetId]) => referenced.has(assetId)));
       if (asset) assets[asset.id] = { ...asset };
-      try {
-        validateCustomMarkerAssetCollection(assets);
-      } catch {
-        return state;
-      }
       return commitDocument(state, { ...state.document, assets, layers });
     }),
 

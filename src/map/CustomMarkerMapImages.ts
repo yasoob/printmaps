@@ -8,6 +8,18 @@ export function referencedCustomMarkerAssetIds(layers: readonly ContentLayer[]):
   )));
 }
 
+export function deferCustomMarkerLayers(style: ReturnType<MapLibreMap['getStyle']>): string[] {
+  const deferred: string[] = [];
+  for (const layer of style.layers) {
+    if (layer.type !== 'symbol') continue;
+    const image = layer.layout?.['icon-image'];
+    if (typeof image !== 'string' || !image.startsWith('studio-marker-sha256-') || layer.layout?.visibility === 'none') continue;
+    layer.layout = { ...layer.layout, visibility: 'none' };
+    deferred.push(layer.id);
+  }
+  return deferred;
+}
+
 async function registerImage(map: MapLibreMap, assetId: string, assets: Record<string, CustomMarkerAsset>): Promise<void> {
   const asset = assets[assetId];
   if (!asset) throw new Error('A native export custom marker asset is missing.');

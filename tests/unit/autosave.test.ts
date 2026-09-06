@@ -181,6 +181,32 @@ describe('IndexedDB project autosave', () => {
     repository.close();
   });
 
+  it('retains the damaged record snapshot without downloading or discarding a newer tab record', async () => {
+    const name = databaseName();
+    const repository = createIndexedDbAutosaveRepository({ databaseName: name });
+    await repository.save(createInitialProjectDocument());
+    const database = await openDatabase(name);
+    const damaged = { recordVersion: 99, recordId: 'damaged', revision: 3, savedAt: 'unknown', document: { title: 'Preserve this' } };
+    await replaceCurrentRecord(database, damaged);
+    let loadError: unknown;
+    try {
+      await repository.load();
+    } catch (error) {
+      loadError = error;
+    }
+    expect(loadError).toBeInstanceOf(AutosaveCorruptionError);
+    if (!(loadError instanceof AutosaveCorruptionError)) throw new Error('Expected corruption with recovery data');
+    expect(loadError.recoveryData?.record).toEqual(damaged);
+
+    const newer = { recordVersion: 99, recordId: 'newer', revision: 4, document: { title: 'Different tab' } };
+    await replaceCurrentRecord(database, newer);
+    expect(loadError.recoveryData?.record).toEqual(damaged);
+    await expect(repository.discard()).rejects.toBeInstanceOf(AutosaveConflictError);
+    expect(await readCurrentRecord(database)).toEqual(newer);
+    database.close();
+    repository.close();
+  });
+
   it('discards the current draft', async () => {
     const repository = createIndexedDbAutosaveRepository({ databaseName: databaseName() });
     await repository.save(createInitialProjectDocument(), '2026-08-22T10:00:00.000Z');

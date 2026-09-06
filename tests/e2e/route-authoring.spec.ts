@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
+import { expandToolSettings } from './authoring-panel-support';
 
 const isExpectedWebGlDiagnostic = (message: string, browserName: string) => (
   message.includes('GPU stall due to ReadPixels')
@@ -198,6 +199,7 @@ test('expert arc route authoring is undoable and exports a travel-mode marker', 
   expect(panelBox!.x).toBeGreaterThanOrEqual(0);
   expect(panelBox!.x + panelBox!.width).toBeLessThanOrEqual(390);
   expect(await page.evaluate(() => document.body.scrollWidth - document.body.clientWidth)).toBe(0);
+  await expandToolSettings(page, 'route');
   await page.getByRole('button', { name: 'Cancel route' }).click();
   expect(consoleProblems).toEqual([]);
 });

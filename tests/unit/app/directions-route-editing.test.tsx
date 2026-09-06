@@ -36,7 +36,7 @@ it('reroutes a moved semantic waypoint and refreshes all provider provenance', a
     replaceDirectionsRoute,
   }));
 
-  act(() => { result.current.changeWaypoint('road', 1, [1, 1.5]); });
+  act(() => { expect(result.current.changeWaypoint('road', 1, [1, 1.5])).toEqual({ pending: true }); });
   await waitFor(() => expect(replaceDirectionsRoute).toHaveBeenCalled());
 
   expect(directions).toHaveBeenCalledWith(expect.objectContaining({
@@ -145,6 +145,17 @@ it('keeps a closed Road endpoint canonical when either duplicate is edited', asy
   }));
 
   act(() => {
+    expect(result.current.changeWaypoint('road', 0, [0, 0])).toEqual({ ok: true, changed: false });
+    expect(result.current.changeWaypoint('road', 3, [0.0000001, 0])).toEqual({ ok: true, changed: false });
+    expect(result.current.removeWaypoint('road', 1)).toMatchObject({
+      ok: false, error: 'Closed routes need at least three distinct points.',
+    });
+    expect(result.current.removeWaypoint('road', 1.5)).toMatchObject({ ok: false });
+  });
+  expect(directions).not.toHaveBeenCalled();
+  expect(replaceDirectionsRoute).not.toHaveBeenCalled();
+  expect(result.current.pendingWaypoints).toBeNull();
+  act(() => {
     result.current.changeWaypoint('road', 0, [0.25, 0.25]);
   });
   await waitFor(() => expect(replaceDirectionsRoute).toHaveBeenCalled());
@@ -238,4 +249,54 @@ it('rebases retry onto compatible current layer metadata', async () => {
   await waitFor(() => expect(replaceDirectionsRoute).toHaveBeenCalledTimes(2));
 
   expect(replaceDirectionsRoute.mock.calls[1]?.[0].expectedLayer).toBe(updatedLayer);
+});
+
+it.each([{ coordinate: [1, 1] }, { coordinate: [1.0000001, 1.0000001] }] as const)('does not create Road requests for unchanged canonical coordinates $coordinate', ({ coordinate }) => {
+  const directions = vi.fn<DirectionsProvider['directions']>();
+  const replaceDirectionsRoute = vi.fn();
+  const { result } = renderHook(() => useDirectionsRouteEditing({
+    documentEpoch: 4, layers: [layer], provider: { directions }, replaceDirectionsRoute,
+  }));
+  act(() => {
+    expect(result.current.changeWaypoint('road', 1, coordinate)).toEqual({ ok: true, changed: false });
+  });
+  expect(directions).not.toHaveBeenCalled();
+  expect(replaceDirectionsRoute).not.toHaveBeenCalled();
+  expect(result.current).toMatchObject({ pendingWaypoints: null, error: null, isRouting: false });
+});
+
+it('does not restart or abort a pending request when its edited coordinate is committed again', () => {
+  const directions = vi.fn<DirectionsProvider['directions']>().mockReturnValue(new Promise(() => {}));
+  const { result } = renderHook(() => useDirectionsRouteEditing({
+    documentEpoch: 4, layers: [layer], provider: { directions }, replaceDirectionsRoute: vi.fn(),
+  }));
+  act(() => { result.current.changeWaypoint('road', 1, [1, 1.5]); });
+  const pending = result.current.pendingWaypoints;
+  const signal = directions.mock.calls[0][0].signal!;
+  act(() => {
+    expect(result.current.changeWaypoint('road', 1, [1, 1.5])).toEqual({ ok: true, changed: false });
+    expect(result.current.changeWaypoint('road', 0, [0, 0])).toEqual({ ok: true, changed: false });
+  });
+  expect(directions).toHaveBeenCalledOnce();
+  expect(signal.aborted).toBe(false);
+  expect(result.current.pendingWaypoints).toBe(pending);
+  expect(result.current.isRouting).toBe(true);
+});
+
+it('leaves a failed pending edit intact on unchanged commits and reserves resubmission for Retry', async () => {
+  const directions = vi.fn<DirectionsProvider['directions']>().mockRejectedValue(new Error('Controlled failure'));
+  const { result } = renderHook(() => useDirectionsRouteEditing({
+    documentEpoch: 4, layers: [layer], provider: { directions }, replaceDirectionsRoute: vi.fn(),
+  }));
+  act(() => { result.current.changeWaypoint('road', 1, [1, 1.5]); });
+  await waitFor(() => expect(result.current.error).toBe('Controlled failure'));
+  const pending = result.current.pendingWaypoints;
+  act(() => {
+    expect(result.current.changeWaypoint('road', 1, [1, 1.5])).toEqual({ ok: true, changed: false });
+  });
+  expect(directions).toHaveBeenCalledOnce();
+  expect(result.current.pendingWaypoints).toBe(pending);
+  expect(result.current.error).toBe('Controlled failure');
+  act(() => { result.current.retry(); });
+  await waitFor(() => expect(directions).toHaveBeenCalledTimes(2));
 });

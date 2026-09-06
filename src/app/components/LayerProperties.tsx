@@ -14,6 +14,9 @@ import { ShapeVertexControls } from './ShapeVertexControls';
 import { Switch } from './UiControls';
 import { InputGroup, InputGroupAddon, InputNumber } from './InputGroup';
 import type { RouteExtensionEndpoint } from './routeAuthoringActions';
+import type { GeometryEditResult, ProjectMutationResult } from '../../domain/projectMutation';
+import { useLayerNameDraft } from '../hooks/useLayerNameDraft';
+import { useMutationFeedback } from '../hooks/useMutationFeedback';
 
 type LayerPropertiesProps = {
   layer: ContentLayer;
@@ -21,10 +24,10 @@ type LayerPropertiesProps = {
   documentEpoch?: number;
   mapMatchingProvider?: MapMatchingProvider;
   directionsProvider?: DirectionsProvider;
-  onApplyMapMatching?: (input: MapMatchingInput, expectedDocumentEpoch: number) => boolean;
-  onRename: (name: string) => void;
-  onOpacityChange: (opacity: number) => void;
-  onAppearanceChange: (appearance: LayerAppearance) => void;
+  onApplyMapMatching?: (input: MapMatchingInput, expectedDocumentEpoch: number) => ProjectMutationResult;
+  onRename: (name: string) => ProjectMutationResult;
+  onOpacityChange: (opacity: number) => ProjectMutationResult;
+  onAppearanceChange: (appearance: LayerAppearance) => ProjectMutationResult;
   onBeginRouteExtend?: (endpoint: RouteExtensionEndpoint, trigger: HTMLButtonElement) => void;
   directionsRouteEditError?: string | null;
   directionsRouteEditIsRouting?: boolean;
@@ -32,38 +35,42 @@ type LayerPropertiesProps = {
   onRetryDirectionsRouteEdit?: () => void;
   onCancelDirectionsRouteEdit?: () => void;
   onTransformRoute?: ProjectState['transformRoute'];
-  onArcCurvatureChange?: (segmentIndex: number, curvature: number) => void;
-  onPoiCoordinatesChange: (coordinates: readonly [number, number]) => void;
-  onPoiCustomMarkerChange: (asset: CustomMarkerAsset | null) => void;
-  onRouteVertexInsert: (vertexIndex: number) => void; onRouteVertexRemove: (vertexIndex: number) => void;
-  onRouteVertexChange: (vertexIndex: number, coordinates: readonly [number, number]) => void;
-  onShapeVertexChange: (ringIndex: number, vertexIndex: number, coordinates: readonly [number, number]) => void;
-  onToggleVisibility: () => void; onToggleLock: () => void;
-  onReplace: (trigger: HTMLElement | null) => void; onDuplicate: () => void; onDelete: () => void;
+  onArcCurvatureChange?: (segmentIndex: number, curvature: number) => ProjectMutationResult;
+  onPoiCoordinatesChange: (coordinates: readonly [number, number]) => ProjectMutationResult;
+  onPoiCustomMarkerChange: (asset: CustomMarkerAsset | null) => ProjectMutationResult;
+  onRouteVertexInsert: (vertexIndex: number) => ProjectMutationResult; onRouteVertexRemove: (vertexIndex: number) => GeometryEditResult;
+  onRouteVertexChange: (vertexIndex: number, coordinates: readonly [number, number]) => GeometryEditResult;
+  onShapeVertexChange: (ringIndex: number, vertexIndex: number, coordinates: readonly [number, number]) => ProjectMutationResult;
+  onToggleVisibility: () => ProjectMutationResult; onToggleLock: () => ProjectMutationResult;
+  onReplace: (trigger: HTMLElement | null) => void; onDuplicate: () => ProjectMutationResult; onDelete: () => void;
 };
 
 function PoiCoordinateControls({
   coordinates,
+  disabled,
   onChange,
 }: {
   coordinates: readonly [number, number];
-  onChange: (coordinates: readonly [number, number]) => void;
+  disabled: boolean;
+  onChange: (coordinates: readonly [number, number]) => ProjectMutationResult;
 }) {
   return (
     <>
-      <CoordinateField key={`longitude-${coordinates[0]}`} ariaLabel="POI longitude" label="Longitude" minimum={-180} maximum={180} value={coordinates[0]} onCommit={(longitude) => onChange([longitude, coordinates[1]])} />
-      <CoordinateField key={`latitude-${coordinates[1]}`} ariaLabel="POI latitude" label="Latitude" minimum={-MAX_MERCATOR_LATITUDE} maximum={MAX_MERCATOR_LATITUDE} value={coordinates[1]} onCommit={(latitude) => onChange([coordinates[0], latitude])} />
+      <CoordinateField key={`longitude-${coordinates[0]}`} ariaLabel="POI longitude" label="Longitude" disabled={disabled} minimum={-180} maximum={180} value={coordinates[0]} onCommit={(longitude) => onChange([longitude, coordinates[1]])} />
+      <CoordinateField key={`latitude-${coordinates[1]}`} ariaLabel="POI latitude" label="Latitude" disabled={disabled} minimum={-MAX_MERCATOR_LATITUDE} maximum={MAX_MERCATOR_LATITUDE} value={coordinates[1]} onCommit={(latitude) => onChange([coordinates[0], latitude])} />
     </>
   );
 }
 
 const ShapeAppearanceControls = memo(function ShapeAppearanceControls({
   appearance,
-  onChange,
+  onChange: commit,
 }: {
   appearance: ShapeAppearance;
-  onChange: (appearance: ShapeAppearance) => void;
+  onChange: (appearance: ShapeAppearance) => ProjectMutationResult;
 }) {
+  const feedback = useMutationFeedback(appearance);
+  const onChange = (next: ShapeAppearance) => feedback.report(commit(next));
   const [widthEdit, setWidthEdit] = useState(() => ({
     source: appearance.strokeWidth,
     value: String(appearance.strokeWidth),
@@ -82,8 +89,8 @@ const ShapeAppearanceControls = memo(function ShapeAppearanceControls({
       setWidthEdit({ source: appearance.strokeWidth, value: String(appearance.strokeWidth) });
       return;
     }
-    setWidthEdit({ source: strokeWidth, value: String(strokeWidth) });
-    onChange({ ...appearance, strokeWidth });
+    const result = onChange({ ...appearance, strokeWidth });
+    if (result.ok) setWidthEdit({ source: strokeWidth, value: String(strokeWidth) });
   };
 
   return (
@@ -92,6 +99,7 @@ const ShapeAppearanceControls = memo(function ShapeAppearanceControls({
       <PropertyRow label="Outline"><label className="color-field"><input aria-label="Shape outline color" type="color" value={appearance.strokeColor} onChange={(event) => onChange({ ...appearance, strokeColor: event.target.value })} /></label></PropertyRow>
       <PropertyRow label="Width"><InputGroup><InputNumber aria-label="Shape outline width" aria-invalid={isWidthInvalid || undefined} min={0.5} max={12} step={0.5} value={widthDraft} onChange={(event) => setWidthEdit({ source: appearance.strokeWidth, value: event.target.value })} onBlur={(event) => commitWidth(event.currentTarget.value)} /><InputGroupAddon align="inline-end" enableScrubbing sensitivity={4}>px</InputGroupAddon></InputGroup></PropertyRow>
       <Switch aria-label="Invert shape fill" isChecked={appearance.invert} label="Invert outside area" onCheckedChange={(isChecked) => onChange({ ...appearance, invert: isChecked })} />
+      {feedback.error && <p className="coordinate-validation" role="alert">{feedback.error}</p>}
     </>
   );
 }, (previous, next) => previous.appearance === next.appearance);
@@ -99,22 +107,23 @@ const ShapeAppearanceControls = memo(function ShapeAppearanceControls({
 function PoiLayerProperties({
   layer,
   assets,
+  documentEpoch,
   onAppearanceChange,
   onPoiCoordinatesChange,
   onPoiCustomMarkerChange,
-}: Pick<LayerPropertiesProps, 'layer' | 'assets' | 'onAppearanceChange' | 'onPoiCoordinatesChange' | 'onPoiCustomMarkerChange'>) {
+}: Pick<LayerPropertiesProps, 'layer' | 'assets' | 'documentEpoch' | 'onAppearanceChange' | 'onPoiCoordinatesChange' | 'onPoiCustomMarkerChange'>) {
   const appearance = layer.appearance?.kind === 'poi' ? layer.appearance : undefined;
   const customAsset = appearance?.customAssetId ? assets[appearance.customAssetId] : undefined;
   return (
     <>
       {appearance && (
         <PropertySection title="Appearance">
-          <PoiAppearanceControls key={`${layer.id}-${appearance.size}-${appearance.label}`} appearance={appearance} customAsset={customAsset} onChange={onAppearanceChange} onCustomMarkerChange={onPoiCustomMarkerChange} />
+          <PoiAppearanceControls key={`${documentEpoch}-${layer.id}`} appearance={appearance} customAsset={customAsset} onChange={onAppearanceChange} onCustomMarkerChange={onPoiCustomMarkerChange} />
         </PropertySection>
       )}
       {layer.geometry?.type === 'Point' && (
         <PropertySection title="Location">
-          <PoiCoordinateControls coordinates={layer.geometry.coordinates} onChange={onPoiCoordinatesChange} />
+          <PoiCoordinateControls coordinates={layer.geometry.coordinates} disabled={layer.locked} onChange={onPoiCoordinatesChange} />
         </PropertySection>
       )}
     </>
@@ -173,7 +182,7 @@ function LayerTypeProperties({
       return <RouteTypeProperties documentEpoch={documentEpoch} layer={layer} directionsProvider={directionsProvider} mapMatchingProvider={mapMatchingProvider} onApplyMapMatching={onApplyMapMatching} onAppearanceChange={onAppearanceChange} onBeginRouteExtend={onBeginRouteExtend} onArcCurvatureChange={onArcCurvatureChange} onRouteVertexInsert={onRouteVertexInsert} onRouteVertexRemove={onRouteVertexRemove} onRouteVertexChange={onRouteVertexChange} directionsRouteEditError={directionsRouteEditError} directionsRouteEditIsRouting={directionsRouteEditIsRouting} directionsRouteEditWaypoints={directionsRouteEditWaypoints} onRetryDirectionsRouteEdit={onRetryDirectionsRouteEdit} onCancelDirectionsRouteEdit={onCancelDirectionsRouteEdit} onTransformRoute={onTransformRoute} />;
     }
     case 'poi': {
-      return <PoiLayerProperties layer={layer} assets={assets} onAppearanceChange={onAppearanceChange} onPoiCoordinatesChange={onPoiCoordinatesChange} onPoiCustomMarkerChange={onPoiCustomMarkerChange} />;
+      return <PoiLayerProperties layer={layer} assets={assets} {...(documentEpoch !== undefined && { documentEpoch })} onAppearanceChange={onAppearanceChange} onPoiCoordinatesChange={onPoiCoordinatesChange} onPoiCustomMarkerChange={onPoiCustomMarkerChange} />;
     }
     case 'shape': {
       if (layer.appearance?.kind !== 'shape') return null;
@@ -229,19 +238,16 @@ export function LayerProperties({
   onDelete,
   onTransformRoute,
 }: LayerPropertiesProps) {
-  const [nameEdit, setNameEdit] = useState(() => ({ source: layer.name, value: layer.name }));
-  const [opacityEdit, setOpacityEdit] = useState(() => ({ source: layer.opacity, value: String(layer.opacity) }));
-  const nameDraft = nameEdit.source === layer.name ? nameEdit.value : layer.name;
-  const opacityDraft = opacityEdit.source === layer.opacity ? opacityEdit.value : String(layer.opacity);
-  const commitName = () => {
-    const name = nameDraft.trim();
-    if (!name) {
-      setNameEdit({ source: layer.name, value: layer.name });
-      return;
-    }
-    setNameEdit({ source: name, value: name });
-    onRename(name);
+  const [operationError, setOperationError] = useState<{ layer: ContentLayer; message: string } | null>(null);
+  const reportMutation = <T extends GeometryEditResult,>(result: T) => {
+    setOperationError('ok' in result && !result.ok ? { layer, message: result.error } : null);
+    return result;
   };
+  const { draft: nameDraft, error: nameError, change: changeNameDraft, commit: commitNameDraft } = useLayerNameDraft(
+    layer.name, onRename,
+  );
+  const [opacityEdit, setOpacityEdit] = useState(() => ({ source: layer.opacity, value: String(layer.opacity) }));
+  const opacityDraft = opacityEdit.source === layer.opacity ? opacityEdit.value : String(layer.opacity);
   const commitOpacity = () => {
     const opacity = Number(opacityDraft);
     if (opacityDraft.trim() === '' || !Number.isFinite(opacity)) {
@@ -249,30 +255,32 @@ export function LayerProperties({
       return;
     }
     const clampedOpacity = Math.max(0, Math.min(100, opacity));
-    setOpacityEdit({ source: clampedOpacity, value: String(clampedOpacity) });
-    onOpacityChange(clampedOpacity);
+    const result = reportMutation(onOpacityChange(clampedOpacity));
+    if (result.ok) setOpacityEdit({ source: clampedOpacity, value: String(clampedOpacity) });
   };
   const deleteLayer = useStableEvent(onDelete);
-  const duplicateLayer = useStableEvent(onDuplicate);
+  const duplicateLayer = useStableEvent(() => {
+    const result = onDuplicate();
+    setOperationError(result.ok ? null : { layer, message: result.error });
+  });
   const replaceLayer = useStableEvent(onReplace);
-  const toggleLayerLock = useStableEvent(onToggleLock);
-  const toggleLayerVisibility = useStableEvent(onToggleVisibility);
+  const toggleLayerLock = useStableEvent(() => reportMutation(onToggleLock()));
+  const toggleLayerVisibility = useStableEvent(() => reportMutation(onToggleVisibility()));
   const applyMapMatching = useOptionalStableEvent(onApplyMapMatching);
   const changeAppearance = useStableEvent(onAppearanceChange);
   const beginRouteExtend = useOptionalStableEvent(onBeginRouteExtend);
-  const changeArcCurvature = useOptionalStableEvent(onArcCurvatureChange);
+  const changeArcCurvature = useOptionalStableEvent(onArcCurvatureChange
+    ? (index: number, curvature: number) => reportMutation(onArcCurvatureChange(index, curvature)) : undefined);
   const changePoiCoordinates = useStableEvent(onPoiCoordinatesChange);
   const changePoiCustomMarker = useStableEvent(onPoiCustomMarkerChange);
-  const insertRouteVertex = useStableEvent(onRouteVertexInsert);
-  const removeRouteVertex = useStableEvent(onRouteVertexRemove);
-  const changeRouteVertex = useStableEvent(onRouteVertexChange);
-  const changeShapeVertex = useStableEvent(onShapeVertexChange);
+  const insertRouteVertex = useStableEvent((index: number) => reportMutation(onRouteVertexInsert(index)));
+  const removeRouteVertex = useStableEvent((index: number) => reportMutation(onRouteVertexRemove(index)));
+  const changeRouteVertex = useStableEvent((index: number, coordinate: readonly [number, number]) => reportMutation(onRouteVertexChange(index, coordinate)));
+  const changeShapeVertex = useStableEvent((ring: number, index: number, coordinate: readonly [number, number]) => reportMutation(onShapeVertexChange(ring, index, coordinate)));
   const retryDirectionsRouteEdit = useOptionalStableEvent(onRetryDirectionsRouteEdit);
   const cancelDirectionsRouteEdit = useOptionalStableEvent(onCancelDirectionsRouteEdit);
   const transformRoute = useOptionalStableEvent(onTransformRoute);
-  const changeNameDraft = useStableEvent((value: string) => setNameEdit({ source: layer.name, value }));
   const changeOpacityDraft = useStableEvent((value: string) => setOpacityEdit({ source: layer.opacity, value }));
-  const commitNameDraft = useStableEvent(commitName);
   const commitOpacityDraft = useStableEvent(commitOpacity);
 
   return (
@@ -280,6 +288,7 @@ export function LayerProperties({
       <LayerIdentityProperties
         layer={layer}
         nameDraft={nameDraft}
+        nameError={nameError}
         opacityDraft={opacityDraft}
         onDelete={deleteLayer}
         onDuplicate={duplicateLayer}
@@ -291,6 +300,7 @@ export function LayerProperties({
         onToggleLock={toggleLayerLock}
         onToggleVisibility={toggleLayerVisibility}
       />
+      {operationError?.layer === layer && <p className="coordinate-validation" role="alert">{operationError.message}</p>}
       <LayerTypeProperties documentEpoch={documentEpoch} layer={layer} assets={assets} directionsProvider={directionsProvider} mapMatchingProvider={mapMatchingProvider} onApplyMapMatching={applyMapMatching} onAppearanceChange={changeAppearance} onBeginRouteExtend={beginRouteExtend} onArcCurvatureChange={changeArcCurvature} onPoiCoordinatesChange={changePoiCoordinates} onPoiCustomMarkerChange={changePoiCustomMarker} onRouteVertexInsert={insertRouteVertex} onRouteVertexRemove={removeRouteVertex} onRouteVertexChange={changeRouteVertex} onShapeVertexChange={changeShapeVertex} directionsRouteEditError={directionsRouteEditError} directionsRouteEditIsRouting={directionsRouteEditIsRouting} directionsRouteEditWaypoints={directionsRouteEditWaypoints} onRetryDirectionsRouteEdit={retryDirectionsRouteEdit} onCancelDirectionsRouteEdit={cancelDirectionsRouteEdit} onTransformRoute={transformRoute} />
     </div>
   );

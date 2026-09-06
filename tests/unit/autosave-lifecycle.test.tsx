@@ -162,4 +162,55 @@ describe('project autosave persistence', () => {
     expect(repository.save).toHaveBeenCalledTimes(1);
     expect(result.current.corrupted).toBe(false);
   });
+
+  it('continues without writing or discarding, and warns for offline edits including redo history', async () => {
+    const repository = repositoryWith();
+    const store = createStore();
+    const error = new AutosaveCorruptionError('Unsupported', { record: { recordVersion: 99 } });
+    const { result, unmount } = renderHook(() => useProjectAutosave(store, repository, error));
+    act(() => { expect(result.current.continueWithoutAutosave()).toBe(true); });
+    expect(result.current.corrupted).toBe(false);
+    expect(result.current.statusKind).toBe('disabled');
+    expect(result.current.recoveryData).toEqual(error.recoveryData);
+    const initialUnload = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(initialUnload);
+    expect(initialUnload.defaultPrevented).toBe(false);
+    act(() => store.getState().setPageOrientation('portrait'));
+    await act(async () => vi.advanceTimersByTimeAsync(300));
+    const editedUnload = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(editedUnload);
+    expect(editedUnload.defaultPrevented).toBe(true);
+    act(() => store.getState().undo());
+    const undoneUnload = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(undoneUnload);
+    expect(store.getState().canRedo).toBe(true);
+    expect(undoneUnload.defaultPrevented).toBe(true);
+    act(() => window.dispatchEvent(new PageTransitionEvent('pagehide')));
+    unmount();
+    expect(repository.discard).not.toHaveBeenCalled();
+    expect(repository.save).not.toHaveBeenCalled();
+    expect(repository.close).toHaveBeenCalledOnce();
+  });
+
+  it('does not let continuation race an in-flight discard; failure remains retryable', async () => {
+    const repository = repositoryWith();
+    let failDiscard!: (error: unknown) => void;
+    repository.discard.mockImplementationOnce(() => new Promise<void>((_resolve, reject) => { failDiscard = reject; }));
+    const store = createStore();
+    const { result } = renderHook(() => useProjectAutosave(store, repository, new AutosaveCorruptionError()));
+    let discarding!: Promise<boolean>;
+    act(() => {
+      discarding = result.current.discard();
+      expect(result.current.continueWithoutAutosave()).toBe(false);
+    });
+    await act(async () => {
+      failDiscard(new DOMException('full', 'QuotaExceededError'));
+      expect(await discarding).toBe(false);
+    });
+    expect(result.current.corrupted).toBe(true);
+    expect(result.current.status).toContain('free storage and retry');
+    act(() => { expect(result.current.continueWithoutAutosave()).toBe(true); });
+    expect(result.current.statusKind).toBe('disabled');
+    expect(repository.save).not.toHaveBeenCalled();
+  });
 });

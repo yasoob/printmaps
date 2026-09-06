@@ -57,6 +57,20 @@ function lastGeometry(setData: ReturnType<typeof vi.fn>): ShapeGeometry {
 }
 
 describe('shape point map editing', () => {
+  it('rolls back rejected dragged insertion previews and all handles', () => {
+    const { createMarker, layer, map, markers, setData } = harness();
+    const commit = vi.fn(() => ({ ok: false as const, error: 'Project position limit reached.' }));
+    installShapeVertexEditing(map, layer, commit, createMarker);
+    const initialHandles = markers.map(({ coordinate }) => ({ ...coordinate }));
+    markers[4].coordinate = { lng: 4, lat: 2 };
+    markers[4].trigger('drag');
+    expect(lastGeometry(setData)).not.toEqual(layer.geometry);
+    markers[4].trigger('dragend');
+    expect(commit).toHaveBeenCalledOnce();
+    expect(lastGeometry(setData)).toEqual(layer.geometry);
+    expect(markers.map(({ coordinate }) => coordinate)).toEqual(initialHandles);
+  });
+
   it('installs direct vertex and midpoint handles for a simple polygon', () => {
     const { createMarker, layer, map, markers } = harness();
 
@@ -78,7 +92,7 @@ describe('shape point map editing', () => {
 
   it('previews a dragged point and commits a closed polygon only at drag end', () => {
     const { createMarker, layer, map, markers, setData } = harness();
-    const commit = vi.fn();
+    const commit = vi.fn(() => ({ ok: true as const }));
     installShapeVertexEditing(map, layer, commit, createMarker);
 
     markers[0].coordinate = { lng: 2, lat: 3 };
@@ -97,7 +111,7 @@ describe('shape point map editing', () => {
 
   it('inserts a midpoint as one committed polygon edit', () => {
     const { createMarker, layer, map, markers } = harness();
-    const commit = vi.fn();
+    const commit = vi.fn(() => ({ ok: true as const }));
     installShapeVertexEditing(map, layer, commit, createMarker);
 
     const backgroundClick = vi.fn();
@@ -121,7 +135,7 @@ describe('shape point map editing', () => {
       },
     });
     const { createMarker, map, markers } = harness(crossing);
-    const commit = vi.fn();
+    const commit = vi.fn(() => ({ ok: true as const }));
     installShapeVertexEditing(map, crossing, commit, createMarker);
 
     expect(markers[4].coordinate).toEqual({ lng: 180, lat: 0 });

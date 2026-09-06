@@ -122,7 +122,8 @@ describe('route vertex structure history', () => {
   it('rejects removal when it would leave fewer than two distinct route positions', () => {
     const document = createInitialProjectDocument();
     const route = document.layers.find((layer) => layer.id === 'route-01')!;
-    route.geometry = { type: 'LineString', coordinates: [[0, 0], [1, 1], [0, 0]] };
+    route.geometry = { type: 'LineString', coordinates: [[0, 0], [1, 1]] };
+    if (route.appearance?.kind === 'route') route.appearance.segmentStyles = [null];
     const store = createProjectStore(document);
 
     store.getState().removeRouteVertex('route-01', 1);
@@ -159,10 +160,10 @@ describe('route vertex structure history', () => {
       coordinates: [[-1, 0], [1, 0], [1, 1], [0.5, 0.5], [-1, 0]],
     });
     expect(updated.appearance?.kind === 'route' ? updated.appearance.segmentStyles : []).toEqual([
-      null,
+      { color: '#123456' },
       null,
       { width: 8 },
-      null,
+      { width: 8 },
     ]);
     expect(routeLayerValidationError(updated)).toBeNull();
 

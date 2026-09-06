@@ -1,6 +1,8 @@
 import { mapLayerDescriptors, customMarkerImageId } from '../../src/map/MapContentLayerRendering';
 import type { ContentLayer } from '../../src/domain/project';
 import type { CustomMarkerAsset } from '../../src/domain/customMarkerAssets';
+import { deferCustomMarkerLayers } from '../../src/map/CustomMarkerMapImages';
+import type { StyleSpecification } from 'maplibre-gl';
 
 const asset: CustomMarkerAsset = {
   id: `sha256-${'a'.repeat(64)}`,
@@ -29,6 +31,20 @@ const layer: ContentLayer = {
 };
 
 describe('custom marker MapLibre descriptors', () => {
+  it('defers native print custom symbols until their images are registered without revealing hidden content', () => {
+    const style: StyleSpecification = {
+      version: 8, sources: {}, layers: [
+        { id: 'visible-custom', type: 'symbol', source: 'places', layout: { 'icon-image': customMarkerImageId(asset.id) } },
+        { id: 'hidden-custom', type: 'symbol', source: 'places', layout: { 'icon-image': customMarkerImageId(asset.id), visibility: 'none' } },
+        { id: 'basemap', type: 'symbol', source: 'base', layout: { 'icon-image': 'airport' } },
+      ],
+    };
+    expect(deferCustomMarkerLayers(style)).toEqual(['visible-custom']);
+    expect(style.layers[0].layout?.visibility).toBe('none');
+    expect(style.layers[1].layout?.visibility).toBe('none');
+    expect(style.layers[2].layout?.visibility).toBeUndefined();
+  });
+
   it('uses the registered hash image at the requested marker size while retaining the label', () => {
     const descriptors = mapLayerDescriptors(layer, { selectedId: null, previewedId: null }, { [asset.id]: asset });
 
@@ -37,7 +53,7 @@ describe('custom marker MapLibre descriptors', () => {
       type: 'symbol',
       layout: {
         'icon-image': customMarkerImageId(asset.id),
-        'icon-size': 0.2,
+        'icon-size': 0.24,
         'icon-allow-overlap': true,
       },
       paint: { 'icon-opacity': 0.8 },

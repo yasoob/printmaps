@@ -8,6 +8,7 @@ import type { ProjectState } from './store';
 type ProjectDataKey =
   | 'document'
   | 'documentEpoch'
+  | 'hasUnfinishedDrawing'
   | 'pageBoundaryVisible'
   | 'selectedId'
   | 'past'

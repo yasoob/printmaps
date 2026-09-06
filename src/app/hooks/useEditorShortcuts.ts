@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, type Dispatch, type SetStateAction } from 'react';
 import type { ContentLayer } from '../../domain/project';
 import { useProjectActions, useProjectStoreApi } from '../projectStoreContext';
-
-function isTextEditingTarget(target: EventTarget | null): boolean {
-  return target instanceof HTMLElement
-    && target.closest('input, textarea, select, [contenteditable="true"], [role="textbox"]') !== null;
-}
+import { shouldBlockEditorShortcuts } from '../keyboardScope';
 
 function layerSelectionButton(layerId: string): HTMLElement | undefined {
   return [...document.querySelectorAll<HTMLElement>('[data-layer-select]')]
@@ -27,7 +23,7 @@ function canHandleHistory(event: KeyboardEvent, guards: { isAuthoring: boolean; 
     && !event.isComposing
     && !event.altKey
     && (event.ctrlKey || event.metaKey)
-    && !isTextEditingTarget(event.target)
+    && !shouldBlockEditorShortcuts(event.target)
     && !guards.isModalOpen
     && !guards.isAuthoring;
 }
@@ -49,7 +45,7 @@ function shouldDeleteSelection(event: React.KeyboardEvent<HTMLElement>, options:
     && event.target.closest('[data-route-vertex-index], [data-shape-transform-handle]') !== null;
   return isDeleteKey
     && !hasDeleteInputBlocker(event)
-    && !isTextEditingTarget(event.target)
+    && !shouldBlockEditorShortcuts(event.target)
     && !isTransformHandle
     && !options.isModalOpen
     && !options.isAuthoring;
@@ -76,7 +72,7 @@ export function useEditorShortcuts(options: EditorShortcutOptions) {
   }, [deleteLayer, options.deleteFocusTarget, options.layers, options.selectedLayer, options.setPreviewedLayerId]);
   const deleteSelectedLayer = useCallback(() => {
     const { deleteFocusTarget, deleteLayer: removeLayer, layers, selectedLayer, setPreviewedLayerId } = latestDeleteState.current;
-    if (!selectedLayer) return;
+    if (!selectedLayer || selectedLayer.locked || selectedLayer.type === 'basemap') return;
     const selectedIndex = layers.findIndex((layer) => layer.id === selectedLayer.id);
     const focusLayer = layers[selectedIndex + 1] ?? layers[selectedIndex - 1];
     setPreviewedLayerId((current) => current === selectedLayer.id ? null : current);

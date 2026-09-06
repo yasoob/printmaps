@@ -193,9 +193,9 @@ test('browser location centers the map and map-area lock gates movement commands
       consoleProblems.push(message.text());
     }
   });
-  await context.grantPermissions(['geolocation'], { origin: 'http://127.0.0.1:4175' });
   await context.setGeolocation({ longitude: 16.3725, latitude: 48.2084 });
   await page.goto('./');
+  await context.grantPermissions(['geolocation'], { origin: new URL(page.url()).origin });
   const map = page.getByTestId('map-canvas');
   await expect(map).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
 
@@ -302,10 +302,12 @@ test('map cursor reflects selection, dragging, and authoring intent', async ({ p
   }
 });
 
-test('style loading failure shows a recoverable map status', async ({ page }) => {
+test('style loading failure shows a recoverable map status', async ({ page }, testInfo) => {
+  let shouldFailStyle = true;
   let confirmStyleAbort: (() => void) | undefined;
   const styleAbort = new Promise<void>((resolve) => { confirmStyleAbort = resolve; });
   await page.route('**/styles/paper.json', async (route) => {
+    if (!shouldFailStyle) return route.continue();
     await route.abort();
     confirmStyleAbort?.();
   });
@@ -313,9 +315,17 @@ test('style loading failure shows a recoverable map status', async ({ page }) =>
   await page.goto('./');
   await styleAbort;
 
-  const mapStatus = page.getByLabel('Map canvas').getByRole('status');
-  await expect(mapStatus).toContainText('Map preview unavailable', { timeout: 20_000 });
-  await expect(mapStatus).toContainText('style');
+  const retry = page.getByRole('button', { name: 'Retry map', exact: true });
+  const mapStatus = page.getByRole('status').filter({ has: retry });
+  await expect(mapStatus).toContainText('Map preview incomplete', { timeout: 20_000 });
+  await expect(mapStatus).toContainText('Map resources could not be loaded');
+  await expect(retry).toBeEnabled();
+  await expect(page.getByTestId('map-canvas')).not.toHaveAttribute('data-map-ready');
+  await page.screenshot({ path: testInfo.outputPath('ux-fix-024-startup-style-failed.png'), animations: 'disabled' });
+  shouldFailStyle = false;
+  await retry.click();
+  await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
+  await expect(mapStatus).toHaveCount(0);
 });
 
 test('switches open map styles and recovers after a selected style fails', async ({ page }) => {
@@ -327,13 +337,15 @@ test('switches open map styles and recovers after a selected style fails', async
   await style.click();
 
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-style-preset', 'night-ink');
-  await expect(page.getByLabel('Map canvas').getByRole('status')).toContainText('map style could not be loaded', { ignoreCase: true });
+  const mapStatus = page.getByRole('status').filter({ has: page.getByRole('button', { name: 'Retry map', exact: true }) });
+  await expect(mapStatus).toContainText('Map resources could not be loaded');
+  await expect(page.getByTestId('map-canvas')).not.toHaveAttribute('data-map-ready');
 
   await page.getByRole('radio', { name: /^Paper:/ }).click();
 
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-style-preset', 'paper');
   await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
-  await expect(page.getByLabel('Map canvas').getByRole('status')).not.toBeVisible();
+  await expect(mapStatus).toHaveCount(0);
 });
 
 test('applies Coastal, translated labels, and expanded map detail controls', async ({ page, browserName }) => {

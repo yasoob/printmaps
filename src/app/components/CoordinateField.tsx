@@ -1,5 +1,7 @@
 import { useId, useState } from "react";
 import { PropertyRow } from "./PropertyControls";
+import { isCoordinateInputInvalid } from "./coordinateInput";
+import type { GeometryEditResult } from "../../domain/projectMutation";
 
 type CoordinateFieldProps = {
   ariaLabel: string;
@@ -7,7 +9,7 @@ type CoordinateFieldProps = {
   label: "Latitude" | "Longitude";
   maximum: number;
   minimum: number;
-  onCommit: (value: number) => void;
+  onCommit: (value: number) => GeometryEditResult;
   validationMessage?: string;
   validate?: (value: number) => boolean;
   value: number;
@@ -27,13 +29,9 @@ function isCoordinateInvalid(
   maximum: number,
   validate: CoordinateFieldProps["validate"],
 ) {
-  const parsedValue = Number(draft);
   return (
-    draft.trim() === "" ||
-    !Number.isFinite(parsedValue) ||
-    parsedValue < minimum ||
-    parsedValue > maximum ||
-    validate?.(parsedValue) === false
+    isCoordinateInputInvalid(draft, minimum, maximum) ||
+    validate?.(Number(draft)) === false
   );
 }
 
@@ -66,9 +64,15 @@ export function CoordinateField({
       );
       return;
     }
+    if (parsedValue !== value) {
+      const result = onCommit(parsedValue);
+      if ('ok' in result && !result.ok) {
+        setCommitError(result.error);
+        return;
+      }
+    }
     setEdit({ source: parsedValue, value: String(parsedValue) });
     setCommitError(null);
-    onCommit(parsedValue);
   };
 
   return (
@@ -80,7 +84,7 @@ export function CoordinateField({
             aria-describedby={
               isInvalid || commitError ? validationId : undefined
             }
-            aria-invalid={isInvalid || undefined}
+            aria-invalid={isInvalid || !!commitError || undefined}
             disabled={disabled}
             value={draft}
             onChange={(event) => {

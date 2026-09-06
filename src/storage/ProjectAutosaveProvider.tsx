@@ -7,6 +7,7 @@ import {
 } from "./autosave";
 import {
   AutosaveCorruptedContext,
+  AutosaveConflictOpenContext,
   AutosaveCorruptionContext,
   AutosaveErrorContext,
   ProjectAutosaveContext,
@@ -39,7 +40,7 @@ export function ProjectAutosaveProvider({
     loadError,
   );
   const errorState = useMemo(
-    () => autosave.statusKind === "error" && !autosave.corrupted
+    () => autosave.statusKind !== "status" && !autosave.corrupted
       ? autosave
       : null,
     [autosave],
@@ -50,6 +51,7 @@ export function ProjectAutosaveProvider({
   );
   return (
     <AutosaveCorruptedContext value={autosave.corrupted}>
+      <AutosaveConflictOpenContext value={autosave.conflictOpen}>
       <ProjectAutosaveContext value={autosave}>
         <AutosaveErrorContext value={errorState}>
           <AutosaveCorruptionContext value={corruptionState}>
@@ -57,6 +59,7 @@ export function ProjectAutosaveProvider({
           </AutosaveCorruptionContext>
         </AutosaveErrorContext>
       </ProjectAutosaveContext>
+      </AutosaveConflictOpenContext>
     </AutosaveCorruptedContext>
   );
 }

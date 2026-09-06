@@ -19,6 +19,7 @@ export function ElevationProfileRequestControls({
       {(state.status === 'idle' || state.status === 'error') && (
         <button className="quiet-button" type="button" disabled={isReadingRoute} onClick={onGenerate}>Generate elevation profile</button>
       )}
+      {state.status === 'ready' && <button className="quiet-button" type="button" disabled={isReadingRoute} onClick={onGenerate}>Refresh elevation profile</button>}
       {state.status === 'loading' && (
         <button className="quiet-button" type="button" aria-label="Cancel elevation profile request" onClick={onCancel}>Cancel terrain request</button>
       )}

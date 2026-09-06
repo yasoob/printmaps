@@ -14,7 +14,7 @@ import {
   type AutosaveRepository,
 } from "../storage/autosave";
 import { ProjectAutosaveProvider } from "../storage/ProjectAutosaveProvider";
-import { useIsAutosaveCorrupted } from "../storage/projectAutosaveContext";
+import { useIsAutosaveCorrupted, useIsAutosaveConflictOpen } from "../storage/projectAutosaveContext";
 import { StudioAppView } from "./components/StudioAppView";
 import { useAppMapDataImport } from "./hooks/useAppMapDataImport";
 import { useModalSurfaces } from "./hooks/useModalSurfaces";
@@ -31,6 +31,8 @@ import { createProjectStore } from "./store";
 import type { RouteExtensionEndpoint } from "./components/routeAuthoringActions";
 import { LayerPreviewProvider } from "./LayerPreviewProvider";
 import { useSetLayerPreviewId } from "./layerPreviewContext";
+import { useProjectOpening } from "./hooks/useProjectOpening";
+import { ElevationProfileProvider } from "./elevation/ElevationProfileProvider";
 
 type AppProps = {
   autosaveRepository?: AutosaveRepository | null;
@@ -66,11 +68,13 @@ export function App({
         repository={autosaveRepository}
       >
         <LayerPreviewProvider>
-          <StudioApp
-            directionsProvider={directionsProvider}
-            mapMatchingProvider={mapMatchingProvider}
-            searchProvider={searchProvider}
-          />
+          <ElevationProfileProvider>
+            <StudioApp
+              directionsProvider={directionsProvider}
+              mapMatchingProvider={mapMatchingProvider}
+              searchProvider={searchProvider}
+            />
+          </ElevationProfileProvider>
         </LayerPreviewProvider>
       </ProjectAutosaveProvider>
     </ProjectStoreContext>
@@ -159,16 +163,15 @@ function useStudioDirectionsEditing(
       vertexIndex: number,
       coordinate: readonly [number, number],
     ) => {
-      if (!changeWaypoint(id, vertexIndex, coordinate)) {
-        setRouteVertex(id, vertexIndex, coordinate);
-      }
+      return changeWaypoint(id, vertexIndex, coordinate)
+        ?? setRouteVertex(id, vertexIndex, coordinate);
     },
     [changeWaypoint, setRouteVertex],
   );
   const removeRouteVertex = useCallback(
     (id: string, vertexIndex: number) => {
-      if (!removeWaypoint(id, vertexIndex))
-        removeRouteVertexAction(id, vertexIndex);
+      return removeWaypoint(id, vertexIndex)
+        ?? removeRouteVertexAction(id, vertexIndex);
     },
     [removeRouteVertexAction, removeWaypoint],
   );
@@ -190,6 +193,7 @@ function useStudioAppModel(props: StudioAppProps) {
   const selectedId = useProject((state) => state.selectedId);
   const documentEpoch = useProject((state) => state.documentEpoch);
   const isAutosaveCorrupted = useIsAutosaveCorrupted();
+  const autosaveConflictOpen = useIsAutosaveConflictOpen();
   const setPreviewedLayerId = useSetLayerPreviewId();
   const [exportOpen, setExportOpen] = useState(false);
   const openExport = useCallback(() => setExportOpen(true), []);
@@ -208,16 +212,20 @@ function useStudioAppModel(props: StudioAppProps) {
     () => setPreviewedLayerId(null),
     [setPreviewedLayerId],
   );
-  const mapDataImport = useAppMapDataImport(
-    project.importLayers,
-    project.replaceLayerFromImport,
-    isAutosaveCorrupted,
-    handleMapDataImported,
-  );
+  const projectOpening = useProjectOpening(documentEpoch, handleMapDataImported);
+  const mapDataImport = useAppMapDataImport({
+    documentEpoch,
+    importLayers: project.importLayers,
+    replaceLayerFromImport: project.replaceLayerFromImport,
+    isCommitBlocked: isAutosaveCorrupted || autosaveConflictOpen,
+    onImported: handleMapDataImported,
+  });
   const modal = useModalSurfaces({
     exportButtonRef,
     exportOpen,
     importOpen: mapDataImport.isImportOpen,
+    projectOpen: projectOpening.pendingDocument !== null,
+    autosaveConflictOpen,
     mobile,
     setExportOpen,
   });
@@ -231,15 +239,7 @@ function useStudioAppModel(props: StudioAppProps) {
     project,
   );
   const selectLayer = project.selectLayer;
-  const openDocument = project.openDocument;
   const clearSelection = useCallback(() => selectLayer(null), [selectLayer]);
-  const handleOpenedDocument = useCallback(
-    (document: ProjectDocument) => {
-      openDocument(document);
-      setPreviewedLayerId(null);
-    },
-    [openDocument, setPreviewedLayerId],
-  );
   const handleAuthoringChange = useCallback(
     (nextDocumentEpoch: number, isActive: boolean) => {
       setAuthoringState({ documentEpoch: nextDocumentEpoch, active: isActive });
@@ -262,10 +262,10 @@ function useStudioAppModel(props: StudioAppProps) {
   return {
     assets, isAutosaveCorrupted, beginRouteExtend: routeExtension.begin, clearSelection, deleteSelectedLayer, directionsProvider,
     directionsRouteEditing: directions.editing, documentEpoch,
-    exportButtonRef, handleAuthoringChange, handleDeleteKeyDown, handleOpenedDocument,
+    exportButtonRef, handleAuthoringChange, handleDeleteKeyDown, handleOpenedDocument: projectOpening.open,
     importButtonRef, isAuthoring, layers, mapDataImport, mapExporter,
     mapLayers: directions.mapLayers, mapLocation, mapMatchingProvider,
-    mobile, modal, openButtonRef, openExport, page, pageBoundaryVisible, project,
+    mobile, modal, openButtonRef, openExport, page, pageBoundaryVisible, project, projectOpening,
     routeExtensionRequest: routeExtension.request, searchProvider, selectedId, selectedLayer,
     setPreviewedLayerId, style,
     changeRouteVertex: directions.changeRouteVertex,

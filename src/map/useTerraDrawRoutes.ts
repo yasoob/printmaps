@@ -4,6 +4,8 @@ import type { ContentLayer } from '../domain/project';
 import type { RouteLineShape } from '../domain/routeProfiles';
 import type { createTerraRouteDraw } from './TerraDrawRouteFactory';
 import { createTerraRouteSession } from './TerraDrawRouteEditing';
+import { createEditingSession, routeCoordinates, type CommittedRouteCallbacks } from './TerraDrawCommittedRouteSession';
+import { setMapInteractionLock } from './MapInteractionLock';
 
 // Concurrent editor sessions share one in-flight import instead of racing
 // separate requests for the same chunk. A failed fetch is never cached, so the
@@ -52,24 +54,21 @@ type TerraDrawRoutesOptions = {
   layers: ContentLayer[];
   loadRouteEditor?: () => Promise<typeof import('./TerraDrawRouteFactory')>;
   map: MapLibreMap | null;
+  isMapAreaLocked?: boolean;
   onEditorError?: (message: string | null) => void;
-  onRouteGeometryChange: (id: string, coordinates: readonly (readonly [number, number])[]) => void;
+  onRouteGeometryChange: (id: string, coordinates: readonly (readonly [number, number])[]) => import('../domain/projectMutation').ProjectMutationResult;
   onRoutePreview: (id: string, coordinates: [number, number][] | null) => void;
   selectedId: string | null;
 };
 
-type RouteCallbacks = {
+type RouteCallbacks = CommittedRouteCallbacks & {
+  isMapAreaLocked: boolean;
   authoringError?: RouteAuthoring['onError'];
   authoringFinish?: RouteAuthoring['onFinish'];
   authoringPreview?: RouteAuthoring['onPreview'];
-  editorError?: TerraDrawRoutesOptions['onEditorError'];
-  onRouteGeometryChange: TerraDrawRoutesOptions['onRouteGeometryChange'];
-  onRoutePreview: TerraDrawRoutesOptions['onRoutePreview'];
 };
 
-type RouteSession = ReturnType<typeof createTerraRouteSession> & {
-  resetAuthoring?: (points: readonly (readonly [number, number])[]) => void;
-};
+type RouteSession = ReturnType<typeof createTerraRouteSession> & { resetAuthoring?: (points: readonly (readonly [number, number])[]) => void };
 type EditableRoute = ContentLayer;
 
 function editableRouteFor(options: TerraDrawRoutesOptions): EditableRoute | null {
@@ -80,32 +79,22 @@ function editableRouteFor(options: TerraDrawRoutesOptions): EditableRoute | null
   return layer;
 }
 
-function routeLineShape(layer: EditableRoute | null): RouteLineShape | undefined {
-  if (layer?.geometry?.type === 'LineString') return 'straight';
-}
-
-function routeCoordinates(layer: EditableRoute | null) {
-  if (layer?.geometry?.type === 'LineString') return layer.geometry.coordinates;
-}
+const routeLineShape = (layer: EditableRoute | null): RouteLineShape | undefined => layer?.geometry?.type === 'LineString' ? 'straight' : undefined;
 
 function useLatestCallbacks(options: TerraDrawRoutesOptions) {
-  const callbacks = useRef<RouteCallbacks>({
+  const current: RouteCallbacks = {
+    editingLayer: editableRouteFor(options),
+    isMapAreaLocked: options.isMapAreaLocked ?? false,
     authoringError: options.authoring?.onError,
     authoringFinish: options.authoring?.onFinish,
     authoringPreview: options.authoring?.onPreview,
     editorError: options.onEditorError,
     onRouteGeometryChange: options.onRouteGeometryChange,
     onRoutePreview: options.onRoutePreview,
-  });
+  };
+  const callbacks = useRef(current);
   useLayoutEffect(() => {
-    callbacks.current = {
-      authoringError: options.authoring?.onError,
-      authoringFinish: options.authoring?.onFinish,
-      authoringPreview: options.authoring?.onPreview,
-      editorError: options.onEditorError,
-      onRouteGeometryChange: options.onRouteGeometryChange,
-      onRoutePreview: options.onRoutePreview,
-    };
+    callbacks.current = current;
   });
   return callbacks;
 }
@@ -136,35 +125,17 @@ function createAuthoringSession(
   };
 }
 
-function createEditingSession(
-  draw: ReturnType<typeof createTerraRouteDraw>,
-  route: EditableRoute,
-  callbacks: RefObject<RouteCallbacks>,
-): RouteSession | null {
-  const coordinates = routeCoordinates(route);
-  if (!coordinates) return null;
-  return createTerraRouteSession({
-    draw,
-    initial: { id: route.id, coordinates },
-    mode: 'edit',
-    onCommit: (nextCoordinates) => {
-      callbacks.current.onRoutePreview(route.id, null);
-      callbacks.current.onRouteGeometryChange(route.id, nextCoordinates);
-    },
-    onPreview: (nextCoordinates) => callbacks.current.onRoutePreview(route.id, nextCoordinates),
-  });
-}
-
 function sessionFor(options: {
   authoringPoints: readonly (readonly [number, number])[];
   callbacks: RefObject<RouteCallbacks>;
-  draw: ReturnType<typeof createTerraRouteDraw>;
+  draw: ReturnType<typeof createTerraRouteDraw>; pointerTarget: HTMLElement;
   editableRoute: EditableRoute | null;
   isAuthoring: boolean;
+  onCancel: () => void;
 }) {
   const { authoringPoints, callbacks, draw, editableRoute, isAuthoring } = options;
   if (isAuthoring) return createAuthoringSession(draw, callbacks, authoringPoints);
-  if (editableRoute) return createEditingSession(draw, editableRoute, callbacks);
+  if (editableRoute) return createEditingSession(draw, editableRoute, callbacks, options);
   return null;
 }
 
@@ -208,20 +179,46 @@ function useRouteSession(
     const currentEditableRoute = editableRouteRef.current;
     let isCancelled = false;
     let owned: RouteSession | null = null;
+    const stopOwned = () => {
+      const previous = owned;
+      owned = null;
+      if (session.current === previous) session.current = null;
+      const didStopPointerGesture = previous?.destroy();
+      if (didStopPointerGesture) setMapInteractionLock(map, callbacks.current.isMapAreaLocked);
+    };
+    const destroyOwned = () => {
+      if (isCancelled) return;
+      isCancelled = true;
+      stopOwned();
+      if (currentEditableRoute) onRoutePreview(currentEditableRoute.id, null);
+    };
+    const canvas = map.getCanvas();
+    // MapLibre destroys its style before publishing context loss. Stop drawing
+    // in the capture phase while the adapter's sources still exist.
+    canvas.addEventListener('webglcontextlost', destroyOwned, { capture: true });
     // terra-draw only matters once a route is being drawn or edited, so the
     // editor is fetched at that point rather than shipped with the first paint.
     void (async () => {
       try {
         const loaded = await (options.loadRouteEditor ?? loadTerraRouteDraw)();
         if (isCancelled) return;
-        owned = sessionFor({
-          authoringPoints: authoringPoints.current ?? [],
-          callbacks,
-          draw: loaded.createTerraRouteDraw(map, lineShape, isAuthoring),
-          editableRoute: currentEditableRoute,
-          isAuthoring,
-        });
-        session.current = owned;
+        const install = (route: EditableRoute | null) => {
+          owned = sessionFor({
+            authoringPoints: authoringPoints.current ?? [], callbacks,
+            draw: loaded.createTerraRouteDraw(map, lineShape, isAuthoring), pointerTarget: canvas,
+            editableRoute: route, isAuthoring,
+            onCancel: () => {
+              stopOwned();
+              if (route) callbacks.current.onRoutePreview(route.id, null);
+              const latest = callbacks.current.editingLayer;
+              // A fresh editor resets both adapter and selection-mode drag state.
+              if (isCancelled || !latest || latest.id !== route?.id) return;
+              try { install(latest); } catch { reportRouteEditorLoadError(callbacks, false); }
+            },
+          });
+          session.current = owned;
+        };
+        install(currentEditableRoute);
         if (isAuthoring) {
           setReadyAuthoring({ lineShape, map });
           callbacks.current.authoringError?.(null);
@@ -234,10 +231,8 @@ function useRouteSession(
     return () => {
       // Only this run's session is torn down: a later run may already have
       // published its own session to the ref while this one was still loading.
-      isCancelled = true;
-      owned?.destroy();
-      if (session.current === owned) session.current = null;
-      if (currentEditableRoute) onRoutePreview(currentEditableRoute.id, null);
+      canvas.removeEventListener('webglcontextlost', destroyOwned, { capture: true });
+      destroyOwned();
     };
   }, [authoringPoints, callbacks, editableRouteId, isAuthoring, lineShape, map, options.loadRouteEditor]);
 
@@ -258,12 +253,13 @@ export function useTerraDrawRoutes(options: TerraDrawRoutesOptions) {
       routeId: string,
       coordinates: [number, number][] | null,
     ) => {
+      // A rendered preview is not proof that Terra holds the committed geometry.
       if (coordinates) {
         lastEditingGeometry.current = {
           routeId,
           signature: JSON.stringify(coordinates),
         };
-      }
+      } else if (lastEditingGeometry.current?.routeId === routeId) lastEditingGeometry.current = null;
       options.onRoutePreview(routeId, coordinates);
     },
   };

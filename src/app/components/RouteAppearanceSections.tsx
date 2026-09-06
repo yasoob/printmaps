@@ -9,20 +9,18 @@ import { PropertySection } from "./PropertyControls";
 
 type RouteAppearanceSectionProps = {
   appearance: RouteAppearance;
-  disabled: boolean;
   onChange: RouteLayerPropertiesProps["onAppearanceChange"];
 };
 
 export const RouteMarkerSection = memo(function RouteMarkerSection({
   appearance,
-  disabled,
   onChange,
 }: RouteAppearanceSectionProps) {
   return (
     <PropertySection title="Marker">
       <RouteMarkerControls
         appearance={appearance}
-        disabled={disabled}
+        disabled={false}
         onChange={onChange}
       />
     </PropertySection>
@@ -31,14 +29,13 @@ export const RouteMarkerSection = memo(function RouteMarkerSection({
 
 export const RouteSegmentSection = memo(function RouteSegmentSection({
   appearance,
-  disabled,
   onChange,
 }: RouteAppearanceSectionProps) {
   return (
     <PropertySection title="Segments">
       <RouteSegmentControls
         appearance={appearance}
-        disabled={disabled}
+        disabled={false}
         onChange={onChange}
       />
     </PropertySection>

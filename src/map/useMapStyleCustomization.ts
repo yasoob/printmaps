@@ -73,7 +73,7 @@ export function useMapStyleCustomization(options: StyleCustomizationOptions) {
       invalidateExporter();
       queueMicrotask(() => setMapError({
         kind: 'renderer',
-        message: 'Map color customization could not be applied. Reload the page and retry.',
+        message: 'Map color customization could not be applied. Retry the map without reloading your project.',
       }));
       return false;
     }
