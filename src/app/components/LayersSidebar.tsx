@@ -71,23 +71,22 @@ export const LayersSidebar = memo(function LayersSidebar(props: LayersSidebarPro
   const ToggleIcon = isMobileOpen ? X : (desktopCollapsed ? PanelLeftOpen : PanelLeftClose);
   return (
     <aside ref={panelRef} id="layers-panel" className={`left-sidebar${activePanel === 'layers' ? ' is-mobile-open' : ''}`} aria-label="Layers sidebar" role={activePanel === 'layers' ? 'dialog' : undefined} aria-modal={activePanel === 'layers' ? true : undefined} inert={activePanel === 'properties'} onKeyDown={(event) => onKeyDown(event, 'layers')}>
-      <div className="panel-header">
-        <span>Layers</span>
-        <button
-          className={`icon-button${activePanel === 'layers' ? ' close-button' : ''}`}
-          type="button"
-          aria-label={toggleLabel}
-          aria-controls={isMobileOpen ? undefined : 'layers-list'}
-          aria-expanded={isMobileOpen ? undefined : !desktopCollapsed}
-          title={toggleLabel}
-          onClick={() => isMobileOpen ? closePanel('layers') : onToggleCollapsed()}
-        >
-          <ToggleIcon size={15} />
-        </button>
-      </div>
       <DragDropProvider sensors={layerReorderSensors}>
         <LayerNavigation layers={layers} activePanel={activePanel} desktopCollapsed={desktopCollapsed}
-          openPanel={props.openPanel} setPreviewedLayerId={props.setPreviewedLayerId} />
+          openPanel={props.openPanel} setPreviewedLayerId={props.setPreviewedLayerId}
+          collapseButton={
+            <button
+              className={`icon-button${activePanel === 'layers' ? ' close-button' : ''}`}
+              type="button"
+              aria-label={toggleLabel}
+              aria-controls={isMobileOpen ? undefined : 'layers-list'}
+              aria-expanded={isMobileOpen ? undefined : !desktopCollapsed}
+              title={toggleLabel}
+              onClick={() => isMobileOpen ? closePanel('layers') : onToggleCollapsed()}
+            >
+              <ToggleIcon size={15} />
+            </button>
+          } />
       </DragDropProvider>
       <div className="sidebar-footer"><SidebarAutosaveStatus autosave={autosave} /></div>
     </aside>

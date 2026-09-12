@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { documentAt, evidence, ids, row, search, start, status } from './layer-navigation-support';
+import { documentAt, evidence, ids, openSearch, row, search, start, status } from './layer-navigation-support';
 import { savedAdmissionRecord } from './project-admission-support';
 
 test.setTimeout(60_000);
@@ -63,6 +63,7 @@ for (const end of ['Space', 'Escape']) {
       await start(page);
       await row(page, 'place-1').click();
       const before = await documentAt(page, info, `review-${end}-${target}-before`);
+      if (target === 'filter') await openSearch(page);
       await trackFocus(page);
       await lift(page, 'Keep A');
       await page.keyboard.press('ArrowDown');
@@ -139,7 +140,7 @@ test('document replacement immediately after a keyboard drop retires the old com
   await page.getByRole('button', { name: 'Start new project', exact: true }).press('Enter');
   await page.waitForTimeout(450);
   await expect(page.getByRole('button', { name: 'Project', exact: true })).toBeFocused();
-  await expect(search(page)).toHaveValue('');
+  await expect(search(page)).toHaveCount(0);
   await expect(page.locator('.layer-tree > li')).toHaveCount(1);
   await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeDisabled();
   const after = await documentAt(page, info, 'review-completion-epoch');

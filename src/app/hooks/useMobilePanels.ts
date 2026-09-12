@@ -5,6 +5,13 @@ export type MobilePanel = 'layers' | 'properties';
 
 const MOBILE_VIEWPORT_QUERY = '(max-width: 899px)';
 
+function focusPanelEntry(elements: HTMLElement[]) {
+  const focused = document.activeElement;
+  if (focused instanceof HTMLElement && elements.includes(focused)) return;
+  const closeButton = elements.find((element) => element.classList.contains('close-button'));
+  (closeButton ?? elements[0])?.focus();
+}
+
 export function useMobilePanels() {
   const [mobilePanel, setMobilePanel] = useState<MobilePanel | null>(null);
   const [isMobileViewport, setIsMobileViewport] = useState(() => (
@@ -28,6 +35,10 @@ export function useMobilePanels() {
     const panelElement = panel === 'layers' ? layersPanelRef.current : propertiesPanelRef.current;
     return panelTabStops(panelElement);
   }, []);
+
+  const focusPanel = useCallback((panel: MobilePanel) => {
+    focusPanelEntry(getPanelElements(panel));
+  }, [getPanelElements]);
 
   const scheduleFocus = useCallback((callback: () => void, delay = 180) => {
     if (focusTimerRef.current !== null) window.clearTimeout(focusTimerRef.current);
@@ -58,8 +69,8 @@ export function useMobilePanels() {
       return;
     }
     setMobilePanel(panel);
-    scheduleFocus(() => getPanelElements(panel)[0]?.focus());
-  }, [closePanel, getPanelElements, scheduleFocus]);
+    scheduleFocus(() => focusPanel(panel));
+  }, [closePanel, focusPanel, scheduleFocus]);
 
   const handlePanelKeyDown = useCallback((event: React.KeyboardEvent<HTMLElement>, panel: MobilePanel) => {
     if (activePanelRef.current !== panel) return;
@@ -97,7 +108,7 @@ export function useMobilePanels() {
       setIsMobileViewport(event.matches);
       if (enteringPanel) {
         setMobilePanel(enteringPanel);
-        scheduleFocus(() => getPanelElements(enteringPanel)[0]?.focus());
+        scheduleFocus(() => focusPanel(enteringPanel));
         return;
       }
       if (!event.matches) {
@@ -111,7 +122,7 @@ export function useMobilePanels() {
     };
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
-  }, [getPanelElements, scheduleFocus]);
+  }, [focusPanel, scheduleFocus]);
 
   useEffect(() => () => {
     if (focusTimerRef.current !== null) window.clearTimeout(focusTimerRef.current);

@@ -71,7 +71,11 @@ function selection(id: string) { return document.querySelector<HTMLButtonElement
 function tabStops() {
   return [...document.querySelectorAll<HTMLButtonElement>('#layers-list button')].filter((button) => button.tabIndex >= 0 && !button.disabled);
 }
-function filter(value: string) { fireEvent.change(screen.getByRole('searchbox', { name: 'Filter layers by name' }), { target: { value } }); }
+function openSearch() { fireEvent.click(screen.getByRole('button', { name: 'Search layers' })); }
+function filter(value: string) {
+  if (!screen.queryByRole('searchbox')) openSearch();
+  fireEvent.change(screen.getByRole('searchbox', { name: 'Filter layers by name' }), { target: { value } });
+}
 function startDrag(id = 'place-1', index = 0, activator = new Event('pointerdown'), previousGestureIndex = index) {
   const source = { id, initialIndex: previousGestureIndex, index };
   const operation = { source, activatorEvent: activator };
@@ -98,12 +102,65 @@ beforeEach(() => {
 });
 
 describe('scalable layer navigation', () => {
+  it('starts compact, focuses optional search, and only counts non-empty filters', () => {
+    const { store } = setup();
+    const before = store.getState().document;
+    const status = screen.getByRole('status', { name: 'Layer navigation' });
+    expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+    expect(status).toBeEmptyDOMElement();
+    openSearch();
+    expect(screen.getByRole('searchbox')).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'Search layers' })).toHaveAttribute('aria-expanded', 'true');
+    expect(status).toBeEmptyDOMElement();
+    filter(' '.repeat(3));
+    expect(status).toBeEmptyDOMElement();
+    filter('keep');
+    expect(status).toHaveTextContent('3 of 6 layers');
+    filter('absent');
+    expect(status).toHaveTextContent('0 of 6 layers');
+    expect(screen.getByText('No matching layers. Change or clear the filter.')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Clear layer filter' }));
+    expect(screen.getByRole('searchbox')).toHaveFocus();
+    expect(status).toBeEmptyDOMElement();
+    expect(store.getState().document).toBe(before);
+    expect(store.getState().canUndo).toBe(false);
+  });
+
+  it.each(['toggle', 'input Escape', 'row Escape'])('closes and clears search via %s without passing Escape to the mobile drawer', (action) => {
+    const { props, store } = setup();
+    filter('keep');
+    props.onKeyDown.mockClear();
+    if (action === 'toggle') openSearch();
+    else fireEvent.keyDown(action === 'input Escape' ? screen.getByRole('searchbox') : selection('place-1'), { key: 'Escape' });
+    expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Search layers' })).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'Search layers' })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('status', { name: 'Layer navigation' })).toBeEmptyDOMElement();
+    expect(screen.getAllByRole('listitem')).toHaveLength(6);
+    expect(props.onKeyDown).not.toHaveBeenCalled();
+    expect(store.getState().canUndo).toBe(false);
+    openSearch();
+    expect(screen.getByRole('searchbox')).toHaveValue('');
+  });
+
+  it('does not dismiss search for a composing Escape or take Escape from an active drag', () => {
+    setup();
+    filter('keep');
+    fireEvent.keyDown(screen.getByRole('searchbox'), { key: 'Escape', isComposing: true });
+    expect(screen.getByRole('searchbox')).toHaveValue('keep');
+    const drag = startDrag();
+    fireEvent.keyDown(selection('place-1'), { key: 'Escape' });
+    expect(screen.getByRole('searchbox')).toHaveValue('keep');
+    drag.finish(0);
+  });
+
   it('has four row Tab stops for 300 POIs, then exits, without changing document or selection', async () => {
     const { store } = setup(layerNavigationProject());
     const user = userEvent.setup();
     const before = store.getState().document;
     expect(tabStops()).toHaveLength(4);
-    screen.getByRole('searchbox').focus();
+    openSearch();
     for (const name of ['Hide Place 001', 'Select Place 001', 'Lock Place 001', 'Reorder Place 001']) {
       await user.tab();
       expect(document.activeElement).toHaveAccessibleName(name);
@@ -169,7 +226,7 @@ describe('scalable layer navigation', () => {
     filter('absent');
     act(() => store.getState().openDocument(layerNavigationProject(2)));
     expect(screen.getByRole('searchbox')).toHaveValue('');
-    expect(screen.getByRole('status', { name: 'Layer navigation' })).toHaveTextContent('3 layers');
+    expect(screen.getByRole('status', { name: 'Layer navigation' })).toBeEmptyDOMElement();
   });
 
   it('repairs a deleted focused row to the next visible name and keeps that ID through Undo/Redo', () => {

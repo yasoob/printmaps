@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { savedAdmissionRecord } from './project-admission-support';
-import { beginDrag, documentAt, evidence, expectActive, finishDrag, ids, row, search, start, status, tabCounts } from './layer-navigation-support';
+import { beginDrag, documentAt, evidence, expectActive, finishDrag, ids, openSearch, row, search, start, status, tabCounts } from './layer-navigation-support';
 
 test.setTimeout(60_000);
 
@@ -8,8 +8,8 @@ test('300 POIs have four row Tab stops, five Tabs from filter to exit, and keybo
   await start(page, 300);
   const before = await documentAt(page, info, '300-before');
   const stored = await savedAdmissionRecord(page);
-  expect(await tabCounts(page)).toMatchObject({ rowButtonCount: 1204, rowTabStops: 4, sidebarTabStops: 6 });
-  await search(page).focus();
+  expect(await tabCounts(page)).toMatchObject({ rowButtonCount: 1204, rowTabStops: 4, sidebarTabStops: 7 });
+  await openSearch(page);
   const traversal: string[] = [];
   for (const name of ['Hide Place 001', 'Select Place 001', 'Lock Place 001', 'Reorder Place 001']) {
     await page.keyboard.press('Tab');
@@ -49,6 +49,7 @@ test('300 POIs have four row Tab stops, five Tabs from filter to exit, and keybo
 test('filtered and unfiltered native drags and Alt+Arrow use canonical destinations with exact Undo/Redo', async ({ page }, info) => {
   await start(page);
   const before = await documentAt(page, info, 'order-before');
+  await openSearch(page);
   await search(page).fill('keep');
   await beginDrag(page, 'Keep A', 'Keep C');
   await finishDrag(page);
@@ -79,6 +80,7 @@ test('filtered and unfiltered native drags and Alt+Arrow use canonical destinati
 test('changing the filter retires a real pointer drag and its trailing release without poisoning the next drag', async ({ page }, info) => {
   await start(page);
   const before = await documentAt(page, info, 'cancel-before');
+  await openSearch(page);
   await search(page).fill('keep');
   await beginDrag(page, 'Keep A', 'Keep C');
   await search(page).fill('other');
@@ -98,6 +100,7 @@ test('changing the filter retires a real pointer drag and its trailing release w
 test('keyboard drag cancellation preserves filter focus, then a fresh Space/Arrow/Space drag works', async ({ page }, info) => {
   await start(page);
   const before = await documentAt(page, info, 'keyboard-before');
+  await openSearch(page);
   await search(page).fill('keep');
   const handle = page.getByRole('button', { name: 'Reorder Keep A', exact: true });
   await handle.press('Space');
@@ -121,6 +124,7 @@ test('keyboard drag cancellation preserves filter focus, then a fresh Space/Arro
 
 test('replacing the document during a native drag retires the old epoch and trailing pointer release', async ({ page }, info) => {
   await start(page);
+  await openSearch(page);
   await search(page).fill('keep');
   await beginDrag(page, 'Keep A', 'Keep C');
   await page.getByRole('button', { name: 'Project', exact: true }).press('Enter');
@@ -145,6 +149,7 @@ test('case-insensitive duplicate long names remain distinct and keyboard-address
     await page.getByRole('spinbutton', { name: 'Layer opacity', exact: true }).focus();
   }
   const before = await documentAt(page, info, 'long-names-before');
+  await openSearch(page);
   await search(page).fill('nOrTh pRoMeNaDe');
   await expect(status(page)).toContainText('2 of 6 layers');
   await page.keyboard.press('ArrowDown');
@@ -169,6 +174,7 @@ for (const change of ['name', 'geometry'] as const) {
     await start(page);
     await row(page, 'place-3').click();
     const before = await documentAt(page, info, `stale-${change}-before`);
+    await openSearch(page);
     await search(page).fill('keep');
     await beginDrag(page, 'Keep A', 'Keep C');
     const field = page.getByRole('textbox', { name: change === 'name' ? 'Layer name' : 'POI longitude', exact: true });
@@ -193,6 +199,7 @@ for (const change of ['name', 'geometry'] as const) {
 
 test('actions never select incidentally; filtered deletion and history repair focus without stealing a Properties edit', async ({ page }, info) => {
   await start(page);
+  await openSearch(page);
   await search(page).fill('keep');
   await row(page, 'place-3').click();
   await page.getByRole('button', { name: 'Hide Keep C', exact: true }).click();
@@ -227,6 +234,7 @@ test('actions never select incidentally; filtered deletion and history repair fo
 test('empty-state clearing, desktop collapse and New project have coherent local filter ownership', async ({ page }, info) => {
   await start(page);
   const stored = await savedAdmissionRecord(page);
+  await openSearch(page);
   await search(page).fill('no matching name');
   await expect(status(page)).toContainText('0 of 6 layers');
   await expect(page.getByText('No matching layers. Change or clear the filter.')).toBeVisible();
@@ -244,7 +252,7 @@ test('empty-state clearing, desktop collapse and New project have coherent local
   await page.getByRole('button', { name: 'Start new project', exact: true }).click();
   await expect(search(page)).toHaveValue('');
   await expect(page.locator('.layer-tree > li')).toHaveCount(1);
-  await expect(status(page)).toContainText('1 layer');
+  await expect(status(page)).toBeEmpty();
   await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeDisabled();
   await evidence(page, info, 'new-document-reset', { beforeRevision: stored.revision, after: await documentAt(page, info, 'new-document') });
 });
@@ -256,17 +264,19 @@ for (const width of [320, 390]) {
       await start(page, 300);
       await page.getByRole('button', { name: 'Open layers' }).tap();
       await expect(page.getByRole('button', { name: 'Close layers' })).toBeFocused();
+      await expect(page.getByRole('tooltip')).toHaveCount(0);
+      await openSearch(page);
       await search(page).fill('Place');
-      expect(await tabCounts(page)).toMatchObject({ rowTabStops: 4, sidebarTabStops: 7 });
+      expect(await tabCounts(page)).toMatchObject({ rowTabStops: 4, sidebarTabStops: 9 });
       const clear = page.getByRole('button', { name: 'Clear layer filter' });
       expect((await clear.boundingBox())!.width).toBeGreaterThanOrEqual(44);
       expect((await clear.boundingBox())!.height).toBeGreaterThanOrEqual(44);
       expect((await search(page).boundingBox())!.height).toBeGreaterThanOrEqual(44);
-      await page.getByRole('button', { name: 'Close layers' }).focus();
+      await page.getByRole('button', { name: 'Layer keyboard shortcuts' }).focus();
       await page.keyboard.press('Shift+Tab');
       await expect(page.getByRole('button', { name: 'Reorder Place 001', exact: true })).toBeFocused();
       await page.keyboard.press('Tab');
-      await expect(page.getByRole('button', { name: 'Close layers' })).toBeFocused();
+      await expect(page.getByRole('button', { name: 'Layer keyboard shortcuts' })).toBeFocused();
       await search(page).fill('pLaCe 300');
       await page.keyboard.press('ArrowDown');
       await page.keyboard.press('Enter');
@@ -279,11 +289,15 @@ for (const width of [320, 390]) {
       await expect(search(page)).toHaveValue('pLaCe 300');
       await search(page).focus();
       await page.keyboard.press('Escape');
+      await expect(search(page)).toHaveCount(0);
+      await expect(page.getByRole('button', { name: 'Search layers', exact: true })).toBeFocused();
+      await expect(page.getByRole('dialog', { name: 'Layers sidebar' })).toBeVisible();
+      await page.keyboard.press('Escape');
       await expect(page.getByRole('button', { name: 'Open layers' })).toBeFocused();
       await page.getByRole('button', { name: 'Open layers' }).tap();
-      await expect(search(page)).toHaveValue('pLaCe 300');
-      await clear.tap();
+      await openSearch(page);
       await expect(search(page)).toHaveValue('');
+      await expect(status(page)).toBeEmpty();
       await page.keyboard.press('ArrowDown');
       await expect(row(page, 'place-300')).toBeFocused();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);

@@ -199,7 +199,11 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   color: var(--studio-text-secondary);
 }
 .close-button {
-  @apply grid h-7 w-7 shrink-0 place-items-center rounded-full;
+  @apply grid h-7 w-7 shrink-0 place-items-center;
+}
+.close-button,
+.left-sidebar.is-mobile-open .layer-header-secondary .icon-button {
+  @apply rounded-full;
   color: var(--studio-text-muted);
 }
 .close-button:hover { background: var(--studio-field); }

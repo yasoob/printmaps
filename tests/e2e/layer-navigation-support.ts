@@ -8,6 +8,11 @@ export const search = (page: Page) => page.getByRole('searchbox', { name: 'Filte
 export const status = (page: Page) => page.getByRole('status', { name: 'Layer navigation' });
 export const row = (page: Page, id: string) => page.locator(`[data-layer-select="${id}"]`);
 
+export async function openSearch(page: Page) {
+  await page.getByRole('button', { name: 'Search layers', exact: true }).click();
+  await expect(search(page)).toBeFocused();
+}
+
 export async function start(page: Page, count: number | null = null) {
   await page.route('https://api.mapbox.com/**', (route) => route.abort());
   await openInstrumentedMap(page);
