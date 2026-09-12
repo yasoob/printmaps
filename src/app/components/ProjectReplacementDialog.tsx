@@ -1,8 +1,11 @@
-import { useRef, useState, type RefObject } from 'react';
+import { Download, TriangleAlert } from 'lucide-react';
+import { useEffect, useId, useRef, useState, type RefObject } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { StudioDialogActions, StudioDialogBody, StudioDialogButton, StudioDialogHeader, StudioDialogSection } from '@/components/ui/studio-dialog';
 import { useProject, useProjectStoreApi } from '../projectStoreContext';
 import { downloadProjectDocument } from './projectDownload';
 import type { ProjectOpeningIntent } from '../hooks/useProjectOpening';
+import './projectReplacementDialog.css';
 
 export function ProjectReplacementDialog({ title, intent = 'open', onKeepEditing, onDiscardAndOpen, returnFocusRef }: {
   title: string;
@@ -12,12 +15,19 @@ export function ProjectReplacementDialog({ title, intent = 'open', onKeepEditing
   returnFocusRef: RefObject<HTMLButtonElement | null>;
 }) {
   const keepEditingRef = useRef<HTMLButtonElement>(null);
+  const downloadErrorRef = useRef<HTMLParagraphElement>(null);
+  const descriptionId = useId();
+  const unfinishedId = useId();
+  const backupTitleId = useId();
   const store = useProjectStoreApi();
   const currentTitle = useProject((state) => state.document.title);
   const hasUnfinishedDrawing = useProject((state) => state.hasUnfinishedDrawing);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const titleText = hasUnfinishedDrawing ? 'Discard unfinished work?' : (intent === 'new' ? 'Start a new project?' : 'Replace current project?');
   const actionText = intent === 'new' ? 'Start new project' : (hasUnfinishedDrawing ? 'Discard unfinished work and open' : 'Replace project');
+  useEffect(() => {
+    if (downloadError) downloadErrorRef.current?.scrollIntoView?.({ block: 'nearest' });
+  }, [downloadError]);
   const downloadCurrent = () => {
     try {
       downloadProjectDocument(store.getState().document);
@@ -34,19 +44,42 @@ export function ProjectReplacementDialog({ title, intent = 'open', onKeepEditing
         initialFocus={keepEditingRef}
         finalFocus={returnFocusRef}
         showCloseButton={false}
+        aria-describedby={hasUnfinishedDrawing ? `${descriptionId} ${unfinishedId}` : descriptionId}
       >
-        <DialogTitle>{titleText}</DialogTitle>
-        <DialogDescription>
-          {intent === 'new' ? 'Starting a new project' : `Opening “${title}”`} replaces “{currentTitle}” in this browser and clears its Undo history.
-        </DialogDescription>
-        {hasUnfinishedDrawing && <p>Unfinished drawings, unadded point inputs and POI lists (including lookup suggestions) will be discarded. They are not saved or included in project downloads.</p>}
-        <p>Download the current completed project if you need a copy. Downloading keeps this dialog open; replace the project only after saving your copy.</p>
-        {downloadError && <p className="coordinate-validation" role="alert">{downloadError}</p>}
-        <div className="project-replacement-actions">
-          <button type="button" onClick={downloadCurrent}>Download current project</button>
-          <button type="button" ref={keepEditingRef} onClick={onKeepEditing}>Keep editing</button>
-          <button type="button" className="primary-button" onClick={onDiscardAndOpen}>{actionText}</button>
-        </div>
+        <StudioDialogBody className="project-replacement-content">
+          <StudioDialogHeader>
+            <div>
+              <DialogTitle>{titleText}</DialogTitle>
+              <DialogDescription id={descriptionId}>
+                {intent === 'new' ? 'Starting a new project' : <>Opening “<strong>{title}</strong>”</>} replaces “<strong>{currentTitle}</strong>” in this browser and clears its Undo history.
+              </DialogDescription>
+            </div>
+          </StudioDialogHeader>
+          {hasUnfinishedDrawing && (
+            <div className="project-replacement-warning">
+              <TriangleAlert size={18} aria-hidden="true" />
+              <div>
+                <h3>Unfinished work will be lost</h3>
+                <p id={unfinishedId}>Unfinished drawings, unadded point inputs and POI lists (including lookup suggestions) will be discarded. They are not saved or included in project downloads.</p>
+              </div>
+            </div>
+          )}
+          <StudioDialogSection className="project-replacement-backup" aria-labelledby={backupTitleId}>
+            <div>
+              <h3 id={backupTitleId}>Save a copy first</h3>
+              <p>Download the current completed project before continuing. This dialog stays open while you save your copy.</p>
+            </div>
+            <StudioDialogButton variant="secondary" onClick={downloadCurrent}>
+              <Download size={16} aria-hidden="true" />
+              Download current project
+            </StudioDialogButton>
+            {downloadError && <p ref={downloadErrorRef} className="project-replacement-error" role="alert">{downloadError}</p>}
+          </StudioDialogSection>
+        </StudioDialogBody>
+        <StudioDialogActions stackOnMobile>
+          <StudioDialogButton ref={keepEditingRef} onClick={onKeepEditing}>Keep editing</StudioDialogButton>
+          <StudioDialogButton variant="primary" onClick={onDiscardAndOpen}>{actionText}</StudioDialogButton>
+        </StudioDialogActions>
       </DialogContent>
     </Dialog>
   );

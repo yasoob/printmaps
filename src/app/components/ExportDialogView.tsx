@@ -1,6 +1,7 @@
 import { ChevronRight, X } from 'lucide-react';
 import type React from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { StudioDialogActions, StudioDialogBody, StudioDialogButton, StudioDialogHeader, StudioDialogSection } from '@/components/ui/studio-dialog';
 import type { ProjectDocument } from '../../domain/project';
 import type { LayeredPsdExportPlan } from '../../export/layeredPsdPlan';
 import { planExportPreflight, type RasterDelivery } from '../../export/preflight';
@@ -139,16 +140,16 @@ function ExportOutputSummary({ document, preflight, psdPlan, selectedFormat }: R
 }>) {
   const pageLabel = `${document.page.preset} ${document.page.orientation}`;
   if (selectedFormat === 'png') return (
-    <section className="export-output-summary" aria-labelledby="export-output-title">
+    <StudioDialogSection className="export-output-summary" aria-labelledby="export-output-title">
       <span id="export-output-title">Output</span>
       {preflight.dimensions && <strong>{preflight.dimensions.widthPx} × {preflight.dimensions.heightPx} px — 300 DPI pixel target</strong>}
       {preflight.delivery === 'streaming-png' ? (
         <p>{pageLabel} · Rendered in bounded regions and streamed into one PNG file.</p>
       ) : <p>{pageLabel} · Native-detail PNG</p>}
-    </section>
+    </StudioDialogSection>
   );
   if (selectedFormat === 'psd') return (
-    <section className="export-output-summary" aria-labelledby="export-output-title">
+    <StudioDialogSection className="export-output-summary" aria-labelledby="export-output-title">
       <span id="export-output-title">Output</span>
       {psdPlan.preflight.dimensions && (
         <strong>
@@ -156,14 +157,14 @@ function ExportOutputSummary({ document, preflight, psdPlan, selectedFormat }: R
         </strong>
       )}
       <p>{pageLabel} · Native-detail basemap and named SVG Smart Objects</p>
-    </section>
+    </StudioDialogSection>
   );
   return (
-    <section className="export-output-summary" aria-labelledby="export-output-title">
+    <StudioDialogSection className="export-output-summary" aria-labelledby="export-output-title">
       <span id="export-output-title">Output</span>
       <strong>{pageLabel} · {document.page.widthMm} × {document.page.heightMm} mm</strong>
       <p>{selectedFormat === 'svg' ? 'Raster basemap · named vector overlays' : '300 DPI lossless basemap · named vector overlays'}</p>
-    </section>
+    </StudioDialogSection>
   );
 }
 
@@ -270,11 +271,11 @@ export function ExportDialogView(props: ExportDialogViewProps) {
         aria-busy={busy}
         tabIndex={-1}
       >
-        <div className="export-dialog-header">
+        <StudioDialogHeader className="export-dialog-header">
           <div><h2 id="export-title">Export map</h2><p>Choose a format for the current print frame.</p></div>
           <button className="icon-button close-button" type="button" aria-label="Close export" disabled={busy} onClick={onClose}><X size={16} /></button>
-        </div>
-        <div className="export-dialog-body" role="region" aria-label="Export settings" tabIndex={0}>
+        </StudioDialogHeader>
+        <StudioDialogBody className="export-dialog-body" role="region" aria-label="Export settings" tabIndex={0}>
           <ExportFormatChoice busy={busy} onChange={onFormatChange} selectedFormat={selectedFormat} />
           <StreamingPngNotice canStreamLargePng={largeRasterSupported} delivery={rasterDelivery} selectedFormat={selectedFormat} />
           <ExportOutputSummary document={document} preflight={preflight} psdPlan={psdPlan} selectedFormat={selectedFormat} />
@@ -283,11 +284,11 @@ export function ExportDialogView(props: ExportDialogViewProps) {
 
           <p className="export-status" role="status" aria-label="Export status">{exportStatus(status, props.isMapReady, busy)}</p>
           {error && <p className="export-error" role="alert">{error}</p>}
-        </div>
-        <div className="export-dialog-actions">
-          <button ref={cancelButtonRef} type="button" disabled={busy && !cancellationAvailable} onClick={busy ? onCancel : onClose}>{cancelLabel(busy, cancellationAvailable)}</button>
-          <button ref={downloadButtonRef} className="primary-button" type="button" disabled={!canStartExport(busy, props.isMapReady, canDownloadSelectedFormat)} aria-describedby={selectedFormat !== 'svg' && selectedPreflight.errors.length > 0 ? 'export-preflight-error' : undefined} onClick={onDownload}>{busy ? 'Preparing…' : downloadLabel(selectedFormat)}</button>
-        </div>
+        </StudioDialogBody>
+        <StudioDialogActions className="export-dialog-actions">
+          <StudioDialogButton ref={cancelButtonRef} disabled={busy && !cancellationAvailable} onClick={busy ? onCancel : onClose}>{cancelLabel(busy, cancellationAvailable)}</StudioDialogButton>
+          <StudioDialogButton ref={downloadButtonRef} variant="primary" disabled={!canStartExport(busy, props.isMapReady, canDownloadSelectedFormat)} aria-describedby={selectedFormat !== 'svg' && selectedPreflight.errors.length > 0 ? 'export-preflight-error' : undefined} onClick={onDownload}>{busy ? 'Preparing…' : downloadLabel(selectedFormat)}</StudioDialogButton>
+        </StudioDialogActions>
       </DialogContent>
     </Dialog>
   );

@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createRef } from 'react';
 import { App } from '../../../src/app/App';
@@ -19,6 +19,26 @@ function requestOpen(container: HTMLElement, document: ProjectDocument) {
 
 beforeEach(() => {
   downloadProjectDocument.mockReset();
+});
+
+it.each(['new', 'open'] as const)('separates backup from the %s confirmation and describes unfinished work accessibly', (intent) => {
+  const store = createProjectStore(createInitialProjectDocument());
+  store.getState().setHasUnfinishedDrawing(store.getState().documentEpoch, true);
+  render(
+    <ProjectStoreContext value={store}>
+      <ProjectReplacementDialog title="Next map" intent={intent} onKeepEditing={vi.fn()} onDiscardAndOpen={vi.fn()} returnFocusRef={createRef()} />
+    </ProjectStoreContext>,
+  );
+  const dialog = screen.getByRole('dialog', { name: 'Discard unfinished work?' });
+  const backup = within(dialog).getByRole('region', { name: 'Save a copy first' });
+  expect(within(backup).getAllByRole('button')).toHaveLength(1);
+  expect(within(backup).getByRole('button', { name: 'Download current project' })).toBeInTheDocument();
+  expect(dialog.querySelector('footer')).toContainElement(screen.getByRole('button', { name: 'Keep editing' }));
+  expect(dialog.querySelector('footer')).toContainElement(screen.getByRole('button', {
+    name: intent === 'new' ? 'Start new project' : 'Discard unfinished work and open',
+  }));
+  expect(dialog).toHaveAccessibleDescription(expect.stringContaining('clears its Undo history'));
+  expect(dialog).toHaveAccessibleDescription(expect.stringContaining('They are not saved or included in project downloads.'));
 });
 
 it('backs up the live document rather than the version when the replacement was requested', async () => {
@@ -62,6 +82,7 @@ it('keeps the current project intact if its backup cannot be downloaded', async 
   requestOpen(container, createNewProjectDocument());
   await user.click(await screen.findByRole('button', { name: 'Download current project' }));
   expect(screen.getByRole('alert')).toHaveTextContent('Backup is too large.');
+  expect(screen.getByRole('region', { name: 'Save a copy first' })).toContainElement(screen.getByRole('alert'));
   expect(screen.getByRole('dialog', { name: 'Replace current project?' })).toBeInTheDocument();
   expect(container.querySelector('.project-title')).toHaveTextContent('Vienna field guide');
 });

@@ -73,6 +73,7 @@ Use the supplied Felt sidebar as a quality reference for calm density, not as br
 - Do not perform a wholesale shadcn/ui migration. The application already has tested native controls, Tailwind tokens, and domain-specific behavior; replacing them would add churn without solving information architecture.
 - Use shadcn/Radix interaction patterns as reference. Add a Radix primitive selectively only when it materially improves a difficult accessibility behavior; otherwise build the small shared primitives above on the existing stack.
 - Cohesion is verified through shared tokens, reusable primitives, progressive disclosure, and screenshot-driven review—not by the presence of a component-library dependency.
+- Use `src/components/ui/studio-dialog.tsx` for editor dialog headers, scrollable bodies, softly filled sections, action footers, and primary/secondary/ghost buttons. Export, project replacement, and map-data import share these primitives. Keep internal sections and footers borderless; use spacing and neutral fills instead. Confirmation-specific warnings, focus targets, dismissal rules, and small-screen action stacking remain explicit at each call site.
 
 ## Map preset gallery
 

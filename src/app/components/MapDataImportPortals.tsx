@@ -2,6 +2,7 @@ import { FileUp, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useId, useRef } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { StudioDialogActions, StudioDialogButton, StudioDialogHeader } from '@/components/ui/studio-dialog';
 import type { ContentLayer } from '../../domain/project';
 import {
   POI_MARKER_SHAPES,
@@ -161,13 +162,13 @@ export function MapDataImportPortals({
           aria-labelledby="map-data-import-title"
           tabIndex={-1}
         >
-          <header className="export-dialog-header">
+          <StudioDialogHeader>
             <div>
               <h2 id="map-data-import-title">{copy.title}</h2>
               <p>{copy.description}</p>
             </div>
             <button className="icon-button close-button" type="button" aria-label="Close map data import" onClick={onClose}><X size={15} /></button>
-          </header>
+          </StudioDialogHeader>
           <div className="map-data-import-body" role="region" aria-label="Import review" tabIndex={0}>
             <ul aria-label="Selected map data files">
               {selectedNames.map((name, index) => <li key={`${index}-${name}`}>{name}</li>)}
@@ -184,11 +185,11 @@ export function MapDataImportPortals({
               </fieldset>
             )}
           </div>
-          <footer className="export-dialog-actions">
-            <button type="button" disabled={isReading} onClick={onChooseFiles}>{batch ? 'Replace files' : 'Choose replacement files'}</button>
-            <button ref={cancelButtonRef} type="button" onClick={onClose}>Cancel</button>
-            {batch && <button className="primary-button" type="button" disabled={!isBatchAppearanceValid} onClick={onCommit}>{commitLabel(copy.commitLabel, batch.files.length)}</button>}
-          </footer>
+          <StudioDialogActions className="map-data-import-actions">
+            <StudioDialogButton disabled={isReading} onClick={onChooseFiles}>{batch ? 'Replace files' : 'Choose replacement files'}</StudioDialogButton>
+            <StudioDialogButton ref={cancelButtonRef} onClick={onClose}>Cancel</StudioDialogButton>
+            {batch && <StudioDialogButton variant="primary" disabled={!isBatchAppearanceValid} onClick={onCommit}>{commitLabel(copy.commitLabel, batch.files.length)}</StudioDialogButton>}
+          </StudioDialogActions>
       </DialogContent>
     </Dialog>
   </>;

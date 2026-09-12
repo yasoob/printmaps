@@ -1,0 +1,93 @@
+.studio-dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border: 0;
+}
+
+.studio-dialog-header > div { min-width: 0; }
+.studio-dialog-header h2 {
+  margin: 0;
+  color: var(--studio-text-strong);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.studio-dialog-header p {
+  margin: 0.25rem 0 0;
+  color: var(--studio-text-muted);
+  font-size: var(--studio-font-label);
+  line-height: 1.5;
+}
+
+.studio-dialog-body {
+  display: grid;
+  gap: 0.75rem;
+  min-height: 0;
+  padding: 1rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  color: var(--studio-text-secondary);
+  font-size: var(--studio-font-control);
+}
+.studio-dialog-body > .studio-dialog-header { padding: 0; }
+.studio-dialog-body strong { color: var(--studio-text-strong); }
+.studio-dialog-body p { margin: 0; line-height: 1.45; }
+.studio-dialog-body .studio-dialog-header p { margin-top: 0.25rem; }
+
+.studio-dialog-section {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+  padding: 0.625rem 0.75rem;
+  border: 0;
+  border-radius: var(--studio-radius-sm);
+  background: var(--studio-field);
+}
+.studio-dialog-section h3 { color: var(--studio-text-strong); }
+
+.studio-dialog-actions {
+  display: flex;
+  flex-shrink: 0;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border: 0;
+  background: var(--studio-surface);
+}
+
+.studio-dialog-button {
+  min-width: 0;
+  min-height: var(--studio-control-height);
+  height: auto;
+  padding: 0.5rem 0.75rem;
+  border: 0;
+  border-radius: var(--studio-radius-sm);
+  color: var(--studio-text);
+  font-size: var(--studio-font-control);
+  line-height: 1.4;
+  white-space: normal;
+}
+.studio-dialog-button[data-dialog-variant="ghost"] { background: transparent; }
+.studio-dialog-button[data-dialog-variant="secondary"] { background: var(--studio-surface); }
+.studio-dialog-button:not(:disabled):hover { background: var(--studio-field); }
+.studio-dialog-button[data-dialog-variant="secondary"]:not(:disabled):hover { background: var(--studio-hover); }
+.studio-dialog-button[data-dialog-variant="primary"] {
+  color: var(--studio-on-dark);
+  background: var(--studio-accent);
+}
+.studio-dialog-button[data-dialog-variant="primary"]:not(:disabled):hover { background: var(--studio-accent-strong); }
+
+@media (pointer: coarse), (max-width: 899px) {
+  .studio-dialog-button { min-height: var(--studio-touch-target); }
+}
+
+@media (max-width: 479px) {
+  .studio-dialog-actions[data-stack-on-mobile="true"] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    justify-content: stretch;
+  }
+}

@@ -82,12 +82,22 @@ test('backs up completed work without replacing it and requires deliberate conse
   await page.getByRole('button', { name: 'Select Route 01' }).click();
   const original = await storedDocument(page);
   const next = { ...await newProject(page), title: 'Next map' };
+  const primaryBackground = await page.getByRole('button', { name: 'Export', exact: true }).evaluate((button) => getComputedStyle(button).backgroundColor);
   await requestOpen(page, next);
   const dialog = page.getByRole('dialog', { name: 'Replace current project?' });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole('button', { name: 'Keep editing' })).toBeFocused();
   await expect(dialog).toContainText('Vienna field guide');
   await expect(dialog).toContainText('Next map');
+  const backup = dialog.getByRole('region', { name: 'Save a copy first' });
+  await expect(backup.getByRole('button')).toHaveCount(1);
+  await expect(dialog.locator('footer').getByRole('button')).toHaveCount(2);
+  for (const region of [backup, backup.getByRole('button'), dialog.locator('footer'), dialog.getByRole('button', { name: 'Keep editing' })]) {
+    await expect(region).toHaveCSS('border-top-width', '0px');
+    await expect(region).toHaveCSS('border-bottom-width', '0px');
+  }
+  await expect(dialog.getByRole('button', { name: 'Keep editing' })).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await expect(dialog.getByRole('button', { name: 'Replace project', exact: true })).toHaveCSS('background-color', primaryBackground);
   const downloading = page.waitForEvent('download');
   await dialog.getByRole('button', { name: 'Download current project' }).click();
   const download = await downloading;
@@ -199,3 +209,48 @@ test('replacement choices and safe keyboard focus fit a narrow viewport', async 
   await keep.click();
   await expect(page.getByRole('button', { name: 'Project', exact: true })).toBeFocused();
 });
+
+for (const viewport of [{ width: 320, height: 568 }, { width: 568, height: 320 }, { width: 1440, height: 900 }]) {
+  test(`replacement layout keeps long names, unfinished work and download errors usable at ${viewport.width}x${viewport.height}`, async ({ page }, testInfo) => {
+    await page.getByRole('button', { name: 'Vienna field guide', exact: true }).click();
+    await page.getByRole('textbox', { name: 'Project title' }).fill('LongProjectName'.repeat(8));
+    await page.getByRole('textbox', { name: 'Project title' }).press('Enter');
+    await page.getByRole('button', { name: 'Area (S)' }).click();
+    await page.getByRole('tab', { name: 'Draw custom area' }).click();
+    await page.getByRole('textbox', { name: 'New area point longitude' }).fill('16.399');
+    await page.getByRole('button', { name: 'Close Area menu' }).click();
+    await page.setViewportSize(viewport);
+    await requestOpen(page, { ...await newProject(page), title: 'IncomingMap'.repeat(10) });
+    const dialog = page.getByRole('dialog', { name: 'Discard unfinished work?' });
+    const keep = dialog.getByRole('button', { name: 'Keep editing' });
+    const confirm = dialog.getByRole('button', { name: 'Discard unfinished work and open' });
+    await expect(keep).toBeFocused();
+    await expect.poll(() => dialog.evaluate((element) => element.getAnimations().length)).toBe(0);
+    for (const button of [keep, confirm]) {
+      await expect(button).toBeInViewport({ ratio: 1 });
+      expect((await button.boundingBox())!.height).toBeGreaterThanOrEqual(viewport.width < 900 ? 44 : 32);
+    }
+    const bounds = (await dialog.boundingBox())!;
+    expect(bounds.x).toBeGreaterThanOrEqual(16);
+    expect(bounds.y).toBeGreaterThanOrEqual(16);
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(viewport.width - 16);
+    expect(bounds.y + bounds.height).toBeLessThanOrEqual(viewport.height - 16);
+    expect(await dialog.locator('.project-replacement-content').evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath('replacement-layout-long-names.png'), animations: 'disabled' });
+    await page.evaluate(() => {
+      const original = URL.createObjectURL;
+      URL.createObjectURL = () => {
+        URL.createObjectURL = original;
+        throw new Error('Download could not be started. Try again or choose Keep editing to return to your project.');
+      };
+    });
+    await dialog.getByRole('button', { name: 'Download current project' }).click();
+    await expect(dialog.getByRole('alert')).toBeInViewport({ ratio: 1 });
+    await expect(keep).toBeInViewport({ ratio: 1 });
+    await expect(confirm).toBeInViewport({ ratio: 1 });
+    await page.screenshot({ path: testInfo.outputPath('replacement-layout-download-error.png'), animations: 'disabled' });
+    await keep.click();
+    await expect(dialog).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Project', exact: true })).toBeFocused();
+  });
+}
