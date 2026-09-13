@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { trackEditorAction } from '../../analytics/editorAnalytics';
 import type { IsochroneAreaInput } from '../../domain/project';
 import type { IsochroneProvider, ProviderTravelProfile } from '../../services/mapbox/contracts';
 import { MapboxProviderError } from '../../services/mapbox/errors';
@@ -117,6 +118,9 @@ export function useIsochroneAuthoring(options: IsochroneAuthoringOptions) {
     cancelRequest(requestControllerRef);
     const controller = new AbortController();
     requestControllerRef.current = controller;
+    const onAbort = () => trackEditorAction('isochroneCancelled');
+    controller.signal.addEventListener('abort', onAbort, { once: true });
+    trackEditorAction('isochroneStarted');
     requestIdRef.current += 1;
     const requestId = requestIdRef.current;
     const expectedDocumentEpoch = options.documentEpoch;
@@ -149,12 +153,16 @@ export function useIsochroneAuthoring(options: IsochroneAuthoringOptions) {
         minutes,
         profile,
       }, expectedDocumentEpoch);
+      controller.signal.removeEventListener('abort', onAbort);
       if (result.ok) options.onCreated?.(result.layerId);
       else setRequestError({ lifecycleVersion: lifecycle.version, message: result.error });
+      trackEditorAction(result.ok ? 'isochroneCompleted' : 'isochroneFailed');
     } catch (requestError) {
       if (controller.signal.aborted || requestId !== requestIdRef.current) return;
+      trackEditorAction('isochroneFailed');
       setRequestError({ lifecycleVersion: lifecycle.version, message: requestErrorMessage(requestError) });
     } finally {
+      controller.signal.removeEventListener('abort', onAbort);
       if (requestId === requestIdRef.current) {
         requestControllerRef.current = null;
         setGeneration(null);

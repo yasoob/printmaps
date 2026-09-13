@@ -33,6 +33,7 @@ import { LayerPreviewProvider } from "./LayerPreviewProvider";
 import { useSetLayerPreviewId } from "./layerPreviewContext";
 import { useProjectOpening } from "./hooks/useProjectOpening";
 import { ElevationProfileProvider } from "./elevation/ElevationProfileProvider";
+import { trackEditorAction } from "../analytics/editorAnalytics";
 
 type AppProps = {
   autosaveRepository?: AutosaveRepository | null;
@@ -109,6 +110,7 @@ function useRouteExtensionRequest() {
       endpoint: RouteExtensionEndpoint,
       trigger: HTMLButtonElement,
     ) => {
+      trackEditorAction('routeExtensionStarted');
       setRequest((current) => ({
         endpoint,
         layer,
@@ -196,7 +198,10 @@ function useStudioAppModel(props: StudioAppProps) {
   const autosaveConflictOpen = useIsAutosaveConflictOpen();
   const setPreviewedLayerId = useSetLayerPreviewId();
   const [exportOpen, setExportOpen] = useState(false);
-  const openExport = useCallback(() => setExportOpen(true), []);
+  const openExport = useCallback(() => {
+    trackEditorAction('exportDialogOpened');
+    setExportOpen(true);
+  }, []);
   const [authoringState, setAuthoringState] = useState({
     documentEpoch: 0,
     active: false,

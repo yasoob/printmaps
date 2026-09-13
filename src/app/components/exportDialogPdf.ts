@@ -1,4 +1,5 @@
 import type React from 'react';
+import { trackEditorAction } from '../../analytics/editorAnalytics';
 import type { ProjectDocument } from '../../domain/project';
 import { projectAttributions } from '../../domain/projectAttributions';
 import { DEFAULT_EXPORT_PREFLIGHT_LIMITS, planExportPreflight, type ExportPreflightResult } from '../../export/preflight';
@@ -83,8 +84,12 @@ function throwIfCancelled(signal: AbortSignal): void {
 }
 
 function reportPdfFailure(error: unknown, signal: AbortSignal, options: Options): void {
-  if (isAbort(error, signal)) options.setStatus('Export cancelled.');
+  if (isAbort(error, signal)) {
+    trackEditorAction('exportCancelled', { format: 'pdf' });
+    options.setStatus('Export cancelled.');
+  }
   else {
+    trackEditorAction('exportFailed', { format: 'pdf' });
     options.setError(error instanceof Error ? error.message : 'PDF export failed.');
     options.setStatus('Export failed.');
   }
@@ -104,8 +109,12 @@ function finishPdfJob(
 }
 
 export async function runPdfExport(options: Options): Promise<void> {
+  trackEditorAction('exportStarted', { format: 'pdf' });
   const job = preparePdfJob(options);
-  if (!job) return;
+  if (!job) {
+    trackEditorAction('exportFailed', { format: 'pdf' });
+    return;
+  }
   const { abortControllerRef, document, filename, setBusy, setError, setStatus } = options;
   const { createPrintTileRenderer, exporter, preflight } = job;
   const controller = new AbortController();
@@ -150,6 +159,7 @@ export async function runPdfExport(options: Options): Promise<void> {
     });
     throwIfCancelled(controller.signal);
     startPrintPdfDownload(pdf, filename);
+    trackEditorAction('exportCompleted', { format: 'pdf' });
     setStatus('Download started for PDF.');
   } catch (error) {
     reportPdfFailure(error, controller.signal, options);

@@ -1,5 +1,7 @@
 import { loadElevationProfile } from '../../elevation/profile';
+import { trackEditorAction } from '../../analytics/editorAnalytics';
 import { downloadBlob } from '../../lib/downloadBlob';
+import { mapDataImportFormat } from '../hooks/useMapDataImportAnalytics';
 import { createProfileBlob, profileFilename, readProfileRoute, type ProfileExportFormat } from './profileSessionIo';
 import {
   createProfileSettings, isProfileInteger, profileChartOptions, profileError,
@@ -21,7 +23,7 @@ export class ElevationProfileSession {
   private listeners = new Set<() => void>();
   private terrain: AbortController | null = null;
   private reading: AbortController | null = null;
-  private exporting: object | null = null;
+  private exporting: { format: ProfileExportFormat } | null = null;
   private isAlive = true;
   private readonly dependencies;
 
@@ -43,14 +45,26 @@ export class ElevationProfileSession {
     const previous = this.terrain;
     this.terrain = owner;
     previous?.abort();
+    const onAbort = () => trackEditorAction('elevationCancelled');
+    owner.signal.addEventListener('abort', onAbort, { once: true });
+    trackEditorAction('elevationStarted');
     const coordinates = this.state.localRoute?.coordinates ?? this.state.route.coordinates!;
     this.publish({ status: 'loading', message: undefined, notice: null });
     try {
       const profile = await this.dependencies.loadProfile(coordinates, { signal: owner.signal });
-      if (this.terrain === owner) this.publish({ profile, status: 'ready' });
+      if (this.terrain === owner) {
+        owner.signal.removeEventListener('abort', onAbort);
+        trackEditorAction('elevationCompleted');
+        this.publish({ profile, status: 'ready' });
+      }
     } catch (error) {
-      if (this.terrain === owner) this.publish({ status: 'error', message: profileError(error, 'The elevation profile could not be generated. Try again.') });
+      if (this.terrain === owner) {
+        owner.signal.removeEventListener('abort', onAbort);
+        trackEditorAction('elevationFailed');
+        this.publish({ status: 'error', message: profileError(error, 'The elevation profile could not be generated. Try again.') });
+      }
     } finally {
+      owner.signal.removeEventListener('abort', onAbort);
       if (this.terrain === owner) this.terrain = null;
     }
   };
@@ -66,13 +80,26 @@ export class ElevationProfileSession {
     const previous = this.reading;
     this.reading = owner;
     previous?.abort();
+    const parameters = { format: mapDataImportFormat([file]), source: 'file' as const };
+    const onAbort = () => trackEditorAction('elevationImportCancelled', parameters);
+    owner.signal.addEventListener('abort', onAbort, { once: true });
+    trackEditorAction('elevationImportStarted', parameters);
     this.publish({ readingFilename: file.name, fileError: null, notice: null });
     try {
       const localRoute = await readProfileRoute(file, owner.signal);
-      if (this.reading === owner) this.changeSource(localRoute);
+      if (this.reading === owner) {
+        owner.signal.removeEventListener('abort', onAbort);
+        trackEditorAction('elevationImportCompleted', parameters);
+        this.changeSource(localRoute);
+      }
     } catch (error) {
-      if (this.reading === owner) this.publish({ fileError: profileError(error, 'The profile route file could not be read. Try another GPX, KML, or GeoJSON file.') });
+      if (this.reading === owner) {
+        owner.signal.removeEventListener('abort', onAbort);
+        trackEditorAction('elevationImportFailed', parameters);
+        this.publish({ fileError: profileError(error, 'The profile route file could not be read. Try another GPX, KML, or GeoJSON file.') });
+      }
     } finally {
+      owner.signal.removeEventListener('abort', onAbort);
       if (this.reading === owner) { this.reading = null; this.publish({ readingFilename: null }); }
     }
   };
@@ -86,19 +113,27 @@ export class ElevationProfileSession {
   export = async (format: ProfileExportFormat) => {
     const snapshot = this.state;
     if (!snapshot.profile || !this.canExport()) return;
+    trackEditorAction('elevationExportStarted', { format });
     if (!isProfileInteger(snapshot.settings.fontSizeDraft, 20, 70) || !isProfileInteger(snapshot.settings.printWidthDraft, 50, 300)) {
+      trackEditorAction('elevationExportFailed', { format });
       this.publish({ exportError: 'Use a font size of 20–70 and a print width of 50–300 mm before downloading.' });
       return;
     }
-    const owner = {};
+    const owner = { format };
     this.exporting = owner;
     const name = snapshot.localRoute?.name ?? snapshot.route.name;
     this.publish({ exporting: true, exportError: null });
     try {
       const blob = await this.dependencies.createBlob(format, snapshot.profile, name, profileChartOptions(snapshot));
-      if (this.exporting === owner) this.dependencies.download(blob, profileFilename(name, format));
+      if (this.exporting === owner) {
+        this.dependencies.download(blob, profileFilename(name, format));
+        trackEditorAction('elevationExportCompleted', { format });
+      }
     } catch (error) {
-      if (this.exporting === owner) this.publish({ exportError: profileError(error, 'The elevation profile could not be downloaded. Try again.') });
+      if (this.exporting === owner) {
+        trackEditorAction('elevationExportFailed', { format });
+        this.publish({ exportError: profileError(error, 'The elevation profile could not be downloaded. Try again.') });
+      }
     } finally {
       if (this.exporting === owner) { this.exporting = null; this.publish({ exporting: false }); }
     }
@@ -117,6 +152,7 @@ export class ElevationProfileSession {
   private canExport() { return this.canRun() && !this.reading && !this.exporting; }
   private retireJobs() {
     const terrain = this.terrain, reading = this.reading;
+    if (this.exporting) trackEditorAction('elevationExportCancelled', { format: this.exporting.format });
     this.terrain = null; this.reading = null; this.exporting = null;
     terrain?.abort(); reading?.abort();
   }

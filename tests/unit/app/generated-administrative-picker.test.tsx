@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../../../src/app/App';
+import { flushEditorAnalytics } from '../../../src/analytics/editorAnalytics';
 
 vi.mock('../../../src/map/MapCanvas', async () => import('./MapCanvasMock'));
 
@@ -80,6 +81,33 @@ it('requires a country, then defaults its boundary to the entire country', async
     expect(screen.getByRole('button', { name: 'Select Austria' })).toHaveAttribute('aria-current', 'true');
   } finally {
     fetchMock.mockRestore();
+  }
+});
+
+it('tracks boundary choices and creation without country names, IDs or geometry', async () => {
+  const user = userEvent.setup();
+  const gtag = vi.fn();
+  vi.stubGlobal('gtag', gtag);
+  const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(catalogueFetch);
+  try {
+    render(<App autosaveRepository={null} />);
+    await openPicker(user);
+    await selectCountry(user, 'Japan');
+    const boundary = screen.getByRole('combobox', { name: 'Boundary' });
+    await user.clear(boundary);
+    await user.type(boundary, 'Kyoto');
+    await user.click(await screen.findByRole('option', { name: /Kyoto/ }));
+    await user.click(screen.getByRole('button', { name: 'Add area' }));
+    const actions = gtag.mock.calls.map((call) => call[2].action);
+    expect(actions.filter((action) => action.startsWith('boundary'))).toEqual([
+      'boundaryCountrySelected', 'boundarySelected', 'boundaryAddRequested',
+    ]);
+    expect(actions.filter((action) => action === 'createAdministrativeArea')).toHaveLength(1);
+    expect(JSON.stringify(gtag.mock.calls)).not.toMatch(/Japan|Kyoto|JP-26|coordinates/);
+  } finally {
+    flushEditorAnalytics();
+    fetchMock.mockRestore();
+    vi.unstubAllGlobals();
   }
 });
 

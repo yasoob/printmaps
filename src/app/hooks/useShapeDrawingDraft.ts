@@ -3,6 +3,8 @@ import { MAX_MERCATOR_LATITUDE, normalizeCameraPrecision } from '../../domain/pr
 import { isValidPosition } from '../../domain/routeGeometry';
 import type { ShapeAuthoringMode } from '../components/ShapeDrawingPanel';
 import { isCoordinateInputInvalid } from '../components/coordinateInput';
+import { trackEditorAction } from '../../analytics/editorAnalytics';
+import { useLatestValue } from './useLatestValue';
 
 type ShapeDrawingDraft = {
   documentEpoch: number;
@@ -54,12 +56,14 @@ export function useShapeDrawingDraft(documentEpoch: number, center: readonly [nu
   const emptyDraft = useMemo(() => emptyDrawingDraft(documentEpoch, [longitude, latitude]), [documentEpoch, longitude, latitude]);
   const [storedDraft, setStoredDraft] = useState(emptyDraft);
   const draft = storedDraft.documentEpoch === documentEpoch ? storedDraft : emptyDraft;
+  const getDraft = useLatestValue(draft);
   const update = useCallback((updateDraft: (current: ShapeDrawingDraft) => ShapeDrawingDraft) => {
     setStoredDraft((current) => current.documentEpoch > documentEpoch ? current : updateDraft(
       current.documentEpoch === documentEpoch ? current : emptyDraft,
     ));
   }, [documentEpoch, emptyDraft]);
   const addPoint = useCallback((coordinate: readonly [number, number]) => {
+    trackEditorAction('shapeDraftPointAddRequested', { source: 'map' });
     update((current) => appendPoint(current, coordinate, 'map'));
   }, [update]);
   const setCoordinate = useCallback((axis: 0 | 1, value: string) => {
@@ -70,6 +74,7 @@ export function useShapeDrawingDraft(documentEpoch: number, center: readonly [nu
     });
   }, [update]);
   const addEnteredPoint = useCallback(() => {
+    trackEditorAction('shapeDraftPointAddRequested', { source: 'inspector' });
     update((current) => {
       const error = coordinateErrors(current.coordinates).find(Boolean);
       if (error) return { ...current, error };
@@ -77,12 +82,21 @@ export function useShapeDrawingDraft(documentEpoch: number, center: readonly [nu
     });
   }, [update]);
   const setMode = useCallback((mode: ShapeAuthoringMode) => {
+    if (mode !== getDraft().mode) {
+      const actions = {
+        administrative: 'shapeAdministrativeModeSelected',
+        draw: 'shapeDrawModeSelected',
+        isochrone: 'shapeIsochroneModeSelected',
+      } as const;
+      trackEditorAction(actions[mode]);
+    }
     update((current) => current.mode === mode ? current : { ...current, mode });
-  }, [update]);
+  }, [getDraft, update]);
   const clear = useCallback(() => {
     update((current) => ({ ...emptyDraft, mode: current.mode }));
   }, [emptyDraft, update]);
   const undo = useCallback(() => {
+    if (getDraft().points.length > 0) trackEditorAction('shapeDraftUndo');
     update((current) => {
       const removed = current.points.at(-1);
       return removed ? {
@@ -93,7 +107,7 @@ export function useShapeDrawingDraft(documentEpoch: number, center: readonly [nu
         error: null,
       } : current;
     });
-  }, [update]);
+  }, [getDraft, update]);
 
   return {
     addPoint, clear, mode: draft.mode, points: draft.points, setMode, undo,

@@ -41,6 +41,7 @@ import { createIsochroneActions } from "./storeIsochroneActions";
 import { parseProjectDocument, ProjectValidationCache } from "../domain/projectFile";
 import { createProjectSetter } from "./storeMutation";
 import type { LayerMutationResult, ProjectMutationResult } from "../domain/projectMutation";
+import { trackProjectActions } from "../analytics/trackProjectActions";
 
 export type RouteMutationResult =
   { ok: true; routeId: string } | { ok: false; error: string };
@@ -235,33 +236,36 @@ export function createProjectStore(
   const document = copyDocument(initialDocument);
   const cache = new ProjectValidationCache();
   parseProjectDocument(document, cache);
-  return createStore<ProjectState>((rawSet) => {
+  return createStore<ProjectState>((rawSet, get) => {
     const set = createProjectSetter(rawSet, cache);
+    const actions = trackProjectActions({
+      setHasUnfinishedDrawing: (documentEpoch, hasUnfinishedDrawing) => set((state) => (
+        state.documentEpoch !== documentEpoch || state.hasUnfinishedDrawing === hasUnfinishedDrawing
+          ? state : { hasUnfinishedDrawing }
+      )),
+      setPageBoundaryVisible: (isVisible) => set((state) => (
+        state.pageBoundaryVisible === isVisible ? state : { pageBoundaryVisible: isVisible }
+      )),
+      ...createCameraActions(set),
+      ...createLayerStructureActions(set),
+      ...createIsochroneActions(set),
+      ...createLayerPropertyActions(set),
+      ...createShapeGeometryActions(set),
+      ...createPageActions(set),
+      ...createStyleActions(set),
+      ...createDocumentActions(set),
+    }, get);
     return {
     document,
     documentEpoch: 0,
     hasUnfinishedDrawing: false,
-    setHasUnfinishedDrawing: (documentEpoch, hasUnfinishedDrawing) => set((state) => (
-      state.documentEpoch !== documentEpoch || state.hasUnfinishedDrawing === hasUnfinishedDrawing
-        ? state : { hasUnfinishedDrawing }
-    )),
     pageBoundaryVisible: true,
     selectedId: null,
     past: [],
     future: [],
     canUndo: false,
     canRedo: false,
-    setPageBoundaryVisible: (isVisible) => set((state) => (
-      state.pageBoundaryVisible === isVisible ? state : { pageBoundaryVisible: isVisible }
-    )),
-    ...createCameraActions(set),
-    ...createLayerStructureActions(set),
-    ...createIsochroneActions(set),
-    ...createLayerPropertyActions(set),
-    ...createShapeGeometryActions(set),
-    ...createPageActions(set),
-    ...createStyleActions(set),
-    ...createDocumentActions(set),
+    ...actions,
     };
   });
 }

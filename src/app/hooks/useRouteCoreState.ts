@@ -5,6 +5,7 @@ import {
   useState,
 } from "react";
 import { createArcGeometry } from "../../domain/routeArcGeometry";
+import { trackEditorAction } from "../../analytics/editorAnalytics";
 import { semanticRoutePositions } from "../../domain/routeGeometry";
 import {
   DEFAULT_ROUTE_AUTHORING_OPTIONS,
@@ -129,6 +130,9 @@ function useDraftMovement(
   const commitPointMove = useCallback(() => {
     const origin = semantic.takeMoveOrigin();
     if (!origin) return;
+    if (!areDraftPointsEqual(origin, semantic.getCurrentDraft().points)) {
+      trackEditorAction("routeDraftPointMoved");
+    }
     directions.cancel();
     semantic.setRoadPreview(null);
     semantic.setDraft((current) =>

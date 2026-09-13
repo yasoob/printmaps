@@ -15,6 +15,7 @@ import type {
 import { createMapboxMapMatchingProvider } from "../../services/mapbox/mapMatching";
 import { PropertyRow } from "./PropertyControls";
 import type { ProjectMutationResult } from "../../domain/projectMutation";
+import { trackEditorAction } from "../../analytics/editorAnalytics";
 
 const defaultProvider = createMapboxMapMatchingProvider({
   token: import.meta.env.VITE_MAPBOX_PUBLIC_ACCESS,
@@ -88,6 +89,20 @@ function onlyMatch(
   return match;
 }
 
+function trackMatchingRequest(signal: AbortSignal) {
+  trackEditorAction('mapMatchingStarted');
+  const cancel = () => trackEditorAction('mapMatchingCancelled');
+  signal.addEventListener('abort', cancel, { once: true });
+  return () => signal.removeEventListener('abort', cancel);
+}
+
+function matchingFailure(error: unknown): MatchingState {
+  return {
+    kind: "error",
+    message: error instanceof Error ? error.message : "The route could not be matched to roads.",
+  };
+}
+
 export function RouteMapMatchingControl({
   coordinates,
   disabled,
@@ -125,6 +140,7 @@ export function RouteMapMatchingControl({
     controllerRef.current?.abort();
     const controller = new AbortController();
     controllerRef.current = controller;
+    const stopTrackingCancellation = trackMatchingRequest(controller.signal);
     setState({ kind: "matching" });
     try {
       const response = await provider.match({
@@ -134,6 +150,7 @@ export function RouteMapMatchingControl({
       });
       if (controller.signal.aborted) return;
       const match = onlyMatch(response);
+      stopTrackingCancellation();
       const didApply = onApply(
         {
           geometry: match.geometry,
@@ -146,23 +163,21 @@ export function RouteMapMatchingControl({
         documentEpoch,
       );
       if (!didApply.ok) {
+        trackEditorAction('mapMatchingFailed');
         setState({ kind: "error", message: didApply.error });
         return;
       }
+      trackEditorAction('mapMatchingCompleted');
       setState({
         kind: "success",
         message: "Route matched to roads. Undo is available.",
       });
     } catch (error) {
       if (controller.signal.aborted) return;
-      setState({
-        kind: "error",
-        message:
-          error instanceof Error
-            ? error.message
-            : "The route could not be matched to roads.",
-      });
+      trackEditorAction('mapMatchingFailed');
+      setState(matchingFailure(error));
     } finally {
+      stopTrackingCancellation();
       if (controllerRef.current === controller) controllerRef.current = null;
     }
   };
@@ -174,7 +189,10 @@ export function RouteMapMatchingControl({
           aria-label="Road matching travel mode"
           disabled={disabled || isMatching}
           value={mode}
-          onChange={(event) => setMode(event.target.value as RoadTravelMode)}
+          onChange={(event) => {
+            trackEditorAction('mapMatchingModeSelected');
+            setMode(event.target.value as RoadTravelMode);
+          }}
         >
           {ROAD_TRAVEL_MODES.map((candidate) => (
             <option key={candidate} value={candidate}>

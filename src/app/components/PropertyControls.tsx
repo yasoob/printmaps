@@ -1,5 +1,6 @@
 import { ChevronRight } from 'lucide-react';
 import { useId, useState } from 'react';
+import { trackEditorAction } from '../../analytics/editorAnalytics';
 
 export function PropertySection({ title, children }: { title: string; children: React.ReactNode }) {
   return <section className="property-section"><h3>{title}</h3>{children}</section>;
@@ -31,6 +32,7 @@ export function InspectorAccordion({ children, isDefaultExpanded, storageKey, su
   const [isExpanded, setIsExpanded] = useState(() => readDisclosurePreference(storageKey, isDefaultExpanded));
   const toggle = () => {
     const isNextExpanded = !isExpanded;
+    trackEditorAction('inspectorSectionToggled', { enabled: isNextExpanded });
     setIsExpanded(isNextExpanded);
     try {
       globalThis.localStorage?.setItem(storageKey, isNextExpanded ? 'open' : 'closed');

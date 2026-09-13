@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useReducer, useRef } from 'react';
+import { trackEditorAction } from '../../analytics/editorAnalytics';
 import type { SearchProvider, SearchResult } from '../../services/mapbox/contracts';
 import { useLatestValue } from './useLatestValue';
 
@@ -53,6 +54,7 @@ export function useLocationSearch(provider: SearchProvider, proximity: readonly 
   const cancelPending = useCallback(() => {
     if (timer.current !== null) globalThis.clearTimeout(timer.current);
     timer.current = null;
+    if (request.current) trackEditorAction('locationSearchCancelled');
     request.current?.abort();
     request.current = null;
   }, []);
@@ -67,15 +69,20 @@ export function useLocationSearch(provider: SearchProvider, proximity: readonly 
     }
     const controller = new AbortController();
     request.current = controller;
+    trackEditorAction('locationSearchStarted');
     dispatch({ type: 'start' });
     const options = getOptions();
     try {
       const response = await options.provider.search({
         query: normalized, limit: 5, proximity: options.proximity, signal: controller.signal,
       });
-      if (!controller.signal.aborted) dispatch({ type: 'success', results: response.results });
+      if (!controller.signal.aborted) {
+        trackEditorAction('locationSearchCompleted');
+        dispatch({ type: 'success', results: response.results });
+      }
     } catch (error) {
       if (!controller.signal.aborted) {
+        trackEditorAction('locationSearchFailed');
         dispatch({ type: 'error', message: error instanceof Error ? error.message : 'Location search failed. Try again.' });
       }
     } finally {
@@ -96,6 +103,7 @@ export function useLocationSearch(provider: SearchProvider, proximity: readonly 
   }, [cancelPending, getState]);
   const choose = useCallback((result: SearchResult) => {
     cancelPending();
+    trackEditorAction('locationSelected', { source: 'search' });
     dispatch({ type: 'choose', result });
   }, [cancelPending]);
   const move = useCallback((direction: -1 | 1) => dispatch({ type: 'move', direction }), []);

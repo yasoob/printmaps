@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { trackEditorAction } from '../../analytics/editorAnalytics';
 import type { DirectionsRouteInput } from '../../domain/project';
 import type { RoadTravelMode, RouteAuthoringOptions } from '../../domain/routeProfiles';
 import type { RouteMutationResult } from '../store';
@@ -82,6 +83,9 @@ export function useDirectionsAuthoring(options: DirectionsAuthoringOptions) {
     controllerRef.current?.abort();
     const controller = new AbortController();
     controllerRef.current = controller;
+    const onAbort = () => trackEditorAction('directionsCancelled');
+    controller.signal.addEventListener('abort', onAbort, { once: true });
+    trackEditorAction('directionsStarted');
     requestIdRef.current += 1;
     const requestId = requestIdRef.current;
     const expectedDocumentEpoch = options.documentEpoch;
@@ -95,18 +99,22 @@ export function useDirectionsAuthoring(options: DirectionsAuthoringOptions) {
         || lifecycleRef.current.documentEpoch !== expectedDocumentEpoch) return null;
       const selected = response.routes[0];
       if (!selected) throw new Error('Mapbox did not return a road route. Try different points.');
-      return {
+      const input = {
         geometry: selected.geometry.map(([longitude, latitude]) => [longitude, latitude]),
         waypoints: waypoints.map(([longitude, latitude]) => [longitude, latitude]),
         profile,
         distanceMeters: selected.distanceMeters,
         durationSeconds: selected.durationSeconds,
       } satisfies DirectionsRouteInput;
+      trackEditorAction('directionsCompleted');
+      return input;
     } catch (requestError) {
       if (controller.signal.aborted || requestId !== requestIdRef.current) return null;
+      trackEditorAction('directionsFailed');
       setRequestError({ lifecycleVersion: lifecycle.version, message: errorMessage(requestError) });
       return null;
     } finally {
+      controller.signal.removeEventListener('abort', onAbort);
       if (requestId === requestIdRef.current) {
         controllerRef.current = null;
         setGeneration(null);

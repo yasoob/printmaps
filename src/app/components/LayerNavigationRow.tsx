@@ -3,6 +3,7 @@ import clsx from 'clsx';
 import { Eye, EyeOff, GripVertical, Layers3, Lock, MapPin, Route, Shapes, Unlock } from 'lucide-react';
 import { memo, type Dispatch, type SetStateAction } from 'react';
 import type { ContentLayer, LayerType } from '../../domain/project';
+import { trackEditorAction } from '../../analytics/editorAnalytics';
 import { useProjectActions } from '../projectStoreContext';
 import type { MobilePanel } from '../hooks/useMobilePanels';
 import { useMutationFeedback } from '../hooks/useMutationFeedback';
@@ -53,7 +54,10 @@ export const LayerNavigationRow = memo(function LayerNavigationRow({ layer, inde
       ref={ref}
       className={clsx('layer-row', { 'is-selected': isSelected, 'is-dragging': isDragging })}
       data-layer-id={layer.id}
-      onMouseEnter={() => setPreviewedLayerId(layer.visible && layer.geometry ? layer.id : null)}
+      onMouseEnter={() => {
+        if (layer.visible && layer.geometry) trackEditorAction('layerPreviewed');
+        setPreviewedLayerId(layer.visible && layer.geometry ? layer.id : null);
+      }}
       onMouseLeave={clearPreview}
     >
       <button className="layer-visibility" tabIndex={tabIndex} type="button" aria-label={`${layer.visible ? 'Hide' : 'Show'} ${layer.name}`} onClick={() => {

@@ -4,6 +4,7 @@ import type { AdministrativeArea } from '../../domain/administrativeAreas';
 import type { GeneratedAdministrativeCountry, GeneratedAdministrativeShard } from '../../domain/generatedAdministrativeCatalogue';
 import { useCountryBoundaryCatalogue } from '../hooks/useCountryBoundaryCatalogue';
 import { ShadcnSingleCombobox } from './ShadcnCombobox';
+import { trackEditorAction } from '../../analytics/editorAnalytics';
 
 type AdministrativeAreaPickerProps = Readonly<{
   onAdd: (area: AdministrativeArea) => void;
@@ -36,12 +37,19 @@ function BoundaryChooser({ onAdd, onCancel, shard }: Readonly<{
           label="Boundary"
           placeholder="Entire country or regions…"
           value={selectedArea}
-          onValueChange={setSelectedArea}
+          onValueChange={(area) => {
+            if (area && area.id !== selectedArea?.id) trackEditorAction('boundarySelected');
+            setSelectedArea(area);
+          }}
         />
       </div>
       <div className="administrative-picker-footer">
         <button type="button" aria-label="Cancel area" onClick={onCancel}>Cancel</button>
-        <button className="primary-button" type="button" disabled={!selectedArea} onClick={() => { if (selectedArea) onAdd(selectedArea); }}>Add area</button>
+        <button className="primary-button" type="button" disabled={!selectedArea} onClick={() => {
+          if (!selectedArea) return;
+          trackEditorAction('boundaryAddRequested');
+          onAdd(selectedArea);
+        }}>Add area</button>
       </div>
     </>
   );
@@ -51,8 +59,10 @@ export function AdministrativeAreaPicker({ onAdd, onCancel }: AdministrativeArea
   const catalogue = useCountryBoundaryCatalogue();
   const countries = catalogue.state.catalogue?.countries ?? [];
   const chooseCountry = (country: GeneratedAdministrativeCountry | null) => {
+    if (country && country.id !== catalogue.state.country?.id) trackEditorAction('boundaryCountrySelected');
     if (country) catalogue.selectCountry(country);
   };
+  const cancel = () => { trackEditorAction('boundaryPickerCancelled'); onCancel(); };
   const status = catalogue.state.error
     || (catalogue.state.isLoading ? `Loading ${catalogue.state.country?.name ?? 'countries'}…` : '');
 
@@ -76,7 +86,7 @@ export function AdministrativeAreaPicker({ onAdd, onCancel }: AdministrativeArea
         />
       </div>
       {catalogue.state.shard
-        ? <BoundaryChooser key={catalogue.state.shard.country.id} onAdd={onAdd} onCancel={onCancel} shard={catalogue.state.shard} />
+        ? <BoundaryChooser key={catalogue.state.shard.country.id} onAdd={onAdd} onCancel={cancel} shard={catalogue.state.shard} />
         : (
           <>
             <div className="administrative-combobox-field">
@@ -97,7 +107,7 @@ export function AdministrativeAreaPicker({ onAdd, onCancel }: AdministrativeArea
               />
             </div>
             <div className="administrative-picker-footer">
-              <button type="button" aria-label="Cancel area" onClick={onCancel}>Cancel</button>
+              <button type="button" aria-label="Cancel area" onClick={cancel}>Cancel</button>
               <button className="primary-button" type="button" disabled>Add area</button>
             </div>
           </>

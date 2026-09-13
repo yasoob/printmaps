@@ -1,4 +1,5 @@
 import { useState, type RefObject } from "react";
+import { trackEditorAction } from "../../analytics/editorAnalytics";
 import type { ContentLayer, IsochroneAreaInput } from "../../domain/project";
 import type { AdministrativeArea } from "../../domain/administrativeAreas";
 import {
@@ -47,6 +48,12 @@ function resolvedShapeEditMode(
   return canEditPoints ? "points" : "transform";
 }
 
+function exitShapeAuthoring(parameters: CanvasShapeAuthoringParameters) {
+  parameters.setActiveTool("select");
+  parameters.onAuthoringChange(parameters.documentEpoch, false);
+  window.setTimeout(() => parameters.selectToolRef.current?.focus(), 0);
+}
+
 export function useCanvasShapeAuthoring(
   parameters: CanvasShapeAuthoringParameters,
 ) {
@@ -68,11 +75,7 @@ export function useCanvasShapeAuthoring(
     storedEditMode,
   );
   const canFinish = countDistinctPoints(points) >= 3;
-  const exit = () => {
-    parameters.setActiveTool("select");
-    parameters.onAuthoringChange(parameters.documentEpoch, false);
-    window.setTimeout(() => parameters.selectToolRef.current?.focus(), 0);
-  };
+  const exit = () => exitShapeAuthoring(parameters);
   const isochrone = useIsochroneAuthoring({
     active: parameters.activeTool === "shape" && mode === "isochrone",
     documentEpoch: parameters.documentEpoch,
@@ -84,6 +87,7 @@ export function useCanvasShapeAuthoring(
   });
   const finish = () => {
     if (!canFinish) return;
+    trackEditorAction("shapeFinishRequested");
     const result = parameters.onCreateShape(points);
     if (!result.ok) {
       setCommitError({ epoch: parameters.documentEpoch, mode: 'draw', message: result.error });
@@ -94,13 +98,16 @@ export function useCanvasShapeAuthoring(
     exit();
   };
   const close = () => {
+    trackEditorAction("shapeAuthoringClosed");
     isochrone.cancel();
     exit();
   };
   const cancel = () => {
+    trackEditorAction("shapeCancelRequested");
     setCommitError(null);
     if (mode === "draw") drawing.clear();
-    close();
+    isochrone.cancel();
+    exit();
   };
   useShapeDrawingKeyboard({
     active: parameters.activeTool === "shape",

@@ -37,28 +37,41 @@ export function useMapDataImport(options: MapDataImportOptions) {
   const commitReviewedImport = () => {
     const review = reader.getReview(batch);
     if (!review || !batch) return mutationRejected('This import review is no longer active. Choose the files again.', 'stale');
+    review.analytics.start();
     let layers = batch.layers;
     if (!replacementTarget) {
-      if (!batchAppearance) return mutationRejected('Choose import styling before adding this batch.');
+      if (!batchAppearance) {
+        review.analytics.finish('importFailed');
+        return mutationRejected('Choose import styling before adding this batch.');
+      }
       try {
         layers = applyMapDataBatchAppearance(batch.layers, batchAppearance);
       } catch (error) {
+        review.analytics.finish('importFailed');
         if (!(error instanceof MapDataBatchAppearanceError)) throw error;
         setAppearanceFailure({ batch, settings: batchAppearance, error: error.message });
         return mutationRejected(error.message);
       }
     }
-    const result = options.onImport({
-      ...review.source,
-      layers,
-      replacementTarget,
-      shouldFitView,
-    });
+    let result;
+    try {
+      result = options.onImport({
+        ...review.source,
+        layers,
+        replacementTarget,
+        shouldFitView,
+      });
+    } catch (error) {
+      review.analytics.finish('importFailed');
+      throw error;
+    }
     if (!reader.getReview(batch)) return result;
     if (!result.ok) {
+      review.analytics.finish('importFailed');
       reader.setDialogError(result.error);
       return result;
     }
+    review.analytics.finish('importCompleted');
     reader.setStatus(replacementTarget
       ? replacementSuccess(replacementTarget, review.source.documentEpoch)
       : reviewedSuccess(batch, review.source.documentEpoch));

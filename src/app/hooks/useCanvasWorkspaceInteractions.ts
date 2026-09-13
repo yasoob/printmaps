@@ -7,6 +7,7 @@ import {
   type SetStateAction,
 } from "react";
 import type { SearchResult } from "../../services/mapbox/contracts";
+import { trackEditorAction } from "../../analytics/editorAnalytics";
 import type { ContentLayer, LayerGeometry } from "../../domain/project";
 import type { SearchSelectionFeedback } from "../components/LocationSearchFeedback";
 import type { CanvasWorkspaceProps } from "../components/CanvasWorkspace.types";
@@ -32,6 +33,13 @@ type ToolActivationOptions = {
   toolDocumentEpoch: number;
 };
 
+const TOOL_ACTIVATION_ACTIONS = {
+  select: "selectToolActivated",
+  route: "routeToolActivated",
+  pin: "poiToolActivated",
+  shape: "shapeToolActivated",
+} as const;
+
 export function useCanvasToolActivation(options: ToolActivationOptions) {
   const getCurrent = useLatestValue(options);
   return useCallback((id: string) => {
@@ -46,6 +54,9 @@ export function useCanvasToolActivation(options: ToolActivationOptions) {
       && current.toolDocumentEpoch === current.documentEpoch
     ) {
       return;
+    }
+    if (Object.hasOwn(TOOL_ACTIVATION_ACTIONS, id)) {
+      trackEditorAction(TOOL_ACTIVATION_ACTIONS[id as keyof typeof TOOL_ACTIVATION_ACTIONS]);
     }
     if (
       id !== "pin"

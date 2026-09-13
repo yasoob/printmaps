@@ -1,4 +1,5 @@
 import { ChevronDown, Download, FilePlus2, FolderKanban, FolderOpen } from 'lucide-react';
+import { trackEditorAction } from '../../analytics/editorAnalytics';
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import {
   DropdownMenu,
@@ -44,6 +45,13 @@ async function parseOpenedProject(file: File, signal: AbortSignal) {
   return parseProjectFileText(text);
 }
 
+function trackProjectRead(controller: AbortController) {
+  const onAbort = () => trackEditorAction('projectFileReadCancelled', { format: 'project', source: 'file' });
+  controller.signal.addEventListener('abort', onAbort, { once: true });
+  trackEditorAction('projectFileReadStarted', { format: 'project', source: 'file' });
+  return () => controller.signal.removeEventListener('abort', onAbort);
+}
+
 export function ProjectFileActions({ children, getDocument, menuHeader, openButtonRef, onOpen }: ProjectFileActionsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [status, setStatus] = useState<ProjectFileStatus | null>(null);
@@ -63,18 +71,23 @@ export function ProjectFileActions({ children, getDocument, menuHeader, openButt
     readController.current?.abort();
     const controller = new AbortController();
     readController.current = controller;
+    const stopTrackingCancellation = trackProjectRead(controller);
     try {
       const openedDocument = await parseOpenedProject(file, controller.signal);
       if (sequence !== readSequence.current) return;
+      stopTrackingCancellation();
       onOpen(openedDocument);
+      trackEditorAction('projectFileReadCompleted', { format: 'project', source: 'file' });
       setStatus(null);
     } catch (error) {
       if (sequence !== readSequence.current) return;
+      trackEditorAction('projectFileReadFailed', { format: 'project', source: 'file' });
       setStatus({
         label: 'Project file status',
         message: error instanceof Error ? error.message : 'This project file could not be opened.',
       });
     } finally {
+      stopTrackingCancellation();
       if (sequence === readSequence.current) {
         input.value = '';
         setIsOpen(false);
@@ -95,10 +108,13 @@ export function ProjectFileActions({ children, getDocument, menuHeader, openButt
   };
 
   const saveProject = () => {
+    trackEditorAction('projectSaveStarted', { format: 'project' });
     try {
       downloadProjectDocument(getDocument());
+      trackEditorAction('projectSaveCompleted', { format: 'project' });
       setStatus(null);
     } catch (error) {
+      trackEditorAction('projectSaveFailed', { format: 'project' });
       setStatus({
         label: 'Project save status',
         message: error instanceof Error ? error.message : 'This project could not be downloaded.',

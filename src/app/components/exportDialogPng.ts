@@ -1,4 +1,5 @@
 import type React from 'react';
+import { trackEditorAction } from '../../analytics/editorAnalytics';
 import type { ProjectDocument } from '../../domain/project';
 import {
   createLargeRasterPng,
@@ -63,14 +64,19 @@ async function reportPngFailure(options: Readonly<{
 }>): Promise<void> {
   const { error, writable, isWritableOwnedByEncoder, signal, setError, setStatus } = options;
   if (writable && !isWritableOwnedByEncoder) await abortWithoutMasking(writable, error);
-  if (isAbort(error, signal)) setStatus('Export cancelled.');
+  if (isAbort(error, signal)) {
+    trackEditorAction('exportCancelled', { format: 'png' });
+    setStatus('Export cancelled.');
+  }
   else {
+    trackEditorAction('exportFailed', { format: 'png' });
     setError(error instanceof Error ? error.message : 'PNG export failed.');
     setStatus('Export failed.');
   }
 }
 
 export async function runPngExport(options: Options): Promise<void> {
+  trackEditorAction('exportStarted', { format: 'png' });
   const { abortControllerRef, document, exporter, filename, preflight, rasterDelivery } = options;
   const { setBusy, setError, setStatus } = options;
   const destinationPromise = rasterDelivery === 'streaming-png'
@@ -119,6 +125,7 @@ export async function runPngExport(options: Options): Promise<void> {
           setStatus(`Rendering PNG… ${completedTiles}/${totalTiles} regions (${Math.round(fraction * 100)}%).`);
         },
       });
+      trackEditorAction('exportCompleted', { format: 'png' });
       setStatus(`Saved ${result.width} × ${result.height} PNG.`);
       return;
     }
@@ -136,6 +143,7 @@ export async function runPngExport(options: Options): Promise<void> {
     try {
       reportPngStage('downloading', setStatus);
       startPreviewDownload(result.blob, filename);
+      trackEditorAction('exportCompleted', { format: 'png' });
       setStatus(`Download started for ${result.width} × ${result.height} PNG.`);
     } finally {
       result.surface.width = 0;

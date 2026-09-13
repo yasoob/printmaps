@@ -6,6 +6,7 @@ import type { SearchProvider } from '../../services/mapbox/contracts';
 import { createPoiSpreadsheetDraft, hasPoiSpreadsheetWork, type PoiSpreadsheetMode } from './poiSpreadsheetDraft';
 import { usePoiAddressLookup, type PoiDraftUpdate } from './usePoiAddressLookup';
 import { useStableEvent } from './useStableEvent';
+import { trackEditorAction } from '../../analytics/editorAnalytics';
 
 type PoiSpreadsheetOptions = {
   documentEpoch: number;
@@ -42,10 +43,13 @@ export function usePoiSpreadsheet(options: PoiSpreadsheetOptions) {
     ...current, errors: { ...current.errors, [current.mode]: message },
   })));
   const changeMode = useStableEvent((mode: PoiSpreadsheetMode) => {
+    if (getCurrent()?.mode !== mode) trackEditorAction('poiListModeSelected');
     lookup.stop();
     update((current) => ({ ...current, mode }));
   });
   const changeText = useStableEvent((text: string) => {
+    const current = getCurrent();
+    if (current && current.buffers[current.mode] !== text) trackEditorAction('poiListEdited', {}, { debounce: true });
     lookup.stop();
     update((current) => ({
       ...current, buffers: { ...current.buffers, [current.mode]: text },
@@ -61,10 +65,12 @@ export function usePoiSpreadsheet(options: PoiSpreadsheetOptions) {
       update((value) => ({ ...value, rows, page: 0 }));
       void lookup.start(rows);
     } catch (error) {
+      trackEditorAction('poiListValidationFailed');
       setError(error instanceof Error ? error.message : 'The POI list could not be read.');
     }
   });
   const changeRow = useStableEvent((id: number, patch: Partial<Pick<PoiAddressReviewRow, 'name' | 'address' | 'included' | 'selected'>>) => {
+    trackEditorAction('poiListRowEdited', {}, { debounce: true });
     lookup.stop();
     update((current) => ({
       ...current, errors: { ...current.errors, addresses: null },
@@ -82,11 +88,16 @@ export function usePoiSpreadsheet(options: PoiSpreadsheetOptions) {
     if (rows.length > 0) void lookup.start(rows);
   });
   const backToEdit = useStableEvent(() => {
+    trackEditorAction('poiListReviewClosed');
     lookup.stop();
     update((current) => ({ ...current, addressView: 'edit' }));
   });
-  const returnToReview = useStableEvent(() => update((current) => ({ ...current, addressView: 'review' })));
+  const returnToReview = useStableEvent(() => {
+    trackEditorAction('poiListReviewOpened');
+    update((current) => ({ ...current, addressView: 'review' }));
+  });
   const discard = useStableEvent(() => {
+    trackEditorAction('poiListDiscarded');
     lookup.retire();
     update(() => createPoiSpreadsheetDraft(options.documentEpoch));
   });
@@ -95,16 +106,19 @@ export function usePoiSpreadsheet(options: PoiSpreadsheetOptions) {
     if (!current || current.documentEpoch !== options.documentEpoch) return mutationRejected('This POI list belongs to a different session.', 'stale');
     if (current.lookup) return mutationRejected('Stop lookup or wait for it to finish before adding POIs.');
     if (current.mode === 'addresses' && current.addressView !== 'review') return mutationRejected('Return to address review before adding POIs.');
+    trackEditorAction('poiListCommitStarted');
     let entries: PoiSpreadsheetEntry[];
     try {
       entries = current.mode === 'coordinates' ? parsePoiSpreadsheet(current.buffers.coordinates) : poiAddressEntries(current.rows);
     } catch (error) {
+      trackEditorAction('poiListCommitFailed');
       const message = error instanceof Error ? error.message : 'Check the POI list before adding it.';
       setError(message);
       return mutationRejected(message);
     }
     const result = options.onSubmit(entries);
-    if (!result.ok) { setError(result.error); return result; }
+    if (!result.ok) { trackEditorAction('poiListCommitFailed'); setError(result.error); return result; }
+    trackEditorAction('poiListCommitCompleted');
     const otherMode = current.mode === 'coordinates' ? 'addresses' : 'coordinates';
     update((value) => ({
       ...value, mode: otherMode, buffers: { ...value.buffers, [current.mode]: '' },

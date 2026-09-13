@@ -1,4 +1,5 @@
 import type React from 'react';
+import { trackEditorAction } from '../../analytics/editorAnalytics';
 import type { ProjectDocument } from '../../domain/project';
 import { planLayeredPsdExport } from '../../export/layeredPsdPlan';
 import type { ExportPreflightResult } from '../../export/preflight';
@@ -64,16 +65,24 @@ function psdStageStatus(stage: 'basemap' | 'layers' | 'packaging', detail?: stri
 }
 
 function reportPsdFailure(error: unknown, signal: AbortSignal, options: Options): void {
-  if (isAbort(error, signal)) options.setStatus('Export cancelled.');
+  if (isAbort(error, signal)) {
+    trackEditorAction('exportCancelled', { format: 'psd' });
+    options.setStatus('Export cancelled.');
+  }
   else {
+    trackEditorAction('exportFailed', { format: 'psd' });
     options.setError(error instanceof Error ? error.message : 'Layered PSD export failed.');
     options.setStatus('Export failed.');
   }
 }
 
 export async function runPsdExport(options: Options): Promise<void> {
+  trackEditorAction('exportStarted', { format: 'psd' });
   const job = preparePsdJob(options);
-  if (!job) return;
+  if (!job) {
+    trackEditorAction('exportFailed', { format: 'psd' });
+    return;
+  }
   const {
     abortControllerRef,
     document,
@@ -128,6 +137,7 @@ export async function runPsdExport(options: Options): Promise<void> {
     });
     throwIfCancelled(controller.signal);
     startLayeredPsdDownload(psd, filename);
+    trackEditorAction('exportCompleted', { format: 'psd' });
     setStatus('Download started for layered PSD.');
   } catch (error) {
     reportPsdFailure(error, controller.signal, options);

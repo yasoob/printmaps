@@ -5,6 +5,7 @@ import { parseMapDataFiles, type ParsedMapDataBatch } from '../../import/mapData
 import { hasSameDocumentContent } from '../storeDocument';
 import type { LayerReplacementRequest, MapDataImportCommit } from './useAppMapDataImport';
 import { useStableEvent } from './useStableEvent';
+import { createImportAnalytics } from './useMapDataImportAnalytics';
 
 type ImportStatus = { documentEpoch: number; kind: 'success' | 'error'; message: string };
 type ImportSource = Pick<MapDataImportCommit, 'documentEpoch' | 'sourceDocument'>;
@@ -14,6 +15,7 @@ type ReadOwner = {
   controller: AbortController;
   workId: number | null;
   batch: ParsedMapDataBatch | null;
+  analytics: ReturnType<typeof createImportAnalytics>;
 };
 type FileChoice = { documentEpoch: number; target: ContentLayer | null };
 
@@ -86,6 +88,7 @@ function useBatchReader(ownerRef: RefObject<ReadOwner | null>, callbacks: BatchR
       callbacks.onBatch(parsed);
     } catch (error) {
       if (ownerRef.current === owner) {
+        owner.analytics.finish('importFailed');
         callbacks.onError(error instanceof Error ? error.message : 'These map data files could not be imported.');
       }
     } finally {
@@ -107,6 +110,7 @@ function useReadOwnership(finishImportWork: MapDataImportOptions['finishImportWo
     const owner = ownerRef.current;
     ownerRef.current = null;
     if (owner) {
+      owner.analytics.finish('importCancelled');
       owner.controller.abort();
       finishRead(owner);
     }
@@ -161,22 +165,25 @@ export function useMapDataImportReader(options: MapDataImportOptions) {
     getSource, finishRead, onProjectChange: retireForProjectChange,
     onBatch: setBatch, onError: setDialogError, onSettled: () => setIsReading(false),
   });
-  const prepareFiles = useStableEvent((files: readonly File[], choice: FileChoice | null = null) => {
+  const prepareFiles = useStableEvent((files: readonly File[], choice: FileChoice | null = null, importSource: 'file' | 'drop' = 'drop') => {
     const source = getSource();
+    const analytics = createImportAnalytics(files, importSource);
     if (choice && choice.documentEpoch !== source.documentEpoch) {
+      analytics.finish('importFailed');
       setStatus({ documentEpoch: source.documentEpoch, kind: 'error', message: 'The project changed while choosing files. Nothing was imported. Choose the files again.' });
       return;
     }
     retireRead();
     const workId = options.startImportWork();
     if (workId === null) {
+      analytics.finish('importFailed');
       const message = 'Another import is still active. Finish or cancel it before choosing these files.';
       if (isOpen) setDialogError(message);
       else setStatus({ documentEpoch: source.documentEpoch, kind: 'error', message });
       return;
     }
     const target = choice?.target ?? null;
-    const owner: ReadOwner = { source, replacementTarget: target, controller: new AbortController(), workId, batch: null };
+    const owner: ReadOwner = { source, replacementTarget: target, controller: new AbortController(), workId, batch: null, analytics };
     ownerRef.current = owner;
     choiceRef.current = { documentEpoch: source.documentEpoch, target };
     if (!isOpen) {
@@ -197,7 +204,7 @@ export function useMapDataImportReader(options: MapDataImportOptions) {
     const input = event.currentTarget;
     const files = [...(input.files ?? [])];
     input.value = '';
-    if (files.length > 0) prepareFiles(files, choiceRef.current);
+    if (files.length > 0) prepareFiles(files, choiceRef.current, 'file');
   };
   const chooseImportFiles = useStableEvent(() => {
     choiceRef.current = { documentEpoch: getSource().documentEpoch, target: null };

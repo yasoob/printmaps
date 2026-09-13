@@ -1,4 +1,5 @@
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
+import { trackEditorAction } from "../../analytics/editorAnalytics";
 import {
   useRouteKeyboard,
   type RouteAuthoringParameters,
@@ -48,6 +49,7 @@ function useRouteCommitActions(
     core.setDraft(undoRouteSemanticDraft(core.currentDraft));
     core.requestTerraSync();
     if (hasHistory) {
+      trackEditorAction("routeDraftUndo");
       core.setAnnouncement("Undid the latest draft edit.");
     }
   }, [core]);
@@ -72,6 +74,7 @@ function useRouteCommitActions(
 
   const finish = useCallback(() => {
     if (!core.canFinish) return;
+    trackEditorAction("routeFinishRequested");
     if (core.lineShape === "road") {
       void commitRoad();
       return;
@@ -98,6 +101,7 @@ function useRouteCommitActions(
         core.isClosed,
       )
     ) return;
+    trackEditorAction("routePreviewRequested");
     const revision = core.currentDraft.revision;
     const mode = core.roadTravelMode;
     const input = await core.directions.resolve(core.commitPoints, core.options);
@@ -112,6 +116,7 @@ function useRouteCommitActions(
 
   const requestCancel = useCallback(
     (trigger: HTMLElement | null = null) => {
+      trackEditorAction("routeCancelRequested");
       if (!core.hasUnfinishedWork) {
         exit();
         return;
@@ -132,8 +137,23 @@ function useRouteCommitActions(
 
 export type RouteCommitActions = ReturnType<typeof useRouteCommitActions>;
 
+function useTerraDraftInput(core: RouteCoreState) {
+  const lastInput = useRef({ draft: core.currentDraft, count: core.currentPoints.length });
+  return useCallback((points: [number, number][]) => {
+    const previousCount = lastInput.current.draft === core.currentDraft
+      ? lastInput.current.count : core.currentPoints.length;
+    // Terra may emit both preview and finish before React commits a single added point.
+    lastInput.current = { draft: core.currentDraft, count: points.length };
+    if (points.length > previousCount) {
+      trackEditorAction("routeDraftPointAdded", { source: "map" });
+    }
+    core.editPoints(points, false);
+  }, [core]);
+}
+
 export function useCanvasRouteAuthoring(parameters: RouteAuthoringParameters) {
   const core = useRouteCoreState(parameters);
+  const updateTerraDraft = useTerraDraftInput(core);
   const commitActions = useRouteCommitActions(parameters, core);
   const inputActions = routeInputActions(parameters, core, commitActions.exit);
   useRouteKeyboard({
@@ -150,19 +170,23 @@ export function useCanvasRouteAuthoring(parameters: RouteAuthoringParameters) {
   const removePoint = useCallback((index: number) => {
     const minimum = core.extension ? (core.isClosed ? 3 : 2) : 0;
     if (core.currentPoints.length <= minimum) return;
-    core.editPoints(removeDraftPoint(core.currentPoints, index));
+    const next = removeDraftPoint(core.currentPoints, index);
+    if (!areDraftPointsEqual(next, core.currentPoints)) trackEditorAction("routeDraftPointRemoved");
+    core.editPoints(next);
     core.setAnnouncement(`Removed draft point ${index + 1}.`);
   }, [core]);
   const reorderPoint = useCallback((index: number, offset: -1 | 1) => {
     const nextIndex = index + offset;
     const next = moveDraftPoint(core.currentPoints, index, nextIndex);
     if (areDraftPointsEqual(next, core.currentPoints)) return;
+    trackEditorAction("routeDraftPointReordered");
     core.editPoints(next);
     core.setAnnouncement(
       `Moved draft point ${index + 1} ${offset < 0 ? "up" : "down"}.`,
     );
   }, [core]);
   const focusPoint = useCallback((index: number) => {
+    trackEditorAction("routeDraftPointFocused");
     core.setFocusRequest((current) => ({
       index,
       request: current.request + 1,
@@ -201,8 +225,8 @@ export function useCanvasRouteAuthoring(parameters: RouteAuthoringParameters) {
     terraAuthoring: {
       active: parameters.activeTool === "route" && !core.extension,
       lineShape: core.lineShape === "road" ? "straight" as const : core.lineShape,
-      onFinish: (points: [number, number][]) => core.editPoints(points, false),
-      onPreview: (points: [number, number][]) => core.editPoints(points, false),
+      onFinish: updateTerraDraft,
+      onPreview: updateTerraDraft,
       points: core.currentPoints,
       revision: core.terraSyncRevision,
       undoRequest: 0,

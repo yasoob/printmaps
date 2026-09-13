@@ -1,4 +1,5 @@
 import { useCallback, useLayoutEffect, useRef } from 'react';
+import { trackEditorAction } from '../../analytics/editorAnalytics';
 import type { PoiAddressReviewRow } from '../../domain/poiAddressReview';
 import { lookupPoiAddresses } from '../../services/poiAddressLookup';
 import type { SearchProvider } from '../../services/mapbox/contracts';
@@ -26,12 +27,17 @@ export function usePoiAddressLookup(options: {
   });
   const start = useStableEvent(async (rows: readonly PoiAddressReviewRow[]) => {
     stop();
+    trackEditorAction('poiAddressLookupStarted');
     if (!options.provider) {
+      trackEditorAction('poiAddressLookupFailed');
       options.update((draft) => ({ ...draft, errors: { ...draft.errors, addresses: 'Configure a Mapbox public token before looking up spreadsheet addresses.' } }));
       return;
     }
     const owner = { documentEpoch: options.documentEpoch, controller: new AbortController() };
     ownerRef.current = owner;
+    const onAbort = () => trackEditorAction('poiAddressLookupCancelled');
+    owner.controller.signal.addEventListener('abort', onAbort, { once: true });
+    let hasFailures = false;
     const ids = new Set(rows.map((row) => row.id));
     options.update((draft) => ({
       ...draft, addressView: 'review', announcement: null,
@@ -48,6 +54,7 @@ export function usePoiAddressLookup(options: {
         },
         onResult: (id, outcome) => {
           if (ownerRef.current !== owner) return;
+          if (outcome.error) hasFailures = true;
           options.update((draft) => ({
             ...draft,
             lookup: draft.lookup ? { ...draft.lookup, completed: draft.lookup.completed + 1 } : null,
@@ -59,9 +66,16 @@ export function usePoiAddressLookup(options: {
           }));
         },
       });
+      if (ownerRef.current === owner) {
+        trackEditorAction(hasFailures ? 'poiAddressLookupFailed' : 'poiAddressLookupCompleted');
+      }
     } catch (error) {
-      if (!owner.controller.signal.aborted) throw error;
+      if (!owner.controller.signal.aborted) {
+        trackEditorAction('poiAddressLookupFailed');
+        throw error;
+      }
     } finally {
+      owner.controller.signal.removeEventListener('abort', onAbort);
       if (ownerRef.current === owner) {
         ownerRef.current = null;
         options.update((draft) => ({ ...draft, lookup: null, announcement: { scope: 'addresses', message: 'Lookup finished. Review the matched locations before adding any POIs.' } }));

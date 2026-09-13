@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { trackEditorAction } from '../../analytics/editorAnalytics';
 import type { ProjectDocument } from '../../domain/project';
 import { projectAttributions } from '../../domain/projectAttributions';
 import { canStreamLargeRasterPng } from '../../export/largeRasterPng';
@@ -89,6 +90,8 @@ export function ExportDialog({ exporter, filename, document, onClose }: ExportDi
 
   const download = () => {
     if (!exporter?.createPrintTileRenderer) {
+      trackEditorAction('exportStarted', { format: 'png' });
+      trackEditorAction('exportFailed', { format: 'png' });
       setError('The live map preview is not ready yet. Wait for the map to load and try again.');
       return Promise.resolve();
     }
@@ -101,7 +104,9 @@ export function ExportDialog({ exporter, filename, document, onClose }: ExportDi
   };
 
   const downloadLayeredSvg = async () => {
+    trackEditorAction('exportStarted', { format: 'svg' });
     if (!exporter) {
+      trackEditorAction('exportFailed', { format: 'svg' });
       setError('The live map preview is not ready yet. Wait for the map to load and try again.');
       return;
     }
@@ -119,11 +124,14 @@ export function ExportDialog({ exporter, filename, document, onClose }: ExportDi
       const svg = await createLayeredSvg(document, source);
       if (controller.signal.aborted) throw new DOMException('Layered SVG export was cancelled.', 'AbortError');
       startLayeredSvgDownload(svg, filename);
+      trackEditorAction('exportCompleted', { format: 'svg' });
       setStatus('Download started for layered SVG.');
     } catch (error_) {
       if (controller.signal.aborted || (error_ instanceof DOMException && error_.name === 'AbortError')) {
+        trackEditorAction('exportCancelled', { format: 'svg' });
         setStatus('Export cancelled.');
       } else {
+        trackEditorAction('exportFailed', { format: 'svg' });
         setError(error_ instanceof Error ? error_.message : 'Layered SVG export failed.');
         setStatus('Export failed.');
       }
@@ -149,7 +157,10 @@ export function ExportDialog({ exporter, filename, document, onClose }: ExportDi
     setStatus,
   });
 
-  const changeFormat = (format: ExportFormat) => selectExportFormat(format, { isBusy: busy, setError, setFormat: setSelectedFormat, setStatus });
+  const changeFormat = (format: ExportFormat) => {
+    if (!busy && format !== selectedFormat) trackEditorAction('exportFormatSelected', { format });
+    selectExportFormat(format, { isBusy: busy, setError, setFormat: setSelectedFormat, setStatus });
+  };
   const downloadSelectedFormat = () => runSelectedExport(selectedFormat, {
     pdf: downloadPdf,
     png: () => void download(),

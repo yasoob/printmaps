@@ -1,4 +1,5 @@
 import type { ComponentProps } from "react";
+import { trackEditorAction } from "../../analytics/editorAnalytics";
 import type { RouteLineShape } from "../../domain/routeProfiles";
 import { createArcGeometry } from "../../domain/routeArcGeometry";
 import { snapRouteCoordinate } from "../../map/RouteSnapping";
@@ -71,6 +72,7 @@ export function routeInputActions(
       return false;
     }
     core.editPoints(editedPoints);
+    trackEditorAction("routeDraftPointAdded");
     core.setAnnouncement(
       snapped.label
         ? `Snapped route point to ${snapped.label}.`
@@ -85,6 +87,7 @@ export function routeInputActions(
       parameters.activeTool === "route" &&
       core.hasUnfinishedWork
     ) {
+      trackEditorAction("routeCancelRequested");
       core.setDiscardTrigger(
         document.activeElement instanceof HTMLElement
           ? document.activeElement
@@ -119,9 +122,16 @@ export function routeInputActions(
     }
     core.setError(null);
     core.setLineShape(shape);
+    const actions = {
+      straight: "routeStraightModeSelected",
+      arc: "routeArcModeSelected",
+      road: "routeRoadModeSelected",
+    } as const;
+    trackEditorAction(actions[shape]);
   };
 
   const discard = () => {
+    trackEditorAction("routeDraftDiscarded");
     const nextTool = core.toolAfterDiscard;
     core.setIsDiscardOpen(false);
     core.setToolAfterDiscard(null);
@@ -129,6 +139,7 @@ export function routeInputActions(
     return nextTool;
   };
   const keepEditing = () => {
+    trackEditorAction("routeDraftKept");
     core.setIsDiscardOpen(false);
     core.setToolAfterDiscard(null);
     window.setTimeout(() => core.discardTrigger?.focus(), 0);
@@ -172,6 +183,7 @@ export function routePanelProps(
     onFocusPoint: point.focusPoint,
     onLineShapeChange: input.changeLineShape,
     onRoadTravelModeChange: (mode) => {
+      if (mode !== core.roadTravelMode) trackEditorAction("routeDraftTravelModeChanged");
       core.directions.cancel();
       core.setRoadPreview(null);
       core.setRoadTravelMode(mode);
@@ -179,12 +191,18 @@ export function routePanelProps(
     onPreviewRoad: commit.preview,
     onRemovePoint: point.removePoint,
     onSnapChange: (isEnabled) => {
+      if (isEnabled !== core.isSnapEnabled) {
+        trackEditorAction("routeDraftSnappingChanged", { enabled: isEnabled });
+      }
       core.setIsSnapEnabled(isEnabled);
       core.setAnnouncement(
         `Route snapping ${isEnabled ? "enabled" : "disabled"}.`,
       );
     },
-    onTravelMarkerChange: core.setTravelMarker,
+    onTravelMarkerChange: (marker) => {
+      if (marker !== core.travelMarker) trackEditorAction("routeDraftTravelMarkerChanged");
+      core.setTravelMarker(marker);
+    },
     onMovePointDown: (index) => point.reorderPoint(index, 1),
     onMovePointUp: (index) => point.reorderPoint(index, -1),
     onUndo: () => {

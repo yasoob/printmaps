@@ -1,9 +1,19 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { panelTabStops } from '../../lib/focus';
+import { trackEditorAction } from '../../analytics/editorAnalytics';
 
 export type MobilePanel = 'layers' | 'properties';
 
 const MOBILE_VIEWPORT_QUERY = '(max-width: 899px)';
+
+function isMobileScreen() {
+  return typeof window.matchMedia === 'function' && window.matchMedia(MOBILE_VIEWPORT_QUERY).matches;
+}
+
+function trackPanelTransition(previous: MobilePanel | null, next: MobilePanel | null) {
+  if (previous) trackEditorAction(previous === 'layers' ? 'layersPanelClosed' : 'propertiesPanelClosed');
+  if (next) trackEditorAction(next === 'layers' ? 'layersPanelOpened' : 'propertiesPanelOpened');
+}
 
 function focusPanelEntry(elements: HTMLElement[]) {
   const focused = document.activeElement;
@@ -14,9 +24,7 @@ function focusPanelEntry(elements: HTMLElement[]) {
 
 export function useMobilePanels() {
   const [mobilePanel, setMobilePanel] = useState<MobilePanel | null>(null);
-  const [isMobileViewport, setIsMobileViewport] = useState(() => (
-    typeof window.matchMedia === 'function' && window.matchMedia(MOBILE_VIEWPORT_QUERY).matches
-  ));
+  const [isMobileViewport, setIsMobileViewport] = useState(isMobileScreen);
   const layersTriggerRef = useRef<HTMLButtonElement>(null);
   const propertiesTriggerRef = useRef<HTMLButtonElement>(null);
   const layersPanelRef = useRef<HTMLElement>(null);
@@ -56,6 +64,7 @@ export function useMobilePanels() {
       window.clearTimeout(focusTimerRef.current);
       focusTimerRef.current = null;
     }
+    trackPanelTransition(activePanelRef.current, null);
     setMobilePanel(null);
     if (shouldRestoreFocus && panel && isMobileViewportRef.current) {
       scheduleFocus(() => (panel === 'layers' ? layersTriggerRef.current : propertiesTriggerRef.current)?.focus(), 32);
@@ -68,6 +77,7 @@ export function useMobilePanels() {
       closePanel(panel);
       return;
     }
+    trackPanelTransition(activePanelRef.current, panel);
     setMobilePanel(panel);
     scheduleFocus(() => focusPanel(panel));
   }, [closePanel, focusPanel, scheduleFocus]);

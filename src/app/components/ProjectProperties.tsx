@@ -13,6 +13,7 @@ import { MapStyleCustomizer, MapStyleCustomizeTrigger } from './MapStyleCustomiz
 import { ValidatedNumberField } from './ValidatedNumberField';
 import type { ProjectMutationResult } from '../../domain/projectMutation';
 import { useMutationFeedback } from '../hooks/useMutationFeedback';
+import { trackEditorAction } from '../../analytics/editorAnalytics';
 
 /**
  * The inspector renders orientation controls only. Centre and zoom are excluded
@@ -98,6 +99,7 @@ export function ProjectProperties({
         preset={style.preset}
         onAdjustmentChange={onStyleAdjustmentChange}
         onBack={() => {
+          trackEditorAction('mapStyleCustomizerClosed');
           setHasReturnedFromStyle(true);
           setIsStyleCustomizerOpen(false);
           queueMicrotask(() => customizeTriggerRef.current?.focus());
@@ -128,7 +130,10 @@ export function ProjectProperties({
           buttonRef={customizeTriggerRef}
           customization={style.customization}
           preset={style.preset}
-          onOpen={() => setIsStyleCustomizerOpen(true)}
+          onOpen={() => {
+            trackEditorAction('mapStyleCustomizerOpened');
+            setIsStyleCustomizerOpen(true);
+          }}
         />
         <button
           className="map-style-default-reset"

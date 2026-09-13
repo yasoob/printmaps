@@ -6,6 +6,7 @@ import {
   useState,
 } from "react";
 import type { ContentLayer } from "../../domain/project";
+import { trackEditorAction } from "../../analytics/editorAnalytics";
 import type { ShapeAuthoringMode } from "./ShapeDrawingPanel";
 import {
   createIsochroneCenterLayer,
@@ -194,7 +195,10 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
     toolDocumentEpoch,
   });
   const fitPage = useCallback(
-    () => setFitRequest((request) => request + 1),
+    () => {
+      trackEditorAction("fitPageRequested");
+      setFitRequest((request) => request + 1);
+    },
     [],
   );
   useToolShortcuts({

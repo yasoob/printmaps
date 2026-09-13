@@ -1,4 +1,5 @@
 import ReactDOM from 'react-dom/client';
+import { trackEditorAction } from './analytics/editorAnalytics';
 import { App } from './app/App';
 import {
   createInitialProjectDocument,
@@ -29,4 +30,5 @@ export async function mountApp() {
       initialDocument={startup.document}
     />,
   );
+  trackEditorAction('editorOpened');
 }

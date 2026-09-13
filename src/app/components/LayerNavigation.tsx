@@ -2,6 +2,7 @@ import { DragOverlay } from '@dnd-kit/react';
 import { Search, X } from 'lucide-react';
 import { useId, useLayoutEffect, useRef, useState, type Dispatch, type KeyboardEvent, type ReactNode, type SetStateAction } from 'react';
 import type { ContentLayer } from '../../domain/project';
+import { trackEditorAction } from '../../analytics/editorAnalytics';
 import type { MobilePanel } from '../hooks/useMobilePanels';
 import { useLayerNavigation } from '../hooks/useLayerNavigation';
 import { LayerNavigationHeader } from './LayerNavigationHeader';
@@ -34,6 +35,7 @@ export function LayerNavigation(props: Props) {
   }, [searchOpen, inputRef]);
 
   const closeSearch = () => {
+    trackEditorAction('layerFilterClosed');
     changeQuery('');
     setSearchOpen(false);
     searchButtonRef.current?.focus();
@@ -49,7 +51,13 @@ export function LayerNavigation(props: Props) {
     <>
       <LayerNavigationHeader collapseButton={props.collapseButton} filterId={filterId}
         helpKey={`${activePanel}-${props.desktopCollapsed}`} searchOpen={searchOpen} searchButtonRef={searchButtonRef}
-        onToggleSearch={() => searchOpen ? closeSearch() : setSearchOpen(true)} onKeyDown={handleSearchEscape} />
+        onToggleSearch={() => {
+          if (searchOpen) closeSearch();
+          else {
+            trackEditorAction('layerFilterOpened');
+            setSearchOpen(true);
+          }
+        }} onKeyDown={handleSearchEscape} />
       <div className="layer-navigation" onKeyDown={handleSearchEscape}>
         <div id={filterId} className="layer-filter" hidden={!searchOpen}>
           <Search size={14} aria-hidden="true" />
@@ -69,6 +77,7 @@ export function LayerNavigation(props: Props) {
             }}
           />}
           {query && <button className="layer-filter-clear" type="button" aria-label="Clear layer filter" onClick={() => {
+            trackEditorAction('layerFilterCleared');
             changeQuery('');
             inputRef.current?.focus();
           }}><X size={14} aria-hidden="true" /></button>}

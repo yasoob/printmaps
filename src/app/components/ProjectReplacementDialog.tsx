@@ -1,4 +1,5 @@
 import { Download, TriangleAlert } from 'lucide-react';
+import { trackEditorAction } from '../../analytics/editorAnalytics';
 import { useEffect, useId, useRef, useState, type RefObject } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { StudioDialogActions, StudioDialogBody, StudioDialogButton, StudioDialogHeader, StudioDialogSection } from '@/components/ui/studio-dialog';
@@ -29,10 +30,13 @@ export function ProjectReplacementDialog({ title, intent = 'open', onKeepEditing
     if (downloadError) downloadErrorRef.current?.scrollIntoView?.({ block: 'nearest' });
   }, [downloadError]);
   const downloadCurrent = () => {
+    trackEditorAction('projectSaveStarted', { format: 'project' });
     try {
       downloadProjectDocument(store.getState().document);
+      trackEditorAction('projectSaveCompleted', { format: 'project' });
       setDownloadError(null);
     } catch (error) {
+      trackEditorAction('projectSaveFailed', { format: 'project' });
       setDownloadError(error instanceof Error ? error.message : 'The current project could not be downloaded.');
     }
   };
