@@ -40,7 +40,7 @@ export async function createVideoBrowserFixture() {
   const store = createProjectStore(project);
   const container = document.createElement('div');
   container.style.width = '600px';
-  container.style.height = `${600 * project.page.heightMm / project.page.widthMm}px`;
+  container.style.height = `${Math.round(600 * project.page.heightMm / project.page.widthMm)}px`;
   document.body.append(container);
   const map = new Map({
     container, style: { version: 8, sources: {}, layers: [{ id: 'background', type: 'background', paint: { 'background-color': '#d9ebf4' } }] },

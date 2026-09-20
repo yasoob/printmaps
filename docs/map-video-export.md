@@ -43,7 +43,9 @@ recording state, never a second document store or localStorage settings.
 before lazy-loading the video engine. The document and render snapshot are
 cloned at the recording boundary. `exportVideoDocument` then:
 
-1. Plans a bounded output and a poster-sized isolated MapLibre renderer.
+1. Plans a bounded output and an isolated MapLibre renderer with the original
+   CSS viewport and camera. Higher pixel density preserves the original
+   perspective, including pitched maps, before cropping the print frame.
 2. Reuses the canonical applied style, custom images, and content layers,
    retaining terrain/contour protocol resources for the renderer's lifetime.
 3. Animates only the temporary camera, draws the reusable studio composition
@@ -57,6 +59,11 @@ returns focus to its opener. Tracks, event handlers, temporary canvases,
 composition images, protocol references, and temporary map containers are
 released. Download object URLs use the shared bounded-lifetime download helper.
 
+The full offscreen viewport, not only the final crop, is limited to a 4096-pixel
+edge and 8,294,400 pixels. When preserving perspective would exceed that budget,
+enlarge the print frame in the editor or choose Standard quality. The exporter
+does not change the field of view or silently lower the requested resolution.
+
 ## Focused verification
 
 ```sh
@@ -65,10 +72,14 @@ npx vitest run tests/unit/video-plan.test.ts tests/unit/video-record.test.ts \
   tests/unit/video-map-capture.test.ts tests/unit/video-dialog.test.tsx
 PLAYWRIGHT_EDITOR_PORT=4196 npx playwright test \
   tests/e2e/video-export.spec.ts tests/e2e/video-composition.spec.ts \
-  tests/e2e/video-dialog.spec.ts --project=chromium --workers=1
+  tests/e2e/video-dialog.spec.ts tests/e2e/video-projection.spec.ts \
+  --project=chromium --workers=1
 ```
 
 The browser tests inspect a real downloaded MP4 and decoded dimensions/duration,
 verify shared composition pixels and unchanged canonical state/live camera,
 and exercise mobile cancellation and focus restoration. Browsers without MP4
 recording annotate the capability error instead of pretending to test encoding.
+The projection regression uses real public MapLibre maps at 0/30/60-degree pitch,
+checks all four frame corners and the center for centered and offset crops, and
+checks the initial frame before motion without moving the live renderer.

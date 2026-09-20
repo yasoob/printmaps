@@ -9,6 +9,7 @@ import { registerRoutePictogramImages } from '../map/RoutePictogramMapImages';
 import { requireVideoActive } from './abort';
 import type { VideoCamera } from './camera';
 import { prepareVideoMapImages } from './mapImages';
+import { createVideoFrameCrop, planVideoViewport } from './mapViewport';
 import type { VideoPlan, VideoRenderer } from './types';
 
 type MapFactory = (options: ConstructorParameters<typeof Map>[0]) => MapLibreMap;
@@ -62,11 +63,11 @@ export function videoSnapshotCamera(snapshot: MapRenderSnapshot, plan: VideoPlan
   if (Math.abs(frameAspect - posterAspect) / frameAspect > 0.005) {
     throw new Error('The print frame changed aspect ratio. Wait for the editor layout to settle and retry.');
   }
-  const zoom = snapshot.printCamera.zoom + Math.log2(plan.poster.width / snapshot.frame.width);
+  const { zoom, center, bearing, pitch } = snapshot.camera;
   if (!Number.isFinite(zoom) || zoom < -2 || zoom > 24) {
     throw new Error('The video camera exceeds the renderer zoom range. Reduce the map zoom or video quality.');
   }
-  return { ...snapshot.printCamera, center: [...snapshot.printCamera.center], zoom };
+  return { center: [...center], bearing, pitch, zoom };
 }
 
 export function createMapVideoSnapshot(
@@ -88,7 +89,8 @@ export function createMapVideoSnapshot(
   }
   const project = structuredClone(document);
   const camera = videoSnapshotCamera(snapshot, plan);
-  const pixelsPerMillimetre = plan.poster.width / project.page.widthMm;
+  const viewport = planVideoViewport(snapshot, plan);
+  const pixelsPerMillimetre = plan.poster.width / project.page.widthMm / viewport.pixelRatio;
   return {
     document: project,
     camera,
@@ -99,10 +101,11 @@ export function createMapVideoSnapshot(
       container.setAttribute('aria-hidden', 'true');
       container.dataset.videoExportRenderer = 'true';
       Object.assign(container.style, {
-        width: `${plan.poster.width}px`, height: `${plan.poster.height}px`,
+        width: `${viewport.width}px`, height: `${viewport.height}px`,
         position: 'fixed', left: '-100000px', top: '0', pointerEvents: 'none',
       });
       let map: MapLibreMap | undefined;
+      let crop: ReturnType<typeof createVideoFrameCrop> | undefined;
       let releaseResources: (() => void) | undefined;
       let isDisposed = false;
       let failure: Error | undefined;
@@ -120,12 +123,15 @@ export function createMapVideoSnapshot(
             releaseResources?.();
           } finally {
             images.dispose();
+            crop?.dispose();
             container.remove();
           }
         }
       };
       try {
         requireVideoActive(signal);
+        crop = createVideoFrameCrop(snapshot, plan, viewport);
+        const frameCrop = crop;
         const style = scaleNativeMapStyle(snapshot.style, pixelsPerMillimetre * 0.3);
         releaseResources = options.retainStyleResources?.(style);
         const deferred = deferCustomMarkerLayers(style);
@@ -134,8 +140,8 @@ export function createMapVideoSnapshot(
           container, style, center: [...camera.center], zoom: camera.zoom,
           bearing: camera.bearing, pitch: camera.pitch,
           interactive: false, attributionControl: false, fadeDuration: 0,
-          pixelRatio: 1, minZoom: -2, maxZoom: 24,
-          maxCanvasSize: [plan.poster.width, plan.poster.height],
+          pixelRatio: viewport.pixelRatio, minZoom: -2, maxZoom: 24,
+          maxCanvasSize: [Math.ceil(viewport.width * viewport.pixelRatio), Math.ceil(viewport.height * viewport.pixelRatio)],
           canvasContextAttributes: { preserveDrawingBuffer: true },
         });
         map.on('error', rememberFailure);
@@ -162,14 +168,7 @@ export function createMapVideoSnapshot(
             });
             requireVideoActive(frameSignal);
             if (failure) throw failure;
-            const canvas = activeMap.getCanvas();
-            if (canvas.width !== plan.poster.width || canvas.height !== plan.poster.height) {
-              throw new Error('The video renderer could not allocate the requested frame size. Try Standard quality.');
-            }
-            return {
-              canvas, camera: nextCamera,
-              project: (coordinate) => activeMap.project([coordinate[0], coordinate[1]]),
-            };
+            return frameCrop.draw(activeMap, nextCamera);
           },
         };
       } catch (error) {

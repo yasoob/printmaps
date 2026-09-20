@@ -4,6 +4,14 @@ import type { MapRenderSnapshot } from '../../src/map/MapRenderSnapshot';
 import { createMapVideoSnapshot, videoSnapshotCamera } from '../../src/video/mapCapture';
 import { planVideoExport } from '../../src/video/plan';
 import type { VideoCamera } from '../../src/video/camera';
+import { planVideoViewport } from '../../src/video/mapViewport';
+
+beforeEach(() => {
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+    clearRect: vi.fn(), drawImage: vi.fn(),
+  } as unknown as CanvasRenderingContext2D);
+});
+afterEach(() => vi.restoreAllMocks());
 
 function snapshot(): MapRenderSnapshot {
   return {
@@ -23,8 +31,9 @@ function setup() {
   const plan = planVideoExport({ motion: 'orbit', durationSeconds: 5, fps: 30, aspect: 'page', quality: 'standard' }, document.page);
   const handlers = new Map<string, Set<(event?: unknown) => void>>();
   const canvas = window.document.createElement('canvas');
-  canvas.width = plan.poster.width;
-  canvas.height = plan.poster.height;
+  const viewport = planVideoViewport(source, plan);
+  canvas.width = viewport.canvasWidth;
+  canvas.height = viewport.canvasHeight;
   let currentCamera: VideoCamera = videoSnapshotCamera(source, plan);
   const on = (event: string, handler: (event?: unknown) => void) => {
     const listeners = handlers.get(event) ?? new Set();
@@ -69,14 +78,19 @@ describe('isolated video renderer', () => {
     const expectedLayer = expect.objectContaining({ id: 'background' });
     const expectedStyle = expect.objectContaining({ layers: [expectedLayer] });
     expect(test.createMap).toHaveBeenCalledWith(expect.objectContaining({
-      interactive: false, attributionControl: false, pixelRatio: 1,
+      interactive: false, attributionControl: false, pixelRatio: planVideoViewport(test.source, test.plan).pixelRatio,
       style: expectedStyle,
     }));
-    expect(frame.project([0, 0])).toEqual({ x: 30, y: 40 });
+    expect(frame.project([0, 0])).toEqual({
+      x: 30 / test.source.frame.width * test.plan.poster.width,
+      y: 40 / test.source.frame.height * test.plan.poster.height,
+    });
+    expect(capture.camera).toEqual(test.source.printCamera);
     expect(test.document).toEqual(before);
     expect(window.document.querySelectorAll('[data-video-export-renderer]')).toHaveLength(1);
     renderer.dispose();
     renderer.dispose();
+    expect(frame.canvas).toMatchObject({ width: 0, height: 0 });
     expect(test.remove).toHaveBeenCalledOnce();
     expect(release).toHaveBeenCalledOnce();
     expect(test.remove.mock.invocationCallOrder[0]).toBeLessThan(release.mock.invocationCallOrder[0]);
@@ -89,6 +103,39 @@ describe('isolated video renderer', () => {
     expect(() => videoSnapshotCamera({ ...test.source, frame: { ...test.source.frame, width: 100 } }, test.plan)).toThrow('aspect');
     test.source.style.sources.contours = { type: 'vector', tiles: ['pms-contours://dem/{z}/{x}/{y}'] };
     expect(() => createMapVideoSnapshot(test.source, test.document, test.plan)).toThrow('contour resources');
+  });
+
+  it('bounds the complete perspective-preserving viewport, not only the cropped output', () => {
+    const test = setup();
+    expect(() => planVideoViewport({ ...test.source, viewport: { width: 2000, height: 2000 } }, test.plan)).toThrow('viewport budget');
+    expect(() => planVideoViewport({ ...test.source, viewport: { width: 3000, height: 800 } }, test.plan)).toThrow('viewport budget');
+    expect(() => planVideoViewport({ ...test.source, frame: { ...test.source.frame, x: 10 } }, test.plan)).toThrow('outside');
+  });
+
+  it('crops the backing viewport and offsets the composition projector into the poster', async () => {
+    const test = setup();
+    const source = {
+      ...test.source,
+      viewport: { width: 1000, height: 800 },
+      frame: { x: 35, y: 240, width: 700, height: 495 },
+    };
+    const viewport = planVideoViewport(source, test.plan);
+    const sourceCanvas = test.map.getCanvas();
+    sourceCanvas.width = viewport.canvasWidth;
+    sourceCanvas.height = viewport.canvasHeight;
+    test.map.project = () => ({ x: 385, y: 487.5 }) as ReturnType<MapLibreMap['project']>;
+    const capture = createMapVideoSnapshot(source, test.document, test.plan, { createMap: test.createMap });
+    const signal = new AbortController().signal;
+    const renderer = await capture.createRenderer(signal);
+    const frame = await renderer.render(capture.camera, signal);
+    expect(frame.canvas.getContext('2d')?.drawImage).toHaveBeenCalledWith(
+      sourceCanvas,
+      35 * viewport.canvasWidth / 1000, 240 * viewport.canvasHeight / 800,
+      700 * viewport.canvasWidth / 1000, 495 * viewport.canvasHeight / 800,
+      0, 0, test.plan.poster.width, test.plan.poster.height,
+    );
+    expect(frame.project([0, 0])).toEqual({ x: test.plan.poster.width / 2, y: test.plan.poster.height / 2 });
+    renderer.dispose();
   });
 
   it('cleans up a load failure and releases resources', async () => {
