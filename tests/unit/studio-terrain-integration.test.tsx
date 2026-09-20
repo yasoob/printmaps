@@ -10,8 +10,8 @@ it('routes terrain controls through the canonical undoable project document', as
   const user = userEvent.setup();
   const store = createProjectStore(createInitialProjectDocument());
   const originalStudio = store.getState().document.studio;
-  render(<ProjectStoreContext value={store}><StudioTerrainControls exporter={null} /></ProjectStoreContext>);
-  await user.click(screen.getByRole('button', { name: 'Terrain & 3D relief' }));
+  render(<ProjectStoreContext value={store}><StudioTerrainControls /></ProjectStoreContext>);
+  await user.click(screen.getByRole('button', { name: 'Terrain' }));
   await user.click(screen.getByRole('checkbox', { name: 'Show 3D terrain' }));
   expect(store.getState().document.studio.terrain.enabled).toBe(true);
   expect(store.getState().document.studio.photos).toBe(originalStudio.photos);
@@ -21,12 +21,12 @@ it('routes terrain controls through the canonical undoable project document', as
   expect(store.getState().document.studio.terrain.enabled).toBe(false);
 });
 
-it('blocks new relief exports without creating a second source of feature state', async () => {
+it('keeps the terrain inspector content-only without creating feature state through navigation', async () => {
   localStorage.clear();
   const user = userEvent.setup();
   const store = createProjectStore(createInitialProjectDocument());
-  render(<ProjectStoreContext value={store}><StudioTerrainControls exporter={null} blockedReason="Finish the drawing." /></ProjectStoreContext>);
-  await user.click(screen.getByRole('button', { name: 'Terrain & 3D relief' }));
-  expect(screen.getByRole('button', { name: 'Export 3D terrain STL' })).toBeDisabled();
+  render(<ProjectStoreContext value={store}><StudioTerrainControls /></ProjectStoreContext>);
+  await user.click(screen.getByRole('button', { name: 'Terrain' }));
+  expect(screen.queryByRole('button', { name: /Export/ })).not.toBeInTheDocument();
   expect(store.getState().past).toHaveLength(0);
 });

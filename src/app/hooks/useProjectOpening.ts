@@ -6,7 +6,7 @@ import { useProjectStoreApi } from '../projectStoreContext';
 
 export type ProjectOpeningIntent = 'open' | 'new';
 
-export function useProjectOpening(documentEpoch: number, onOpened: () => void) {
+export function useProjectOpening(documentEpoch: number, onOpened: (document: ProjectDocument) => void) {
   const store = useProjectStoreApi();
   const requestId = useRef(0);
   const activeOpening = useRef<{ documentEpoch: number; intent: ProjectOpeningIntent } | null>(null);
@@ -34,7 +34,7 @@ export function useProjectOpening(documentEpoch: number, onOpened: () => void) {
     setPending(null);
     state.openDocument(document);
     trackEditorAction(intent === 'new' ? 'newProjectCompleted' : 'projectOpenCompleted');
-    onOpened();
+    onOpened(document);
   }, [cancelOpening, onOpened, store]);
   const keepEditing = useCallback(() => {
     cancelOpening();
@@ -47,7 +47,7 @@ export function useProjectOpening(documentEpoch: number, onOpened: () => void) {
     store.getState().openDocument(pending.document);
     trackEditorAction(pending.intent === 'new' ? 'newProjectCompleted' : 'projectOpenCompleted');
     setPending(null);
-    onOpened();
+    onOpened(pending.document);
   }, [onOpened, pending, store]);
   return {
     open, pendingDocument: currentRequest?.document ?? null, pendingRequestId: currentRequest?.requestId,

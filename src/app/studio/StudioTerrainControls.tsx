@@ -1,26 +1,15 @@
 import { memo, useCallback } from 'react';
-import type { ReliefSettings, TerrainSettings } from '../../domain/studio';
-import type { PreviewPngExporter } from '../../export/previewPng';
+import type { TerrainSettings } from '../../domain/studio';
 import { TerrainProperties } from '../components/TerrainProperties';
 import { useProject, useProjectActions } from '../projectStoreContext';
 
-export const StudioTerrainControls = memo(function StudioTerrainControls({ exporter, blockedReason }: {
-  exporter?: PreviewPngExporter | null;
-  blockedReason?: string;
-}) {
+export const StudioTerrainControls = memo(function StudioTerrainControls() {
   const terrain = useProject((state) => state.document.studio.terrain);
-  const relief = useProject((state) => state.document.studio.relief);
   const documentEpoch = useProject((state) => state.documentEpoch);
   const { setStudioSection } = useProjectActions();
   const onTerrainChange = useCallback(
     (value: TerrainSettings) => setStudioSection('terrain', value),
     [setStudioSection],
   );
-  const onReliefChange = useCallback(
-    (value: ReliefSettings) => setStudioSection('relief', value),
-    [setStudioSection],
-  );
-  return <TerrainProperties terrain={terrain} relief={relief}
-    documentEpoch={documentEpoch} exporter={exporter} blockedReason={blockedReason}
-    onTerrainChange={onTerrainChange} onReliefChange={onReliefChange} />;
+  return <TerrainProperties terrain={terrain} documentEpoch={documentEpoch} onTerrainChange={onTerrainChange} />;
 });

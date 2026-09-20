@@ -1053,6 +1053,15 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 
 .properties-title { @apply relative flex items-center justify-between py-2 pl-4 pr-3; min-height: 3.75rem; }
 .properties-title h2 { @apply m-0 text-sm font-semibold; }
+.inspector-tabs { padding: 0 16px 12px; }
+.inspector-back { display: flex; align-items: center; gap: 8px; min-height: var(--studio-control-height); padding: 8px; margin: 8px; border-radius: var(--studio-radius-md); color: var(--studio-text-secondary); font-size: var(--studio-font-label); }
+.inspector-back:hover { color: var(--studio-text); background: var(--studio-hover); }
+.inspector-layout-entry { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: calc(100% - 32px); min-height: var(--studio-control-height); margin: 0 16px 8px; padding: 8px; border-radius: var(--studio-radius-md); font-size: var(--studio-font-label); color: var(--studio-text-secondary); }
+.inspector-layout-entry:hover { color: var(--studio-text); background: var(--studio-hover); }
+.inspector-notice { margin: 8px 16px; font-size: var(--studio-font-label); line-height: 1.5; }
+@media (max-width: 760px), (pointer: coarse) {
+  .inspector-back, .inspector-layout-entry { min-height: 44px; }
+}
 .inspector-accordion { border-top: 0; }
 .inspector-accordion + .inspector-accordion { margin-top: 0.125rem; }
 .inspector-accordion h3 { @apply m-0; }

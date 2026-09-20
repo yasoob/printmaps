@@ -33,7 +33,7 @@ it('renders default-off controls and sends complete canonical terrain values wit
   const onTerrainChange = vi.fn(() => ({ ok: true as const }));
   const props = { documentEpoch: 1, terrain: studio.terrain, relief: studio.relief, layers: [], exporter: null, onTerrainChange, onReliefChange: vi.fn(() => ({ ok: true as const })) };
   const view = render(<TerrainProperties {...props} />);
-  fireEvent.click(screen.getByRole('button', { name: 'Terrain & 3D relief' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Terrain' }));
   const terrainToggle = screen.getByRole('checkbox', { name: 'Show 3D terrain' });
   expect(terrainToggle).not.toBeChecked();
   fireEvent.click(terrainToggle);

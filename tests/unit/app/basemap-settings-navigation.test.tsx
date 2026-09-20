@@ -10,11 +10,10 @@ it('offers a clear path from basemap metadata to the canonical map design contro
   render(<App autosaveRepository={null} />);
   await user.click(screen.getByRole('button', { name: 'Select Paper basemap' }));
   expect(screen.getByRole('textbox', { name: 'Layer name' })).toHaveValue('Paper basemap');
-  await user.click(screen.getByRole('button', { name: 'Map design settings' }));
+  await user.click(screen.getByRole('button', { name: 'Project settings' }));
   expect(screen.getByRole('heading', { name: 'Project' })).toHaveFocus();
   expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
-  await user.click(screen.getByRole('button', { name: 'Map style' }));
   expect(screen.getByRole('radiogroup', { name: 'Map style presets' })).toBeInTheDocument();
   expect(screen.getByRole('combobox', { name: 'Map language' })).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Map details' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Labels & details' })).toBeInTheDocument();
 });

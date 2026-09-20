@@ -1,4 +1,4 @@
-import { ChevronDown, Download, FilePlus2, FolderKanban, FolderOpen } from 'lucide-react';
+import { ChevronDown, Download, FilePlus2, FolderKanban, FolderOpen, LayoutTemplate } from 'lucide-react';
 import { trackEditorAction } from '../../analytics/editorAnalytics';
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import {
@@ -25,6 +25,7 @@ type ProjectFileActionsProps = {
   getDocument: () => ProjectDocument;
   openButtonRef?: RefObject<HTMLButtonElement | null>;
   onOpen: (document: ProjectDocument, intent?: ProjectOpeningIntent) => void;
+  onNewFromTemplate?: () => void;
 };
 
 async function parseOpenedProject(file: File, signal: AbortSignal) {
@@ -52,7 +53,15 @@ function trackProjectRead(controller: AbortController) {
   return () => controller.signal.removeEventListener('abort', onAbort);
 }
 
-export function ProjectFileActions({ children, getDocument, menuHeader, openButtonRef, onOpen }: ProjectFileActionsProps) {
+function projectMenuTrigger(triggerRef: RefObject<HTMLButtonElement | null>, isOpen: boolean, onOpen: () => void) {
+  return <DropdownMenuTrigger render={
+    <button ref={triggerRef} className="quiet-button" type="button" onMouseDown={() => { if (!isOpen) onOpen(); }}>
+      <FolderKanban aria-hidden="true" size={14} strokeWidth={1.8} /><span>Project</span><ChevronDown aria-hidden="true" size={12} strokeWidth={1.8} />
+    </button>
+  } />;
+}
+
+export function ProjectFileActions({ children, getDocument, menuHeader, openButtonRef, onOpen, onNewFromTemplate }: ProjectFileActionsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [status, setStatus] = useState<ProjectFileStatus | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -144,23 +153,21 @@ export function ProjectFileActions({ children, getDocument, menuHeader, openButt
           if (open) menuRef.current?.querySelector<HTMLElement>('[role="menuitem"]:not([data-disabled])')?.focus();
         }}
       >
-        <DropdownMenuTrigger
-          render={(
-            <button
-              ref={triggerRef}
-              className="quiet-button"
-              type="button"
-              onMouseDown={() => { if (!isOpen) setIsOpen(true); }}
-            >
-              <FolderKanban aria-hidden="true" size={14} strokeWidth={1.8} /><span>Project</span><ChevronDown aria-hidden="true" size={12} strokeWidth={1.8} />
-            </button>
-          )}
-        />
+        {projectMenuTrigger(triggerRef, isOpen, () => setIsOpen(true))}
         <DropdownMenuContent ref={menuRef} className="project-file-menu" align="end" aria-label="Project actions" aria-labelledby="">
           {menuHeader}
           <DropdownMenuItem className="project-file-menu-item" onClick={newProject}>
             <FilePlus2 aria-hidden="true" size={15} /> New project
           </DropdownMenuItem>
+          {onNewFromTemplate && <DropdownMenuItem className="project-file-menu-item" onClick={() => {
+            readSequence.current += 1;
+            readController.current?.abort();
+            setStatus(null);
+            setIsOpen(false);
+            onNewFromTemplate();
+          }}>
+            <LayoutTemplate aria-hidden="true" size={15} /> New from template
+          </DropdownMenuItem>}
           <DropdownMenuItem className="project-file-menu-item" onClick={() => inputRef.current?.click()}>
             <FolderOpen aria-hidden="true" size={15} /> Open project
           </DropdownMenuItem>

@@ -36,6 +36,7 @@ it('keeps field actions stable while reading current settings and reporting the 
 it('preserves canonical validation, sibling values and history across repeated poster field edits and undo', () => {
   const store = createProjectStore(createInitialProjectDocument());
   render(<ProjectStoreContext value={store}><StudioCompositionControls exporter={null} /></ProjectStoreContext>);
+  fireEvent.click(screen.getByRole('button', { name: 'Text' }));
   const before = store.getState().document.studio.poster;
   const title = screen.getByLabelText('Title text');
   fireEvent.change(title, { target: { value: 'A first title' } });

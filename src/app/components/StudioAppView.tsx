@@ -21,6 +21,7 @@ import { PropertiesSidebar } from "./PropertiesSidebar";
 import { StudioHeader } from "./StudioHeader";
 import { ProjectRenameDialog } from "./ProjectRenameDialog";
 import { ProjectReplacementDialog } from "./ProjectReplacementDialog";
+import { NewProjectTemplateDialog } from "../studio/NewProjectTemplateDialog";
 
 const defaultSearchProvider = createMapboxSearchProvider({
   token: import.meta.env.VITE_MAPBOX_PUBLIC_ACCESS,
@@ -99,6 +100,7 @@ function StudioProperties({ m }: { m: StudioAppModel }) {
     : null;
   return (
     <PropertiesSidebar
+      layoutRequest={m.layoutRequest}
       studioBlockedReason={m.isAuthoring ? 'Finish or cancel the current drawing before exporting.'
         : (m.isAutosaveCorrupted ? 'Resolve the damaged draft before exporting.' : undefined)}
       selectedLayerId={m.selectedLayer?.id ?? null}
@@ -182,6 +184,7 @@ export function StudioAppView({ model: m }: { model: StudioAppModel }) {
           inert={m.modal.mobilePanel !== null}
           isMobileViewport={m.mobile.isMobileViewport}
           onOpen={m.handleOpenedDocument}
+          onNewFromTemplate={m.openTemplateGallery}
           onImport={m.mapDataImport.handleImportedLayers}
           onImportOpenChange={m.mapDataImport.setIsImportOpen}
           onExport={m.openExport}
@@ -194,6 +197,7 @@ export function StudioAppView({ model: m }: { model: StudioAppModel }) {
       </main>
       {m.modal.surface === "export" && <ExportDialogSurface onClose={m.modal.closeExport} />}
       {m.modal.surface === "rename" && <ProjectRenameDialog onClose={m.modal.closeRename} returnFocusRef={m.openButtonRef} />}
+      {m.modal.surface === "templates" && <NewProjectTemplateDialog onClose={m.closeTemplateGallery} onSelect={m.createFromTemplate} returnFocusRef={m.openButtonRef} />}
       {m.modal.surface === "project-open" && m.projectOpening.pendingDocument && (
         <ProjectReplacementDialog
           key={m.projectOpening.pendingRequestId}

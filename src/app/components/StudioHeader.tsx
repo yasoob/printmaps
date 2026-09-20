@@ -33,6 +33,7 @@ type StudioHeaderProps = {
   inert: boolean;
   isMobileViewport: boolean;
   onOpen: (document: ProjectDocument, intent?: ProjectOpeningIntent) => void;
+  onNewFromTemplate?: () => void;
   onImport: (commit: MapDataImportCommit) => ProjectMutationResult;
   onImportOpenChange: (isOpen: boolean) => void;
   onExport: () => void;
@@ -115,6 +116,7 @@ export const StudioHeader = memo(function StudioHeader({
   inert,
   isMobileViewport,
   onOpen,
+  onNewFromTemplate,
   onImport,
   onImportOpenChange,
   onExport,
@@ -137,6 +139,7 @@ export const StudioHeader = memo(function StudioHeader({
           menuHeader={isMobileViewport ? <ProjectIdentityMenu onRename={onRenameProject} /> : undefined}
           openButtonRef={projectMenuRef}
           onOpen={onOpen}
+          onNewFromTemplate={onNewFromTemplate}
         >
           <DropdownMenuItem
             className="project-file-menu-item"

@@ -2,13 +2,14 @@ import { useCallback, useState, type Dispatch, type RefObject, type SetStateActi
 import type { MobilePanel, useMobilePanels } from './useMobilePanels';
 
 type MobilePanels = ReturnType<typeof useMobilePanels>;
-type ModalSurface = 'export' | 'import' | 'rename' | 'project-open' | 'autosave-conflict' | MobilePanel | null;
+type ModalSurface = 'export' | 'import' | 'rename' | 'templates' | 'project-open' | 'autosave-conflict' | MobilePanel | null;
 
 type ModalSurfaceOptions = {
   exportButtonRef: RefObject<HTMLButtonElement | null>;
   exportOpen: boolean;
   importOpen: boolean;
   projectOpen: boolean;
+  templatesOpen?: boolean;
   autosaveConflictOpen: boolean;
   mobile: MobilePanels;
   setExportOpen: Dispatch<SetStateAction<boolean>>;
@@ -33,6 +34,7 @@ export function useModalSurfaces({
   exportOpen,
   importOpen,
   projectOpen,
+  templatesOpen = false,
   autosaveConflictOpen,
   mobile,
   setExportOpen,
@@ -40,9 +42,10 @@ export function useModalSurfaces({
   const [renameOpen, setRenameOpen] = useState(false);
   const openRename = useCallback(() => setRenameOpen(true), []);
   const closeRename = useCallback(() => setRenameOpen(false), []);
-  const surface: ModalSurface = autosaveConflictOpen
-    ? 'autosave-conflict' : (projectOpen
-      ? 'project-open' : activeSurface(importOpen, exportOpen, renameOpen, mobile.activePanel));
+  let surface: ModalSurface = activeSurface(importOpen, exportOpen, renameOpen, mobile.activePanel);
+  if (templatesOpen) surface = 'templates';
+  if (projectOpen) surface = 'project-open';
+  if (autosaveConflictOpen) surface = 'autosave-conflict';
   const mobilePanel = surface === 'layers' || surface === 'properties' ? surface : null;
 
   const closeExport = useCallback((shouldRestoreFocus = true) => {

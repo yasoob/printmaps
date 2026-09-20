@@ -1,5 +1,5 @@
 import { ChevronRight } from 'lucide-react';
-import { useId, useState } from 'react';
+import { Activity, useId, useState } from 'react';
 import { trackEditorAction } from '../../analytics/editorAnalytics';
 
 export function PropertySection({ title, children }: { title: string; children: React.ReactNode }) {
@@ -30,10 +30,12 @@ export function InspectorAccordion({ children, isDefaultExpanded, storageKey, su
   const labelId = `${contentId}-label`;
   const summaryId = `${contentId}-summary`;
   const [isExpanded, setIsExpanded] = useState(() => readDisclosurePreference(storageKey, isDefaultExpanded));
+  const [hasExpanded, setHasExpanded] = useState(isExpanded);
   const toggle = () => {
     const isNextExpanded = !isExpanded;
     trackEditorAction('inspectorSectionToggled', { enabled: isNextExpanded });
     setIsExpanded(isNextExpanded);
+    if (isNextExpanded) setHasExpanded(true);
     try {
       globalThis.localStorage?.setItem(storageKey, isNextExpanded ? 'open' : 'closed');
     } catch {
@@ -51,7 +53,7 @@ export function InspectorAccordion({ children, isDefaultExpanded, storageKey, su
         </button>
       </h3>
       <div id={contentId} className="inspector-accordion-content" hidden={!isExpanded}>
-        {isExpanded ? children : null}
+        {hasExpanded && <Activity mode={isExpanded ? 'visible' : 'hidden'}>{children}</Activity>}
       </div>
     </section>
   );

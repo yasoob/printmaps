@@ -11,11 +11,16 @@ function mercatorY(latitude: number): number {
   return (1 - Math.log(Math.tan(Math.PI / 4 + radians / 2)) / Math.PI) / 2;
 }
 
+function silhouettePoster(document: StudioCompositionDocument, area: AdministrativeArea, shouldPreserveLayout = false) {
+  return shouldPreserveLayout ? { ...document.studio.poster }
+    : posterTemplateSettings('silhouette', area.name, area.level === 'country' ? 'A place in the world' : 'A closer look');
+}
+
 export function createSilhouetteApplication(
   document: StudioCompositionDocument,
   area: AdministrativeArea,
   frame: StudioBox,
-  viewport: Readonly<{ width: number; height: number }>,
+  viewport: Readonly<{ width: number; height: number; preserveLayout?: boolean }>,
 ): StudioTemplateApplication & { silhouette: ContentLayer } {
   if (document.camera.locked) throw new Error('Unlock the map area before fitting a country or region poster.');
   if (frame.width <= 0 || frame.height <= 0 || viewport.width <= 0 || viewport.height <= 0) {
@@ -23,7 +28,7 @@ export function createSilhouetteApplication(
   }
   const appearance = createDefaultLayerAppearance('shape');
   if (appearance?.kind !== 'shape') throw new Error('The shape appearance is unavailable.');
-  const poster = posterTemplateSettings('silhouette', area.name, area.level === 'country' ? 'A place in the world' : 'A closer look');
+  const poster = silhouettePoster(document, area, viewport.preserveLayout);
   const silhouette: ContentLayer = {
     id: `silhouette-${crypto.randomUUID()}`, name: `${area.name} silhouette`, type: 'shape',
     visible: true, locked: false, opacity: 100, geometry: structuredClone(area.geometry),

@@ -1,6 +1,5 @@
-import { SlidersHorizontal, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { memo, useCallback, useLayoutEffect, useMemo, useRef, type Dispatch, type RefObject, type SetStateAction } from 'react';
+import { ArrowLeft, X } from 'lucide-react';
+import { Activity, memo, useCallback, useLayoutEffect, useMemo, useRef, type Dispatch, type RefObject, type SetStateAction } from 'react';
 import type { ContentLayer } from '../../domain/project';
 import type { DirectionsProvider, MapMatchingProvider } from '../../services/mapbox/contracts';
 import type { MobilePanel } from '../hooks/useMobilePanels';
@@ -12,11 +11,11 @@ import { useLatestValue } from '../hooks/useLatestValue';
 import type { PreviewPngExporter } from '../../export/previewPng';
 import { StudioTerrainControls } from '../studio/StudioTerrainControls';
 import { StudioCompositionControls } from '../studio/StudioCompositionControls';
-import { StudioVideoControls } from '../studio/StudioVideoControls';
 
 type PropertiesSidebarProps = {
   exporter?: PreviewPngExporter | null;
   studioBlockedReason?: string;
+  layoutRequest?: number;
   selectedLayerId: string | null;
   mapMatchingProvider?: MapMatchingProvider;
   directionsProvider?: DirectionsProvider;
@@ -65,7 +64,7 @@ const SelectedLayerProperties = memo(function SelectedLayerProperties({
   const setLayerAppearance = project.setLayerAppearance;
   const openProjectSettings = useCallback(() => {
     selectLayer(null);
-    queueMicrotask(() => panelRef.current?.querySelector<HTMLElement>('[data-project-heading]')?.focus());
+    window.setTimeout(() => panelRef.current?.querySelector<HTMLElement>('[data-project-heading]')?.focus(), 0);
   }, [panelRef, selectLayer]);
   const changeAppearance = useCallback(
     (appearance: Parameters<typeof setLayerAppearance>[1]) => {
@@ -101,6 +100,9 @@ const SelectedLayerProperties = memo(function SelectedLayerProperties({
   if (!selectedLayer) return null;
   return (
     <>
+    <button className="inspector-back" type="button" onClick={openProjectSettings}>
+      <ArrowLeft aria-hidden="true" size={16} /> Project settings
+    </button>
     <LayerProperties
       layer={selectedLayer}
       assets={assets}
@@ -141,13 +143,6 @@ const SelectedLayerProperties = memo(function SelectedLayerProperties({
       onDuplicate={duplicateSelected}
       onDelete={onDeleteSelected}
     />
-    {selectedLayer.type === 'basemap' && (
-      <div className="map-settings-navigation">
-        <Button variant="outline" onClick={openProjectSettings}>
-          <SlidersHorizontal aria-hidden="true" size={16} /> Map design settings
-        </Button>
-      </div>
-    )}
     </>
   );
 });
@@ -163,7 +158,10 @@ export const PropertiesSidebar = memo(function PropertiesSidebar(props: Properti
             props={props}
             selectedLayerId={selectedLayerId}
           />
-        ) : <ProjectPropertiesPanel onLocate={onLocate} exporter={props.exporter} blockedReason={props.studioBlockedReason} />}
+        ) : null}
+        <Activity mode={selectedLayerId ? 'hidden' : 'visible'}>
+          <ProjectPropertiesPanel onLocate={onLocate} exporter={props.exporter} blockedReason={props.studioBlockedReason} layoutRequest={props.layoutRequest} />
+        </Activity>
       </div>
     </aside>
   );
@@ -174,15 +172,15 @@ export const PropertiesSidebar = memo(function PropertiesSidebar(props: Properti
  * are rendered here, but panning writes centre and zoom at pointer rate; keeping
  * this subscription narrow stops those writes from re-rendering the inspector.
  */
-const ProjectPropertiesPanel = memo(function ProjectPropertiesPanel({ onLocate, exporter, blockedReason }: {
+const ProjectPropertiesPanel = memo(function ProjectPropertiesPanel({ onLocate, exporter, blockedReason, layoutRequest }: {
   onLocate: (coordinate: [number, number], onApplied: () => void) => void;
   exporter?: PreviewPngExporter | null;
   blockedReason?: string;
+  layoutRequest?: number;
 }) {
   const project = useProjectActions();
   const documentEpoch = useProject((state) => state.documentEpoch);
   const style = useProject((state) => state.document.style);
-  const page = useProject((state) => state.document.page);
   const pageBoundaryVisible = useProject((state) => state.pageBoundaryVisible);
   const bearing = useProject((state) => state.document.camera.bearing);
   const pitch = useProject((state) => state.document.camera.pitch);
@@ -194,26 +192,20 @@ const ProjectPropertiesPanel = memo(function ProjectPropertiesPanel({ onLocate, 
 
   return (
     <ProjectProperties
-      terrainControls={<StudioTerrainControls exporter={exporter} blockedReason={blockedReason} />}
-      studioControls={<>
-        <StudioCompositionControls exporter={exporter} blockedReason={blockedReason} />
-        <StudioVideoControls exporter={exporter} blockedReason={blockedReason} />
-      </>}
+      layoutRequest={layoutRequest}
+      terrainControls={<StudioTerrainControls />}
+      studioControls={<StudioCompositionControls exporter={exporter} blockedReason={blockedReason} />}
       camera={camera}
       documentEpoch={documentEpoch}
       style={style}
-      page={page}
       pageBoundaryVisible={pageBoundaryVisible}
       onBearingChange={project.setCameraBearing}
-      onDimensionChange={project.setPageDimension}
       onFeatureVisibilityChange={project.setMapFeatureVisibility}
       onLanguageChange={project.setMapLanguage}
       onLocate={onLocate}
       onMapAreaLockChange={project.setMapAreaLocked}
       onPageBoundaryVisibilityChange={project.setPageBoundaryVisible}
-      onOrientationChange={project.setPageOrientation}
       onPitchChange={project.setCameraPitch}
-      onPresetChange={project.setPagePreset}
       onStyleChange={project.setMapStyle}
       onStyleAdjustmentChange={project.setMapStyleAdjustment}
       onStyleColorChange={project.setMapStyleColor}

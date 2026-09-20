@@ -25,18 +25,15 @@ describe('project inspector disclosure', () => {
     expect(screen.getByRole('heading', { name: 'Project' })).toBeInTheDocument();
     expect(document.querySelector('.properties-title .eyebrow')).toBeNull();
 
-    const page = screen.getByRole('button', { name: /Page/ });
-    const mapStyle = screen.getByRole('button', { name: /Map style/ });
-    const camera = screen.getByRole('button', { name: /Camera & location/ });
-    const details = screen.getByRole('button', { name: /Map details/ });
-    expect(page).toHaveAttribute('aria-expanded', 'true');
-    expect(page).not.toHaveTextContent('A4 landscape · 297 × 210 mm');
-    expect(mapStyle).toHaveAttribute('aria-expanded', 'false');
-    expect(mapStyle).toHaveTextContent('Paper · Local names · 100%');
+    expect(screen.queryByRole('button', { name: 'Page' })).not.toBeInTheDocument();
+    const mapStyle = screen.getByRole('button', { name: 'Style' });
+    const camera = screen.getByRole('button', { name: 'View' });
+    const details = screen.getByRole('button', { name: 'Labels & details' });
+    expect(mapStyle).toHaveAttribute('aria-expanded', 'true');
     expect(camera).toHaveAttribute('aria-expanded', 'false');
     expect(camera).toHaveTextContent('0° bearing · 0° pitch · Unlocked');
     expect(details).toHaveAttribute('aria-expanded', 'false');
-    expect(details).toHaveTextContent('8 of 8 visible');
+    expect(details).toHaveTextContent('7 of 7 visible');
     expect(screen.queryByRole('button', { name: /Provider services/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Check.*connection/i })).not.toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: 'Search places and addresses' })).toBeInTheDocument();
@@ -58,14 +55,14 @@ describe('project inspector disclosure', () => {
   it('restores project disclosure preferences after the inspector remounts', async () => {
     const user = userEvent.setup();
     const first = render(<App />);
-    const camera = screen.getByRole('button', { name: /Camera & location/ });
+    const camera = screen.getByRole('button', { name: 'View' });
 
     await user.click(camera);
     expect(camera).toHaveAttribute('aria-expanded', 'true');
     first.unmount();
     render(<App />);
 
-    expect(screen.getByRole('button', { name: /Camera & location/ })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('button', { name: 'View' })).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByRole('spinbutton', { name: 'Bearing' })).toBeInTheDocument();
   });
 });

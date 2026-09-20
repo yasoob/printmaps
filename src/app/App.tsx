@@ -35,6 +35,8 @@ import { useProjectOpening } from "./hooks/useProjectOpening";
 import { ElevationProfileProvider } from "./elevation/ElevationProfileProvider";
 import { trackEditorAction } from "../analytics/editorAnalytics";
 import { useRemixRequest } from "../sharing/useRemixRequest";
+import { createTemplateProject } from "./studio/templateProjects";
+import type { TemplateGalleryProps } from "./studio/TemplateGallery";
 
 type AppProps = {
   autosaveRepository?: AutosaveRepository | null;
@@ -214,7 +216,24 @@ function useStudioAppModel(props: StudioAppProps) {
     () => setPreviewedLayerId(null),
     [setPreviewedLayerId],
   );
-  const projectOpening = useProjectOpening(documentEpoch, handleMapDataImported);
+  const [templatesEpoch, setTemplatesEpoch] = useState<number | null>(null);
+  const [layoutRequest, setLayoutRequest] = useState(0);
+  const templateDocumentRef = useRef<ProjectDocument | null>(null);
+  const handleProjectOpened = useCallback((document: ProjectDocument) => {
+    handleMapDataImported();
+    if (document === templateDocumentRef.current) setLayoutRequest((value) => value + 1);
+    templateDocumentRef.current = null;
+  }, [handleMapDataImported]);
+  const projectOpening = useProjectOpening(documentEpoch, handleProjectOpened);
+  const openTemplateGallery = useCallback(() => setTemplatesEpoch(documentEpoch), [documentEpoch]);
+  const closeTemplateGallery = useCallback(() => setTemplatesEpoch(null), []);
+  const openDocument = projectOpening.open;
+  const createFromTemplate = useCallback<TemplateGalleryProps['onSelect']>((id, starter) => {
+    const document = createTemplateProject(id, starter);
+    templateDocumentRef.current = document;
+    setTemplatesEpoch(null);
+    openDocument(document, 'new');
+  }, [openDocument]);
   useRemixRequest(props.remixDocument, isAutosaveCorrupted || autosaveConflictOpen, projectOpening.open);
   const mapDataImport = useAppMapDataImport({
     documentEpoch,
@@ -228,6 +247,7 @@ function useStudioAppModel(props: StudioAppProps) {
     exportOpen,
     importOpen: mapDataImport.isImportOpen,
     projectOpen: projectOpening.pendingDocument !== null,
+    templatesOpen: templatesEpoch === documentEpoch,
     autosaveConflictOpen,
     mobile,
     setExportOpen,
@@ -269,6 +289,7 @@ function useStudioAppModel(props: StudioAppProps) {
     importButtonRef, isAuthoring, layers, mapDataImport, onExporterChange,
     mapLayers: directions.mapLayers, mapLocation, mapMatchingProvider,
     mobile, modal, openButtonRef, openExport, page, pageBoundaryVisible, project, projectOpening,
+    openTemplateGallery, closeTemplateGallery, createFromTemplate, layoutRequest,
     routeExtensionRequest: routeExtension.request, searchProvider, selectedId, selectedLayer,
     setPreviewedLayerId, style,
     changeRouteVertex: directions.changeRouteVertex,
