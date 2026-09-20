@@ -102,3 +102,20 @@ it('displays export errors and unavailable snapshot capability rather than claim
   await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Elevation data is missing'));
   expect(mocks.download).not.toHaveBeenCalled();
 });
+
+it('blocks unfinished work and aborts an old project export when its epoch changes', async () => {
+  let signal: AbortSignal | undefined;
+  mocks.exportRelief.mockImplementation((_snapshot, _settings, options) => {
+    signal = options.signal;
+    return new Promise((_resolve, reject) => options.signal.addEventListener('abort', () => reject(new DOMException('Cancelled', 'AbortError'))));
+  });
+  const props = { documentEpoch: 1, settings: studio.relief, layers: [], exporter: exporterFor(), onChange: () => ({ ok: true as const }), onClose: vi.fn() };
+  const view = render(<ReliefExportDialog {...props} blockedReason="Finish or discard the current route first." />);
+  expect(screen.getByRole('button', { name: 'Download STL' })).toBeDisabled();
+  expect(screen.getByText('Finish or discard the current route first.')).toBeVisible();
+  view.rerender(<ReliefExportDialog {...props} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Download STL' }));
+  view.rerender(<ReliefExportDialog {...props} documentEpoch={2} />);
+  await waitFor(() => expect(signal?.aborted).toBe(true));
+  expect(mocks.download).not.toHaveBeenCalled();
+});

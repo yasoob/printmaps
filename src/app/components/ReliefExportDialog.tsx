@@ -10,10 +10,16 @@ import './terrainControls.css';
 
 type ReliefExportDialogProps = ReliefControlsProps & {
   exporter: PreviewPngExporter | null;
+  blockedReason?: string;
   onClose: () => void;
 };
 
-export function ReliefExportDialog({ exporter, onClose, ...controls }: ReliefExportDialogProps) {
+function isExportAvailable(exporter: PreviewPngExporter | null, blockedReason?: string) {
+  return !!exporter?.captureRenderSnapshot && !blockedReason;
+}
+
+export function ReliefExportDialog({ exporter, onClose, blockedReason, ...controls }: ReliefExportDialogProps) {
+  const canExport = isExportAvailable(exporter, blockedReason);
   const [progress, setProgress] = useState({ fraction: 0, message: 'Fit model dimensions to the current print frame, then download.' });
   const [error, setError] = useState<string | null>(null);
   const [isBusy, setIsBusy] = useState(false);
@@ -23,7 +29,10 @@ export function ReliefExportDialog({ exporter, onClose, ...controls }: ReliefExp
     isMounted.current = true;
     return () => { isMounted.current = false; running.current?.abort(); };
   }, []);
+  useEffect(() => () => running.current?.abort(), [controls.documentEpoch]);
+  useEffect(() => { if (blockedReason) running.current?.abort(); }, [blockedReason]);
   const capture = () => {
+    if (blockedReason) throw new Error(blockedReason);
     if (!exporter?.captureRenderSnapshot) throw new Error('The map is not ready. Wait for the preview or retry the map.');
     return exporter.captureRenderSnapshot();
   };
@@ -68,20 +77,21 @@ export function ReliefExportDialog({ exporter, onClose, ...controls }: ReliefExp
     <DialogContent className="relief-export-dialog" showCloseButton={false} aria-busy={isBusy}>
       <StudioDialogHeader><DialogTitle>Export 3D terrain relief</DialogTitle><DialogDescription>A watertight binary STL of the actual print area. Set Pitch to 0; bearing is preserved.</DialogDescription></StudioDialogHeader>
       <StudioDialogBody>
-        <fieldset disabled={isBusy} className="relief-fields">
+        <fieldset disabled={isBusy || !!blockedReason} className="relief-fields">
           <ReliefSettingsControls {...controls} />
-          <button type="button" className="secondary-button" disabled={!exporter?.captureRenderSnapshot} onClick={fitDimensions}>Fit dimensions to print frame</button>
+          <button type="button" className="secondary-button" disabled={!canExport} onClick={fitDimensions}>Fit dimensions to print frame</button>
         </fieldset>
         <p className="terrain-hint">The lowest terrain sample sits on the base. Relief height uses physical map scale at the frame center, multiplied by exaggeration. Elevation tiles are an approximation, not survey data.</p>
         <p className="terrain-hint">{reliefAttributionNotice()}</p>
         <progress max={1} value={progress.fraction} aria-label="Terrain export progress" />
         <p role="status">{progress.message}</p>
-        {!exporter?.captureRenderSnapshot && <p role="status">Waiting for the map preview to finish loading.</p>}
+        {blockedReason && <p role="status">{blockedReason}</p>}
+        {!canExport && !blockedReason && <p role="status">Waiting for the map preview to finish loading.</p>}
         {error && <p role="alert" className="coordinate-validation">{error}</p>}
       </StudioDialogBody>
       <StudioDialogActions>
         <StudioDialogButton onClick={isBusy ? () => running.current?.abort() : onClose}>{isBusy ? 'Cancel export' : 'Close'}</StudioDialogButton>
-        <StudioDialogButton variant="primary" disabled={isBusy || !exporter?.captureRenderSnapshot} onClick={() => { void start(); }}>{isBusy ? 'Generating terrain…' : 'Download STL'}</StudioDialogButton>
+        <StudioDialogButton variant="primary" disabled={isBusy || !canExport} onClick={() => { void start(); }}>{isBusy ? 'Generating terrain…' : 'Download STL'}</StudioDialogButton>
       </StudioDialogActions>
     </DialogContent>
   </Dialog>;
