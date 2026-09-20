@@ -64,7 +64,9 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .brand-block, .studio-home-link, .document-actions, .history-actions { @apply flex items-center gap-1; }
 .brand-block { min-width: 0; }
 .studio-home-link { flex-shrink: 0; color: inherit; text-decoration: none; }
-.document-actions { @apply justify-end; }
+.document-actions { @apply justify-end gap-2; }
+.document-actions :is(.quiet-button, .primary-button) { height: var(--studio-control-height); }
+.document-actions :is(.quiet-button, .primary-button) > svg { flex-shrink: 0; }
 .file-feedback-stack {
   @apply fixed z-[90] grid gap-2 overflow-y-auto;
   top: calc(var(--studio-topbar-height) + var(--studio-safe-top) + 4px);
@@ -2014,10 +2016,10 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
   .history-actions, .quiet-button { @apply hidden; }
   .document-actions .quiet-button {
     @apply inline-flex px-2;
-    height: 2.5rem;
+    height: var(--studio-touch-target);
   }
   .document-actions > .primary-button {
-    @apply inline-flex gap-2 px-3;
+    @apply inline-flex gap-1.5 px-2;
     height: var(--studio-topbar-height);
     isolation: isolate;
     position: relative;
@@ -2269,6 +2271,10 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
 
 @media (max-width: 560px) {
   .project-title { display: none; }
+  .document-actions { @apply gap-1; }
+  .document-actions :is(.quiet-button, .primary-button) { @apply px-1.5; }
+  .studio-home-link, .brand-mark { max-width: 100%; }
+  .brand-mark { object-fit: contain; }
   .mobile-panel-actions > button {
     justify-content: center;
     width: var(--studio-touch-target);

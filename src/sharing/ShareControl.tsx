@@ -19,9 +19,9 @@ export function ShareControl({ disabled }: { disabled: boolean }) {
     }
   };
   return <>
-    <button ref={button} className="secondary-button share-button" type="button" disabled={disabled}
+    <button ref={button} className="quiet-button share-button" type="button" disabled={disabled}
       title={disabled ? 'Finish or cancel map authoring before sharing' : undefined} onClick={share}>
-      <Share2 size={14} aria-hidden="true" /><span>Share</span>
+      <Share2 size={14} strokeWidth={1.8} aria-hidden="true" /><span>Share</span>
     </button>
     {result && <ShareDialog result={result} onClose={() => setResult(null)} returnFocusRef={button} />}
   </>;

@@ -152,7 +152,7 @@ export function ProjectFileActions({ children, getDocument, menuHeader, openButt
               type="button"
               onMouseDown={() => { if (!isOpen) setIsOpen(true); }}
             >
-              <FolderKanban aria-hidden="true" size={14} strokeWidth={1.8} /> Project <ChevronDown aria-hidden="true" size={12} />
+              <FolderKanban aria-hidden="true" size={14} strokeWidth={1.8} /><span>Project</span><ChevronDown aria-hidden="true" size={12} strokeWidth={1.8} />
             </button>
           )}
         />

@@ -163,7 +163,7 @@ export const StudioHeader = memo(function StudioHeader({
         />
         </FileFeedbackGroup>
         <ShareControl disabled={exportDisabled || importDisabled || isImportWorkActive} />
-        <button ref={exportButtonRef} className="primary-button" type="button" disabled={exportDisabled} title={exportDisabled ? 'Finish or cancel map authoring before export' : undefined} onClick={onExport}><Download size={14} /><span>Export</span></button>
+        <button ref={exportButtonRef} className="primary-button" type="button" disabled={exportDisabled} title={exportDisabled ? 'Finish or cancel map authoring before export' : undefined} onClick={onExport}><Download size={14} strokeWidth={1.8} aria-hidden="true" /><span>Export</span></button>
       </div>
     </header>
   );

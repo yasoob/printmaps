@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 async function expectHeaderActionsVisible(page: Page, width: number) {
-  const names = width >= 900 ? ['Project', 'Export', 'Undo', 'Redo'] : ['Project', 'Export'];
+  const names = width >= 900 ? ['Project', 'Share', 'Export', 'Undo', 'Redo'] : ['Project', 'Share', 'Export'];
   for (const name of names) {
     const button = page.getByRole('button', { name, exact: true });
     await expect(button).toBeVisible();
