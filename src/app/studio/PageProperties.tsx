@@ -53,7 +53,7 @@ const PageAppearance = memo(function PageAppearance({ poster, epoch, onChange }:
   </>;
 });
 
-export const PageProperties = memo(function PageProperties() {
+export const PageProperties = memo(function PageProperties({ isAppearanceDisabled = false }: { isAppearanceDisabled?: boolean }) {
   const page = useProject((state) => state.document.page);
   const poster = useProject((state) => state.document.studio.poster);
   const effectivePoster = useMemo(() => editablePoster(poster), [poster]);
@@ -63,6 +63,8 @@ export const PageProperties = memo(function PageProperties() {
   return <InspectorAccordion title="Page" storageKey="print-map-studio:inspector:project:page" isDefaultExpanded
     summary={`${page.preset} ${page.orientation} · ${page.widthMm} × ${page.heightMm} mm`}>
     <PageDimensions page={page} epoch={epoch} />
-    <PageAppearance poster={effectivePoster} epoch={epoch} onChange={change} />
+    <fieldset className="studio-composition-boundary" disabled={isAppearanceDisabled}>
+      <PageAppearance poster={effectivePoster} epoch={epoch} onChange={change} />
+    </fieldset>
   </InspectorAccordion>;
 });

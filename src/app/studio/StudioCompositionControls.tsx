@@ -35,8 +35,6 @@ function usePhotoUpload(): PhotoUpload {
   }, [store]);
 }
 
-const pageControls = <PageProperties />;
-
 export const StudioCompositionControls = memo(function StudioCompositionControls({ exporter, blockedReason }: {
   exporter?: PreviewPngExporter | null; blockedReason?: string;
 }) {
@@ -85,14 +83,13 @@ export const StudioCompositionControls = memo(function StudioCompositionControls
   }, [blockedReason, store, toggleLayerVisibility]);
   return <>
     {blockedReason && <p className="inspector-notice" role="status">{blockedReason}</p>}
-    <fieldset disabled={Boolean(blockedReason)} className="studio-composition-boundary">
       <StudioCompositionPanel key={documentEpoch} poster={effectivePoster} photos={photos} decorations={decorations} pointLayers={pointLayers}
         documentEpoch={documentEpoch} cameraLocked={cameraLocked} isFlat={isFlat}
-        silhouetteName={silhouette?.visible ? silhouette.name : null} pageControls={pageControls}
+        silhouetteName={silhouette?.visible ? silhouette.name : null} isDisabled={Boolean(blockedReason)}
+        pageControls={<PageProperties isAppearanceDisabled={Boolean(blockedReason)} />}
         onPosterChange={onPosterChange} onPhotosChange={onPhotosChange} onDecorationsChange={onDecorationsChange}
         onApplyTemplate={onApplyTemplate} onCreateSilhouette={onCreateSilhouette} onRectangle={onRectangle}
         onPhotoUpload={photoUpload} onPhotoRemove={actions.removePhotoStop}
       />
-    </fieldset>
   </>;
 });

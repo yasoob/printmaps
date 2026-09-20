@@ -17,6 +17,7 @@ export type StudioCompositionPanelProps = Readonly<{
   poster: PosterSettings; photos: PhotoSettings; decorations: DecorationSettings;
   pointLayers: readonly Pick<ContentLayer, 'id' | 'name'>[]; documentEpoch: number; cameraLocked: boolean; isFlat: boolean;
   pageControls?: ReactNode;
+  isDisabled?: boolean;
   silhouetteName: string | null;
   onPosterChange: (value: PosterSettings) => ProjectMutationResult;
   onPhotosChange: (value: PhotoSettings) => ProjectMutationResult;
@@ -47,10 +48,11 @@ export const StudioCompositionPanel = memo(function StudioCompositionPanel(props
   return <section className="studio-composition-panel" aria-label="Layout settings">
     {error && <p role="alert" className="studio-composition-error inspector-notice">{error}</p>}
     <Activity mode={galleryOpen ? 'hidden' : 'visible'}>
-      <button ref={galleryTrigger} className="inspector-layout-entry" type="button" onClick={() => setGalleryOpen(true)}>
+      <button ref={galleryTrigger} className="inspector-layout-entry" type="button" disabled={props.isDisabled} onClick={() => setGalleryOpen(true)}>
         <span>Change layout</span><ChevronRight size={16} aria-hidden="true" />
       </button>
       {props.pageControls}
+      <fieldset className="studio-composition-boundary" disabled={props.isDisabled}>
       <MapFrameControls silhouetteName={props.silhouetteName} cameraLocked={props.cameraLocked}
         onRectangle={props.onRectangle} onCreateSilhouette={props.onCreateSilhouette} />
       <InspectorAccordion title="Text" summary={props.poster.enabled ? props.poster.title.text || 'Title, subtitle & caption' : 'Title, subtitle, caption & coordinates'}
@@ -63,11 +65,14 @@ export const StudioCompositionPanel = memo(function StudioCompositionPanel(props
       <InspectorAccordion title="Map elements" summary="Compass, scale, grid & QR" storageKey="print-map-studio:inspector:layout:elements" isDefaultExpanded={false}>
         <DecorationControls value={props.decorations} epoch={props.documentEpoch} pointLayers={props.pointLayers} isFlat={props.isFlat} onChange={changeDecorations} />
       </InspectorAccordion>
+      </fieldset>
     </Activity>
     {galleryOpen && <div className="inspector-template-subview">
       <button className="inspector-back" type="button" autoFocus onClick={closeGallery}><ArrowLeft aria-hidden="true" size={16} /> Back to Layout</button>
       <h3>Change layout</h3>
-      <TemplateGallery mode="layout" onSelect={(id) => { if (report(props.onApplyTemplate(id)).ok) closeGallery(); }} />
+      <fieldset className="studio-composition-boundary" disabled={props.isDisabled}>
+        <TemplateGallery mode="layout" onSelect={(id) => { if (report(props.onApplyTemplate(id)).ok) closeGallery(); }} />
+      </fieldset>
     </div>}
   </section>;
 });

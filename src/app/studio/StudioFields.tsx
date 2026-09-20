@@ -11,7 +11,7 @@ export const StudioToggle = memo(function StudioToggle({ label, checked, onChang
 });
 
 export const StudioColor = memo(function StudioColor({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
-  return <PropertyRow label={label}><input aria-label={label} type="color" value={value} onChange={(event) => onChange(event.target.value)} /></PropertyRow>;
+  return <PropertyRow label={label}><label className="color-field"><input aria-label={label} type="color" value={value} onChange={(event) => onChange(event.target.value)} /></label></PropertyRow>;
 });
 
 type StudioSelectProps<T extends string> = {

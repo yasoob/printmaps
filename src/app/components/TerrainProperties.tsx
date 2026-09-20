@@ -22,7 +22,7 @@ const TerrainNumber = memo(function TerrainNumber({ rowLabel, ...props }: Compon
   return <PropertyRow label={rowLabel}><ValidatedNumberField {...props} /></PropertyRow>;
 });
 const TerrainColor = memo(function TerrainColor({ value, onChange }: { value: string; onChange: (color: string) => void }) {
-  return <PropertyRow label="Line color"><input type="color" aria-label="Contour line color" value={value} onChange={(event) => onChange(event.target.value)} /></PropertyRow>;
+  return <PropertyRow label="Line color"><label className="color-field"><input type="color" aria-label="Contour line color" value={value} onChange={(event) => onChange(event.target.value)} /></label></PropertyRow>;
 });
 export type TerrainPropertiesProps = {
   documentEpoch: number;
