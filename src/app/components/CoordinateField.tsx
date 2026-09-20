@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { memo, useId, useState } from "react";
 import { PropertyRow } from "./PropertyControls";
 import { isCoordinateInputInvalid } from "./coordinateInput";
 import type { GeometryEditResult } from "../../domain/projectMutation";
@@ -35,7 +35,7 @@ function isCoordinateInvalid(
   );
 }
 
-export function CoordinateField({
+export const CoordinateField = memo(function CoordinateField({
   ariaLabel,
   disabled = false,
   label,
@@ -51,7 +51,9 @@ export function CoordinateField({
     source: value,
     value: String(value),
   }));
-  const [commitError, setCommitError] = useState<string | null>(null);
+  const [failure, setFailure] = useState<{ source: number; message: string } | null>(null);
+  const commitError = failure?.source === value ? failure.message : null;
+  const setCommitError = (message: string | null) => setFailure(message === null ? null : { source: value, message });
   const draft = coordinateDraft(edit, value);
   const parsedValue = Number(draft);
   const isInvalid = isCoordinateInvalid(draft, minimum, maximum, validate);
@@ -120,4 +122,4 @@ export function CoordinateField({
       </div>
     </PropertyRow>
   );
-}
+});

@@ -25,6 +25,7 @@ import {
 import { useCanvasAuthoringModels } from "../hooks/useCanvasAuthoringModels";
 import { shouldBlockEditorShortcuts } from "../keyboardScope";
 import { useUnfinishedDrawingProtection } from "../hooks/useUnfinishedDrawingProtection";
+import { useOptionalStableEvent } from "../hooks/useStableEvent";
 
 export type { CanvasWorkspaceProps } from "./CanvasWorkspace.types";
 
@@ -207,7 +208,7 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
     isMapLocked: camera.locked,
     isBlocked: props.isModalOpen || route.isDiscardOpen || (activeTool === "pin" && poiAuthoring.spreadsheetOpen),
   });
-  const handleMapClick =
+  const handleMapClick = useOptionalStableEvent(
     activeTool === "route"
       ? (coordinate: [number, number]) =>
           route.addPoint(coordinate, "map click", true)
@@ -223,7 +224,7 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
             }),
           addShapePoint: shape.addPoint,
           shapeMode: shape.mode,
-        });
+        }));
   const searchSelection = useCanvasSearchSelection({
     activeTool,
     documentEpoch,

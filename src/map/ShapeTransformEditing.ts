@@ -1,7 +1,7 @@
 import { Marker, type Map as MapLibreMap } from 'maplibre-gl';
 import type { ContentLayer, ShapeGeometry } from '../domain/project';
 import { isValidPosition } from '../domain/routeGeometry';
-import { mapContentSourceId, mapGeometryForLayer } from './MapContentGeometry';
+import { didPreviewMapGeometry } from './MapGeometryPreview';
 
 export type ShapeTransformMarker = {
   addTo: (map: ShapeTransformMap) => ShapeTransformMarker;
@@ -19,6 +19,7 @@ type ResizeRole = 'top-left' | 'top-right' | 'bottom-right' | 'bottom-left';
 type HandleRole = 'move' | ResizeRole;
 export type ShapeTransformEditingSession = (() => void) & {
   focusHandle: (role: string) => void;
+  synchronizeLayer: (layer: ContentLayer) => boolean;
 };
 
 const MINIMUM_RESIZE_PIXELS = 8;
@@ -133,21 +134,12 @@ function transformedGeometry(input: TransformInput): ShapeGeometry | null {
 }
 
 function didUpdateSourceGeometry(map: ShapeTransformMap, layer: ContentLayer, geometry: ShapeGeometry): boolean {
-  const setData = (role: string | undefined, nextGeometry: ShapeGeometry) => {
-    const source = map.getSource(mapContentSourceId(layer.id, role)) as { setData?: (data: unknown) => void } | undefined;
-    if (typeof source?.setData !== 'function') return false;
-    source.setData({ type: 'Feature', properties: { layerId: layer.id }, geometry: nextGeometry });
-    return true;
-  };
-  const transformedLayer = { ...layer, geometry };
-  if (!setData(undefined, mapGeometryForLayer(transformedLayer) as ShapeGeometry)) return false;
-  if (layer.appearance?.kind === 'shape' && layer.appearance.invert) return setData('outline', geometry);
-  return true;
+  return didPreviewMapGeometry(map, layer, geometry);
 }
 
 type EditableShapeLayer = ContentLayer & { geometry: ShapeGeometry };
 
-function isEditableShapeLayer(layer: ContentLayer): layer is EditableShapeLayer {
+export function isEditableShapeLayer(layer: ContentLayer): layer is EditableShapeLayer {
   return layer.type === 'shape'
     && !layer.locked
     && layer.visible
@@ -165,6 +157,7 @@ const HANDLE_LABELS: Record<HandleRole, string> = {
 function emptyShapeTransformSession(): ShapeTransformEditingSession {
   const cleanup = (() => {}) as ShapeTransformEditingSession;
   cleanup.focusHandle = () => {};
+  cleanup.synchronizeLayer = () => false;
   return cleanup;
 }
 
@@ -176,7 +169,8 @@ export function installShapeTransformEditing(
 ): ShapeTransformEditingSession {
   if (!isEditableShapeLayer(layer)) return emptyShapeTransformSession();
 
-  const geometry = structuredClone(layer.geometry);
+  let currentLayer = layer;
+  let geometry = structuredClone(layer.geometry);
   const bounds = projectedBounds(map, geometry);
   if (!(bounds.right > bounds.left) || !(bounds.bottom > bounds.top)) return emptyShapeTransformSession();
   const roles: HandleRole[] = ['move', 'top-left', 'top-right', 'bottom-right', 'bottom-left'];
@@ -194,9 +188,9 @@ export function installShapeTransformEditing(
   };
   const commit = (next: ShapeGeometry) => {
     const result = onCommit(next);
-    if (!result.ok) {
+    if (result.ok) {geometry = structuredClone(next);} else {
       positionMarkers(geometry);
-      didUpdateSourceGeometry(map, layer, geometry);
+      didUpdateSourceGeometry(map, currentLayer, geometry);
     }
     hasUncommittedPreview = false;
   };
@@ -225,7 +219,7 @@ export function installShapeTransformEditing(
         originalHandle: referenceHandle,
         role,
       });
-      if (!transformed || !didUpdateSourceGeometry(map, layer, transformed)) return null;
+      if (!transformed || !didUpdateSourceGeometry(map, currentLayer, transformed)) return null;
       positionMarkers(transformed, role);
       hasUncommittedPreview = true;
       return transformed;
@@ -235,7 +229,7 @@ export function installShapeTransformEditing(
       const transformed = preview();
       if (!transformed) {
         positionMarkers(geometry);
-        didUpdateSourceGeometry(map, layer, geometry);
+        didUpdateSourceGeometry(map, currentLayer, geometry);
         hasUncommittedPreview = false;
         return;
       }
@@ -268,9 +262,17 @@ export function installShapeTransformEditing(
   }
 
   const cleanup = (() => {
-    if (hasUncommittedPreview) didUpdateSourceGeometry(map, layer, geometry);
+    if (hasUncommittedPreview) didUpdateSourceGeometry(map, currentLayer, geometry);
     for (const marker of markers) marker.remove();
   }) as ShapeTransformEditingSession;
   cleanup.focusHandle = (role) => markersByRole.get(role as HandleRole)?.getElement().focus();
+  cleanup.synchronizeLayer = (next) => {
+    if (next.id !== currentLayer.id || !isEditableShapeLayer(next)) return false;
+    currentLayer = next;
+    geometry = structuredClone(next.geometry);
+    positionMarkers(geometry);
+    hasUncommittedPreview = false;
+    return true;
+  };
   return cleanup;
 }

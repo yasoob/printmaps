@@ -7,6 +7,7 @@ import { planVideoExport } from '../../video/plan';
 import type { VideoOptions, VideoProgress, VideoResult } from '../../video/types';
 import { VideoExportDialogView } from './VideoExportDialogView';
 import './videoExport.css';
+import { useStableEvent } from '../hooks/useStableEvent';
 
 export type VideoExportDialogProps = Readonly<{
   document: ProjectDocument;
@@ -118,7 +119,10 @@ function VideoExportSession(props: VideoExportDialogProps) {
     }
   };
 
-  return <VideoExportDialogView busy={busy} unavailable={unavailable} settings={settings} onSettingsChange={onSettingsChange} plan={preflight.plan} progress={progress} status={status} error={error} cancelRef={cancelRef} downloadRef={downloadRef} onClose={close} onCancel={cancel} onDownload={() => { void download(); }} />;
+  const closeDialog = useStableEvent(close);
+  const cancelRecording = useStableEvent(cancel);
+  const downloadVideo = useStableEvent(() => { void download(); });
+  return <VideoExportDialogView busy={busy} unavailable={unavailable} settings={settings} onSettingsChange={onSettingsChange} plan={preflight.plan} progress={progress} status={status} error={error} cancelRef={cancelRef} downloadRef={downloadRef} onClose={closeDialog} onCancel={cancelRecording} onDownload={downloadVideo} />;
 }
 
 export function VideoExportDialog(props: VideoExportDialogProps) {

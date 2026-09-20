@@ -91,6 +91,7 @@ describe('route vertex editing lifecycle', () => {
       selectedId: 'route-01',
       stylePreset: 'paper',
     });
+
     focusedRouteHandle(1);
 
     rerender({
@@ -103,6 +104,20 @@ describe('route vertex editing lifecycle', () => {
     expect(metrics.sessions).toHaveLength(1);
     expect(metrics.sessions[0]).not.toHaveBeenCalled();
     expect(metrics.sessions[0].synchronizeLayer).toHaveBeenCalled();
+  });
+
+  it('does not rebuild geometry handles when an edit invalidates map-matching provenance', () => {
+    const layers = createInitialProjectDocument().layers;
+    const layer = layers.find(({ id }) => id === 'route-01')!;
+    layer.provenance = { provider: 'mapbox', service: 'map-matching-v5', profile: 'driving', confidence: 0.93, sourcePointCount: 4 };
+    const onChange = vi.fn();
+    const { rerender } = renderRouteHook({ layers, onChange, selectedId: layer.id, stylePreset: 'paper' });
+    const editedLayers = structuredClone(layers);
+    delete editedLayers.find(({ id }) => id === layer.id)!.provenance;
+    rerender({ layers: editedLayers, onChange, selectedId: layer.id, stylePreset: 'paper' });
+    expect(metrics.sessions).toHaveLength(1);
+    expect(metrics.sessions[0]).not.toHaveBeenCalled();
+    expect(metrics.sessions[0].synchronizeLayer).toHaveBeenLastCalledWith(editedLayers.find(({ id }) => id === layer.id));
   });
 
   it('does not restore stale handle focus after selection leaves the route', () => {

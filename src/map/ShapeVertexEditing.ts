@@ -1,7 +1,7 @@
 import { Marker, type Map as MapLibreMap } from 'maplibre-gl';
 import type { ContentLayer, ShapeGeometry } from '../domain/project';
 import { isValidPosition, midpointPosition } from '../domain/routeGeometry';
-import { mapContentSourceId, mapGeometryForLayer } from './MapContentGeometry';
+import { didPreviewMapGeometry } from './MapGeometryPreview';
 
 export type ShapeEditMode = 'points' | 'transform';
 
@@ -21,6 +21,7 @@ type EditableShapeLayer = ContentLayer & { geometry: Extract<ShapeGeometry, { ty
 
 export type ShapeVertexEditingSession = (() => void) & {
   focusPoint: (ringIndex: number, vertexIndex: number) => void;
+  synchronizeLayer: (layer: ContentLayer) => boolean;
 };
 
 const MAX_DIRECT_AREA_POINTS = 80;
@@ -57,16 +58,7 @@ function didUpdateSourceGeometry(
   layer: EditableShapeLayer,
   geometry: EditableShapeLayer['geometry'],
 ): boolean {
-  const setData = (role: string | undefined, nextGeometry: ShapeGeometry) => {
-    const source = map.getSource(mapContentSourceId(layer.id, role)) as { setData?: (data: unknown) => void } | undefined;
-    if (typeof source?.setData !== 'function') return false;
-    source.setData({ type: 'Feature', properties: { layerId: layer.id }, geometry: nextGeometry });
-    return true;
-  };
-  const transformedLayer = { ...layer, geometry };
-  if (!setData(undefined, mapGeometryForLayer(transformedLayer) as ShapeGeometry)) return false;
-  if (layer.appearance?.kind === 'shape' && layer.appearance.invert) return setData('outline', geometry);
-  return true;
+  return didPreviewMapGeometry(map, layer, geometry);
 }
 
 function movedGeometry(
@@ -150,45 +142,65 @@ function updateAdjacentMidpoints(geometry: EditableShapeLayer['geometry'], marke
   }
 }
 
+function createVertexButton(ringIndex: number, vertexIndex: number) {
+  const element = document.createElement('button');
+  element.type = 'button';
+  element.className = 'shape-vertex-marker';
+  element.dataset.shapeRingIndex = String(ringIndex);
+  element.dataset.shapeVertexIndex = String(vertexIndex);
+  element.setAttribute('aria-label', `Drag area point ${vertexIndex + 1}`);
+  element.title = `Drag area point ${vertexIndex + 1} · Arrow keys nudge · Delete removes`;
+  return element;
+}
+
+function createMidpointButton(vertexIndex: number, pointCount: number) {
+  const element = document.createElement('button');
+  element.type = 'button';
+  element.className = 'shape-midpoint-marker';
+  element.setAttribute('aria-label', `Add area point between ${vertexIndex + 1} and ${(vertexIndex + 1) % pointCount + 1}`);
+  element.title = 'Drag or click to add an area point';
+  return element;
+}
+
+function emptyShapeVertexSession(): ShapeVertexEditingSession {
+  const empty = (() => {}) as ShapeVertexEditingSession;
+  empty.focusPoint = () => {};
+  empty.synchronizeLayer = () => false;
+  return empty;
+}
+
 export function installShapeVertexEditing(
   map: ShapeVertexMap,
   layer: ContentLayer,
   onCommit: (geometry: ShapeGeometry) => import('../domain/projectMutation').ProjectMutationResult,
   createMarker: MarkerFactory = createMapLibreMarker,
 ): ShapeVertexEditingSession {
-  const empty = (() => {}) as ShapeVertexEditingSession;
-  empty.focusPoint = () => {};
-  if (!canDirectlyEditShapePoints(layer)) return empty;
-  const geometry = structuredClone(layer.geometry);
+  if (!canDirectlyEditShapePoints(layer)) return emptyShapeVertexSession();
+  let currentLayer = layer, geometry = structuredClone(layer.geometry);
+  const topology = geometry.coordinates.map((ring) => ring.length).join(':');
   const markers: ShapeVertexMarker[] = [], pointMarkers = new Map<PointKey, ShapeVertexMarker>();
   const midpointMarkers = new Map<PointKey, ShapeVertexMarker>();
   let hasUncommittedPreview = false;
 
-  const commit = (next: ShapeGeometry) => {
+  const commit = (next: EditableShapeLayer['geometry']) => {
     const result = onCommit(next);
-    if (!result.ok) {
-      didUpdateSourceGeometry(map, layer, geometry);
+    if (result.ok) geometry = structuredClone(next);
+    else {
+      didUpdateSourceGeometry(map, currentLayer, geometry);
       restoreVertexHandles(geometry, pointMarkers, midpointMarkers);
     }
     hasUncommittedPreview = false;
   };
   for (const [ringIndex, ring] of geometry.coordinates.entries()) {
-    const editableCoordinates = ring.slice(0, -1);
-    for (const [vertexIndex, coordinate] of editableCoordinates.entries()) {
-      const element = document.createElement('button');
-      element.type = 'button';
-      element.className = 'shape-vertex-marker';
-      element.dataset.shapeRingIndex = String(ringIndex);
-      element.dataset.shapeVertexIndex = String(vertexIndex);
-      element.setAttribute('aria-label', `Drag area point ${vertexIndex + 1}`);
-      element.title = `Drag area point ${vertexIndex + 1} · Arrow keys nudge · Delete removes`;
-      const marker = createMarker(element).setLngLat(coordinate).addTo(map);
+    for (let vertexIndex = 0; vertexIndex < ring.length - 1; vertexIndex += 1) {
+      const element = createVertexButton(ringIndex, vertexIndex);
+      const marker = createMarker(element).setLngLat(ring[vertexIndex]).addTo(map);
       pointMarkers.set(pointKey(ringIndex, vertexIndex), marker);
       const preview = () => {
         const { lng, lat } = marker.getLngLat();
         const nextCoordinate = normalizedCoordinate(lng, lat);
         const next = nextCoordinate ? movedGeometry(geometry, ringIndex, vertexIndex, nextCoordinate) : null;
-        if (!next || !didUpdateSourceGeometry(map, layer, next)) return null;
+        if (!next || !didUpdateSourceGeometry(map, currentLayer, next)) return null;
         updateAdjacentMidpoints(next, midpointMarkers, ringIndex, vertexIndex);
         hasUncommittedPreview = true;
         return next;
@@ -197,8 +209,8 @@ export function installShapeVertexEditing(
       marker.on('dragend', () => {
         const next = preview();
         if (!next) {
-          marker.setLngLat(coordinate);
-          didUpdateSourceGeometry(map, layer, geometry);
+          marker.setLngLat(geometry.coordinates[ringIndex][vertexIndex]);
+          didUpdateSourceGeometry(map, currentLayer, geometry);
           hasUncommittedPreview = false;
           return;
         }
@@ -219,8 +231,9 @@ export function installShapeVertexEditing(
         event.stopPropagation();
         const nextCoordinate = nudgeCoordinate(map, marker, event.key, event.shiftKey);
         const next = nextCoordinate ? movedGeometry(geometry, ringIndex, vertexIndex, nextCoordinate) : null;
-        if (!next || !didUpdateSourceGeometry(map, layer, next)) return;
+        if (!next || !didUpdateSourceGeometry(map, currentLayer, next)) return;
         marker.setLngLat(nextCoordinate!);
+        updateAdjacentMidpoints(next, midpointMarkers, ringIndex, vertexIndex);
         hasUncommittedPreview = false;
         commit(next);
       });
@@ -232,11 +245,7 @@ export function installShapeVertexEditing(
     const pointCount = ring.length - 1;
     for (let vertexIndex = 0; vertexIndex < pointCount; vertexIndex += 1) {
       const initial = midpointPosition(ring[vertexIndex], ring[(vertexIndex + 1) % pointCount]);
-      const element = document.createElement('button');
-      element.type = 'button';
-      element.className = 'shape-midpoint-marker';
-      element.setAttribute('aria-label', `Add area point between ${vertexIndex + 1} and ${(vertexIndex + 1) % pointCount + 1}`);
-      element.title = 'Drag or click to add an area point';
+      const element = createMidpointButton(vertexIndex, pointCount);
       const marker = createMarker(element).setLngLat(initial).addTo(map);
       midpointMarkers.set(pointKey(ringIndex, vertexIndex), marker);
       let wasDragged = false;
@@ -248,18 +257,19 @@ export function installShapeVertexEditing(
       marker.on('drag', () => {
         wasDragged = true;
         const next = geometryAtMarker();
-        if (next && didUpdateSourceGeometry(map, layer, next)) hasUncommittedPreview = true;
+        if (next && didUpdateSourceGeometry(map, currentLayer, next)) hasUncommittedPreview = true;
       });
       marker.on('dragend', () => {
         const next = geometryAtMarker();
-        if (!next || !didUpdateSourceGeometry(map, layer, next)) return;
+        if (!next || !didUpdateSourceGeometry(map, currentLayer, next)) return;
         hasUncommittedPreview = false;
         commit(next);
       });
       element.addEventListener('click', (event) => {
         event.stopPropagation();
         if (wasDragged) { wasDragged = false; return; }
-        const next = insertedGeometry(geometry, ringIndex, vertexIndex, initial);
+        const ring = geometry.coordinates[ringIndex];
+        const next = insertedGeometry(geometry, ringIndex, vertexIndex, midpointPosition(ring[vertexIndex], ring[vertexIndex + 1]));
         if (next) commit(next);
       });
       markers.push(marker);
@@ -267,9 +277,18 @@ export function installShapeVertexEditing(
   }
 
   const cleanup = (() => {
-    if (hasUncommittedPreview) didUpdateSourceGeometry(map, layer, geometry);
+    if (hasUncommittedPreview) didUpdateSourceGeometry(map, currentLayer, geometry);
     for (const marker of markers) marker.remove();
   }) as ShapeVertexEditingSession;
   cleanup.focusPoint = (ringIndex, vertexIndex) => pointMarkers.get(pointKey(ringIndex, vertexIndex))?.getElement().focus();
+  cleanup.synchronizeLayer = (next) => {
+    if (next.id !== currentLayer.id || !canDirectlyEditShapePoints(next)
+      || next.geometry.coordinates.map((ring) => ring.length).join(':') !== topology) return false;
+    currentLayer = next;
+    geometry = structuredClone(next.geometry);
+    restoreVertexHandles(geometry, pointMarkers, midpointMarkers);
+    hasUncommittedPreview = false;
+    return true;
+  };
   return cleanup;
 }

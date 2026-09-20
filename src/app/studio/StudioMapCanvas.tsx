@@ -19,6 +19,10 @@ export const StudioMapCanvas = memo(function StudioMapCanvas({ composition, ...m
     [camera, composition],
   );
   const isComposed = document !== null && hasStudioComposition(document);
+  const frameStyle = useMemo(() => projection ? {
+    inset: 'auto', left: projection.frame.x, top: projection.frame.y,
+    width: projection.frame.width, height: projection.frame.height,
+  } : undefined, [projection]);
   const receiveProjection = useCallback((value: MapFrameProjection | null) => {
     setProjection(value);
     onFrameProjectionChange?.(value);
@@ -28,7 +32,6 @@ export const StudioMapCanvas = memo(function StudioMapCanvas({ composition, ...m
       onFrameProjectionChange={isComposed ? receiveProjection : onFrameProjectionChange} />
     {isComposed && projection && <StudioPosterPreview document={document}
       projectToFrame={projection.projectToFrame} camera={projection.camera} referenceLongitude={projection.referenceLongitude}
-      style={{ inset: 'auto', left: projection.frame.x, top: projection.frame.y,
-        width: projection.frame.width, height: projection.frame.height }} />}
+      style={frameStyle} />}
   </>;
 });

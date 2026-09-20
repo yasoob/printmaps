@@ -29,6 +29,7 @@ function anchoredPhotos(document: StudioCompositionDocument, layout: StudioLayou
   const primitives: StudioPrimitive[] = [];
     const size = settings.map.sizeMm;
     for (const stop of stops) {
+      const start = primitives.length;
       const point = project(stop.coordinate);
       const box = { x: point.x - size / 2, y: point.y - size / 2, width: size, height: size };
       const border = settings.map.borderWidthMm;
@@ -47,6 +48,9 @@ function anchoredPhotos(document: StudioCompositionDocument, layout: StudioLayou
           { ...studioText(stop.caption, { x: point.x, y: captionBox.y + 3.5 }, { size: 2.5, maxWidth: captionBox.width - 2, font: 'sans', color: '#202020' }), clip: layout.map },
         );
       }
+      for (let index = start; index < primitives.length; index++) {
+        primitives[index] = { ...primitives[index], key: `map-photo-${stop.id}-${index - start}` };
+      }
     }
   return primitives;
 }
@@ -61,6 +65,7 @@ function stripPhotos(document: StudioCompositionDocument, layout: StudioLayout):
     if (size < 4) throw new Error('The photo strip is too small for these photos. Increase its height, reduce spacing, or remove some photos.');
     primitives.push({ kind: 'rect', box: strip, fill: settings.strip.backgroundColor });
     for (const [index, stop] of stops.entries()) {
+      const start = primitives.length;
       const box = { x: strip.x + gap + index * (cellWidth + gap) + (cellWidth - size) / 2, y: strip.y + gap, width: size, height: size };
       primitives.push(
         { kind: 'image', asset: stop.asset, box, imageBox: coverImageBox(stop.asset, box), shape: 'square' },
@@ -68,6 +73,9 @@ function stripPhotos(document: StudioCompositionDocument, layout: StudioLayout):
       );
       if (settings.strip.showCaptions) {
         primitives.push(studioText(stop.caption || `Stop ${stop.number}`, { x: box.x + size / 2, y: box.y + size + 4 }, { size: 3, maxWidth: cellWidth, font: 'sans', color: '#202020' }));
+      }
+      for (let index = start; index < primitives.length; index++) {
+        primitives[index] = { ...primitives[index], key: `strip-photo-${stop.id}-${index - start}` };
       }
     }
   }

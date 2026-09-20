@@ -4,7 +4,7 @@ import type { TerrainAttributionSettings } from '../domain/projectAttributions';
 import { canonicalStudioLongitude, type StudioBox } from './studioGeometry';
 import { studioText, type StudioPrimitive } from './studioPrimitives';
 
-export type StudioCompositionDocument = Pick<ProjectDocument, 'page' | 'camera' | 'layers' | 'title'> & {
+export type StudioCompositionDocument = Pick<ProjectDocument, 'page' | 'camera' | 'layers'> & {
   studio: Pick<StudioSettings, 'poster' | 'photos' | 'decorations'> & {
     terrain: TerrainAttributionSettings;
   };

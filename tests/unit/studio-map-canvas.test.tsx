@@ -4,6 +4,8 @@ import type { MapCanvas } from '../../src/map/MapCanvas';
 import type { MapFrameProjection } from '../../src/map/MapFrameProjection';
 import { StudioMapCanvas, type StudioMapCanvasProps } from '../../src/app/studio/StudioMapCanvas';
 import { createInitialProjectDocument } from '../../src/domain/project';
+import { StudioPosterPreview } from '../../src/app/studio/StudioPosterPreview';
+import { studioProject } from '../fixtures/studio';
 
 const { mapRender } = vi.hoisted(() => ({
   mapRender: vi.fn<(props: ComponentProps<typeof MapCanvas>) => void>(),
@@ -25,6 +27,10 @@ function propsForProject(): StudioMapCanvasProps {
 }
 
 beforeEach(() => mapRender.mockClear());
+
+const projectPhotoToFrame = (coordinate: readonly [number, number]) => ({
+  x: (coordinate[0] - 16.2) / 0.4, y: (48.3 - coordinate[1]) / 0.2,
+});
 
 it('does not attach a projection listener when all composition features are off', () => {
   render(<StudioMapCanvas {...propsForProject()} />);
@@ -56,4 +62,28 @@ it('updates only the derived artwork on live projection events without rerenderi
   act(() => notify?.(null));
   expect(screen.queryByLabelText('Poster artwork')).not.toBeInTheDocument();
   expect(mapRender.mock.calls).toHaveLength(renderCount);
+});
+
+it('retains photo nodes across caption and earlier primitive insertions, with safe unique clip IDs', () => {
+  const document = studioProject();
+  document.studio.terrain.enabled = false;
+  document.studio.decorations.scale.enabled = false;
+  document.studio.decorations.qr.enabled = false;
+  document.studio.photos.stops[0].id = 'photo with spaces & # punctuation';
+  const projectToFrame = projectPhotoToFrame;
+  const { container, rerender } = render(<StudioPosterPreview document={document} projectToFrame={projectToFrame} />);
+  const images = [...container.querySelectorAll('image')];
+  expect(images).toHaveLength(2);
+  const next = structuredClone(document);
+  next.studio.photos.stops[0].caption = 'Changed caption';
+  next.studio.decorations.grid.enabled = false;
+  next.studio.poster.title.enabled = false;
+  rerender(<StudioPosterPreview document={next} projectToFrame={projectToFrame} />);
+  expect([...container.querySelectorAll('image')]).toEqual(images);
+  expect(screen.getByText('Changed caption')).toBeVisible();
+  for (const image of images) {
+    const clip = image.getAttribute('clip-path')!.slice(5, -1);
+    expect(clip).not.toMatch(/\s|&|#/);
+    expect([...container.querySelectorAll('[id]')].some((node) => node.id === clip)).toBe(true);
+  }
 });

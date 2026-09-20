@@ -83,8 +83,8 @@ export function ShapeVertexControls({ coordinates, disabled = false, onChange }:
           ))}
         </select>
       </PropertyRow>
-      <CoordinateField key={`shape-longitude-${ringIndex}-${vertexIndex}-${selectedCoordinates[0]}`} ariaLabel="Shape vertex longitude" label="Longitude" minimum={-180} maximum={180} value={selectedCoordinates[0]} disabled={disabled} validate={(longitude) => preservesDistinctVertices([longitude, selectedCoordinates[1]])} validationMessage={distinctVertexMessage} onCommit={(longitude) => onChange(ringIndex, vertexIndex, [longitude, selectedCoordinates[1]])} />
-      <CoordinateField key={`shape-latitude-${ringIndex}-${vertexIndex}-${selectedCoordinates[1]}`} ariaLabel="Shape vertex latitude" label="Latitude" minimum={-MAX_MERCATOR_LATITUDE} maximum={MAX_MERCATOR_LATITUDE} value={selectedCoordinates[1]} disabled={disabled} validate={(latitude) => preservesDistinctVertices([selectedCoordinates[0], latitude])} validationMessage={distinctVertexMessage} onCommit={(latitude) => onChange(ringIndex, vertexIndex, [selectedCoordinates[0], latitude])} />
+      <CoordinateField key={`shape-longitude-${ringIndex}-${vertexIndex}`} ariaLabel="Shape vertex longitude" label="Longitude" minimum={-180} maximum={180} value={selectedCoordinates[0]} disabled={disabled} validate={(longitude) => preservesDistinctVertices([longitude, selectedCoordinates[1]])} validationMessage={distinctVertexMessage} onCommit={(longitude) => onChange(ringIndex, vertexIndex, [longitude, selectedCoordinates[1]])} />
+      <CoordinateField key={`shape-latitude-${ringIndex}-${vertexIndex}`} ariaLabel="Shape vertex latitude" label="Latitude" minimum={-MAX_MERCATOR_LATITUDE} maximum={MAX_MERCATOR_LATITUDE} value={selectedCoordinates[1]} disabled={disabled} validate={(latitude) => preservesDistinctVertices([selectedCoordinates[0], latitude])} validationMessage={distinctVertexMessage} onCommit={(latitude) => onChange(ringIndex, vertexIndex, [selectedCoordinates[0], latitude])} />
     </>
   );
 }

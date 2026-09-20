@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useState } from "react";
 import { createMapboxSearchProvider } from "../../services/mapbox/search";
 import {
   ProjectAutosaveDialogs,
@@ -10,7 +10,7 @@ import {
   useAutosaveCorruptionState,
   useAutosaveErrorState,
 } from "../../storage/projectAutosaveContext";
-import type { PreviewPngExporter } from "../../export/previewPng";
+import { useAvailableMapExporter } from "../mapExporterContext";
 import { useProject, useProjectStoreApi } from "../projectStoreContext";
 import type { StudioAppModel } from "../App";
 import { CanvasWorkspace } from "./CanvasWorkspace";
@@ -38,15 +38,6 @@ const CanvasWorkspaceWithCamera = memo(function CanvasWorkspaceWithCamera(
 
 function StudioCanvas({ m }: { m: StudioAppModel }) {
   const terrain = useProject((state) => state.document.studio.terrain);
-  const poster = useProject((state) => state.document.studio.poster);
-  const photos = useProject((state) => state.document.studio.photos);
-  const decorations = useProject((state) => state.document.studio.decorations);
-  const title = useProject((state) => state.document.title);
-  const composition = useMemo(() => ({
-    page: m.page, layers: m.mapLayers, title,
-    studio: { poster, photos, decorations,
-      terrain: { enabled: terrain.enabled, contours: { enabled: terrain.contours.enabled } } },
-  }), [decorations, m.mapLayers, m.page, photos, poster, terrain.contours.enabled, terrain.enabled, title]);
   return (
     <CanvasWorkspaceWithCamera
       statusNotice={autosaveNotice}
@@ -61,7 +52,6 @@ function StudioCanvas({ m }: { m: StudioAppModel }) {
       textScalePercent={m.style.textScalePercent}
       featureVisibility={m.style.visibility}
       terrain={terrain}
-      composition={composition}
       documentEpoch={m.documentEpoch}
       importFitRequest={m.mapDataImport.importFitRequest}
       locationRequest={m.mapLocation.request}
@@ -95,7 +85,7 @@ function StudioCanvas({ m }: { m: StudioAppModel }) {
       onAuthoringChange={m.handleAuthoringChange}
       onUnfinishedDrawingChange={m.project.setHasUnfinishedDrawing}
       onBackgroundClick={m.clearSelection}
-      onExporterChange={m.mapExporter.onExporterChange}
+      onExporterChange={m.onExporterChange}
       openPanel={m.mobile.openPanel}
     />
   );
@@ -109,7 +99,6 @@ function StudioProperties({ m }: { m: StudioAppModel }) {
     : null;
   return (
     <PropertiesSidebar
-      exporter={m.mapExporter.run}
       studioBlockedReason={m.isAuthoring ? 'Finish or cancel the current drawing before exporting.'
         : (m.isAutosaveCorrupted ? 'Resolve the damaged draft before exporting.' : undefined)}
       selectedLayerId={m.selectedLayer?.id ?? null}
@@ -203,7 +192,7 @@ export function StudioAppView({ model: m }: { model: StudioAppModel }) {
         {m.modal.mobilePanel && <button className="mobile-panel-backdrop" data-panel={m.modal.mobilePanel} type="button" aria-label="Close open panel" onClick={() => m.mobile.closePanel()} />}
         <StudioProperties m={m} />
       </main>
-      {m.modal.surface === "export" && <ExportDialogSurface exporter={m.mapExporter.run} onClose={m.modal.closeExport} />}
+      {m.modal.surface === "export" && <ExportDialogSurface onClose={m.modal.closeExport} />}
       {m.modal.surface === "rename" && <ProjectRenameDialog onClose={m.modal.closeRename} returnFocusRef={m.openButtonRef} />}
       {m.modal.surface === "project-open" && m.projectOpening.pendingDocument && (
         <ProjectReplacementDialog
@@ -221,7 +210,8 @@ export function StudioAppView({ model: m }: { model: StudioAppModel }) {
   );
 }
 
-function ExportDialogSurface({ exporter, onClose }: { exporter: PreviewPngExporter | null; onClose: () => void }) {
+function ExportDialogSurface({ onClose }: { onClose: () => void }) {
+  const exporter = useAvailableMapExporter();
   const document = useProject((state) => state.document);
   return <ExportDialog exporter={exporter} filename={document.id} document={document} onClose={onClose} />;
 }

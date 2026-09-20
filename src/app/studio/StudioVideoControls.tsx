@@ -3,14 +3,16 @@ import type { PreviewPngExporter } from '../../export/previewPng';
 import { InspectorAccordion } from '../components/PropertyControls';
 import { useMutationFeedback } from '../hooks/useMutationFeedback';
 import { useProject, useProjectActions } from '../projectStoreContext';
+import { useAvailableMapExporter } from '../mapExporterContext';
 
 const VideoExportDialog = lazy(async () => {
   const module = await import('../components/VideoExportDialog');
   return { default: module.VideoExportDialog };
 });
-type VideoControlProps = { exporter: PreviewPngExporter | null; blockedReason?: string };
+type VideoControlProps = { exporter?: PreviewPngExporter | null; blockedReason?: string };
 
-function VideoDialogSurface({ exporter, blockedReason, onClose }: VideoControlProps & { onClose: () => void }) {
+function VideoDialogSurface({ exporter: suppliedExporter, blockedReason, onClose }: VideoControlProps & { onClose: () => void }) {
+  const exporter = useAvailableMapExporter(suppliedExporter);
   const document = useProject((state) => state.document);
   const { setStudioSection } = useProjectActions();
   const feedback = useMutationFeedback(document.studio.video);

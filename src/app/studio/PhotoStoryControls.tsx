@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { memo, useRef, useState } from 'react';
 import type { ContentLayer } from '../../domain/project';
 import type { ProjectMutationResult } from '../../domain/projectMutation';
 import type { PhotoSettings } from '../../domain/studio';
@@ -7,8 +7,8 @@ import { FeatureHelp } from '../components/FeatureHelp';
 
 export type PhotoUpload = (file: File, layerId: string | null, expectedDocumentEpoch: number) => Promise<ProjectMutationResult>;
 
-export function PhotoStoryControls({ value, pointLayers, epoch, onChange, onUpload, onRemove }: {
-  value: PhotoSettings; pointLayers: readonly ContentLayer[]; epoch: number;
+export const PhotoStoryControls = memo(function PhotoStoryControls({ value, pointLayers, epoch, onChange, onUpload, onRemove }: {
+  value: PhotoSettings; pointLayers: readonly Pick<ContentLayer, 'id' | 'name'>[]; epoch: number;
   onChange: (value: PhotoSettings) => ProjectMutationResult; onUpload: PhotoUpload; onRemove: (id: string) => ProjectMutationResult;
 }) {
   const [selectedLayer, setSelectedLayer] = useState('');
@@ -59,4 +59,4 @@ export function PhotoStoryControls({ value, pointLayers, epoch, onChange, onUplo
       }}>Remove</button>
     </li>)}</ol>
   </div>;
-}
+});

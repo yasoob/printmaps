@@ -33,13 +33,17 @@ const shape = (overrides: Partial<ContentLayer> = {}): ContentLayer => ({
 function harness(layer = shape()) {
   const markers: FakeMarker[] = [];
   const setData = vi.fn();
+  const sources = new Map<string, { setData: typeof setData }>();
   const createMarker = (element: HTMLElement) => {
     const marker = new FakeMarker(element);
     markers.push(marker);
     return marker;
   };
   const map = {
-    getSource: () => ({ setData }),
+    getSource: (id: string) => {
+      if (!sources.has(id)) sources.set(id, { setData });
+      return sources.get(id);
+    },
     project: ([lng, lat]: readonly [number, number]) => ({ x: lng * 10, y: lat * -10 }),
     unproject: ({ x, y }: { x: number; y: number }) => ({ lng: x / 10, lat: y / -10 }),
   };
@@ -57,6 +61,27 @@ function lastGeometry(setData: ReturnType<typeof vi.fn>): ShapeGeometry {
 }
 
 describe('shape point map editing', () => {
+  it('retains point and midpoint nodes, skips final replay, and synchronizes undo without source writes', () => {
+    const { createMarker, layer, map, markers, setData } = harness();
+    const commit = vi.fn(() => ({ ok: true as const }));
+    const session = installShapeVertexEditing(map, layer, commit, createMarker);
+    const nodes = markers.map((marker) => marker.getElement());
+    markers[0].coordinate = { lng: 2, lat: 3 };
+    markers[0].trigger('drag');
+    markers[0].trigger('dragend');
+    expect(setData).toHaveBeenCalledOnce();
+    expect(session.synchronizeLayer({ ...layer, geometry: lastGeometry(setData) })).toBe(true);
+    expect(markers.map((marker) => marker.getElement())).toEqual(nodes);
+    expect(markers.every(({ removed }) => !removed)).toBe(true);
+    expect(session.synchronizeLayer(layer)).toBe(true);
+    expect(markers[0].coordinate).toEqual({ lng: 0, lat: 0 });
+    expect(markers[4].coordinate).toEqual({ lng: 5, lat: 0 });
+    expect(setData).toHaveBeenCalledOnce();
+    expect(session.synchronizeLayer({ ...layer, locked: true })).toBe(false);
+    session();
+    expect(markers.every(({ removed }) => removed)).toBe(true);
+  });
+
   it('rolls back rejected dragged insertion previews and all handles', () => {
     const { createMarker, layer, map, markers, setData } = harness();
     const commit = vi.fn(() => ({ ok: false as const, error: 'Project position limit reached.' }));

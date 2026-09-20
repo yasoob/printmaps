@@ -1,4 +1,5 @@
-import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { createDefaultLayerAppearance, type ContentLayer } from '../../domain/project';
 import { mutationRejected } from '../../domain/projectMutation';
 import { validatePhotoFile } from '../../domain/studioPhotoAssets';
@@ -10,6 +11,9 @@ import { useProject, useProjectActions, useProjectStoreApi } from '../projectSto
 import { StudioCompositionPanel } from './StudioCompositionPanel';
 import { WallPreviewDialog } from './WallPreviewDialog';
 import type { PhotoUpload } from './PhotoStoryControls';
+import type { StudioCompositionPanelProps } from './StudioCompositionPanel';
+import { useReadMapExporter } from '../mapExporterContext';
+import type { WallSettings } from '../../domain/studio';
 
 function encodedCanvas(canvas: HTMLCanvasElement): Promise<Blob> {
   return new Promise((resolve, reject) => canvas.toBlob((blob) => {
@@ -18,7 +22,7 @@ function encodedCanvas(canvas: HTMLCanvasElement): Promise<Blob> {
   }, 'image/png'));
 }
 
-function useWallPreview(exporter: PreviewPngExporter | null, blockedReason?: string) {
+function useWallPreview(readExporter: () => PreviewPngExporter | null, blockedReason?: string) {
   const store = useProjectStoreApi();
   const wall = useProject((state) => state.document.studio.wall);
   const epoch = useProject((state) => state.documentEpoch);
@@ -28,12 +32,13 @@ function useWallPreview(exporter: PreviewPngExporter | null, blockedReason?: str
   const request = useRef<AbortController | null>(null);
   useEffect(() => () => request.current?.abort(), []);
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview.url); }, [preview]);
-  const close = () => {
+  const close = useCallback(() => {
     request.current?.abort();
     setOpenEpoch(null);
     setPreview(null);
-  };
-  const open = async () => {
+  }, []);
+  const open = useCallback(async () => {
+    const exporter = readExporter();
     if (blockedReason || !exporter) {
       setError(blockedReason || 'Wait for the map to finish loading before previewing it.');
       return;
@@ -60,13 +65,13 @@ function useWallPreview(exporter: PreviewPngExporter | null, blockedReason?: str
     } catch (previewError) {
       if (!controller.signal.aborted) setError(previewError instanceof Error ? previewError.message : 'The wall preview could not be created.');
     }
-  };
+  }, [blockedReason, readExporter, store]);
   return { wall, isOpen: openEpoch === epoch, previewUrl: preview?.epoch === epoch ? preview.url : null, error, setError, open, close };
 }
 
 function usePhotoUpload(): PhotoUpload {
   const store = useProjectStoreApi();
-  return async (file, layerId, expectedDocumentEpoch) => {
+  return useCallback(async (file, layerId, expectedDocumentEpoch) => {
     const current = store.getState();
     const center: [number, number] = [...current.document.camera.center];
     const asset = await validatePhotoFile(file);
@@ -81,54 +86,66 @@ function usePhotoUpload(): PhotoUpload {
       stop: { id, layerId: layerId ?? poi!.id, assetId: asset.id, caption: '' },
       ...(poi && { poi }),
     });
-  };
+  }, [store]);
 }
 
 export const StudioCompositionControls = memo(function StudioCompositionControls({ exporter, blockedReason }: {
-  exporter: PreviewPngExporter | null; blockedReason?: string;
+  exporter?: PreviewPngExporter | null; blockedReason?: string;
 }) {
+  const readExporter = useReadMapExporter(exporter);
   const store = useProjectStoreApi(), actions = useProjectActions();
   const poster = useProject((state) => state.document.studio.poster);
   const photos = useProject((state) => state.document.studio.photos);
   const decorations = useProject((state) => state.document.studio.decorations);
   const page = useProject((state) => state.document.page);
-  const layers = useProject((state) => state.document.layers);
+  const pointNames = useProject(useShallow((state) => Object.fromEntries(
+    state.document.layers.filter((layer) => layer.type === 'poi' && layer.geometry?.type === 'Point')
+      .map((layer) => [layer.id, layer.name]),
+  )));
   const documentEpoch = useProject((state) => state.documentEpoch);
   const cameraLocked = useProject((state) => state.document.camera.locked);
   const isFlat = useProject((state) => state.document.camera.pitch === 0 && !state.document.studio.terrain.enabled);
-  const pointLayers = useMemo(() => layers.filter((layer) => layer.type === 'poi' && layer.geometry?.type === 'Point'), [layers]);
+  const pointLayers = useMemo(() => Object.entries(pointNames).map(([id, name]) => ({ id, name })), [pointNames]);
   const photoUpload = usePhotoUpload();
-  const wallPreview = useWallPreview(exporter, blockedReason);
+  const wallPreview = useWallPreview(readExporter, blockedReason);
+  const { setStudioSection, applyStudioTemplate } = actions;
+  const onPosterChange = useCallback<StudioCompositionPanelProps['onPosterChange']>((value) => setStudioSection('poster', value), [setStudioSection]);
+  const onPhotosChange = useCallback<StudioCompositionPanelProps['onPhotosChange']>((value) => setStudioSection('photos', value), [setStudioSection]);
+  const onDecorationsChange = useCallback<StudioCompositionPanelProps['onDecorationsChange']>((value) => setStudioSection('decorations', value), [setStudioSection]);
+  const onApplyTemplate = useCallback<StudioCompositionPanelProps['onApplyTemplate']>((id, starter) => {
+    if (blockedReason) return mutationRejected(blockedReason);
+    try { return applyStudioTemplate(createPosterTemplateApplication(store.getState().document, id, starter)); }
+    catch (error) { return mutationRejected(error instanceof Error ? error.message : 'The poster template could not be applied.'); }
+  }, [applyStudioTemplate, blockedReason, store]);
+  const onCreateSilhouette = useCallback<StudioCompositionPanelProps['onCreateSilhouette']>((area) => {
+    if (blockedReason) return mutationRejected(blockedReason);
+    const exporter = readExporter();
+    if (!exporter?.captureRenderSnapshot) return mutationRejected('Wait for the map to finish loading before fitting a boundary.');
+    try {
+      const snapshot = exporter.captureRenderSnapshot({ content: 'basemap' });
+      const current = store.getState();
+      return applyStudioTemplate({ ...createSilhouetteApplication(current.document, area, snapshot.frame, snapshot.viewport), expectedDocumentEpoch: current.documentEpoch });
+    } catch (error) { return mutationRejected(error instanceof Error ? error.message : 'The boundary could not be fitted.'); }
+  }, [applyStudioTemplate, blockedReason, readExporter, store]);
+  const { open: openWall, close: closeWall, setError: setWallError } = wallPreview;
+  const onOpenWall = useCallback(() => { void openWall(); }, [openWall]);
+  const onWallOpenChange = useCallback((isOpen: boolean) => { if (!isOpen) closeWall(); }, [closeWall]);
+  const onWallChange = useCallback((value: WallSettings) => {
+    const result = setStudioSection('wall', value);
+    if (!result.ok) setWallError(result.error);
+    return result;
+  }, [setStudioSection, setWallError]);
   return <>
     {blockedReason && <p role="status">{blockedReason}</p>}
     {wallPreview.error && !wallPreview.isOpen && <p className="studio-composition-error" role="alert">{wallPreview.error}</p>}
     <fieldset disabled={Boolean(blockedReason)} className="studio-composition-boundary">
     <StudioCompositionPanel poster={poster} photos={photos} decorations={decorations} pointLayers={pointLayers} documentEpoch={documentEpoch} cameraLocked={cameraLocked} isFlat={isFlat}
-      onPosterChange={(value) => actions.setStudioSection('poster', value)}
-      onPhotosChange={(value) => actions.setStudioSection('photos', value)}
-      onDecorationsChange={(value) => actions.setStudioSection('decorations', value)}
-      onApplyTemplate={(id, starter) => {
-        if (blockedReason) return mutationRejected(blockedReason);
-        try { return actions.applyStudioTemplate(createPosterTemplateApplication(store.getState().document, id, starter)); }
-        catch (error) { return mutationRejected(error instanceof Error ? error.message : 'The poster template could not be applied.'); }
-      }}
-      onCreateSilhouette={(area) => {
-        if (blockedReason) return mutationRejected(blockedReason);
-        if (!exporter?.captureRenderSnapshot) return mutationRejected('Wait for the map to finish loading before fitting a boundary.');
-        try {
-          const snapshot = exporter.captureRenderSnapshot({ content: 'basemap' });
-          const current = store.getState();
-          return actions.applyStudioTemplate({ ...createSilhouetteApplication(current.document, area, snapshot.frame, snapshot.viewport), expectedDocumentEpoch: current.documentEpoch });
-        } catch (error) { return mutationRejected(error instanceof Error ? error.message : 'The boundary could not be fitted.'); }
-      }}
-      onPhotoUpload={photoUpload} onPhotoRemove={actions.removePhotoStop} onOpenWall={() => void wallPreview.open()}
+      onPosterChange={onPosterChange} onPhotosChange={onPhotosChange} onDecorationsChange={onDecorationsChange}
+      onApplyTemplate={onApplyTemplate} onCreateSilhouette={onCreateSilhouette}
+      onPhotoUpload={photoUpload} onPhotoRemove={actions.removePhotoStop} onOpenWall={onOpenWall}
     />
     </fieldset>
-    <WallPreviewDialog open={wallPreview.isOpen} onOpenChange={(isOpen) => { if (!isOpen) wallPreview.close(); }} wall={wallPreview.wall} page={page} previewUrl={wallPreview.previewUrl} error={wallPreview.error} epoch={documentEpoch}
-      onChange={(value) => {
-        const result = actions.setStudioSection('wall', value);
-        if (!result.ok) wallPreview.setError(result.error);
-        return result;
-      }} />
+    <WallPreviewDialog open={wallPreview.isOpen} onOpenChange={onWallOpenChange} wall={wallPreview.wall} page={page} previewUrl={wallPreview.previewUrl} error={wallPreview.error} epoch={documentEpoch}
+      onChange={onWallChange} />
   </>;
 });

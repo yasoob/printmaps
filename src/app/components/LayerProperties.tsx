@@ -54,10 +54,12 @@ function PoiCoordinateControls({
   disabled: boolean;
   onChange: (coordinates: readonly [number, number]) => ProjectMutationResult;
 }) {
+  const commitLongitude = useStableEvent((longitude: number) => onChange([longitude, coordinates[1]]));
+  const commitLatitude = useStableEvent((latitude: number) => onChange([coordinates[0], latitude]));
   return (
     <>
-      <CoordinateField key={`longitude-${coordinates[0]}`} ariaLabel="POI longitude" label="Longitude" disabled={disabled} minimum={-180} maximum={180} value={coordinates[0]} onCommit={(longitude) => onChange([longitude, coordinates[1]])} />
-      <CoordinateField key={`latitude-${coordinates[1]}`} ariaLabel="POI latitude" label="Latitude" disabled={disabled} minimum={-MAX_MERCATOR_LATITUDE} maximum={MAX_MERCATOR_LATITUDE} value={coordinates[1]} onCommit={(latitude) => onChange([coordinates[0], latitude])} />
+      <CoordinateField ariaLabel="POI longitude" label="Longitude" disabled={disabled} minimum={-180} maximum={180} value={coordinates[0]} onCommit={commitLongitude} />
+      <CoordinateField ariaLabel="POI latitude" label="Latitude" disabled={disabled} minimum={-MAX_MERCATOR_LATITUDE} maximum={MAX_MERCATOR_LATITUDE} value={coordinates[1]} onCommit={commitLatitude} />
     </>
   );
 }
@@ -123,7 +125,7 @@ function PoiLayerProperties({
       )}
       {layer.geometry?.type === 'Point' && (
         <PropertySection title="Location">
-          <PoiCoordinateControls coordinates={layer.geometry.coordinates} disabled={layer.locked} onChange={onPoiCoordinatesChange} />
+          <PoiCoordinateControls key={`${documentEpoch}-${layer.id}`} coordinates={layer.geometry.coordinates} disabled={layer.locked} onChange={onPoiCoordinatesChange} />
         </PropertySection>
       )}
     </>

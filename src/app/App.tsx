@@ -4,7 +4,7 @@ import {
   type ContentLayer,
   type ProjectDocument,
 } from "../domain/project";
-import type { PreviewPngExporter } from "../export/previewPng";
+import { createMapExporterChannel, MapExporterContext, usePublishMapExporter } from "./mapExporterContext";
 import type {
   DirectionsProvider,
   MapMatchingProvider,
@@ -64,8 +64,10 @@ export function App({
   const [projectStore] = useState(() =>
     createProjectStore(resolveInitialDocument(initialDocument)),
   );
+  const [mapExporterChannel] = useState(createMapExporterChannel);
   return (
     <ProjectStoreContext value={projectStore}>
+      <MapExporterContext value={mapExporterChannel}>
       <ProjectAutosaveProvider
         loadError={autosaveLoadError}
         projectStore={projectStore}
@@ -82,18 +84,9 @@ export function App({
           </ElevationProfileProvider>
         </LayerPreviewProvider>
       </ProjectAutosaveProvider>
+      </MapExporterContext>
     </ProjectStoreContext>
   );
-}
-
-function useMapExporter() {
-  const [exporter, setExporter] = useState<{ run: PreviewPngExporter } | null>(
-    null,
-  );
-  const onExporterChange = useCallback((next: PreviewPngExporter | null) => {
-    setExporter(next ? { run: next } : null);
-  }, []);
-  return { run: exporter?.run ?? null, onExporterChange };
 }
 
 type StudioAppProps = Omit<
@@ -211,7 +204,7 @@ function useStudioAppModel(props: StudioAppProps) {
     active: false,
   });
   const routeExtension = useRouteExtensionRequest();
-  const mapExporter = useMapExporter();
+  const onExporterChange = usePublishMapExporter();
   const mapLocation = useMapLocationCommand(documentEpoch);
   const exportButtonRef = useRef<HTMLButtonElement>(null);
   const importButtonRef = useRef<HTMLButtonElement>(null);
@@ -273,7 +266,7 @@ function useStudioAppModel(props: StudioAppProps) {
     assets, isAutosaveCorrupted, beginRouteExtend: routeExtension.begin, clearSelection, deleteSelectedLayer, directionsProvider,
     directionsRouteEditing: directions.editing, documentEpoch,
     exportButtonRef, handleAuthoringChange, handleDeleteKeyDown, handleOpenedDocument: projectOpening.open,
-    importButtonRef, isAuthoring, layers, mapDataImport, mapExporter,
+    importButtonRef, isAuthoring, layers, mapDataImport, onExporterChange,
     mapLayers: directions.mapLayers, mapLocation, mapMatchingProvider,
     mobile, modal, openButtonRef, openExport, page, pageBoundaryVisible, project, projectOpening,
     routeExtensionRequest: routeExtension.request, searchProvider, selectedId, selectedLayer,

@@ -1,6 +1,6 @@
 import { Tooltip } from '@base-ui/react/tooltip';
 import { CircleHelp } from 'lucide-react';
-import { useCallback, useId, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useId, useState, type ReactNode } from 'react';
 import './featureHelp.css';
 
 export function FeatureHelp({ label, children, className = '' }: Readonly<{
@@ -14,6 +14,19 @@ export function FeatureHelp({ label, children, className = '' }: Readonly<{
   const [boundary, setBoundary] = useState<HTMLElement | undefined>();
   const popupId = useId();
   const open = previewOpen || pinned;
+  useEffect(() => {
+    if (!open) return;
+    // Hover does not move focus into the tooltip; dismiss it before the modal.
+    const dismiss = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      event.stopPropagation();
+      setPreviewOpen(false);
+      setPinned(false);
+    };
+    window.addEventListener('keydown', dismiss, {capture: true});
+    return () => window.removeEventListener('keydown', dismiss, true);
+  }, [open]);
   const attach = useCallback((node: HTMLSpanElement | null) => {
     if (!node) return;
     // Stay in the modal's focus scope, but outside its scrolling body.

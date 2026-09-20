@@ -1,4 +1,4 @@
-import type { RefObject } from 'react';
+import { memo, useCallback, type RefObject } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { StudioDialogActions, StudioDialogBody, StudioDialogButton, StudioDialogHeader } from '@/components/ui/studio-dialog';
 import type { VideoOptions, VideoPlan, VideoProgress } from '../../video/types';
@@ -36,11 +36,7 @@ function VideoExportMessages({ busy, progress, status, unavailable, error }: Pic
   </>;
 }
 
-export function VideoExportDialogView(props: Props) {
-  const { busy, unavailable, settings, onSettingsChange, plan, progress, status, error, cancelRef, downloadRef, onClose, onCancel, onDownload } = props;
-  return <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
-    <DialogContent className="export-dialog video-export-dialog" overlayClassName="export-dialog-backdrop" showCloseButton={false} initialFocus={unavailable ? cancelRef : downloadRef} aria-busy={busy}>
-      <StudioDialogHeader>
+const videoHeader = <StudioDialogHeader>
         <div>
           <div className="feature-help-row"><DialogTitle>Export map video</DialogTitle><FeatureHelp label="Video recording help">
             <p>Real-time recording is best-effort, not fixed frame rate. Slow tiles or devices can repeat frames. Keep this tab visible while recording.</p>
@@ -49,16 +45,27 @@ export function VideoExportDialogView(props: Props) {
           </FeatureHelp></div>
           <DialogDescription>MP4 video of your poster.</DialogDescription>
         </div>
-      </StudioDialogHeader>
+      </StudioDialogHeader>;
+
+const VideoExportActions = memo(function VideoExportActions({ busy, unavailable, cancelRef, downloadRef, onCancel, onClose, onDownload }: Pick<Props, 'busy' | 'unavailable' | 'cancelRef' | 'downloadRef' | 'onCancel' | 'onClose' | 'onDownload'>) {
+  return <StudioDialogActions stackOnMobile>
+    <StudioDialogButton ref={cancelRef} onClick={busy ? onCancel : onClose}>{busy ? 'Cancel recording' : 'Close'}</StudioDialogButton>
+    <StudioDialogButton ref={downloadRef} variant="primary" disabled={busy || !!unavailable} onClick={onDownload}>{busy ? 'Recording…' : 'Download MP4'}</StudioDialogButton>
+  </StudioDialogActions>;
+});
+
+export function VideoExportDialogView(props: Props) {
+  const { busy, unavailable, settings, onSettingsChange, plan, progress, status, error, cancelRef, downloadRef, onClose, onCancel, onDownload } = props;
+  const onOpenChange = useCallback((isOpen: boolean) => { if (!isOpen) onClose(); }, [onClose]);
+  return <Dialog open onOpenChange={onOpenChange}>
+    <DialogContent className="export-dialog video-export-dialog" overlayClassName="export-dialog-backdrop" showCloseButton={false} initialFocus={unavailable ? cancelRef : downloadRef} aria-busy={busy}>
+      {videoHeader}
       <StudioDialogBody>
         <VideoExportSettings settings={settings} busy={busy} onChange={onSettingsChange} />
         {plan ? <p className="video-export-output"><strong>{plan.width} × {plan.height} px</strong> · {settings.durationSeconds} seconds · {settings.fps} fps target</p> : null}
         <VideoExportMessages busy={busy} progress={progress} status={status} unavailable={unavailable} error={error} />
       </StudioDialogBody>
-      <StudioDialogActions stackOnMobile>
-        <StudioDialogButton ref={cancelRef} onClick={busy ? onCancel : onClose}>{busy ? 'Cancel recording' : 'Close'}</StudioDialogButton>
-        <StudioDialogButton ref={downloadRef} variant="primary" disabled={busy || !!unavailable} onClick={onDownload}>{busy ? 'Recording…' : 'Download MP4'}</StudioDialogButton>
-      </StudioDialogActions>
+      <VideoExportActions busy={busy} unavailable={unavailable} cancelRef={cancelRef} downloadRef={downloadRef} onCancel={onCancel} onClose={onClose} onDownload={onDownload} />
     </DialogContent>
   </Dialog>;
 }

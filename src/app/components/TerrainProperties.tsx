@@ -9,6 +9,9 @@ import { Checkbox } from './UiControls';
 import { useMutationFeedback } from '../hooks/useMutationFeedback';
 import { FeatureHelp } from './FeatureHelp';
 import './terrainControls.css';
+import { useAvailableMapExporter } from '../mapExporterContext';
+import type { ComponentProps } from 'react';
+import { useProject } from '../projectStoreContext';
 
 const ReliefExportDialog = lazy(async () => {
   const module = await import('./ReliefExportDialog');
@@ -19,12 +22,23 @@ export type TerrainPropertiesProps = {
   documentEpoch: number;
   terrain: TerrainSettings;
   relief: ReliefSettings;
-  layers: readonly ContentLayer[];
-  exporter: PreviewPngExporter | null;
+  layers?: readonly ContentLayer[];
+  exporter?: PreviewPngExporter | null;
   blockedReason?: string;
   onTerrainChange: (settings: TerrainSettings) => ProjectMutationResult;
   onReliefChange: (settings: ReliefSettings) => ProjectMutationResult;
 };
+
+function ReliefDocumentLayers(props: Omit<ComponentProps<typeof ReliefExportDialog>, 'layers'>) {
+  const layers = useProject((state) => state.document.layers);
+  return <ReliefExportDialog {...props} layers={layers} />;
+}
+
+function ReliefDialogSurface(props: Omit<ComponentProps<typeof ReliefExportDialog>, 'exporter' | 'layers'> & { exporter?: PreviewPngExporter | null; layers?: readonly ContentLayer[] }) {
+  const exporter = useAvailableMapExporter(props.exporter);
+  return props.layers ? <ReliefExportDialog {...props} exporter={exporter} layers={props.layers} />
+    : <ReliefDocumentLayers {...props} exporter={exporter} />;
+}
 
 export function TerrainProperties(props: TerrainPropertiesProps) {
   const { terrain, documentEpoch, onTerrainChange } = props;
@@ -48,7 +62,7 @@ export function TerrainProperties(props: TerrainPropertiesProps) {
       {feedback.error && <p role="alert" className="coordinate-validation">{feedback.error}</p>}
       <div className="feature-help-row"><button type="button" className="secondary-button" disabled={!!props.blockedReason} onClick={() => setIsReliefOpen(true)}>Export 3D terrain STL</button><FeatureHelp label="Terrain model download help">Download a solid terrain model for your own slicer. No printing or shipping service.</FeatureHelp></div>
       {props.blockedReason && <p role="status" className="terrain-hint">{props.blockedReason}</p>}
-      {isReliefOpen && <Suspense fallback={<p role="status">Loading terrain export…</p>}><ReliefExportDialog key={documentEpoch} settings={props.relief} layers={props.layers} exporter={props.exporter} blockedReason={props.blockedReason} documentEpoch={documentEpoch} onChange={props.onReliefChange} onClose={() => setIsReliefOpen(false)} /></Suspense>}
+      {isReliefOpen && <Suspense fallback={<p role="status">Loading terrain export…</p>}><ReliefDialogSurface key={documentEpoch} settings={props.relief} layers={props.layers} exporter={props.exporter} blockedReason={props.blockedReason} documentEpoch={documentEpoch} onChange={props.onReliefChange} onClose={() => setIsReliefOpen(false)} /></Suspense>}
     </InspectorAccordion>
   );
 }

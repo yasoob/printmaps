@@ -1,6 +1,5 @@
 import type { ComponentProps } from "react";
 import type { StudioMapCanvas } from "../studio/StudioMapCanvas";
-import type { CanvasWorkspaceChrome } from "./CanvasWorkspaceChrome";
 import type { LocationSearch } from "./LocationSearch";
 import type { CanvasWorkspaceProps } from "./CanvasWorkspace";
 import type { CanvasWorkspaceViewProps } from "./CanvasWorkspaceView";
@@ -85,7 +84,7 @@ function createMapProps(
 
 function createChromeProps(
   inputs: ViewInputs,
-): Omit<ComponentProps<typeof CanvasWorkspaceChrome>, "selectToolRef" | "topDock"> {
+): CanvasWorkspaceViewProps["chromeProps"] {
   return {
     activeTool: inputs.activeTool,
     statusNotice: inputs.props.statusNotice,

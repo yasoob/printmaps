@@ -1,5 +1,6 @@
 import { LocateFixed, Search } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { memo, useEffect, useRef } from 'react';
+import { useStableEvent } from '../hooks/useStableEvent';
 import type { SearchProvider, SearchResult } from '../../services/mapbox/contracts';
 import { createMapboxSearchProvider } from '../../services/mapbox/search';
 import { useLocationSearch } from '../hooks/useLocationSearch';
@@ -17,7 +18,7 @@ const defaultProvider = createMapboxSearchProvider({
   token: import.meta.env.VITE_MAPBOX_PUBLIC_ACCESS,
 });
 
-function LocationSearchResults({ activeIndex, onChoose, results }: {
+const LocationSearchResults = memo(function LocationSearchResults({ activeIndex, onChoose, results }: {
   activeIndex: number;
   onChoose: (result: SearchResult) => void;
   results: readonly SearchResult[];
@@ -32,7 +33,7 @@ function LocationSearchResults({ activeIndex, onChoose, results }: {
       ))}
     </div>
   );
-}
+});
 
 export function LocationSearch({ onSelect, proximity, provider = defaultProvider, feedback, onClearFeedback }: LocationSearchProps) {
   const search = useLocationSearch(provider, proximity);
@@ -46,7 +47,7 @@ export function LocationSearch({ onSelect, proximity, provider = defaultProvider
     document.addEventListener('pointerdown', dismissOutside, {capture: true});
     return () => document.removeEventListener('pointerdown', dismissOutside, true);
   }, [close]);
-  const choose = (result: SearchResult) => {
+  const choose = useStableEvent((result: SearchResult) => {
     const focused = document.activeElement;
     const wasOptionFocused = focused instanceof HTMLElement && focused.getAttribute('role') === 'option';
     search.choose(result);
@@ -54,7 +55,7 @@ export function LocationSearch({ onSelect, proximity, provider = defaultProvider
     if (wasOptionFocused && (document.activeElement === focused || document.activeElement === document.body)) {
       inputRef.current?.focus();
     }
-  };
+  });
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.nativeEvent.isComposing || results.length === 0) return;
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
@@ -120,7 +121,7 @@ export function LocationSearch({ onSelect, proximity, provider = defaultProvider
           <LocateFixed aria-hidden="true" size={15} />
         </button>
       </form>
-      <LocationSearchResults activeIndex={activeIndex} onChoose={choose} results={results} />
+      {results.length > 0 && <LocationSearchResults activeIndex={activeIndex} onChoose={choose} results={results} />}
       <span className="sr-only" role="status" aria-label="Place search status">{status}</span>
       {phase === 'searching' && <div className="location-search-status" aria-hidden="true">Searching places...</div>}
       {error && <div className="location-search-status is-error" role="alert">{error}</div>}

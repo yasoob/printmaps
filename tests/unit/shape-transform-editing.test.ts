@@ -34,6 +34,7 @@ const shape = (overrides: Partial<ContentLayer> = {}): ContentLayer => ({
 function harness(layer = shape()) {
   const markers: FakeMarker[] = [];
   const setData = vi.fn();
+  const sources = new Map<string, { setData: typeof setData }>();
   let projectionOffset = { x: 0, y: 0 };
   const createMarker = (element: HTMLElement) => {
     const marker = new FakeMarker(element);
@@ -41,7 +42,10 @@ function harness(layer = shape()) {
     return marker;
   };
   const map = {
-    getSource: () => ({ setData }),
+    getSource: (id: string) => {
+      if (!sources.has(id)) sources.set(id, { setData });
+      return sources.get(id);
+    },
     project: ([lng, lat]: readonly [number, number]) => ({
       x: lng + projectionOffset.x,
       y: lat + projectionOffset.y,
@@ -66,6 +70,26 @@ function lastGeometry(setData: ReturnType<typeof vi.fn>): ShapeGeometry {
 }
 
 describe('selected shape transform editing', () => {
+  it('retains transform nodes across commits and undo without replaying source data', () => {
+    const { createMarker, layer, map, markers, setData } = harness();
+    const commit = vi.fn(() => ({ ok: true as const }));
+    const session = installShapeTransformEditing(map, layer, commit, createMarker);
+    const nodes = markers.map((marker) => marker.getElement());
+    markers[0].coordinate = { lng: 7, lat: 8 };
+    markers[0].trigger('drag');
+    markers[0].trigger('dragend');
+    expect(setData).toHaveBeenCalledOnce();
+    expect(session.synchronizeLayer({ ...layer, geometry: lastGeometry(setData) })).toBe(true);
+    expect(markers.map((marker) => marker.getElement())).toEqual(nodes);
+    expect(markers.every(({ removed }) => !removed)).toBe(true);
+    expect(session.synchronizeLayer(layer)).toBe(true);
+    expect(markers[0].coordinate).toEqual({ lng: 5, lat: 5 });
+    expect(setData).toHaveBeenCalledOnce();
+    expect(session.synchronizeLayer({ ...layer, locked: true })).toBe(false);
+    session();
+    expect(markers.every(({ removed }) => removed)).toBe(true);
+  });
+
   it('restores canonical geometry and handles when a transform is rejected', () => {
     const { createMarker, layer, map, markers, setData } = harness();
     const commit = vi.fn(() => ({ ok: false as const, error: 'The area changed.' }));

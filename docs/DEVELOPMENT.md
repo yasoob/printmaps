@@ -118,16 +118,53 @@ Run the repeatable layer-preview probe with:
 npm run audit:renders
 ```
 
-The suite probes layer preview and selection, title/autosave commits, and
-wheel zoom plus route/POI/shape marker drags. Marker drags are split into
-live-preview and commit windows: live previews must cause zero React renders.
-Each probe writes a JSON attachment with aggregate component totals,
+The default audit port is 4176. Override it for an isolated worktree, and put
+raw results outside the repository:
+
+```bash
+PLAYWRIGHT_EDITOR_PORT=4292 npm run audit:renders -- --output=/absolute/path/audit-results
+node scripts/react_scan_inventory.mjs /absolute/path/audit-results /absolute/path/inventory.json
+```
+
+The inventory command resolves first-party JSX targets with TypeScript symbols
+and reconciles them against every test's global runtime inventory. It fails if
+a source target was never observed. The report records creation sites, owning
+interactions, source aliases, passive icon/provider deliveries and runtime
+owner paths. A green reconciliation proves source-target coverage, not that
+every render is necessary; the browser probes separately assert semantic owners
+and stable siblings.
+
+The suite includes layer navigation, project/camera/style settings, search and
+authoring, import/replacement, advanced routes and async providers, autosave and
+renderer recovery, composition/photos/decorations, terrain, real MP4 recording,
+wall preferences, sharing and desktop/touch modal help. Route, POI, shape-point
+and shape-transform drags have separate live, commit and settle windows. Live
+previews must cause zero React renders, and acknowledged commits retain marker
+nodes without replaying native source writes.
+
+Each probe writes raw JSON and a Playwright attachment with aggregate component totals,
 per-instance events (stable fiber ID, owner path, phase, source, changed props),
 editor-marker DOM additions/removals, and MapLibre source/layer/paint/layout
-method calls.
+method calls. Native calls include a map instance ID and surface
+(`editor`, `shared`, `video`, `offscreen`, or `unknown`), terrain/image changes
+and camera methods. Camera snapshots inspect native preview state without
+altering the canonical project. A video's isolated map may legitimately use
+the same source IDs as the live editor; compare the map ID and surface too.
 React Scan 0.5.7 does not currently emit change reasons or unnecessary-render
 classifications through its runtime callback, so the probe adds a shallow
 comparison of current and previous props.
+
+Normal shared-map bootstrap still skips React Scan. Only the explicit
+development fixture `tests/e2e/react-scan-viewer.html` installs the probe before
+mounting the real shared viewer. Its tests prohibit IndexedDB access; no
+production or normal shared-view privacy guard is weakened.
+
+Renderer availability is an ephemeral capability channel in
+`src/app/mapExporterContext.ts`, not persisted project state. Wall/silhouette
+actions read the current capability at invocation; only open output dialogs
+subscribe to readiness. Poster inputs are consumed below the native workspace
+in `EditorStudioMapCanvas`; project identity is not a poster renderer input.
+Settings remain exclusively in the canonical `ProjectDocument.studio`.
 
 Reload the page after changing probe instrumentation. The controller is
 installed before React DOM, so an already-open page can otherwise retain an

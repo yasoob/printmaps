@@ -2,12 +2,13 @@ import type { PhotoAsset, StudioFont } from '../domain/studio';
 import { boxAttributes, decimal, xml, type StudioBox, type StudioPoint } from './studioGeometry';
 
 type Paint = Readonly<{ fill: string; stroke?: string; strokeWidth?: number; opacity?: number; clip?: StudioBox }>;
-export type StudioPrimitive =
+type StudioPrimitiveData =
   | Readonly<Paint & { kind: 'rect'; box: StudioBox }>
   | Readonly<Paint & { kind: 'circle'; center: StudioPoint; radius: number }>
   | Readonly<Paint & { kind: 'path'; points: readonly StudioPoint[]; closed: boolean }>
   | Readonly<{ kind: 'text'; text: string; point: StudioPoint; size: number; width: number; color: string; font: StudioFont; align: 'left' | 'center' | 'right'; clip?: StudioBox }>
   | Readonly<{ kind: 'image'; asset: PhotoAsset; box: StudioBox; imageBox: StudioBox; shape: 'square' | 'circle'; clip?: StudioBox }>;
+export type StudioPrimitive = StudioPrimitiveData & Readonly<{ key?: string }>;
 
 export const STUDIO_FONTS: Readonly<Record<StudioFont, string>> = {
   sans: 'Arial, Helvetica, sans-serif',

@@ -110,14 +110,14 @@ function MapPreviewError({ error, onRetry }: { error: MapError; onRetry: () => v
 
 const DEFAULT_CAMERA: CameraSettings = { bearing: 0, center: [16.3725, 48.2084], locked: false, pitch: 0, zoom: 11.2 };
 
-function CameraMutationError({ error, container }: { error: string | null; container?: HTMLDivElement | null }) {
+const CameraMutationError = memo(function CameraMutationError({ error, container }: { error: string | null; container?: HTMLDivElement | null }) {
   if (!error) return null;
   const notice = <details className="map-camera-mutation-error" role="alert" aria-label="Camera change not saved">
     <summary>Map view not saved · Previous map view restored</summary>
     <p tabIndex={0}>{error}</p>
   </details>;
   return container ? createPortal(notice, container) : notice;
-}
+});
 
 export function MapCanvas({
   terrain,

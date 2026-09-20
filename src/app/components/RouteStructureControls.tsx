@@ -7,6 +7,8 @@ import {
 import type { DirectionsProvider } from "../../services/mapbox/contracts";
 import { useRouteTransformOperations } from "../hooks/useRouteTransformOperations";
 import type { ProjectState } from "../store";
+import { memo } from "react";
+import { useStableEvent } from "../hooks/useStableEvent";
 
 const ROUTE_KIND_LABELS: Record<RouteKind, string> = {
   straight: "Straight",
@@ -23,13 +25,13 @@ type RouteStructureControlsProps = {
 type RouteOperation = ReturnType<typeof useRouteTransformOperations>;
 type ActiveOperation = NonNullable<RouteOperation["state"]>["operation"];
 
-function operationLabel(layer: ContentLayer, operation: ActiveOperation): string {
+function operationLabel(isRoad: boolean, operation: ActiveOperation): string {
   if (operation.type === "convert") {
     return `convert to ${ROUTE_KIND_LABELS[operation.targetKind]}`;
   }
   if (operation.type === "close") return "close this loop";
   if (operation.type === "open") return "open this loop";
-  return layer.route?.kind === "road" ? "reverse this Road route" : "reverse this route";
+  return isRoad ? "reverse this Road route" : "reverse this route";
 }
 
 function RouteConversionFields({
@@ -110,7 +112,7 @@ function RouteStructureActions({
           pointCount={pointCount}
         />
       </div>
-      <RouteCloseReason layer={layer} pointCount={pointCount} />
+      <RouteCloseReason id={layer.id} message={closeReason({ layer, pointCount })} />
     </>
   );
 }
@@ -148,7 +150,7 @@ function RouteLoopAction({
   );
 }
 
-function RouteCloseReason({
+function closeReason({
   layer,
   pointCount,
 }: {
@@ -162,23 +164,18 @@ function RouteCloseReason({
     message = "Closed Road routes support at most 24 distinct waypoints.";
   }
   if (!message) return null;
-  return (
-    <small id={`${layer.id}-close-loop-reason`} className="route-close-reason">
-      {message}
-    </small>
-  );
+  return message;
 }
 
-function RouteOperationStatus({
-  layer,
-  operation,
-}: {
-  layer: ContentLayer;
-  operation: RouteOperation;
+const RouteCloseReason = memo(function RouteCloseReason({ id, message }: { id: string; message: string | null }) {
+  return message ? <small id={`${id}-close-loop-reason`} className="route-close-reason">{message}</small> : null;
+});
+
+const RouteOperationStatus = memo(function RouteOperationStatus({ isRoad, state, cancel, confirm, retry }: {
+  isRoad: boolean; state: RouteOperation["state"]; cancel: () => void; confirm: () => void; retry: () => void;
 }) {
-  const state = operation.state;
   if (!state) return null;
-  const label = operationLabel(layer, state.operation);
+  const label = operationLabel(isRoad, state.operation);
   if (state.phase === "confirming") {
     return (
       <div className="route-structure-confirmation" role="group" aria-label="Confirm road routing">
@@ -187,8 +184,8 @@ function RouteOperationStatus({
           routing succeeds.
         </p>
         <div>
-          <button type="button" onClick={operation.cancel}>Cancel</button>
-          <button className="primary-button" type="button" onClick={operation.confirm}>
+          <button type="button" onClick={cancel}>Cancel</button>
+          <button className="primary-button" type="button" onClick={confirm}>
             Route and apply
           </button>
         </div>
@@ -199,7 +196,7 @@ function RouteOperationStatus({
     return (
       <div className="route-structure-progress">
         <p role="status">Finding roads to {label}…</p>
-        <button type="button" onClick={operation.cancel}>Cancel routing</button>
+        <button type="button" onClick={cancel}>Cancel routing</button>
       </div>
     );
   }
@@ -207,12 +204,12 @@ function RouteOperationStatus({
     <div className="route-structure-error" role="alert">
       <p>{state.error}</p>
       <div>
-        <button type="button" onClick={operation.retry}>Retry</button>
-        <button type="button" onClick={operation.cancel}>Cancel</button>
+        <button type="button" onClick={retry}>Retry</button>
+        <button type="button" onClick={cancel}>Cancel</button>
       </div>
     </div>
   );
-}
+});
 
 export function RouteStructureControls({
   directionsProvider,
@@ -230,6 +227,9 @@ export function RouteStructureControls({
     - (layer.route?.closed ? 1 : 0);
   const isRouting = operation.state?.phase === "routing";
   const isDisabled = layer.locked || !layer.visible || isRouting;
+  const cancel = useStableEvent(operation.cancel);
+  const confirm = useStableEvent(operation.confirm);
+  const retry = useStableEvent(operation.retry);
   return (
     <div className="route-structure-controls">
       <RouteConversionFields isDisabled={isDisabled} operation={operation} />
@@ -239,7 +239,7 @@ export function RouteStructureControls({
         operation={operation}
         pointCount={pointCount}
       />
-      <RouteOperationStatus layer={layer} operation={operation} />
+      <RouteOperationStatus isRoad={layer.route?.kind === "road"} state={operation.state} cancel={cancel} confirm={confirm} retry={retry} />
     </div>
   );
 }

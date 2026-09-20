@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useCallback, useState } from 'react';
 import type { AdministrativeArea } from '../../domain/administrativeAreas';
 import type { ContentLayer } from '../../domain/project';
 import type { ProjectMutationResult } from '../../domain/projectMutation';
@@ -14,7 +14,7 @@ import './studioComposition.css';
 
 export type StudioCompositionPanelProps = Readonly<{
   poster: PosterSettings; photos: PhotoSettings; decorations: DecorationSettings;
-  pointLayers: readonly ContentLayer[]; documentEpoch: number; cameraLocked: boolean; isFlat: boolean;
+  pointLayers: readonly Pick<ContentLayer, 'id' | 'name'>[]; documentEpoch: number; cameraLocked: boolean; isFlat: boolean;
   onPosterChange: (value: PosterSettings) => ProjectMutationResult;
   onPhotosChange: (value: PhotoSettings) => ProjectMutationResult;
   onDecorationsChange: (value: DecorationSettings) => ProjectMutationResult;
@@ -25,14 +25,19 @@ export type StudioCompositionPanelProps = Readonly<{
   onOpenWall: () => void;
 }>;
 
-export function StudioCompositionPanel(props: StudioCompositionPanelProps) {
+export const StudioCompositionPanel = memo(function StudioCompositionPanel(props: StudioCompositionPanelProps) {
   const [error, setError] = useState('');
   const [isBoundaryPickerOpen, setBoundaryPickerOpen] = useState(false);
   const [isFitting, setFitting] = useState(false);
-  function report(result: ProjectMutationResult) {
+  const report = useCallback((result: ProjectMutationResult) => {
     setError(result.ok ? '' : result.error);
     return result;
-  }
+  }, []);
+  const { onApplyTemplate, onPosterChange, onPhotosChange, onDecorationsChange } = props;
+  const applyTemplate = useCallback<StudioCompositionPanelProps['onApplyTemplate']>((id, starter) => report(onApplyTemplate(id, starter)), [onApplyTemplate, report]);
+  const changePoster = useCallback((value: PosterSettings) => report(onPosterChange(value)), [onPosterChange, report]);
+  const changePhotos = useCallback((value: PhotoSettings) => report(onPhotosChange(value)), [onPhotosChange, report]);
+  const changeDecorations = useCallback((value: DecorationSettings) => report(onDecorationsChange(value)), [onDecorationsChange, report]);
   async function createSilhouette(area: AdministrativeArea) {
     setFitting(true);
     try {
@@ -48,8 +53,8 @@ export function StudioCompositionPanel(props: StudioCompositionPanelProps) {
   return <section className="studio-composition-panel" aria-label="Poster composition">
     <div className="feature-help-row"><h3>Poster studio</h3><FeatureHelp label="Poster artwork export help">Poster artwork is included in PNG, SVG, PDF, and PSD. Map attribution stays visible. PDF typography supports Latin text; use SVG or PNG for other scripts.</FeatureHelp></div>
     {error && <p role="alert" className="studio-composition-error">{error}</p>}
-    <details><summary>Templates & starter gallery</summary><PosterGallery cameraLocked={props.cameraLocked} onApply={(id, starter) => report(props.onApplyTemplate(id, starter))} /></details>
-    <details><summary>Poster typography & paper</summary><PosterControls value={props.poster} epoch={props.documentEpoch} onChange={(value) => report(props.onPosterChange(value))} /></details>
+    <details><summary>Templates & starter gallery</summary><PosterGallery cameraLocked={props.cameraLocked} onApply={applyTemplate} /></details>
+    <details><summary>Poster typography & paper</summary><PosterControls value={props.poster} epoch={props.documentEpoch} onChange={changePoster} /></details>
     <details><summary>Country & region silhouette</summary>
       <div className="feature-help-row">
         <button type="button" disabled={props.cameraLocked || isFitting} onClick={() => setBoundaryPickerOpen(true)}>Choose country or region</button>
@@ -59,8 +64,8 @@ export function StudioCompositionPanel(props: StudioCompositionPanelProps) {
       {isFitting && <p role="status">Fitting boundary...</p>}
       {isBoundaryPickerOpen && !isFitting && <AdministrativeAreaPicker onAdd={(area) => void createSilhouette(area)} onCancel={() => setBoundaryPickerOpen(false)} />}
     </details>
-    <details><summary>Photo story</summary><PhotoStoryControls value={props.photos} epoch={props.documentEpoch} pointLayers={props.pointLayers} onChange={(value) => report(props.onPhotosChange(value))} onUpload={props.onPhotoUpload} onRemove={props.onPhotoRemove} /></details>
-    <details><summary>Compass, scale, grid & QR</summary><DecorationControls value={props.decorations} epoch={props.documentEpoch} pointLayers={props.pointLayers} isFlat={props.isFlat} onChange={(value) => report(props.onDecorationsChange(value))} /></details>
+    <details><summary>Photo story</summary><PhotoStoryControls value={props.photos} epoch={props.documentEpoch} pointLayers={props.pointLayers} onChange={changePhotos} onUpload={props.onPhotoUpload} onRemove={props.onPhotoRemove} /></details>
+    <details><summary>Compass, scale, grid & QR</summary><DecorationControls value={props.decorations} epoch={props.documentEpoch} pointLayers={props.pointLayers} isFlat={props.isFlat} onChange={changeDecorations} /></details>
     <button type="button" onClick={props.onOpenWall}>Preview on a wall</button>
   </section>;
-}
+});

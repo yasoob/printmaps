@@ -1,5 +1,5 @@
 import { ImagePlus, Trash2 } from 'lucide-react';
-import { useId, useLayoutEffect, useRef, useState } from 'react';
+import { memo, useId, useLayoutEffect, useRef, useState } from 'react';
 import { decodeCustomMarkerImage, validateCustomMarkerFile, type CustomMarkerAsset } from '../../domain/customMarkerAssets';
 import type { PoiAppearance } from '../../domain/project';
 import {
@@ -87,7 +87,7 @@ function CustomMarkerControl({
   );
 }
 
-export function PoiAppearanceControls({ appearance, customAsset, onChange: commit, onCustomMarkerChange }: PoiAppearanceControlsProps) {
+export const PoiAppearanceControls = memo(function PoiAppearanceControls({ appearance, customAsset, onChange: commit, onCustomMarkerChange }: PoiAppearanceControlsProps) {
   const customStyleHelpId = useId();
   const activeAsset = customAsset?.id === appearance.customAssetId ? customAsset : undefined;
   const customStyleDescription = activeAsset ? customStyleHelpId : undefined;
@@ -137,4 +137,4 @@ export function PoiAppearanceControls({ appearance, customAsset, onChange: commi
       <CustomMarkerControl key={activeAsset?.id ?? 'standard'} customAsset={activeAsset} onChange={onCustomMarkerChange} />
     </>
   );
-}
+});
