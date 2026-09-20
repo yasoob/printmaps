@@ -1,7 +1,8 @@
+import { memo } from 'react';
 import { POSTER_STARTERS, POSTER_TEMPLATES, type PosterStarter, type PosterTemplate } from '../../domain/studioTemplates';
 import { MAP_STYLE_PRESETS } from '../../domain/mapStylePresets';
 
-export function PosterGallery({ cameraLocked, onApply }: {
+export const PosterGallery = memo(function PosterGallery({ cameraLocked, onApply }: {
   cameraLocked: boolean;
   onApply: (id: PosterTemplate['id'], starter?: PosterStarter) => void;
 }) {
@@ -21,4 +22,4 @@ export function PosterGallery({ cameraLocked, onApply }: {
     {cameraLocked && <p role="status">Unlock the map area to use a starter location.</p>}
     <div className="studio-starter-grid">{POSTER_STARTERS.map((starter) => <button type="button" key={starter.id} disabled={cameraLocked} onClick={() => onApply(starter.templateId, starter)}><strong>{starter.name}</strong><small>{starter.subtitle}</small></button>)}</div>
   </div>;
-}
+});

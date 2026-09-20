@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { PosterSettings, PosterText } from '../../domain/studio';
 import type { ProjectMutationResult } from '../../domain/projectMutation';
 import { StudioColor, StudioNumber, StudioSelect, StudioToggle } from './StudioFields';
@@ -17,7 +18,7 @@ function TextControl({ label, value, epoch, onChange }: {
   </fieldset>;
 }
 
-export function PosterControls({ value, epoch, onChange }: {
+export const PosterControls = memo(function PosterControls({ value, epoch, onChange }: {
   value: PosterSettings; epoch: number; onChange: (value: PosterSettings) => ProjectMutationResult;
 }) {
   return <div className="studio-composition-controls">
@@ -32,4 +33,4 @@ export function PosterControls({ value, epoch, onChange }: {
       {(['top', 'right', 'bottom', 'left'] as const).map((side) => <StudioNumber key={side} label={`${side.charAt(0).toUpperCase() + side.slice(1)} margin`} value={value.marginsMm[side]} epoch={epoch} onChange={(number) => onChange({ ...value, marginsMm: { ...value.marginsMm, [side]: number } })} />)}
     </fieldset>
   </div>;
-}
+});

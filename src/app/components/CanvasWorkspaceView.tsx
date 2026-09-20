@@ -1,6 +1,7 @@
 import { memo, useMemo, useState, type ComponentProps, type RefObject } from "react";
 import type { MobilePanel } from "../hooks/useMobilePanels";
 import { StudioMapCanvas } from "../studio/StudioMapCanvas";
+import { EditorStudioMapCanvas } from "../studio/EditorStudioMapCanvas";
 import {
   useLayerPreviewId,
   visibleLayerPreviewId,
@@ -44,7 +45,7 @@ const MapCanvasWithLayerPreview = memo(function MapCanvasWithLayerPreview({
     mapProps.layers,
     requestedPreviewId,
   );
-  return <StudioMapCanvas {...mapProps} cameraNoticeContainer={cameraNoticeContainer} previewedId={previewedId} />;
+  return <EditorStudioMapCanvas {...mapProps} cameraNoticeContainer={cameraNoticeContainer} previewedId={previewedId} />;
 });
 
 export function CanvasWorkspaceView({

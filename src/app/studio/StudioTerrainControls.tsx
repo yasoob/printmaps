@@ -5,7 +5,7 @@ import { TerrainProperties } from '../components/TerrainProperties';
 import { useProject, useProjectActions } from '../projectStoreContext';
 
 export const StudioTerrainControls = memo(function StudioTerrainControls({ exporter, blockedReason }: {
-  exporter: PreviewPngExporter | null;
+  exporter?: PreviewPngExporter | null;
   blockedReason?: string;
 }) {
   const terrain = useProject((state) => state.document.studio.terrain);

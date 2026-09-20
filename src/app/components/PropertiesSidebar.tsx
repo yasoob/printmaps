@@ -163,7 +163,7 @@ export const PropertiesSidebar = memo(function PropertiesSidebar(props: Properti
             props={props}
             selectedLayerId={selectedLayerId}
           />
-        ) : <ProjectPropertiesPanel onLocate={onLocate} exporter={props.exporter ?? null} blockedReason={props.studioBlockedReason} />}
+        ) : <ProjectPropertiesPanel onLocate={onLocate} exporter={props.exporter} blockedReason={props.studioBlockedReason} />}
       </div>
     </aside>
   );
@@ -176,7 +176,7 @@ export const PropertiesSidebar = memo(function PropertiesSidebar(props: Properti
  */
 const ProjectPropertiesPanel = memo(function ProjectPropertiesPanel({ onLocate, exporter, blockedReason }: {
   onLocate: (coordinate: [number, number], onApplied: () => void) => void;
-  exporter: PreviewPngExporter | null;
+  exporter?: PreviewPngExporter | null;
   blockedReason?: string;
 }) {
   const project = useProjectActions();

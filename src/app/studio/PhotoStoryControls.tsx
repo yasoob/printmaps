@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { memo, useRef, useState } from 'react';
 import type { ContentLayer } from '../../domain/project';
 import type { ProjectMutationResult } from '../../domain/projectMutation';
 import type { PhotoSettings } from '../../domain/studio';
@@ -6,8 +6,8 @@ import { StudioColor, StudioNumber, StudioSelect, StudioToggle } from './StudioF
 
 export type PhotoUpload = (file: File, layerId: string | null, expectedDocumentEpoch: number) => Promise<ProjectMutationResult>;
 
-export function PhotoStoryControls({ value, pointLayers, epoch, onChange, onUpload, onRemove }: {
-  value: PhotoSettings; pointLayers: readonly ContentLayer[]; epoch: number;
+export const PhotoStoryControls = memo(function PhotoStoryControls({ value, pointLayers, epoch, onChange, onUpload, onRemove }: {
+  value: PhotoSettings; pointLayers: readonly Pick<ContentLayer, 'id' | 'name'>[]; epoch: number;
   onChange: (value: PhotoSettings) => ProjectMutationResult; onUpload: PhotoUpload; onRemove: (id: string) => ProjectMutationResult;
 }) {
   const [selectedLayer, setSelectedLayer] = useState('');
@@ -54,4 +54,4 @@ export function PhotoStoryControls({ value, pointLayers, epoch, onChange, onUplo
     </li>)}</ol>
     <p>Move or hide a point using the existing map tools. Removing a photo keeps its point; deleting a point removes its photo.</p>
   </div>;
-}
+});

@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { ContentLayer } from '../../domain/project';
 import type { ProjectMutationResult } from '../../domain/projectMutation';
 import type { DecorationSettings } from '../../domain/studio';
@@ -8,8 +9,8 @@ const POSITIONS = [
   { value: 'bottom-left', label: 'Bottom left' }, { value: 'bottom-right', label: 'Bottom right' },
 ] as const;
 
-export function DecorationControls({ value, epoch, pointLayers, isFlat, onChange }: {
-  value: DecorationSettings; epoch: number; pointLayers: readonly ContentLayer[]; isFlat: boolean;
+export const DecorationControls = memo(function DecorationControls({ value, epoch, pointLayers, isFlat, onChange }: {
+  value: DecorationSettings; epoch: number; pointLayers: readonly Pick<ContentLayer, 'id' | 'name'>[]; isFlat: boolean;
   onChange: (value: DecorationSettings) => ProjectMutationResult;
 }) {
   return <div className="studio-composition-controls">
@@ -41,4 +42,4 @@ export function DecorationControls({ value, epoch, pointLayers, isFlat, onChange
       <StudioNumber label="QR size" value={value.qr.sizeMm} min={16} max={60} epoch={epoch} onChange={(sizeMm) => onChange({ ...value, qr: { ...value.qr, sizeMm } })} />
     </fieldset>
   </div>;
-}
+});

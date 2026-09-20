@@ -1,7 +1,7 @@
-import { useEffect, useLayoutEffect, useRef, type RefObject } from 'react';
+import { useLayoutEffect, useRef, type RefObject } from 'react';
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { ContentLayer, MapStylePreset } from '../domain/project';
-import { installPointEditing } from './PointEditing';
+import { installPointEditing, isEditablePoint } from './PointEditing';
 import { mutationRejected, type ProjectMutationResult } from '../domain/projectMutation';
 
 type PointEditingOptions = {
@@ -22,14 +22,19 @@ export function usePointEditing({
   const coordinatesChange = useRef(onPoiCoordinatesChange);
   const pendingFocus = useRef<string | null>(null);
   const canCommit = typeof onPoiCoordinatesChange === 'function';
+  const selectedLayer = layers.find((layer) => layer.id === selectedId);
+  const selectedLayerRef = useRef(selectedLayer);
+  const session = useRef<ReturnType<typeof installPointEditing> | null>(null);
+  const sessionKey = selectedLayer && isEditablePoint(selectedLayer) ? selectedLayer.id : null;
   useLayoutEffect(() => {
     coordinatesChange.current = onPoiCoordinatesChange;
-  }, [onPoiCoordinatesChange]);
+    selectedLayerRef.current = selectedLayer;
+  }, [onPoiCoordinatesChange, selectedLayer]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const activeMap = map.current;
-    const selectedLayer = layers.find((layer) => layer.id === selectedId);
-    if (!activeMap || !selectedLayer || !canCommit) {
+    const selectedLayer = selectedLayerRef.current;
+    if (!activeMap || !selectedLayer || !canCommit || !sessionKey) {
       pendingFocus.current = null;
       return;
     }
@@ -41,6 +46,7 @@ export function usePointEditing({
         return commit ? commit(selectedLayer.id, coordinate) : mutationRejected('Point editing is no longer available.', 'unavailable');
       },
     );
+    session.current = editing;
     if (pendingFocus.current === selectedLayer.id) editing.focusHandle();
     pendingFocus.current = null;
     return () => {
@@ -48,7 +54,11 @@ export function usePointEditing({
       if (activeElement instanceof HTMLElement && activeElement.dataset.poiMoveHandle === selectedLayer.id) {
         pendingFocus.current = selectedLayer.id;
       }
+      session.current = null;
       editing();
     };
-  }, [canCommit, layers, map, selectedId, stylePreset]);
+  }, [canCommit, map, sessionKey, stylePreset]);
+  useLayoutEffect(() => {
+    if (selectedLayer) session.current?.synchronizeLayer(selectedLayer);
+  }, [selectedLayer]);
 }

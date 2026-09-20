@@ -64,6 +64,8 @@ export type ReactScanProbeResult = {
 export type ReactScanProbeController = {
   finish: () => ReactScanProbeResult;
   inventory: ReadonlyArray<ReactScanComponentInventory>;
+  instances: ReadonlyArray<ReactScanProbeResult["events"][number]>;
+  lastActivityAt: number;
   start: (label: string) => void;
 };
 
@@ -74,6 +76,8 @@ declare global {
 }
 
 const probeState: { active: ReactScanProbeResult | null } = { active: null };
+const instances = new Map<number, ReactScanProbeResult["events"][number]>();
+let lastActivityAt = 0;
 const componentInventory = new Map<string, ReactScanComponentInventory>(
   REACT_SCAN_TARGETS.map(({ area, name }) => [
     name,
@@ -153,10 +157,11 @@ function recordRender(
 
 const handleRender: ReactScanRenderHandler = (fiber, renders) => {
   for (const render of renders) {
+    lastActivityAt = performance.now();
     const analyzed = analyzeFiberRender(fiber, render);
     observeComponent(analyzed.name, analyzed.source);
     recordRender(analyzed.name, [render], analyzed.changes);
-    probeState.active?.events.push({
+    const event = {
       changes: analyzed.changes,
       component: analyzed.name,
       didCommit: analyzed.didCommit,
@@ -164,7 +169,9 @@ const handleRender: ReactScanRenderHandler = (fiber, renders) => {
       ownerPath: analyzed.ownerPath,
       phase: analyzed.phase,
       source: analyzed.source,
-    });
+    };
+    instances.set(analyzed.instanceId, event);
+    probeState.active?.events.push(event);
   }
 };
 
@@ -173,6 +180,8 @@ export function installReactScanProbe(): ReactScanRenderHandler {
   if (existing) return handleRender;
 
   const controller: ReactScanProbeController = {
+    get lastActivityAt() { return lastActivityAt; },
+    get instances() { return [...instances.values()]; },
     get inventory() {
       return [...componentInventory.values()].map((entry) => ({ ...entry }));
     },
@@ -212,6 +221,7 @@ export function installReactScanProbe(): ReactScanRenderHandler {
     subtree: true,
   });
   installMapLibreMutationProbe((mutation) => {
+    lastActivityAt = performance.now();
     probeState.active?.mapMutations.push(mutation);
   });
   return handleRender;

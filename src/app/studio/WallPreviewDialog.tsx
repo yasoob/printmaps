@@ -1,12 +1,12 @@
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
-import type { CSSProperties } from 'react';
+import { memo, type CSSProperties } from 'react';
 import type { PageSettings } from '../../domain/project';
 import type { ProjectMutationResult } from '../../domain/projectMutation';
 import type { WallSettings } from '../../domain/studio';
 import { StudioColor, StudioNumber, StudioSelect, StudioToggle } from './StudioFields';
 import './studioComposition.css';
 
-export function WallPreviewDialog({ open, onOpenChange, wall, page, previewUrl, error, epoch = 0, onChange }: {
+export const WallPreviewDialog = memo(function WallPreviewDialog({ open, onOpenChange, wall, page, previewUrl, error, epoch = 0, onChange }: {
   open: boolean; onOpenChange: (isOpen: boolean) => void; wall: WallSettings; page: PageSettings;
   previewUrl: string | null; error?: string; epoch?: number; onChange?: (value: WallSettings) => ProjectMutationResult;
 }) {
@@ -36,4 +36,4 @@ export function WallPreviewDialog({ open, onOpenChange, wall, page, previewUrl, 
       </div>}
     </DialogContent>
   </Dialog>;
-}
+});

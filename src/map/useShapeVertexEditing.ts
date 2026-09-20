@@ -1,7 +1,7 @@
-import { useEffect, useLayoutEffect, useRef, type RefObject } from 'react';
+import { useLayoutEffect, useRef, type RefObject } from 'react';
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { ContentLayer, MapStylePreset, ShapeGeometry } from '../domain/project';
-import { installShapeVertexEditing } from './ShapeVertexEditing';
+import { canDirectlyEditShapePoints, installShapeVertexEditing } from './ShapeVertexEditing';
 import { mutationRejected, type ProjectMutationResult } from '../domain/projectMutation';
 
 type ShapeVertexEditingOptions = {
@@ -23,14 +23,21 @@ export function useShapeVertexEditing({
 }: ShapeVertexEditingOptions) {
   const shapeGeometryChange = useRef(onShapeGeometryChange);
   const pendingFocus = useRef<{ layerId: string; ringIndex: number; vertexIndex: number } | null>(null);
+  const selectedLayer = layers.find((layer) => layer.id === selectedId);
+  const selectedLayerRef = useRef(selectedLayer);
+  const session = useRef<ReturnType<typeof installShapeVertexEditing> | null>(null);
+  const canCommit = typeof onShapeGeometryChange === 'function';
+  const sessionKey = canDirectlyEditShapePoints(selectedLayer)
+    ? `${selectedLayer.id}:${selectedLayer.geometry.coordinates.map((ring) => ring.length).join(':')}` : null;
   useLayoutEffect(() => {
     shapeGeometryChange.current = onShapeGeometryChange;
-  }, [onShapeGeometryChange]);
+    selectedLayerRef.current = selectedLayer;
+  }, [onShapeGeometryChange, selectedLayer]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const activeMap = map.current;
-    const selectedLayer = layers.find((layer) => layer.id === selectedId);
-    if (!active || !activeMap || !selectedLayer || !onShapeGeometryChange) {
+    const selectedLayer = selectedLayerRef.current;
+    if (!active || !activeMap || !selectedLayer || !canCommit || !sessionKey) {
       pendingFocus.current = null;
       return;
     }
@@ -39,6 +46,7 @@ export function useShapeVertexEditing({
       selectedLayer,
       (geometry) => shapeGeometryChange.current?.(selectedLayer.id, geometry) ?? mutationRejected('Area editing is no longer available.', 'unavailable'),
     );
+    session.current = editing;
     if (pendingFocus.current?.layerId === selectedLayer.id) {
       editing.focusPoint(pendingFocus.current.ringIndex, pendingFocus.current.vertexIndex);
     }
@@ -50,7 +58,11 @@ export function useShapeVertexEditing({
       if (ringIndex !== undefined && vertexIndex !== undefined) {
         pendingFocus.current = { layerId: selectedLayer.id, ringIndex: Number(ringIndex), vertexIndex: Number(vertexIndex) };
       }
+      session.current = null;
       editing();
     };
-  }, [active, layers, map, onShapeGeometryChange, selectedId, stylePreset]);
+  }, [active, canCommit, map, sessionKey, stylePreset]);
+  useLayoutEffect(() => {
+    if (selectedLayer) session.current?.synchronizeLayer(selectedLayer);
+  }, [selectedLayer]);
 }

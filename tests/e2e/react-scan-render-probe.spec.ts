@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import { waitForRenderQuiet } from "./react-scan-helpers";
 import type {
   ReactScanProbeController,
 } from "../../src/dev/reactScanProbe";
@@ -21,6 +22,8 @@ const EXPECTED_HOVER_RENDERS = new Set([
   "LayerPreviewProvider",
   "MapCanvasWithLayerPreview",
   "MapCanvas",
+  "StudioMapCanvas",
+  "EditorStudioMapCanvas",
 ]);
 
 test.skip(
@@ -36,7 +39,7 @@ async function openInstrumentedEditor(page: Page) {
   await page.waitForFunction(
     () => Boolean((globalThis as ProbeGlobal).__PRINT_MAP_REACT_SCAN__),
   );
-  await page.waitForTimeout(250);
+  await waitForRenderQuiet(page);
 }
 
 async function captureMarkerDrag(
@@ -47,6 +50,7 @@ async function captureMarkerDrag(
 ) {
   await expect(marker).toBeVisible();
   await expect(marker).toHaveCSS("z-index", "3");
+  await waitForRenderQuiet(page);
   const markerBounds = await marker.boundingBox();
   expect(markerBounds).not.toBeNull();
   const start = {
@@ -106,10 +110,10 @@ test("reports editor boundaries affected by a layer preview", async ({
   );
   expect(inventory?.map(({ name }) => name)).toEqual(
     expect.arrayContaining([
-      "LayerRow",
+      "LayerNavigationRow",
       "ProjectPropertiesPanel",
       "StudioHeader",
-      "LayersSidebar",
+      "LayerNavigation",
       "PropertiesSidebar",
       "CanvasWorkspace",
       "MapCanvas",
@@ -181,7 +185,7 @@ test("captures editor boundaries affected by layer selection", async ({
   });
   console.log(JSON.stringify(result, null, 2));
 
-  expect(result.components.LayersSidebar?.callbacks).toBeGreaterThan(0);
+  expect(result.components.LayerNavigation?.callbacks).toBeGreaterThan(0);
   expect(result.components.PropertiesSidebar?.callbacks).toBeGreaterThan(0);
   expect(result.components.MapCanvas?.callbacks).toBeGreaterThan(0);
   expect(result.components.PropertiesSidebar?.changes).toEqual([
@@ -291,13 +295,13 @@ for (const markerCase of [
     label: "POI point",
     markerName: "Move Coffee stop",
     selectionName: "Select Coffee stop",
-    shouldRetainMarker: false,
+    shouldRetainMarker: true,
   },
   {
     label: "shape point",
     markerName: "Drag area point 1",
     selectionName: "Select City center",
-    shouldRetainMarker: false,
+    shouldRetainMarker: true,
   },
 ]) {
   test(`separates live ${markerCase.label} preview from its committed React update`, async ({
@@ -340,6 +344,8 @@ for (const markerCase of [
     if (markerCase.shouldRetainMarker) {
       expect(results.commitResult.domMutations).toEqual([]);
       expect(results.commitResult.mapMutations).toEqual([]);
+    }
+    if (markerCase.label === "route point") {
       expect(componentsWithoutHostCommits(results.commitResult)).toEqual([]);
       for (const unrelatedRouteInspectorComponent of [
         "DirectionsEditStatus",

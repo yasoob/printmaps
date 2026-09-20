@@ -1,7 +1,7 @@
 import { Marker, type Map as MapLibreMap } from 'maplibre-gl';
 import type { ContentLayer, LayerGeometry } from '../domain/project';
 import { isValidPosition } from '../domain/routeGeometry';
-import { mapContentSourceId } from './MapContentGeometry';
+import { previewMapGeometry } from './MapGeometryPreview';
 import type { ProjectMutationResult } from '../domain/projectMutation';
 
 type PointGeometry = Extract<LayerGeometry, { type: 'Point' }>;
@@ -17,7 +17,10 @@ export type PointEditingMarker = {
 };
 
 type MarkerFactory = (element: HTMLElement) => PointEditingMarker;
-export type PointEditingSession = (() => void) & { focusHandle: () => void };
+export type PointEditingSession = (() => void) & {
+  focusHandle: () => void;
+  synchronizeLayer: (layer: ContentLayer) => boolean;
+};
 
 const createMapLibreMarker: MarkerFactory = (element) => (
   new Marker({ draggable: true, element }) as unknown as PointEditingMarker
@@ -28,32 +31,14 @@ function normalizedCoordinate(longitude: number, latitude: number): [number, num
   return [Number(longitude.toFixed(6)), Number(latitude.toFixed(6))];
 }
 
-function didSetPointSourceGeometry(
-  map: PointEditingMap,
-  layerId: string,
-  coordinate: readonly [number, number],
-) {
-  try {
-    const source = map.getSource(mapContentSourceId(layerId)) as { setData?: (data: unknown) => void } | undefined;
-    if (typeof source?.setData !== 'function') return false;
-    source.setData({
-      type: 'Feature',
-      properties: { layerId },
-      geometry: { type: 'Point', coordinates: [...coordinate] },
-    });
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 function emptySession(): PointEditingSession {
   const cleanup = (() => {}) as PointEditingSession;
   cleanup.focusHandle = () => {};
+  cleanup.synchronizeLayer = () => false;
   return cleanup;
 }
 
-function isEditablePoint(layer: ContentLayer): layer is ContentLayer & { geometry: PointGeometry } {
+export function isEditablePoint(layer: ContentLayer): layer is ContentLayer & { geometry: PointGeometry } {
   return layer.type === 'poi'
     && layer.visible
     && !layer.locked
@@ -67,7 +52,10 @@ export function installPointEditing(
   createMarker: MarkerFactory = createMapLibreMarker,
 ): PointEditingSession {
   if (!isEditablePoint(layer)) return emptySession();
-  const original = [...layer.geometry.coordinates] as [number, number];
+  let currentLayer = layer;
+  let original = [...layer.geometry.coordinates] as [number, number];
+  const updateSource = (coordinate: readonly [number, number]) =>
+    previewMapGeometry(map, currentLayer, { type: 'Point', coordinates: [coordinate[0], coordinate[1]] });
   const element = document.createElement('button');
   element.type = 'button';
   element.className = 'poi-move-marker';
@@ -82,15 +70,15 @@ export function installPointEditing(
     const result = onCommit(coordinate);
     if (!result.ok) {
       marker.setLngLat(original);
-      didSetPointSourceGeometry(map, layer.id, original);
-    }
+      updateSource(original);
+    } else original = [coordinate[0], coordinate[1]];
     hasPreview = false;
   };
 
   const preview = () => {
     const { lng, lat } = marker.getLngLat();
     const coordinate = normalizedCoordinate(lng, lat);
-    if (!coordinate || !didSetPointSourceGeometry(map, layer.id, coordinate)) return null;
+    if (!coordinate || !updateSource(coordinate)) return null;
     hasPreview = true;
     return coordinate;
   };
@@ -100,7 +88,7 @@ export function installPointEditing(
     const coordinate = preview();
     if (!coordinate) {
       marker.setLngLat(original);
-      didSetPointSourceGeometry(map, layer.id, original);
+      updateSource(original);
       hasPreview = false;
       return;
     }
@@ -123,14 +111,26 @@ export function installPointEditing(
     const coordinate = normalizedCoordinate(next.lng, next.lat);
     if (!coordinate) return;
     marker.setLngLat(coordinate);
-    if (!didSetPointSourceGeometry(map, layer.id, coordinate)) return;
+    if (!updateSource(coordinate)) return;
     commit(coordinate);
   });
 
   const cleanup = (() => {
-    if (hasPreview) didSetPointSourceGeometry(map, layer.id, original);
+    if (hasPreview) updateSource(original);
     marker.remove();
   }) as PointEditingSession;
   cleanup.focusHandle = () => element.focus();
+  cleanup.synchronizeLayer = (next) => {
+    if (next.id !== currentLayer.id || !isEditablePoint(next)) return false;
+    currentLayer = next;
+    original = [...next.geometry.coordinates];
+    marker.setLngLat(original);
+    element.setAttribute('aria-label', `Move ${next.name}`);
+    element.title = `Move ${next.name} · Arrow keys nudge`;
+    const size = next.appearance?.kind === 'poi' ? next.appearance.size : 16;
+    element.style.setProperty('--studio-poi-move-size', `${Math.max(28, size + 12)}px`);
+    hasPreview = false;
+    return true;
+  };
   return cleanup;
 }

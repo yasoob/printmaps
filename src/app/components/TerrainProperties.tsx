@@ -8,6 +8,8 @@ import { ValidatedNumberField } from './ValidatedNumberField';
 import { Checkbox } from './UiControls';
 import { useMutationFeedback } from '../hooks/useMutationFeedback';
 import './terrainControls.css';
+import { useAvailableMapExporter } from '../mapExporterContext';
+import type { ComponentProps } from 'react';
 
 const ReliefExportDialog = lazy(async () => {
   const module = await import('./ReliefExportDialog');
@@ -19,11 +21,16 @@ export type TerrainPropertiesProps = {
   terrain: TerrainSettings;
   relief: ReliefSettings;
   layers: readonly ContentLayer[];
-  exporter: PreviewPngExporter | null;
+  exporter?: PreviewPngExporter | null;
   blockedReason?: string;
   onTerrainChange: (settings: TerrainSettings) => ProjectMutationResult;
   onReliefChange: (settings: ReliefSettings) => ProjectMutationResult;
 };
+
+function ReliefDialogSurface(props: Omit<ComponentProps<typeof ReliefExportDialog>, 'exporter'> & { exporter?: PreviewPngExporter | null }) {
+  const exporter = useAvailableMapExporter(props.exporter);
+  return <ReliefExportDialog {...props} exporter={exporter} />;
+}
 
 export function TerrainProperties(props: TerrainPropertiesProps) {
   const { terrain, documentEpoch, onTerrainChange } = props;
@@ -51,7 +58,7 @@ export function TerrainProperties(props: TerrainPropertiesProps) {
       <button type="button" className="secondary-button" disabled={!!props.blockedReason} onClick={() => setIsReliefOpen(true)}>Export 3D terrain STL</button>
       {props.blockedReason && <p role="status" className="terrain-hint">{props.blockedReason}</p>}
       <p className="terrain-hint">Download a solid terrain model for your own slicer. No printing or shipping service.</p>
-      {isReliefOpen && <Suspense fallback={<p role="status">Loading terrain export…</p>}><ReliefExportDialog key={documentEpoch} settings={props.relief} layers={props.layers} exporter={props.exporter} blockedReason={props.blockedReason} documentEpoch={documentEpoch} onChange={props.onReliefChange} onClose={() => setIsReliefOpen(false)} /></Suspense>}
+      {isReliefOpen && <Suspense fallback={<p role="status">Loading terrain export…</p>}><ReliefDialogSurface key={documentEpoch} settings={props.relief} layers={props.layers} exporter={props.exporter} blockedReason={props.blockedReason} documentEpoch={documentEpoch} onChange={props.onReliefChange} onClose={() => setIsReliefOpen(false)} /></Suspense>}
     </InspectorAccordion>
   );
 }
