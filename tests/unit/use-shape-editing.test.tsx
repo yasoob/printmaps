@@ -9,18 +9,21 @@ const pointSessions = vi.hoisted(() => [] as Array<ReturnType<typeof createPoint
 const transformSessions = vi.hoisted(() => [] as Array<ReturnType<typeof createTransformSession>>);
 
 function createPointSession() {
-  const cleanup = vi.fn() as ReturnType<typeof vi.fn> & { focusPoint: ReturnType<typeof vi.fn> };
-  cleanup.focusPoint = vi.fn();
-  return cleanup;
+  return Object.assign(vi.fn(), {
+    focusPoint: vi.fn(),
+    synchronizeLayer: vi.fn<(layer: ContentLayer) => boolean>(() => true),
+  });
 }
 
 function createTransformSession() {
-  const cleanup = vi.fn() as ReturnType<typeof vi.fn> & { focusHandle: ReturnType<typeof vi.fn> };
-  cleanup.focusHandle = vi.fn();
-  return cleanup;
+  return Object.assign(vi.fn(), {
+    focusHandle: vi.fn(),
+    synchronizeLayer: vi.fn<(layer: ContentLayer) => boolean>(() => true),
+  });
 }
 
-vi.mock('../../src/map/ShapeVertexEditing', () => ({
+vi.mock(import('../../src/map/ShapeVertexEditing'), async (importOriginal) => ({
+  ...await importOriginal(),
   installShapeVertexEditing: vi.fn(() => {
     const session = createPointSession();
     pointSessions.push(session);
@@ -28,7 +31,8 @@ vi.mock('../../src/map/ShapeVertexEditing', () => ({
   }),
 }));
 
-vi.mock('../../src/map/ShapeTransformEditing', () => ({
+vi.mock(import('../../src/map/ShapeTransformEditing'), async (importOriginal) => ({
+  ...await importOriginal(),
   installShapeTransformEditing: vi.fn(() => {
     const session = createTransformSession();
     transformSessions.push(session);
@@ -37,6 +41,15 @@ vi.mock('../../src/map/ShapeTransformEditing', () => ({
 }));
 
 const shapeLayers = () => createInitialProjectDocument().layers;
+function movedShapeLayers(): ContentLayer[] {
+  return shapeLayers().map((layer) => layer.geometry?.type === 'Polygon' ? {
+    ...layer,
+    geometry: {
+      ...layer.geometry,
+      coordinates: layer.geometry.coordinates.map((ring) => ring.map(([longitude, latitude]): [number, number] => [longitude + 0.01, latitude])),
+    },
+  } : layer);
+}
 const map = createRef<MapLibreMap>();
 map.current = {} as MapLibreMap;
 const onShapeGeometryChange = vi.fn();
@@ -48,6 +61,7 @@ function focusedPoint(ringIndex: number, vertexIndex: number) {
   button.dataset.shapeVertexIndex = String(vertexIndex);
   document.body.append(button);
   button.focus();
+  return button;
 }
 
 function focusedTransformHandle(role: string) {
@@ -55,6 +69,7 @@ function focusedTransformHandle(role: string) {
   button.dataset.shapeTransformHandle = role;
   document.body.append(button);
   button.focus();
+  return button;
 }
 
 describe('shape editing focus lifecycle', () => {
@@ -64,14 +79,34 @@ describe('shape editing focus lifecycle', () => {
     document.body.replaceChildren();
   });
 
-  it('restores the same point handle across a geometry rerender', () => {
+  it('retains the point session and focus during geometry synchronization', () => {
+    const { rerender } = renderHook(({ layers, selectedId }: HookProps) => useShapeVertexEditing({
+      active: true, layers, map, onShapeGeometryChange, selectedId, stylePreset: 'paper',
+    }), { initialProps: { layers: shapeLayers(), selectedId: 'area-center' } as HookProps });
+    const handle = focusedPoint(0, 2);
+    const next = movedShapeLayers();
+
+    rerender({ layers: next, selectedId: 'area-center' });
+
+    expect(pointSessions).toHaveLength(1);
+    expect(pointSessions[0]).not.toHaveBeenCalled();
+    expect(pointSessions[0].synchronizeLayer).toHaveBeenLastCalledWith(next.find(({ id }) => id === 'area-center'));
+    expect(document.activeElement).toBe(handle);
+  });
+
+  it('restores point focus when a topology change requires a new session', () => {
     const { rerender } = renderHook(({ layers, selectedId }: HookProps) => useShapeVertexEditing({
       active: true, layers, map, onShapeGeometryChange, selectedId, stylePreset: 'paper',
     }), { initialProps: { layers: shapeLayers(), selectedId: 'area-center' } as HookProps });
     focusedPoint(0, 2);
-
-    rerender({ layers: shapeLayers(), selectedId: 'area-center' });
-
+    const next = shapeLayers();
+    const geometry = next.find(({ id }) => id === 'area-center')?.geometry;
+    if (geometry?.type !== 'Polygon') throw new Error('Expected the polygon fixture.');
+    const ring = geometry.coordinates[0];
+    geometry.coordinates[0] = [...ring.slice(0, -1), [16.354, 48.209], ring[0]];
+    rerender({ layers: next, selectedId: 'area-center' });
+    expect(pointSessions).toHaveLength(2);
+    expect(pointSessions[0]).toHaveBeenCalledOnce();
     expect(pointSessions[1].focusPoint).toHaveBeenCalledWith(0, 2);
   });
 
@@ -87,14 +122,18 @@ describe('shape editing focus lifecycle', () => {
     expect(pointSessions[1].focusPoint).not.toHaveBeenCalled();
   });
 
-  it('restores the same transform handle across a geometry rerender', () => {
+  it('retains the transform session and focus during geometry synchronization', () => {
     const { rerender } = renderHook(({ layers, selectedId }: HookProps) => useShapeTransformEditing({
       active: true, layers, map, onShapeGeometryChange, selectedId, stylePreset: 'paper',
     }), { initialProps: { layers: shapeLayers(), selectedId: 'area-center' } as HookProps });
-    focusedTransformHandle('move');
+    const handle = focusedTransformHandle('move');
+    const next = movedShapeLayers();
 
-    rerender({ layers: shapeLayers(), selectedId: 'area-center' });
+    rerender({ layers: next, selectedId: 'area-center' });
 
-    expect(transformSessions[1].focusHandle).toHaveBeenCalledWith('move');
+    expect(transformSessions).toHaveLength(1);
+    expect(transformSessions[0]).not.toHaveBeenCalled();
+    expect(transformSessions[0].synchronizeLayer).toHaveBeenLastCalledWith(next.find(({ id }) => id === 'area-center'));
+    expect(document.activeElement).toBe(handle);
   });
 });

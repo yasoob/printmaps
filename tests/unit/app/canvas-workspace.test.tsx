@@ -1,8 +1,10 @@
-import { createRef, type ReactElement } from 'react';
+import { createRef, useState, type ReactElement, type ReactNode } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ContentLayer } from '../../../src/domain/project';
 import { CanvasWorkspace } from '../../../src/app/components/CanvasWorkspace';
 import { LayerPreviewProvider } from '../../../src/app/LayerPreviewProvider';
+import { ProjectStoreContext } from '../../../src/app/projectStoreContext';
+import { createProjectStore } from '../../../src/app/store';
 
 const preloadRouteEditor = vi.hoisted(() => vi.fn());
 vi.mock('../../../src/map/useTerraDrawRoutes', () => ({ preloadRouteEditor }));
@@ -41,8 +43,13 @@ const layers: ContentLayer[] = [
   },
 ];
 
+function WorkspaceProviders({ children }: { children: ReactNode }) {
+  const [store] = useState(() => createProjectStore());
+  return <ProjectStoreContext value={store}><LayerPreviewProvider>{children}</LayerPreviewProvider></ProjectStoreContext>;
+}
+
 function renderWorkspace(element: ReactElement) {
-  return render(element, { wrapper: LayerPreviewProvider });
+  return render(element, { wrapper: WorkspaceProviders });
 }
 
 const sharedProps = {
