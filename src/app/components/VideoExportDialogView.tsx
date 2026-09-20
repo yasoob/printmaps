@@ -36,13 +36,13 @@ function VideoExportMessages({ busy, progress, status, unavailable, error }: Pic
   </StudioDialogFeedback>;
 }
 
-function VideoExportHelp() {
+const VideoExportHelp = memo(function VideoExportHelp() {
   return <FeatureHelp label="Video recording help">
     <p>Real-time recording is best-effort, not fixed frame rate. Slow tiles or devices can repeat frames. Keep this tab visible while recording.</p>
     <p>Frame counts and fps measure presented frames, not encoded frames. Encoder frame drops are not measurable with MediaRecorder.</p>
     <p>The video uses an isolated poster snapshot. The editor camera and undo history are not animated.</p>
   </FeatureHelp>;
-}
+});
 
 const videoHeader = <StudioDialogHeader>
         <div>

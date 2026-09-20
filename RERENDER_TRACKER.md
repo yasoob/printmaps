@@ -16,6 +16,42 @@ Updated: 2026-09-19
 - No dependency changes are made until the interaction map is complete enough
   to choose between local stabilization and a broader data-flow change.
 
+## Unified export workspace follow-up, September 20
+
+The output-surface probes now use the persistent Export dialog's Print, Video
+and 3D model tabs, with Preview framed inside Print. Help still updates only
+`FeatureHelp` and tooltip descendants: hover and touch probes retain owner,
+marker-DOM, and native-map exclusions. Relief fitting now names the actual
+`ReliefExportPanel` and `ReliefSettingsControls` owners. New connected owners
+are `ExportWorkspace`, `ExportWorkspaceContent`, `VideoWorkspacePanel`,
+`ReliefWorkspacePanel`, `WallWorkspacePanel`, and `WallPreviewPanel`; shared
+`StudioModeTabs` owns destination navigation.
+
+Moving video help into the shared scroll body introduced a measured regression:
+the immutable `VideoExportHelp` and its `FeatureHelp` child each received 29
+callbacks during a simulated progress/cancel cycle. Memoizing the input-free
+help component reduced both to zero. Settings and actions still update exactly
+twice, for busy on/off. The workspace, mode tabs, dialog content/header, and
+connected video panel also update exactly twice, not on progress ticks. The
+session/messages received 28 callbacks in the confirming run; editor camera,
+history, marker DOM and native map mutations remained unchanged.
+
+This is a **scoped output follow-up**, not a replacement for the full inventory
+above. Fresh global capture across these paths observed 161 runtime names.
+Hover and touch help plus simulated-controller progress pass (3 cases).
+Native MP4 recording is explicitly skipped on the unsupported Firefox backend;
+its genuine recording assertions and earlier real-encoder evidence remain.
+The simulated job produces no file and is not encoding evidence. All 8 migrated
+contextual-help, composed-poster integration, and physical wall-layout UI cases,
+19 related unit tests, type-check, scoped lint, and production build pass.
+
+Evidence: session `e5832fd0-c238-4e25-b480-4138595460a2`, under `files/`:
+`output-scan-before/`, `output-scan-after/`, `output-scan-inventory.json`,
+`migrated-output-e2e/`, `migrated-help-final/`, and
+`output-followup-build.log`. The source scanner's local `View` alias in
+`VideoExportSession` dispatches to `VideoExportPanelView` (workspace, observed)
+or `VideoExportDialogView` (legacy standalone, covered by dialog unit tests).
+
 ## Intra-panel field follow-up, September 19
 
 The earlier green panel-level probes did **not** prove that every field inside

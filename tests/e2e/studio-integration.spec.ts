@@ -65,13 +65,14 @@ test('real editor controls create a photo poster, keep wall preview ephemeral, a
   test.setTimeout(60_000);
   await page.goto('./');
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-ready', 'true', { timeout: 30_000 });
-  const panel = page.getByRole('region', { name: 'Poster composition' });
-  await panel.getByText('Templates & starter gallery', { exact: true }).click();
+  await page.getByRole('tab', { name: 'Layout', exact: true }).click();
+  const panel = page.getByRole('region', { name: 'Layout settings' });
+  await panel.getByRole('button', { name: 'Change layout', exact: true }).click();
   await panel.getByRole('button', { name: /^City edition/ }).click();
-  await panel.getByText('Poster typography & paper', { exact: true }).click();
+  await panel.getByRole('button', { name: 'Text', exact: true }).click();
   await panel.getByLabel('Title text', { exact: true }).fill('Vienna memory');
   await expect(page.getByLabel('Poster artwork').getByText('Vienna memory', { exact: true })).toBeVisible();
-  await panel.getByText('Photo story', { exact: true }).click();
+  await panel.getByRole('button', { name: 'Photos', exact: true }).click();
   await panel.getByLabel('Attach photo to').selectOption('poi-cafe');
   const photo = await page.evaluate(() => {
     const canvas = document.createElement('canvas');
@@ -87,8 +88,9 @@ test('real editor controls create a photo poster, keep wall preview ephemeral, a
   });
   await expect(page.getByLabel('Poster artwork').locator('image')).toHaveCount(1);
   const beforeWall = await downloadedProject(page);
-  await panel.getByRole('button', { name: 'Preview on a wall' }).click();
-  const wall = page.getByRole('dialog');
+  await page.getByRole('button', { name: 'Export', exact: true }).click();
+  await page.getByRole('button', { name: 'Preview framed' }).click();
+  const wall = page.getByRole('dialog', { name: 'Export map', exact: true });
   await expect(wall.locator('.studio-wall-scene img')).toBeVisible();
   await expect.poll(() => wall.locator('.studio-wall-scene img').evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
   await page.screenshot({ path: testInfo.outputPath('integrated-wall-preview.png') });
@@ -96,10 +98,9 @@ test('real editor controls create a photo poster, keep wall preview ephemeral, a
   await expect(wall).toHaveCount(0);
   expect(await downloadedProject(page)).toBe(beforeWall);
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole('button', { name: 'Open properties' }).click();
-  await page.getByRole('button', { name: 'Map video', exact: true }).click();
-  await page.getByRole('button', { name: 'Export map video' }).click();
-  const video = page.getByRole('dialog', { name: 'Export map video' });
+  await page.getByRole('button', { name: 'Export', exact: true }).click();
+  await page.getByRole('tab', { name: 'Video', exact: true }).click();
+  const video = page.getByRole('dialog', { name: 'Export map', exact: true });
   await expect(video).toBeVisible();
   await video.getByLabel('Duration').selectOption('15');
   await expect(video.getByLabel('Duration')).toHaveValue('15');

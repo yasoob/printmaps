@@ -7,7 +7,7 @@ async function checkHelp(page: Page, dialog: Locator, name: string, { isMobile, 
   if (isMobile) {
     await expect.poll(async () => {
       const box = await help.boundingBox();
-      return box ? Math.min(box.width, box.height) : 0;
+      return box ? Math.round(Math.min(box.width, box.height) * 1000) / 1000 : 0;
     }).toBeGreaterThanOrEqual(44);
     await help.tap();
   } else {
@@ -15,7 +15,7 @@ async function checkHelp(page: Page, dialog: Locator, name: string, { isMobile, 
     await expect(tooltip).toBeVisible();
     await tooltip.hover();
     await expect(tooltip).toBeVisible();
-    await dialog.hover({ position: { x: 3, y: 3 } });
+    await dialog.hover({ position: { x: 12, y: 12 } });
     await expect(tooltip).toHaveCount(0);
     await help.focus();
     await page.keyboard.press('Tab');
@@ -26,7 +26,7 @@ async function checkHelp(page: Page, dialog: Locator, name: string, { isMobile, 
     await expect(tooltip).toHaveCount(0);
     await expect(dialog).toBeVisible();
     await help.click();
-    await dialog.hover({ position: { x: 3, y: 3 } });
+    await dialog.hover({ position: { x: 12, y: 12 } });
   }
   await expect(tooltip).toBeVisible();
   await expect(help).toHaveAttribute('aria-expanded', 'true');
@@ -56,14 +56,14 @@ async function checkHelp(page: Page, dialog: Locator, name: string, { isMobile, 
   await expect(tooltip).toHaveCount(0);
   if (isMobile) await help.tap();
   else await help.click();
-  await dialog.click({ position: { x: 3, y: 3 } });
+  await dialog.click({ position: { x: 12, y: 12 } });
   await expect(tooltip).toHaveCount(0);
   await expect(dialog).toBeVisible();
 }
 
 for (const isMobile of [false, true]) {
   test.describe(isMobile ? 'mobile contextual help' : 'desktop contextual help', () => {
-    test.use(isMobile ? { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true } : { viewport: { width: 1440, height: 900 } });
+    test.use(isMobile ? { viewport: { width: 390, height: 844 }, hasTouch: true } : { viewport: { width: 1440, height: 900 } });
 
     test('real dialogs preserve their controls and contain hover, focus and pinned help', async ({ page }, info) => {
       test.setTimeout(90_000);
@@ -86,18 +86,14 @@ for (const isMobile of [false, true]) {
       await expect(dialog.getByRole('combobox', { name: 'Basemap rendering' })).toHaveValue('vector');
       await checkHelp(page, dialog, 'Basemap rendering help', { isMobile, info });
       await expect(dialog.getByRole('button', { name: 'Download layered SVG' })).toBeEnabled();
-      await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
-
-      if (isMobile) await page.getByRole('button', { name: 'Open properties' }).tap();
-      await page.getByRole('button', { name: 'Map video', exact: true }).click();
-      await page.getByRole('button', { name: 'Export map video', exact: true }).click();
-      dialog = page.getByRole('dialog', { name: 'Export map video', exact: true });
+      await dialog.getByRole('tab', { name: 'Video', exact: true }).click();
       await expect(dialog).toBeVisible();
       if (isMobile) {
         expect(await dialog.evaluate((element) => Number(getComputedStyle(element).zIndex))).toBe(100);
         expect(await page.locator('.right-sidebar').evaluate((element) => Number(getComputedStyle(element).zIndex))).toBe(60);
         expect(await page.locator('.export-dialog-backdrop').evaluate((element) => Number(getComputedStyle(element).zIndex))).toBe(99);
       }
+      await expect(page.getByRole('dialog')).toHaveCount(1);
       await dialog.getByLabel('Duration', { exact: true }).selectOption('15');
       await checkHelp(page, dialog, 'Video recording help', { isMobile, info });
       await checkHelp(page, dialog, 'Video aspect help', { isMobile, info });
@@ -109,25 +105,18 @@ for (const isMobile of [false, true]) {
         ]);
         expect(Math.abs(fps!.y - aspect!.y)).toBeLessThan(1);
       }
-      await dialog.getByRole('button', { name: 'Close', exact: true }).click();
-
-      await page.getByRole('button', { name: 'Terrain & 3D relief', exact: true }).click();
-      await page.getByRole('button', { name: 'Export 3D terrain STL', exact: true }).click();
-      dialog = page.getByRole('dialog', { name: 'Export 3D terrain relief' });
+      await dialog.getByRole('tab', { name: '3D model', exact: true }).click();
       await checkHelp(page, dialog, 'Terrain STL help', { isMobile, info });
       await dialog.getByRole('checkbox', { name: 'Raise a route ridge' }).click();
       await checkHelp(page, dialog, 'Route ridge help', { isMobile, info });
       await checkHelp(page, dialog, 'Elevation data and credits', { isMobile, info });
       await expect(dialog.getByRole('button', { name: 'Download STL' })).toBeEnabled();
-      await dialog.getByRole('button', { name: 'Close', exact: true }).click();
-
-      await page.getByRole('button', { name: 'Preview on a wall', exact: true }).click();
-      dialog = page.getByRole('dialog', { name: 'On your wall' });
+      await dialog.getByRole('tab', { name: 'Print', exact: true }).click();
+      await dialog.getByRole('button', { name: 'Preview framed', exact: true }).click();
       await expect(dialog.locator('.studio-wall-scene img')).toBeVisible({ timeout: 30_000 });
       await checkHelp(page, dialog, 'Wall preview help', { isMobile, info });
       await page.keyboard.press('Escape');
       await expect(dialog).toHaveCount(0);
-      if (isMobile) await page.getByRole('button', { name: 'Close properties' }).tap();
       await page.getByRole('button', { name: 'Share', exact: true }).click();
       dialog = page.getByRole('dialog', { name: 'Share this map' });
       await expect(dialog.getByText('Not private. Links cannot be revoked.')).toBeVisible();

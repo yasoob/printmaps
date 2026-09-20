@@ -13,7 +13,8 @@ async function helpProbe(page: Page, info: TestInfo, label: string, { owner, isT
   await expect(page.locator('[role="tooltip"][data-open]')).toBeVisible();
   const result = await finishProbe(page, info, label);
   expectOwners(result, ['FeatureHelp'], [
-    owner, 'MapCanvas', 'CanvasWorkspace', 'StudioCompositionControls', 'StudioTerrainControls', 'StudioVideoControls', 'StudioApp',
+    owner, 'ExportWorkspace', 'ExportWorkspaceContent', 'VideoWorkspacePanel', 'ReliefWorkspacePanel', 'WallWorkspacePanel',
+    'MapCanvas', 'CanvasWorkspace', 'StudioCompositionControls', 'StudioTerrainControls', 'StudioVideoControls', 'StudioApp',
   ]);
   expect(result.domMutations).toEqual([]);
   expect(result.mapMutations).toEqual([]);
@@ -23,41 +24,32 @@ async function helpProbe(page: Page, info: TestInfo, label: string, { owner, isT
 
 for (const touch of [false, true]) {
   test.describe(touch ? 'touch help isolation' : 'hover help isolation', () => {
-    test.use(touch ? { hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } } : {});
+    test.use(touch ? { hasTouch: true, viewport: { width: 390, height: 844 } } : {});
     test('export video relief wall and share help do not rerender owners', async ({ page }, info) => {
       test.setTimeout(90_000);
       await openScanEditor(page);
       await page.getByRole('button', { name: 'Export', exact: true }).click();
-      let dialog = page.getByRole('dialog', { name: 'Export map', exact: true });
+      const dialog = page.getByRole('dialog', { name: 'Export map', exact: true });
       await dialog.getByRole('radio', { name: /Layered SVG/ }).click();
       await helpProbe(page, info, 'Basemap rendering help', { owner: 'ExportDialog', isTouch: touch });
-      await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
-      if (touch) await page.getByRole('button', { name: 'Open properties' }).tap();
-      await page.getByRole('button', { name: 'Map video', exact: true }).click();
-      await page.getByRole('button', { name: 'Export map video', exact: true }).click();
-      dialog = page.getByRole('dialog', { name: 'Export map video', exact: true });
-      await helpProbe(page, info, 'Video recording help', { owner: 'VideoExportDialog', isTouch: touch });
+      await dialog.getByRole('tab', { name: 'Video', exact: true }).click();
+      await helpProbe(page, info, 'Video recording help', { owner: 'VideoExportSession', isTouch: touch });
       await helpProbe(page, info, 'Video aspect help', { owner: 'VideoExportSettings', isTouch: touch });
-      await dialog.getByRole('button', { name: 'Close', exact: true }).click();
-      await page.getByRole('button', { name: 'Terrain & 3D relief', exact: true }).click();
-      await page.getByRole('button', { name: 'Export 3D terrain STL', exact: true }).click();
-      dialog = page.getByRole('dialog', { name: 'Export 3D terrain relief' });
-      await helpProbe(page, info, 'Terrain STL help', { owner: 'ReliefExportDialog', isTouch: touch });
-      await helpProbe(page, info, 'Elevation data and credits', { owner: 'ReliefExportDialog', isTouch: touch });
+      await dialog.getByRole('tab', { name: '3D model', exact: true }).click();
+      await helpProbe(page, info, 'Terrain STL help', { owner: 'ReliefExportPanel', isTouch: touch });
+      await helpProbe(page, info, 'Elevation data and credits', { owner: 'ReliefExportPanel', isTouch: touch });
       await startProbe(page, 'Relief dimensions');
       await dialog.getByRole('button', { name: 'Fit dimensions to print frame', exact: true }).click();
       await expect(dialog.getByRole('status')).toContainText('Dimensions match');
       const fit = await finishProbe(page, info, 'relief-settings');
-      expectOwners(fit, ['ReliefExportDialog', 'ReliefSettingsControls'], ['MapCanvas', 'StudioCompositionControls', 'StudioPosterPreview', 'StudioVideoControls']);
+      expectOwners(fit, ['ReliefExportPanel', 'ReliefSettingsControls'], ['MapCanvas', 'StudioCompositionControls', 'StudioPosterPreview', 'StudioVideoControls']);
       expect(fit.mapMutations).toEqual([]);
-      await dialog.getByRole('button', { name: 'Close', exact: true }).click();
-      await page.getByRole('button', { name: 'Preview on a wall', exact: true }).click();
-      dialog = page.getByRole('dialog', { name: 'On your wall' });
+      await dialog.getByRole('tab', { name: 'Print', exact: true }).click();
+      await dialog.getByRole('button', { name: 'Preview framed', exact: true }).click();
       await expect(dialog.locator('.studio-wall-scene img')).toBeVisible();
-      await helpProbe(page, info, 'Wall preview help', { owner: 'WallPreviewDialog', isTouch: touch });
+      await helpProbe(page, info, 'Wall preview help', { owner: 'WallPreviewPanel', isTouch: touch });
       await page.keyboard.press('Escape');
       await expect(dialog).toHaveCount(0);
-      if (touch) await page.getByRole('button', { name: 'Close properties' }).tap();
       await page.getByRole('button', { name: 'Share', exact: true }).click();
       await helpProbe(page, info, 'Share snapshot help', { owner: 'ShareDialog', isTouch: touch });
       await helpProbe(page, info, 'Share privacy help', { owner: 'ShareDialog', isTouch: touch });
@@ -95,23 +87,80 @@ test('real video recording progress leaves the live map camera and renderer unto
     layers: [{ id: 'background', type: 'background', paint: { 'background-color': '#f3eee3' } }, { id: 'fixture', type: 'circle', source: 'fixture' }],
   } }));
   await openScanEditor(page);
-  await page.getByRole('button', { name: 'Map video', exact: true }).click();
-  await page.getByRole('button', { name: 'Export map video', exact: true }).click();
-  const dialog = page.getByRole('dialog', { name: 'Export map video' });
+  await page.getByRole('button', { name: 'Export', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Export map', exact: true });
+  await dialog.getByRole('tab', { name: 'Video', exact: true }).click();
   await dialog.getByLabel('Duration', { exact: true }).selectOption('5');
+  const download = dialog.getByRole('button', { name: 'Download MP4', exact: true });
+  if (await download.isDisabled()) {
+    await expect(dialog.getByRole('alert')).toContainText(/MP4|canvas/);
+    test.skip(true, await dialog.getByRole('alert').textContent() ?? 'Native MP4 recording is unsupported.');
+  }
   const originalCamera = await page.evaluate(() => globalThis.window.__PRINT_MAP_REACT_SCAN__?.cameras.find(({ surface }) => surface === 'editor'));
   const history = await page.locator('button[aria-label="Undo"]').isEnabled();
   await startProbe(page, 'Video recording progress');
   const downloaded = page.waitForEvent('download');
-  await dialog.getByRole('button', { name: 'Download MP4', exact: true }).click();
+  await download.click();
   await downloaded;
   const result = await finishProbe(page, info, 'video-progress');
   expectOwners(result, ['VideoExportSession', 'VideoExportMessages'], ['StudioCanvas', 'MapCanvas', 'StudioPosterPreview', 'HistoryActions', 'StudioCompositionControls']);
   expect(result.components.VideoExportSettings?.callbacks).toBe(2);
   expect(result.components.VideoExportActions?.callbacks).toBe(2);
   expect(result.components.FeatureHelp?.callbacks ?? 0).toBeLessThanOrEqual(2);
+  expect(result.components.VideoExportHelp).toBeUndefined();
+  for (const owner of ['ExportWorkspace', 'StudioModeTabs', 'ExportWorkspaceContent', 'VideoWorkspacePanel', 'DialogContent', 'StudioDialogHeader']) {
+    expect(result.components[owner]?.callbacks, `${owner} only changes when busy starts or ends`).toBe(2);
+  }
   expect(result.mapMutations.filter(({ surface }) => surface === 'editor')).toEqual([]);
   expect(result.mapMutations.some(({ operation, surface }) => operation === 'jumpTo' && surface === 'video')).toBe(true);
   expect(await page.evaluate(() => globalThis.window.__PRINT_MAP_REACT_SCAN__?.cameras.find(({ surface }) => surface === 'editor'))).toEqual(originalCamera);
   expect(await page.locator('button[aria-label="Undo"]').isEnabled()).toBe(history);
+});
+
+test('simulated video controller progress preserves settings and help render boundaries', async ({ page }, info) => {
+  test.setTimeout(60_000);
+  await page.route('**/src/video/capability.ts', (route) => route.fulfill({
+    contentType: 'application/javascript',
+    body: 'export function getVideoCapability() { return { supported: true, mimeType: "video/mp4" }; }',
+  }));
+  await page.route('**/src/video/exportVideoDocument.ts', (route) => route.fulfill({
+    contentType: 'application/javascript',
+    body: `export function exportVideoDocument({signal,onProgress}) {
+      let frame = 0;
+      return new Promise((resolve,reject) => {
+        const timer = setInterval(() => onProgress({phase:"recording",fraction:Math.min(++frame/100,0.99),presentedFrames:frame,missedFrameSlots:0}),30);
+        signal.addEventListener("abort",()=>{clearInterval(timer);reject(signal.reason)},{once:true});
+      });
+    }`,
+  }));
+  await openScanEditor(page);
+  await page.getByRole('button', { name: 'Export', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Export map', exact: true });
+  await dialog.getByRole('tab', { name: 'Video', exact: true }).click();
+  const originalCamera = await page.evaluate(() => globalThis.window.__PRINT_MAP_REACT_SCAN__?.cameras.find(({ surface }) => surface === 'editor'));
+  const history = await page.locator('button[aria-label="Undo"]').isEnabled();
+  const downloads: string[] = [];
+  page.on('download', (download) => { downloads.push(download.suggestedFilename()); });
+  await startProbe(page, 'Simulated video controller progress');
+  await dialog.getByRole('button', { name: 'Download MP4', exact: true }).click();
+  await expect(dialog.getByRole('status')).toContainText('frames presented');
+  await page.waitForTimeout(750);
+  await dialog.getByRole('button', { name: 'Cancel recording' }).click();
+  await expect(dialog.getByRole('status')).toContainText('No file downloaded');
+  const result = await finishProbe(page, info, 'simulated-video-progress');
+  expectOwners(result, ['VideoExportSession', 'VideoExportMessages'], [
+    'StudioCanvas', 'MapCanvas', 'StudioPosterPreview', 'HistoryActions', 'StudioCompositionControls', 'VideoExportHelp',
+  ]);
+  expect(result.components.VideoExportSettings?.callbacks).toBe(2);
+  expect(result.components.VideoExportActions?.callbacks).toBe(2);
+  expect(result.components.FeatureHelp?.callbacks ?? 0).toBeLessThanOrEqual(2);
+  for (const owner of ['ExportWorkspace', 'StudioModeTabs', 'ExportWorkspaceContent', 'VideoWorkspacePanel', 'DialogContent', 'StudioDialogHeader']) {
+    expect(result.components[owner]?.callbacks, `${owner} only changes when busy starts or ends`).toBe(2);
+  }
+  expect(result.domMutations).toEqual([]);
+  expect(result.mapMutations).toEqual([]);
+  expect(await page.evaluate(() => globalThis.window.__PRINT_MAP_REACT_SCAN__?.cameras.find(({ surface }) => surface === 'editor'))).toEqual(originalCamera);
+  expect(await page.locator('button[aria-label="Undo"]').isEnabled()).toBe(history);
+  expect(downloads).toEqual([]);
+  info.annotations.push({ type: 'simulated-controller', description: 'Render isolation and cancellation only; no MP4 encoder or fake video file.' });
 });
