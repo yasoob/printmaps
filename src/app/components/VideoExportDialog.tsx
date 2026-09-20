@@ -19,9 +19,9 @@ export type VideoExportDialogProps = Readonly<{
 }>;
 
 function videoResultSummary(result: VideoResult): string {
-  return `MP4 download started. ${result.width} × ${result.height} px; ${result.recordingSeconds.toFixed(1)} seconds. `
-    + `${result.presentedFrames} composed frames presented at ${result.measuredPresentationFps.toFixed(1)} fps; `
-    + `${result.missedFrameSlots} target frame slots missed. Encoder frame drops are not measurable with MediaRecorder.`;
+  return `MP4 download started. ${result.width} × ${result.height} px · ${result.recordingSeconds.toFixed(1)} s · `
+    + `${result.presentedFrames} frames presented at ${result.measuredPresentationFps.toFixed(1)} fps · `
+    + `${result.missedFrameSlots} target slots missed.`;
 }
 
 function videoFilename(filename: string): string {

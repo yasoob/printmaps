@@ -95,9 +95,14 @@ describe('controlled video export dialog', () => {
     render(<VideoExportDialog {...input} />);
     await user.click(screen.getByRole('button', { name: 'Download MP4' }));
     await waitFor(() => expect(downloadBlob).toHaveBeenCalledWith(blob, 'My map.mp4'));
-    expect(screen.getByRole('status')).toHaveTextContent('20.0 fps');
-    expect(screen.getByRole('status')).toHaveTextContent('100 target frame slots missed');
-    expect(screen.getByRole('status')).toHaveTextContent('Encoder frame drops are not measurable');
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'MP4 download started. 1280 × 720 px · 10.0 s · 200 frames presented at 20.0 fps · 100 target slots missed.',
+    );
+    expect(screen.getByRole('status')).not.toHaveTextContent('Encoder frame drops');
+    expect(screen.queryByText(/Encoder frame drops/)).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Video recording help' }));
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Frame counts and fps measure presented frames, not encoded frames.');
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Encoder frame drops are not measurable with MediaRecorder.');
     const captured = vi.mocked(exportVideoDocument).mock.calls[0][0];
     expect(captured.document).not.toBe(input.document);
     expect(captured.document).toEqual(input.document);
