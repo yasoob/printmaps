@@ -154,7 +154,7 @@ export function ProjectFileActions({ children, getDocument, menuHeader, openButt
         }}
       >
         {projectMenuTrigger(triggerRef, isOpen, () => setIsOpen(true))}
-        <DropdownMenuContent ref={menuRef} className="project-file-menu" align="end" aria-label="Project actions" aria-labelledby="">
+        <DropdownMenuContent ref={menuRef} className="project-file-menu" align="end" collisionPadding={8} aria-label="Project actions" aria-labelledby="">
           {menuHeader}
           <DropdownMenuItem className="project-file-menu-item" onClick={newProject}>
             <FilePlus2 aria-hidden="true" size={15} /> New project

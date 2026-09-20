@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test('Project menu actions round-trip the portable project', async ({ page }, testInfo) => {
   await page.goto('./');
+  await page.getByRole('tab', { name: 'Layout' }).click();
   await page.getByRole('button', { name: 'Portrait' }).click();
 
   const downloadPromise = page.waitForEvent('download');
@@ -33,7 +34,7 @@ test('Project actions and Export remain reachable in the mobile header', async (
   await project.click();
   const menu = page.getByRole('menu', { name: 'Project actions' });
   const items = menu.getByRole('menuitem');
-  await expect(items).toHaveCount(7);
+  await expect(items).toHaveCount(8);
   const menuBox = await menu.boundingBox();
   expect(menuBox).not.toBeNull();
   expect(menuBox!.x).toBeGreaterThanOrEqual(8);
@@ -42,7 +43,8 @@ test('Project actions and Export remain reachable in the mobile header', async (
   for (const item of menuItems) {
     const itemBox = await item.boundingBox();
     expect(itemBox).not.toBeNull();
-    expect(itemBox!.height).toBeGreaterThanOrEqual(44);
+    // Firefox DOMRect subtraction can lose a fraction of a thousandth of a pixel.
+    expect(Math.round(itemBox!.height * 1000) / 1000).toBeGreaterThanOrEqual(44);
   }
   await page.keyboard.press('Escape');
   const visibleHeaderItems = [page.locator('.project-title'), project, exportAction];

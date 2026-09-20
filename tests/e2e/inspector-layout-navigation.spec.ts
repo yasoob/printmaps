@@ -30,12 +30,27 @@ for (const width of [1440, 390, 320]) {
       await page.getByRole('tab', { name: tab, exact: true }).click();
       const expandedSections = await inspector.locator('.inspector-accordion > h3 > button[aria-expanded="true"]:visible').all();
       for (const expanded of expandedSections) await expanded.click();
-      await page.screenshot({ path: testInfo.outputPath(`${tab.toLowerCase()}-overview.png`) });
+      await page.screenshot({ path: testInfo.outputPath(`${tab.toLowerCase()}-overview.png`), animations: 'disabled' });
       for (const name of sections) {
         const toggle = inspector.getByRole('button', { name, exact: true });
         await toggle.click();
         await toggle.scrollIntoViewIfNeeded();
-        await page.screenshot({ path: testInfo.outputPath(`${name.toLowerCase().replaceAll(/[^a-z]+/g, '-')}.png`) });
+        await page.screenshot({ path: testInfo.outputPath(`${name.toLowerCase().replaceAll(/[^a-z]+/g, '-')}.png`), animations: 'disabled' });
+        const suffixesFit = await inspector.locator('.input-group-addon:visible').evaluateAll((elements) => elements.every((element) => {
+          const group = element.parentElement!.getBoundingClientRect();
+          const suffix = element.getBoundingClientRect();
+          return suffix.left >= group.left && suffix.right <= group.right;
+        }));
+        expect(suffixesFit).toBe(true);
+        const fieldGeometry = await inspector.locator('.property-control > select:visible, .input-group:visible, .color-field:visible').evaluateAll((elements) =>
+          elements.map((element) => Math.round(element.getBoundingClientRect().height)));
+        expect(fieldGeometry.every((height) => height === (width < 900 ? 44 : 32))).toBe(true);
+        const labelGutters = await inspector.locator('.property-row:visible').evaluateAll((elements) => elements.map((element) => {
+          const label = element.querySelector('span')!.getBoundingClientRect();
+          const control = element.querySelector('.property-control')!.getBoundingClientRect();
+          return control.left - label.right;
+        }));
+        expect(labelGutters.every((gap) => gap >= 8)).toBe(true);
         await expect(toggle).toHaveAttribute('aria-expanded', 'true');
         expect(await inspector.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
         await toggle.click();
@@ -43,18 +58,18 @@ for (const width of [1440, 390, 320]) {
     }
     await page.getByRole('button', { name: 'Change layout', exact: true }).click();
     await expect(page.getByRole('button', { name: /Lisbon/ })).toHaveCount(0);
-    await page.screenshot({ path: testInfo.outputPath('change-layout.png') });
+    await page.screenshot({ path: testInfo.outputPath('change-layout.png'), animations: 'disabled' });
     await page.getByRole('button', { name: 'Back to Layout' }).click();
     if (width < 760) await page.getByRole('button', { name: 'Close properties', exact: true }).click();
     await page.getByRole('button', { name: 'Project', exact: true }).click();
     await page.getByRole('menuitem', { name: 'New from template' }).click();
     const gallery = page.getByRole('dialog', { name: 'New from template' });
     await expect(gallery).toBeVisible();
-    await page.screenshot({ path: testInfo.outputPath('new-template.png') });
+    await page.screenshot({ path: testInfo.outputPath('new-template.png'), animations: 'disabled' });
     await gallery.getByRole('button', { name: /Lisbon/ }).click();
     const replacement = page.getByRole('dialog', { name: 'Start a new project?' });
     await expect(replacement).toBeVisible();
-    await page.screenshot({ path: testInfo.outputPath('new-template-replacement.png') });
+    await page.screenshot({ path: testInfo.outputPath('new-template-replacement.png'), animations: 'disabled' });
     await replacement.getByRole('button', { name: 'Keep editing' }).click();
     await expect(page.getByRole('button', { name: 'Project', exact: true })).toBeFocused();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
