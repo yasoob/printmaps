@@ -118,6 +118,7 @@ export function trackEditorAction(
 ): void {
   // Reuse the production Astro shell's GA setup and dataLayer queue.
   if (typeof window === 'undefined' || typeof window.gtag !== 'function') return;
+  if (/^#(?:share|embed)/i.test(window.location.hash)) return;
   if (!ACTIONS.has(action)) {
     console.warn('Editor analytics rejected an unknown action.');
     return;

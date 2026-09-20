@@ -14,9 +14,28 @@ A free, local-first map design studio for creating static, print-ready maps in t
 - Editable routes, places, custom markers, shapes, administrative boundaries and travel-time areas.
 - GPX, KML and GeoJSON import, plus spreadsheet-based place creation.
 - Browser-local autosave and portable project downloads.
+- No-account read-only share links, deliberate remix, and responsive iframe embeds.
 - Print-sized PNG, exact-page PDF, layered SVG and layered PSD export.
 
 Provider-backed place search, road routing, map matching, address lookup and isochrones require a browser-safe Mapbox public token. Core editing and OpenFreeMap rendering remain available without one.
+
+### Share, remix and embed
+
+**Share** captures the completed design at the button click, including embedded images,
+styles and annotations. The versioned, compressed snapshot lives entirely in the URL
+fragment; there is no upload, short-link service or account. URLs are capped at 64 KiB
+(some messaging apps impose smaller limits), and expanded projects at the existing
+10 MiB portable limit. Oversized designs fail explicitly without dropping content;
+use a project download instead. Links are public to anyone who receives them, not
+encrypted or revocable, and later edits never update an existing link.
+
+Shared links and embeds open a separate read-only viewer without reading or writing
+local autosave. Invalid links also leave the local project untouched. Pan/zoom is
+ephemeral and downloads retain the original snapshot. **Remix this map** restores
+the local editor first and uses the normal replacement confirmation and backup-download
+workflow before replacing existing work. Embed HTML supports responsive width,
+240–2000 px height and optional preview navigation; attribution is always retained.
+Production shared-page startup does not load analytics or send the fragment to it.
 
 ## Architecture and routes
 

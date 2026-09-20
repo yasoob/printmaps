@@ -1,5 +1,6 @@
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './styles.css';
+import { isSharedProjectHash } from './sharing/urls';
 
 const STARTUP_RETRY_KEY = 'print-map-studio:startup-retry';
 
@@ -39,7 +40,7 @@ function showStartupError(): void {
 
 async function startApplication() {
   try {
-    if (import.meta.env.DEV && import.meta.env.VITE_REACT_SCAN !== 'false') {
+    if (import.meta.env.DEV && import.meta.env.VITE_REACT_SCAN !== 'false' && !isSharedProjectHash(window.location.hash)) {
       const reactScan = await import('react-scan');
       const { installReactScanProbe } = await import('./dev/reactScanProbe');
       reactScan.scan({

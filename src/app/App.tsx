@@ -34,12 +34,14 @@ import { useSetLayerPreviewId } from "./layerPreviewContext";
 import { useProjectOpening } from "./hooks/useProjectOpening";
 import { ElevationProfileProvider } from "./elevation/ElevationProfileProvider";
 import { trackEditorAction } from "../analytics/editorAnalytics";
+import { useRemixRequest } from "../sharing/useRemixRequest";
 
 type AppProps = {
   autosaveRepository?: AutosaveRepository | null;
   autosaveLoadError?: unknown | null;
   directionsProvider?: DirectionsProvider;
   initialDocument?: ProjectDocument;
+  remixDocument?: ProjectDocument;
   mapMatchingProvider?: MapMatchingProvider;
   searchProvider?: SearchProvider;
 };
@@ -55,6 +57,7 @@ export function App({
   autosaveRepository,
   directionsProvider,
   initialDocument,
+  remixDocument,
   mapMatchingProvider,
   searchProvider,
 }: AppProps = {}) {
@@ -71,6 +74,7 @@ export function App({
         <LayerPreviewProvider>
           <ElevationProfileProvider>
             <StudioApp
+              remixDocument={remixDocument}
               directionsProvider={directionsProvider}
               mapMatchingProvider={mapMatchingProvider}
               searchProvider={searchProvider}
@@ -218,6 +222,7 @@ function useStudioAppModel(props: StudioAppProps) {
     [setPreviewedLayerId],
   );
   const projectOpening = useProjectOpening(documentEpoch, handleMapDataImported);
+  useRemixRequest(props.remixDocument, isAutosaveCorrupted || autosaveConflictOpen, projectOpening.open);
   const mapDataImport = useAppMapDataImport({
     documentEpoch,
     importLayers: project.importLayers,

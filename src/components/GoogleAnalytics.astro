@@ -1,16 +1,24 @@
 ---
 const enabled = import.meta.env.PROD;
+const { skipSharedMaps = false } = Astro.props;
 ---
 
 {
   enabled && (
     <>
-      <script is:inline async src="https://www.googletagmanager.com/gtag/js?id=G-T6SVFKL7C4"></script>
-      <script is:inline>
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-        gtag('config', 'G-T6SVFKL7C4');
+      <script is:inline define:vars={{ skipSharedMaps }}>
+        if (!skipSharedMaps || !/^#(?:share|embed)/i.test(window.location.hash)) {
+          window.dataLayer = window.dataLayer || [];
+          window.gtag = function(){window.dataLayer.push(arguments);};
+          window.gtag('js', new Date());
+          window.gtag('config', 'G-T6SVFKL7C4', {
+            page_location: window.location.origin + window.location.pathname,
+          });
+          const tag = document.createElement('script');
+          tag.async = true;
+          tag.src = 'https://www.googletagmanager.com/gtag/js?id=G-T6SVFKL7C4';
+          document.head.appendChild(tag);
+        }
       </script>
     </>
   )

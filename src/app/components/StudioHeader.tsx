@@ -12,6 +12,7 @@ import { ProjectTitleEditor } from './ProjectTitleEditor';
 import { ProjectIdentityMenu } from './ProjectRenameDialog';
 import { FileFeedbackGroup } from './FileFeedback';
 import type { ProjectOpeningIntent } from '../hooks/useProjectOpening';
+import { ShareControl } from '../../sharing/ShareControl';
 
 const LOGO_URL = publicAssetUrl('logo.png');
 const HOME_URL = publicAssetUrl('');
@@ -161,6 +162,7 @@ export const StudioHeader = memo(function StudioHeader({
           presentation="headless"
         />
         </FileFeedbackGroup>
+        <ShareControl disabled={exportDisabled || importDisabled || isImportWorkActive} />
         <button ref={exportButtonRef} className="primary-button" type="button" disabled={exportDisabled} title={exportDisabled ? 'Finish or cancel map authoring before export' : undefined} onClick={onExport}><Download size={14} /><span>Export</span></button>
       </div>
     </header>
