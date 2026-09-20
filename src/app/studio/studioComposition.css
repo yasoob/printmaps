@@ -7,6 +7,8 @@
 .studio-composition-boundary { min-width: 0; border: 0; margin: 0; padding: 0; }
 .studio-composition-panel h3 { font-size: 15px; font-weight: 650; margin: 0 0 12px; }
 .studio-composition-panel h4 { font-size: 13px; margin: 16px 0 8px; }
+.studio-composition-panel .feature-help-row > :is(h3, h4) { margin: 0; }
+.studio-poster-gallery > .feature-help-row { margin: 12px 0 8px; }
 .studio-composition-panel p { color: var(--studio-text-secondary); line-height: 1.55; margin: 10px 0; }
 .studio-composition-panel details { border-bottom: 1px solid var(--studio-line); padding: 12px 0; }
 .studio-composition-panel summary { cursor: pointer; font-weight: 600; min-height: 28px; }

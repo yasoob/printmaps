@@ -32,7 +32,9 @@ it.each(['svg', 'pdf'] as const)('opts into %s vectors without raster capture an
   fireEvent.click(screen.getByRole('radio', { name: format === 'svg' ? /Layered SVG/ : /^PDF/ }));
   expect(screen.getByLabelText('Basemap rendering')).toHaveValue('hybrid');
   fireEvent.change(screen.getByLabelText('Basemap rendering'), { target: { value: 'vector' } });
-  expect(screen.getByText(/sprites become generic named vector markers/)).toBeVisible();
+  expect(screen.queryByText(/Sprites become generic named/)).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Basemap rendering help' }));
+  expect(screen.getByRole('tooltip')).toHaveTextContent('Sprites become generic named markers');
   fireEvent.click(screen.getByRole('button', { name: format === 'svg' ? 'Download layered SVG' : 'Download PDF' }));
   await waitFor(() => expect(serializers.download).toHaveBeenCalledOnce());
   expect(exporter).not.toHaveBeenCalled();
