@@ -144,6 +144,7 @@ export async function runPngExport(options: Options): Promise<void> {
       },
     });
     try {
+      if (controller.signal.aborted) throw new DOMException('PNG export was cancelled.', 'AbortError');
       reportPngStage('downloading', setStatus);
       startPreviewDownload(result.blob, filename);
       trackEditorAction('exportCompleted', { format: 'png' });

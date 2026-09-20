@@ -12,6 +12,6 @@
 .studio-mode-tabs > button[aria-selected="true"] { color: var(--studio-text-strong); background: var(--studio-field); }
 .studio-mode-tabs > button:disabled { opacity: 0.5; cursor: not-allowed; }
 .studio-mode-tabs > button:focus-visible { outline: var(--studio-focus-width) solid var(--studio-focus); outline-offset: 2px; }
-@media (max-width: 760px), (pointer: coarse) {
+@media (max-width: 899px), (pointer: coarse) {
   .studio-mode-tabs > button { min-height: var(--studio-touch-target); }
 }

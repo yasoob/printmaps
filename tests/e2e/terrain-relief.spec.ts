@@ -32,7 +32,13 @@ async function openTerrain(page: Page) {
   await installTerrainFixtures(page);
   await openInstrumentedMap(page);
   if ((page.viewportSize()?.width ?? 1440) < 900) await page.getByRole('button', { name: 'Open properties' }).click();
-  await page.getByRole('button', { name: 'Terrain & 3D relief' }).click();
+  await page.getByRole('button', { name: /^Terrain(?: & 3D relief)?$/ }).click();
+}
+
+async function openRelief(page: Page) {
+  if ((page.viewportSize()?.width ?? 1440) < 900) await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Export', exact: true }).click();
+  await page.getByRole('tab', { name: '3D model', exact: true }).click();
 }
 
 test('terrain and real contour worker render, persist through style change, and export a closed STL', async ({ page }, testInfo) => {
@@ -49,8 +55,8 @@ test('terrain and real contour worker render, persist through style change, and 
   await page.getByRole('radio', { name: /^Night Ink:/ }).click();
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
   await expect.poll(() => page.evaluate(() => window.recoveryAudit.map!.querySourceFeatures('pms-terrain-contours', { sourceLayer: 'contours' }).length)).toBeGreaterThan(0);
-  await page.getByRole('button', { name: 'Export 3D terrain STL' }).click();
-  await expect(page.getByRole('dialog', { name: 'Export 3D terrain relief' })).toBeVisible();
+  await openRelief(page);
+  await expect(page.getByRole('dialog', { name: 'Export map' })).toBeVisible();
   await page.getByRole('button', { name: 'Fit dimensions to print frame' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Dimensions match' })).toBeVisible();
   await page.getByLabel('Relief detail', { exact: true }).selectOption('low');
@@ -100,7 +106,7 @@ test('STL explicitly rejects perspective footprint, then accepts a bearing-rotat
   await pitch.fill('30');
   await pitch.press('Enter');
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-ready', 'true');
-  await page.getByRole('button', { name: 'Export 3D terrain STL' }).click();
+  await openRelief(page);
   await page.getByRole('button', { name: 'Fit dimensions to print frame' }).click();
   await expect(page.getByRole('alert')).toContainText('Pitch');
   await page.getByRole('button', { name: 'Close', exact: true }).click();
@@ -110,7 +116,7 @@ test('STL explicitly rejects perspective footprint, then accepts a bearing-rotat
   await bearing.fill('45');
   await bearing.press('Enter');
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-ready', 'true');
-  await page.getByRole('button', { name: 'Export 3D terrain STL' }).click();
+  await openRelief(page);
   await page.getByRole('button', { name: 'Fit dimensions to print frame' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Dimensions match' })).toBeVisible();
   await expect(page.getByRole('alert')).toHaveCount(0);
@@ -119,8 +125,8 @@ test('STL explicitly rejects perspective footprint, then accepts a bearing-rotat
 test('relief controls remain accessible and scrollable on a narrow mobile viewport', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openTerrain(page);
-  await page.getByRole('button', { name: 'Export 3D terrain STL' }).click();
-  const dialog = page.getByRole('dialog', { name: 'Export 3D terrain relief' });
+  await openRelief(page);
+  const dialog = page.getByRole('dialog', { name: 'Export map' });
   await expect(dialog).toBeVisible();
   await expect(page.getByLabel('Relief width', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Download STL' })).toBeInViewport();

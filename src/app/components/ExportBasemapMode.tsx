@@ -1,4 +1,3 @@
-import { StudioDialogSection } from '@/components/ui/studio-dialog';
 import type { ExportFormat } from './ExportDialogView';
 import { FeatureHelp } from './FeatureHelp';
 
@@ -10,7 +9,7 @@ export function ExportBasemapMode(props: Readonly<{
   onChange: (mode: 'hybrid' | 'vector') => void;
 }>) {
   if (props.format !== 'svg' && props.format !== 'pdf') return null;
-  return <StudioDialogSection>
+  return <div className="export-basemap-mode">
     <div className="feature-help-row"><label htmlFor="export-basemap-mode">Basemap rendering</label><FeatureHelp label="Basemap rendering help">
       <p>Hybrid preserves the original map appearance.</p>
       <p>True vector reflows labels in embedded Noto Sans Latin. Sprites become generic named markers or reference shields; halos become sharp outlines. Positions and typography differ from the live map.</p>
@@ -20,5 +19,5 @@ export function ExportBasemapMode(props: Readonly<{
       <option value="hybrid">Hybrid (original map appearance)</option>
       <option value="vector" disabled={!props.available}>True vector artwork (reflowed labels)</option>
     </select>
-  </StudioDialogSection>;
+  </div>;
 }

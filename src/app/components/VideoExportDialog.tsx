@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ProjectDocument } from '../../domain/project';
 import type { PreviewPngExporter } from '../../export/previewPng';
 import { downloadBlob } from '../../lib/downloadBlob';
 import { getVideoCapability } from '../../video/capability';
 import { planVideoExport } from '../../video/plan';
 import type { VideoOptions, VideoProgress, VideoResult } from '../../video/types';
-import { VideoExportDialogView } from './VideoExportDialogView';
+import { VideoExportDialogView, VideoExportPanelView } from './VideoExportDialogView';
 import './videoExport.css';
 import { useStableEvent } from '../hooks/useStableEvent';
 
@@ -29,7 +29,7 @@ function videoFilename(filename: string): string {
   return `${filename.replace(/\.(?:printmap(?:\.json)?|png|svg|pdf|psd|mp4)$/i, '') || 'map'}.mp4`;
 }
 
-function VideoExportSession(props: VideoExportDialogProps) {
+function VideoExportSession(props: VideoExportDialogProps & { embedded?: boolean; onBusyChange?: (isBusy: boolean) => void }) {
   const { document, settings, onSettingsChange, exporter, filename, onClose, blockedReason } = props;
   const [capability] = useState(getVideoCapability);
   const [busy, setBusy] = useState(false);
@@ -40,6 +40,8 @@ function VideoExportSession(props: VideoExportDialogProps) {
   const downloadRef = useRef<HTMLButtonElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const hasStarted = useRef(false);
+  const { onBusyChange } = props;
+  useLayoutEffect(() => { onBusyChange?.(busy); }, [busy, onBusyChange]);
   const preflight = useMemo(() => {
     try {
       return { plan: planVideoExport(settings, document.page), error: null };
@@ -122,9 +124,14 @@ function VideoExportSession(props: VideoExportDialogProps) {
   const closeDialog = useStableEvent(close);
   const cancelRecording = useStableEvent(cancel);
   const downloadVideo = useStableEvent(() => { void download(); });
-  return <VideoExportDialogView busy={busy} unavailable={unavailable} settings={settings} onSettingsChange={onSettingsChange} plan={preflight.plan} progress={progress} status={status} error={error} cancelRef={cancelRef} downloadRef={downloadRef} onClose={closeDialog} onCancel={cancelRecording} onDownload={downloadVideo} />;
+  const View = props.embedded ? VideoExportPanelView : VideoExportDialogView;
+  return <View busy={busy} unavailable={unavailable} settings={settings} onSettingsChange={onSettingsChange} plan={preflight.plan} progress={progress} status={status} error={error} cancelRef={cancelRef} downloadRef={downloadRef} onClose={closeDialog} onCancel={cancelRecording} onDownload={downloadVideo} />;
 }
 
 export function VideoExportDialog(props: VideoExportDialogProps) {
   return <VideoExportSession key={props.document.id} {...props} />;
+}
+
+export function VideoExportPanel(props: VideoExportDialogProps & { onBusyChange: (isBusy: boolean) => void }) {
+  return <VideoExportSession key={props.document.id} {...props} embedded />;
 }

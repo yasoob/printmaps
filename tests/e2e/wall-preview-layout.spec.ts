@@ -16,8 +16,10 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
       await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-ready', 'true', { timeout: 30_000 });
       if (viewport.width < 900) await page.getByRole('button', { name: 'Open properties' }).click();
       await page.getByRole('button', { name: orientation, exact: true }).click();
-      await page.getByRole('button', { name: 'Preview on a wall', exact: true }).click();
-      const dialog = page.getByRole('dialog', { name: 'On your wall' });
+      if (viewport.width < 900) await page.keyboard.press('Escape');
+      await page.getByRole('button', { name: 'Export', exact: true }).click();
+      await page.getByRole('button', { name: 'Preview framed', exact: true }).click();
+      const dialog = page.getByRole('dialog', { name: 'Export map' });
       await expect(dialog.getByRole('img', { name: /finished map poster/ })).toBeVisible();
       await dialog.getByLabel('Frame finish').selectOption('oak');
       const matWidth = dialog.getByRole('spinbutton', { name: 'Mat width', exact: true });
@@ -49,10 +51,10 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
           && frame.right <= scene.right && frame.top >= scene.top && frame.bottom <= scene.bottom;
       })).toBe(true);
 
-      const headerTop = await dialog.locator('.studio-wall-header').evaluate((element) => element.getBoundingClientRect().top);
+      const headerTop = await dialog.locator('.export-dialog-header').evaluate((element) => element.getBoundingClientRect().top);
       await dialog.locator('.studio-wall-body').evaluate((element) => { element.scrollTop = element.scrollHeight; });
       await expect(dialog.getByRole('checkbox', { name: 'Cast frame shadow' })).toBeVisible();
-      const afterScroll = await dialog.locator('.studio-wall-header').evaluate((element) => element.getBoundingClientRect().top);
+      const afterScroll = await dialog.locator('.export-dialog-header').evaluate((element) => element.getBoundingClientRect().top);
       expect(afterScroll).toBeCloseTo(headerTop, 1);
       expect(await dialog.evaluate((element) => {
         const bounds = element.getBoundingClientRect();

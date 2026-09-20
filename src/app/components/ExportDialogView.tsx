@@ -1,7 +1,6 @@
-import { ChevronRight, X } from 'lucide-react';
+import { ChevronRight, Frame } from 'lucide-react';
 import type React from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { StudioDialogActions, StudioDialogBody, StudioDialogButton, StudioDialogHeader, StudioDialogSection } from '@/components/ui/studio-dialog';
+import { StudioDialogActions, StudioDialogBody, StudioDialogButton, StudioDialogFeedback, StudioDialogSection } from '@/components/ui/studio-dialog';
 import type { ProjectDocument } from '../../domain/project';
 import type { LayeredPsdExportPlan } from '../../export/layeredPsdPlan';
 import { planExportPreflight, type RasterDelivery } from '../../export/preflight';
@@ -220,7 +219,7 @@ function ExportTechnicalDetails({ busy, expanded, onToggle, preflight, psdPlan, 
   );
 }
 
-type ExportDialogViewProps = {
+export type ExportDialogViewProps = {
   basemapMode: 'hybrid' | 'vector';
   vectorAvailable: boolean;
   onBasemapModeChange: (mode: 'hybrid' | 'vector') => void;
@@ -245,6 +244,7 @@ type ExportDialogViewProps = {
   selectedFormat: ExportFormat;
   status: string;
   technicalDetailsExpanded: boolean;
+  onPreview?: () => void;
 };
 
 function selectedExportReadiness(props: ExportDialogViewProps) {
@@ -263,31 +263,15 @@ function selectedExportReadiness(props: ExportDialogViewProps) {
 }
 
 export function ExportDialogView(props: ExportDialogViewProps) {
-  const { busy, cancellationAvailable, cancelButtonRef, dialogRef, document, downloadButtonRef, error, largeRasterSupported, onCancel, onClose, onDownload, onFormatChange, onTechnicalDetailsToggle, preflight, psdPlan, rasterDelivery, selectedFormat, status, technicalDetailsExpanded } = props;
+  const { busy, cancellationAvailable, cancelButtonRef, document, downloadButtonRef, error, largeRasterSupported, onCancel, onClose, onDownload, onFormatChange, onTechnicalDetailsToggle, preflight, psdPlan, rasterDelivery, selectedFormat, status, technicalDetailsExpanded } = props;
   const { isVector, canDownloadSelectedFormat, selectedPreflight, errorId } = selectedExportReadiness(props);
+  const message = exportStatus(status, props.isMapReady, busy);
   return (
-    <Dialog
-      open
-      onOpenChange={(open, eventDetails) => {
-        if (open) return;
-        if (busy) eventDetails.cancel();
-        else onClose();
-      }}
-    >
-      <DialogContent
-        ref={dialogRef}
-        className="export-dialog"
-        overlayClassName="export-dialog-backdrop"
-        showCloseButton={false}
-        initialFocus={canDownloadSelectedFormat && props.isMapReady ? downloadButtonRef : cancelButtonRef}
-        aria-labelledby="export-title"
-        aria-busy={busy}
-        tabIndex={-1}
-      >
-        <StudioDialogHeader className="export-dialog-header">
-          <div><h2 id="export-title">Export map</h2><p>Choose a format for the current print frame.</p></div>
-          <button className="icon-button close-button" type="button" aria-label="Close export" disabled={busy} onClick={onClose}><X size={16} /></button>
-        </StudioDialogHeader>
+    <>
+        <StudioDialogFeedback data-empty={!message && !error}>
+          <p className="export-status" role="status" aria-label="Export status">{message}</p>
+          {error && <p className="export-error" role="alert">{error}</p>}
+        </StudioDialogFeedback>
         <StudioDialogBody className="export-dialog-body" role="region" aria-label="Export settings" tabIndex={0}>
           <ExportFormatChoice busy={busy} onChange={onFormatChange} selectedFormat={selectedFormat} />
           <ExportBasemapMode format={selectedFormat} mode={props.basemapMode} busy={busy} available={props.vectorAvailable} onChange={props.onBasemapModeChange} />
@@ -295,15 +279,15 @@ export function ExportDialogView(props: ExportDialogViewProps) {
           <ExportOutputSummary vector={isVector} document={document} preflight={preflight} psdPlan={psdPlan} selectedFormat={selectedFormat} />
           {!isVector && <PreflightNotice format={selectedFormat} preflight={selectedPreflight} />}
           {!isVector && <ExportTechnicalDetails busy={busy} expanded={technicalDetailsExpanded} onToggle={onTechnicalDetailsToggle} preflight={selectedPreflight} psdPlan={psdPlan} selectedFormat={selectedFormat} />}
+          {props.onPreview && <button className="export-preview-action" type="button" disabled={busy || !props.isMapReady} onClick={props.onPreview}>
+            <Frame size={16} aria-hidden="true" /><span>Preview framed</span><ChevronRight size={16} aria-hidden="true" />
+          </button>}
 
-          <p className="export-status" role="status" aria-label="Export status">{exportStatus(status, props.isMapReady, busy)}</p>
-          {error && <p className="export-error" role="alert">{error}</p>}
         </StudioDialogBody>
         <StudioDialogActions className="export-dialog-actions">
           <StudioDialogButton ref={cancelButtonRef} disabled={busy && !cancellationAvailable} onClick={busy ? onCancel : onClose}>{cancelLabel(busy, cancellationAvailable)}</StudioDialogButton>
           <StudioDialogButton ref={downloadButtonRef} variant="primary" disabled={!canStartExport(busy, props.isMapReady, canDownloadSelectedFormat)} aria-describedby={errorId} onClick={onDownload}>{busy ? 'Preparing…' : downloadLabel(selectedFormat)}</StudioDialogButton>
         </StudioDialogActions>
-      </DialogContent>
-    </Dialog>
+    </>
   );
 }

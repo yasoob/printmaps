@@ -1,6 +1,6 @@
 import { memo, useCallback, type RefObject } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
-import { StudioDialogActions, StudioDialogBody, StudioDialogButton, StudioDialogHeader } from '@/components/ui/studio-dialog';
+import { StudioDialogActions, StudioDialogBody, StudioDialogButton, StudioDialogFeedback, StudioDialogHeader } from '@/components/ui/studio-dialog';
 import type { VideoOptions, VideoPlan, VideoProgress } from '../../video/types';
 import { VideoExportSettings } from './VideoExportSettings';
 import { FeatureHelp } from './FeatureHelp';
@@ -28,21 +28,25 @@ function progressLabel(progress: VideoProgress | null): string {
 }
 
 function VideoExportMessages({ busy, progress, status, unavailable, error }: Pick<Props, 'busy' | 'progress' | 'status' | 'unavailable' | 'error'>) {
-  return <>
+  return <StudioDialogFeedback hidden={!busy && !status && !unavailable && !error}>
     {busy ? <progress aria-label="Video export progress" max={1} value={progress?.fraction ?? 0} /> : null}
     <p role="status" className="video-export-status">{busy ? `${progressLabel(progress)} Keep this tab visible.` : status}</p>
     {unavailable && !busy ? <p role="alert" className="export-error">{unavailable}</p> : null}
     {error ? <p role="alert" className="export-error">{error}</p> : null}
-  </>;
+  </StudioDialogFeedback>;
+}
+
+function VideoExportHelp() {
+  return <FeatureHelp label="Video recording help">
+    <p>Real-time recording is best-effort, not fixed frame rate. Slow tiles or devices can repeat frames. Keep this tab visible while recording.</p>
+    <p>Frame counts and fps measure presented frames, not encoded frames. Encoder frame drops are not measurable with MediaRecorder.</p>
+    <p>The video uses an isolated poster snapshot. The editor camera and undo history are not animated.</p>
+  </FeatureHelp>;
 }
 
 const videoHeader = <StudioDialogHeader>
         <div>
-          <div className="feature-help-row"><DialogTitle>Export map video</DialogTitle><FeatureHelp label="Video recording help">
-            <p>Real-time recording is best-effort, not fixed frame rate. Slow tiles or devices can repeat frames. Keep this tab visible while recording.</p>
-            <p>Frame counts and fps measure presented frames, not encoded frames. Encoder frame drops are not measurable with MediaRecorder.</p>
-            <p>The video uses an isolated poster snapshot. The editor camera and undo history are not animated.</p>
-          </FeatureHelp></div>
+          <DialogTitle>Export map video</DialogTitle>
           <DialogDescription>MP4 video of your poster.</DialogDescription>
         </div>
       </StudioDialogHeader>;
@@ -55,17 +59,25 @@ const VideoExportActions = memo(function VideoExportActions({ busy, unavailable,
 });
 
 export function VideoExportDialogView(props: Props) {
-  const { busy, unavailable, settings, onSettingsChange, plan, progress, status, error, cancelRef, downloadRef, onClose, onCancel, onDownload } = props;
+  const { busy, unavailable, cancelRef, downloadRef, onClose } = props;
   const onOpenChange = useCallback((isOpen: boolean) => { if (!isOpen) onClose(); }, [onClose]);
   return <Dialog open onOpenChange={onOpenChange}>
     <DialogContent className="export-dialog video-export-dialog" overlayClassName="export-dialog-backdrop" showCloseButton={false} initialFocus={unavailable ? cancelRef : downloadRef} aria-busy={busy}>
       {videoHeader}
-      <StudioDialogBody>
-        <VideoExportSettings settings={settings} busy={busy} onChange={onSettingsChange} />
-        {plan ? <p className="video-export-output"><strong>{plan.width} × {plan.height} px</strong> · {settings.durationSeconds} seconds · {settings.fps} fps target</p> : null}
-        <VideoExportMessages busy={busy} progress={progress} status={status} unavailable={unavailable} error={error} />
-      </StudioDialogBody>
-      <VideoExportActions busy={busy} unavailable={unavailable} cancelRef={cancelRef} downloadRef={downloadRef} onCancel={onCancel} onClose={onClose} onDownload={onDownload} />
+      <VideoExportPanelView {...props} />
     </DialogContent>
   </Dialog>;
+}
+
+export function VideoExportPanelView(props: Props) {
+  const { busy, unavailable, settings, onSettingsChange, plan, progress, status, error, cancelRef, downloadRef, onClose, onCancel, onDownload } = props;
+  return <>
+      <VideoExportMessages busy={busy} progress={progress} status={status} unavailable={unavailable} error={error} />
+      <StudioDialogBody className="export-dialog-body">
+        <div className="feature-help-row"><h3 className="export-panel-title">MP4 video</h3><VideoExportHelp /></div>
+        {plan ? <p className="video-export-output"><strong>{plan.width} × {plan.height} px</strong> · {settings.durationSeconds} seconds · {settings.fps} fps target</p> : null}
+        <VideoExportSettings settings={settings} busy={busy} onChange={onSettingsChange} />
+      </StudioDialogBody>
+      <VideoExportActions busy={busy} unavailable={unavailable} cancelRef={cancelRef} downloadRef={downloadRef} onCancel={onCancel} onClose={onClose} onDownload={onDownload} />
+  </>;
 }

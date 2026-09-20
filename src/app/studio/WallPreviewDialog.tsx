@@ -8,11 +8,26 @@ import { StudioColor, StudioNumber, StudioSelect, StudioToggle } from './StudioF
 import { FeatureHelp } from '../components/FeatureHelp';
 import './studioComposition.css';
 
-export const WallPreviewDialog = memo(function WallPreviewDialog({ open, onOpenChange, wall, page, previewUrl, error, epoch = 0, onChange }: {
-  open: boolean; onOpenChange: (isOpen: boolean) => void; wall: WallSettings; page: PageSettings;
+type WallPreviewProps = {
+  wall: WallSettings; page: PageSettings;
   previewUrl: string | null; error?: string; epoch?: number; onChange?: (value: WallSettings) => ProjectMutationResult;
+};
+
+export const WallPreviewDialog = memo(function WallPreviewDialog({ open, onOpenChange, ...props }: WallPreviewProps & {
+  open: boolean; onOpenChange: (isOpen: boolean) => void;
 }) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  return <Dialog open={open} onOpenChange={onOpenChange}>
+    <DialogContent ref={dialogRef} initialFocus={dialogRef} className="export-dialog studio-wall-dialog" overlayClassName="export-dialog-backdrop">
+      <StudioDialogHeader className="studio-wall-header">
+        <div><DialogTitle>On your wall</DialogTitle><DialogDescription>Preview your finished poster.</DialogDescription></div>
+      </StudioDialogHeader>
+      <WallPreviewPanel {...props} />
+    </DialogContent>
+  </Dialog>;
+});
+
+export const WallPreviewPanel = memo(function WallPreviewPanel({ wall, page, previewUrl, error, epoch = 0, onChange }: WallPreviewProps) {
   const style = {
     '--wall-color': wall.wallColor, '--mat-color': wall.matColor,
     '--frame-ratio': (page.widthMm + wall.matWidthMm * 2) / (page.heightMm + wall.matWidthMm * 2),
@@ -20,15 +35,8 @@ export const WallPreviewDialog = memo(function WallPreviewDialog({ open, onOpenC
     gridTemplateRows: `${wall.matWidthMm}fr ${page.heightMm}fr ${wall.matWidthMm}fr`,
     aspectRatio: (page.widthMm + wall.matWidthMm * 2) / (page.heightMm + wall.matWidthMm * 2),
   } as CSSProperties;
-  return <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent ref={dialogRef} initialFocus={dialogRef} className="export-dialog studio-wall-dialog" overlayClassName="export-dialog-backdrop">
-      <StudioDialogHeader className="studio-wall-header">
-        <div>
-          <div className="feature-help-row"><DialogTitle>On your wall</DialogTitle><FeatureHelp label="Wall preview help">Frames, mats, and walls are for presentation only. They are not added to print exports.</FeatureHelp></div>
-          <DialogDescription>Preview your finished poster.</DialogDescription>
-        </div>
-      </StudioDialogHeader>
-      <StudioDialogBody className="studio-wall-body">
+  return <StudioDialogBody className="studio-wall-body">
+        <div className="feature-help-row"><h3 className="export-panel-title">On your wall</h3><FeatureHelp label="Wall preview help">Frames, mats, and walls are for presentation only. They are not added to print exports.</FeatureHelp></div>
         <div className="studio-wall-scene" style={{ backgroundColor: wall.wallColor }}>
           <div className={`studio-wall-frame studio-wall-frame-${wall.frame}${wall.shadow ? ' has-shadow' : ''}`} style={style}>
             {previewUrl ? <img src={previewUrl} alt="Your finished map poster in a frame" style={{ aspectRatio: page.widthMm / page.heightMm }} /> : <p role={error ? 'alert' : 'status'}>{error || 'Preparing poster preview...'}</p>}
@@ -44,6 +52,4 @@ export const WallPreviewDialog = memo(function WallPreviewDialog({ open, onOpenC
           <StudioToggle label="Cast frame shadow" checked={wall.shadow} onChange={(shadow) => onChange({ ...wall, shadow })} />
         </div>}
       </StudioDialogBody>
-    </DialogContent>
-  </Dialog>;
 });

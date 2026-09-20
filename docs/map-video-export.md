@@ -1,8 +1,17 @@
 # Map video export
 
-The controlled `VideoExportDialog` records a genuine, silent MP4 from a detached
+**Export > Video** records a genuine, silent MP4 from a detached
 map snapshot. It offers orbit or sway motion, 5/10/15 seconds, 30/60 fps targets,
 poster/16:9/9:16/1:1/4:5 aspects, and Standard/High quality.
+
+Export opens directly on **Print**, with PNG, layered SVG, PDF, and layered PSD.
+The same modal has **Video** and **3D model** destinations; switching them does not
+edit the project or add undo entries. Print's format and basemap-rendering choices
+remain selected when returning from another destination. **Preview framed** is a
+secondary Print action with **Back to export**, not another stacked dialog.
+Every entry captures a fresh composed poster. Frame, wall, and mat preferences
+use `studio.wall`; changing them does not recapture the poster. Preview canvases
+and object URLs are released on back, close, replacement, and failed capture.
 
 The whole poster is fitted inside the selected aspect, including photos,
 decorations, and attribution. A different aspect can introduce white borders;
@@ -38,7 +47,9 @@ unsupported on a pitched map; video does not secretly hide that decoration.
 
 ## Integration
 
-The parent supplies `document`, `settings: document.studio.video`,
+The reusable `VideoExportPanel` owns the existing recording controller and
+non-modal settings/progress/actions. `VideoExportDialog` remains its standalone
+wrapper. The parent supplies `document`, `settings: document.studio.video`,
 `onSettingsChange`, `exporter`, `filename`, and `onClose`. Route preference changes
 through `setStudioSection('video', settings)`, handling mutation failures through
 the normal application feedback. Pass `blockedReason` while drawing or another
@@ -60,10 +71,21 @@ cloned at the recording boundary. `exportVideoDocument` then:
 
 The live renderer, canonical camera, layers, and undo history are not animated.
 Changing projects or unmounting the dialog cancels the job. Cancel preserves
-the dialog and restores keyboard focus to Download; Escape closes it and
-returns focus to its opener. Tracks, event handlers, temporary canvases,
+the panel and restores keyboard focus to Download. In the unified workspace,
+destination changes, Escape, outside-click and close are blocked while an export
+is running; cancel explicitly and wait for cleanup first. When idle, Escape closes
+the workspace and returns focus to Export. The standalone video dialog retains
+its cancel-on-Escape behavior. Tracks, event handlers, temporary canvases,
 composition images, protocol references, and temporary map containers are
 released. Download object URLs use the shared bounded-lifetime download helper.
+
+The workspace keeps the original `ExportDialog` props (`document`, `exporter`,
+`filename`, `onClose`), plus `documentEpoch` for same-ID replacement cancellation
+and `blockedReason` for authoring/recovery guards. Connected mode panels use the
+canonical project-store provider, `setStudioSection`, and current renderer
+capabilities from `mapExporterContext`; no export settings store is created.
+Video progress rerenders the dialog, not the editor or map. The 3D model panel
+similarly reuses the STL controller with `studio.relief` settings.
 
 The full offscreen viewport, not only the final crop, is limited to a 4096-pixel
 edge and 8,294,400 pixels. When preserving perspective would exceed that budget,
@@ -76,11 +98,17 @@ does not change the field of view or silently lower the requested resolution.
 npm run typecheck
 npx vitest run tests/unit/video-plan.test.ts tests/unit/video-record.test.ts \
   tests/unit/video-map-capture.test.ts tests/unit/video-dialog.test.tsx
+npx vitest run tests/unit/export-workspace.test.tsx
 PLAYWRIGHT_EDITOR_PORT=4196 npx playwright test \
   tests/e2e/video-export.spec.ts tests/e2e/video-composition.spec.ts \
   tests/e2e/video-dialog.spec.ts tests/e2e/video-projection.spec.ts \
   --project=chromium --workers=1
 ```
+
+`tests/e2e/export-workspace.spec.ts` checks one persistent modal, all three
+destinations, framed preview/back, desktop/phone/320px fit, and genuine PNG,
+true-vector SVG, and STL downloads. Its separately labeled simulated-controller
+cases check video busy/cancel UI only; they are not MP4 encoding evidence.
 
 The browser tests inspect a real downloaded MP4 and decoded dimensions/duration,
 verify shared composition pixels and unchanged canonical state/live camera,

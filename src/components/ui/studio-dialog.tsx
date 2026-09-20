@@ -11,6 +11,10 @@ export function StudioDialogBody({ className, ...props }: ComponentProps<'div'>)
   return <div className={cn('studio-dialog-body', className)} {...props} />;
 }
 
+export function StudioDialogFeedback({ className, ...props }: ComponentProps<'div'>) {
+  return <div className={cn('studio-dialog-feedback', className)} {...props} />;
+}
+
 export function StudioDialogSection({ className, ...props }: ComponentProps<'section'>) {
   return <section className={cn('studio-dialog-section', className)} {...props} />;
 }

@@ -37,6 +37,20 @@
 .studio-dialog-body p { margin: 0; line-height: 1.45; }
 .studio-dialog-body .studio-dialog-header p { margin-top: 0.25rem; }
 
+.studio-dialog-feedback {
+  flex-shrink: 0;
+  display: grid;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  font-size: var(--studio-font-control);
+  color: var(--studio-text-secondary);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.studio-dialog-feedback[hidden] { display: none; }
+.studio-dialog-feedback[data-empty="true"] { padding: 0; }
+.studio-dialog-feedback p { margin: 0; line-height: 1.45; }
+
 .studio-dialog-section {
   display: grid;
   gap: 0.25rem;

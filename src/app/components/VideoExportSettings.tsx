@@ -42,7 +42,7 @@ export const VideoExportSettings = memo(function VideoExportSettings({ settings,
 }>) {
   const change = useSettingActions(settings, onChange, VIDEO_KEYS);
   return <fieldset className="video-export-settings" disabled={busy}>
-    <legend>Video settings</legend>
+    <legend className="sr-only">Video settings</legend>
     <VideoChoice label="Motion" value={settings.motion} choices={MOTIONS} onChange={change.motion} />
     <VideoChoice label="Duration" value={settings.durationSeconds} choices={DURATIONS} onChange={change.durationSeconds} />
     <VideoChoice label="Target frame rate" value={settings.fps} choices={FRAME_RATES} onChange={change.fps} />
