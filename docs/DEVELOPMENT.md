@@ -15,9 +15,13 @@ decorations, wall, terrain, video and relief. Panels select their section with
 store. `setStudioSection(section, value)` replaces one complete typed section;
 `applyStudioTemplate({ poster, page?, style?, camera?, silhouette?,
 expectedDocumentEpoch? })` applies a composition and optional new shape in one
-admitted history entry without replacing unrelated layers. `addPhotoStop({
-stop, asset, poi?, expectedDocumentEpoch? })` atomically attaches an image to an
-existing Point POI or inserts a new POI. `removePhotoStop(id)` removes the
+admitted history entry without replacing unrelated layers. A template cannot
+change or unlock a locked camera; omit `camera` to apply composition alone.
+`addPhotoStop({ stop, asset, poi?, presentation?, expectedDocumentEpoch? })`
+atomically attaches an image to an existing Point POI or inserts a new POI.
+Optional `presentation: 'map' | 'strip'` enables the requested photo mode only
+when both modes were disabled, in the same history entry. Omit it to preserve
+visibility. `removePhotoStop(id)` removes the
 attachment and any newly unreferenced photo asset, retaining the POI. All four
 actions return `ProjectMutationResult`; callers must surface rejection errors.
 

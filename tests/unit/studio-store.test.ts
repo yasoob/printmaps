@@ -91,6 +91,40 @@ it('atomically applies a new silhouette, composition, page, style and camera in 
   expect(store.getState().document).toEqual(applied);
 });
 
+it.each([
+  { center: [12, 48] as [number, number] },
+  { zoom: 15 },
+  { bearing: 90 },
+  { pitch: 30 },
+  { locked: false },
+])('rejects template camera changes while locked without changing composition or history %#', (patch) => {
+  const store = createProjectStore();
+  store.getState().setMapAreaLocked(true);
+  store.getState().setProjectTitle('Temporary');
+  store.getState().undo();
+  const before = store.getState();
+  const listener = vi.fn();
+  store.subscribe(listener);
+  expect(before.applyStudioTemplate({
+    poster: { ...before.document.studio.poster, enabled: true },
+    camera: { ...before.document.camera, ...patch },
+  })).toMatchObject({ ok: false, code: 'unavailable', error: expect.stringContaining('Unlock') });
+  expect(store.getState()).toBe(before);
+  expect(listener).not.toHaveBeenCalled();
+});
+
+it.each([false, true])('allows composition-only templates with a locked camera (include equal camera: %s)', (includeCamera) => {
+  const store = createProjectStore();
+  store.getState().setMapAreaLocked(true);
+  const before = store.getState().document;
+  expect(store.getState().applyStudioTemplate({
+    poster: { ...before.studio.poster, enabled: true },
+    ...(includeCamera && { camera: structuredClone(before.camera) }),
+  })).toEqual({ ok: true, changed: true });
+  expect(store.getState().document.camera).toBe(before.camera);
+  expect(store.getState().document.studio.poster.enabled).toBe(true);
+});
+
 const invalidMutations: [string, (state: ProjectState) => { ok: boolean }][] = [
   ['nested non-finite setting', (state) => state.setStudioSection('terrain', { ...state.document.studio.terrain, contours: { ...state.document.studio.terrain.contours, intervalMeters: NaN } })],
   ['dangling silhouette', (state) => state.setStudioSection('poster', { ...state.document.studio.poster, silhouetteLayerId: 'missing' })],
@@ -134,6 +168,8 @@ it('atomically inserts and removes photo assets/stops, leaving geography canonic
   expect(store.getState().past).toHaveLength(1);
   const inserted = store.getState().document;
   expect(inserted.studio.photos.stops[0]).toEqual(stop);
+  expect(inserted.studio.photos.map.enabled).toBe(false);
+  expect(inserted.studio.photos.strip.enabled).toBe(false);
   expect('coordinate' in inserted.studio.photos.stops[0]).toBe(false);
   stop.caption = 'Caller mutation';
   expect(inserted.studio.photos.stops[0].caption).toBe('First caption');
@@ -147,6 +183,48 @@ it('atomically inserts and removes photo assets/stops, leaving geography canonic
   expect(store.getState().removePhotoStop('second')).toMatchObject({ ok: true });
   expect(store.getState().document.studio.photos.assets).toEqual({});
   expect(store.getState().document.layers.some(({ id }) => id === poi.id)).toBe(true);
+});
+
+it.each(['map', 'strip'] as const)('enables requested %s photo presentation atomically and restores it through undo/redo', (presentation) => {
+  const store = createProjectStore();
+  const before = store.getState().document;
+  const asset = photoAsset();
+  expect(store.getState().addPhotoStop({
+    asset, poi: photoPoi(), presentation,
+    stop: { id: 'visible', assetId: asset.id, layerId: 'photo-place', caption: '' },
+  })).toEqual({ ok: true, changed: true });
+  const inserted = store.getState().document;
+  expect(inserted.studio.photos[presentation].enabled).toBe(true);
+  expect(inserted.studio.photos[presentation === 'map' ? 'strip' : 'map'].enabled).toBe(false);
+  expect(store.getState().past).toHaveLength(1);
+  store.getState().undo();
+  expect(store.getState().document).toEqual(before);
+  store.getState().redo();
+  expect(store.getState().document).toEqual(inserted);
+});
+
+it.each(['map', 'strip'] as const)('preserves existing %s presentation when inserting a photo requesting the other mode', (current) => {
+  const source = createInitialProjectDocument();
+  source.studio.photos[current].enabled = true;
+  const store = createProjectStore(source);
+  const asset = photoAsset();
+  expect(store.getState().addPhotoStop({
+    asset, presentation: current === 'map' ? 'strip' : 'map',
+    stop: { id: 'attached', assetId: asset.id, layerId: 'poi-cafe', caption: '' },
+  })).toMatchObject({ ok: true });
+  expect(store.getState().document.studio.photos.map).toEqual(source.studio.photos.map);
+  expect(store.getState().document.studio.photos.strip).toEqual(source.studio.photos.strip);
+});
+
+it('does not enable photo presentation or partially insert a POI when image admission fails', () => {
+  const store = createProjectStore();
+  const before = store.getState();
+  const asset = { ...photoAsset(), dataUri: 'https://example.test/photo.png' };
+  expect(before.addPhotoStop({
+    asset, poi: photoPoi(), presentation: 'map',
+    stop: { id: 'unsafe', assetId: asset.id, layerId: 'photo-place', caption: '' },
+  })).toMatchObject({ ok: false });
+  expect(store.getState()).toBe(before);
 });
 
 it('keeps hidden photo references intact and cleans deleted layer references in the same undoable entry', () => {

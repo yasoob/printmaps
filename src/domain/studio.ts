@@ -108,6 +108,7 @@ export type PhotoStopInsertion = {
   asset: PhotoAsset;
   // Optional new POI; omit when attaching to an existing Point layer.
   poi?: ContentLayer;
+  presentation?: 'map' | 'strip';
   expectedDocumentEpoch?: number;
 };
 

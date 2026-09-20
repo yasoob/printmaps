@@ -1,7 +1,7 @@
 import { cloneContentLayer, mapStyleBasemapName, type ContentLayer, type ProjectDocument } from '../domain/project';
 import { MAP_STYLE_PRESETS } from '../domain/mapStylePresets';
 import { mutationRejected } from '../domain/projectMutation';
-import type { PhotoStopInsertion, StudioTemplateApplication } from '../domain/studio';
+import type { PhotoSettings, PhotoStopInsertion, StudioTemplateApplication } from '../domain/studio';
 import type { ProjectState } from './store';
 import { commitDocument, type ProjectSet } from './storeMutation';
 
@@ -52,6 +52,10 @@ function createTemplateAction(set: ProjectSet): ProjectState['applyStudioTemplat
     if (application.expectedDocumentEpoch !== undefined && application.expectedDocumentEpoch !== state.documentEpoch) {
       return mutationRejected('The project changed before the template was ready. Choose the template again.', 'stale');
     }
+    if (state.document.camera.locked && application.camera !== undefined
+      && !areSettingsEqual(state.document.camera, application.camera)) {
+      return mutationRejected('Unlock the map area before applying a template that changes its camera.', 'unavailable');
+    }
     const shape = application.silhouette;
     if (shape && (shape.type !== 'shape' || state.document.layers.some(({ id }) => id === shape.id))) {
       return mutationRejected('A template silhouette must be a new shape with a unique layer ID.');
@@ -78,12 +82,20 @@ function photoInsertionError(state: ProjectState, input: PhotoStopInsertion) {
   if (existing && !areSettingsEqual(existing, asset)) return mutationRejected('An existing photo asset cannot be replaced with different image data.');
 }
 
+function photoPresentation(photos: PhotoSettings, presentation: PhotoStopInsertion['presentation']): PhotoSettings {
+  if (!presentation || photos.map.enabled || photos.strip.enabled) return photos;
+  return { ...photos, [presentation]: { ...photos[presentation], enabled: true } };
+}
+
 function createPhotoInsertionAction(set: ProjectSet): ProjectState['addPhotoStop'] {
   return (input) => set((state) => {
+    if (input.presentation !== undefined && !['map', 'strip'].includes(input.presentation)) {
+      return mutationRejected('Photo presentation must be map or strip.');
+    }
     const error = photoInsertionError(state, input);
     if (error) return error;
     const { document } = state;
-    const photos = document.studio.photos;
+    const photos = photoPresentation(document.studio.photos, input.presentation);
     const { stop, asset, poi } = input;
     const assets = Object.hasOwn(photos.assets, asset.id) ? photos.assets : { ...photos.assets, [asset.id]: asset };
     return {
