@@ -42,12 +42,14 @@
 .studio-poster-preview { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .studio-poster-preview > svg { display: block; width: 100%; height: 100%; }
 .studio-poster-preview-error { position: absolute; inset: auto 8px 24px; padding: 10px; background: var(--studio-surface); color: var(--studio-danger); border: 1px solid var(--studio-danger); font-size: 12px; z-index: 4; pointer-events: none; }
-.studio-wall-dialog.export-dialog { width: min(900px, calc(100vw - 24px)); max-width: 900px; max-height: calc(100dvh - 24px); overflow: auto; }
-.studio-wall-scene { min-height: 280px; height: min(55vh, 550px); position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 4px; padding: 25px 35px 45px; }
-.studio-wall-frame { display: grid; width: auto; height: 95%; max-width: 70%; background: var(--mat-color); border: 8px solid transparent; position: relative; z-index: 1; }
+.studio-wall-dialog.export-dialog { width: min(900px, calc(100vw - 2rem - var(--studio-safe-left) - var(--studio-safe-right))); max-width: 900px; max-height: calc(100dvh - 2rem - var(--studio-safe-top) - var(--studio-safe-bottom)); grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
+.studio-wall-header { padding-right: 3.5rem; }
+.studio-wall-body { gap: 1rem; min-width: 0; }
+.studio-wall-scene { container-type: size; min-height: 280px; height: min(55vh, 550px); position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 4px; padding: 25px 35px 45px; }
+.studio-wall-frame { --frame-border-space: 16px; --frame-width-limit: 70cqw; box-sizing: content-box; display: grid; width: min(calc(var(--frame-width-limit) - var(--frame-border-space)), calc((95cqh - var(--frame-border-space)) * var(--frame-ratio))); height: auto; background: var(--mat-color); border: 8px solid transparent; position: relative; z-index: 1; }
 .studio-wall-frame > :is(img, p) { grid-column: 2; grid-row: 2; min-width: 0; min-height: 0; }
 .studio-wall-frame img { display: block; width: 100%; height: 100%; object-fit: contain; }
-.studio-wall-frame-none { border-width: 0; }
+.studio-wall-frame-none { --frame-border-space: 0px; border-width: 0; }
 .studio-wall-frame-black { border-color: var(--studio-preview-frame-black); }
 .studio-wall-frame-white { border-color: var(--studio-preview-frame-white); }
 .studio-wall-frame-oak { border-color: var(--studio-preview-frame-oak); }
@@ -58,6 +60,6 @@
 @media (max-width: 600px) {
   .studio-wall-controls { grid-template-columns: 1fr; }
   .studio-wall-scene { padding: 20px 12px 40px; min-height: 220px; }
-  .studio-wall-frame { max-width: 90%; }
+  .studio-wall-frame { --frame-width-limit: 90cqw; }
   .studio-composition-panel button { min-height: 44px; }
 }
