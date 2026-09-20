@@ -14,6 +14,7 @@ import type {
   ShapeGeometry,
 } from "../../domain/project";
 import type { MapStyleCustomization } from "../../domain/mapStyleCustomization";
+import type { TerrainSettings } from "../../domain/studio";
 import type {
   RouteAuthoringOptions,
   RouteTravelMarker,
@@ -43,6 +44,7 @@ export type CanvasWorkspaceProps = {
   language: MapLanguage;
   textScalePercent: number;
   featureVisibility: MapFeatureVisibility;
+  terrain?: TerrainSettings;
   selectedId: string | null;
   page: PageSettings;
   pageBoundaryVisible: boolean;

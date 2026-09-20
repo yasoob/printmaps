@@ -9,8 +9,12 @@ import { LayerProperties } from './LayerProperties';
 import { ProjectProperties, type CameraInspectorView } from './ProjectProperties';
 import type { RouteExtensionEndpoint } from './routeAuthoringActions';
 import { useLatestValue } from '../hooks/useLatestValue';
+import type { PreviewPngExporter } from '../../export/previewPng';
+import { StudioTerrainControls } from '../studio/StudioTerrainControls';
 
 type PropertiesSidebarProps = {
+  exporter?: PreviewPngExporter | null;
+  studioBlockedReason?: string;
   selectedLayerId: string | null;
   mapMatchingProvider?: MapMatchingProvider;
   directionsProvider?: DirectionsProvider;
@@ -157,7 +161,7 @@ export const PropertiesSidebar = memo(function PropertiesSidebar(props: Properti
             props={props}
             selectedLayerId={selectedLayerId}
           />
-        ) : <ProjectPropertiesPanel onLocate={onLocate} />}
+        ) : <ProjectPropertiesPanel onLocate={onLocate} exporter={props.exporter ?? null} blockedReason={props.studioBlockedReason} />}
       </div>
     </aside>
   );
@@ -168,8 +172,10 @@ export const PropertiesSidebar = memo(function PropertiesSidebar(props: Properti
  * are rendered here, but panning writes centre and zoom at pointer rate; keeping
  * this subscription narrow stops those writes from re-rendering the inspector.
  */
-const ProjectPropertiesPanel = memo(function ProjectPropertiesPanel({ onLocate }: {
+const ProjectPropertiesPanel = memo(function ProjectPropertiesPanel({ onLocate, exporter, blockedReason }: {
   onLocate: (coordinate: [number, number], onApplied: () => void) => void;
+  exporter: PreviewPngExporter | null;
+  blockedReason?: string;
 }) {
   const project = useProjectActions();
   const documentEpoch = useProject((state) => state.documentEpoch);
@@ -186,6 +192,7 @@ const ProjectPropertiesPanel = memo(function ProjectPropertiesPanel({ onLocate }
 
   return (
     <ProjectProperties
+      terrainControls={<StudioTerrainControls exporter={exporter} blockedReason={blockedReason} />}
       camera={camera}
       documentEpoch={documentEpoch}
       style={style}

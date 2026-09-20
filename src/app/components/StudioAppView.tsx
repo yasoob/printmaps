@@ -37,6 +37,7 @@ const CanvasWorkspaceWithCamera = memo(function CanvasWorkspaceWithCamera(
 });
 
 function StudioCanvas({ m }: { m: StudioAppModel }) {
+  const terrain = useProject((state) => state.document.studio.terrain);
   return (
     <CanvasWorkspaceWithCamera
       statusNotice={autosaveNotice}
@@ -50,6 +51,7 @@ function StudioCanvas({ m }: { m: StudioAppModel }) {
       language={m.style.language}
       textScalePercent={m.style.textScalePercent}
       featureVisibility={m.style.visibility}
+      terrain={terrain}
       documentEpoch={m.documentEpoch}
       importFitRequest={m.mapDataImport.importFitRequest}
       locationRequest={m.mapLocation.request}
@@ -97,6 +99,9 @@ function StudioProperties({ m }: { m: StudioAppModel }) {
     : null;
   return (
     <PropertiesSidebar
+      exporter={m.mapExporter.run}
+      studioBlockedReason={m.isAuthoring ? 'Finish or cancel the current drawing before exporting.'
+        : (m.isAutosaveCorrupted ? 'Resolve the damaged draft before exporting.' : undefined)}
       selectedLayerId={m.selectedLayer?.id ?? null}
       directionsRouteEditError={
         isSelectedDirectionsEdit ? m.directionsRouteEditing.error : null

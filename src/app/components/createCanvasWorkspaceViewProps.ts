@@ -48,6 +48,7 @@ function createMapProps(
     getCanonicalCamera: props.getCanonicalCamera,
     contentRevision: inputs.geometryLayers,
     featureVisibility: props.featureVisibility,
+    terrain: props.terrain,
     fitImportBounds: props.importFitRequest.bounds,
     fitImportRequest: props.importFitRequest.request,
     fitLayerId: inputs.fitLayerRequest.id,
