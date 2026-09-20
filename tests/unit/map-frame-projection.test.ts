@@ -26,7 +26,8 @@ function harness() {
   frame.getBoundingClientRect = () => new DOMRect(50, 40, 200, 100);
   const map: FrameProjectionMap = {
     getCanvas: () => canvas,
-    getCenter: () => ({ lng: 14 }),
+    getCenter: () => ({ lng: 14, lat: 42 }),
+    getZoom: () => 11,
     getBearing: () => 20,
     getPitch: () => 10,
     project: ([x, y]) => ({ x: x * 10, y: y * 10 }),
@@ -52,8 +53,10 @@ it('reports normalized live projection against the actual print frame', () => {
   expect(test.changes[0]).toMatchObject({
     frame: { x: 40, y: 20, width: 200, height: 100 },
     referenceLongitude: 14, bearing: 20, pitch: 10,
+    camera: { center: [14, 42], zoom: 11, bearing: 20, pitch: 10 },
   });
   expect(test.changes[0]?.projectToFrame([14, 7])).toEqual({ x: 0.5, y: 0.5 });
+  expect(test.changes[0]?.projectToFrame([374, 7])).toEqual({ x: 0.5, y: 0.5 });
   test.stop();
 });
 
