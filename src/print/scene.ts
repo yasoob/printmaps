@@ -286,13 +286,6 @@ function splitLayers(layers: readonly ContentLayer[]): {
   };
 }
 
-function validatedLayers(layers: readonly ContentLayer[]): readonly ContentLayer[] {
-  if (!Array.isArray(layers)) {
-    throw new PrintSceneError('Project layers are unavailable.');
-  }
-  return layers;
-}
-
 function validateSceneInputs(document: ProjectDocument, options: PrintSceneOptions) {
   finitePositive(document.page?.widthMm, 'Page width');
   finitePositive(document.page?.heightMm, 'Page height');
@@ -301,8 +294,9 @@ function validateSceneInputs(document: ProjectDocument, options: PrintSceneOptio
   }
   const width = document.page.widthMm, height = document.page.heightMm;
   if (!options.basemap || !('kind' in options.basemap)) validateBasemap(options.basemap);
-  const attribution = requiredAttribution(options), layers = validatedLayers(document.layers);
-  return { width, height, attribution, ...splitLayers(layers) };
+  if (!Array.isArray(document.layers)) throw new PrintSceneError('Project layers are unavailable.');
+  const attribution = requiredAttribution(options);
+  return { width, height, attribution, ...splitLayers(document.layers) };
 }
 
 /**

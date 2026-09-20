@@ -30,9 +30,10 @@ function fileWithText(name: string, text: string | Promise<string>, type: string
 }
 
 function fileInputs(container: HTMLElement) {
-  const inputs = container.querySelectorAll<HTMLInputElement>('input[type="file"]');
-  if (inputs.length !== 2) throw new Error(`Expected two file inputs, received ${inputs.length}.`);
-  return { openInput: inputs[0], importInput: inputs[1] };
+  const openInput = container.querySelector<HTMLInputElement>('input[type="file"][accept*=".printmap.json"]');
+  const importInput = container.querySelector<HTMLInputElement>('input[type="file"][accept*=".geojson"]');
+  if (!openInput || !importInput) throw new Error('Project and map-data file inputs must be present.');
+  return { openInput, importInput };
 }
 
 function reviewFiles() {

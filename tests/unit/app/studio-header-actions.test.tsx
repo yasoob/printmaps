@@ -115,6 +115,6 @@ describe('studio header project actions', () => {
     expect(screen.getByRole('combobox', { name: 'Search places and addresses' })).toBeInTheDocument();
     expect(screen.getByLabelText(/^Map scale:/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '1:20,000' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Share/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Share' })).toHaveClass('secondary-button');
   });
 });

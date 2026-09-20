@@ -3,6 +3,20 @@ const encoder = new TextEncoder();
 export type PdfChunk = string | Uint8Array;
 export type PdfObject = readonly PdfChunk[];
 
+export function pdfContentString(value: string): string {
+  let escaped = '';
+  for (const character of value) {
+    const codePoint = character.codePointAt(0) ?? 0;
+    if (codePoint === 0xA9) escaped += String.raw`\251`;
+    else if (codePoint === 0xB7) escaped += String.raw`\267`;
+    else if (['\\', '(', ')'].includes(character)) {
+      escaped += String.fromCodePoint(92) + character;
+    } else if (codePoint >= 32 && codePoint <= 126) escaped += character;
+    else escaped += '?';
+  }
+  return `(${escaped})`;
+}
+
 export function pdfString(value: string): string {
   if ([...value].every((character) => {
     const code = character.codePointAt(0) ?? 0;

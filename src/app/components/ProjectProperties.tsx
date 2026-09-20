@@ -24,6 +24,7 @@ export type CameraInspectorView = Pick<CameraSettings, 'bearing' | 'locked' | 'p
 
 type ProjectPropertiesProps = {
   terrainControls?: ReactNode;
+  studioControls?: ReactNode;
   documentEpoch: number;
   page: PageSettings;
   pageBoundaryVisible: boolean;
@@ -62,6 +63,7 @@ const MAP_LANGUAGE_LABELS: Record<MapLanguage, string> = {
 
 export function ProjectProperties({
   terrainControls,
+  studioControls,
   camera,
   documentEpoch,
   style,
@@ -167,6 +169,7 @@ export function ProjectProperties({
         <Checkbox isChecked={style.visibility.transit} label="Show transit" onCheckedChange={(isChecked) => featureVisibilityChange('transit', isChecked)} />
         {detailFeedback.error && <p className="coordinate-validation" role="alert">{detailFeedback.error}</p>}
       </InspectorAccordion>
+      {studioControls}
       {terrainControls}
     </div>
   );

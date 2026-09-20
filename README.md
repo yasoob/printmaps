@@ -1,6 +1,6 @@
 # Print Map Studio
 
-A free, local-first map design studio for creating static, print-ready maps in the browser. Design the base map, add routes, places and areas, import geographic data, then export PNG, PDF, layered SVG or layered PSD without creating an account.
+A free, local-first map design studio for creating print-ready maps, photo posters, terrain models, and short map videos in the browser. Design the base map, add routes, places and areas, import geographic data, then export PNG, PDF, SVG, layered PSD, STL, or MP4 without creating an account.
 
 ## Live site
 
@@ -18,6 +18,33 @@ A free, local-first map design studio for creating static, print-ready maps in t
 - Print-sized PNG, exact-page PDF, layered SVG and layered PSD export.
 
 Provider-backed place search, road routing, map matching, address lookup and isochrones require a browser-safe Mapbox public token. Core editing and OpenFreeMap rendering remain available without one.
+
+### Poster studio
+
+The Project inspector's **Poster studio** contains finished design templates,
+editable starter locations, typography and paper margins, country/region
+silhouettes, photo stories, and compass/scale/grid/location-QR controls. Applying
+a design keeps existing routes, points, shapes, and photos. Starter locations
+explicitly move the camera; locked cameras are respected.
+
+Photo attachments reference existing point layers rather than storing a second
+set of coordinates. They can appear as anchored images or a numbered caption
+strip. Moving, hiding, or deleting the point affects its attachment consistently.
+Local PNG/JPEG images are embedded in the portable project; they are not uploaded.
+
+**Preview on a wall** uses the same composed artwork as print exports, with frame,
+wall, and mat preferences. Opening or closing the preview does not change the
+project or undo history. Poster text, photos, decorations, and attribution are
+included in PNG, SVG, PDF, and PSD; PSD keeps a named composition Smart Object.
+PDF poster typography supports Latin text; unsupported characters are rejected
+with SVG/PNG guidance rather than substituted. Scale bars require a flat,
+non-terrain map, and coordinate grids do not support pitched maps.
+
+Durable settings live in the versioned central project document, including
+`document.studio`. Validated store actions update them atomically with undo/redo;
+previews, sharing, and export adapters consume those same settings. Dialog state,
+render projections, and recording progress are transient, not additional project
+stores. See [the state contracts](docs/DEVELOPMENT.md).
 
 ### Share, remix and embed
 
@@ -152,6 +179,22 @@ Chromium is the acceptance browser. `test:e2e:release` runs the editor suite in 
 ## Export model
 
 PNG, PDF and layered PSD basemaps render from bounded native MapLibre regions rather than enlarging the browser preview. PNG includes 300 DPI physical-resolution metadata. PDF preserves the exact page and named vector overlays. Layered SVG keeps supported routes, places and shapes as named vector groups. Layered PSD keeps the basemap raster while embedding each content layer and attribution as a separately named SVG Smart Object with a compatibility preview, using 300 DPI when the browser memory-safe document limits allow it.
+
+SVG/PDF also offer opt-in **True vector artwork (reflowed labels)**. This exports
+editable basemap geometry and text, not a screenshot wrapped in a vector file.
+Text placement and generic symbol artwork are intentionally regenerated; use
+the default Hybrid mode to retain the renderer's appearance. Unsupported styles,
+glyphs, terrain, and camera configurations fail explicitly with Hybrid guidance.
+
+### Map videos
+
+Open **Map video → Export map video** in the Project inspector for an orbit or
+sway MP4, with duration, target frame rate, aspect, and quality controls. The
+complete poster is fitted into the video, including photos, decorations, and
+attribution. Recording uses an isolated renderer and does not animate the
+project camera or populate undo history. Native MP4 recording support is
+required; unsupported browsers receive an explanation, not a renamed WebM file.
+See [video behavior and limits](docs/map-video-export.md).
 
 ### Terrain, contours and printable relief
 

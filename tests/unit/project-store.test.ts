@@ -1,10 +1,8 @@
 import { createProjectStore } from '../../src/app/store';
-import { createDefaultStudioSettings } from '../../src/domain/studio';
 import {
   createInitialProjectDocument,
   createDefaultLayerAppearance,
   createDefaultRouteAppearance,
-  PROJECT_SCHEMA_VERSION,
   type ContentLayer,
   type LayerGeometry,
   type ProjectDocument,
@@ -18,14 +16,9 @@ const layers = createInitialProjectDocument().layers.map((layer, index) => ({
 
 function createDocument(): ProjectDocument {
   return {
-    schemaVersion: PROJECT_SCHEMA_VERSION,
-    studio: createDefaultStudioSettings(),
+    ...createInitialProjectDocument(),
     id: 'test-project',
     title: 'Test project',
-    page: { preset: 'A4', widthMm: 297, heightMm: 210, orientation: 'landscape' },
-    camera: { bearing: 0, center: [16.3725, 48.2084], locked: false, pitch: 0, zoom: 11.2 },
-    style: { preset: 'paper', language: 'local', textScalePercent: 100, visibility: { roads: true, buildings: true, labels: true, water: true, parks: true, landuse: true, transit: true }, customization: { tone: 'balanced', contrast: 50, detail: 50, colors: {} } },
-    assets: {},
     layers,
   };
 }

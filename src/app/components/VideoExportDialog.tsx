@@ -55,6 +55,9 @@ function VideoExportSession(props: VideoExportDialogProps) {
     controllerRef.current = null;
   }, [document.id]);
   useEffect(() => {
+    if (blockedReason) controllerRef.current?.abort();
+  }, [blockedReason]);
+  useEffect(() => {
     if (busy) cancelRef.current?.focus();
     else if (hasStarted.current) {
       if (unavailable) cancelRef.current?.focus();

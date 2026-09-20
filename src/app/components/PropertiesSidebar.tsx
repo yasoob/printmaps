@@ -11,6 +11,8 @@ import type { RouteExtensionEndpoint } from './routeAuthoringActions';
 import { useLatestValue } from '../hooks/useLatestValue';
 import type { PreviewPngExporter } from '../../export/previewPng';
 import { StudioTerrainControls } from '../studio/StudioTerrainControls';
+import { StudioCompositionControls } from '../studio/StudioCompositionControls';
+import { StudioVideoControls } from '../studio/StudioVideoControls';
 
 type PropertiesSidebarProps = {
   exporter?: PreviewPngExporter | null;
@@ -193,6 +195,10 @@ const ProjectPropertiesPanel = memo(function ProjectPropertiesPanel({ onLocate, 
   return (
     <ProjectProperties
       terrainControls={<StudioTerrainControls exporter={exporter} blockedReason={blockedReason} />}
+      studioControls={<>
+        <StudioCompositionControls exporter={exporter} blockedReason={blockedReason} />
+        <StudioVideoControls exporter={exporter} blockedReason={blockedReason} />
+      </>}
       camera={camera}
       documentEpoch={documentEpoch}
       style={style}
