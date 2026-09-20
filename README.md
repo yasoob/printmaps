@@ -36,6 +36,8 @@ the local editor first and uses the normal replacement confirmation and backup-d
 workflow before replacing existing work. Embed HTML supports responsive width,
 240–2000 px height and optional preview navigation; attribution is always retained.
 Production shared-page startup does not load analytics or send the fragment to it.
+The isolated production privacy/mobile check runs with
+`npx playwright test --config=playwright.sharing.config.ts --project=chromium`.
 
 ## Architecture and routes
 

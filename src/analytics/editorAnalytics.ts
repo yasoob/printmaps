@@ -78,6 +78,7 @@ function safeParameters(parameters: EditorEventParameters): EditorEventParameter
 }
 
 function send(action: EditorAction, parameters: EditorEventParameters) {
+  if (typeof window === 'undefined' || /^#(?:share|embed)/i.test(window.location.hash)) return;
   try {
     const gtag = window.gtag;
     if (typeof gtag === 'function') gtag('event', 'editor_action', { ...parameters, action });

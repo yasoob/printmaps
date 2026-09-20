@@ -15,6 +15,16 @@ afterEach(() => {
   flushEditorAnalytics();
   vi.useRealTimers();
   vi.unstubAllGlobals();
+  window.history.replaceState(null, '', '/');
+});
+
+it.each(['#share=private-design', '#embed=private-design', '#SHARE=invalid'])('never emits queued or new events on a shared location %s', (hash) => {
+  trackEditorAction('setProjectTitle', {}, { debounce: true });
+  window.history.replaceState(null, '', `/editor/${hash}`);
+  trackEditorAction('editorOpened');
+  flushEditorAnalytics();
+  vi.runAllTimers();
+  expect(gtag).not.toHaveBeenCalled();
 });
 
 it('uses the existing GA queue with an editor event and bounded metadata', () => {
