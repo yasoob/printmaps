@@ -1,4 +1,4 @@
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import { createMapboxSearchProvider } from "../../services/mapbox/search";
 import {
   ProjectAutosaveDialogs,
@@ -38,6 +38,15 @@ const CanvasWorkspaceWithCamera = memo(function CanvasWorkspaceWithCamera(
 
 function StudioCanvas({ m }: { m: StudioAppModel }) {
   const terrain = useProject((state) => state.document.studio.terrain);
+  const poster = useProject((state) => state.document.studio.poster);
+  const photos = useProject((state) => state.document.studio.photos);
+  const decorations = useProject((state) => state.document.studio.decorations);
+  const title = useProject((state) => state.document.title);
+  const composition = useMemo(() => ({
+    page: m.page, layers: m.mapLayers, title,
+    studio: { poster, photos, decorations,
+      terrain: { enabled: terrain.enabled, contours: { enabled: terrain.contours.enabled } } },
+  }), [decorations, m.mapLayers, m.page, photos, poster, terrain.contours.enabled, terrain.enabled, title]);
   return (
     <CanvasWorkspaceWithCamera
       statusNotice={autosaveNotice}
@@ -52,6 +61,7 @@ function StudioCanvas({ m }: { m: StudioAppModel }) {
       textScalePercent={m.style.textScalePercent}
       featureVisibility={m.style.visibility}
       terrain={terrain}
+      composition={composition}
       documentEpoch={m.documentEpoch}
       importFitRequest={m.mapDataImport.importFitRequest}
       locationRequest={m.mapLocation.request}

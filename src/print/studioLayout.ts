@@ -1,9 +1,14 @@
 import type { CameraSettings, ProjectDocument } from '../domain/project';
 import type { PosterText, StudioSettings } from '../domain/studio';
+import type { TerrainAttributionSettings } from '../domain/projectAttributions';
 import type { StudioBox } from './studioGeometry';
 import { studioText, type StudioPrimitive } from './studioPrimitives';
 
-export type StudioCompositionDocument = Pick<ProjectDocument, 'page' | 'camera' | 'layers' | 'title'> & { studio: StudioSettings };
+export type StudioCompositionDocument = Pick<ProjectDocument, 'page' | 'camera' | 'layers' | 'title'> & {
+  studio: Pick<StudioSettings, 'poster' | 'photos' | 'decorations'> & {
+    terrain: TerrainAttributionSettings;
+  };
+};
 export type StudioCamera = Readonly<Pick<CameraSettings, 'zoom' | 'bearing' | 'pitch'> & { center: readonly [number, number] }>;
 export type StudioLayout = Readonly<{
   page: StudioBox; printable: StudioBox; map: StudioBox; title: StudioBox | null; strip: StudioBox | null;

@@ -1,5 +1,5 @@
 import type { ComponentProps } from "react";
-import type { MapCanvas } from "../../map/MapCanvas";
+import type { StudioMapCanvas } from "../studio/StudioMapCanvas";
 import type { CanvasWorkspaceChrome } from "./CanvasWorkspaceChrome";
 import type { LocationSearch } from "./LocationSearch";
 import type { CanvasWorkspaceProps } from "./CanvasWorkspace";
@@ -38,7 +38,7 @@ function createSearchProps(
 
 function createMapProps(
   inputs: ViewInputs,
-): Omit<ComponentProps<typeof MapCanvas>, "previewedId"> {
+): Omit<ComponentProps<typeof StudioMapCanvas>, "previewedId"> {
   const props = inputs.props;
   const basemap = props.layers.find(({ type }) => type === 'basemap');
   return {
@@ -49,6 +49,7 @@ function createMapProps(
     contentRevision: inputs.geometryLayers,
     featureVisibility: props.featureVisibility,
     terrain: props.terrain,
+    composition: props.composition,
     fitImportBounds: props.importFitRequest.bounds,
     fitImportRequest: props.importFitRequest.request,
     fitLayerId: inputs.fitLayerRequest.id,

@@ -1,6 +1,6 @@
 import { memo, useMemo, useState, type ComponentProps, type RefObject } from "react";
 import type { MobilePanel } from "../hooks/useMobilePanels";
-import { MapCanvas } from "../../map/MapCanvas";
+import { StudioMapCanvas } from "../studio/StudioMapCanvas";
 import {
   useLayerPreviewId,
   visibleLayerPreviewId,
@@ -22,7 +22,7 @@ export type CanvasWorkspaceViewProps = {
   >;
   isRouteDiscardOpen: boolean;
   layersTriggerRef: RefObject<HTMLButtonElement | null>;
-  mapProps: Omit<ComponentProps<typeof MapCanvas>, "previewedId">;
+  mapProps: Omit<ComponentProps<typeof StudioMapCanvas>, "previewedId">;
   onDiscardRoute: () => void;
   onKeepEditingRoute: () => void;
   onOpenPanel: (panel: MobilePanel) => void;
@@ -36,7 +36,7 @@ const MapCanvasWithLayerPreview = memo(function MapCanvasWithLayerPreview({
   mapProps,
   cameraNoticeContainer,
 }: {
-  mapProps: Omit<ComponentProps<typeof MapCanvas>, "previewedId">;
+  mapProps: Omit<ComponentProps<typeof StudioMapCanvas>, "previewedId">;
   cameraNoticeContainer: HTMLDivElement | null;
 }) {
   const requestedPreviewId = useLayerPreviewId();
@@ -44,7 +44,7 @@ const MapCanvasWithLayerPreview = memo(function MapCanvasWithLayerPreview({
     mapProps.layers,
     requestedPreviewId,
   );
-  return <MapCanvas {...mapProps} cameraNoticeContainer={cameraNoticeContainer} previewedId={previewedId} />;
+  return <StudioMapCanvas {...mapProps} cameraNoticeContainer={cameraNoticeContainer} previewedId={previewedId} />;
 });
 
 export function CanvasWorkspaceView({

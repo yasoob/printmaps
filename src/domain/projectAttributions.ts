@@ -1,10 +1,13 @@
 import type { ProjectDocument } from './project';
-import type { StudioSettings } from './studio';
+import type { TerrainSettings } from './studio';
 import { TERRAIN_ATTRIBUTION } from '../terrain/demTiles';
 
 export const BASEMAP_ATTRIBUTION = 'OpenFreeMap · OpenMapTiles · © OpenStreetMap contributors';
 export const MAPBOX_ATTRIBUTION = '© Mapbox';
-type AttributionDocument = Pick<ProjectDocument, 'layers'> & { studio?: Pick<StudioSettings, 'terrain'> };
+export type TerrainAttributionSettings = Pick<TerrainSettings, 'enabled'> & {
+  contours: Pick<TerrainSettings['contours'], 'enabled'>;
+};
+type AttributionDocument = Pick<ProjectDocument, 'layers'> & { studio?: { terrain: TerrainAttributionSettings } };
 
 export function projectAttributions(document: AttributionDocument): string[] {
   const attributions = [BASEMAP_ATTRIBUTION];

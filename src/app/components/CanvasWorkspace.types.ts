@@ -32,6 +32,7 @@ import type { ProjectState, RouteMutationResult } from "../store";
 import type { CreateDirectionsRoute } from "./routeAuthoringActions";
 import type { RouteExtensionRequest } from "../hooks/useCanvasRouteAuthoring";
 import type { GeometryEditResult, LayerMutationResult, ProjectMutationResult } from "../../domain/projectMutation";
+import type { StudioCompositionContent } from "../studio/StudioMapCanvas";
 
 export type CanvasWorkspaceProps = {
   statusNotice?: ReactNode;
@@ -45,6 +46,7 @@ export type CanvasWorkspaceProps = {
   textScalePercent: number;
   featureVisibility: MapFeatureVisibility;
   terrain?: TerrainSettings;
+  composition?: StudioCompositionContent;
   selectedId: string | null;
   page: PageSettings;
   pageBoundaryVisible: boolean;
