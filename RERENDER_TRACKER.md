@@ -2,6 +2,32 @@
 
 Updated: 2026-09-20
 
+## Inspector information-architecture integration
+
+The Map/Layout inspector and unified output workspace retain the central
+document, ephemeral navigation, and existing narrow field boundaries. The
+coordinator reproduced 19 combined Firefox UI cases covering all inspector
+widths, contextual return, template replacement, output navigation, help,
+physical wall layout, and actual PNG/SVG/STL delivery. The independent
+read-only reviewer passed 27 behavior groups and approved 57 before/after
+pairs plus 49 state/detail captures after correcting mobile field heights and
+the shared label gutter. No visual findings remain.
+
+The relocated wall-preference probe now enters Export > Preview framed and
+asserts the real `WallPreviewPanel` owner, retaining all native-map and
+composition-control exclusions. The combined scoped render pass has 16
+supported passing cases; real MP4 recording is explicitly capability-skipped
+on Firefox, not simulated or claimed as encoding evidence. This is a scoped
+information-architecture regression pass, not a new whole-editor inventory.
+
+Parent evidence lives in this session's `files/inspector-parent-e2e/`,
+`files/inspector-final-scan/`, `files/inspector-wall-scan/`, and the static
+`files/inspector-redesign/` review gallery. The full unit run reports 1,968
+passes and the two previously documented baseline failures. The separate
+Firefox rotation/pan/wheel assertion was reproduced on the untouched
+`db0c99b` UI snapshot with the same unchanged zoom, so it is not attributed
+to this navigation redesign.
+
 ## Scope and method
 
 - React Scan is enabled only in development and observes the entire React tree.

@@ -212,13 +212,14 @@ test('terrain contour width leaves exaggeration, interval, color and toggles sil
 test('wall preferences do not rebuild composition controls or live map', async ({ page }, info) => {
   await openScanEditor(page);
   await enablePoster(page);
-  await page.getByRole('button', { name: 'Preview on a wall', exact: true }).click();
-  const dialog = page.getByRole('dialog');
+  await page.getByRole('button', { name: 'Export', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Export map', exact: true });
+  await dialog.getByRole('button', { name: 'Preview framed', exact: true }).click();
   await expect(dialog.locator('.studio-wall-scene img')).toBeVisible();
   await startProbe(page, 'Wall frame preference');
   await dialog.getByLabel('Frame finish').selectOption('walnut');
   const result = await finishProbe(page, info, 'wall-preference');
-  expectOwners(result, ['WallPreviewDialog'], [...NATIVE_MAP_OWNERS, 'StudioPosterPreview', 'StudioCompositionPanel', 'PosterControls', 'PhotoStoryControls', 'DecorationControls']);
+  expectOwners(result, ['WallPreviewPanel'], [...NATIVE_MAP_OWNERS, 'StudioPosterPreview', 'StudioCompositionPanel', 'PosterControls', 'PhotoStoryControls', 'DecorationControls']);
   expect(result.mapMutations).toEqual([]);
   await page.keyboard.press('Escape');
   await expect(dialog).toHaveCount(0);
