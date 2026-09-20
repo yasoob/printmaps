@@ -1,12 +1,7 @@
 import type { VideoCamera } from './camera';
+import type { VideoSettings } from '../domain/studio';
 
-export type VideoOptions = Readonly<{
-  motion: 'orbit' | 'sway';
-  durationSeconds: 5 | 10 | 15;
-  fps: 30 | 60;
-  aspect: 'poster' | '16:9' | '9:16' | '1:1' | '4:5';
-  quality: 'standard' | 'high';
-}>;
+export type VideoOptions = Readonly<VideoSettings>;
 
 export type VideoPlan = Readonly<{
   options: VideoOptions;

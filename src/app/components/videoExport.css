@@ -1,0 +1,60 @@
+.video-export-dialog {
+  width: min(560px, calc(100vw - 24px));
+  max-width: min(560px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+  padding: 0;
+  gap: 0;
+}
+
+.video-export-dialog .studio-dialog-body {
+  display: grid;
+  gap: 12px;
+}
+
+.video-export-settings {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+
+.video-export-settings legend {
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.video-export-choice {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.video-export-choice select {
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.video-export-status,
+.video-export-output {
+  overflow-wrap: anywhere;
+}
+
+.video-export-dialog progress {
+  width: 100%;
+}
+
+@media (max-width: 420px) {
+  .video-export-settings {
+    grid-template-columns: 1fr;
+  }
+}

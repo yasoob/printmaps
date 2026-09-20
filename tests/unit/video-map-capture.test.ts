@@ -20,7 +20,7 @@ function snapshot(): MapRenderSnapshot {
 function setup() {
   const document = createInitialProjectDocument();
   const source = snapshot();
-  const plan = planVideoExport({ motion: 'orbit', durationSeconds: 5, fps: 30, aspect: 'poster', quality: 'standard' }, document.page);
+  const plan = planVideoExport({ motion: 'orbit', durationSeconds: 5, fps: 30, aspect: 'page', quality: 'standard' }, document.page);
   const handlers = new Map<string, Set<(event?: unknown) => void>>();
   const canvas = window.document.createElement('canvas');
   canvas.width = plan.poster.width;

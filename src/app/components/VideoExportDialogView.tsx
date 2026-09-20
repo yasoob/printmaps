@@ -1,0 +1,58 @@
+import type { RefObject } from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { StudioDialogActions, StudioDialogBody, StudioDialogButton, StudioDialogHeader } from '@/components/ui/studio-dialog';
+import type { VideoOptions, VideoPlan, VideoProgress } from '../../video/types';
+import { VideoExportSettings } from './VideoExportSettings';
+
+type Props = Readonly<{
+  busy: boolean;
+  unavailable: string | false | null | undefined;
+  settings: VideoOptions;
+  onSettingsChange: (settings: VideoOptions) => void;
+  plan: VideoPlan | null;
+  progress: VideoProgress | null;
+  status: string;
+  error: string | null;
+  cancelRef: RefObject<HTMLButtonElement | null>;
+  downloadRef: RefObject<HTMLButtonElement | null>;
+  onClose: () => void;
+  onCancel: () => void;
+  onDownload: () => void;
+}>;
+
+function progressLabel(progress: VideoProgress | null): string {
+  if (!progress || progress.phase === 'preparing') return 'Preparing isolated map and composition…';
+  if (progress.phase === 'finalizing') return 'Finalizing and verifying MP4…';
+  return `Recording ${Math.floor(progress.fraction * 100)}% · ${progress.presentedFrames} frames presented · ${progress.missedFrameSlots} target slots missed`;
+}
+
+function VideoExportMessages({ busy, progress, status, unavailable, error }: Pick<Props, 'busy' | 'progress' | 'status' | 'unavailable' | 'error'>) {
+  return <>
+    {busy ? <progress aria-label="Video export progress" max={1} value={progress?.fraction ?? 0} /> : null}
+    <p role="status" className="video-export-status">{busy ? progressLabel(progress) : status}</p>
+    {unavailable && !busy ? <p role="alert" className="export-error">{unavailable}</p> : null}
+    {error ? <p role="alert" className="export-error">{error}</p> : null}
+  </>;
+}
+
+export function VideoExportDialogView(props: Props) {
+  const { busy, unavailable, settings, onSettingsChange, plan, progress, status, error, cancelRef, downloadRef, onClose, onCancel, onDownload } = props;
+  return <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+    <DialogContent className="video-export-dialog" showCloseButton={false} initialFocus={unavailable ? cancelRef : downloadRef} aria-busy={busy}>
+      <StudioDialogHeader>
+        <div><DialogTitle>Export map video</DialogTitle><DialogDescription>Download an MP4 from an isolated snapshot of your poster.</DialogDescription></div>
+      </StudioDialogHeader>
+      <StudioDialogBody>
+        <VideoExportSettings settings={settings} busy={busy} onChange={onSettingsChange} />
+        {plan ? <p className="video-export-output"><strong>{plan.width} × {plan.height} px</strong> · {settings.durationSeconds} seconds · {settings.fps} fps target</p> : null}
+        <p>The complete poster, photos, decorations, and attribution are fitted inside the video. Other aspect ratios may have white borders.</p>
+        <p>Real-time recording is best-effort, not fixed frame rate. Slow tiles or devices can repeat frames. Keep this tab visible. The editor camera and undo history are not animated.</p>
+        <VideoExportMessages busy={busy} progress={progress} status={status} unavailable={unavailable} error={error} />
+      </StudioDialogBody>
+      <StudioDialogActions stackOnMobile>
+        <StudioDialogButton ref={cancelRef} onClick={busy ? onCancel : onClose}>{busy ? 'Cancel recording' : 'Close'}</StudioDialogButton>
+        <StudioDialogButton ref={downloadRef} variant="primary" disabled={busy || !!unavailable} onClick={onDownload}>{busy ? 'Recording…' : 'Download MP4'}</StudioDialogButton>
+      </StudioDialogActions>
+    </DialogContent>
+  </Dialog>;
+}

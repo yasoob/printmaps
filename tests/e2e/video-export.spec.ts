@@ -1,8 +1,15 @@
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import type { MapRenderSnapshot } from '../../src/map/MapRenderSnapshot';
+import type { VideoOptions } from '../../src/video/types';
 
-test('isolated map recording downloads a genuine decodable MP4 with requested dimensions and duration', async ({ page }, testInfo) => {
+const RECORDINGS: VideoOptions[] = [
+  { motion: 'sway', durationSeconds: 5, fps: 30, aspect: '16:9', quality: 'standard' },
+  { motion: 'orbit', durationSeconds: 10, fps: 60, aspect: '9:16', quality: 'high' },
+  { motion: 'orbit', durationSeconds: 15, fps: 30, aspect: '1:1', quality: 'standard' },
+];
+
+for (const settings of RECORDINGS) test(`genuine MP4: ${settings.durationSeconds}s, ${settings.fps}fps target, ${settings.aspect}, ${settings.quality}`, async ({ page }, testInfo) => {
   test.setTimeout(45_000);
   await page.route('**/video-harness', (route) => route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>Video export evidence</title>' }));
   await page.goto('/video-harness');
@@ -17,7 +24,7 @@ test('isolated map recording downloads a genuine decodable MP4 with requested di
     return;
   }
   const downloadPromise = page.waitForEvent('download');
-  const evidence = await page.evaluate(async () => {
+  const evidence = await page.evaluate(async (options) => {
     const paths = {
       record: '/src/video/record.ts', plan: '/src/video/plan.ts', map: '/src/video/mapCapture.ts',
       project: '/src/domain/project.ts', download: '/src/lib/downloadBlob.ts',
@@ -30,7 +37,7 @@ test('isolated map recording downloads a genuine decodable MP4 with requested di
     const doc = createInitialProjectDocument();
     doc.layers = [];
     const before = JSON.stringify(doc);
-    const plan = planVideoExport({ motion: 'sway', durationSeconds: 5, fps: 30, aspect: '16:9', quality: 'standard' }, doc.page);
+    const plan = planVideoExport(options, doc.page);
     const renderSnapshot: MapRenderSnapshot = {
       style: {
         version: 8, sources: {
@@ -95,7 +102,7 @@ test('isolated map recording downloads a genuine decodable MP4 with requested di
       presentedFrames: result.presentedFrames, missedFrameSlots: result.missedFrameSlots,
       measuredPresentationFps: result.measuredPresentationFps,
     };
-  });
+  }, settings);
   const download = await downloadPromise;
   const path = await download.path();
   expect(path).not.toBeNull();
@@ -106,8 +113,8 @@ test('isolated map recording downloads a genuine decodable MP4 with requested di
   expect(evidence.mimeType.split(';', 1)[0]).toBe('video/mp4');
   expect(evidence.metadata.width).toBe(evidence.output.width);
   expect(evidence.metadata.height).toBe(evidence.output.height);
-  expect(evidence.metadata.duration).toBeGreaterThan(4.5);
-  expect(evidence.metadata.duration).toBeLessThan(5.6);
+  expect(evidence.metadata.duration).toBeGreaterThan(settings.durationSeconds - 0.5);
+  expect(evidence.metadata.duration).toBeLessThan(settings.durationSeconds + 0.6);
   expect(evidence.presentedFrames).toBeGreaterThan(1);
   expect(evidence.compositionCalls).toBeGreaterThan(1);
   expect(evidence.compositionDisposed).toBe(true);

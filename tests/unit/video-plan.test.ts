@@ -4,12 +4,12 @@ import { videoCameraAt } from '../../src/video/camera';
 import { planVideoExport } from '../../src/video/plan';
 import type { VideoOptions } from '../../src/video/types';
 
-const options: VideoOptions = { motion: 'orbit', durationSeconds: 10, fps: 30, aspect: 'poster', quality: 'standard' };
+const options: VideoOptions = { motion: 'orbit', durationSeconds: 10, fps: 30, aspect: 'page', quality: 'standard' };
 const page = { widthMm: 297, heightMm: 210 };
 const camera = { center: [179.9, 48] as const, bearing: 170, pitch: 45, zoom: 12 };
 
 describe('video output planning', () => {
-  it.each(['poster', '16:9', '9:16', '1:1', '4:5'] as const)('bounds %s dimensions without clipping the poster', (aspect) => {
+  it.each(['page', '16:9', '9:16', '1:1', '4:5'] as const)('bounds %s dimensions without clipping the poster', (aspect) => {
     const plan = planVideoExport({ ...options, quality: 'high', fps: 60, aspect }, page);
     expect(plan.width % 2).toBe(0);
     expect(plan.height % 2).toBe(0);

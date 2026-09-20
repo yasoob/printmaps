@@ -23,7 +23,7 @@ export function planVideoExport(
 ): VideoPlan {
   validateVideoOptions(options, page);
   const posterAspect = page.widthMm / page.heightMm;
-  const aspect = options.aspect === 'poster' ? posterAspect : ASPECTS[options.aspect];
+  const aspect = options.aspect === 'page' ? posterAspect : ASPECTS[options.aspect];
   if (!Number.isFinite(aspect) || aspect <= 0) throw new Error('Choose a supported video aspect ratio.');
   const edge = options.quality === 'high' ? 1920 : 1280;
   const pixels = options.quality === 'high' ? 1920 * 1080 : 1280 * 720;
