@@ -158,6 +158,7 @@ describe('completed layers and draft navigation', () => {
       .mockImplementationOnce(() => new Promise<void>((resolve) => { finishSave = resolve; }))
       .mockRejectedValueOnce(new Error('Storage unavailable'));
     render(<App autosaveRepository={repository(save)} />);
+    await user.click(screen.getByRole('tab', { name: 'Layout' }));
     await user.click(screen.getByRole('button', { name: 'Portrait' }));
     await user.click(screen.getByRole('button', { name: 'Route (R)' }));
     await user.click(screen.getByRole('button', { name: 'Map route point 1' }));

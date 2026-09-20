@@ -5,12 +5,12 @@ import { App } from '../../../src/app/App';
 vi.mock('../../../src/map/MapCanvas', async () => import('./MapCanvasMock'));
 
 describe('calm editor defaults', () => {
-  it('keeps optional style choices collapsed and removes low-value layer chrome', () => {
+  it('starts on map styling and removes low-value layer chrome', () => {
     localStorage.removeItem('print-map-studio:inspector:project:map-style');
     render(<App />);
 
-    expect(screen.getByRole('button', { name: 'Map style' })).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.queryByRole('radiogroup', { name: 'Map style presets' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Style' })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('radiogroup', { name: 'Map style presets' })).toBeInTheDocument();
     expect(screen.queryByRole('textbox', { name: 'Filter layers' })).not.toBeInTheDocument();
     expect(screen.queryByText(/^4 layers$/)).not.toBeInTheDocument();
   });

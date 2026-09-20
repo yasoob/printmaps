@@ -23,6 +23,7 @@ async function openConflict() {
     discard: vi.fn(), close: vi.fn(),
   };
   render(<App autosaveRepository={repository} initialDocument={createInitialProjectDocument()} />);
+  await user.click(screen.getByRole('tab', { name: 'Layout' }));
   await user.selectOptions(screen.getByRole('combobox', { name: 'Page preset' }), 'A5');
   await screen.findByRole('status', { name: 'Autosave conflict notice' });
   expect(screen.queryByRole('alert', { name: 'Autosave status' })).not.toBeInTheDocument();

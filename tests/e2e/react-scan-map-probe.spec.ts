@@ -32,7 +32,7 @@ test('pan fit and geolocation change only native camera and semantic consumers',
   await page.getByRole('button', { name: 'Use my location', exact: true }).click();
   await expect(page.getByText('Map centered on your current location.', { exact: true })).toBeVisible();
   result = await finishProbe(page, info, 'geolocation');
-  expectOwners(result, ['GeolocationControl', 'MapCanvas'], ['ProjectPageSection', 'ProjectStyleSection', 'StudioCompositionControls', 'LayerNavigation']);
+  expectOwners(result, ['GeolocationControl', 'MapCanvas'], ['PageDimensions', 'ProjectStyleSection', 'StudioCompositionControls', 'LayerNavigation']);
 });
 
 test('map detail visibility and style reload leave composition controls and unrelated renderer data stable', async ({ page }, info) => {
@@ -40,13 +40,13 @@ test('map detail visibility and style reload leave composition controls and unre
   await startProbe(page, 'Basemap road visibility');
   await page.getByRole('checkbox', { name: 'Show roads', exact: true }).uncheck();
   let result = await finishProbe(page, info, 'road-visibility');
-  expectOwners(result, ['ProjectDetailsSection', 'MapCanvas'], ['ProjectPageSection', 'ProjectCameraSection', 'MapStyleGallery', 'StudioCompositionControls']);
+  expectOwners(result, ['ProjectDetailsSection', 'MapCanvas'], ['PageDimensions', 'ProjectCameraSection', 'MapStyleGallery', 'StudioCompositionControls']);
   expect(result.mapMutations.filter(({ operation }) => ['setData', 'addLayer', 'removeLayer', 'removeSource'].includes(operation))).toEqual([]);
   await startProbe(page, 'Map style reload');
   await page.getByRole('radio', { name: /^Graphite:/ }).click();
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-ready', 'true');
   result = await finishProbe(page, info, 'style-reload');
-  expectOwners(result, ['MapCanvas', 'MapStyleGallery'], ['StudioCompositionControls', 'StudioVideoControls', 'ProjectPageSection', 'ProjectCameraSection']);
+  expectOwners(result, ['MapCanvas', 'MapStyleGallery'], ['StudioCompositionControls', 'StudioVideoControls', 'PageDimensions', 'ProjectCameraSection']);
 });
 
 test('route topology curvature and directions cancellation preserve unrelated sources and controls', async ({ page }, info) => {

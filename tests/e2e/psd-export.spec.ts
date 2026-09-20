@@ -148,6 +148,7 @@ test('layered PSD respects editor order for real route and point overlaps', asyn
   await expect(mapReady.or(mapFallback)).toBeVisible({ timeout: 20_000 });
   test.skip(await mapFallback.isVisible(), 'This browser fixture has no WebGL 2 renderer, so export cannot be exercised.');
 
+  await page.getByRole('tab', { name: 'Layout' }).click();
   for (const name of ['Page width', 'Page height']) {
     const field = page.getByRole('spinbutton', { name });
     await field.fill('25.4');

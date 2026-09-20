@@ -46,6 +46,7 @@ test('true compact overflow is rejected for import, duplicate and scalar edits w
   await expect(dialog.getByRole('alert')).toContainText('10 MB portable limit');
   await expect(dialog.getByRole('list', { name: 'Selected map data files' })).toContainText('boundaries.geojson');
   await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await page.getByRole('tab', { name: 'Layout' }).click();
   const width = page.getByRole('spinbutton', { name: 'Page width' });
   await width.fill('298.125'); await width.press('Tab');
   await expect(width).toHaveValue('298.125');
@@ -167,9 +168,11 @@ test('compact backups in replacement and real cross-tab conflict dialogs do not 
   await dialog.getByRole('button', { name: 'Keep editing' }).click();
   const winner = await page.context().newPage();
   await winner.goto('./');
+  await winner.getByRole('tab', { name: 'Layout' }).click();
   await winner.getByRole('combobox', { name: 'Page preset' }).selectOption('A3');
   await expect(winner.getByRole('status', { name: 'Autosave status' })).toHaveText('All changes saved locally', { timeout: 30_000 });
   const saved = await storedDraft(winner);
+  await page.getByRole('tab', { name: 'Layout' }).click();
   await page.getByRole('combobox', { name: 'Page preset' }).selectOption('A5');
   await expect(page.getByRole('status', { name: 'Autosave conflict notice' })).toBeVisible();
   const conflict = await reviewConflict(page);

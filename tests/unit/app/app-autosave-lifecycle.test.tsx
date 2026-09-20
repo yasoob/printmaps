@@ -53,6 +53,7 @@ describe('editor autosave lifecycle', () => {
       close: vi.fn(),
     };
     const { unmount } = await renderLoadedApp(repository);
+    await user.click(screen.getByRole('tab', { name: 'Layout' }));
     await user.click(screen.getByRole('button', { name: 'Portrait' }));
     await waitFor(() => expect(repository.save).toHaveBeenCalledTimes(1));
     await user.selectOptions(screen.getByRole('combobox', { name: 'Page preset' }), 'A3');

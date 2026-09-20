@@ -17,7 +17,9 @@ test('Download project saves the current portable versioned JSON', async ({ cont
   await page.getByRole('spinbutton', { name: 'Text scale' }).press('Tab');
   await page.getByRole('checkbox', { name: 'Show roads' }).uncheck();
   await page.getByRole('checkbox', { name: 'Show water' }).uncheck();
+  await page.getByRole('tab', { name: 'Layout' }).click();
   await page.getByRole('button', { name: 'Portrait' }).click();
+  await page.getByRole('tab', { name: 'Map', exact: true }).click();
   await page.getByRole('radio', { name: /^Night Ink:/ }).click();
   await page.getByRole('combobox', { name: 'Map language' }).selectOption('de');
 
@@ -62,6 +64,7 @@ test('Project download and open restore the current project as a fresh history r
   const projectPath = testInfo.outputPath('saved-project.printmap.json');
   await download.saveAs(projectPath);
 
+  await page.getByRole('tab', { name: 'Layout' }).click();
   await page.getByRole('button', { name: 'Portrait' }).click();
   const chooserPromise = page.waitForEvent('filechooser');
   await page.getByRole('button', { name: 'Project', exact: true }).click(); await page.getByRole('menuitem', { name: 'Open project' }).click();
@@ -69,15 +72,17 @@ test('Project download and open restore the current project as a fresh history r
   await chooser.setFiles(projectPath);
   await page.getByRole('button', { name: 'Replace project', exact: true }).click();
 
-  await expect(page.getByRole('spinbutton', { name: 'Bearing' })).toHaveValue('35');
-  await expect(page.getByRole('checkbox', { name: 'Show roads' })).not.toBeChecked();
   await expect(page.getByRole('button', { name: 'Landscape' })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Project', exact: true })).toBeFocused();
+  await page.getByRole('tab', { name: 'Map', exact: true }).click();
+  await expect(page.getByRole('spinbutton', { name: 'Bearing' })).toHaveValue('35');
+  await expect(page.getByRole('checkbox', { name: 'Show roads' })).not.toBeChecked();
 });
 
 test('opens a validated portable project as a focused fresh history root', async ({ page }) => {
   await page.goto('./');
+  await page.getByRole('tab', { name: 'Layout' }).click();
   await page.getByRole('button', { name: 'Portrait' }).click();
   await page.getByRole('button', { name: 'Select Route 01' }).click();
   await expect(page.getByRole('button', { name: 'Undo' })).toBeEnabled();
@@ -108,6 +113,8 @@ test('opens a validated portable project as a focused fresh history root', async
   await expect(page.getByRole('button', { name: 'Select Route 01' })).not.toBeVisible();
   await expect(page.getByRole('spinbutton', { name: 'Page width' })).toHaveValue('297');
   await expect(page.getByRole('spinbutton', { name: 'Page height' })).toHaveValue('420');
+  await expect(page.getByRole('button', { name: 'Project', exact: true })).toBeFocused();
+  await page.getByRole('tab', { name: 'Map', exact: true }).click();
   await expect(page.getByRole('spinbutton', { name: 'Bearing' })).toHaveValue('-20');
   await expect(page.getByRole('spinbutton', { name: 'Pitch' })).toHaveValue('35');
   await expect(page.getByRole('switch', { name: 'Lock map area' })).toBeChecked();
@@ -129,11 +136,11 @@ test('opens a validated portable project as a focused fresh history root', async
   );
   await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Redo' })).toBeDisabled();
-  await expect(page.getByRole('button', { name: 'Project', exact: true })).toBeFocused();
 });
 
 test('rejects invalid project files without replacing work and allows a retry', async ({ page }) => {
   await page.goto('./');
+  await page.getByRole('tab', { name: 'Layout' }).click();
   await page.getByRole('button', { name: 'Portrait' }).click();
 
   for (const invalidFile of [

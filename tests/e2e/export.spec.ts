@@ -397,6 +397,7 @@ test('export downloads the current print frame as PNG on desktop and mobile', as
   }
 
   await page.setViewportSize({ width: 1440, height: 900 });
+  await page.getByRole('tab', { name: 'Layout' }).click();
   const widthField = page.getByRole('spinbutton', { name: 'Page width' });
   await widthField.fill('20');
   await widthField.press('Tab');
@@ -431,6 +432,7 @@ test('large PNG export renders multiple overlapping native map tiles', async ({ 
   test.skip(await mapFallback.isVisible(), 'This browser fixture has no WebGL 2 renderer, so export cannot be exercised.');
   await installNativeExportObserver(page);
 
+  await page.getByRole('tab', { name: 'Layout' }).click();
   const width = page.getByRole('spinbutton', { name: 'Page width' });
   await width.fill('600');
   await width.press('Tab');

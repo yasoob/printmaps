@@ -40,7 +40,7 @@ for (const viewport of [
       }
 
       if (viewport.width < 900) await page.getByRole('button', { name: 'Open properties' }).tap();
-      const styleSection = page.getByRole('button', { name: 'Map style', exact: true });
+      const styleSection = page.getByRole('button', { name: 'Style', exact: true });
       if (await styleSection.getAttribute('aria-expanded') === 'false') await styleSection.click();
       await page.getByRole('button', { name: 'Customize colors', exact: true }).click();
       await page.locator('.map-style-customizer').evaluate(async (element) => {

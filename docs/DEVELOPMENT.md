@@ -43,6 +43,22 @@ sections retain identity through camera changes and history, while caller-owned
 mutable values never enter the studio validation cache. JSON/ZIP, IndexedDB,
 clone/open, undo/redo and pristine checks all operate on the complete document.
 
+The Project inspector's Map/Layout tab, layout chooser and disclosures are
+component-local navigation. Visited branches use React `Activity` to retain
+draft fields while releasing hidden subscriptions and effects. Layout appears
+only after first navigation; a confirmed New from template request selects it
+without changing the new document. All contextual layers provide a Project
+settings return action that preserves the previous tab.
+
+`TemplateGallery` has separate `layout` and `new-project` modes. The former
+omits starters and applies design settings through `currentLayoutApplication`,
+retaining text and camera. New templates are constructed with validated store
+actions, then passed to `useProjectOpening` with the `new` intent; gallery
+selection is never replacement consent. Map frame fitting uses
+`createSilhouetteApplication` with `preserveLayout` so only the mask reference,
+new geometry and fitted camera change. Rectangle toggles visibility of the
+referenced mask rather than clearing its reference or deleting geometry.
+
 ## Vector artwork export
 
 SVG and PDF offer an opt-in **True vector artwork (reflowed labels)** mode.

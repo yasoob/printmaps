@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
 
 async function setPageSize(page: Page, value: string) {
+  await page.getByRole('tab', { name: 'Layout' }).click();
   for (const name of ['Page width', 'Page height']) {
     const field = page.getByRole('spinbutton', { name, exact: true });
     await field.fill(value);

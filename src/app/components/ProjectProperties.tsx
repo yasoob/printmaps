@@ -67,10 +67,10 @@ export function ProjectProperties(props: ProjectPropertiesProps) {
     trackEditorAction('mapStyleCustomizerOpened');
     setIsStyleCustomizerOpen(true);
   }, []);
-  function selectTab(next: typeof tab) {
+  const selectTab = useCallback((next: typeof tab) => {
     setTab(next);
     if (next === 'Layout') setHasOpenedLayout(true);
-  }
+  }, []);
   return <div className="properties-panel project-inspector">
     <div className="properties-title"><h2 data-project-heading tabIndex={-1}>Project</h2></div>
     <div className="inspector-tabs">

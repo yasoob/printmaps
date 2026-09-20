@@ -41,7 +41,7 @@ test('shape handles stay at the coordinates positioned by MapLibre', async ({ pa
   await expectHandlesAligned(page, map);
   await page.locator('.maplibregl-canvas').click({ position: { x: 20, y: 20 } });
   await expect(page.getByRole('heading', { name: 'Project' })).toBeVisible();
-  const cameraDisclosure = page.getByRole('button', { name: /Camera & location/ });
+  const cameraDisclosure = page.getByRole('button', { name: 'View', exact: true });
   if (await cameraDisclosure.getAttribute('aria-expanded') !== 'true') await cameraDisclosure.click();
   await page.getByRole('spinbutton', { name: 'Bearing' }).fill('28');
   await page.getByRole('spinbutton', { name: 'Bearing' }).press('Tab');

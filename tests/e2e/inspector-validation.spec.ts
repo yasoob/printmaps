@@ -9,6 +9,7 @@ for (const field of [
 ]) {
   test(`${field.name} explains rejected values and commits once on Enter`, async ({ page }) => {
     await page.goto('./');
+    if (field.name.startsWith('Page ')) await page.getByRole('tab', { name: 'Layout' }).click();
     const input = page.getByRole('spinbutton', { name: field.name, exact: true });
     const original = await input.inputValue();
     await input.fill(field.invalid);

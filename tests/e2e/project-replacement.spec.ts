@@ -77,6 +77,7 @@ async function loadSavedDocument(page: Page, document: ProjectDocument) {
 }
 
 test('backs up completed work without replacing it and requires deliberate consent to clear history', async ({ page }, testInfo) => {
+  await page.getByRole('tab', { name: 'Layout' }).click();
   await page.getByRole('button', { name: 'Portrait', exact: true }).click();
   await expect(page.getByRole('status', { name: 'Autosave status' })).toHaveText('All changes saved locally');
   await page.getByRole('button', { name: 'Select Route 01' }).click();

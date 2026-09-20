@@ -146,6 +146,7 @@ describe('GeoJSON import document isolation', () => {
     const slowText = new Promise<string>((resolve) => { finishImport = resolve; });
     const { container } = render(<App autosaveRepository={null} />);
     const { importInput } = fileInputs(container);
+    fireEvent.click(screen.getByRole('tab', { name: 'Layout' }));
     const portrait = screen.getByRole('button', { name: 'Portrait' });
     fireEvent.change(importInput, {
       target: { files: [fileWithText('slow.geojson', slowText, 'application/geo+json')] },

@@ -179,7 +179,7 @@ it('shares fit-page intent across map controls and keyboard without counting blo
     key: '!', code: 'Digit1', shiftKey: true,
   });
   expect(events('fitPageRequested')).toHaveLength(2);
-  await user.click(screen.getByRole('button', { name: 'Camera & location' }));
+  await user.click(screen.getByRole('button', { name: 'View' }));
   await user.click(screen.getByRole('switch', { name: 'Lock map area' }));
   fireEvent.keyDown(document, { key: '!', code: 'Digit1', shiftKey: true });
   rerender(<App autosaveRepository={null} />);
@@ -258,7 +258,6 @@ it('records explicit inspector disclosures without reading titles, summaries, or
 it('records customizer navigation from the common back handler for keyboard and pointer', async () => {
   const user = userEvent.setup();
   render(<App autosaveRepository={null} />);
-  await user.click(screen.getByRole('button', { name: 'Map style' }));
   await user.click(screen.getByRole('button', { name: 'Customize colors' }));
   await user.keyboard('{Escape}');
   await user.click(screen.getByRole('button', { name: 'Customize colors' }));

@@ -61,9 +61,10 @@ for (const touch of [false, true]) {
 test('country silhouette picker and atomic application mount real lazy controls', async ({ page }, info) => {
   test.setTimeout(60_000);
   await openScanEditor(page);
-  await page.getByText('Country & region silhouette', { exact: true }).click();
+  await page.getByRole('tab', { name: 'Layout' }).click();
+  await page.getByRole('button', { name: 'Map frame', exact: true }).click();
   await startProbe(page, 'Country picker open');
-  await page.getByRole('button', { name: 'Choose country or region', exact: true }).click();
+  await page.getByRole('button', { name: 'Country / region', exact: true }).click();
   await expect(page.getByRole('combobox', { name: 'Country', exact: true })).toBeVisible();
   let result = await finishProbe(page, info, 'silhouette-picker');
   expectOwners(result, ['AdministrativeAreaPicker'], ['MapCanvas', 'PosterControls', 'PhotoStoryControls', 'DecorationControls']);
@@ -73,10 +74,11 @@ test('country silhouette picker and atomic application mount real lazy controls'
   await startProbe(page, 'Apply country silhouette');
   await page.getByRole('button', { name: 'Add area', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Select Austria silhouette', exact: true })).toBeVisible();
-  await expect(page.getByLabel('Poster artwork')).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Layout' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('button', { name: 'Rectangle', exact: true })).toBeVisible();
   await waitForRenderQuiet(page);
   result = await finishProbe(page, info, 'silhouette-application');
-  expectOwners(result, ['MapCanvas', 'StudioPosterPreview'], ['StudioVideoControls']);
+  expectOwners(result, ['MapCanvas', 'StudioCompositionControls'], ['StudioVideoControls']);
   expect(result.mapMutations.some(({ operation, target }) => operation === 'addSource' && target?.includes('silhouette'))).toBe(true);
 });
 

@@ -26,6 +26,7 @@ async function downloaded(user: ReturnType<typeof userEvent.setup>): Promise<Pro
 
 it('retains valid-but-over-budget numeric drafts and project title choices without autosave or false committed values', async () => {
   const { user, repository } = setup();
+  await user.click(screen.getByRole('tab', { name: 'Layout' }));
   const width = screen.getByRole('spinbutton', { name: 'Page width' });
   fireEvent.change(width, { target: { value: '298.125' } });
   fireEvent.blur(width);
@@ -73,10 +74,12 @@ it('retains layer name, opacity and POI label drafts and reports their rejected 
 
 it('rolls back controlled preset, visibility and palette choices with actionable operation feedback', async () => {
   const { user, repository } = setup();
+  await user.click(screen.getByRole('tab', { name: 'Layout' }));
   await user.selectOptions(screen.getByRole('combobox', { name: 'Page preset' }), 'Custom');
   expect(screen.getByRole('combobox', { name: 'Page preset' })).toHaveValue('A4');
   expect(screen.getAllByRole('alert').some((element) => element.textContent?.includes('portable limit'))).toBe(true);
-  const details = screen.getByRole('button', { name: /Map details/ });
+  await user.click(screen.getByRole('tab', { name: 'Map' }));
+  const details = screen.getByRole('button', { name: 'Labels & details' });
   if (details.getAttribute('aria-expanded') !== 'true') await user.click(details);
   await user.click(screen.getByRole('checkbox', { name: 'Show roads' }));
   expect(screen.getByRole('checkbox', { name: 'Show roads' })).toBeChecked();

@@ -7,8 +7,10 @@ test.afterEach(async ({ page }, info) => attachInventory(page, info));
 for (const embedded of [false, true]) {
   test(`shared ${embedded ? 'embed' : 'viewer'} camera is isolated from document and editor`, async ({ page }, info) => {
     await openScanEditor(page);
-    await page.getByText('Poster typography & paper', { exact: true }).click();
-    await page.getByLabel('Enable poster composition', { exact: true }).check();
+    await page.getByRole('tab', { name: 'Layout' }).click();
+    await page.getByRole('button', { name: 'Text', exact: true }).click();
+    await page.getByLabel('Show title', { exact: true }).check();
+    await page.getByLabel('Title text', { exact: true }).fill('Vienna field guide');
     await page.getByRole('button', { name: 'Share', exact: true }).click();
     const link = await page.getByLabel('Read-only link').inputValue();
     const hash = `${embedded ? '#embed=' : '#share='}${new URL(link).hash.slice('#share='.length)}`;

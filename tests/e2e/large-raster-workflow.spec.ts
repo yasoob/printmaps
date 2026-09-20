@@ -10,6 +10,7 @@ test('oversized raster output remains one PNG and handles picker cancellation', 
   });
   await page.goto('./');
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
+  await page.getByRole('tab', { name: 'Layout' }).click();
   await page.getByRole('spinbutton', { name: 'Page width' }).fill('1400');
   await page.getByRole('spinbutton', { name: 'Page width' }).press('Tab');
   await page.getByRole('button', { name: 'Export' }).click();
@@ -114,6 +115,7 @@ test('large PDF export embeds overlapping native-detail basemap regions', async 
     observer.observe(document.body, { childList: true, subtree: true });
   });
 
+  await page.getByRole('tab', { name: 'Layout' }).click();
   const width = page.getByRole('spinbutton', { name: 'Page width' });
   await width.fill('600');
   await width.press('Tab');

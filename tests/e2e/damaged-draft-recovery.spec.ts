@@ -96,6 +96,7 @@ test('downloads the captured data and continues without overwriting it; new work
   const search = page.getByRole('combobox', { name: 'Search places and addresses' });
   await search.click();
   await expect(search).toBeFocused();
+  await page.getByRole('tab', { name: 'Layout' }).click();
   await page.getByRole('button', { name: 'Portrait', exact: true }).click();
   const downloading = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Project', exact: true }).click();
@@ -134,6 +135,7 @@ test('failed discard offers reachable recovery actions and a subsequent retry re
   await page.getByRole('button', { name: 'Discard damaged draft' }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByRole('status', { name: 'Autosave status' })).toHaveText('Autosave ready');
+  await page.getByRole('tab', { name: 'Layout' }).click();
   await page.getByRole('button', { name: 'Portrait', exact: true }).click();
   await expect(page.getByRole('status', { name: 'Autosave status' })).toHaveText('All changes saved locally');
   expect(await draftRecord(page)).toMatchObject({ recordVersion: 1, document: { page: { orientation: 'portrait' } } });
@@ -157,6 +159,7 @@ test('a recovery download failure still permits continuation after a failed disc
   await page.getByRole('button', { name: 'Download recovery data' }).click();
   await expect(page.getByRole('alert', { name: 'Recovery download status' })).toHaveText('Controlled recovery download failure');
   await page.getByRole('button', { name: 'Continue without autosave' }).click();
+  await page.getByRole('tab', { name: 'Layout' }).click();
   await page.getByRole('button', { name: 'Portrait', exact: true }).click();
   await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pagehide')));
   expect(await draftRecord(page)).toEqual(damagedRecord);

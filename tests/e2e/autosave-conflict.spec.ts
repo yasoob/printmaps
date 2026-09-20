@@ -57,6 +57,7 @@ test('explicit destructive loading shows A3 without queued A5 writes and only fu
   page.on('dialog', async (prompt) => { prompts.push(prompt.type()); await prompt.accept(); });
   await page.reload();
   expect(prompts).toEqual([]);
+  await page.getByRole('tab', { name: 'Layout' }).click();
   await expect(page.getByRole('combobox', { name: 'Page preset' })).toHaveValue('A6');
 });
 

@@ -23,6 +23,7 @@ vi.mock('../../../src/export/largeRasterPng', () => ({
 vi.mock('../../../src/map/MapCanvas', async () => import('./MapCanvasMock'));
 
 async function setLargeSquare(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole('tab', { name: 'Layout' }));
   for (const [name, value] of [['Page width', '1330'], ['Page height', '1330']] as const) {
     const field = screen.getByRole('spinbutton', { name });
     await user.clear(field);

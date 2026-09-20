@@ -14,8 +14,10 @@ test.skip(process.env.VITE_REACT_SCAN !== 'true', 'Run with npm run audit:render
 test.afterEach(async ({ page }, info) => attachInventory(page, info));
 
 async function enablePoster(page: Page) {
-  await page.getByText('Poster typography & paper', { exact: true }).click();
-  await page.getByLabel('Enable poster composition', { exact: true }).check();
+  await page.getByRole('tab', { name: 'Layout' }).click();
+  await page.getByRole('button', { name: 'Text', exact: true }).click();
+  await page.getByLabel('Show title', { exact: true }).check();
+  await page.getByLabel('Title text', { exact: true }).fill('Vienna field guide');
   await expect(page.getByLabel('Poster artwork', { exact: true })).toBeVisible();
   await waitForRenderQuiet(page);
 }
@@ -73,8 +75,9 @@ for (const field of ['Title text', 'Top margin']) {
     await input.fill(field === 'Title text' ? 'Only poster text changes' : '14');
     if (field === 'Top margin') await input.press('Enter');
     const result = await finishProbe(page, info, `poster-${field}`);
-    expectOwners(result, ['PosterControls', 'StudioPosterPreview'], [
-      ...NATIVE_MAP_OWNERS, 'PhotoStoryControls', 'DecorationControls', 'PosterGallery', 'WallPreviewDialog',
+    expectOwners(result, [field === 'Top margin' ? 'PageAppearance' : 'PosterControls', 'StudioPosterPreview'], [
+      ...NATIVE_MAP_OWNERS, 'PhotoStoryControls', 'DecorationControls', 'TemplateGallery', 'WallPreviewDialog',
+      ...(field === 'Title text' ? ['PageAppearance', 'PageDimensions'] : []),
     ]);
     expect(result.mapMutations).toEqual([]);
     expectOnlyControls(result, ['TextControl'], field === 'Title text' ? ['Title'] : []);
@@ -85,14 +88,15 @@ for (const field of ['Title text', 'Top margin']) {
 test('one photo caption leaves controls, other photo nodes, and native renderers stable', async ({ page }, info) => {
   await openScanEditor(page);
   await loadPhotoPoster(page);
-  await page.getByText('Photo story', { exact: true }).click();
+  await page.getByRole('tab', { name: 'Layout' }).click();
+  await page.getByRole('button', { name: 'Photos', exact: true }).click();
   const stableImage = page.getByLabel('Poster artwork', { exact: true }).locator('image').last();
   await stableImage.evaluate((node) => { node.dataset.scanIdentity = 'second-photo'; });
   await startProbe(page, 'First photo caption');
   await page.getByLabel('Stop 1 caption', { exact: true }).fill('A changed first caption');
   const result = await finishProbe(page, info, 'photo-caption');
   expectOwners(result, ['PhotoStoryControls', 'StudioPosterPreview'], [
-    ...NATIVE_MAP_OWNERS, 'PosterControls', 'DecorationControls', 'PosterGallery', 'WallPreviewDialog',
+    ...NATIVE_MAP_OWNERS, 'PosterControls', 'DecorationControls', 'TemplateGallery', 'WallPreviewDialog',
   ]);
   expect(result.mapMutations).toEqual([]);
   expectOnlyControls(result, STUDIO_FIELDS, []);
@@ -102,12 +106,12 @@ test('one photo caption leaves controls, other photo nodes, and native renderers
 test('decoration toggle leaves poster, photo, terrain and native map owners stable', async ({ page }, info) => {
   await openScanEditor(page);
   await enablePoster(page);
-  await page.getByText('Compass, scale, grid & QR', { exact: true }).click();
+  await page.getByRole('button', { name: 'Map elements', exact: true }).click();
   await startProbe(page, 'Compass enabled');
   await page.getByLabel('Show compass', { exact: true }).check();
   const result = await finishProbe(page, info, 'decoration-toggle');
   expectOwners(result, ['DecorationControls', 'StudioPosterPreview'], [
-    ...NATIVE_MAP_OWNERS, 'PosterControls', 'PhotoStoryControls', 'PosterGallery', 'WallPreviewDialog',
+    ...NATIVE_MAP_OWNERS, 'PosterControls', 'PhotoStoryControls', 'TemplateGallery', 'WallPreviewDialog',
   ]);
   expect(result.mapMutations).toEqual([]);
   expectOnlyControls(result, STUDIO_FIELDS, ['Show compass']);
@@ -135,7 +139,8 @@ test('moving a photo POI preserves the other photo and unrelated route sources',
 test('terrain exaggeration updates native terrain without composition or sibling controls', async ({ page }, info) => {
   await openScanEditor(page);
   await enablePoster(page);
-  await page.getByRole('button', { name: 'Terrain & 3D relief', exact: true }).click();
+  await page.getByRole('tab', { name: 'Map', exact: true }).click();
+  await page.getByRole('button', { name: 'Terrain', exact: true }).click();
   await page.getByLabel('Show 3D terrain', { exact: true }).check();
   await startProbe(page, 'Terrain exaggeration');
   await page.getByRole('spinbutton', { name: 'Terrain exaggeration' }).fill('2');
@@ -150,9 +155,9 @@ test('terrain exaggeration updates native terrain without composition or sibling
 test('video settings stay outside the live camera and composition', async ({ page }, info) => {
   await openScanEditor(page);
   await enablePoster(page);
-  await page.getByRole('button', { name: 'Map video', exact: true }).click();
-  await page.getByRole('button', { name: 'Export map video', exact: true }).click();
-  const dialog = page.getByRole('dialog', { name: 'Export map video' });
+  await page.getByRole('button', { name: 'Export', exact: true }).click();
+  await page.getByRole('tab', { name: 'Video', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Export map' });
   await expect(dialog).toBeVisible();
   const camera = await page.getByTestId('map-canvas').getAttribute('data-map-zoom');
   await startProbe(page, 'Video duration');
@@ -167,20 +172,21 @@ test('video settings stay outside the live camera and composition', async ({ pag
 test('nearby poster photo and decoration fields keep all unchanged field instances silent', async ({ page }, info) => {
   await openScanEditor(page);
   await loadPhotoPoster(page);
-  await page.getByText('Poster typography & paper', { exact: true }).click();
+  await page.getByRole('tab', { name: 'Layout' }).click();
+  await page.getByRole('button', { name: 'Text', exact: true }).click();
   await startProbe(page, 'Subtitle font');
   await page.getByRole('combobox', { name: 'Subtitle font', exact: true }).selectOption('mono');
   let result = await finishProbe(page, info, 'subtitle-font');
   expectOnlyControls(result, ['TextControl'], ['Subtitle']);
   expectOnlyControls(result, STUDIO_FIELDS, ['Subtitle font']);
   expect(result.mapMutations).toEqual([]);
-  await page.getByText('Photo story', { exact: true }).click();
+  await page.getByRole('button', { name: 'Photos', exact: true }).click();
   await startProbe(page, 'Photo shape');
   await page.getByRole('combobox', { name: 'Photo shape', exact: true }).selectOption('square');
   result = await finishProbe(page, info, 'photo-shape');
   expectOnlyControls(result, STUDIO_FIELDS, ['Photo shape']);
   expect(result.mapMutations).toEqual([]);
-  await page.getByText('Compass, scale, grid & QR', { exact: true }).click();
+  await page.getByRole('button', { name: 'Map elements', exact: true }).click();
   await startProbe(page, 'Compass corner');
   await page.getByRole('combobox', { name: 'Compass corner', exact: true }).selectOption('top-left');
   result = await finishProbe(page, info, 'compass-corner');
@@ -190,7 +196,7 @@ test('nearby poster photo and decoration fields keep all unchanged field instanc
 
 test('terrain contour width leaves exaggeration, interval, color and toggles silent', async ({ page }, info) => {
   await openScanEditor(page);
-  await page.getByRole('button', { name: 'Terrain & 3D relief', exact: true }).click();
+  await page.getByRole('button', { name: 'Terrain', exact: true }).click();
   await page.getByLabel('Show 3D terrain', { exact: true }).check();
   await page.getByLabel('Show elevation contours', { exact: true }).check();
   await startProbe(page, 'Contour width');

@@ -1,19 +1,18 @@
-import { memo, useCallback, useMemo } from 'react';
+import { memo } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import type { PagePreset, PageSettings } from '../../domain/project';
 import { PAGE_PRESET_DEFINITIONS } from '../../domain/pagePresets';
-import type { PosterSettings } from '../../domain/studio';
-import { useProject, useProjectActions } from '../projectStoreContext';
+import { useProject, useProjectActions, useProjectStoreApi } from '../projectStoreContext';
 import { InspectorAccordion, PropertyRow } from '../components/PropertyControls';
 import { ValidatedNumberField } from '../components/ValidatedNumberField';
 import { useMutationFeedback } from '../hooks/useMutationFeedback';
 import { useSettingActions } from '../hooks/useSettingActions';
 import { StudioColor, StudioNumber } from './StudioFields';
-import type { ProjectMutationResult } from '../../domain/projectMutation';
 import { editablePoster } from './posterEditing';
 import { useStableEvent } from '../hooks/useStableEvent';
 
-const PAGE_KEYS = ['backgroundColor', 'marginsMm'] as const;
 const SIDES = ['top', 'right', 'bottom', 'left'] as const;
+const PAGE_KEYS = ['backgroundColor', ...SIDES] as const;
 
 const PageDimensions = memo(function PageDimensions({ page, epoch }: { page: PageSettings; epoch: number }) {
   const actions = useProjectActions();
@@ -36,18 +35,33 @@ const PageDimensions = memo(function PageDimensions({ page, epoch }: { page: Pag
   </>;
 });
 
-const PageAppearance = memo(function PageAppearance({ poster, epoch, onChange }: {
-  poster: PosterSettings; epoch: number; onChange: (value: PosterSettings) => ProjectMutationResult;
-}) {
-  const feedback = useMutationFeedback(poster);
-  const commit = useStableEvent((value: PosterSettings) => feedback.report(onChange({ ...value, enabled: true })));
-  const change = useSettingActions(poster, commit, PAGE_KEYS);
-  const margins = useSettingActions(poster.marginsMm, change.marginsMm, SIDES);
+const PageAppearance = memo(function PageAppearance({ epoch }: { epoch: number }) {
+  const store = useProjectStoreApi();
+  const { setStudioSection } = useProjectActions();
+  const values = useProject(useShallow((state) => {
+    const poster = state.document.studio.poster;
+    return {
+      backgroundColor: poster.backgroundColor,
+      top: poster.enabled ? poster.marginsMm.top : 0,
+      right: poster.enabled ? poster.marginsMm.right : 0,
+      bottom: poster.enabled ? poster.marginsMm.bottom : 0,
+      left: poster.enabled ? poster.marginsMm.left : 0,
+    };
+  }));
+  const feedback = useMutationFeedback(values);
+  const commit = useStableEvent((value: typeof values) => {
+    const poster = editablePoster(store.getState().document.studio.poster);
+    return feedback.report(setStudioSection('poster', {
+      ...poster, enabled: true, backgroundColor: value.backgroundColor,
+      marginsMm: { top: value.top, right: value.right, bottom: value.bottom, left: value.left },
+    }));
+  });
+  const change = useSettingActions(values, commit, PAGE_KEYS);
   return <>
-    <StudioColor label="Paper color" value={poster.backgroundColor} onChange={change.backgroundColor} />
+    <StudioColor label="Paper color" value={values.backgroundColor} onChange={change.backgroundColor} />
     <fieldset className="inspector-field-group"><legend>Margins</legend>
       {SIDES.map((side) => <StudioNumber key={side} label={`${side.charAt(0).toUpperCase() + side.slice(1)} margin`}
-        value={poster.marginsMm[side]} epoch={epoch} onChange={margins[side]} />)}
+        value={values[side]} epoch={epoch} onChange={change[side]} />)}
     </fieldset>
     {feedback.error && <p role="alert" className="coordinate-validation">{feedback.error}</p>}
   </>;
@@ -55,16 +69,12 @@ const PageAppearance = memo(function PageAppearance({ poster, epoch, onChange }:
 
 export const PageProperties = memo(function PageProperties({ isAppearanceDisabled = false }: { isAppearanceDisabled?: boolean }) {
   const page = useProject((state) => state.document.page);
-  const poster = useProject((state) => state.document.studio.poster);
-  const effectivePoster = useMemo(() => editablePoster(poster), [poster]);
   const epoch = useProject((state) => state.documentEpoch);
-  const { setStudioSection } = useProjectActions();
-  const change = useCallback((value: PosterSettings) => setStudioSection('poster', value), [setStudioSection]);
   return <InspectorAccordion title="Page" storageKey="print-map-studio:inspector:project:page" isDefaultExpanded
     summary={`${page.preset} ${page.orientation} · ${page.widthMm} × ${page.heightMm} mm`}>
     <PageDimensions page={page} epoch={epoch} />
     <fieldset className="studio-composition-boundary" disabled={isAppearanceDisabled}>
-      <PageAppearance poster={effectivePoster} epoch={epoch} onChange={change} />
+      <PageAppearance epoch={epoch} />
     </fieldset>
   </InspectorAccordion>;
 });

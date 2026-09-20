@@ -19,20 +19,31 @@ A free, local-first map design studio for creating print-ready maps, photo poste
 
 Provider-backed place search, road routing, map matching, address lookup and isochrones require a browser-safe Mapbox public token. Core editing and OpenFreeMap rendering remain available without one.
 
-### Poster studio
+### Map and layout settings
 
-The Project inspector's **Poster studio** contains finished design templates,
-editable starter locations, typography and paper margins, country/region
-silhouettes, photo stories, and compass/scale/grid/location-QR controls. Applying
-a design keeps existing routes, points, shapes, and photos. Starter locations
-explicitly move the camera; locked cameras are respected.
+The Project inspector opens on **Map**: Style, Labels & details, Terrain, and
+View. **Layout** contains Page, Map frame, Text, Photos, and Map elements. Page
+owns paper size, orientation, background and margins; Text owns the title,
+subtitle, caption and coordinates. Tabs, disclosures and contextual layer
+navigation keep field state without creating undo or autosave edits.
+
+**Layout → Change layout** applies a finished design to the current map while
+keeping text, routes, points, shapes, photos and camera position. **Project → New
+from template** offers designs and starter places as new documents, using the
+same backup, cancel and replacement confirmation as New project. Confirmed
+starters supply their own title, location and design.
+
+**Map frame → Country / region** fits an administrative outline without
+restyling the page or replacing its text. Rectangle hides the active outline
+without deleting its geometry; Undo restores it. Camera and layer locks retain
+their normal editing protections.
 
 Photo attachments reference existing point layers rather than storing a second
 set of coordinates. They can appear as anchored images or a numbered caption
 strip. Moving, hiding, or deleting the point affects its attachment consistently.
 Local PNG/JPEG images are embedded in the portable project; they are not uploaded.
 
-**Preview on a wall** uses the same composed artwork as print exports, with frame,
+**Export → Preview framed** uses the same composed artwork as print exports, with frame,
 wall, and mat preferences. Opening or closing the preview does not change the
 project or undo history. Poster text, photos, decorations, and attribution are
 included in PNG, SVG, PDF, and PSD; PSD keeps a named composition Smart Object.

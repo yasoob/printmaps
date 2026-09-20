@@ -22,6 +22,7 @@ async function localDraft(page: Page) {
 async function saveLocalChange(page: Page) {
   await page.goto('./');
   await expect(page.getByRole('status', { name: 'Autosave status' })).toHaveText('Autosave ready');
+  await page.getByRole('tab', { name: 'Layout' }).click();
   await page.getByRole('button', { name: 'Portrait' }).click();
   await expect(page.getByRole('status', { name: 'Autosave status' })).toHaveText('All changes saved locally');
 }
@@ -76,16 +77,19 @@ test('share snapshot is read-only, refresh/download/navigation preserve local au
   const backupText = await readFile((await backup.path())!, 'utf8');
   expect(JSON.parse(backupText).page.orientation).toBe('landscape');
   await page.getByRole('button', { name: 'Keep editing', exact: true }).click();
+  await page.getByRole('tab', { name: 'Layout' }).click();
   await expect(page.getByRole('button', { name: 'Landscape' })).toHaveAttribute('aria-pressed', 'true');
   expect(await localDraft(page)).toBe(saved);
 
   await page.goto(link);
   await page.getByRole('button', { name: 'Remix this map' }).click();
   await page.getByRole('button', { name: 'Replace project', exact: true }).click();
+  await page.getByRole('tab', { name: 'Layout' }).click();
   await expect(page.getByRole('button', { name: 'Portrait' })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('status', { name: 'Autosave status' })).toHaveText('All changes saved locally');
   expect(new URL(page.url()).hash).toBe('');
   await page.reload();
+  await page.getByRole('tab', { name: 'Layout' }).click();
   await expect(page.getByRole('button', { name: 'Portrait' })).toHaveAttribute('aria-pressed', 'true');
 });
 
@@ -100,6 +104,7 @@ test('malformed and oversized fragments never modify a local project', async ({ 
     expect(await localDraft(page)).toBe(saved);
   }
   await page.getByRole('link', { name: 'Open my local project' }).click();
+  await page.getByRole('tab', { name: 'Layout' }).click();
   await expect(page.getByRole('button', { name: 'Portrait' })).toHaveAttribute('aria-pressed', 'true');
 });
 

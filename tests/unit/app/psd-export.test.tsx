@@ -49,6 +49,7 @@ describe('editor layered PSD export', () => {
     exportMocks.exporter = exporter;
     render(<App />);
 
+    await user.click(screen.getByRole('tab', { name: 'Layout' }));
     for (const name of ['Page width', 'Page height']) {
       const field = screen.getByRole('spinbutton', { name });
       await user.clear(field);

@@ -1,6 +1,6 @@
 # Re-render audit tracker
 
-Updated: 2026-09-19
+Updated: 2026-09-20
 
 ## Scope and method
 
@@ -37,7 +37,7 @@ session/messages received 28 callbacks in the confirming run; editor camera,
 history, marker DOM and native map mutations remained unchanged.
 
 This is a **scoped output follow-up**, not a replacement for the full inventory
-above. Fresh global capture across these paths observed 161 runtime names.
+below. Fresh global capture across these paths observed 161 runtime names.
 Hover and touch help plus simulated-controller progress pass (3 cases).
 Native MP4 recording is explicitly skipped on the unsupported Firefox backend;
 its genuine recording assertions and earlier real-encoder evidence remain.
@@ -51,6 +51,34 @@ Evidence: session `e5832fd0-c238-4e25-b480-4138595460a2`, under `files/`:
 `output-followup-build.log`. The source scanner's local `View` alias in
 `VideoExportSession` dispatches to `VideoExportPanelView` (workspace, observed)
 or `VideoExportDialogView` (legacy standalone, covered by dialog unit tests).
+
+## Map/Layout inspector follow-up, September 20
+
+The information-architecture change retains the exact field-instance assertions.
+Thirteen targeted Firefox probes passed with unfiltered global fiber capture,
+fresh runtime inventories (166 observed component names), marker DOM tracking
+and MapLibre tracing. This is a scoped regression pass, not a replacement for
+the full-editor reconciliation below.
+
+Page dimensions now belong to `PageDimensions`; margins and background belong
+to `PageAppearance`. A first green pass exposed two unnecessary new-owner
+updates: title edits woke `PageAppearance`, and camera fields woke
+`StudioModeTabs`. Paper settings now subscribe to flat primitive values and
+merge writes with the latest canonical poster; tabs use stable callbacks and
+normal memoization. The repeat pass proves both exclusions, while preserving
+the exact one-field margin/title/photo/decoration/terrain assertions.
+
+`MapFrameControls` is covered by the real country-picker/atomic-application
+probe. Applying a country updates the mask and camera, not poster typography;
+the inspector remains in Layout. `TemplateGallery` and
+`NewProjectTemplateDialog` navigation are covered by the separate
+`inspector-layout-navigation` real-browser suite, including unchanged document
+downloads, retained field/canvas nodes, and guarded new-project replacement.
+They were not mounted in the 13-probe scoped inventory.
+
+Evidence is retained in the inspector implementation session's
+`inspector-scan/` and `inspector-scan-final/` artifacts, each containing
+per-interaction events, owner paths, mutations and fresh runtime inventories.
 
 ## Intra-panel field follow-up, September 19
 

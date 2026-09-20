@@ -43,6 +43,7 @@ test('nominal design, author, import, persist, reopen, and export workflow', asy
   await page.getByRole('radio', { name: /^Sea Glass:/ }).click();
   await expect(mapCanvas).toHaveAttribute('data-style-preset', 'sea-glass');
   await expect(mapCanvas).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
+  await page.getByRole('tab', { name: 'Layout' }).click();
   const width = page.getByRole('spinbutton', { name: 'Page width' });
   const height = page.getByRole('spinbutton', { name: 'Page height' });
   await width.fill('20');
@@ -79,6 +80,7 @@ test('nominal design, author, import, persist, reopen, and export workflow', asy
   await page.reload();
   await expect(page.getByRole('button', { name: 'Select Route 02' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Select Café Central' })).toBeVisible();
+  await page.getByRole('tab', { name: 'Layout' }).click();
   await expect(page.getByRole('spinbutton', { name: 'Page width' })).toHaveValue('20');
   await expect(page.getByRole('spinbutton', { name: 'Page height' })).toHaveValue('60');
   await expect(mapCanvas).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });

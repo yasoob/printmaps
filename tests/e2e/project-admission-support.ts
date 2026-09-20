@@ -32,6 +32,7 @@ export async function admissionFixture(page: Page, mode: 'empty' | 'layers' | 'p
 
 export async function openAdmissionProject(page: Page, document: ProjectDocument) {
   if (await page.locator('.layer-row').count() === 1) {
+    await page.getByRole('tab', { name: 'Layout' }).click();
     await page.getByRole('button', { name: 'Portrait', exact: true }).click();
   }
   const choosing = page.waitForEvent('filechooser');

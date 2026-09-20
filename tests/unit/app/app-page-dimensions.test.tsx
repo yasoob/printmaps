@@ -21,6 +21,7 @@ describe('editor page dimensions', () => {
   }) => {
     const user = userEvent.setup();
     render(<App />);
+    await user.click(screen.getByRole('tab', { name: 'Layout' }));
     const field = screen.getByRole('spinbutton', { name: fieldName });
     const preset = screen.getByRole('combobox', { name: 'Page preset' });
     const undo = screen.getByRole('button', { name: 'Undo' });
@@ -55,6 +56,7 @@ describe('editor page dimensions', () => {
 
   it('discards a dirty page draft after canonical dimensions change away and back', () => {
     render(<App />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Layout' }));
     const field = screen.getByRole('spinbutton', { name: 'Page width' });
     const portrait = screen.getByRole('button', { name: 'Portrait' });
     const landscape = screen.getByRole('button', { name: 'Landscape' });
@@ -76,6 +78,7 @@ describe('editor page dimensions', () => {
   it('derives orientation from extreme custom dimensions', async () => {
     const user = userEvent.setup();
     render(<App />);
+    await user.click(screen.getByRole('tab', { name: 'Layout' }));
     const width = screen.getByRole('spinbutton', { name: 'Page width' });
     await user.clear(width);
     await user.type(width, '100');

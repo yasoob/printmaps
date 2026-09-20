@@ -131,6 +131,7 @@ test('desktop commands, orientation, reorder, and overflow menu work in a real b
   expect(landscapeBounds).not.toBeNull();
   expect(landscapeBounds!.width).toBeGreaterThan(landscapeBounds!.height);
 
+  await page.getByRole('tab', { name: 'Layout' }).click();
   await page.getByRole('button', { name: 'Portrait' }).click();
   await expect(page.getByRole('button', { name: 'Portrait' })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('spinbutton', { name: 'Page width' })).toHaveValue('210');
@@ -139,6 +140,7 @@ test('desktop commands, orientation, reorder, and overflow menu work in a real b
   expect(portraitBounds).not.toBeNull();
   expect(portraitBounds!.height).toBeGreaterThan(portraitBounds!.width);
 
+  await page.getByRole('tab', { name: 'Map', exact: true }).click();
   await page.getByRole('spinbutton', { name: 'Bearing' }).fill('35');
   await page.getByRole('spinbutton', { name: 'Pitch' }).fill('40');
   await page.getByRole('spinbutton', { name: 'Pitch' }).press('Tab');

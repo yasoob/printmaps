@@ -174,6 +174,7 @@ for (const width of [1440, 390]) {
 
 test('UX030 review protects background tool/history/delete shortcuts and preserves cancel state', async ({ page }) => {
   await page.goto('./');
+  await page.getByRole('tab', { name: 'Layout' }).click();
   await page.getByRole('button', { name: 'Portrait', exact: true }).click();
   await page.getByRole('button', { name: 'Select Route 01', exact: true }).click();
   const before = await downloadProject(page);
@@ -191,6 +192,7 @@ test('UX030 a content edit during checking is visibly rejected without applying 
   await holdReads(page);
   await page.goto('./');
   const before = await downloadProject(page);
+  await page.getByRole('tab', { name: 'Layout' }).click();
   await choose(page, 'hold-stale.geojson');
   await page.getByRole('button', { name: 'Portrait', exact: true, includeHidden: true })
     .evaluate((button: HTMLButtonElement) => button.click());

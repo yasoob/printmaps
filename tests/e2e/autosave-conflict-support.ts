@@ -48,11 +48,13 @@ export async function trackWrites(page: Page) {
 
 export async function openConflict(loser: Page) {
   await loser.goto('./');
+  await loser.getByRole('tab', { name: 'Layout' }).click();
   await loser.getByRole('button', { name: 'Portrait', exact: true }).click();
   await expect(loser.getByRole('status', { name: 'Autosave status' })).toHaveText('All changes saved locally');
   const winner = await loser.context().newPage();
   await winner.goto('./');
   await expect(winner.getByRole('status', { name: 'Autosave status' })).toHaveText('Autosave ready');
+  await winner.getByRole('tab', { name: 'Layout' }).click();
   await winner.getByRole('combobox', { name: 'Page preset' }).selectOption('A3');
   await expect(winner.getByRole('status', { name: 'Autosave status' })).toHaveText('All changes saved locally');
   const saved = await storedDraft(winner);

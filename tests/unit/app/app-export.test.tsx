@@ -128,6 +128,7 @@ async function verifyPdfDownload() {
   });
   render(<App />);
 
+  await user.click(screen.getByRole('tab', { name: 'Layout' }));
   for (const name of ['Page width', 'Page height']) {
     const field = screen.getByRole('spinbutton', { name });
     await user.clear(field);
@@ -224,6 +225,7 @@ async function verifyNativeTileProgressCancellation() {
   const downloadClick = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
   render(<App />);
 
+  await user.click(screen.getByRole('tab', { name: 'Layout' }));
   const width = screen.getByRole('spinbutton', { name: 'Page width' });
   await user.clear(width);
   await user.type(width, '600');
@@ -365,6 +367,7 @@ describe('editor export', () => {
     const user = userEvent.setup();
     render(<App />);
 
+    await user.click(screen.getByRole('tab', { name: 'Layout' }));
     const width = screen.getByRole('spinbutton', { name: 'Page width' });
     await user.clear(width);
     await user.type(width, '1');
@@ -385,6 +388,7 @@ describe('editor export', () => {
     const user = userEvent.setup();
     render(<App />);
 
+    await user.click(screen.getByRole('tab', { name: 'Layout' }));
     const width = screen.getByRole('spinbutton', { name: 'Page width' });
     await user.clear(width);
     await user.type(width, '1');

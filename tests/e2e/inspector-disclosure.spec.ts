@@ -35,18 +35,10 @@ test('project inspector progressively discloses advanced controls on desktop and
   expect(desktopPropertiesBounds!.width).toBeLessThanOrEqual(320);
   await expect(page.getByRole('button', { name: 'Project menu' })).toHaveCount(0);
   expect(await desktopProperties.locator('.inspector-accordion').first().evaluate((element) => getComputedStyle(element).borderTopWidth)).toBe('0px');
-  const presetRowBounds = await page.getByRole('combobox', { name: 'Page preset' }).locator('xpath=../..').boundingBox();
-  expect(presetRowBounds).not.toBeNull();
-  expect(presetRowBounds!.height).toBeGreaterThanOrEqual(40);
-
-  const pageSection = page.getByRole('button', { name: /Page/ });
-  const mapStyle = page.getByRole('button', { name: /Map style/ });
-  const camera = page.getByRole('button', { name: /Camera & location/ });
-  const details = page.getByRole('button', { name: /Map details/ });
-  await expect(pageSection).toHaveAttribute('aria-expanded', 'true');
-  await expect(pageSection).not.toContainText('A4 landscape · 297 × 210 mm');
-  await expect(mapStyle).toHaveAttribute('aria-expanded', 'false');
-  await expect(mapStyle).toContainText('Paper · Local names · 100%');
+  const mapStyle = page.getByRole('button', { name: 'Style', exact: true });
+  const camera = page.getByRole('button', { name: 'View', exact: true });
+  const details = page.getByRole('button', { name: 'Labels & details', exact: true });
+  await expect(mapStyle).toHaveAttribute('aria-expanded', 'true');
   await expect(camera).toHaveAttribute('aria-expanded', 'false');
   await expect(details).toHaveAttribute('aria-expanded', 'false');
   await expect(page.getByRole('spinbutton', { name: 'Bearing' })).toHaveCount(0);
@@ -97,7 +89,7 @@ test('project inspector progressively discloses advanced controls on desktop and
   await layerLockSwitch.uncheck();
   await expect(page.getByRole('combobox', { name: 'Route marker pictogram' })).toBeVisible();
   await page.locator('.maplibregl-canvas').click({ position: { x: 80, y: 80 } });
-  const restoredCamera = page.getByRole('button', { name: /Camera & location/ });
+  const restoredCamera = page.getByRole('button', { name: 'View', exact: true });
   await expect(restoredCamera).toHaveAttribute('aria-expanded', 'true');
   await restoredCamera.click();
 
@@ -125,6 +117,13 @@ test('project inspector progressively discloses advanced controls on desktop and
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-ready', 'true');
   await page.getByRole('button', { name: 'Open properties' }).click();
   const properties = page.getByRole('dialog', { name: 'Properties sidebar' });
+  await page.getByRole('tab', { name: 'Layout' }).click();
+  const pageSection = page.getByRole('button', { name: 'Page', exact: true });
+  await expect(pageSection).toHaveAttribute('aria-expanded', 'true');
+  await expect(pageSection).not.toContainText('A4 landscape · 297 × 210 mm');
+  const presetRowBounds = await page.getByRole('combobox', { name: 'Page preset' }).locator('xpath=../..').boundingBox();
+  expect(presetRowBounds).not.toBeNull();
+  expect(presetRowBounds!.height).toBeGreaterThanOrEqual(40);
   const propertiesBounds = await properties.boundingBox();
   const portraitBounds = await properties.getByRole('button', { name: 'Portrait' }).boundingBox();
   expect(propertiesBounds).not.toBeNull();
@@ -132,15 +131,16 @@ test('project inspector progressively discloses advanced controls on desktop and
   expect(propertiesBounds!.width).toBeGreaterThanOrEqual(300);
   expect(portraitBounds!.x + portraitBounds!.width).toBeLessThanOrEqual(propertiesBounds!.x + propertiesBounds!.width);
   await expect(properties.getByRole('button', { name: 'Close properties' })).toBeVisible();
-  await expect(properties.getByRole('button', { name: /Camera & location/ })).toHaveAttribute('aria-expanded', 'false');
-  const mobileToggleBounds = await properties.getByRole('button', { name: /Camera & location/ }).boundingBox();
+  await page.getByRole('tab', { name: 'Map', exact: true }).click();
+  await expect(properties.getByRole('button', { name: 'View', exact: true })).toHaveAttribute('aria-expanded', 'false');
+  const mobileToggleBounds = await properties.getByRole('button', { name: 'View', exact: true }).boundingBox();
   expect(mobileToggleBounds).not.toBeNull();
   expect(mobileToggleBounds!.height).toBeGreaterThanOrEqual(44);
-  await properties.getByRole('button', { name: /Camera & location/ }).click();
+  await properties.getByRole('button', { name: 'View', exact: true }).click();
   const mobileSwitchBounds = await properties.getByRole('switch', { name: 'Lock map area' }).locator('xpath=..').boundingBox();
   expect(mobileSwitchBounds).not.toBeNull();
   expect(mobileSwitchBounds!.height).toBeGreaterThanOrEqual(44);
-  await properties.getByRole('button', { name: /Map details/ }).click();
+  await properties.getByRole('button', { name: 'Labels & details', exact: true }).click();
   const mobileCheckboxBounds = await properties.getByRole('checkbox', { name: 'Show roads' }).locator('xpath=..').boundingBox();
   expect(mobileCheckboxBounds).not.toBeNull();
   expect(mobileCheckboxBounds!.height).toBeGreaterThanOrEqual(44);
@@ -153,6 +153,7 @@ test('project inspector progressively discloses advanced controls on desktop and
 
 test('sidebar InputGroups scrub constrained numbers and preserve direct editing', async ({ page }) => {
   await page.goto('./');
+  await page.getByRole('tab', { name: 'Layout' }).click();
   const width = page.getByRole('spinbutton', { name: 'Page width' });
   const widthHandle = width.locator('xpath=..').locator('.input-group-addon.is-scrubbable');
   expect(await width.evaluate((input: HTMLInputElement) => input.checkValidity())).toBe(true);

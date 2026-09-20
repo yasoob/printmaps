@@ -32,7 +32,9 @@ async function downloadedProject(download: Download): Promise<ProjectDocument> {
 test('New protects the outgoing project, resets all document defaults, and preserves normal autosave restoration', async ({ page }, testInfo) => {
   await page.goto('./');
   const blank = await blankDocument(page);
+  await page.getByRole('tab', { name: 'Layout' }).click();
   await page.getByRole('combobox', { name: 'Page preset', exact: true }).selectOption('A3');
+  await page.getByRole('tab', { name: 'Map', exact: true }).click();
   await page.getByRole('radio', { name: /^Night Ink:/ }).click();
   await page.getByRole('combobox', { name: 'Map language', exact: true }).selectOption('de');
   await page.getByRole('spinbutton', { name: 'Bearing', exact: true }).fill('15');
@@ -73,10 +75,12 @@ test('New protects the outgoing project, resets all document defaults, and prese
   await page.getByRole('button', { name: 'Untitled map', exact: true }).click();
   await page.getByRole('textbox', { name: 'Project title' }).fill('Second map');
   await page.getByRole('textbox', { name: 'Project title' }).press('Enter');
+  await page.getByRole('tab', { name: 'Layout' }).click();
   await page.getByRole('button', { name: 'Portrait', exact: true }).click();
   await expect(page.getByRole('status', { name: 'Autosave status' })).toHaveText('All changes saved locally');
   await page.reload();
   await expect(page.getByRole('button', { name: 'Second map', exact: true })).toBeVisible();
+  await page.getByRole('tab', { name: 'Layout' }).click();
   await expect(page.getByRole('button', { name: 'Portrait', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('.layer-row')).toHaveCount(1);
 });

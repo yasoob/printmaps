@@ -13,7 +13,7 @@ describe('editor page settings and tools', () => {
   it('exposes project fields, tool state, and page disclosure accessibly', () => {
     render(<App />);
 
-    expect(screen.getByRole('combobox', { name: 'Page preset' })).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Page preset' })).not.toBeInTheDocument();
     expect(screen.getByRole('radiogroup', { name: 'Map style presets' })).toBeInTheDocument();
     expect(screen.getByRole('spinbutton', { name: 'Bearing' })).toBeInTheDocument();
     expect(screen.getByRole('spinbutton', { name: 'Pitch' })).toBeInTheDocument();
@@ -34,11 +34,14 @@ describe('editor page settings and tools', () => {
     expect(screen.queryByRole('button', { name: 'Page 1' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Add page' })).not.toBeInTheDocument();
     expect(screen.getByRole('list', { name: 'Map layers' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: 'Layout' }));
+    expect(screen.getByRole('combobox', { name: 'Page preset' })).toBeInTheDocument();
   });
 
   it('commits project orientation to history and keeps the canvas and dimensions synchronized', async () => {
     const user = userEvent.setup();
     render(<App />);
+    await user.click(screen.getByRole('tab', { name: 'Layout' }));
     const landscape = screen.getByRole('button', { name: 'Landscape' });
     const portrait = screen.getByRole('button', { name: 'Portrait' });
 
@@ -65,6 +68,7 @@ describe('editor page settings and tools', () => {
   it('applies a standard page preset to properties and canvas as one undoable change', async () => {
     const user = userEvent.setup();
     render(<App />);
+    await user.click(screen.getByRole('tab', { name: 'Layout' }));
     const preset = screen.getByRole('combobox', { name: 'Page preset' });
     const map = screen.getByTestId('map-canvas');
 
@@ -85,6 +89,7 @@ describe('editor page settings and tools', () => {
   it('supports the requested map-size preset catalogue', async () => {
     const user = userEvent.setup();
     render(<App />);
+    await user.click(screen.getByRole('tab', { name: 'Layout' }));
     const preset = screen.getByRole('combobox', { name: 'Page preset' });
 
     expect([...preset.querySelectorAll('option')].map((option) => option.textContent)).toEqual([
@@ -111,6 +116,7 @@ describe('editor page settings and tools', () => {
 
   it('scrubs a page dimension through its InputGroup addon as one undoable change', () => {
     render(<App />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Layout' }));
     const width = screen.getByRole('spinbutton', { name: 'Page width' });
     const widthAddon = screen.getByText('W');
 
@@ -370,6 +376,7 @@ describe('editor map detail and page commands', () => {
   it('keeps the A4 preset and history unchanged when page width is blurred without editing', async () => {
     const user = userEvent.setup();
     render(<App />);
+    await user.click(screen.getByRole('tab', { name: 'Layout' }));
     const field = screen.getByRole('spinbutton', { name: 'Page width' });
     const preset = screen.getByRole('combobox', { name: 'Page preset' });
     const undo = screen.getByRole('button', { name: 'Undo' });
@@ -384,6 +391,7 @@ describe('editor map detail and page commands', () => {
   it('commits an unchanged valid page dimension as Custom on blur', async () => {
     const user = userEvent.setup();
     render(<App />);
+    await user.click(screen.getByRole('tab', { name: 'Layout' }));
     const field = screen.getByRole('spinbutton', { name: 'Page width' });
     const preset = screen.getByRole('combobox', { name: 'Page preset' });
     const undo = screen.getByRole('button', { name: 'Undo' });

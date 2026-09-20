@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../../../src/app/App';
 import { createInitialProjectDocument } from '../../../src/domain/project';
@@ -49,6 +49,7 @@ describe('editor autosave startup', () => {
 
     expect(screen.queryByRole('dialog', { name: 'Recover local draft' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Recovered field guide' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: 'Layout' }));
     expect(screen.getByRole('combobox', { name: 'Page preset' })).toHaveValue('A3');
     expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
     expect(screen.getByRole('status', { name: 'Autosave status' })).toHaveTextContent('Autosave ready');
@@ -60,6 +61,7 @@ describe('editor autosave startup', () => {
     const repository = repositoryWith();
     await renderLoadedApp(repository);
 
+    await user.click(screen.getByRole('tab', { name: 'Layout' }));
     await user.click(screen.getByRole('button', { name: 'Portrait' }));
 
     await waitFor(() => expect(repository.save).toHaveBeenCalledTimes(1));
@@ -76,6 +78,7 @@ describe('editor autosave startup', () => {
     });
     await renderLoadedApp(repository);
 
+    await user.click(screen.getByRole('tab', { name: 'Layout' }));
     await user.click(screen.getByRole('button', { name: 'Portrait' }));
 
     const alert = await screen.findByRole('alert', { name: 'Autosave status' });

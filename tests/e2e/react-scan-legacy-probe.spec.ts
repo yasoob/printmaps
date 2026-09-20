@@ -16,17 +16,18 @@ for (const setting of [
 ]) {
   test(`${setting.label} commit isolates unrelated project sections`, async ({ page }, info) => {
     await openScanEditor(page);
+    if (setting.label === 'Page width') await page.getByRole('tab', { name: 'Layout' }).click();
     const input = page.getByLabel(setting.label, { exact: true });
     await startProbe(page, setting.label);
     if (setting.select) await input.selectOption(setting.value);
     else { await input.fill(setting.value); await input.press('Enter'); }
     const result = await finishProbe(page, info, `project-${setting.label}`);
-    expectOwners(result, ['MapCanvas', 'ProjectProperties'], [
-      ...chrome, 'PosterControls', 'PhotoStoryControls',
+    expectOwners(result, ['MapCanvas', setting.label === 'Page width' ? 'PageDimensions' : 'ProjectProperties'], [
+      ...chrome, 'PosterControls', 'PhotoStoryControls', 'StudioModeTabs',
       ...(setting.label === 'Pitch' ? [] : ['DecorationControls']),
       ...(['Bearing', 'Pitch', 'Page width'].includes(setting.label) ? ['MapStyleGallery'] : []),
     ]);
-    if (setting.label === 'Pitch') expect(result.components.DecorationControls?.changes).toEqual(['props:isFlat']);
+    if (setting.label === 'Pitch') expect(result.components.DecorationControls).toBeUndefined();
     expect(result.domMutations).toEqual([]);
     expect(result.mapMutations.filter(({ operation }) => ['setData', 'addLayer', 'removeLayer', 'removeSource'].includes(operation))).toEqual([]);
   });

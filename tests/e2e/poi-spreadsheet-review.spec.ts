@@ -232,6 +232,7 @@ for (const budget of ['layers', 'positions', 'bytes'] as const) {
 test('UX035 replacement and native unload protect lists while downloads and reloads contain only completed layers', async ({ page }, info) => {
   await controlledProvider(page);
   await page.goto('./');
+  await page.getByRole('tab', { name: 'Layout' }).click();
   await page.getByRole('button', { name: 'Portrait', exact: true }).click();
   await expect(page.getByRole('status', { name: 'Autosave status' })).toHaveText('All changes saved locally');
   const original = await savedAdmissionRecord(page);

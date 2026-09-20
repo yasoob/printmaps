@@ -24,7 +24,7 @@ test('aligns every inspector chevron with its title', async ({ page }) => {
     if (geometry.summaryX !== undefined) expect(geometry.summaryX).toBe(geometry.labelX);
   }
 
-  await page.getByRole('button', { name: 'Map style' }).click();
+  await page.getByRole('button', { name: 'Style', exact: true }).click();
   const collapsedGeometry = await accordionGeometry(page);
   for (const geometry of collapsedGeometry) {
     expect(geometry.centerDelta).toBeLessThanOrEqual(1);
