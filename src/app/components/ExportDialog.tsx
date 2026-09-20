@@ -1,5 +1,5 @@
 import { ArrowLeft, X } from 'lucide-react';
-import { lazy, Suspense, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { StudioDialogActions, StudioDialogBody, StudioDialogButton, StudioDialogHeader } from '@/components/ui/studio-dialog';
 import { useAvailableMapExporter } from '../mapExporterContext';
@@ -54,11 +54,11 @@ function ExportWorkspace(props: ExportDialogProps) {
     const download = downloadButtonRef.current;
     return download && !download.disabled ? download : cancelButtonRef.current;
   };
-  const changeMode = (destination: Destination) => {
+  const changeMode = useCallback((destination: Destination) => {
     if (busy) return;
     setPreview(false);
     setMode(destination);
-  };
+  }, [busy]);
   const openPreview = () => {
     if (busy) return;
     setPreview(true);
