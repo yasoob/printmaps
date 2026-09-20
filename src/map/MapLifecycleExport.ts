@@ -6,6 +6,7 @@ import type { MapContentAdapter } from './MapContentAdapter';
 import { captureBasemapOnly } from './MapExportCapture';
 import { createNativePrintTileRenderer } from './NativePrintTileRenderer';
 import { waitForMapExportReady } from './MapExportReadiness';
+import { captureMapRenderSnapshot } from './MapRenderSnapshot';
 
 type MutableReference<T> = { current: T };
 
@@ -78,5 +79,11 @@ export function createLifecycleExportPreview(
     resolveAssets: () => references.contentState.current.assets ?? {},
     isSourceReady,
   });
+  exportPreview.captureRenderSnapshot = (options) => captureMapRenderSnapshot(map, {
+    isSourceReady,
+    resolveStyle: (content) => references.resolveExportStyle(map, content),
+    resolvePrintFrame: () => references.container.current?.parentElement?.querySelector<HTMLElement>('.print-frame'),
+    resolveContent: () => references.contentState.current,
+  }, options);
   return exportPreview;
 }
