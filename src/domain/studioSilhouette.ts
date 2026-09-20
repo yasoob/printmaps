@@ -27,7 +27,7 @@ export function createSilhouetteApplication(
   const silhouette: ContentLayer = {
     id: `silhouette-${crypto.randomUUID()}`, name: `${area.name} silhouette`, type: 'shape',
     visible: true, locked: false, opacity: 100, geometry: structuredClone(area.geometry),
-    appearance: { ...appearance, invert: true, fillColor: poster.backgroundColor, strokeWidth: 0, strokeColor: poster.backgroundColor },
+    appearance: { ...appearance, invert: true, fillColor: poster.backgroundColor, strokeWidth: 0.5, strokeColor: poster.backgroundColor },
   };
   poster.silhouetteLayerId = silhouette.id;
   const bounds = combinedLayerBounds([silhouette]);

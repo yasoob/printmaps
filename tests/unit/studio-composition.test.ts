@@ -1,4 +1,5 @@
 import jsQR from 'jsqr';
+import { createProjectStore } from '../../src/app/store';
 import { createInitialProjectDocument } from '../../src/domain/project';
 import { createDefaultStudioSettings } from '../../src/domain/studio';
 import { createPosterTemplateApplication, posterTemplateSettings, POSTER_STARTERS, POSTER_TEMPLATES } from '../../src/domain/studioTemplates';
@@ -163,5 +164,25 @@ describe('silhouette poster fit', () => {
     const document = fixture();
     document.camera.locked = true;
     expect(() => createSilhouetteApplication(document, area, { x: 0, y: 0, width: 600, height: 400 }, { width: 600, height: 400 })).toThrow('Unlock');
+  });
+
+  it('admits a generated silhouette through the real store as one undoable change', () => {
+    const store = createProjectStore(fixture());
+    const before = store.getState().document;
+    const application = createSilhouetteApplication(
+      before, area, { x: 100, y: 50, width: 600, height: 400 }, { width: 800, height: 500 },
+    );
+    expect(store.getState().applyStudioTemplate(application)).toMatchObject({ ok: true });
+    const after = store.getState().document;
+    expect(after.studio.poster.silhouetteLayerId).toBe(application.silhouette.id);
+    expect(after.layers.find(({ id }) => id === application.silhouette.id)).toMatchObject({
+      geometry: area.geometry,
+      appearance: { kind: 'shape', invert: true, strokeWidth: 0.5 },
+    });
+    expect(store.getState().past).toHaveLength(1);
+    store.getState().undo();
+    expect(store.getState().document).toEqual(before);
+    store.getState().redo();
+    expect(store.getState().document).toEqual(after);
   });
 });
