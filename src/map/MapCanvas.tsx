@@ -15,6 +15,7 @@ import type { MapError } from './MapCanvasLifecycle';
 
 import type { GeometryEditResult, ProjectMutationResult } from '../domain/projectMutation';
 import { useGeometryMutationFeedback } from './useGeometryMutationFeedback';
+import type { MapFrameProjection } from './MapFrameProjection';
 
 type MapCanvasProps = {
   cameraNoticeContainer?: HTMLDivElement | null;
@@ -48,6 +49,7 @@ type MapCanvasProps = {
   onShapeGeometryChange?: (id: string, geometry: ShapeGeometry) => ProjectMutationResult;
   onBackgroundClick: () => void;
   onExporterChange?: (exporter: PreviewPngExporter | null) => void;
+  onFrameProjectionChange?: (projection: MapFrameProjection | null) => void;
   onFitPage?: () => void;
   fitRequest?: number;
   fitLayerId?: string | null;
@@ -140,6 +142,7 @@ export function MapCanvas({
   onShapeGeometryChange,
   onBackgroundClick,
   onExporterChange,
+  onFrameProjectionChange,
   onFitPage,
   fitRequest = 0,
   fitLayerId,
@@ -176,6 +179,7 @@ export function MapCanvas({
     assets,
     onBackgroundClick,
     onExporterChange,
+    onFrameProjectionChange,
     onFitPage: resolveFitPage(onFitPage),
     onLayerSelect,
     onCameraViewportChange,

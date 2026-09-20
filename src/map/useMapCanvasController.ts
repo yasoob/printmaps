@@ -23,6 +23,8 @@ import { useMapLocationRequest } from './useMapLocationRequest';
 import { useMapCameraSynchronization } from './useMapCameraSynchronization';
 import { useMapRendererRecovery } from './useMapRendererRecovery';
 import { useMapReadyInstance } from './useMapReadyInstance';
+import { useMapFrameProjection } from './useMapFrameProjection';
+import type { MapFrameProjection } from './MapFrameProjection';
 import type { CameraViewportChangeMode } from './MapCameraViewport';
 import { useTerraDrawRoutes, type RouteAuthoring } from './useTerraDrawRoutes';
 import { useRouteVertexEditing } from './useRouteVertexEditing';
@@ -61,6 +63,7 @@ type MapCanvasControllerOptions = {
   assets: Record<string, CustomMarkerAsset>;
   onBackgroundClick: () => void;
   onExporterChange?: (exporter: PreviewPngExporter | null) => void;
+  onFrameProjectionChange?: (projection: MapFrameProjection | null) => void;
   onFitPage: () => void;
   onLayerSelect: (id: string) => void;
   onCameraViewportChange?: (
@@ -193,7 +196,7 @@ export function useMapCanvasController({
   onCameraViewportChange, onMapClick, onPoiCoordinatesChange,
   onRouteEditorError, onRouteGeometryChange, onRouteVertexChange, onRouteVertexInsert,
   routeAuthoring, routeDraftEditing,
-  onShapeGeometryChange, previewedId, selectedId, shapeEditMode, contentRevision,
+  onShapeGeometryChange, previewedId, selectedId, shapeEditMode, contentRevision, onFrameProjectionChange,
 }: MapCanvasControllerOptions) {
   const container = useRef<HTMLDivElement>(null), map = useRef<MapLibreMap | null>(null), contentAdapter = useRef<MapContentAdapter | null>(null), ignoreNextMapClickRef = useRef(false);
   const cameraViewportChange = useRef(onCameraViewportChange), cameraState = useRef(camera), exporterChangeRef = useRef(onExporterChange);
@@ -202,6 +205,7 @@ export function useMapCanvasController({
   const { cameraError, reportCameraError } = useCameraMutationError(getCanonicalCamera?.() ?? camera, cameraState, readCanonicalCamera);
   const { generation, getInitialCamera, onMapCreated, retryMap } = useMapRendererRecovery(map, cameraState, { cameraViewportChange, cameraViewportChangeMode }, { onCameraError: reportCameraError, canonicalCamera: readCanonicalCamera });
   const { map: terraMap, setMap: setTerraMap } = useMapReadyInstance(`${stylePreset}:${generation}`);
+  useMapFrameProjection(terraMap, container, onFrameProjectionChange);
   const routeEditing = useRouteEditing({ ignoreNextMapClickRef, isMapAreaLocked: camera.locked, layers, map: terraMap, onRouteEditorError, onRouteGeometryChange, routeAuthoring, selectedId });
   const { displayLayers } = routeEditing;
   const renderedContentRevision = displayLayers === layers ? contentRevision : displayLayers;
