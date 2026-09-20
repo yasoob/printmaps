@@ -118,6 +118,8 @@ export function analyzeFiberRender(
   }
   return {
     changes: [...changes],
+    controlLabel: isPropsRecord(fiber.memoizedProps) && typeof fiber.memoizedProps.label === "string"
+      ? fiber.memoizedProps.label : null,
     didCommit: render.didCommit,
     instanceId: instanceId(fiber),
     name: resolvedComponentName(fiber, render.componentName),

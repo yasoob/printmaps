@@ -1,11 +1,21 @@
-import { memo, useRef, useState } from 'react';
+import { memo, useMemo, useRef, useState } from 'react';
 import type { ContentLayer } from '../../domain/project';
 import type { ProjectMutationResult } from '../../domain/projectMutation';
 import type { PhotoSettings } from '../../domain/studio';
 import { StudioColor, StudioNumber, StudioSelect, StudioToggle } from './StudioFields';
 import { FeatureHelp } from '../components/FeatureHelp';
+import { useSettingActions } from '../hooks/useSettingActions';
 
 export type PhotoUpload = (file: File, layerId: string | null, expectedDocumentEpoch: number) => Promise<ProjectMutationResult>;
+const PHOTO_KEYS = ['map', 'strip'] as const;
+const MAP_KEYS = ['enabled', 'shape', 'sizeMm', 'borderColor'] as const;
+const STRIP_KEYS = ['enabled', 'position', 'heightMm', 'showCaptions'] as const;
+const SHAPES = [{ value: 'circle', label: 'Circle' }, { value: 'square', label: 'Square' }] as const;
+const POSITIONS = [{ value: 'top', label: 'Top' }, { value: 'bottom', label: 'Bottom' }] as const;
+const photoHelp = <FeatureHelp label="Local photo help">
+  <p>Photos stay on this device and inside your project file. PNG or JPEG, up to 1 MiB and 2048 pixels per side. Photos are center-cropped, never stretched.</p>
+  <p>Move or hide a point with the map tools. Removing a photo keeps its point; deleting a point removes its photo.</p>
+</FeatureHelp>;
 
 export const PhotoStoryControls = memo(function PhotoStoryControls({ value, pointLayers, epoch, onChange, onUpload, onRemove }: {
   value: PhotoSettings; pointLayers: readonly Pick<ContentLayer, 'id' | 'name'>[]; epoch: number;
@@ -15,6 +25,10 @@ export const PhotoStoryControls = memo(function PhotoStoryControls({ value, poin
   const [isUploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const input = useRef<HTMLInputElement>(null);
+  const change = useSettingActions(value, onChange, PHOTO_KEYS);
+  const map = useSettingActions(value.map, change.map, MAP_KEYS);
+  const strip = useSettingActions(value.strip, change.strip, STRIP_KEYS);
+  const pointOptions = useMemo(() => [{ value: '', label: 'New point at map center' }, ...pointLayers.map((layer) => ({ value: layer.id, label: layer.name }))], [pointLayers]);
   async function upload(file: File) {
     setError('');
     setUploading(true);
@@ -28,7 +42,7 @@ export const PhotoStoryControls = memo(function PhotoStoryControls({ value, poin
     }
   }
   return <div className="studio-composition-controls">
-    <StudioSelect label="Attach photo to" value={selectedLayer} options={[{ value: '', label: 'New point at map center' }, ...pointLayers.map((layer) => ({ value: layer.id, label: layer.name }))]} onChange={setSelectedLayer} />
+    <StudioSelect label="Attach photo to" value={selectedLayer} options={pointOptions} onChange={setSelectedLayer} />
     <input ref={input} className="sr-only" type="file" accept="image/png,image/jpeg" aria-label="Upload story photo" disabled={isUploading} onChange={(event) => {
       const file = event.currentTarget.files?.[0];
       event.currentTarget.value = '';
@@ -36,20 +50,17 @@ export const PhotoStoryControls = memo(function PhotoStoryControls({ value, poin
     }} />
     <div className="feature-help-row">
       <button type="button" disabled={isUploading} onClick={() => input.current?.click()}>{isUploading ? 'Adding photo...' : 'Add local photo'}</button>
-      <FeatureHelp label="Local photo help">
-        <p>Photos stay on this device and inside your project file. PNG or JPEG, up to 1 MiB and 2048 pixels per side. Photos are center-cropped, never stretched.</p>
-        <p>Move or hide a point with the map tools. Removing a photo keeps its point; deleting a point removes its photo.</p>
-      </FeatureHelp>
+      {photoHelp}
     </div>
     {error && <p role="alert" className="studio-composition-error">{error}</p>}
-    <StudioToggle label="Show anchored photos" checked={value.map.enabled} onChange={(enabled) => onChange({ ...value, map: { ...value.map, enabled } })} />
-    <StudioSelect label="Photo shape" value={value.map.shape} options={[{ value: 'circle', label: 'Circle' }, { value: 'square', label: 'Square' }]} onChange={(shape) => onChange({ ...value, map: { ...value.map, shape } })} />
-    <StudioNumber label="Photo size" value={value.map.sizeMm} min={5} max={100} epoch={epoch} onChange={(sizeMm) => onChange({ ...value, map: { ...value.map, sizeMm } })} />
-    <StudioColor label="Photo border" value={value.map.borderColor} onChange={(borderColor) => onChange({ ...value, map: { ...value.map, borderColor } })} />
-    <StudioToggle label="Show numbered photo strip" checked={value.strip.enabled} onChange={(enabled) => onChange({ ...value, strip: { ...value.strip, enabled } })} />
-    <StudioSelect label="Strip position" value={value.strip.position} options={[{ value: 'top', label: 'Top' }, { value: 'bottom', label: 'Bottom' }]} onChange={(position) => onChange({ ...value, strip: { ...value.strip, position } })} />
-    <StudioNumber label="Strip height" value={value.strip.heightMm} min={12} max={100} epoch={epoch} onChange={(heightMm) => onChange({ ...value, strip: { ...value.strip, heightMm } })} />
-    <StudioToggle label="Show photo captions" checked={value.strip.showCaptions} onChange={(showCaptions) => onChange({ ...value, strip: { ...value.strip, showCaptions } })} />
+    <StudioToggle label="Show anchored photos" checked={value.map.enabled} onChange={map.enabled} />
+    <StudioSelect label="Photo shape" value={value.map.shape} options={SHAPES} onChange={map.shape} />
+    <StudioNumber label="Photo size" value={value.map.sizeMm} min={5} max={100} epoch={epoch} onChange={map.sizeMm} />
+    <StudioColor label="Photo border" value={value.map.borderColor} onChange={map.borderColor} />
+    <StudioToggle label="Show numbered photo strip" checked={value.strip.enabled} onChange={strip.enabled} />
+    <StudioSelect label="Strip position" value={value.strip.position} options={POSITIONS} onChange={strip.position} />
+    <StudioNumber label="Strip height" value={value.strip.heightMm} min={12} max={100} epoch={epoch} onChange={strip.heightMm} />
+    <StudioToggle label="Show photo captions" checked={value.strip.showCaptions} onChange={strip.showCaptions} />
     <ol className="studio-photo-list">{value.stops.map((stop, index) => <li key={stop.id}>
       <img src={value.assets[stop.assetId]?.dataUri} alt="" />
       <label><span>Stop {index + 1} caption</span><input aria-label={`Stop ${index + 1} caption`} maxLength={200} value={stop.caption} onChange={(event) => onChange({ ...value, stops: value.stops.map((candidate) => candidate.id === stop.id ? { ...candidate, caption: event.target.value } : candidate) })} /></label>

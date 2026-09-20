@@ -154,6 +154,15 @@ React Scan 0.5.7 does not currently emit change reasons or unnecessary-render
 classifications through its runtime callback, so the probe adds a shallow
 comparison of current and previous props.
 
+Field-level probes also record the static `controlLabel` and assert both the
+allowed labels and distinct fiber instance counts. A panel updating correctly
+does not justify rerendering its unchanged fields. Studio controls deliver
+stable per-key actions through `useSettingActions`, backed by the existing
+latest-committed-value event helper; text groups receive scalar props so
+validation may continue safely detaching nested objects without waking sibling
+groups. Dynamic choice arrays follow their actual choice data, not the complete
+settings object.
+
 Normal shared-map bootstrap still skips React Scan. Only the explicit
 development fixture `tests/e2e/react-scan-viewer.html` installs the probe before
 mounting the real shared viewer. Its tests prohibit IndexedDB access; no

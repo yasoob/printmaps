@@ -16,7 +16,72 @@ Updated: 2026-09-19
 - No dependency changes are made until the interaction map is complete enough
   to choose between local stabilization and a broader data-flow change.
 
-## Integrated Studio audit, September 19
+## Intra-panel field follow-up, September 19
+
+The earlier green panel-level probes did **not** prove that every field inside
+the changed panel needed to render. Parent review identified genuine work even
+with `didCommit: true`: fresh callbacks/options and newly validated text objects
+woke unchanged fields. This follow-up supersedes those whole-panel conclusions.
+
+Six stricter Firefox probes failed before the fix and passed afterward. Each
+probe now asserts the exact control labels **and distinct fiber IDs**, alongside
+the existing renderer and sibling-panel exclusions. Labels are static control
+metadata; input values are not captured. No component names or events are
+filtered out of global discovery.
+
+| Interaction | Before (distinct field instances) | After |
+|---|---|---|
+| Top margin | All 3 `TextControl`s and 22 Studio fields | 0 `TextControl`s; only the Top margin `StudioNumber`. Its nested numeric input updates locally and on canonical commit. |
+| Title text | All 3 `TextControl`s and 22 Studio fields | Only Title `TextControl`; 0 other Studio toggle/select/color/number fields. |
+| Photo caption | 9 unrelated attachment/appearance/strip fields | 0 unrelated Studio fields. Existing other-photo DOM identity assertion still passes. |
+| Compass enabled | 17 decoration fields | Only Show compass; no size, corner, style, color, scale, grid or QR field. |
+| Video duration | All 5 `VideoChoice`s | Only Duration; the other four have zero callbacks. |
+| Terrain exaggeration | The numeric field and all 3 terrain toggles | Only the exaggeration input; the three toggles and their help do not render. |
+
+Nearby variants independently assert Subtitle font, Photo shape, Compass corner
+and Contour line width. Contour width leaves the mounted exaggeration, interval,
+color and all three toggles silent.
+
+Implementation: `useSettingActions` creates type-safe stable per-key actions
+using the existing latest-committed-value event helper. Nested actions read the
+latest complete parent settings before committing through the existing mutation
+path. `TextControl` receives scalar text properties rather than parser-created
+object references. Options are hoisted or memoized by their actual POI choices.
+Normal shallow memo boundaries then protect semantic fields. There are no
+custom comparators, parser/cache changes, alternate stores, suppressed
+validation, or stale-captured settings. Immutable validation/detachment and
+history remain authoritative. Unit coverage verifies current callback results,
+rejected commits, undo followed by another field edit, retained sibling values,
+and native video-fieldset disabling/enabling across busy transitions without
+an encoder fake.
+
+**Final follow-up verification:** 53/53 supported Firefox cases pass in one run
+on port 4292. The one real-MP4 recording case is explicitly excluded because
+this Firefox backend lacks the required MP4 recording capability; the existing
+real Chromium recording evidence is retained, and the new field memo behavior
+has dedicated busy-transition unit coverage. Fresh reconciliation records
+**320 runtime names, 221 source targets / 220 distinct runtime target names,
+540 JSX creation sites, zero unobserved first-party targets**. New semantic
+owners `TerrainToggle`, `TerrainNumber`, and `TerrainColor` are assigned to the
+terrain settings and contour probes. This supported-backend run closes the
+earlier browser-launch coverage gap documented in the checkpoint below.
+
+Follow-up evidence, under the same session artifact root listed below:
+`fields-before-results/` (six exact failures), `fields-after-results/` (six exact
+passes), `fields-full-results/`, `fields-full-html/`, `fields-full.log`,
+`fields-full-inventory.json`, `fields-unit.log`, and
+`fields-production-build.log`. All 100 related unit tests across seven files,
+type-check, lint (existing shared-button warning only) and production build
+pass; scanner/probe strings remain absent from production JavaScript.
+
+Reproduction:
+
+```bash
+PLAYWRIGHT_EDITOR_PORT=4292 VITE_REACT_SCAN=true npx playwright test tests/e2e/react-scan-*-probe.spec.ts --project=firefox --workers=1 --grep-invert='real video recording progress' --output=/absolute/path/field-audit
+node scripts/react_scan_inventory.mjs /absolute/path/field-audit /absolute/path/field-inventory.json
+```
+
+## Integrated Studio audit, September 19 (earlier checkpoint)
 
 ### Executed scope and evidence
 

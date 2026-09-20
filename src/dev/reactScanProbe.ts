@@ -50,6 +50,7 @@ export type ReactScanProbeResult = {
   }>;
   events: Array<{
     changes: string[];
+    controlLabel: string | null;
     component: string;
     didCommit: boolean;
     instanceId: number;
@@ -164,6 +165,7 @@ const handleRender: ReactScanRenderHandler = (fiber, renders) => {
     recordRender(analyzed.name, [render], analyzed.changes);
     const event = {
       changes: analyzed.changes,
+      controlLabel: analyzed.controlLabel,
       component: analyzed.name,
       didCommit: analyzed.didCommit,
       instanceId: analyzed.instanceId,

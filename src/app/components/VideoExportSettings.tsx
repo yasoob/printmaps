@@ -1,16 +1,18 @@
 import { memo, useId, type ReactNode } from 'react';
 import type { VideoOptions } from '../../video/types';
 import { FeatureHelp } from './FeatureHelp';
+import { useSettingActions } from '../hooks/useSettingActions';
 
 type Choice<T extends string | number> = Readonly<{ value: T; label: string }>;
 
-function VideoChoice<T extends string | number>({ label, value, choices, onChange, help }: Readonly<{
+type VideoChoiceProps<T extends string | number> = Readonly<{
   label: string;
   value: T;
   choices: readonly Choice<T>[];
   onChange: (value: T) => void;
   help?: ReactNode;
-}>) {
+}>;
+const VideoChoice = memo(function VideoChoice<T extends string | number>({ label, value, choices, onChange, help }: VideoChoiceProps<T>) {
   const id = useId();
   return <div className="video-export-choice">
     <div className="feature-help-row"><label htmlFor={id}>{label}</label>{help ? <FeatureHelp label={`${label} help`}>{help}</FeatureHelp> : null}</div>
@@ -21,7 +23,7 @@ function VideoChoice<T extends string | number>({ label, value, choices, onChang
       {choices.map((choice) => <option key={choice.value} value={choice.value}>{choice.label}</option>)}
     </select>
   </div>;
-}
+}) as <T extends string | number>(props: VideoChoiceProps<T>) => React.JSX.Element;
 
 const MOTIONS: readonly Choice<VideoOptions['motion']>[] = [{ value: 'orbit', label: 'Orbit (one full turn)' }, { value: 'sway', label: 'Sway (gentle back and forth)' }];
 const DURATIONS: readonly Choice<VideoOptions['durationSeconds']>[] = [{ value: 5, label: '5 seconds' }, { value: 10, label: '10 seconds' }, { value: 15, label: '15 seconds' }];
@@ -31,18 +33,20 @@ const ASPECTS: readonly Choice<VideoOptions['aspect']>[] = [
   { value: '9:16', label: '9:16 portrait' }, { value: '1:1', label: '1:1 square' }, { value: '4:5', label: '4:5 portrait' },
 ];
 const QUALITIES: readonly Choice<VideoOptions['quality']>[] = [{ value: 'standard', label: 'Standard (up to 1280 px)' }, { value: 'high', label: 'High (up to 1920 px)' }];
+const VIDEO_KEYS = ['motion', 'durationSeconds', 'fps', 'aspect', 'quality'] as const;
 
 export const VideoExportSettings = memo(function VideoExportSettings({ settings, busy, onChange }: Readonly<{
   settings: VideoOptions;
   busy: boolean;
   onChange: (settings: VideoOptions) => void;
 }>) {
+  const change = useSettingActions(settings, onChange, VIDEO_KEYS);
   return <fieldset className="video-export-settings" disabled={busy}>
     <legend>Video settings</legend>
-    <VideoChoice label="Motion" value={settings.motion} choices={MOTIONS} onChange={(motion) => onChange({ ...settings, motion })} />
-    <VideoChoice label="Duration" value={settings.durationSeconds} choices={DURATIONS} onChange={(durationSeconds) => onChange({ ...settings, durationSeconds })} />
-    <VideoChoice label="Target frame rate" value={settings.fps} choices={FRAME_RATES} onChange={(fps) => onChange({ ...settings, fps })} />
-    <VideoChoice label="Video aspect" value={settings.aspect} choices={ASPECTS} help="The complete poster, photos, decorations, and attribution fit inside the video. Other aspect ratios may have white borders." onChange={(aspect) => onChange({ ...settings, aspect })} />
-    <VideoChoice label="Video quality" value={settings.quality} choices={QUALITIES} onChange={(quality) => onChange({ ...settings, quality })} />
+    <VideoChoice label="Motion" value={settings.motion} choices={MOTIONS} onChange={change.motion} />
+    <VideoChoice label="Duration" value={settings.durationSeconds} choices={DURATIONS} onChange={change.durationSeconds} />
+    <VideoChoice label="Target frame rate" value={settings.fps} choices={FRAME_RATES} onChange={change.fps} />
+    <VideoChoice label="Video aspect" value={settings.aspect} choices={ASPECTS} help="The complete poster, photos, decorations, and attribution fit inside the video. Other aspect ratios may have white borders." onChange={change.aspect} />
+    <VideoChoice label="Video quality" value={settings.quality} choices={QUALITIES} onChange={change.quality} />
   </fieldset>;
 });

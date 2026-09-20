@@ -1,5 +1,14 @@
 import { expect, test, type Page } from '@playwright/test';
 import { attachInventory, expectOwners, finishProbe, NATIVE_MAP_OWNERS, openScanEditor, startProbe, waitForRenderQuiet } from './react-scan-helpers';
+import type { ReactScanProbeResult } from '../../src/dev/reactScanProbe';
+
+function expectOnlyControls(result: ReactScanProbeResult, components: string[], labels: string[]) {
+  const events = result.events.filter((event) => components.includes(event.component));
+  expect(new Set(events.map(({ controlLabel }) => controlLabel))).toEqual(new Set(labels));
+  expect(new Set(events.map(({ instanceId }) => instanceId)).size).toBe(labels.length);
+}
+
+const STUDIO_FIELDS = ['StudioToggle', 'StudioSelect', 'StudioColor', 'StudioNumber'];
 
 test.skip(process.env.VITE_REACT_SCAN !== 'true', 'Run with npm run audit:renders.');
 test.afterEach(async ({ page }, info) => attachInventory(page, info));
@@ -68,6 +77,8 @@ for (const field of ['Title text', 'Top margin']) {
       ...NATIVE_MAP_OWNERS, 'PhotoStoryControls', 'DecorationControls', 'PosterGallery', 'WallPreviewDialog',
     ]);
     expect(result.mapMutations).toEqual([]);
+    expectOnlyControls(result, ['TextControl'], field === 'Title text' ? ['Title'] : []);
+    expectOnlyControls(result, STUDIO_FIELDS, field === 'Top margin' ? ['Top margin'] : []);
   });
 }
 
@@ -84,6 +95,7 @@ test('one photo caption leaves controls, other photo nodes, and native renderers
     ...NATIVE_MAP_OWNERS, 'PosterControls', 'DecorationControls', 'PosterGallery', 'WallPreviewDialog',
   ]);
   expect(result.mapMutations).toEqual([]);
+  expectOnlyControls(result, STUDIO_FIELDS, []);
   await expect(stableImage).toHaveAttribute('data-scan-identity', 'second-photo');
 });
 
@@ -98,6 +110,7 @@ test('decoration toggle leaves poster, photo, terrain and native map owners stab
     ...NATIVE_MAP_OWNERS, 'PosterControls', 'PhotoStoryControls', 'PosterGallery', 'WallPreviewDialog',
   ]);
   expect(result.mapMutations).toEqual([]);
+  expectOnlyControls(result, STUDIO_FIELDS, ['Show compass']);
 });
 
 test('moving a photo POI preserves the other photo and unrelated route sources', async ({ page }, info) => {
@@ -131,6 +144,7 @@ test('terrain exaggeration updates native terrain without composition or sibling
   expectOwners(result, ['TerrainProperties', 'MapCanvas'], ['StudioCompositionControls', 'StudioPosterPreview', 'PhotoStoryControls', 'PosterControls', 'StudioVideoControls']);
   expect(result.mapMutations.some(({ operation, surface }) => operation === 'setTerrain' && surface === 'editor')).toBe(true);
   expect(result.mapMutations.filter(({ operation }) => ['setData', 'addLayer', 'removeLayer', 'removeSource'].includes(operation))).toEqual([]);
+  expectOnlyControls(result, ['Checkbox', 'ValidatedNumberField'], ['Terrain exaggeration']);
 });
 
 test('video settings stay outside the live camera and composition', async ({ page }, info) => {
@@ -146,7 +160,47 @@ test('video settings stay outside the live camera and composition', async ({ pag
   const result = await finishProbe(page, info, 'video-settings');
   expectOwners(result, ['VideoExportSettings'], ['StudioCanvas', 'MapCanvas', 'StudioPosterPreview', 'StudioCompositionControls', 'StudioTerrainControls']);
   expect(result.mapMutations).toEqual([]);
+  expectOnlyControls(result, ['VideoChoice'], ['Duration']);
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-zoom', camera!);
+});
+
+test('nearby poster photo and decoration fields keep all unchanged field instances silent', async ({ page }, info) => {
+  await openScanEditor(page);
+  await loadPhotoPoster(page);
+  await page.getByText('Poster typography & paper', { exact: true }).click();
+  await startProbe(page, 'Subtitle font');
+  await page.getByRole('combobox', { name: 'Subtitle font', exact: true }).selectOption('mono');
+  let result = await finishProbe(page, info, 'subtitle-font');
+  expectOnlyControls(result, ['TextControl'], ['Subtitle']);
+  expectOnlyControls(result, STUDIO_FIELDS, ['Subtitle font']);
+  expect(result.mapMutations).toEqual([]);
+  await page.getByText('Photo story', { exact: true }).click();
+  await startProbe(page, 'Photo shape');
+  await page.getByRole('combobox', { name: 'Photo shape', exact: true }).selectOption('square');
+  result = await finishProbe(page, info, 'photo-shape');
+  expectOnlyControls(result, STUDIO_FIELDS, ['Photo shape']);
+  expect(result.mapMutations).toEqual([]);
+  await page.getByText('Compass, scale, grid & QR', { exact: true }).click();
+  await startProbe(page, 'Compass corner');
+  await page.getByRole('combobox', { name: 'Compass corner', exact: true }).selectOption('top-left');
+  result = await finishProbe(page, info, 'compass-corner');
+  expectOnlyControls(result, STUDIO_FIELDS, ['Compass corner']);
+  expect(result.mapMutations).toEqual([]);
+});
+
+test('terrain contour width leaves exaggeration, interval, color and toggles silent', async ({ page }, info) => {
+  await openScanEditor(page);
+  await page.getByRole('button', { name: 'Terrain & 3D relief', exact: true }).click();
+  await page.getByLabel('Show 3D terrain', { exact: true }).check();
+  await page.getByLabel('Show elevation contours', { exact: true }).check();
+  await startProbe(page, 'Contour width');
+  await page.getByLabel('Contour line width', { exact: true }).fill('2');
+  await page.getByLabel('Contour line width', { exact: true }).press('Enter');
+  const result = await finishProbe(page, info, 'contour-width');
+  expectOnlyControls(result, ['Checkbox', 'ValidatedNumberField'], ['Contour line width']);
+  expect(result.components.TerrainColor).toBeUndefined();
+  expect(result.components.StudioCompositionControls).toBeUndefined();
+  expect(result.mapMutations.filter(({ operation }) => ['addLayer', 'removeLayer', 'setData'].includes(operation))).toEqual([]);
 });
 
 test('wall preferences do not rebuild composition controls or live map', async ({ page }, info) => {
