@@ -123,11 +123,11 @@ async function decodePhoto(asset: PhotoAsset, name: string, signal?: AbortSignal
   }
 }
 
-export async function prepareStudioPdf(document: StudioCompositionDocument, projectToFrame: StudioProjector, signal?: AbortSignal): Promise<StudioPdfComposition> {
+export async function prepareStudioPdf(document: StudioCompositionDocument, projectToFrame: StudioProjector, signal?: AbortSignal, referenceLongitude?: number): Promise<StudioPdfComposition> {
   const primitives = deriveStudioComposition(document, (coordinate) => {
     const point = projectToFrame(coordinate);
     return { x: point.x * document.page.widthMm, y: point.y * document.page.heightMm };
-  });
+  }, undefined, referenceLongitude);
   if (primitives.length === 0) return { commands: '', images: [], opacities: [] };
   const images: StudioPdfImage[] = [];
   const byId = new Map<string, string>();

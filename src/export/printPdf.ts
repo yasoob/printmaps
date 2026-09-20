@@ -202,7 +202,7 @@ async function createPdf(
   options: Readonly<{ signal?: AbortSignal; subject?: string }> = {},
 ): Promise<Blob> {
   throwIfCancelled(options.signal);
-  const composition = await prepareStudioPdf(document, capture.projectToFrame, options.signal);
+  const composition = await prepareStudioPdf(document, capture.projectToFrame, options.signal, capture.referenceLongitude);
   throwIfCancelled(options.signal);
   const basemapLayer = document.layers.find(({ type }) => type === 'basemap');
   if (!basemapLayer) throw new Error('The project must contain exactly one basemap for PDF export.');

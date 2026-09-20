@@ -7,6 +7,7 @@ import type { StudioBox, StudioProjector } from '../print/studioGeometry';
 export type StudioDrawOptions = Readonly<{
   signal?: AbortSignal;
   camera?: StudioCamera;
+  referenceLongitude?: number;
   includeAttribution?: boolean;
   output?: Readonly<{ width: number; height: number }>;
   region?: StudioBox;
@@ -158,7 +159,7 @@ export function prepareStudioComposition(document: StudioCompositionDocument) {
         const point = projectToFrame(coordinate);
         return { x: point.x * document.page.widthMm, y: point.y * document.page.heightMm };
       };
-      const primitives = deriveStudioComposition(document, project, options.camera);
+      const primitives = deriveStudioComposition(document, project, options.camera, options.referenceLongitude);
       if (options.includeAttribution) primitives.push(...studioAttributionPrimitives(document));
       const output = options.output ?? canvas;
       context.save();

@@ -3,6 +3,10 @@ export type StudioBox = Readonly<StudioPoint & { width: number; height: number }
 export type StudioProjector = (coordinate: readonly [number, number]) => StudioPoint;
 const CENTER_FOCAL_POINT = { x: 0.5, y: 0.5 };
 
+export function canonicalStudioLongitude(longitude: number): number {
+  return ((longitude + 180) % 360 + 360) % 360 - 180;
+}
+
 export function xml(value: string): string {
   return value.replaceAll(/[&<>"']/g, (character) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;',

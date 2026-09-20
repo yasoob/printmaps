@@ -324,7 +324,7 @@ export function serializePrintScene(document: ProjectDocument, options: PrintSce
     `<metadata data-project-id="${escapeXml(document.id)}">${escapeXml(metadata || 'Raster basemap; vector overlays; physical dimensions in millimetres.')}</metadata>`,
     `<defs><clipPath id="page-clip"><rect x="0" y="0" width="${widthText}" height="${heightText}"/></clipPath></defs>`,
     basemapGroup, ...vectorGroups,
-    serializeStudioComposition(document, (coordinate) => options.project(coordinate, { layerId: 'studio-composition', pageWidthMm: width, pageHeightMm: height })),
+    serializeStudioComposition(document, (coordinate) => options.project(coordinate, { layerId: 'studio-composition', pageWidthMm: width, pageHeightMm: height }), undefined, options.referenceLongitude),
     attributionGroup,
     '</svg>',
   ].join('');

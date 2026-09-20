@@ -1,6 +1,6 @@
 import type { StudioCamera } from './studioLayout';
 import type { DecorationSettings } from '../domain/studio';
-import { type StudioBox, type StudioPoint, type StudioProjector } from './studioGeometry';
+import { canonicalStudioLongitude, type StudioBox, type StudioPoint, type StudioProjector } from './studioGeometry';
 import { studioText, type StudioPrimitive } from './studioPrimitives';
 
 function extent(center: readonly [number, number], project: StudioProjector, box: StudioBox) {
@@ -8,7 +8,8 @@ function extent(center: readonly [number, number], project: StudioProjector, box
   const north = project([center[0], Math.min(85.051129, center[1] + 0.001)]);
   const diagonal = Math.hypot(box.width, box.height) * 1.5;
   return {
-    longitude: Math.min(180, diagonal / Math.hypot(east.x - origin.x, east.y - origin.y) * 0.001),
+    // Avoid projecting both endpoints onto the same world copy at the +/-180 tie.
+    longitude: Math.min(180 - 1e-9, diagonal / Math.hypot(east.x - origin.x, east.y - origin.y) * 0.001),
     latitude: Math.min(85, diagonal / Math.hypot(north.x - origin.x, north.y - origin.y) * 0.001),
   };
 }
@@ -38,7 +39,7 @@ export function gridPrimitives(settings: DecorationSettings['grid'], camera: Stu
   };
   for (let lng = Math.ceil(west / interval) * interval; lng <= east; lng += interval) {
     const points = Array.from({ length: 65 }, (_, index) => project([lng, south + (north - south) * index / 64]));
-    const normalized = ((lng + 180) % 360 + 360) % 360 - 180;
+    const normalized = canonicalStudioLongitude(lng);
     addLine(points, `${Math.abs(normalized).toFixed(2)} ${normalized < 0 ? 'W' : 'E'}`);
   }
   for (let lat = Math.ceil(south / interval) * interval; lat <= north; lat += interval) {

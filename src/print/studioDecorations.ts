@@ -1,6 +1,6 @@
 import qrcode from 'qrcode-generator';
 import type { DecorationPosition } from '../domain/studio';
-import { projectedNorthAngle, scaleAtCenter, type StudioBox, type StudioPoint, type StudioProjector } from './studioGeometry';
+import { canonicalStudioLongitude, projectedNorthAngle, scaleAtCenter, type StudioBox, type StudioPoint, type StudioProjector } from './studioGeometry';
 import type { StudioCamera, StudioCompositionDocument } from './studioLayout';
 import { studioText, type StudioPrimitive } from './studioPrimitives';
 
@@ -12,7 +12,7 @@ export function locationQrUrl(document: StudioCompositionDocument, camera: Studi
     if (layer?.geometry?.type !== 'Point') throw new Error('Choose a point layer for the location QR code.');
     coordinate = layer.geometry.coordinates;
   }
-  const query = `${coordinate[1].toFixed(6)},${coordinate[0].toFixed(6)}`;
+  const query = `${coordinate[1].toFixed(6)},${canonicalStudioLongitude(coordinate[0]).toFixed(6)}`;
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
 

@@ -21,7 +21,7 @@ export async function prepareStudioPrintRenderer(document: ProjectDocument, expo
     async renderTile(request) {
       const canvas = await native(request);
       try {
-        await composition.draw(canvas, project, { signal: request.signal, output: request.output, region: request.region, includeAttribution: true });
+        await composition.draw(canvas, project, { signal: request.signal, output: request.output, region: request.region, includeAttribution: true, referenceLongitude: capture.referenceLongitude });
         return canvas;
       } catch (error) {
         canvas.width = 0; canvas.height = 0;

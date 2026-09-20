@@ -50,7 +50,7 @@ function useWallPreview(exporter: PreviewPngExporter | null, blockedReason?: str
       const capture = await exporter({ content: 'composite', signal: controller.signal });
       try {
         if (!capture.projectToFrame) throw new Error('The map projection is not ready for the wall preview.');
-        await drawStudioComposition(capture.surface, document, capture.projectToFrame, { signal: controller.signal, includeAttribution: true });
+        await drawStudioComposition(capture.surface, document, capture.projectToFrame, { signal: controller.signal, includeAttribution: true, referenceLongitude: capture.referenceLongitude });
         const blob = await encodedCanvas(capture.surface);
         if (controller.signal.aborted || store.getState().documentEpoch !== documentEpoch) return;
         setPreview({ epoch: documentEpoch, url: URL.createObjectURL(blob) });

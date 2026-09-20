@@ -1,7 +1,7 @@
 import type { CameraSettings, ProjectDocument } from '../domain/project';
 import type { PosterText, StudioSettings } from '../domain/studio';
 import type { TerrainAttributionSettings } from '../domain/projectAttributions';
-import type { StudioBox } from './studioGeometry';
+import { canonicalStudioLongitude, type StudioBox } from './studioGeometry';
 import { studioText, type StudioPrimitive } from './studioPrimitives';
 
 export type StudioCompositionDocument = Pick<ProjectDocument, 'page' | 'camera' | 'layers' | 'title'> & {
@@ -25,7 +25,8 @@ export function formatStudioCoordinates(coordinate: readonly [number, number], f
     const minutes = Math.floor(totalSeconds % 3600 / 60);
     return `${degrees}d ${minutes}' ${totalSeconds % 60}" ${suffix}`;
   };
-  return `${formatAxis(coordinate[1], coordinate[1] < 0 ? 'S' : 'N')} / ${formatAxis(coordinate[0], coordinate[0] < 0 ? 'W' : 'E')}`;
+  const longitude = canonicalStudioLongitude(coordinate[0]);
+  return `${formatAxis(coordinate[1], coordinate[1] < 0 ? 'S' : 'N')} / ${formatAxis(longitude, longitude < 0 ? 'W' : 'E')}`;
 }
 
 function textRows(document: StudioCompositionDocument, camera: StudioCamera): PosterText[] {
