@@ -15,7 +15,7 @@ export type PsdSvgRasterLayer = Readonly<{
   hidden: boolean;
   name: string;
   opacity: number;
-  role: 'content' | 'attribution';
+  role: 'content' | 'composition' | 'attribution';
   svg: string;
 }>;
 
@@ -50,8 +50,11 @@ function isolateSceneGroup(
   return new XMLSerializer().serializeToString(isolatedRoot);
 }
 
-function psdLayerRole(role: 'vector-overlay' | 'attribution'): 'content' | 'attribution' {
-  return role === 'attribution' ? 'attribution' : 'content';
+function psdLayerRole(role: 'vector-overlay' | 'composition' | 'attribution'): PsdSvgRasterLayer['role'] {
+  return role === 'vector-overlay' ? 'content' : role;
+}
+function isPsdSceneRole(role: string | undefined): role is 'vector-overlay' | 'composition' | 'attribution' {
+  return ['vector-overlay', 'composition', 'attribution'].includes(role ?? '');
 }
 
 function createPsdSvgRasterLayer(options: Readonly<{
@@ -64,7 +67,7 @@ function createPsdSvgRasterLayer(options: Readonly<{
   const { contentById, definitions, group, output, root } = options;
   const role = group.dataset.sceneRole;
   if (role === 'raster-basemap') return null;
-  if (role !== 'vector-overlay' && role !== 'attribution') {
+  if (!isPsdSceneRole(role)) {
     throw new Error('The print scene contains an unsupported Photoshop layer.');
   }
   const contentLayer = role === 'vector-overlay'

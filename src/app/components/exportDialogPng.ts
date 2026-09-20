@@ -12,6 +12,7 @@ import type { ExportPreflightResult, RasterDelivery } from '../../export/preflig
 import type { PrintSizePngStage } from '../../export/printSizePng';
 import { startPreviewDownload, type PreviewPngExporter } from '../../export/previewPng';
 import { createPrintRegionExportPlan, NATIVE_SYMBOL_BUFFER_PX } from './exportDialogRaster';
+import { prepareStudioPrintRenderer } from '../../export/studioPrintRenderer';
 
 type Options = Readonly<{
   abortControllerRef: React.RefObject<AbortController | null>;
@@ -89,6 +90,7 @@ export async function runPngExport(options: Options): Promise<void> {
   setStatus('Rendering native-detail map regions…');
   let writable: LargeRasterWritable | null = null;
   let isWritableOwnedByEncoder = false;
+  let poster: Awaited<ReturnType<typeof prepareStudioPrintRenderer>> | undefined;
 
   try {
     if (!preflight.dimensions || !preflight.plan) {
@@ -109,14 +111,14 @@ export async function runPngExport(options: Options): Promise<void> {
       signal: controller.signal,
       symbolBufferPx: document.style.visibility.labels ? NATIVE_SYMBOL_BUFFER_PX : 0,
     });
-    const nativeRenderer = exporter.createPrintTileRenderer;
-    if (!nativeRenderer) throw new Error('The live map preview is not ready yet. Wait for the map to load and try again.');
-    const renderTile = nativeRenderer(exportPlan);
+    poster = await prepareStudioPrintRenderer(document, exporter, exportPlan);
+    const { renderTile, isAttributionIncluded } = poster;
 
     if (writable) {
       isWritableOwnedByEncoder = true;
       const result = await createLargeRasterPng({
         preflight,
+        isAttributionIncluded,
         writable,
         renderTile: ({ region, signal }) => renderTile({ output, region, signal }),
         signal: controller.signal,
@@ -133,6 +135,7 @@ export async function runPngExport(options: Options): Promise<void> {
     const { createPrintSizePng } = await import('../../export/printSizePng');
     const result = await createPrintSizePng({
       preflight,
+      isAttributionIncluded,
       renderTile: ({ region, signal }) => renderTile({ output, region, signal }),
       signal: controller.signal,
       onStage: (stage) => reportPngStage(stage, setStatus),
@@ -152,6 +155,7 @@ export async function runPngExport(options: Options): Promise<void> {
   } catch (error) {
     await reportPngFailure({ error, writable, isWritableOwnedByEncoder, signal: controller.signal, setError, setStatus });
   } finally {
+    poster?.dispose();
     if (abortControllerRef.current === controller) abortControllerRef.current = null;
     setBusy(false);
   }

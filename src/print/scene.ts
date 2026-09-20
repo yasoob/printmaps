@@ -8,6 +8,7 @@ import { serializePoiMarker } from './poiMarker';
 import type { CustomMarkerAsset } from '../domain/customMarkerAssets';
 import { serializeShapeElement } from './shapeElement';
 import { serializeBasemapAsset, type PrintBasemapAsset, type RasterBasemapAsset } from './basemap';
+import { serializeStudioComposition } from './studioComposition';
 
 export type PagePoint = Readonly<{ x: number; y: number }>;
 
@@ -328,8 +329,8 @@ export function serializePrintScene(document: ProjectDocument, options: PrintSce
     `<desc>Layered print scene with a ${isVector ? 'vector artwork' : 'raster'} basemap and vector route, POI, and shape overlays.</desc>`,
     `<metadata data-project-id="${escapeXml(document.id)}">${escapeXml(metadata || 'Raster basemap; vector overlays; physical dimensions in millimetres.')}</metadata>`,
     `<defs><clipPath id="page-clip"><rect x="0" y="0" width="${widthText}" height="${heightText}"/></clipPath></defs>`,
-    basemapGroup,
-    ...vectorGroups,
+    basemapGroup, ...vectorGroups,
+    serializeStudioComposition(document, (coordinate) => options.project(coordinate, { layerId: 'studio-composition', pageWidthMm: width, pageHeightMm: height })),
     attributionGroup,
     '</svg>',
   ].join('');

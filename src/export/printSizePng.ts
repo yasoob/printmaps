@@ -14,6 +14,7 @@ type SharedPrintSizePngOptions = Readonly<{
   signal?: AbortSignal;
   onProgress?: (progress: RasterProgress) => void | PromiseLike<void>;
   onStage?: (stage: PrintSizePngStage) => void;
+  isAttributionIncluded?: boolean;
 }>;
 
 export type PrintSizePngStage = 'rendering' | 'composing' | 'encoding';
@@ -162,6 +163,7 @@ export async function createPrintSizePng({
   signal,
   onProgress,
   onStage,
+  isAttributionIncluded = false,
 }: PrintSizePngOptions): Promise<PreviewPng> {
   throwIfCancelled(signal);
   const { dimensions, plan } = requireSafePlan(preflight);
@@ -248,7 +250,7 @@ export async function createPrintSizePng({
     }, { signal });
 
     throwIfCancelled(signal);
-    if (renderTile) drawNativeAttribution(
+    if (renderTile && !isAttributionIncluded) drawNativeAttribution(
       outputContext,
       dimensions.widthPx,
       dimensions.heightPx,

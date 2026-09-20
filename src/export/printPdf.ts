@@ -10,6 +10,7 @@ import {
 import type { PreviewPng } from './previewPng';
 import type { VectorBasemapCapture } from './vector/scene';
 import { createVectorPdfDocument } from './vector/document';
+import { prepareStudioPdf, studioPdfResources } from './studioPdf';
 
 const POINTS_PER_MM = 72 / 25.4;
 type ProjectedCapture = Pick<PreviewPng, 'referenceLongitude'> & Required<Pick<PreviewPng, 'projectToFrame'>>;
@@ -124,6 +125,7 @@ function createContentStream(options: Readonly<{
   width: number;
   height: number;
   attributionText: string;
+  compositionCommands: string;
 }>): Uint8Array {
   const { attributionText, basemapImages, basemapOutput, capture, groups, height, width } = options;
   const basemap = groups.find(({ layer }) => layer?.type === 'basemap');
@@ -168,6 +170,7 @@ function createContentStream(options: Readonly<{
   }
   const attribution = groups.at(-1);
   if (!attribution) throw new Error('The PDF attribution layer is unavailable.');
+  if (options.compositionCommands) lines.push('/OC /Composition BDC', options.compositionCommands, 'EMC');
   const attributionFontSize = fitAttributionFontSize(attributionText, Math.max(0.1, width - 12), 6);
   lines.push(
     '/OC /Attribution BDC',
@@ -206,32 +209,33 @@ function validatePdfDocument(document: ProjectDocument): void {
   if (basemapLayers.length !== 1) throw new Error('The project must contain exactly one basemap for PDF export.');
 }
 
-function createPdf(
+async function createPdf(
   document: ProjectDocument,
   capture: ProjectedCapture,
   basemap: PdfBasemap,
   options: Readonly<{ signal?: AbortSignal; subject?: string }> = {},
 ): Promise<Blob> {
   throwIfCancelled(options.signal);
+  const composition = await prepareStudioPdf(document, capture.projectToFrame, options.signal);
+  throwIfCancelled(options.signal);
   const basemapLayer = document.layers.find(({ type }) => type === 'basemap');
   if (!basemapLayer) throw new Error('The project must contain exactly one basemap for PDF export.');
-  const width = document.page.widthMm * POINTS_PER_MM;
-  const height = document.page.heightMm * POINTS_PER_MM;
+  const width = document.page.widthMm * POINTS_PER_MM, height = document.page.heightMm * POINTS_PER_MM;
   const vectorLayers = document.layers.filter(({ type }) => type !== 'basemap');
   const groups: PdfGroup[] = [
     { layer: basemapLayer, name: basemapLayer.name, resourceName: 'Basemap' },
     ...vectorLayers.map((layer, index) => ({ layer, name: layer.name, resourceName: `Layer${index}` })),
+    ...(composition.commands ? [{ name: 'Poster composition', resourceName: 'Composition' }] : []),
     { name: 'Attribution', resourceName: 'Attribution' },
   ];
 
-  const firstImageObject = 5;
-  const fontReference = firstImageObject + basemap.images.length;
+  const firstImageObject = 5, fontReference = firstImageObject + basemap.images.length;
   const firstGroupObject = fontReference + 1;
   const groupReferences = groups.map((_, index) => firstGroupObject + index);
-  const firstGraphicsStateObject = firstGroupObject + groups.length;
-  const basemapGraphicsStateReference = firstGraphicsStateObject;
+  const firstGraphicsStateObject = firstGroupObject + groups.length, basemapGraphicsStateReference = firstGraphicsStateObject;
   const graphicsStateReferences = vectorLayers.map((_, index) => firstGraphicsStateObject + index + 1);
   const infoReference = firstGraphicsStateObject + vectorLayers.length + 1;
+  const studioResources = studioPdfResources(composition, infoReference + 1);
   const allGroupReferences = groupReferences.map((reference) => `${reference} 0 R`).join(' ');
   const orderedGroupReferences = [
     ...groupReferences.slice(1, -1),
@@ -259,12 +263,13 @@ function createPdf(
     width,
     height,
     attributionText: projectAttributionText(document),
+    compositionCommands: composition.commands,
   });
 
   const objects: PdfObject[] = [
     [`<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [${allGroupReferences}] /D << /Order [${orderedGroupReferences}] /OFF [${offGroupReferences}] >> >> >>`],
     ['<< /Type /Pages /Kids [3 0 R] /Count 1 >>'],
-    [`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${formatNumber(width)} ${formatNumber(height)}] /CropBox [0 0 ${formatNumber(width)} ${formatNumber(height)}] /Resources << /XObject << ${imageResources} >> /Font << /F1 ${fontReference} 0 R >> /Properties << ${properties} >> /ExtGState << ${graphicsStates} >> >> /Contents 4 0 R >>`],
+    [`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${formatNumber(width)} ${formatNumber(height)}] /CropBox [0 0 ${formatNumber(width)} ${formatNumber(height)}] /Resources << /XObject << ${imageResources} ${studioResources.imageResources} >> /Font << /F1 ${fontReference} 0 R ${studioResources.fontResources} >> /Properties << ${properties} >> /ExtGState << ${graphicsStates} ${studioResources.graphicsStates} >> >> /Contents 4 0 R >>`],
     streamObject('', content),
     ...basemap.images.map(({ bytes, dictionary }) => streamObject(dictionary, bytes)),
     ['<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>'],
@@ -272,8 +277,9 @@ function createPdf(
     [`<< /Type /ExtGState /CA ${opacityValue(basemapLayer)} /ca ${opacityValue(basemapLayer)} >>`],
     ...vectorLayers.map((layer) => [`<< /Type /ExtGState /CA ${opacityValue(layer)} /ca ${opacityValue(layer)} >>`] as PdfObject),
     [`<< /Title ${pdfString(document.title)} /Creator (Print Map Studio) /Subject ${pdfString(options.subject ?? 'Exact-page PDF with a raster basemap and named vector overlays.')} >>`],
+    ...studioResources.objects,
   ];
-  return Promise.resolve(buildPdfBlob(objects, infoReference));
+  return buildPdfBlob(objects, infoReference);
 }
 
 export async function createVectorPrintPdf(document: ProjectDocument, capture: VectorBasemapCapture, signal?: AbortSignal): Promise<Blob> {
@@ -306,7 +312,7 @@ export async function createPrintPdf(
       resourceName: 'BasemapImage0',
     }],
     output: { width: capture.width, height: capture.height },
-  });
+  }, { signal });
 }
 
 export async function createNativePrintPdf(
@@ -320,5 +326,5 @@ export async function createNativePrintPdf(
   return createPdf(document, capture, {
     images: raster.images.map((image) => losslessImage(image)),
     output: raster.output,
-  });
+  }, { signal: options.signal });
 }

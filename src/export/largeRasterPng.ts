@@ -20,6 +20,7 @@ type Options = Readonly<{
   signal?: AbortSignal;
   onProgress?: (progress: RasterProgress) => void | PromiseLike<void>;
   onStage?: (stage: LargeRasterStage) => void;
+  isAttributionIncluded?: boolean;
 }>;
 
 type SaveFilePicker = (options: Readonly<{
@@ -254,7 +255,7 @@ export async function createLargeRasterPng(options: Options): Promise<Readonly<{
     const { dimensions } = requireStreamingPlan(preflight);
     const regions = createLargeRasterPngRegions(preflight);
     writer = new StreamingPngWriter(writable);
-    const attribution = attributionPixels(dimensions.widthPx, dimensions.heightPx, preflight.attributions);
+    const attribution = options.isAttributionIncluded ? null : attributionPixels(dimensions.widthPx, dimensions.heightPx, preflight.attributions);
     await writer.start(dimensions.widthPx, dimensions.heightPx);
     for (const region of regions) {
       throwIfCancelled(signal);
@@ -270,7 +271,7 @@ export async function createLargeRasterPng(options: Options): Promise<Readonly<{
     }
     if (strip) {
       onStage?.('encoding');
-      applyAttribution(strip.pixels, dimensions.widthPx, strip.height, attribution);
+      if (attribution) applyAttribution(strip.pixels, dimensions.widthPx, strip.height, attribution);
       await encodeStrip({ writer, strip, width: dimensions.widthPx, signal });
     }
     onStage?.('writing');

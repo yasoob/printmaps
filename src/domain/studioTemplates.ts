@@ -44,7 +44,7 @@ export function posterTemplateSettings(templateId: PosterTemplate['id'], title: 
 }
 
 export function createPosterTemplateApplication(
-  document: Pick<ProjectDocument, 'title' | 'style' | 'camera'>,
+  document: Pick<ProjectDocument, 'title' | 'style' | 'camera' | 'studio'>,
   templateId: PosterTemplate['id'],
   starter?: PosterStarter,
 ): StudioTemplateApplication {
@@ -55,7 +55,7 @@ export function createPosterTemplateApplication(
     ? { ...document.camera, center: [...starter.center], zoom: starter.zoom, bearing: 0, pitch: 0 }
     : undefined;
   return {
-    poster: posterTemplateSettings(templateId, starter?.name ?? document.title, starter?.subtitle),
+    poster: { ...posterTemplateSettings(templateId, starter?.name ?? document.title, starter?.subtitle), silhouetteLayerId: document.studio.poster.silhouetteLayerId },
     style: { ...document.style, preset: template.preset },
     ...(camera && { camera }),
   };

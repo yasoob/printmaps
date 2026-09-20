@@ -18,16 +18,23 @@ function throwIfCancelled(signal?: AbortSignal): void {
 
 function imageLoader() {
   const images = new Map<string, Promise<HTMLImageElement>>();
-  const owned: HTMLImageElement[] = [];
+  const release: Array<() => void> = [];
   return {
     load(id: string, source: string) {
       let promise = images.get(id);
       if (!promise) {
         promise = new Promise<HTMLImageElement>((resolve, reject) => {
           const image = new Image();
-          owned.push(image);
-          image.addEventListener('load', () => resolve(image), { once: true });
-          image.addEventListener('error', () => reject(new Error(`Photo "${id}" cannot be decoded. Reattach this photo before exporting.`)), { once: true });
+          const loaded = () => resolve(image);
+          const failed = () => reject(new Error(`Photo "${id}" cannot be decoded. Reattach this photo before exporting.`));
+          image.addEventListener('load', loaded, { once: true });
+          image.addEventListener('error', failed, { once: true });
+          release.push(() => {
+            image.removeEventListener('load', loaded);
+            image.removeEventListener('error', failed);
+            image.src = '';
+            reject(new DOMException('Poster image decoding cancelled.', 'AbortError'));
+          });
           image.src = source;
         });
         images.set(id, promise);
@@ -35,11 +42,32 @@ function imageLoader() {
       return promise;
     },
     dispose() {
-      for (const image of owned) image.src = '';
+      for (const dispose of release) dispose();
       images.clear();
-      owned.length = 0;
+      release.length = 0;
     },
   };
+}
+
+function abortableImage(promise: Promise<HTMLImageElement>, signal?: AbortSignal): Promise<HTMLImageElement> {
+  throwIfCancelled(signal);
+  if (!signal) return promise;
+  return new Promise((resolve, reject) => {
+    const abort = () => reject(new DOMException('Poster image decoding cancelled.', 'AbortError'));
+    signal.addEventListener('abort', abort, { once: true });
+    async function settle() {
+      try {
+        const image = await promise;
+        if (signal!.aborted) abort();
+        else resolve(image);
+      } catch (error) {
+        reject(error);
+      } finally {
+        signal!.removeEventListener('abort', abort);
+      }
+    }
+    void settle();
+  });
 }
 
 function clipBox(context: CanvasRenderingContext2D, box: StudioBox): void {
@@ -77,13 +105,14 @@ function drawText(context: CanvasRenderingContext2D, primitive: Extract<StudioPr
   context.fillText(primitive.text, 0, 0);
 }
 
-async function drawPrimitive(context: CanvasRenderingContext2D, primitive: StudioPrimitive, images: ReturnType<typeof imageLoader>): Promise<void> {
+async function drawPrimitive(context: CanvasRenderingContext2D, primitive: StudioPrimitive, images: ReturnType<typeof imageLoader>, signal?: AbortSignal): Promise<void> {
   context.save();
   try {
     if (primitive.clip) clipBox(context, primitive.clip);
     if (primitive.kind === 'text') return drawText(context, primitive);
     if (primitive.kind === 'image') {
-      const image = await images.load(primitive.asset.id, primitive.asset.dataUri);
+      const image = await abortableImage(images.load(primitive.asset.id, primitive.asset.dataUri), signal);
+      throwIfCancelled(signal);
       const { box, imageBox } = primitive;
       const path = new Path2D();
       if (primitive.shape === 'circle') path.arc(box.x + box.width / 2, box.y + box.height / 2, Math.min(box.width, box.height) / 2, 0, Math.PI * 2);
@@ -138,7 +167,7 @@ export function prepareStudioComposition(document: StudioCompositionDocument) {
         context.scale(output.width / document.page.widthMm, output.height / document.page.heightMm);
         for (const primitive of primitives) {
           throwIfCancelled(options.signal);
-          await drawPrimitive(context, primitive, images);
+          await drawPrimitive(context, primitive, images, options.signal);
         }
         throwIfCancelled(options.signal);
       } finally {

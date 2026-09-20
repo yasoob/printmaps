@@ -177,7 +177,7 @@ export async function createLayeredPsd(
       name: basemapLayer.name,
       opacity: psdLayerOpacity(basemapLayer),
     };
-    const smartObjectLayers: Array<PsdRasterLayer & { role: 'content' | 'attribution' }> = [];
+    const smartObjectLayers: Array<PsdRasterLayer & { role: 'content' | 'composition' | 'attribution' }> = [];
     const linkedFiles: LinkedFile[] = [];
 
     const svgLayers = createPsdSvgRasterLayers(document, capture, output);
@@ -203,6 +203,7 @@ export async function createLayeredPsd(
     const bottomToTopLayers: PsdRasterLayer[] = [
       basemapLayerSource,
       ...reverseLayerOrder(contentLayers),
+      ...smartObjectLayers.filter(({ role }) => role === 'composition'),
       attributionLayer,
     ];
     for (const layer of bottomToTopLayers) drawCompositeLayer(compositeContext, layer);
