@@ -11,7 +11,14 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ['maplibre-contour'],
+    include: [
+      'maplibre-contour',
+      '@mapbox/vector-tile',
+      '@maplibre/maplibre-gl-style-spec',
+      'pbf',
+      'pdf-lib',
+      '@pdf-lib/fontkit',
+    ],
     exclude: ['maplibre-gl'],
   },
   test: {

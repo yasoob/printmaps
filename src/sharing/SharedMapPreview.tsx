@@ -19,6 +19,7 @@ function SharedCompositionOverlay({ document, receiverRef }: {
   }, [receiverRef]);
   if (!projection) return <p className="shared-artwork-status" role="status">Preparing shared artwork…</p>;
   return <StudioPosterPreview document={document} camera={projection.camera} projectToFrame={projection.projectToFrame}
+    referenceLongitude={projection.referenceLongitude}
     style={{
       left: projection.frame.x, top: projection.frame.y,
       width: projection.frame.width, height: projection.frame.height,

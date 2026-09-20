@@ -27,7 +27,7 @@ export const StudioMapCanvas = memo(function StudioMapCanvas({ composition, ...m
     <StableMapCanvas {...mapProps}
       onFrameProjectionChange={isComposed ? receiveProjection : onFrameProjectionChange} />
     {isComposed && projection && <StudioPosterPreview document={document}
-      projectToFrame={projection.projectToFrame} camera={projection.camera}
+      projectToFrame={projection.projectToFrame} camera={projection.camera} referenceLongitude={projection.referenceLongitude}
       style={{ inset: 'auto', left: projection.frame.x, top: projection.frame.y,
         width: projection.frame.width, height: projection.frame.height }} />}
   </>;
