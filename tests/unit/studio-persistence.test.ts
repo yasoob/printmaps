@@ -37,6 +37,29 @@ it('counts studio-only edits as work worth protecting, while defaults remain pri
   expect(isPristineProjectDocument(store.getState().document)).toBe(true);
 });
 
+it.each([24, 25])('normalizes a directly opened schema %i document before copying or publishing it', (schemaVersion) => {
+  const legacy = createNewProjectDocument();
+  Reflect.set(legacy, 'schemaVersion', schemaVersion);
+  Reflect.deleteProperty(legacy, 'studio');
+  if (schemaVersion === 24) Reflect.deleteProperty(legacy.style, 'customization');
+  const store = createProjectStore(studioProject());
+  expect(store.getState().openDocument(legacy)).toMatchObject({ ok: true });
+  expect(store.getState().document).toEqual(createNewProjectDocument());
+  expect(store.getState().documentEpoch).toBe(1);
+  expect(store.getState().past).toEqual([]);
+});
+
+it('rejects a malformed legacy open without changing the epoch, document or history', () => {
+  const legacy = studioProject();
+  Reflect.set(legacy, 'schemaVersion', 25);
+  legacy.studio.terrain.exaggeration = Infinity;
+  const store = createProjectStore();
+  store.getState().setProjectTitle('Current work');
+  const before = store.getState();
+  expect(before.openDocument(legacy)).toMatchObject({ ok: false, code: 'invalid' });
+  expect(store.getState()).toBe(before);
+});
+
 it('round-trips all studio data through IndexedDB without a second store or record namespace', async () => {
   vi.stubGlobal('indexedDB', new IDBFactory());
   const repository = createIndexedDbAutosaveRepository({ databaseName: 'studio-roundtrip' });

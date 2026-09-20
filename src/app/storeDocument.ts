@@ -1,11 +1,15 @@
 import {
   cloneContentLayer,
+  PROJECT_SCHEMA_VERSION,
   type ContentLayer,
   type ProjectDocument,
 } from '../domain/project';
 import { hasExactlyOneBottomBasemap } from '../domain/projectLayerStructure';
 import type { ProjectState } from './store';
 import { commitDocument, type ProjectSet } from './storeMutation';
+import { parseProjectDocument, ProjectFileError } from '../domain/projectFile';
+import { mutationRejected } from '../domain/projectMutation';
+import { ProjectSizeError } from '../domain/projectSerialization';
 
 export { commitDocument, type ProjectSet } from './storeMutation';
 
@@ -64,7 +68,14 @@ export function createDocumentActions(set: ProjectSet): Pick<ProjectState, 'open
       if (!hasExactlyOneBottomBasemap(storedDocument.layers)) {
         throw new Error('Opened projects must contain exactly one basemap as the final layer.');
       }
-      const openedDocument = copyDocument(storedDocument);
+      let openedDocument: ProjectDocument;
+      try {
+        openedDocument = copyDocument(storedDocument.schemaVersion === PROJECT_SCHEMA_VERSION
+          ? storedDocument : parseProjectDocument(storedDocument));
+      } catch (error) {
+        if (!(error instanceof ProjectFileError)) throw error;
+        return mutationRejected(`${error.message} Nothing was changed.`, error instanceof ProjectSizeError ? 'capacity' : 'invalid');
+      }
       return set((state) => ({
         document: openedDocument,
         documentEpoch: state.documentEpoch + 1,
