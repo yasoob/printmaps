@@ -112,3 +112,13 @@ it('preserves unwrapped antimeridian print-frame coordinates', () => {
   const frame = terrainFrame({ ...footprint, corners: [[179.99, 0.01], [180.01, 0.01], [180.01, 0], [179.99, 0]] });
   expect(frame.projectRoute([-180, 0.005]).x).toBeCloseTo(0.5);
 });
+
+it('preserves all four terrain-aware print corners and uses matching inverse route projection', () => {
+  const warped: TerrainFootprint = { ...footprint, corners: [[0, 0.01], [0.01, 0.011], [0.012, 0], [-0.001, 0.001]] };
+  const frame = terrainFrame(warped);
+  expect(frame.projectRoute(warped.corners[2]).x).toBeCloseTo(1);
+  expect(frame.projectRoute(warped.corners[2]).y).toBeCloseTo(1);
+  const bottomRight = frame.sample(1, 1);
+  expect(bottomRight.x).toBeCloseTo((0.012 + 180) / 360, 12);
+  expect(bottomRight.y).toBeCloseTo(0.5, 12);
+});

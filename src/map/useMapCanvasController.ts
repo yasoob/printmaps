@@ -192,8 +192,7 @@ function useCameraMutationError(
 }
 
 export function useMapCanvasController({
-  terrain,
-  basemapVisible, camera, getCanonicalCamera, stylePreset, styleCustomization, language, textScalePercent, featureVisibility,
+  terrain, basemapVisible, camera, getCanonicalCamera, stylePreset, styleCustomization, language, textScalePercent, featureVisibility,
   fitRequest, fitLayerId, fitLayerRequest, fitImportBounds, fitImportRequest, locationRequest,
   layers, assets,
   onBackgroundClick, onExporterChange, onFitPage, onLayerSelect,

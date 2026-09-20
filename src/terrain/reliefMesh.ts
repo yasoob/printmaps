@@ -101,7 +101,7 @@ export async function encodeBinaryStl(mesh: ReliefMesh, options: Pick<ReliefMesh
   const count = mesh.triangles.length / 3;
   const buffer = new ArrayBuffer(84 + count * 50);
   const output = new DataView(buffer);
-  new Uint8Array(buffer, 0, 80).set(new TextEncoder().encode('Print Map Studio; millimeters; AWS Terrain Tiles (Mapzen)/USGS/SRTM'));
+  new Uint8Array(buffer, 0, 80).set(new TextEncoder().encode('Print Map Studio mm; github.com/tilezen/joerd/blob/master/docs/attribution.md'));
   output.setUint32(80, count, true);
   const { vertices, triangles } = mesh;
   for (let face = 0; face < count; face++) {

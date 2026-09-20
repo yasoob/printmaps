@@ -39,7 +39,7 @@ export function ReliefExportDialog({ exporter, onClose, blockedReason, ...contro
   const fitDimensions = () => {
     try {
       const frame = terrainFrame(capture().footprint);
-      const heightMm = controls.settings.widthMm * frame.heightMeters / frame.widthMeters;
+      const heightMm = Number((controls.settings.widthMm * frame.heightMeters / frame.widthMeters).toFixed(3));
       const result = controls.onChange({ ...controls.settings, heightMm });
       if (!result.ok) throw new Error(result.error);
       setError(null);
@@ -74,14 +74,14 @@ export function ReliefExportDialog({ exporter, onClose, blockedReason, ...contro
     }
   };
   return <Dialog open onOpenChange={(open, details) => { if (!open && isBusy) details.cancel(); else if (!open) onClose(); }}>
-    <DialogContent className="relief-export-dialog" showCloseButton={false} aria-busy={isBusy}>
-      <StudioDialogHeader><DialogTitle>Export 3D terrain relief</DialogTitle><DialogDescription>A watertight binary STL of the actual print area. Set Pitch to 0; bearing is preserved.</DialogDescription></StudioDialogHeader>
+    <DialogContent className="export-dialog relief-export-dialog" overlayClassName="export-dialog-backdrop" showCloseButton={false} aria-busy={isBusy}>
+      <StudioDialogHeader><div><DialogTitle>Export 3D terrain relief</DialogTitle><DialogDescription>A watertight binary STL of the actual print area. Set Pitch to 0; bearing is preserved.</DialogDescription></div></StudioDialogHeader>
       <StudioDialogBody>
         <fieldset disabled={isBusy || !!blockedReason} className="relief-fields">
           <ReliefSettingsControls {...controls} />
           <button type="button" className="secondary-button" disabled={!canExport} onClick={fitDimensions}>Fit dimensions to print frame</button>
         </fieldset>
-        <p className="terrain-hint">The lowest terrain sample sits on the base. Relief height uses physical map scale at the frame center, multiplied by exaggeration. Elevation tiles are an approximation, not survey data.</p>
+        <p className="terrain-hint">The lowest terrain sample sits on the base. All four elevation-aware frame corners are interpolated across the model; scale uses average edge lengths at the frame center. Exaggeration multiplies relief height. Elevation tiles are an approximation, not survey data.</p>
         <p className="terrain-hint">{reliefAttributionNotice()}</p>
         <progress max={1} value={progress.fraction} aria-label="Terrain export progress" />
         <p role="status">{progress.message}</p>

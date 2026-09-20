@@ -232,6 +232,16 @@ function markerAtFraction(
   };
 }
 
+export function deriveRenderedRoutePath(layer: ContentLayer, maximumPoints = Infinity): RoutePosition[] | null {
+  if (!isCompleteRouteLayer(layer)) return null;
+  const estimatedPoints = layer.geometry.type === 'Arc'
+    ? 1 + (layer.geometry.anchors.length - 1) * DEFAULT_ARC_SEGMENTS
+    : layer.geometry.coordinates.length;
+  if (estimatedPoints > maximumPoints) throw new RangeError(`Route exceeds the ${maximumPoints} point export limit. Simplify the route before exporting.`);
+  const paths = renderedLegPaths(layer);
+  return paths?.flatMap((path, index) => path.slice(index === 0 ? 0 : 1)) ?? null;
+}
+
 export function deriveRenderedRoute(layer: ContentLayer): RenderedRoute | null {
   if (!isCompleteRouteLayer(layer)) return null;
   const paths = renderedLegPaths(layer);

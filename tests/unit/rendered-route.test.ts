@@ -6,6 +6,7 @@ import {
 import { createArcGeometry } from '../../src/domain/routeArcGeometry';
 import {
   deriveRenderedRoute,
+  deriveRenderedRoutePath,
   partitionRoadGeometry,
   projectedRouteMarkerBearing,
 } from '../../src/domain/renderedRoute';
@@ -35,6 +36,7 @@ describe('shared rendered-route derivation', () => {
   it('returns complete and per-leg Straight paths with resolved styles', () => {
     const rendered = deriveRenderedRoute(route([[0, 0], [1, 0], [2, 1]]))!;
     expect(rendered.path).toEqual([[0, 0], [1, 0], [2, 1]]);
+    expect(deriveRenderedRoutePath(route([[0, 0], [1, 0], [2, 1]]))).toEqual(rendered.path);
     expect(rendered.legs).toEqual([
       {
         index: 0,
@@ -59,6 +61,8 @@ describe('shared rendered-route derivation', () => {
     expect(rendered.legs[0].path[12][1]).toBeGreaterThan(0);
     expect(rendered.legs[1].path[12][1]).toBeLessThan(0);
     expect(rendered.path).toHaveLength(49);
+    expect(deriveRenderedRoutePath(layer, 49)).toEqual(rendered.path);
+    expect(() => deriveRenderedRoutePath(layer, 48)).toThrow('point export limit');
   });
 
   it('partitions backtracking Road geometry at nearest monotonic waypoint indices', () => {
@@ -86,6 +90,7 @@ describe('shared rendered-route derivation', () => {
       layer.appearance.segmentStyles = [null, null, null];
     }
     expect(deriveRenderedRoute(layer)?.legs.map((leg) => leg.path)).toEqual(legs);
+    expect(deriveRenderedRoutePath(layer)).toEqual(deriveRenderedRoute(layer)?.path);
   });
 
   it('places center, endpoint fraction, and half-spacing repeat markers with tangents', () => {

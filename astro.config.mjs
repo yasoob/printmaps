@@ -30,6 +30,7 @@ export default defineConfig({
     },
     define: clientEnvironment,
     optimizeDeps: {
+      include: ['maplibre-contour'],
       exclude: ['maplibre-gl'],
     },
     server: {

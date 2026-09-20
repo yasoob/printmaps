@@ -11,6 +11,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
+    include: ['maplibre-contour'],
     exclude: ['maplibre-gl'],
   },
   test: {

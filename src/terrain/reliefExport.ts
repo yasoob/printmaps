@@ -1,5 +1,5 @@
 import type { ReliefSettings } from '../domain/studio';
-import { deriveRenderedRoute } from '../domain/renderedRoute';
+import { deriveRenderedRoutePath } from '../domain/renderedRoute';
 import type { MapRenderSnapshot } from '../map/MapRenderSnapshot';
 import { loadElevationGrid, type TerrainProgress } from './elevationGrid';
 import { createReliefMesh, encodeBinaryStl } from './reliefMesh';
@@ -19,7 +19,7 @@ export async function exportTerrainRelief(snapshot: MapRenderSnapshot, settings:
     throw new Error('Choose a visible route layer for the raised ridge.');
   }
   const route = layer && settings.routeRidge.enabled
-    ? deriveRenderedRoute(layer)?.path.map((coordinate) => frame.projectRoute(coordinate))
+    ? deriveRenderedRoutePath(layer, 100_000)?.map((coordinate) => frame.projectRoute(coordinate))
     : undefined;
   const grid = await loadElevationGrid(snapshot.footprint, DETAIL_SAMPLES[settings.detail], options);
   const mesh = await createReliefMesh(grid, { ...options, settings, route });
