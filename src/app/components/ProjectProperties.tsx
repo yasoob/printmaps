@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { RotateCcw } from 'lucide-react';
 import type { CameraSettings, MapFeatureVisibilityCategory, MapLanguage, MapStylePreset, MapStyleSettings, PagePreset, PageSettings } from '../../domain/project';
 import { isMapStyleCustomized, type MapStyleTone } from '../../domain/mapStyleCustomization';
@@ -23,6 +23,7 @@ import { trackEditorAction } from '../../analytics/editorAnalytics';
 export type CameraInspectorView = Pick<CameraSettings, 'bearing' | 'locked' | 'pitch'>;
 
 type ProjectPropertiesProps = {
+  terrainControls?: ReactNode;
   documentEpoch: number;
   page: PageSettings;
   pageBoundaryVisible: boolean;
@@ -60,6 +61,7 @@ const MAP_LANGUAGE_LABELS: Record<MapLanguage, string> = {
 };
 
 export function ProjectProperties({
+  terrainControls,
   camera,
   documentEpoch,
   style,
@@ -165,6 +167,7 @@ export function ProjectProperties({
         <Checkbox isChecked={style.visibility.transit} label="Show transit" onCheckedChange={(isChecked) => featureVisibilityChange('transit', isChecked)} />
         {detailFeedback.error && <p className="coordinate-validation" role="alert">{detailFeedback.error}</p>}
       </InspectorAccordion>
+      {terrainControls}
     </div>
   );
 }

@@ -91,7 +91,7 @@ describe('native map export camera', () => {
   it('renders every tile in a fresh target-pixel MapLibre surface and cleans it up', async () => {
     const sourceCanvas = document.createElement('canvas');
     sourceCanvas.getBoundingClientRect = () => rect(100, 50, 800, 600);
-    const sourceStyle = { version: 8 as const, sources: {}, layers: [] };
+    const sourceStyle = { version: 8 as const, sources: { terrain: { type: 'raster-dem' as const, tiles: ['https://example.test/{z}/{x}/{y}.png'], encoding: 'terrarium' as const } }, layers: [], terrain: { source: 'terrain', exaggeration: 2 } };
     const sourceMap = {
       getBearing: () => 25,
       getCanvas: () => sourceCanvas,

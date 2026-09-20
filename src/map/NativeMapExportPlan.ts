@@ -66,6 +66,9 @@ export function prepareNativePrintExport(
   validateMultiRegionCamera(source, plan);
   const content = plan.content ?? 'composite';
   const resolvedStyle = source.resolveStyle?.(content) ?? source.map.getStyle();
+  if (plan.regions.length > 1 && resolvedStyle.terrain) {
+    throw new Error('Multi-region raster export cannot preserve 3D terrain seamlessly. Reduce output dimensions or disable 3D terrain before exporting.');
+  }
   const currentStyle = content === 'basemap'
     ? withoutStudioContentLayers(resolvedStyle)
     : structuredClone(resolvedStyle);

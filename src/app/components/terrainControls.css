@@ -1,0 +1,44 @@
+.terrain-hint {
+  color: var(--studio-text-secondary);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.relief-export-dialog {
+  display: flex;
+  flex-direction: column;
+  max-height: min(90dvh, 850px);
+  max-width: min(620px, calc(100vw - 24px));
+  padding: 0;
+  gap: 0;
+}
+
+.relief-export-dialog .studio-dialog-body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.relief-fields {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  border: 0;
+  padding: 0;
+}
+
+.relief-fields:disabled {
+  opacity: 0.65;
+}
+
+.relief-export-dialog progress {
+  width: 100%;
+  height: 12px;
+}
+
+@media (max-width: 480px) {
+  .relief-fields .paired-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

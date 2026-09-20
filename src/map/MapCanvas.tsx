@@ -12,12 +12,14 @@ import type { DraftRouteEditing } from './DraftRouteEditing';
 import { mapLocationRequestDiagnostic, resolveMapLocationRequest, type MapLocationRequest } from './MapLocationRequest';
 import { useMapCanvasController } from './useMapCanvasController';
 import type { MapError } from './MapCanvasLifecycle';
+import { createDefaultStudioSettings, type TerrainSettings } from '../domain/studio';
 
 import type { GeometryEditResult, ProjectMutationResult } from '../domain/projectMutation';
 import { useGeometryMutationFeedback } from './useGeometryMutationFeedback';
 import type { MapFrameProjection } from './MapFrameProjection';
 
 type MapCanvasProps = {
+  terrain?: TerrainSettings;
   cameraNoticeContainer?: HTMLDivElement | null;
   basemapVisible?: boolean;
   camera?: CameraSettings;
@@ -79,6 +81,8 @@ const resolveMapLanguage = (language?: MapLanguage) => language ?? 'local';
 const resolveShapeEditMode = (mode?: ShapeEditMode): ShapeEditMode => mode ?? 'transform';
 const resolveInteractionMode = (mode?: string) => mode ?? 'select';
 const DEFAULT_STYLE_CUSTOMIZATION = createDefaultMapStyleCustomization();
+const DEFAULT_TERRAIN = createDefaultStudioSettings().terrain;
+const resolveTerrain = (terrain?: TerrainSettings) => terrain ?? DEFAULT_TERRAIN;
 const ignoreFitPage = () => {};
 const resolveFitPage = (fitPage?: () => void) => fitPage ?? ignoreFitPage;
 const resolveStyleCustomization = (customization?: MapStyleCustomization) => customization ?? DEFAULT_STYLE_CUSTOMIZATION;
@@ -116,6 +120,7 @@ function CameraMutationError({ error, container }: { error: string | null; conta
 }
 
 export function MapCanvas({
+  terrain,
   cameraNoticeContainer,
   basemapVisible,
   camera = DEFAULT_CAMERA,
@@ -161,6 +166,7 @@ export function MapCanvas({
     layers, onPoiCoordinatesChange, onRouteGeometryChange, onRouteVertexChange, onRouteVertexInsert, onShapeGeometryChange,
   });
   const { cameraError, container, retryMap, visibleError } = useMapCanvasController({
+    terrain: resolveTerrain(terrain),
     basemapVisible: resolveBasemapVisibility(basemapVisible),
     camera,
     getCanonicalCamera,

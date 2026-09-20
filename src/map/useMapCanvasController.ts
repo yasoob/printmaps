@@ -15,6 +15,8 @@ import { useMapFeatureVisibility } from './useMapFeatureVisibility';
 import { useMapLanguage } from './useMapLanguage';
 import { useMapTextScale } from './useMapTextScale';
 import { useMapStyleCustomization } from './useMapStyleCustomization';
+import type { TerrainSettings } from '../domain/studio';
+import { useMapTerrain } from './useMapTerrain';
 import { useMapFitRequests } from './useMapFitRequests';
 import type { MapBounds } from './MapLayerBounds';
 
@@ -45,6 +47,7 @@ export { scheduleTerraRouteHandleOrder } from './useMapContentSyncResult';
 const ignoreRouteGeometryChange = () => ({ ok: false as const, error: 'Route editing is not available.' });
 
 type MapCanvasControllerOptions = {
+  terrain: TerrainSettings;
   basemapVisible: boolean;
   camera: CameraSettings;
   getCanonicalCamera?: () => CameraSettings;
@@ -189,6 +192,7 @@ function useCameraMutationError(
 }
 
 export function useMapCanvasController({
+  terrain,
   basemapVisible, camera, getCanonicalCamera, stylePreset, styleCustomization, language, textScalePercent, featureVisibility,
   fitRequest, fitLayerId, fitLayerRequest, fitImportBounds, fitImportRequest, locationRequest,
   layers, assets,
@@ -235,6 +239,7 @@ export function useMapCanvasController({
   const { resetTextScale, synchronizeTextScale } = useMapTextScale({ containerRef: container, contentReadyRef: contentReady, invalidateExporter, mapFailedRef: mapFailed, mapRef: map, setMapError, textScalePercent });
   const mapVisibility = useMapFeatureVisibility({ basemapVisible, containerRef: container, contentReadyRef: contentReady, featureVisibility, invalidateExporter, mapFailedRef: mapFailed, mapRef: map, setMapError }), { resetFeatureVisibility, resolveExportStyle, setBasemapExportVisibility, synchronizeFeatureVisibility } = mapVisibility;
   const { resetMapLanguage, synchronizeMapLanguage } = useMapLanguage({ containerRef: container, contentReadyRef: contentReady, invalidateExporter, language, mapFailedRef: mapFailed, mapRef: map, setMapError });
+  const { resetTerrain, synchronizeTerrain } = useMapTerrain({ terrain, basemapVisible, buildingsVisible: featureVisibility.buildings, mapRef: map, containerRef: container, mapFailedRef: mapFailed, invalidateExporter, setMapError });
 
   const handleContentSyncResult = useMapContentSyncResult({
     contentReadyRef: contentReady,
@@ -273,7 +278,7 @@ export function useMapCanvasController({
     contentReady.current = false;
     contentSyncDeferred.current = false;
     clearMapStateAttributes(container.current);
-    resetFeatureVisibility(); resetMapLanguage(); resetStyleCustomization(); resetTextScale();
+    resetFeatureVisibility(); resetMapLanguage(); resetStyleCustomization(); resetTextScale(); resetTerrain();
     invalidateExporter();
     queueMicrotask(() => {
       setTerraMap(null);
@@ -307,12 +312,13 @@ export function useMapCanvasController({
         synchronizeMapLanguage: { current: synchronizeMapLanguage },
         synchronizeStyleCustomization: { current: synchronizeStyleCustomization },
         synchronizeTextScale: { current: synchronizeTextScale },
+        synchronizeTerrain: { current: synchronizeTerrain },
       },
       setContentError,
       setMapError,
       styleUrl: mapStyleUrl(stylePreset),
     });
-  }, [generation, getInitialCamera, onMapCreated, handleContentSyncResult, invalidateExporter, reportCameraError, resetFeatureVisibility, resetMapLanguage, resetStyleCustomization, resetTextScale, resolveExportStyle, setBasemapExportVisibility, setTerraMap, stylePreset, synchronizeFeatureVisibility, synchronizeMapLanguage, synchronizeStyleCustomization, synchronizeTextScale]);
+  }, [generation, getInitialCamera, onMapCreated, handleContentSyncResult, invalidateExporter, reportCameraError, resetFeatureVisibility, resetMapLanguage, resetStyleCustomization, resetTextScale, resetTerrain, resolveExportStyle, setBasemapExportVisibility, setTerraMap, stylePreset, synchronizeFeatureVisibility, synchronizeMapLanguage, synchronizeStyleCustomization, synchronizeTextScale, synchronizeTerrain]);
 
   return { cameraError, container, retryMap, visibleError: mapError ?? contentError };
 }

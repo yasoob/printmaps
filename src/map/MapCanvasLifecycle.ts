@@ -40,6 +40,7 @@ type LifecycleReferences = LifecycleExportReferences & CameraViewportPublication
   resolveExportStyle: (map: MapLibreMap, content: 'basemap' | 'composite') => ReturnType<MapLibreMap['getStyle']>;
   setBasemapExportVisibility: (map: MapLibreMap, override: boolean | null) => boolean;
   synchronizeFeatureVisibility: MutableReference<(map: MapLibreMap) => boolean>; synchronizeMapLanguage: MutableReference<(map: MapLibreMap) => boolean>; synchronizeStyleCustomization: MutableReference<(map: MapLibreMap) => boolean>; synchronizeTextScale: MutableReference<(map: MapLibreMap) => boolean>;
+  synchronizeTerrain?: MutableReference<(map: MapLibreMap) => boolean>;
 };
 
 export type MapLifecycleOptions = {
@@ -122,6 +123,7 @@ function createMapEventHandlers(
     const container = references.container.current; if (!container) return;
     const isStyleSynchronized = references.synchronizeStyleCustomization.current(map) && references.synchronizeMapLanguage.current(map) && references.synchronizeTextScale.current(map) && references.synchronizeFeatureVisibility.current(map);
     if (!isStyleSynchronized) return;
+    if (references.synchronizeTerrain && !references.synchronizeTerrain.current(map)) return;
     references.contentAdapter.current = createMapLibreContentAdapter(map, container);
     handleContentSyncResult(references.contentAdapter.current.sync(references.contentState.current));
     map.triggerRepaint();

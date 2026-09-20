@@ -19,6 +19,7 @@ import {
   updatePrintLayerPaint,
 } from './NativeMapStyle';
 import { prepareNativePrintExport, type NativePrintExportSource } from './NativeMapExportPlan';
+import { retainTerrainStyleResources } from '../terrain/contourProtocol';
 
 export { calculateNativeTileCamera } from './NativeMapCamera';
 export type { NativeMapOutput, NativeMapRegion, NativeTileCamera, NativeTileRequest } from './NativeMapCamera';
@@ -186,7 +187,9 @@ async function renderNativeMapTileSnapshot(
   document.body.append(container);
 
   let map: MapLibreMap | null = null;
+  let releaseTerrainResources: (() => void) | undefined;
   try {
+    releaseTerrainResources = retainTerrainStyleResources(snapshot.style);
     const createMap = options.createMap ?? ((mapOptions) => new Map(mapOptions));
     const style = structuredClone(snapshot.style);
     const deferredMarkerLayerIds = deferCustomMarkerLayers(style);
@@ -225,6 +228,7 @@ async function renderNativeMapTileSnapshot(
     return copyNativeMapCanvas(rendered, request.region.width, request.region.height);
   } finally {
     if (map) removeMap(map);
+    releaseTerrainResources?.();
     container.remove();
   }
 }

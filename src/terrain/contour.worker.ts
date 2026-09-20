@@ -72,6 +72,8 @@ self.addEventListener('message', (event: MessageEvent<ContourWorkerRequest>) => 
   if (message.kind === 'cancel') {
     tasks.get(message.id)?.abort();
     tasks.delete(message.id);
+    const queued = queue.findIndex(({ id }) => id === message.id);
+    if (queued !== -1) queue.splice(queued, 1);
     return;
   }
   if (tasks.size >= 128) {

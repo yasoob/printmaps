@@ -1,16 +1,21 @@
 import type { ProjectDocument } from './project';
+import type { StudioSettings } from './studio';
+import { TERRAIN_ATTRIBUTION } from '../terrain/demTiles';
 
 export const BASEMAP_ATTRIBUTION = 'OpenFreeMap · OpenMapTiles · © OpenStreetMap contributors';
 export const MAPBOX_ATTRIBUTION = '© Mapbox';
-export function projectAttributions(document: Pick<ProjectDocument, 'layers'>): string[] {
+type AttributionDocument = Pick<ProjectDocument, 'layers'> & { studio?: Pick<StudioSettings, 'terrain'> };
+
+export function projectAttributions(document: AttributionDocument): string[] {
   const attributions = [BASEMAP_ATTRIBUTION];
   if (document.layers.some(({ provenance }) => provenance?.provider === 'mapbox')) {
     attributions.push(MAPBOX_ATTRIBUTION);
   }
+  if (document.studio?.terrain.enabled || document.studio?.terrain.contours.enabled) attributions.push(TERRAIN_ATTRIBUTION);
   return attributions;
 }
 
-export function projectAttributionText(document: Pick<ProjectDocument, 'layers'>): string {
+export function projectAttributionText(document: AttributionDocument): string {
   return projectAttributions(document).join(' · ');
 }
 
