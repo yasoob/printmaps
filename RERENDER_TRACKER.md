@@ -74,6 +74,18 @@ passes), `fields-full-results/`, `fields-full-html/`, `fields-full.log`,
 type-check, lint (existing shared-button warning only) and production build
 pass; scanner/probe strings remain absent from production JavaScript.
 
+The coordinator independently reran all 51 supported pre-field-refinement
+cases, then all 12 final Studio cases and 94 related unit tests after integrating
+`95feb5e`. The integrated repository tree matched the audited branch exactly.
+The final production build and lint passed (the existing shared-button warning
+remains). Parent evidence is retained under
+`/Users/yasoob/.copilot/session-state/50ba7a47-ae28-4706-9463-ddc4be4a2477/files/`:
+`title-render-before.log`, `title-render-after-firefox.log`,
+`audit-firefox-results/`, `field-isolation-after/`,
+`final-render-inventory.json`, and `final-field-build.log`.
+The independently reproduced title probe changed seven unrelated canvas/error
+owners from one callback each to zero, with zero native map mutations.
+
 Reproduction:
 
 ```bash
@@ -99,8 +111,9 @@ The subsequent no-host-input refinements have **31 passing cases**, while the
 first **21 cases never launched a browser**: the bundled headless shell crashed
 with SIGSEGV before app code ran. Standalone launch smoke checks reproduced the
 failure; bundled full Chromium and installed Chrome also could not launch.
-No assertions were weakened. Those 21 cases, and a complete same-revision
-runtime refresh, remain an explicit handoff gate.
+No assertions were weakened. At this checkpoint those 21 cases and a complete
+same-revision runtime refresh remained an explicit handoff gate; the supported
+Firefox follow-up above subsequently closed it.
 
 The last fully passing capture's fresh global discovery finds **317 runtime
 names**. TypeScript symbol reconciliation covers **541 first-party JSX creation
