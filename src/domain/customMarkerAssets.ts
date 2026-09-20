@@ -224,9 +224,11 @@ function svgDimensions(bytes: Uint8Array): [number, number] {
 }
 
 function markerDimensions(mimeType: CustomMarkerMimeType, bytes: Uint8Array): [number, number] {
-  if (mimeType === 'image/png') return pngDimensions(bytes);
-  if (mimeType === 'image/jpeg') return jpegDimensions(bytes);
-  return svgDimensions(bytes);
+  return mimeType === 'image/svg+xml' ? svgDimensions(bytes) : rasterImageDimensions(mimeType, bytes);
+}
+
+export function rasterImageDimensions(mimeType: 'image/png' | 'image/jpeg', bytes: Uint8Array): [number, number] {
+  return mimeType === 'image/png' ? pngDimensions(bytes) : jpegDimensions(bytes);
 }
 
 export function validateStoredCustomMarkerAsset(asset: CustomMarkerAsset): void {

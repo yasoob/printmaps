@@ -17,7 +17,7 @@ export function commitDocument(_state: ProjectState, document: ProjectDocument):
   return { document, [RECORD_HISTORY]: true };
 }
 
-function admissionFailure(document: ProjectDocument, current: ProjectDocument, cache: ProjectValidationCache) {
+function admitDocument(document: ProjectDocument, current: ProjectDocument, cache: ProjectValidationCache) {
   if (document.layers.length > MAX_PROJECT_LAYERS) {
     const available = Math.max(0, MAX_PROJECT_LAYERS - current.layers.length);
     return mutationRejected(
@@ -26,11 +26,10 @@ function admissionFailure(document: ProjectDocument, current: ProjectDocument, c
     );
   }
   try {
-    parseProjectDocument(document, cache);
-    return null;
+    return { ok: true as const, parsed: parseProjectDocument(document, cache) };
   } catch (error) {
     if (!(error instanceof ProjectFileError)) throw error;
-    return mutationRejected(`${error.message} Nothing was changed.`, error instanceof ProjectSizeError || /positions|project limit|at most \d+ custom marker assets|Custom marker assets exceed/.test(error.message) ? 'capacity' : 'invalid');
+    return mutationRejected(`${error.message} Nothing was changed.`, error instanceof ProjectSizeError || /positions|project limit|at most \d+ (?:custom marker assets|photo assets|stops)|Custom marker assets exceed/.test(error.message) ? 'capacity' : 'invalid');
   }
 }
 
@@ -49,10 +48,14 @@ export function createProjectSetter(
       if (proposed === state) return state;
       const { [RECORD_HISTORY]: recordHistory, ...patch } = proposed as ProjectPatch;
       if (patch.document && patch.document !== state.document) {
-        const failure = admissionFailure(patch.document, state.document, cache);
-        if (failure) {
-          result = failure;
+        const admission = admitDocument(patch.document, state.document, cache);
+        if (!admission.ok) {
+          result = admission;
           return state;
+        }
+        if (patch.document.studio !== admission.parsed.studio) {
+          patch.document = { ...patch.document, studio: admission.parsed.studio };
+          cache.snapshots.set(patch.document, admission.parsed);
         }
         if (recordHistory) {
           const previous = cache.snapshots.get(state.document) ?? parseProjectDocument(state.document, cache);

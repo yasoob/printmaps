@@ -54,7 +54,7 @@ export type DecorationSettings = {
 export type WallSettings = {
   enabled: boolean;
   wallColor: string;
-  frame: 'none' | 'black' | 'white' | 'oak';
+  frame: 'none' | 'black' | 'white' | 'oak' | 'walnut';
   matWidthMm: number;
   matColor: string;
   shadow: boolean;
@@ -69,10 +69,10 @@ export type TerrainSettings = {
 
 export type VideoSettings = {
   motion: 'orbit' | 'sway';
-  durationSeconds: number;
-  fps: 24 | 30 | 60;
-  aspect: 'page' | '16:9' | '9:16' | '1:1';
-  quality: 'draft' | 'standard' | 'high';
+  durationSeconds: 5 | 10 | 15;
+  fps: 30 | 60;
+  aspect: 'page' | '16:9' | '9:16' | '1:1' | '4:5';
+  quality: 'standard' | 'high';
 };
 
 export type ReliefSettings = {
@@ -99,19 +99,23 @@ export type StudioTemplateApplication = {
   page?: PageSettings;
   style?: MapStyleSettings;
   camera?: CameraSettings;
+  silhouette?: ContentLayer;
+  expectedDocumentEpoch?: number;
 };
 
 export type PhotoStopInsertion = {
   stop: PhotoStop;
   asset: PhotoAsset;
-  /** Optional new POI; omit when attaching to an existing Point layer. */
+  // Optional new POI; omit when attaching to an existing Point layer.
   poi?: ContentLayer;
+  expectedDocumentEpoch?: number;
 };
 
+const text = (fontSizePt: number): PosterText => ({
+  enabled: false, text: '', font: 'sans', fontSizePt, color: '#202020',
+});
+
 export function createDefaultStudioSettings(): StudioSettings {
-  const text = (fontSizePt: number): PosterText => ({
-    enabled: false, text: '', font: 'sans', fontSizePt, color: '#202020',
-  });
   return {
     poster: {
       enabled: false, templateId: 'none', layout: 'bottom', align: 'center',
@@ -137,7 +141,7 @@ export function createDefaultStudioSettings(): StudioSettings {
       contours: { enabled: false, intervalMeters: 100, color: '#807868', width: 1 },
       buildings: { enabled: false, exaggeration: 1, opacity: 100 },
     },
-    video: { motion: 'orbit', durationSeconds: 8, fps: 30, aspect: 'page', quality: 'standard' },
+    video: { motion: 'orbit', durationSeconds: 10, fps: 30, aspect: 'page', quality: 'standard' },
     relief: {
       widthMm: 150, heightMm: 100, baseMm: 2, exaggeration: 1, detail: 'medium',
       routeRidge: { enabled: false, layerId: null, heightMm: 1, widthMm: 1 },

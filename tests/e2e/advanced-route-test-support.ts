@@ -7,6 +7,7 @@ import type {
   RouteSegmentStyleOverride,
 } from '../../src/domain/project';
 import type { RouteTravelMarker } from '../../src/domain/routeProfiles';
+import { createDefaultStudioSettings } from '../../src/domain/studio';
 
 type DirectionsMode = 'fail' | 'hold' | 'success';
 
@@ -18,7 +19,8 @@ export function routeLayer(project: ProjectDocument, id = 'route-01') {
 
 export function basicRouteProject(): ProjectDocument {
   return {
-    schemaVersion: 25,
+    schemaVersion: 26,
+    studio: createDefaultStudioSettings(),
     id: 'advanced-route-project',
     title: 'Advanced route project',
     page: {

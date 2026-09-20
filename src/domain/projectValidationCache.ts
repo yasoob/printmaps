@@ -4,10 +4,12 @@ import { parseLayerGeometry } from './projectGeometry';
 import { ProjectFileError } from './projectFileError';
 import { MAX_PROJECT_COORDINATES } from './projectLimits';
 import { CompactJsonByteCache } from './projectSerialization';
+import { StudioValidationCache } from './studioFile';
 
 // Only immutable canonical references use this cache. Untrusted file parsing
 // always validates fresh input without sharing a cache.
 export class ProjectValidationCache {
+  readonly studio = new StudioValidationCache();
   readonly compactBytes = new CompactJsonByteCache();
   readonly snapshots = new WeakMap<object, ProjectDocument>();
   readonly geometries = new WeakMap<object, { parsed: LayerGeometry; positions: number }>();

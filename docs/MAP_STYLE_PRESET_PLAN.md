@@ -77,7 +77,7 @@ These are Print Map Studio concepts, not copies of external style names or palet
 - The customization subpage restores focus to its trigger on Back or Escape and uses reduced-motion-safe directional transitions.
 - Keyboard arrow navigation follows the visual grid; Enter/Space selects; focus and selected state are distinct.
 - Style switching preserves language, text scale, all visibility categories, camera/lock state, content layers, selection, assets, and history invariants.
-- Schema 25 stores tone, contrast, detail, and semantic color overrides. Schema 24 projects migrate with neutral defaults; older drafts retain the existing reset guidance.
+- Schema 26 retains the schema-25 tone, contrast, detail, and semantic color overrides and adds opt-in studio settings. Schema 24 projects migrate with neutral customization; schema 24/25 projects receive disabled studio defaults. Older drafts retain the existing reset guidance.
 
 ## Verification
 

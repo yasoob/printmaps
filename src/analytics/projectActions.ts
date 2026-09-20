@@ -1,6 +1,10 @@
 import type { ProjectActions } from '../app/projectStoreContext';
 
 export const PROJECT_ACTIONS = [
+  'setStudioSection',
+  'applyStudioTemplate',
+  'addPhotoStop',
+  'removePhotoStop',
   'applyMapMatching',
   'createAdministrativeArea',
   'createIsochroneArea',

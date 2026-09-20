@@ -1,6 +1,7 @@
 import { createStore } from "zustand/vanilla";
 import {
   createNewProjectDocument,
+  PROJECT_SCHEMA_VERSION,
   type ContentLayer,
   type CameraSettings,
   type DirectionsRouteInput,
@@ -42,6 +43,8 @@ import { parseProjectDocument, ProjectValidationCache } from "../domain/projectF
 import { createProjectSetter } from "./storeMutation";
 import type { LayerMutationResult, ProjectMutationResult } from "../domain/projectMutation";
 import { trackProjectActions } from "../analytics/trackProjectActions";
+import type { PhotoStopInsertion, StudioSettings, StudioTemplateApplication } from "../domain/studio";
+import { createStudioActions } from "./storeStudioActions";
 
 export type RouteMutationResult =
   { ok: true; routeId: string } | { ok: false; error: string };
@@ -79,6 +82,10 @@ export type ReplaceRouteDraftRequest = {
 };
 
 export type ProjectState = {
+  setStudioSection: <K extends keyof StudioSettings>(section: K, value: StudioSettings[K]) => ProjectMutationResult;
+  applyStudioTemplate: (application: StudioTemplateApplication) => ProjectMutationResult;
+  addPhotoStop: (input: PhotoStopInsertion) => ProjectMutationResult;
+  removePhotoStop: (id: string) => ProjectMutationResult;
   document: ProjectDocument;
   documentEpoch: number;
   hasUnfinishedDrawing: boolean;
@@ -130,7 +137,7 @@ export type ProjectState = {
     expectedLayer: ContentLayer,
   ) => RouteMutationResult;
   createShape: (coordinates: readonly (readonly [number, number])[]) => ProjectMutationResult;
-  deleteLayer: (id: string) => void;
+  deleteLayer: (id: string) => ProjectMutationResult;
   duplicateLayer: (id: string) => ProjectMutationResult;
   importLayers: (
     layers: readonly ContentLayer[],
@@ -233,9 +240,9 @@ export type ProjectState = {
 export function createProjectStore(
   initialDocument: ProjectDocument = createNewProjectDocument(),
 ) {
-  const document = copyDocument(initialDocument);
+  const document = copyDocument(initialDocument.schemaVersion === PROJECT_SCHEMA_VERSION ? initialDocument : parseProjectDocument(initialDocument));
   const cache = new ProjectValidationCache();
-  parseProjectDocument(document, cache);
+  document.studio = parseProjectDocument(document, cache).studio;
   return createStore<ProjectState>((rawSet, get) => {
     const set = createProjectSetter(rawSet, cache);
     const actions = trackProjectActions({
@@ -254,6 +261,7 @@ export function createProjectStore(
       ...createPageActions(set),
       ...createStyleActions(set),
       ...createDocumentActions(set),
+      ...createStudioActions(set),
     }, get);
     return {
     document,

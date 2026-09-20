@@ -14,7 +14,7 @@ function routeFixture() {
 
 describe('schema-25 route model', () => {
   it('is current, migrates schema 24, and strictly rejects schema 23', () => {
-    expect(PROJECT_SCHEMA_VERSION).toBe(25);
+    expect(PROJECT_SCHEMA_VERSION).toBe(26);
     const project = createInitialProjectDocument();
     const schema24 = {
       ...project,

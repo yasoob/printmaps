@@ -1,5 +1,41 @@
 # Development tools
 
+## Central studio state
+
+Schema 26 adds one persisted `ProjectDocument.studio` namespace. Schema 24
+migrates through neutral style customization; schema 25 adds disabled studio
+defaults. Existing studio settings, if present in either legacy version, are
+validated and retained, never replaced. Camera, page, style, project title and
+layer geometry remain canonical; studio contains only distinct composition and
+output preferences. New visual effects are off by default.
+
+`src/domain/studio.ts` defines the seven typed sections: poster, photos,
+decorations, wall, terrain, video and relief. Panels select their section with
+`useProject` and call `useProjectActions`, not a separate context or persistence
+store. `setStudioSection(section, value)` replaces one complete typed section;
+`applyStudioTemplate({ poster, page?, style?, camera?, silhouette?,
+expectedDocumentEpoch? })` applies a composition and optional new shape in one
+admitted history entry without replacing unrelated layers. `addPhotoStop({
+stop, asset, poi?, expectedDocumentEpoch? })` atomically attaches an image to an
+existing Point POI or inserts a new POI. `removePhotoStop(id)` removes the
+attachment and any newly unreferenced photo asset, retaining the POI. All four
+actions return `ProjectMutationResult`; callers must surface rejection errors.
+
+Photos reference canonical POI layer IDs, silhouettes reference polygon shape
+layers, location QR targets use the camera center or a Point POI, and relief
+ridges reference routes. Layer deletion clears dependent references and prunes
+photo assets in the same transaction; hidden layers remain valid references and
+renderers must honor their visibility. `validatePhotoFile` accepts embedded PNG
+and JPEG only, verifies dimensions and content hashes, and bounds each file to
+1 MiB / 2048 pixels per edge. Projects allow 24 photo assets/stops, 6 MiB encoded
+photo data, 16,777,216 decoded photo pixels, and the existing aggregate 10 MiB
+portable limit across every section, marker asset and layer.
+
+Studio admission detaches and deep-freezes settings before caching. Unchanged
+sections retain identity through camera changes and history, while caller-owned
+mutable values never enter the studio validation cache. JSON/ZIP, IndexedDB,
+clone/open, undo/redo and pristine checks all operate on the complete document.
+
 ## React Scan
 
 React Scan is available as development-only render instrumentation.

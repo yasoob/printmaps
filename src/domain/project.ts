@@ -10,6 +10,7 @@ import { createDefaultMapStyleCustomization, type MapStyleCustomization } from '
 import type { PagePreset } from './pagePresets';
 import type { RouteMetadata } from './routeMetadata';
 import { cloneContentLayer } from './projectClone';
+import { createDefaultStudioSettings, type StudioSettings } from './studio';
 
 export type { ArcGeometry } from './routeArcGeometry';
 export { createDefaultLayerAppearance } from './layerAppearance';
@@ -28,7 +29,7 @@ export type {
 export { ROUTE_KINDS, type RouteKind, type RouteMetadata } from './routeMetadata';
 export { cloneContentLayer } from './projectClone';
 
-export const PROJECT_SCHEMA_VERSION = 25 as const;
+export const PROJECT_SCHEMA_VERSION = 26 as const;
 export const MAX_MERCATOR_LATITUDE = 85.051129;
 export const MAX_MAP_ZOOM = 22;
 
@@ -161,6 +162,7 @@ export type ProjectDocument = {
   style: MapStyleSettings;
   assets: Record<string, CustomMarkerAsset>;
   layers: ContentLayer[];
+  studio: StudioSettings;
 };
 
 const createDefaultPageSettings = (): PageSettings => ({
@@ -260,6 +262,7 @@ export function createNewProjectDocument(): ProjectDocument {
     style: createDefaultMapStyleSettings(),
     assets: {},
     layers: [cloneContentLayer(baseMapLayer)],
+    studio: createDefaultStudioSettings(),
   };
 }
 
@@ -276,5 +279,6 @@ export function createInitialProjectDocument(): ProjectDocument {
     style: createDefaultMapStyleSettings(),
     assets: {},
     layers: initialLayers.map((layer) => cloneContentLayer(layer)),
+    studio: createDefaultStudioSettings(),
   };
 }

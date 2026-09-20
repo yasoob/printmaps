@@ -36,6 +36,7 @@ export function copyDocument(document: ProjectDocument): ProjectDocument {  retu
     },
     assets: Object.fromEntries(Object.entries(document.assets).map(([id, asset]) => [id, { ...asset }])),
     layers: document.layers.map((layer) => cloneContentLayer(layer)),
+    studio: structuredClone(document.studio),
   };
 }
 
@@ -86,12 +87,12 @@ export function createDocumentActions(set: ProjectSet): Pick<ProjectState, 'open
       const past = state.past.slice(0, -1);
 
       return {
-        document: copyDocument(previous),
+        document: { ...copyDocument(previous), studio: previous.studio },
         selectedId: state.selectedId && previous.layers.some((layer) => layer.id === state.selectedId)
           ? state.selectedId
           : null,
         past,
-        future: [copyDocument(state.document), ...state.future],
+        future: [{ ...copyDocument(state.document), studio: state.document.studio }, ...state.future],
         canUndo: past.length > 0,
         canRedo: true,
       };
@@ -102,11 +103,11 @@ export function createDocumentActions(set: ProjectSet): Pick<ProjectState, 'open
       const future = state.future.slice(1);
 
       return {
-        document: copyDocument(next),
+        document: { ...copyDocument(next), studio: next.studio },
         selectedId: state.selectedId && next.layers.some((layer) => layer.id === state.selectedId)
           ? state.selectedId
           : null,
-        past: pushHistoryEntry(state.past, copyDocument(state.document)),
+        past: pushHistoryEntry(state.past, { ...copyDocument(state.document), studio: state.document.studio }),
         future,
         canUndo: true,
         canRedo: future.length > 0,

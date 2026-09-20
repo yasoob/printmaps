@@ -1,4 +1,5 @@
 import { createProjectStore } from '../../src/app/store';
+import { createDefaultStudioSettings } from '../../src/domain/studio';
 import {
   createInitialProjectDocument,
   createDefaultLayerAppearance,
@@ -18,6 +19,7 @@ const layers = createInitialProjectDocument().layers.map((layer, index) => ({
 function createDocument(): ProjectDocument {
   return {
     schemaVersion: PROJECT_SCHEMA_VERSION,
+    studio: createDefaultStudioSettings(),
     id: 'test-project',
     title: 'Test project',
     page: { preset: 'A4', widthMm: 297, heightMm: 210, orientation: 'landscape' },

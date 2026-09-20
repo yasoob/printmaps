@@ -15,6 +15,7 @@ import { createReplaceLayerFromImportAction } from './storeImportReplacementActi
 import { createRouteTransformActions } from './storeRouteTransformActions';
 import { boundedGeneratedName, projectNameError } from '../domain/projectLimits';
 import { mutationRejected } from '../domain/projectMutation';
+import { removeStudioLayerReferences } from '../domain/studioFile';
 type LayerPropertyActions = Pick<ProjectState, 'applyMapMatching' | 'insertRouteVertex' | 'removeRouteVertex' | 'renameLayer' | 'replaceAuthoredRoute' | 'replaceRouteGeometry' | 'selectLayer' | 'setArcSegmentCurvature' | 'setLayerAppearance' | 'setLayerOpacity' | 'setPoiCoordinates' | 'setPoiCustomMarker' | 'setRouteMarker' | 'setRouteSegmentStyle' | 'setRouteVertex' | 'toggleLayerVisibility' | 'toggleLayerLock'>;
 
 function isSameCustomMarkerAsset(current: CustomMarkerAsset | undefined, asset: CustomMarkerAsset | null): boolean {
@@ -126,7 +127,7 @@ export function createLayerStructureActions(set: ProjectSet): Pick<ProjectState,
       return {
         ...commitDocument(
           state,
-          { ...state.document, assets, layers },
+          { ...state.document, assets, layers, studio: removeStudioLayerReferences(state.document.studio, id) },
         ),
         selectedId: state.selectedId === id ? null : state.selectedId,
       };

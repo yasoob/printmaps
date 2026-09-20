@@ -47,7 +47,7 @@ test('a maker quick-tunes, overrides one semantic color, and returns to the main
   expect(projectPath).not.toBeNull();
   const project = JSON.parse(await readFile(projectPath!, 'utf8'));
   expect(project).toMatchObject({
-    schemaVersion: 25,
+    schemaVersion: 26,
     style: {
       preset: 'paper',
       customization: {

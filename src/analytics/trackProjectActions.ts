@@ -102,6 +102,10 @@ export function trackProjectActions(actions: ProjectActions, getState: () => Pro
     // Rehydration/recovery and render-driven draft status are not user actions.
     openDocument: actions.openDocument,
     setHasUnfinishedDrawing: actions.setHasUnfinishedDrawing,
+    setStudioSection: track('setStudioSection', actions.setStudioSection, { debounce: true }),
+    applyStudioTemplate: track('applyStudioTemplate', actions.applyStudioTemplate),
+    addPhotoStop: track('addPhotoStop', actions.addPhotoStop),
+    removePhotoStop: track('removePhotoStop', actions.removePhotoStop),
     applyMapMatching: trackLayer('applyMapMatching', actions.applyMapMatching),
     createAdministrativeArea: track('createAdministrativeArea', actions.createAdministrativeArea),
     createIsochroneArea: track('createIsochroneArea', actions.createIsochroneArea),

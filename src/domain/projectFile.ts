@@ -11,9 +11,6 @@ import { parseProjectCamera } from './projectCamera';
 import { parseLayerAppearance, type LayerAppearance } from './layerAppearance';
 import type { CustomMarkerAsset } from './customMarkerAssets';
 import { parseProjectAssets } from './projectAssets';
-import {
-  createDefaultMapStyleCustomization,
-} from './mapStyleCustomization';
 import { ProjectFileError } from './projectFileError';
 import { hasExactlyOneBottomBasemap } from './projectLayerStructure';
 import { parseLayerProvenance, validateProviderGeometry } from './projectProvenance';
@@ -28,6 +25,8 @@ import { parseProjectStyle } from './projectStyleFile';
 import { MAX_PROJECT_LAYERS, MAX_PROJECT_NAME_LENGTH } from './projectLimits';
 import { countCachedPositions, geometryAt, validateAssetReferences, type ProjectValidationCache } from './projectValidationCache';
 import { assertProjectByteBudget, MAX_PROJECT_FILE_BYTES, ProjectSizeError, utf8Bytes } from './projectSerialization';
+import { migrateProjectRoot } from './projectMigrations';
+import { parseStudioSettings } from './studioFile';
 export { ProjectValidationCache } from './projectValidationCache';
 
 export { ProjectFileError } from './projectFileError';
@@ -255,21 +254,11 @@ function pageAt(value: unknown): ProjectDocument['page'] {
   return { preset, ...base };
 }
 
-function migrateProjectRoot(root: JsonObject): JsonObject {
-  if (root.schemaVersion !== 24) return root;
-  const style = objectAt(root.style, 'Project style');
-  return {
-    ...root,
-    schemaVersion: PROJECT_SCHEMA_VERSION,
-    style: {
-      ...style,
-      customization: createDefaultMapStyleCustomization(),
-    },
-  };
-}
-
-function validatePortableDocument(root: JsonObject, document: ProjectDocument, cache?: ProjectValidationCache) {
-  assertProjectByteBudget(root, cache?.compactBytes);
+function validatePortableDocument(root: JsonObject, document: ProjectDocument, cache?: ProjectValidationCache, source: unknown = root) {
+  if (source !== root) assertProjectByteBudget(source, cache?.compactBytes);
+  // Studio has strict keys and canonical text lengths; only its detached frozen
+  // version may enter the per-store byte cache, not a caller-owned candidate.
+  assertProjectByteBudget(root.studio === document.studio ? root : { ...root, studio: document.studio }, cache?.compactBytes);
   assertProjectByteBudget(document, cache?.compactBytes);
   cache?.snapshots.set(root, document);
   return document;
@@ -307,8 +296,9 @@ export function parseProjectDocument(value: unknown, cache?: ProjectValidationCa
     page: pageAt(root.page),
     camera: parseProjectCamera(root.camera, (message) => { throw new ProjectFileError(message); }),
     style: parseProjectStyle(root.style),
+    studio: parseStudioSettings(root.studio, layers, cache?.studio),
   } satisfies ProjectDocument;
-  return validatePortableDocument(root, document, cache);
+  return validatePortableDocument(root, document, cache, value);
 }
 
 export function parseProjectFileText(text: string): ProjectDocument {
