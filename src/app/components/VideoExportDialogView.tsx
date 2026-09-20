@@ -38,7 +38,7 @@ function VideoExportMessages({ busy, progress, status, unavailable, error }: Pic
 export function VideoExportDialogView(props: Props) {
   const { busy, unavailable, settings, onSettingsChange, plan, progress, status, error, cancelRef, downloadRef, onClose, onCancel, onDownload } = props;
   return <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
-    <DialogContent className="video-export-dialog" showCloseButton={false} initialFocus={unavailable ? cancelRef : downloadRef} aria-busy={busy}>
+    <DialogContent className="export-dialog video-export-dialog" overlayClassName="export-dialog-backdrop" showCloseButton={false} initialFocus={unavailable ? cancelRef : downloadRef} aria-busy={busy}>
       <StudioDialogHeader>
         <div><DialogTitle>Export map video</DialogTitle><DialogDescription>Download an MP4 from an isolated snapshot of your poster.</DialogDescription></div>
       </StudioDialogHeader>

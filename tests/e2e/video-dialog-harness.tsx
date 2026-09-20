@@ -13,7 +13,9 @@ function VideoHarness({ fixture }: { fixture: Awaited<ReturnType<typeof createVi
     throw new Error('This test harness only supplies detached render snapshots.');
   }, { captureRenderSnapshot: fixture.capture });
   return <>
-    <button onClick={() => setOpen(true)}>Open video export</button>
+    <aside className="right-sidebar is-mobile-open" aria-label="Project inspector">
+      <button onClick={() => setOpen(true)}>Open video export</button>
+    </aside>
     {open ? <VideoExportDialog
       document={state.document} settings={state.document.studio.video}
       onSettingsChange={(settings) => fixture.store.getState().setStudioSection('video', { ...settings })}

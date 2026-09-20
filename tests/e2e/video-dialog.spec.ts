@@ -19,6 +19,12 @@ test('video dialog fits mobile, cancels without a download, and restores keyboar
   await trigger.click();
   const dialog = page.getByRole('dialog', { name: 'Export map video' });
   await expect(dialog).toBeVisible();
+  const inspectorZ = await page.getByLabel('Project inspector').evaluate((element) => Number(getComputedStyle(element).zIndex));
+  const dialogZ = await dialog.evaluate((element) => Number(getComputedStyle(element).zIndex));
+  const backdropZ = await page.locator('[data-slot="dialog-overlay"]').evaluate((element) => Number(getComputedStyle(element).zIndex));
+  expect(dialogZ).toBeGreaterThan(inspectorZ);
+  expect(backdropZ).toBeGreaterThan(inspectorZ);
+  expect(dialogZ).toBeGreaterThan(backdropZ);
   await expect(dialog.getByLabel('Duration')).toHaveValue('5');
   await dialog.getByLabel('Video aspect').selectOption('4:5');
   await expect(dialog.getByLabel('Video aspect')).toHaveValue('4:5');
