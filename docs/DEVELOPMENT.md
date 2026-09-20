@@ -15,7 +15,10 @@ decorations, wall, terrain, video and relief. Panels select their section with
 store. `setStudioSection(section, value)` replaces one complete typed section;
 `applyStudioTemplate({ poster, page?, style?, camera?, silhouette?,
 expectedDocumentEpoch? })` applies a composition and optional new shape in one
-admitted history entry without replacing unrelated layers. A template cannot
+admitted history entry without replacing unrelated layers. Inserting a new
+silhouette hides the previous referenced silhouette in that same entry, retaining
+its layer and geometry. A visible locked previous silhouette rejects insertion
+until it is unlocked or hidden; unrelated shapes are never changed. A template cannot
 change or unlock a locked camera; omit `camera` to apply composition alone.
 `addPhotoStop({ stop, asset, poi?, presentation?, expectedDocumentEpoch? })`
 atomically attaches an image to an existing Point POI or inserts a new POI.

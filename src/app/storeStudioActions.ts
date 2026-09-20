@@ -30,6 +30,25 @@ function templateSetting<T extends object>(current: T, candidate: T | undefined)
   return candidate && !areSettingsEqual(current, candidate) ? structuredClone(candidate) : current;
 }
 
+function templateLayers(document: ProjectDocument, silhouette: ContentLayer | undefined): ContentLayer[] {
+  if (!silhouette) return document.layers;
+  const previousId = document.studio.poster.silhouetteLayerId;
+  const layers = document.layers.map((layer) => layer.id === previousId && layer.visible
+    ? { ...layer, visible: false } : layer);
+  return insertLayer(layers, silhouette);
+}
+
+function templateSilhouetteError(document: ProjectDocument, silhouette: ContentLayer | undefined) {
+  if (!silhouette) return;
+  if (silhouette.type !== 'shape' || document.layers.some(({ id }) => id === silhouette.id)) {
+    return mutationRejected('A template silhouette must be a new shape with a unique layer ID.');
+  }
+  const previous = document.layers.find(({ id }) => id === document.studio.poster.silhouetteLayerId);
+  if (previous?.visible && previous.locked) {
+    return mutationRejected('Unlock or hide the current silhouette layer before choosing another silhouette.', 'unavailable');
+  }
+}
+
 function templateDocument(document: ProjectDocument, application: StudioTemplateApplication): ProjectDocument {
   const page = templateSetting(document.page, application.page);
   const style = templateSetting(document.style, application.style);
@@ -38,7 +57,7 @@ function templateDocument(document: ProjectDocument, application: StudioTemplate
     ? { ...application.poster, silhouetteLayerId: application.silhouette.id }
     : application.poster;
   const studio = areSettingsEqual(document.studio.poster, poster) ? document.studio : { ...document.studio, poster };
-  let layers = application.silhouette ? insertLayer(document.layers, application.silhouette) : document.layers;
+  let layers = templateLayers(document, application.silhouette);
   if (style.preset !== document.style.preset) {
     layers = layers.map((layer) => layer.type === 'basemap' && GENERATED_BASEMAP_NAMES.has(layer.name)
       ? { ...layer, name: mapStyleBasemapName(style.preset) } : layer);
@@ -57,9 +76,8 @@ function createTemplateAction(set: ProjectSet): ProjectState['applyStudioTemplat
       return mutationRejected('Unlock the map area before applying a template that changes its camera.', 'unavailable');
     }
     const shape = application.silhouette;
-    if (shape && (shape.type !== 'shape' || state.document.layers.some(({ id }) => id === shape.id))) {
-      return mutationRejected('A template silhouette must be a new shape with a unique layer ID.');
-    }
+    const silhouetteError = templateSilhouetteError(state.document, shape);
+    if (silhouetteError) return silhouetteError;
     const document = templateDocument(state.document, application);
     return document === state.document ? state : {
       ...commitDocument(state, document),
