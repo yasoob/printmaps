@@ -11,6 +11,7 @@ import { runPngExport } from './exportDialogPng';
 import { runPsdExport } from './exportDialogPsd';
 import { NATIVE_SYMBOL_BUFFER_PX } from './exportDialogRaster';
 import { ExportDialogView, type ExportFormat } from './ExportDialogView';
+import { runVectorExport } from './exportDialogVector';
 
 export type ExportDialogProps = {
   exporter: PreviewPngExporter | null;
@@ -72,6 +73,7 @@ export function ExportDialog({ exporter, filename, document, onClose }: ExportDi
   const [busy, setBusy] = useState(false);
   const [cancellationAvailable, setCancellationAvailable] = useState(true);
   const [selectedFormat, setSelectedFormat] = useState<ExportFormat>('png');
+  const [basemapMode, setBasemapMode] = useState<'hybrid' | 'vector'>('hybrid');
 
   const [technicalDetailsExpanded, setTechnicalDetailsExpanded] = useState(false);
   const [status, setStatus] = useState('');
@@ -161,12 +163,18 @@ export function ExportDialog({ exporter, filename, document, onClose }: ExportDi
     if (!busy && format !== selectedFormat) trackEditorAction('exportFormatSelected', { format });
     selectExportFormat(format, { isBusy: busy, setError, setFormat: setSelectedFormat, setStatus });
   };
-  const downloadSelectedFormat = () => runSelectedExport(selectedFormat, {
+  const downloadSelectedFormat = () => {
+    if (basemapMode === 'vector' && (selectedFormat === 'svg' || selectedFormat === 'pdf')) {
+      void runVectorExport({ abortControllerRef, document, exporter, filename, format: selectedFormat, setBusy, setError, setStatus });
+      return;
+    }
+    runSelectedExport(selectedFormat, {
     pdf: downloadPdf,
     png: () => void download(),
     psd: downloadPsd,
     svg: () => void downloadLayeredSvg(),
-  });
+    });
+  };
 
-  return <ExportDialogView busy={busy} isMapReady={exporter !== null} cancellationAvailable={cancellationAvailable} cancelButtonRef={cancelButtonRef} dialogRef={dialogRef} document={document} downloadButtonRef={downloadButtonRef} error={error} largeRasterSupported={largeRasterSupported} onCancel={cancelExport} onClose={onClose} onDownload={downloadSelectedFormat} onFormatChange={changeFormat} onTechnicalDetailsToggle={() => setTechnicalDetailsExpanded((expanded) => !expanded)} preflight={preflight} pdfPreflight={pdfPreflight} psdPlan={psdPlan} rasterDelivery={rasterDelivery} selectedFormat={selectedFormat} status={status} technicalDetailsExpanded={technicalDetailsExpanded} />;
+  return <ExportDialogView basemapMode={basemapMode} vectorAvailable={Boolean(exporter?.captureVectorBasemap)} onBasemapModeChange={(mode) => { setBasemapMode(mode); setError(null); setStatus(''); }} busy={busy} isMapReady={exporter !== null} cancellationAvailable={cancellationAvailable} cancelButtonRef={cancelButtonRef} dialogRef={dialogRef} document={document} downloadButtonRef={downloadButtonRef} error={error} largeRasterSupported={largeRasterSupported} onCancel={cancelExport} onClose={onClose} onDownload={downloadSelectedFormat} onFormatChange={changeFormat} onTechnicalDetailsToggle={() => setTechnicalDetailsExpanded((expanded) => !expanded)} preflight={preflight} pdfPreflight={pdfPreflight} psdPlan={psdPlan} rasterDelivery={rasterDelivery} selectedFormat={selectedFormat} status={status} technicalDetailsExpanded={technicalDetailsExpanded} />;
 }

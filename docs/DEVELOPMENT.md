@@ -43,6 +43,56 @@ sections retain identity through camera changes and history, while caller-owned
 mutable values never enter the studio validation cache. JSON/ZIP, IndexedDB,
 clone/open, undo/redo and pristine checks all operate on the complete document.
 
+## Vector artwork export
+
+SVG and PDF offer an opt-in **True vector artwork (reflowed labels)** mode.
+Hybrid remains the default and retains the original renderer appearance.
+Vector artwork decodes source vector tiles using public libraries and the
+applied style snapshot; it never reads private MapLibre renderer fields or
+traces a screenshot. The same clipped geometry and computed glyph placements
+feed SVG paths/text and PDF path/text operators. Basemap PDF resources are
+transparency-group Form XObjects, not Image XObjects.
+
+This is a distinct placement mode, not a pixel-identical MapLibre export.
+Labels are reflowed with deterministic collisions, line placement, embedded
+Noto Sans Latin, sharp halos, and generic named markers/reference shields
+instead of sprite artwork. Original label fonts, wrapping, repeated labels,
+and icon artwork are intentionally not reproduced. Unsupported glyphs fail
+explicitly rather than turning into question marks. Noto Sans is supplied by
+`@fontsource/noto-sans` under SIL OFL 1.1; its notice is served at
+`/licenses/noto-sans-OFL.txt` and embedded in vector SVG metadata.
+
+Supported basemap layers are background, fill (including holes), line
+(including caps, joins, dashes and sort order), circle,
+and reflowed symbol text/markers from HTTP(S) vector tile sources. Official
+MapLibre style-spec evaluation handles constants, legacy functions, filters,
+and camera/data expressions. Raster/satellite, patterns, extrusions, hillshade,
+terrain, non-Mercator/pitched/rolled maps, feature/global state, nonzero line
+gap/offset/blur, translated geometry, custom tile protocols, MLT encoding, and other unimplemented properties
+fail with Hybrid guidance. No fallback file is silently downloaded.
+
+`PreviewPngExporter.captureRenderSnapshot()` is the common synchronous,
+ready-only immutable style/content/camera/frame/footprint contract.
+`captureVectorBasemap({ signal })` adds revision guards and bounded data
+capture. `VectorBasemapCapture` contains a detached scene and mathematical
+coordinate projector; it has no canvas, raster blob, or live map reference.
+The dialog clones the canonical document at job start and keeps delivery mode
+local, without adding a second durable project store.
+
+Limits are 64 source tiles, 4 MiB per response, 32 MiB total input, 100,000
+feature evaluations, one million decoded/generated points, 10,000 candidate
+labels (256 characters each), and a 30-second capture deadline. Capture yields
+between batches and releases stream readers, timers, and map/abort listeners.
+Cancellation never creates an automatic hybrid download.
+
+Focused checks:
+
+```bash
+npm run typecheck
+npx vitest run tests/unit/vector-export.test.ts tests/unit/map-render-snapshot.test.ts
+PLAYWRIGHT_EDITOR_PORT=4194 npx playwright test tests/e2e/vector-export.spec.ts --project=chromium --workers=1
+```
+
 ## React Scan
 
 React Scan is available as development-only render instrumentation.

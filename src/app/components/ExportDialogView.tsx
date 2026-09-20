@@ -6,6 +6,7 @@ import type { ProjectDocument } from '../../domain/project';
 import type { LayeredPsdExportPlan } from '../../export/layeredPsdPlan';
 import { planExportPreflight, type RasterDelivery } from '../../export/preflight';
 import { PDF_PREFLIGHT_GUIDANCE, pdfPreflightErrorMessage } from './exportDialogPdf';
+import { ExportBasemapMode } from './ExportBasemapMode';
 
 export type ExportFormat = 'png' | 'svg' | 'psd' | 'pdf';
 
@@ -132,7 +133,8 @@ function ExportFormatChoice({ busy, onChange, selectedFormat }: Readonly<{
   );
 }
 
-function ExportOutputSummary({ document, preflight, psdPlan, selectedFormat }: Readonly<{
+function ExportOutputSummary({ document, preflight, psdPlan, selectedFormat, vector }: Readonly<{
+  vector: boolean;
   document: ProjectDocument;
   preflight: ExportPreflight;
   psdPlan: LayeredPsdExportPlan;
@@ -163,7 +165,7 @@ function ExportOutputSummary({ document, preflight, psdPlan, selectedFormat }: R
     <StudioDialogSection className="export-output-summary" aria-labelledby="export-output-title">
       <span id="export-output-title">Output</span>
       <strong>{pageLabel} · {document.page.widthMm} × {document.page.heightMm} mm</strong>
-      <p>{selectedFormat === 'svg' ? 'Raster basemap · named vector overlays' : '300 DPI lossless basemap · named vector overlays'}</p>
+      <p>{vector ? 'True vector basemap artwork · editable reflowed text · named overlays' : (selectedFormat === 'svg' ? 'Raster basemap · named vector overlays' : '300 DPI lossless basemap · named vector overlays')}</p>
     </StudioDialogSection>
   );
 }
@@ -219,6 +221,9 @@ function ExportTechnicalDetails({ busy, expanded, onToggle, preflight, psdPlan, 
 }
 
 type ExportDialogViewProps = {
+  basemapMode: 'hybrid' | 'vector';
+  vectorAvailable: boolean;
+  onBasemapModeChange: (mode: 'hybrid' | 'vector') => void;
   isMapReady: boolean;
   busy: boolean;
   cancellationAvailable: boolean;
@@ -242,16 +247,24 @@ type ExportDialogViewProps = {
   technicalDetailsExpanded: boolean;
 };
 
-export function ExportDialogView(props: ExportDialogViewProps) {
-  const { busy, cancellationAvailable, cancelButtonRef, dialogRef, document, downloadButtonRef, error, largeRasterSupported, onCancel, onClose, onDownload, onFormatChange, onTechnicalDetailsToggle, preflight, pdfPreflight, psdPlan, rasterDelivery, selectedFormat, status, technicalDetailsExpanded } = props;
-  const canDownloadSelectedFormat = canDownload(selectedFormat, {
-    canStreamLargePng: largeRasterSupported,
-    delivery: rasterDelivery,
+function selectedExportReadiness(props: ExportDialogViewProps) {
+  const { selectedFormat, preflight, pdfPreflight, psdPlan } = props;
+  const isVector = props.basemapMode === 'vector' && (selectedFormat === 'svg' || selectedFormat === 'pdf');
+  const canDownloadSelectedFormat = isVector ? props.vectorAvailable : canDownload(selectedFormat, {
+    canStreamLargePng: props.largeRasterSupported,
+    delivery: props.rasterDelivery,
     preflight,
     pdfPreflight,
     psdPlan,
   });
   const selectedPreflight = selectedFormat === 'psd' ? psdPlan.preflight : (selectedFormat === 'pdf' ? pdfPreflight : preflight);
+  const errorId = !isVector && selectedFormat !== 'svg' && selectedPreflight.errors.length > 0 ? 'export-preflight-error' : undefined;
+  return { isVector, canDownloadSelectedFormat, selectedPreflight, errorId };
+}
+
+export function ExportDialogView(props: ExportDialogViewProps) {
+  const { busy, cancellationAvailable, cancelButtonRef, dialogRef, document, downloadButtonRef, error, largeRasterSupported, onCancel, onClose, onDownload, onFormatChange, onTechnicalDetailsToggle, preflight, psdPlan, rasterDelivery, selectedFormat, status, technicalDetailsExpanded } = props;
+  const { isVector, canDownloadSelectedFormat, selectedPreflight, errorId } = selectedExportReadiness(props);
   return (
     <Dialog
       open
@@ -277,17 +290,18 @@ export function ExportDialogView(props: ExportDialogViewProps) {
         </StudioDialogHeader>
         <StudioDialogBody className="export-dialog-body" role="region" aria-label="Export settings" tabIndex={0}>
           <ExportFormatChoice busy={busy} onChange={onFormatChange} selectedFormat={selectedFormat} />
+          <ExportBasemapMode format={selectedFormat} mode={props.basemapMode} busy={busy} available={props.vectorAvailable} onChange={props.onBasemapModeChange} />
           <StreamingPngNotice canStreamLargePng={largeRasterSupported} delivery={rasterDelivery} selectedFormat={selectedFormat} />
-          <ExportOutputSummary document={document} preflight={preflight} psdPlan={psdPlan} selectedFormat={selectedFormat} />
-          <PreflightNotice format={selectedFormat} preflight={selectedPreflight} />
-          <ExportTechnicalDetails busy={busy} expanded={technicalDetailsExpanded} onToggle={onTechnicalDetailsToggle} preflight={selectedPreflight} psdPlan={psdPlan} selectedFormat={selectedFormat} />
+          <ExportOutputSummary vector={isVector} document={document} preflight={preflight} psdPlan={psdPlan} selectedFormat={selectedFormat} />
+          {!isVector && <PreflightNotice format={selectedFormat} preflight={selectedPreflight} />}
+          {!isVector && <ExportTechnicalDetails busy={busy} expanded={technicalDetailsExpanded} onToggle={onTechnicalDetailsToggle} preflight={selectedPreflight} psdPlan={psdPlan} selectedFormat={selectedFormat} />}
 
           <p className="export-status" role="status" aria-label="Export status">{exportStatus(status, props.isMapReady, busy)}</p>
           {error && <p className="export-error" role="alert">{error}</p>}
         </StudioDialogBody>
         <StudioDialogActions className="export-dialog-actions">
           <StudioDialogButton ref={cancelButtonRef} disabled={busy && !cancellationAvailable} onClick={busy ? onCancel : onClose}>{cancelLabel(busy, cancellationAvailable)}</StudioDialogButton>
-          <StudioDialogButton ref={downloadButtonRef} variant="primary" disabled={!canStartExport(busy, props.isMapReady, canDownloadSelectedFormat)} aria-describedby={selectedFormat !== 'svg' && selectedPreflight.errors.length > 0 ? 'export-preflight-error' : undefined} onClick={onDownload}>{busy ? 'Preparing…' : downloadLabel(selectedFormat)}</StudioDialogButton>
+          <StudioDialogButton ref={downloadButtonRef} variant="primary" disabled={!canStartExport(busy, props.isMapReady, canDownloadSelectedFormat)} aria-describedby={errorId} onClick={onDownload}>{busy ? 'Preparing…' : downloadLabel(selectedFormat)}</StudioDialogButton>
         </StudioDialogActions>
       </DialogContent>
     </Dialog>

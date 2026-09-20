@@ -1,5 +1,6 @@
 import { getPixelSurfaceAllocationIssue } from './preflight';
 import type { MapRenderSnapshot, MapRenderSnapshotOptions } from '../map/MapRenderSnapshot';
+import type { VectorBasemapCapture } from './vector/scene';
 
 export type PreviewPng = {
   blob: Blob;
@@ -36,6 +37,7 @@ export type PreviewPngExporter = ((
 ) => Promise<PreviewPng>) & {
   createPrintTileRenderer?: (plan: PrintTileExportPlan) => PrintTileRenderer;
   captureRenderSnapshot?: (options?: MapRenderSnapshotOptions) => MapRenderSnapshot;
+  captureVectorBasemap?: (options?: Readonly<{ signal?: AbortSignal }>) => Promise<VectorBasemapCapture>;
 };
 
 type PreviewCaptureOptions = Readonly<{

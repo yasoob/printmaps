@@ -2,6 +2,23 @@ import type { ProjectDocument } from '../domain/project';
 import { projectAttributionText } from '../domain/projectAttributions';
 import { serializePrintScene } from '../print/scene';
 import type { PreviewPng } from './previewPng';
+import type { VectorBasemapCapture } from './vector/scene';
+
+export const VECTOR_ARTWORK_DESCRIPTION = 'True vector artwork from vector tiles. Labels are reflowed in bundled Noto Sans Latin with new collision and line placement; sprite icons become generic named vector markers or reference shields, and soft halos become sharp vector outlines. This is not pixel-identical to the live map.';
+
+export function createVectorSvg(document: ProjectDocument, capture: VectorBasemapCapture): Blob {
+  const svg = serializePrintScene(document, {
+    basemap: capture.scene,
+    attribution: projectAttributionText(document),
+    metadata: VECTOR_ARTWORK_DESCRIPTION,
+    referenceLongitude: capture.referenceLongitude,
+    project: (coordinate, context) => {
+      const point = capture.projectToFrame(coordinate);
+      return { x: point.x * context.pageWidthMm, y: point.y * context.pageHeightMm };
+    },
+  });
+  return new Blob([svg], { type: 'image/svg+xml' });
+}
 
 function bytesToBase64(bytes: Uint8Array): string {
   const chunkSize = 32_768;

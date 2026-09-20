@@ -8,16 +8,15 @@ import {
   type LosslessPdfRasterOptions,
 } from './printPdfRaster';
 import type { PreviewPng } from './previewPng';
+import type { VectorBasemapCapture } from './vector/scene';
+import { createVectorPdfDocument } from './vector/document';
 
 const POINTS_PER_MM = 72 / 25.4;
+type ProjectedCapture = Pick<PreviewPng, 'referenceLongitude'> & Required<Pick<PreviewPng, 'projectToFrame'>>;
 
 
 
-type PdfGroup = Readonly<{
-  layer?: ContentLayer;
-  name: string;
-  resourceName: string;
-}>;
+type PdfGroup = Readonly<{ layer?: ContentLayer; name: string; resourceName: string }>;
 
 type PdfBasemapImage = Readonly<{
   bytes: Uint8Array | readonly Uint8Array[];
@@ -26,9 +25,8 @@ type PdfBasemapImage = Readonly<{
   resourceName: string;
 }>;
 
-type PdfBasemap = Readonly<{
-  images: readonly PdfBasemapImage[];
-  output: Readonly<{ width: number; height: number }>;
+export type PdfBasemap = Readonly<{
+  images: readonly PdfBasemapImage[]; output: Readonly<{ width: number; height: number }>;
 }>;
 
 function formatNumber(value: number): string {
@@ -57,9 +55,7 @@ function pdfContentString(value: string): string {
   return `(${escaped})`;
 }
 
-function abortError(): DOMException {
-  return new DOMException('PDF export was cancelled.', 'AbortError');
-}
+const abortError = () => new DOMException('PDF export was cancelled.', 'AbortError');
 
 function throwIfCancelled(signal: AbortSignal | undefined): void {
   if (signal?.aborted === true) throw abortError();
@@ -124,7 +120,7 @@ function createContentStream(options: Readonly<{
   basemapImages: readonly PdfBasemapImage[];
   basemapOutput: PdfBasemap['output'];
   groups: readonly PdfGroup[];
-  capture: PreviewPng & Required<Pick<PreviewPng, 'projectToFrame'>>;
+  capture: ProjectedCapture;
   width: number;
   height: number;
   attributionText: string;
@@ -195,6 +191,10 @@ function validatePdfInput(
   capture: PreviewPng,
 ): asserts capture is PreviewPng & Required<Pick<PreviewPng, 'projectToFrame'>> {
   validateCapture(capture);
+  validatePdfDocument(document);
+}
+
+function validatePdfDocument(document: ProjectDocument): void {
   if (!Number.isFinite(document.page.widthMm) || document.page.widthMm <= 0
     || !Number.isFinite(document.page.heightMm) || document.page.heightMm <= 0) {
     throw new Error('The PDF page dimensions must be finite positive values.');
@@ -208,9 +208,11 @@ function validatePdfInput(
 
 function createPdf(
   document: ProjectDocument,
-  capture: PreviewPng & Required<Pick<PreviewPng, 'projectToFrame'>>,
+  capture: ProjectedCapture,
   basemap: PdfBasemap,
-): Blob {
+  options: Readonly<{ signal?: AbortSignal; subject?: string }> = {},
+): Promise<Blob> {
+  throwIfCancelled(options.signal);
   const basemapLayer = document.layers.find(({ type }) => type === 'basemap');
   if (!basemapLayer) throw new Error('The project must contain exactly one basemap for PDF export.');
   const width = document.page.widthMm * POINTS_PER_MM;
@@ -269,9 +271,14 @@ function createPdf(
     ...groups.map(({ name }) => [`<< /Type /OCG /Name ${pdfString(name)} >>`] as PdfObject),
     [`<< /Type /ExtGState /CA ${opacityValue(basemapLayer)} /ca ${opacityValue(basemapLayer)} >>`],
     ...vectorLayers.map((layer) => [`<< /Type /ExtGState /CA ${opacityValue(layer)} /ca ${opacityValue(layer)} >>`] as PdfObject),
-    [`<< /Title ${pdfString(document.title)} /Creator (Print Map Studio) /Subject (Exact-page PDF with a raster basemap and named vector overlays.) >>`],
+    [`<< /Title ${pdfString(document.title)} /Creator (Print Map Studio) /Subject ${pdfString(options.subject ?? 'Exact-page PDF with a raster basemap and named vector overlays.')} >>`],
   ];
-  return buildPdfBlob(objects, infoReference);
+  return Promise.resolve(buildPdfBlob(objects, infoReference));
+}
+
+export async function createVectorPrintPdf(document: ProjectDocument, capture: VectorBasemapCapture, signal?: AbortSignal): Promise<Blob> {
+  validatePdfDocument(document);
+  return createVectorPdfDocument(document, capture, createPdf, signal);
 }
 
 function losslessImage(image: LosslessPdfRasterImage): PdfBasemapImage {

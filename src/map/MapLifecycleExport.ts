@@ -85,5 +85,26 @@ export function createLifecycleExportPreview(
     resolvePrintFrame: () => references.container.current?.parentElement?.querySelector<HTMLElement>('.print-frame'),
     resolveContent: () => references.contentState.current,
   }, options);
+  exportPreview.captureVectorBasemap = async (options = {}) => {
+    const snapshot = exportPreview.captureRenderSnapshot!({ content: 'basemap' });
+    const content = references.contentState.current;
+    const controller = new AbortController();
+    const cancel = () => controller.abort(options.signal?.reason);
+    const invalidate = () => controller.abort(new Error('The map changed during vector export. Retry the export.'));
+    const events = ['movestart', 'styledata', 'resize', 'remove', 'webglcontextlost'] as const;
+    for (const event of events) map.on(event, invalidate);
+    options.signal?.addEventListener('abort', cancel, { once: true });
+    if (options.signal?.aborted) cancel();
+    try {
+      const { captureVectorBasemap } = await import('../export/vector/capture');
+      const capture = await captureVectorBasemap(snapshot, { signal: controller.signal });
+      if (!isSourceReady() || references.contentState.current !== content) invalidate();
+      if (controller.signal.aborted) throw controller.signal.reason;
+      return capture;
+    } finally {
+      for (const event of events) map.off(event, invalidate);
+      options.signal?.removeEventListener('abort', cancel);
+    }
+  };
   return exportPreview;
 }

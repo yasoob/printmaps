@@ -11,7 +11,7 @@ import type { PreviewPng } from './previewPng';
 
 const POINTS_PER_MM = 72 / 25.4;
 type FramePoint = Readonly<{ x: number; y: number }>;
-type ProjectedCapture = PreviewPng & Required<Pick<PreviewPng, 'projectToFrame'>>;
+type ProjectedCapture = Partial<PreviewPng> & Required<Pick<PreviewPng, 'projectToFrame'>>;
 type ProjectionContext = Readonly<{
   capture: ProjectedCapture;
   width: number;

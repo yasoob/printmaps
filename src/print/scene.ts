@@ -7,6 +7,7 @@ import { resolvePrintLayerStyle } from './layerStyle';
 import { serializePoiMarker } from './poiMarker';
 import type { CustomMarkerAsset } from '../domain/customMarkerAssets';
 import { serializeShapeElement } from './shapeElement';
+import { serializeBasemapAsset, type PrintBasemapAsset, type RasterBasemapAsset } from './basemap';
 
 export type PagePoint = Readonly<{ x: number; y: number }>;
 
@@ -15,10 +16,10 @@ export type CoordinateProjector = (
   context: Readonly<{ layerId: string; pageWidthMm: number; pageHeightMm: number }>,
 ) => PagePoint;
 
-export type RasterBasemapAsset = Readonly<{ dataUri: string; pixelWidth: number; pixelHeight: number }>;
+export type { RasterBasemapAsset } from './basemap';
 
 export type PrintSceneOptions = Readonly<{
-  basemap: RasterBasemapAsset; attribution: string; project: CoordinateProjector;
+  basemap: PrintBasemapAsset; attribution: string; project: CoordinateProjector;
   metadata?: string; referenceLongitude?: number;
 }>;
 
@@ -104,8 +105,6 @@ function hasBytes(bytes: string, offset: number, expected: readonly number[]): b
   return expected.every((value, index) => bytes.codePointAt(offset + index) === value);
 }
 
-const isInteger = Number.isInteger.bind(Number);
-
 function hasValidRasterSignature(mime: 'png' | 'jpeg' | 'webp', bytes: string): boolean {
   if (mime === 'png') {
     return bytes.length >= 16
@@ -128,7 +127,7 @@ function validateBasemap(asset: RasterBasemapAsset | undefined): void {
   }
   finitePositive(asset.pixelWidth, 'Basemap pixel width');
   finitePositive(asset.pixelHeight, 'Basemap pixel height');
-  if (!isInteger(asset.pixelWidth) || !isInteger(asset.pixelHeight)) {
+  if (!Number.isSafeInteger(asset.pixelWidth) || !Number.isSafeInteger(asset.pixelHeight)) {
     throw new PrintSceneError('Basemap pixel dimensions must be integers.');
   }
 
@@ -244,7 +243,7 @@ function geometryElement(
   });
 }
 
-function layerGroupAttributes(layer: ContentLayer, role: 'raster-basemap' | 'vector-overlay'): string {
+function layerGroupAttributes(layer: ContentLayer, role: 'raster-basemap' | 'vector-basemap' | 'vector-overlay'): string {
   const visibility = layer.visible ? 'visible' : 'hidden';
   return [
     `id="${stableLayerId(layer.id)}"`,
@@ -300,20 +299,21 @@ function validateSceneInputs(document: ProjectDocument, options: PrintSceneOptio
     throw new PrintSceneError('A coordinate-to-page-point projector is required.');
   }
   const width = document.page.widthMm, height = document.page.heightMm;
-  validateBasemap(options.basemap);
+  if (!options.basemap || !('kind' in options.basemap)) validateBasemap(options.basemap);
   const attribution = requiredAttribution(options), layers = validatedLayers(document.layers);
   return { width, height, attribution, ...splitLayers(layers) };
 }
 
 /**
  * Serializes a ProjectDocument into a deterministic, dependency-free SVG print scene.
- * The basemap is always one embedded raster image; route, POI, and shape layers remain vectors.
+ * Raster compatibility and true-vector basemaps share the same physical overlay scene.
  */
 export function serializePrintScene(document: ProjectDocument, options: PrintSceneOptions): string {
   const { width, height, attribution, basemapLayer, vectorLayers } = validateSceneInputs(document, options);
   const widthText = formatDimension(width), heightText = formatDimension(height), metadata = options.metadata?.replaceAll(/\s+/g, ' ').trim();
 
-  const basemapGroup = `<g ${layerGroupAttributes(basemapLayer, 'raster-basemap')}><title>${escapeXml(basemapLayer.name)}</title><image href="${escapeXml(options.basemap.dataUri)}" x="0" y="0" width="${widthText}" height="${heightText}" preserveAspectRatio="xMidYMid slice" data-pixel-width="${options.basemap.pixelWidth}" data-pixel-height="${options.basemap.pixelHeight}"/></g>`;
+  const isVector = 'kind' in options.basemap, basemapContent = serializeBasemapAsset(options.basemap, width, height);
+  const basemapGroup = `<g ${layerGroupAttributes(basemapLayer, isVector ? 'vector-basemap' : 'raster-basemap')}><title>${escapeXml(basemapLayer.name)}</title>${basemapContent}</g>`;
   const vectorGroups = vectorLayers.map((layer) => (
     `<g ${layerGroupAttributes(layer, 'vector-overlay')}><title>${escapeXml(layer.name)}</title>${geometryElement(layer, options, { assets: document.assets, width, height })}</g>`
   ));
@@ -323,9 +323,9 @@ export function serializePrintScene(document: ProjectDocument, options: PrintSce
 
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${widthText}mm" height="${heightText}mm" viewBox="0 0 ${widthText} ${heightText}" data-basemap-content="raster" data-overlay-content="vector">`,
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${widthText}mm" height="${heightText}mm" viewBox="0 0 ${widthText} ${heightText}" data-basemap-content="${isVector ? 'vector' : 'raster'}" data-overlay-content="vector">`,
     `<title>${escapeXml(document.title)}</title>`,
-    '<desc>Layered print scene with one raster basemap and vector route, POI, and shape overlays.</desc>',
+    `<desc>Layered print scene with a ${isVector ? 'vector artwork' : 'raster'} basemap and vector route, POI, and shape overlays.</desc>`,
     `<metadata data-project-id="${escapeXml(document.id)}">${escapeXml(metadata || 'Raster basemap; vector overlays; physical dimensions in millimetres.')}</metadata>`,
     `<defs><clipPath id="page-clip"><rect x="0" y="0" width="${widthText}" height="${heightText}"/></clipPath></defs>`,
     basemapGroup,

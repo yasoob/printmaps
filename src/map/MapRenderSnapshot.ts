@@ -29,9 +29,15 @@ export type MapRenderSnapshotOptions = Readonly<{
 function freezeSnapshot<T>(value: T): T {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {
     Object.freeze(value);
-    Object.values(value).forEach((child: unknown) => freezeSnapshot(child));
+    for (const child of Object.values(value)) freezeSnapshot(child);
   }
   return value;
+}
+
+function requireSnapshotReadiness(map: MapLibreMap, isSourceReady: () => boolean): void {
+  if (!isSourceReady() || !map.loaded() || !map.areTilesLoaded() || map.isMoving()) {
+    throw new Error('The map is not ready for an export snapshot. Wait for tiles and camera movement to finish.');
+  }
 }
 
 export function captureMapRenderSnapshot(
@@ -44,42 +50,40 @@ export function captureMapRenderSnapshot(
   }>,
   options: MapRenderSnapshotOptions = {},
 ): MapRenderSnapshot {
-  if (!source.isSourceReady() || !map.loaded() || !map.areTilesLoaded() || map.isMoving()) {
-    throw new Error('The map is not ready for an export snapshot. Wait for tiles and camera movement to finish.');
-  }
+  requireSnapshotReadiness(map, source.isSourceReady);
   const content = source.resolveContent();
-    const frameElement = source.resolvePrintFrame(), bounds = frameElement?.getBoundingClientRect();
-    if (!bounds) throw new Error('The print frame is not ready for an export snapshot.');
-    const canvas = map.getCanvas().getBoundingClientRect();
-    const frame = { x: bounds.left - canvas.left, y: bounds.top - canvas.top, width: bounds.width, height: bounds.height };
-    if (![frame.width, frame.height, canvas.width, canvas.height].every((value) => Number.isFinite(value) && value > 0)) {
-      throw new Error('The map or print frame has invalid export dimensions.');
-    }
-    const coordinate = (x: number, y: number): Coordinate => {
-      const point = map.unproject([x, y]);
-      return [point.lng, point.lat];
-    };
-    const center = map.getCenter(), bearing = map.getBearing(), pitch = map.getPitch();
-    const style = source.resolveStyle(options.content ?? 'composite');
-    const snapshot: MapRenderSnapshot = {
-      style: options.content === 'basemap' ? withoutStudioContentLayers(style) : structuredClone(style),
-      layers: structuredClone(content.layers),
-      assets: structuredClone(content.assets ?? {}),
-      camera: { center: [center.lng, center.lat], zoom: map.getZoom(), bearing, pitch, roll: map.getRoll() },
-      printCamera: { center: coordinate(frame.x + frame.width / 2, frame.y + frame.height / 2), zoom: map.getZoom(), bearing, pitch },
-      viewport: { width: canvas.width, height: canvas.height },
-      frame,
-      footprint: {
-        corners: [
-          coordinate(frame.x, frame.y), coordinate(frame.x + frame.width, frame.y),
-          coordinate(frame.x + frame.width, frame.y + frame.height), coordinate(frame.x, frame.y + frame.height),
-        ],
-        widthPx: frame.width, heightPx: frame.height, bearing, pitch,
-      },
-      referenceLongitude: center.lng,
-    };
-    if (!source.isSourceReady() || source.resolveContent() !== content) {
-      throw new Error('The map changed during snapshot capture. Retry the export.');
-    }
-    return freezeSnapshot(snapshot);
+  const frameElement = source.resolvePrintFrame(), bounds = frameElement?.getBoundingClientRect();
+  if (!bounds) throw new Error('The print frame is not ready for an export snapshot.');
+  const canvas = map.getCanvas().getBoundingClientRect();
+  const frame = { x: bounds.left - canvas.left, y: bounds.top - canvas.top, width: bounds.width, height: bounds.height };
+  if ([frame.width, frame.height, canvas.width, canvas.height].some((value) => !(Number.isFinite(value) && value > 0))) {
+    throw new Error('The map or print frame has invalid export dimensions.');
+  }
+  const coordinate = (x: number, y: number): Coordinate => {
+    const point = map.unproject([x, y]);
+    return [point.lng, point.lat];
+  };
+  const center = map.getCenter(), bearing = map.getBearing(), pitch = map.getPitch();
+  const style = source.resolveStyle(options.content ?? 'composite');
+  const snapshot: MapRenderSnapshot = {
+    style: options.content === 'basemap' ? withoutStudioContentLayers(style) : structuredClone(style),
+    layers: structuredClone(content.layers),
+    assets: structuredClone(content.assets ?? {}),
+    camera: { center: [center.lng, center.lat], zoom: map.getZoom(), bearing, pitch, roll: map.getRoll() },
+    printCamera: { center: coordinate(frame.x + frame.width / 2, frame.y + frame.height / 2), zoom: map.getZoom(), bearing, pitch },
+    viewport: { width: canvas.width, height: canvas.height },
+    frame,
+    footprint: {
+      corners: [
+        coordinate(frame.x, frame.y), coordinate(frame.x + frame.width, frame.y),
+        coordinate(frame.x + frame.width, frame.y + frame.height), coordinate(frame.x, frame.y + frame.height),
+      ],
+      widthPx: frame.width, heightPx: frame.height, bearing, pitch,
+    },
+    referenceLongitude: center.lng,
+  };
+  if (!source.isSourceReady() || source.resolveContent() !== content) {
+    throw new Error('The map changed during snapshot capture. Retry the export.');
+  }
+  return freezeSnapshot(snapshot);
 }
