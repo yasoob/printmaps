@@ -31,7 +31,8 @@ export function createShareUrl(
   location?: { origin: string; baseUrl?: string },
 ) {
   const origin = webUrl(location?.origin ?? window.location.origin).origin;
-  const url = new URL(publicAssetUrl('editor/', location?.baseUrl), origin);
+  const base = location?.baseUrl ?? import.meta.env.BASE_URL;
+  const url = new URL(publicAssetUrl('editor/', `${base.replace(/\/+$/, '')}/`), origin);
   if (url.origin !== origin) throw new ShareError('Share links must use this editor’s origin.');
   url.search = '';
   url.hash = `${options.embedded ? 'embed' : 'share'}=${payload}${options.navigation ? '' : '&navigation=0'}`;

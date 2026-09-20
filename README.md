@@ -35,6 +35,10 @@ ephemeral and downloads retain the original snapshot. **Remix this map** restore
 the local editor first and uses the normal replacement confirmation and backup-download
 workflow before replacing existing work. Embed HTML supports responsive width,
 240–2000 px height and optional preview navigation; attribution is always retained.
+The viewer uses the shared poster/photo/decoration renderer and the same terrain
+settings as the editor, with explicit errors for unsupported combinations. Downloads
+preserve the original project, not the ephemeral preview camera. Wall, video and
+relief settings round-trip unchanged and remain available after remixing.
 Production shared-page startup does not load analytics or send the fragment to it.
 The isolated production privacy/mobile check runs with
 `npx playwright test --config=playwright.sharing.config.ts --project=chromium`.

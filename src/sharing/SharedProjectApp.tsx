@@ -1,15 +1,13 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ProjectDocument } from '../domain/project';
 import { projectAttributionText } from '../domain/projectAttributions';
 import { publicAssetUrl } from '../domain/publicAssetUrl';
 import { ProjectStoreContext, useProject, useProjectStoreApi } from '../app/projectStoreContext';
 import { createProjectStore } from '../app/store';
 import { downloadProjectDocument } from '../app/components/projectDownload';
-import { MapCanvas } from '../map/MapCanvas';
 import { createShareUrl, type SharedViewOptions } from './urls';
+import { SharedMapPreview } from './SharedMapPreview';
 import './sharing.css';
-
-const ignoreSelection = () => {};
 
 export function SharedProjectApp({ document, options, payload, onRemix }: {
   document: ProjectDocument;
@@ -33,10 +31,11 @@ function SharedProjectView({ options, payload, onRemix }: {
   const [error, setError] = useState<string | null>(null);
   const [remixing, setRemixing] = useState(false);
   const activeRemix = useRef(false);
-  const camera = useMemo(() => ({
-    ...document.camera, locked: !options.navigation,
-  }), [document.camera, options.navigation]);
-  const getCanonicalCamera = useCallback(() => store.getState().document.camera, [store]);
+  const isMounted = useRef(true);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => { isMounted.current = false; };
+  }, []);
   const download = () => {
     try {
       downloadProjectDocument(store.getState().document);
@@ -52,6 +51,7 @@ function SharedProjectView({ options, payload, onRemix }: {
     try {
       await onRemix(store.getState().document);
     } catch (error) {
+      if (!isMounted.current) return;
       activeRemix.current = false;
       setRemixing(false);
       setError(error instanceof Error ? error.message : 'Your local project could not be restored. It has not been replaced.');
@@ -70,27 +70,7 @@ function SharedProjectView({ options, payload, onRemix }: {
       </nav>
     </header>
     {error && <p className="shared-notice" role="alert">{error}</p>}
-    <section className="shared-map canvas-region" aria-label="Read-only map preview">
-      <MapCanvas
-        assets={document.assets}
-        layers={document.layers}
-        camera={camera}
-        getCanonicalCamera={getCanonicalCamera}
-        stylePreset={document.style.preset}
-        styleCustomization={document.style.customization}
-        language={document.style.language}
-        textScalePercent={document.style.textScalePercent}
-        featureVisibility={document.style.visibility}
-        basemapVisible={document.layers.find((layer) => layer.type === 'basemap')?.visible ?? true}
-        page={document.page}
-        orientation={document.page.orientation}
-        selectedId={null}
-        previewedId={null}
-        onLayerSelect={ignoreSelection}
-        onBackgroundClick={ignoreSelection}
-        interactionMode="readonly"
-      />
-    </section>
+    <SharedMapPreview document={document} canNavigate={options.navigation} />
     <footer className="shared-footer">
       <a href={publicAssetUrl('')} target={options.embedded ? '_blank' : undefined} rel="noopener noreferrer">Made with Print Map Studio</a>
       <span>{projectAttributionText(document)}</span>

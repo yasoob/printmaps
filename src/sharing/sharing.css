@@ -10,8 +10,10 @@
 .shared-header p { margin: 0.2rem 0 0; font-size: 0.8rem; }
 .shared-header nav { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
 .shared-header nav button { min-height: 36px; }
-.shared-map.canvas-region { position: relative; flex: 1; min-height: 100px; width: 100%; overflow: hidden; }
+.shared-map.canvas-region { position: relative; flex: 1; min-height: 0; width: 100%; overflow: hidden; }
 .shared-map .canvas-surface { width: 100%; height: 100%; }
+.shared-map .map-fit-control { display: none; }
+.shared-artwork-status { position: absolute; top: 1rem; left: 1rem; padding: 0.5rem; background: #fff; font-size: 0.8rem; }
 .shared-footer { display: flex; flex-wrap: wrap; gap: 0.35rem 1rem; padding: 0.55rem 1rem; font-size: 0.7rem; line-height: 1.45; background: #fff; }
 .shared-footer a, .shared-header a { color: #075a73; text-decoration: underline; }
 .shared-notice { margin: 0; padding: 0.6rem 1rem; }

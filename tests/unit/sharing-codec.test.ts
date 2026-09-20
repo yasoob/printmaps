@@ -6,6 +6,7 @@ import { MAX_PROJECT_FILE_BYTES } from '../../src/domain/projectSerialization';
 import { createDefaultRouteAppearance } from '../../src/domain/routeAppearance';
 import { decodeSharedProject, encodeSharedProject, MAX_SHARE_URL_LENGTH } from '../../src/sharing/codec';
 import { createEmbedHtml, createShareUrl, isSharedProjectHash, parseSharedHash } from '../../src/sharing/urls';
+import { photoAsset, studioProject } from '../fixtures/studio';
 
 function rawPayload(value: unknown) {
   const bytes = new TextEncoder().encode(JSON.stringify(value));
@@ -18,6 +19,38 @@ function compressedPayload(bytes: Uint8Array, declaredLength: number) {
 }
 
 describe('shared project codec', () => {
+  it('round-trips every schema-26 studio field including photos, poster, decorations, wall, terrain, video and relief', () => {
+    const document = studioProject();
+    const decoded = decodeSharedProject(encodeSharedProject(document));
+    expect(decoded).toEqual(document);
+    expect(decoded.studio.photos.assets).not.toBe(document.studio.photos.assets);
+    expect(decoded.studio.relief.routeRidge.layerId).toBe('route-01');
+  });
+
+  it('migrates an older schema-25 shared snapshot through the canonical parser', () => {
+    const current = createInitialProjectDocument();
+    const legacy: Record<string, unknown> = { ...current, schemaVersion: 25 };
+    delete legacy.studio;
+    expect(decodeSharedProject(rawPayload(legacy))).toEqual(current);
+  });
+
+  it('refuses a photo that cannot fit the URL without stripping or recompressing its image data', () => {
+    const document = studioProject();
+    const template = photoAsset(90_000);
+    const bytes = Uint8Array.from(atob(template.dataUri.split(',', 2)[1]), (character) => character.codePointAt(0)!);
+    let seed = 17;
+    for (let index = 100; index < bytes.length; index++) {
+      seed = (seed * 1_664_525 + 1_013_904_223) >>> 0;
+      bytes[index] = seed >>> 24;
+    }
+    const id = `sha256-${sha256Hex(bytes)}`;
+    const asset = { ...template, id, dataUri: `data:image/png;base64,${Buffer.from(bytes).toString('base64')}` };
+    document.studio.photos.assets = { [id]: asset };
+    document.studio.photos.stops[0].assetId = id;
+    expect(() => encodeSharedProject(document)).toThrow('No photos, routes or assets were omitted');
+    expect(document.studio.photos.assets[id]).toBe(asset);
+  });
+
   it('round-trips every canonical field, styled annotations, routes and a referenced embedded image', async () => {
     const document = createInitialProjectDocument();
     document.title = 'Vienna · 旅 & "friends"';
@@ -92,6 +125,7 @@ describe('share and embed addresses', () => {
     const payload = encodeSharedProject(createInitialProjectDocument());
     const link = createShareUrl(payload, { embedded: false, navigation: true }, { origin: 'https://maps.example', baseUrl: '/studio/' });
     expect(link).toBe(`https://maps.example/studio/editor/#share=${payload}`);
+    expect(createShareUrl(payload, { embedded: false, navigation: true }, { origin: 'https://maps.example', baseUrl: '/studio' })).toBe(link);
     expect(parseSharedHash(new URL(link).hash)).toEqual({ payload, options: { embedded: false, navigation: true } });
     expect(() => createShareUrl(payload, { embedded: true, navigation: false }, { origin: 'https://maps.example', baseUrl: '//evil.example/' })).toThrow('origin');
   });
