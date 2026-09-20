@@ -92,7 +92,7 @@ function StudioCanvas({ m }: { m: StudioAppModel }) {
   );
 }
 
-function StudioProperties({ m }: { m: StudioAppModel }) {
+function StudioProperties({ m, blockedReason }: { m: StudioAppModel; blockedReason?: string }) {
   const isSelectedDirectionsEdit =
     m.directionsRouteEditing.statusLayerId === m.selectedLayer?.id;
   const pendingWaypoints = isSelectedDirectionsEdit
@@ -101,8 +101,7 @@ function StudioProperties({ m }: { m: StudioAppModel }) {
   return (
     <PropertiesSidebar
       layoutRequest={m.layoutRequest}
-      studioBlockedReason={m.isAuthoring ? 'Finish or cancel the current drawing before exporting.'
-        : (m.isAutosaveCorrupted ? 'Resolve the damaged draft before exporting.' : undefined)}
+      studioBlockedReason={blockedReason}
       selectedLayerId={m.selectedLayer?.id ?? null}
       directionsRouteEditError={
         isSelectedDirectionsEdit ? m.directionsRouteEditing.error : null
@@ -160,8 +159,14 @@ const ProjectAutosaveSurfaces = memo(function ProjectAutosaveSurfaces({ fallback
   );
 });
 
+function getStudioBlockedReason(m: Pick<StudioAppModel, 'isAuthoring' | 'isAutosaveCorrupted'>) {
+  if (m.isAuthoring) return 'Finish or cancel the current drawing first.';
+  if (m.isAutosaveCorrupted) return 'Resolve the damaged draft before continuing.';
+}
+
 export function StudioAppView({ model: m }: { model: StudioAppModel }) {
   const [layersCollapsed, setLayersCollapsed] = useState(false);
+  const blockedReason = getStudioBlockedReason(m);
   const toggleLayersCollapsed = useCallback(() => {
     setLayersCollapsed((collapsed) => !collapsed);
   }, []);
@@ -193,9 +198,9 @@ export function StudioAppView({ model: m }: { model: StudioAppModel }) {
         <StudioLayers m={m} desktopCollapsed={layersCollapsed} onToggleCollapsed={toggleLayersCollapsed} />
         <StudioCanvas m={m} />
         {m.modal.mobilePanel && <button className="mobile-panel-backdrop" data-panel={m.modal.mobilePanel} type="button" aria-label="Close open panel" onClick={() => m.mobile.closePanel()} />}
-        <StudioProperties m={m} />
+        <StudioProperties m={m} blockedReason={blockedReason} />
       </main>
-      {m.modal.surface === "export" && <ExportDialogSurface onClose={m.modal.closeExport} />}
+      {m.modal.surface === "export" && <ExportDialogSurface onClose={m.modal.closeExport} blockedReason={blockedReason} />}
       {m.modal.surface === "rename" && <ProjectRenameDialog onClose={m.modal.closeRename} returnFocusRef={m.openButtonRef} />}
       {m.modal.surface === "templates" && <NewProjectTemplateDialog onClose={m.closeTemplateGallery} onSelect={m.createFromTemplate} returnFocusRef={m.openButtonRef} />}
       {m.modal.surface === "project-open" && m.projectOpening.pendingDocument && (
@@ -214,8 +219,10 @@ export function StudioAppView({ model: m }: { model: StudioAppModel }) {
   );
 }
 
-function ExportDialogSurface({ onClose }: { onClose: () => void }) {
+function ExportDialogSurface({ onClose, blockedReason }: { onClose: () => void; blockedReason?: string }) {
   const exporter = useAvailableMapExporter();
   const document = useProject((state) => state.document);
-  return <ExportDialog exporter={exporter} filename={document.id} document={document} onClose={onClose} />;
+  const documentEpoch = useProject((state) => state.documentEpoch);
+  return <ExportDialog exporter={exporter} filename={document.id} document={document}
+    documentEpoch={documentEpoch} blockedReason={blockedReason} onClose={onClose} />;
 }
