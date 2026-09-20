@@ -31,7 +31,7 @@ function primitiveElement(primitive: StudioPrimitive, id: string): ReactNode {
 export function studioPrimitiveElements(primitives: readonly StudioPrimitive[], prefix: string) {
   return primitives.map((primitive, index) => {
     const key = primitive.key ?? `${primitive.kind}-${index}`;
-    const id = `${prefix}-${key}`;
+    const id = `${prefix}-${[...key].map((character) => character.codePointAt(0)!.toString(16)).join('-')}`;
     const element = primitiveElement(primitive, id);
     return <Fragment key={key}>{primitive.clip ? <>
       <defs><clipPath id={`${id}-clip`}><rect {...boxProps(primitive.clip)} /></clipPath></defs>

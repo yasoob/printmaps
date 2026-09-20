@@ -8,7 +8,6 @@ import { PoiAuthoringControls } from './PoiAuthoringControls';
 import { RouteDrawingPanel } from './RouteDrawingPanel';
 import { ShapeDrawingPanel } from './ShapeDrawingPanel';
 import { ShapeEditingToolbar } from './ShapeEditingToolbar';
-import { UnfinishedDrawingNotice } from './UnfinishedDrawingNotice';
 
 const tools = [
   { id: 'select', label: 'Select', mobileLabel: 'Select', shortcut: 'V', icon: MousePointer2 },
@@ -55,17 +54,13 @@ type SelectedShapeControls = {
 };
 
 type CanvasWorkspaceChromeProps = {
-  statusNotice?: ReactNode;
   activeTool: string;
-  hasUnfinishedDrawing: boolean;
-  hasUnfinishedPoiList: boolean;
   onActivateTool: (id: string) => void;
   poiPanelProps: ComponentProps<typeof PoiAuthoringControls>;
   routePanelProps: ComponentProps<typeof RouteDrawingPanel>;
   selectToolRef: RefObject<HTMLButtonElement | null>;
   selectedShape: SelectedShapeControls;
   shapePanelProps: ComponentProps<typeof ShapeDrawingPanel>;
-  topDock: ReactNode;
 };
 
 function haveSameObjectProps(previous: object, next: object) {
@@ -77,7 +72,7 @@ function haveSameObjectProps(previous: object, next: object) {
 }
 
 const chromeControlKeys = [
-  'activeTool', 'hasUnfinishedDrawing', 'hasUnfinishedPoiList', 'onActivateTool', 'selectToolRef', 'topDock', 'statusNotice',
+  'activeTool', 'onActivateTool', 'selectToolRef',
 ] as const;
 
 function isSameCanvasWorkspaceChromeProps(
@@ -130,11 +125,10 @@ function SelectedShapeEditControls(props: SelectedShapeControls & { isActive: bo
 }
 
 export const CanvasWorkspaceChrome = memo(function CanvasWorkspaceChrome({
-  activeTool, hasUnfinishedDrawing, hasUnfinishedPoiList, onActivateTool, poiPanelProps, routePanelProps, selectToolRef, selectedShape, shapePanelProps, statusNotice, topDock,
+  activeTool, onActivateTool, poiPanelProps, routePanelProps, selectToolRef, selectedShape, shapePanelProps,
 }: CanvasWorkspaceChromeProps) {
   return (
     <>
-      <div className="canvas-top-dock">{topDock}{statusNotice}{(hasUnfinishedDrawing || hasUnfinishedPoiList) && <UnfinishedDrawingNotice hasPoiList={hasUnfinishedPoiList} hasDrawing={hasUnfinishedDrawing} />}</div>
       <div className="canvas-authoring-dock">
         {activeTool === 'select' && selectedShape.canEditPoints && selectedShape.selectedId && (
           <SelectedShapeEditControls {...selectedShape} isActive />

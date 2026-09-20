@@ -1,4 +1,5 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
+import { useStableEvent } from "./useStableEvent";
 import { trackEditorAction } from "../../analytics/editorAnalytics";
 import {
   useRouteKeyboard,
@@ -192,17 +193,25 @@ export function useCanvasRouteAuthoring(parameters: RouteAuthoringParameters) {
       request: current.request + 1,
     }));
   }, [core]);
+  const deliverTerraDraft = useStableEvent(updateTerraDraft);
+  const onMoveBegin = useStableEvent(core.beginPointMove);
+  const onMoveCommit = useStableEvent(core.commitPointMove);
+  const onMovePreview = useStableEvent(core.previewPointMove);
+  const { currentPoints, focusRequest, lineShape, terraSyncRevision } = core;
+  const isDraftActive = parameters.activeTool === "route" && currentPoints.length > 0;
+  const isTerraActive = parameters.activeTool === "route" && !core.extension;
+  const draftEditing = useMemo(() => ({
+    active: isDraftActive, focusRequest, onMoveBegin, onMoveCommit, onMovePreview, points: currentPoints,
+  }), [isDraftActive, focusRequest, onMoveBegin, onMoveCommit, onMovePreview, currentPoints]);
+  const terraAuthoring = useMemo(() => ({
+    active: isTerraActive, lineShape: lineShape === "road" ? "straight" as const : lineShape,
+    onFinish: deliverTerraDraft, onPreview: deliverTerraDraft, points: currentPoints,
+    revision: terraSyncRevision, undoRequest: 0,
+  }), [isTerraActive, lineShape, deliverTerraDraft, currentPoints, terraSyncRevision]);
   return {
     addPoint: inputActions.addPoint,
     discard: inputActions.discard,
-    draftEditing: {
-      active: parameters.activeTool === "route" && core.currentPoints.length > 0,
-      focusRequest: core.focusRequest,
-      onMoveBegin: core.beginPointMove,
-      onMoveCommit: core.commitPointMove,
-      onMovePreview: core.previewPointMove,
-      points: core.currentPoints,
-    },
+    draftEditing,
     draftPoints: core.commitPoints,
     extensionLayerId: core.extension?.layer.id ?? null,
     hasUnfinishedWork: core.hasUnfinishedWork,
@@ -222,14 +231,6 @@ export function useCanvasRouteAuthoring(parameters: RouteAuthoringParameters) {
     points: core.currentPoints,
     preview: core.roadPreview?.input ?? null,
     requestToolChange: inputActions.requestToolChange,
-    terraAuthoring: {
-      active: parameters.activeTool === "route" && !core.extension,
-      lineShape: core.lineShape === "road" ? "straight" as const : core.lineShape,
-      onFinish: updateTerraDraft,
-      onPreview: updateTerraDraft,
-      points: core.currentPoints,
-      revision: core.terraSyncRevision,
-      undoRequest: 0,
-    },
+    terraAuthoring,
   };
 }

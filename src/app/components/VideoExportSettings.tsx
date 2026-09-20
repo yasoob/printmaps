@@ -1,4 +1,4 @@
-import { useId, type ReactNode } from 'react';
+import { memo, useId, type ReactNode } from 'react';
 import type { VideoOptions } from '../../video/types';
 import { FeatureHelp } from './FeatureHelp';
 
@@ -32,7 +32,7 @@ const ASPECTS: readonly Choice<VideoOptions['aspect']>[] = [
 ];
 const QUALITIES: readonly Choice<VideoOptions['quality']>[] = [{ value: 'standard', label: 'Standard (up to 1280 px)' }, { value: 'high', label: 'High (up to 1920 px)' }];
 
-export function VideoExportSettings({ settings, busy, onChange }: Readonly<{
+export const VideoExportSettings = memo(function VideoExportSettings({ settings, busy, onChange }: Readonly<{
   settings: VideoOptions;
   busy: boolean;
   onChange: (settings: VideoOptions) => void;
@@ -45,4 +45,4 @@ export function VideoExportSettings({ settings, busy, onChange }: Readonly<{
     <VideoChoice label="Video aspect" value={settings.aspect} choices={ASPECTS} help="The complete poster, photos, decorations, and attribution fit inside the video. Other aspect ratios may have white borders." onChange={(aspect) => onChange({ ...settings, aspect })} />
     <VideoChoice label="Video quality" value={settings.quality} choices={QUALITIES} onChange={(quality) => onChange({ ...settings, quality })} />
   </fieldset>;
-}
+});

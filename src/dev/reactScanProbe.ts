@@ -1,6 +1,7 @@
 import { analyzeFiberRender } from "./reactScanProbeFiber";
 import {
   installMapLibreMutationProbe,
+  readMapLibreProbeCameras,
   type MapLibreMutation,
 } from "./reactScanProbeMapLibre";
 
@@ -66,6 +67,7 @@ export type ReactScanProbeController = {
   inventory: ReadonlyArray<ReactScanComponentInventory>;
   instances: ReadonlyArray<ReactScanProbeResult["events"][number]>;
   lastActivityAt: number;
+  cameras: ReturnType<typeof readMapLibreProbeCameras>;
   start: (label: string) => void;
 };
 
@@ -75,9 +77,8 @@ declare global {
   }
 }
 
-const probeState: { active: ReactScanProbeResult | null } = { active: null };
+const probeState: { active: ReactScanProbeResult | null; lastActivityAt: number } = { active: null, lastActivityAt: 0 };
 const instances = new Map<number, ReactScanProbeResult["events"][number]>();
-let lastActivityAt = 0;
 const componentInventory = new Map<string, ReactScanComponentInventory>(
   REACT_SCAN_TARGETS.map(({ area, name }) => [
     name,
@@ -157,7 +158,7 @@ function recordRender(
 
 const handleRender: ReactScanRenderHandler = (fiber, renders) => {
   for (const render of renders) {
-    lastActivityAt = performance.now();
+    probeState.lastActivityAt = performance.now();
     const analyzed = analyzeFiberRender(fiber, render);
     observeComponent(analyzed.name, analyzed.source);
     recordRender(analyzed.name, [render], analyzed.changes);
@@ -180,8 +181,9 @@ export function installReactScanProbe(): ReactScanRenderHandler {
   if (existing) return handleRender;
 
   const controller: ReactScanProbeController = {
-    get lastActivityAt() { return lastActivityAt; },
+    get lastActivityAt() { return probeState.lastActivityAt; },
     get instances() { return [...instances.values()]; },
+    get cameras() { return readMapLibreProbeCameras(); },
     get inventory() {
       return [...componentInventory.values()].map((entry) => ({ ...entry }));
     },
@@ -221,7 +223,7 @@ export function installReactScanProbe(): ReactScanRenderHandler {
     subtree: true,
   });
   installMapLibreMutationProbe((mutation) => {
-    lastActivityAt = performance.now();
+    probeState.lastActivityAt = performance.now();
     probeState.active?.mapMutations.push(mutation);
   });
   return handleRender;

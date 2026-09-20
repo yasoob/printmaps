@@ -11,6 +11,7 @@ import { FeatureHelp } from './FeatureHelp';
 import './terrainControls.css';
 import { useAvailableMapExporter } from '../mapExporterContext';
 import type { ComponentProps } from 'react';
+import { useProject } from '../projectStoreContext';
 
 const ReliefExportDialog = lazy(async () => {
   const module = await import('./ReliefExportDialog');
@@ -21,16 +22,22 @@ export type TerrainPropertiesProps = {
   documentEpoch: number;
   terrain: TerrainSettings;
   relief: ReliefSettings;
-  layers: readonly ContentLayer[];
+  layers?: readonly ContentLayer[];
   exporter?: PreviewPngExporter | null;
   blockedReason?: string;
   onTerrainChange: (settings: TerrainSettings) => ProjectMutationResult;
   onReliefChange: (settings: ReliefSettings) => ProjectMutationResult;
 };
 
-function ReliefDialogSurface(props: Omit<ComponentProps<typeof ReliefExportDialog>, 'exporter'> & { exporter?: PreviewPngExporter | null }) {
+function ReliefDocumentLayers(props: Omit<ComponentProps<typeof ReliefExportDialog>, 'layers'>) {
+  const layers = useProject((state) => state.document.layers);
+  return <ReliefExportDialog {...props} layers={layers} />;
+}
+
+function ReliefDialogSurface(props: Omit<ComponentProps<typeof ReliefExportDialog>, 'exporter' | 'layers'> & { exporter?: PreviewPngExporter | null; layers?: readonly ContentLayer[] }) {
   const exporter = useAvailableMapExporter(props.exporter);
-  return <ReliefExportDialog {...props} exporter={exporter} />;
+  return props.layers ? <ReliefExportDialog {...props} exporter={exporter} layers={props.layers} />
+    : <ReliefDocumentLayers {...props} exporter={exporter} />;
 }
 
 export function TerrainProperties(props: TerrainPropertiesProps) {

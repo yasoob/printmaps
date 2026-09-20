@@ -1,7 +1,7 @@
 import { Marker, type Map as MapLibreMap } from 'maplibre-gl';
 import type { ContentLayer, LayerGeometry } from '../domain/project';
 import { isValidPosition } from '../domain/routeGeometry';
-import { previewMapGeometry } from './MapGeometryPreview';
+import { didPreviewMapGeometry } from './MapGeometryPreview';
 import type { ProjectMutationResult } from '../domain/projectMutation';
 
 type PointGeometry = Extract<LayerGeometry, { type: 'Point' }>;
@@ -55,7 +55,7 @@ export function installPointEditing(
   let currentLayer = layer;
   let original = [...layer.geometry.coordinates] as [number, number];
   const updateSource = (coordinate: readonly [number, number]) =>
-    previewMapGeometry(map, currentLayer, { type: 'Point', coordinates: [coordinate[0], coordinate[1]] });
+    didPreviewMapGeometry(map, currentLayer, { type: 'Point', coordinates: [coordinate[0], coordinate[1]] });
   const element = document.createElement('button');
   element.type = 'button';
   element.className = 'poi-move-marker';
@@ -68,10 +68,10 @@ export function installPointEditing(
   let hasPreview = false;
   const commit = (coordinate: readonly [number, number]) => {
     const result = onCommit(coordinate);
-    if (!result.ok) {
+    if (result.ok) {original = [coordinate[0], coordinate[1]];} else {
       marker.setLngLat(original);
       updateSource(original);
-    } else original = [coordinate[0], coordinate[1]];
+    }
     hasPreview = false;
   };
 

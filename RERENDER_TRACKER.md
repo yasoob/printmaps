@@ -1,19 +1,176 @@
 # Re-render audit tracker
 
-Updated: 2026-09-02
+Updated: 2026-09-19
 
 ## Scope and method
 
 - React Scan is enabled only in development and observes the entire React tree.
-- The latest clean-load audit contains 90 initially mounted component identities
-  plus the layer-inspector identities discovered after selecting a route.
-- Each component gets one read-only probe agent. Interactive components are
-  probed directly; passive and third-party leaf components are probed through
-  their nearest owning interaction.
-- A render is not automatically a defect. Agents must distinguish required
+- The current integrated audit covers the complete runtime tree and reconciles
+  first-party JSX creation sites, not just the initial editor mount. The
+  September 2 inventory of 90 initial identities below is historical.
+- Interactions are audited end to end in one isolated browser harness. Passive
+  and third-party leaves are assigned to their nearest first-party owner;
+  there is no one-agent-per-leaf workflow.
+- A render is not automatically a defect. The audit distinguishes required
   visual/state updates from referential churn and unchanged-subtree renders.
 - No dependency changes are made until the interaction map is complete enough
   to choose between local stabilization and a broader data-flow change.
+
+## Integrated Studio audit, September 19
+
+### Executed scope and evidence
+
+Base: `26e93c2`, on the integrated Studio branch. The original seven-test harness
+was executed before changes: **2 passed, 5 failed**. Its historical component
+names and missing quiescence were corrected separately from actual application
+regressions. In particular, `LayersSidebar` now contains `LayerNavigation`, and
+its rows are `LayerNavigationRow`. `StudioMapCanvas` and
+`EditorStudioMapCanvas` are real new preview-delivery boundaries, not aliases
+added to conceal unrelated work.
+
+**Verification status:** the expanded suite completed **52/52 passing browser
+cases** with the integrated help and wall-padding changes (`final-audit.log`).
+The subsequent no-host-input refinements have **31 passing cases**, while the
+first **21 cases never launched a browser**: the bundled headless shell crashed
+with SIGSEGV before app code ran. Standalone launch smoke checks reproduced the
+failure; bundled full Chromium and installed Chrome also could not launch.
+No assertions were weakened. Those 21 cases, and a complete same-revision
+runtime refresh, remain an explicit handoff gate.
+
+The last fully passing capture's fresh global discovery finds **317 runtime
+names**. TypeScript symbol reconciliation covers **541 first-party JSX creation
+sites**, **218 source targets / 217 distinct runtime target names**, plus
+**17 explicitly grouped icon/provider deliveries**. `StableMapCanvas` is a
+source alias of `MapCanvas`; it is not counted as a second runtime component.
+There are **zero unobserved source targets in that completed capture**. Every target has an owning
+interaction in the generated inventory, including lazy, portal, multipart,
+error, recovery and shared-view branches.
+The latest launch-blocked capture has 259 runtime names and 40 unobserved source
+targets, all listed in `verified-inventory.json`; it is **not** presented as a
+new exhaustive inventory or combined with older results to hide the gap.
+
+Raw evidence is intentionally not committed. This run's artifact root is:
+
+`/Users/yasoob/.copilot/session-state/5fb36ef9-5c32-4132-b395-d8988d515dcc/files/`
+
+| Artifact | Meaning |
+|---|---|
+| `baseline.log`, `baseline-raw.json`, `baseline-results/` | Original unmodified seven-test harness. |
+| `studio-before.log`, `studio-before-results/` | Poster/title/photo/decoration baseline before ownership changes. |
+| `expanded-before-results/` | Project-section, tool, search and viewer baseline; records probe corrections separately. |
+| `branches-results/` | Conditional branch evidence, including exporter/authoring reference leaks. |
+| `surfaces-results/` | Real MP4 before evidence: 103 settings renders and 206 help renders. |
+| `matrix-results/` | Pan/search/chrome before evidence and topology interactions. |
+| `final-focused-results/` | Map-matching provenance invalidation before: 10 marker DOM mutations. |
+| `final-results/`, `final-html/`, `final-audit.log`, `final-inventory.json` | Fully passing 52-case integrated capture and zero-gap source reconciliation, before the final no-host-input refinements. |
+| `verified-results/`, `verified-html/`, `verified-audit.log` | Latest refinement evidence: 31 cases passed; 21 failed at native browser launch, before app/probe execution. |
+| `verified-inventory.json`, `verified-no-host-commits.json` | Honest partial source reconciliation and all captured per-instance no-host-commit groups. |
+| `chrome-smoke.log`, `chromium-channel-smoke.log` | Browser-only fallback launch diagnostics; no app code or assertion changes for launch failures. |
+| `final-unit.log`, `final-lint.log`, `final-production-build.log` | Related unit/type/lint/build gates. |
+
+Reproduce with `PLAYWRIGHT_EDITOR_PORT=4292 npm run audit:renders`, supplying an
+external `--output` directory, then run
+`node scripts/react_scan_inventory.mjs <output-directory> <inventory.json>`.
+The script exits nonzero for an unobserved first-party JSX target. Capture is
+still the global callback; `REACT_SCAN_TARGETS` remains metadata only.
+
+### Measured fixes
+
+| Interaction / cause | Before | After / permanent invariant |
+|---|---|---|
+| Project rename, composition off and on | `StudioCanvas` subscribed to project title and rebuilt composition; native workspace/map rendered once, with no native mutation. | Project title is not a composition input. Identity/history/autosave may update; `StudioCanvas`, `CanvasWorkspace`, `MapCanvas`, poster and composition controls do not. Commit and autosave settle are separate captures. |
+| Poster title or margin | Native workspace/map, photo/decor controls, gallery and closed wall dialog all rendered. | Composition subscription is below the workspace. Native map/search/chrome/scale and sibling controls have zero callbacks; poster controls and derived artwork update. |
+| Photo caption | Same cross-panel render wave, plus whole-SVG `innerHTML` replacement destroyed unchanged photo nodes. | Canonical scene derivation feeds keyed React SVG primitives. Other photo nodes retain identity. Keys survive insertion/removal of preceding grid/title primitives; imported IDs with spaces/punctuation receive safe clip IDs. |
+| Moving a photo POI | Not separately covered by the historical audit. | Only the owned POI source changes; unrelated routes are untouched. Other photo nodes retain both identity and x/y. The derived artwork and coordinate owner update. |
+| Decoration toggle | Poster/photo/gallery/wall and native workspace were redelivered despite no native work. | Decoration/artwork owners update; poster/photo/terrain/video and native renderers remain isolated. |
+| Terrain exaggeration | Whole composition assembly lived with terrain delivery. | Exactly the native terrain update is permitted; no composition callback, geometry `setData`, or source/layer reconstruction. Enabling terrain/pitch can legitimately change the scale/grid eligibility input. |
+| Wall preference | Wall state reran the entire composition panel through fresh actions. | Stable action delivery keeps poster/photo/decor and live native map silent; only wall presentation/settings update. Open/close remains ephemeral. |
+| Renderer readiness during dragging | Root `useMapExporter` updates propagated `props:exporter` through the sidebar, even after selection quiescence. | A renderer-lifetime capability channel has no document data. Actions read current readiness; only open output surfaces subscribe. Live route/POI/shape drags now produce zero React callbacks. |
+| POI / shape-point commit | 2 / 16 marker DOM additions/removals and 2 repeated map writes. | Stable identity/topology sessions synchronize current geometry, metadata and callbacks in place. Both commits have zero marker mutations and zero native writes after the accepted preview. |
+| Shape transform | Shared lifetime issue was not previously covered. | All five handles survive; preview, commit and settle have distinct assertions. Keyboard, rejection rollback, undo and current-projection behavior remain covered by unit tests. |
+| Coordinate inspectors | Numeric coordinates were part of input keys, remounting changed fields; POI appearance reran for geometry. | Inputs are keyed by semantic selection, retain DOM identity and reset stale errors by source value. Stable POI appearance is excluded from geometry commits. |
+| Matched-route edit | Correct provenance invalidation also changed the session key and removed/re-added five anchors (10 DOM mutations). | Session key distinguishes directions waypoints from geometry anchors, not unrelated provenance services. Matching provenance is still cleared; all anchors survive. |
+| Project bearing/page versus style | Unchanged `MapStyleGallery` received fresh `onSelect`; page/style/camera/detail sections all re-executed. | Separate semantic sections and stable selection actions exclude unrelated project sections. Camera remains canonical; no secondary settings store was introduced. |
+| Layer changes versus relief | Closed terrain controls subscribed to every layer geometry/name/visibility change. | Layer consumption is inside the open relief dialog. Layer navigation changes leave closed terrain controls silent. |
+| Pan versus authoring chrome | Search proximity changed the top-dock element, waking `CanvasWorkspaceChrome` twice. | The existing top dock is a sibling of authoring chrome. Search receives current proximity, but authoring/tool chrome does not rerender. |
+| POI spreadsheet / conflict / recovery | Fresh route-authoring and draft-editing objects were the only changed native-map props. | Stable event delivery plus explicit active/points/revision dependencies preserve these configurations. Native map and preview wrapper are excluded from unrelated local/modal updates. |
+| Real 5-second MP4 | 103 `VideoExportSettings`, 515 `VideoChoice`, 206 `FeatureHelp` callbacks; unchanged settings redelivered on every progress tick. | Settings and actions update exactly twice for busy on/off. Static header is retained. Progress belongs to the messages/session; live editor camera/history and all live native mutations stay unchanged. Native recording operations are attributed to a separate `video` map ID. |
+| Hover-only help Escape | With focus left on another modal control, Escape dismissed the parent dialog. Touch/focused-help tests had missed this. | Local help consumes Escape before the modal. Desktop hover and touch probes verify only help/tooltip descendants commit, with no owning-controller or map callbacks. |
+| Empty delivery discovered by `didCommit` | Empty search results received new choose callbacks; map-preview wrapper received aggregate `mapProps`; route close/status/provenance guards received unrelated metadata. | Stable choose delivery and conditional empty branches; native props delivered individually; route status/close explanation inputs narrowed to their semantic state, and directions summary receives only directions provenance. Negative assertions cover these cases. |
+
+### Interaction ownership and newly discovered identities
+
+The generated inventory is the per-target ledger: each entry includes all JSX
+sites and the test interactions in which the target was observed. The following
+groups append the first-party identities absent from the historical table.
+Shared passive primitives are grouped through these owners, not exempted from
+global capture.
+
+| Owning probe family | Newly recorded first-party identities |
+|---|---|
+| Navigation, menus, recovery (`branches`, `legacy`, `render`) | `LayerNavigation`, `LayerNavigationHeader`, `LayerNavigationHelp`, `LayerNavigationRow`, `LayerDragOverlay`, `FileFeedback`, `FileFeedbackGroup`, `ProjectIdentityMenu`, `ProjectRenameDialog`, `ProjectReplacementDialog`, `CameraMutationError`, `MapPreviewError`, `AutosaveConflictDialog`, `AutosaveCorruptionDialog`, `ProjectAutosaveOfflineNotice` |
+| Project settings / style (`legacy`, `map`, `branches`) | `ProjectPageSection`, `ProjectStyleSection`, `ProjectCameraSection`, `ProjectDetailsSection`, `MapStyleCustomizer`, `AdjustmentRange`, `SemanticColorRow`, `ValidatedNumberField` |
+| Layer geometry / advanced routes (`render`, `map`, `branches`) | `CoordinateField`, `PoiLayerProperties`, `PoiCoordinateControls`, `PoiAppearanceControls`, `CustomMarkerControl`, `ShapeAppearanceControls`, `ShapeVertexControls`, `ShapeEditingToolbar`, `MultiPartGeometryStatus`, `ArcCurvatureControls`, `ArcRouteAdvanced`, `RouteStructureSection`, `RouteStructureControls`, `RouteStructureActions`, `RouteConversionFields`, `RouteLoopAction`, `RouteCloseReason`, `RouteOperationStatus`, `RouteVertexControls`, `RouteMarkerSettings`, `RouteMapMatchingControl` |
+| Search / authoring / address review (`legacy`, `branches`) | `AdministrativeAreaPicker`, `BoundaryChooser`, `ShadcnSingleCombobox`, `ComboboxParts`, `IsochronePanel`, `LocationSearchFeedback`, `PoiSpreadsheetPanel`, `SpreadsheetSource`, `SpreadsheetContent`, `SpreadsheetActions`, `SpreadsheetFeedback`, `SpreadsheetDiscardDialog`, `PoiAddressReview`, `AddressRow`, `MatchChoices`, `RouteDrawingPanel`, `RoutePathControl`, `RouteTravelControls`, `RouteDrawingActions`, `RouteDraftStatus`, `RouteDraftPointList`, `RoutePointInputs`, `RouteDiscardDialog`, `ShapeDrawingPanel`, `ShapeModeTabs`, `ShapePointInputs`, `ToolCardHeader`, `ToolCardActions`, `ToolSettingsButton`, `UnfinishedDrawingNotice` |
+| Elevation (`legacy`, `branches`) | `ElevationProfileProvider`, `RouteElevationProfilePanel`, `ElevationProfilePanel`, `ElevationProfileReady`, `ProfileChart`, `ProfileRouteSource`, `ElevationProfileRequestControls` |
+| Import / print export (`branches`, `surfaces`) | `BatchAppearanceControls`, `ImportNumberField`, `ReplacementNote`, `ExportDialogSurface`, `ExportDialog`, `ExportDialogView`, `ExportBasemapMode`, `ExportFormatChoice`, `ExportOutputSummary`, `ExportTechnicalDetails`, `PreflightNotice`, `StreamingPngNotice` |
+| Studio composition (`studio`, `surfaces`, `viewer`) | `EditorStudioMapCanvas`, `StudioMapCanvas`, `StableMapCanvas` (alias), `StudioPosterPreview`, `StudioCompositionControls`, `StudioCompositionPanel`, `PosterControls`, `TextControl`, `PosterGallery`, `PhotoStoryControls`, `DecorationControls`, `StudioColor`, `StudioNumber`, `StudioSelect`, `StudioToggle`, `WallPreviewDialog` |
+| Terrain / STL / video (`studio`, `surfaces`) | `StudioTerrainControls`, `TerrainProperties`, `ReliefDialogSurface`, `ReliefDocumentLayers`, `ReliefExportDialog`, `ReliefSettingsControls`, `StudioVideoControls`, `VideoDialogSurface`, `VideoExportDialog`, `VideoExportSession`, `VideoExportDialogView`, `VideoExportMessages`, `VideoExportActions`, `VideoExportSettings`, `VideoChoice` |
+| Sharing / help / passive presentation (`viewer`, `surfaces`, `branches`) | `ShareControl`, `ShareDialog`, `SharedProjectApp`, `SharedProjectView`, `SharedProjectError`, `SharedMapPreview`, `SharedCompositionOverlay`, `FeatureHelp`, `DialogTitle`, `DialogDescription`, `DialogOverlay`, `DropdownMenuGroup`, `DropdownMenuItem`, `DropdownMenuLabel`, `StudioDialogHeader`, `StudioDialogBody`, `StudioDialogSection`, `StudioDialogActions`, `StudioDialogButton` |
+
+Beyond source discovery, the interaction matrix explicitly includes visibility,
+lock, reorder and drag-overlay navigation; title commit and autosave settle;
+mobile rename and focus return; import styling and replacement rejection;
+search typing/loading/results/selection and offscreen feedback; tool activation,
+draft inputs/discard, route extension, area drawing and travel-time options;
+pan, zoom, bearing, pitch, fit, geolocation, style, language, text scale, page
+dimensions and basemap visibility; route/POI/shape-point/shape-transform
+live/commit/settle; arc curvature and vertex insertion/removal; directions
+failure/retry/cancel, matching/provenance invalidation and elevation success;
+renderer failure/recovery and autosave conflict/corruption; all Studio sections,
+successful country silhouette application, real MP4 progress, STL settings,
+wall preferences, modal hover/tap help, share creation and readonly viewer/embed
+pan/settle. Shared-view tests use a dev-only explicit bootstrap and reject all
+IndexedDB access. Normal shared bootstrap and production privacy are unchanged.
+
+### Attribution decisions and retained work
+
+- `didCommit: false` is not silently discarded. Per-instance events, phases,
+  changed props and owners are retained in every report. Conditional mounts
+  (including controls, charts, overlays and portals) are cross-checked against
+  positive UI/DOM assertions; React Scan's mount callback is not a reliable
+  substitute for observing the newly mounted host output.
+- The remaining update-only no-host groups are classified: passive closed
+  `DialogContent`/`DialogPortal`/`DropdownMenuContent` composition; shallow
+  `StudioLayers`/`StudioProperties` delivery from the central model; autosave
+  error/recovery guards; and spreadsheet validation/feedback checks following
+  actual draft input changes. These are accepted small delivery/guard costs,
+  **not** a claim that whole inspectors or expensive renderers are necessary.
+  Their stable children and native surfaces have explicit negative probes.
+- Structural operations (style reload, insertion/removal, visibility and
+  reordering) may change native topology. Zero-native-mutation claims apply to
+  the documented nonstructural updates and acknowledged drag commits, not to
+  every operation that changes the layer stack.
+- A settings change that disables a control is real work: pitch/terrain changes
+  the scale/grid eligibility flag; tool activation changes export/composition
+  blocking. Busy on/off may update video controls; progress-only redelivery may
+  not. These expectations are asserted, not accommodated by broad allowlists.
+- Native `setData`, source/layer add/remove/move, paint/layout, terrain, images
+  and camera calls include instance and surface attribution. The observer
+  preserves marker identity evidence; photo identity/position is asserted
+  directly. Stable first-frame marker z-index and zero additions/removals rule
+  out transient marker teardown hidden by settled screenshots.
+
+Related verification: **268 unit tests across 27 files** passed at the complete
+integrated checkpoint; final refinement reruns passed 22 targeted tests and
+29 search/import/layer tests. Current type-check and production build pass.
+Lint has no errors (the existing shared-button Fast
+Refresh warning remains). Production JavaScript contains neither React Scan
+nor probe globals/patch symbols. The two parent-reported unrelated baseline
+tests were not changed. No raw reports, screenshots or disposable probe files
+were added to the repository.
+
+## Historical September 2 evidence
 
 ## Audit gaps corrected
 

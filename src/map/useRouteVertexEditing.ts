@@ -44,7 +44,8 @@ function routeEditingSessionKey(layer: ContentLayer | undefined) {
   const midpointCount = layer.geometry.type === 'Arc'
     ? layer.geometry.curvatures.length
     : 0;
-  return `${layer.id}:${layer.geometry.type}:${pointCount}:${midpointCount}:${layer.provenance?.service ?? ''}`;
+  const pointSource = layer.provenance?.service === 'directions-v5' ? 'waypoints' : 'geometry';
+  return `${layer.id}:${layer.geometry.type}:${pointCount}:${midpointCount}:${pointSource}`;
 }
 
 export function useRouteVertexEditing({

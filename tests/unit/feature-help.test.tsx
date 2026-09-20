@@ -86,3 +86,17 @@ it('keeps the reflowed-vector choice explicit while disclosing static caveats wi
   expect(screen.getByRole('tooltip')).toHaveTextContent('unsupported glyphs block vector export');
   expect(onChange).not.toHaveBeenCalled();
 });
+
+it('dismisses hover-only help before its modal while focus stays on another control', async () => {
+  const user = userEvent.setup();
+  render(<ModalHarness />);
+  const download = screen.getByRole('button', { name: 'Download' });
+  await user.click(download);
+  await user.hover(screen.getByRole('button', { name: 'Export help' }));
+  expect(await screen.findByRole('tooltip')).toBeVisible();
+  expect(download).toHaveFocus();
+  await user.keyboard('{Escape}');
+  await waitFor(() => expect(screen.queryByRole('tooltip')).not.toBeInTheDocument());
+  expect(screen.getByRole('dialog')).toBeVisible();
+  expect(download).toHaveFocus();
+});

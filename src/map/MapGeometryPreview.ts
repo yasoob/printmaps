@@ -3,7 +3,7 @@ import type { ContentLayer, LayerGeometry } from '../domain/project';
 import { mapContentDataForLayer, mapContentSourceId, mapGeometryForLayer } from './MapContentGeometry';
 import { hasMapContentSourceData, markMapContentSourceData } from './MapContentSourceState';
 
-export function previewMapGeometry(
+export function didPreviewMapGeometry(
   map: Pick<MapLibreMap, 'getSource'>,
   layer: ContentLayer,
   geometry: Exclude<LayerGeometry, { type: 'Arc' }>,

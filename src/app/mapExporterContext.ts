@@ -31,7 +31,8 @@ export function useReadMapExporter(explicit?: PreviewPngExporter | null) {
   return useCallback(() => explicit === undefined ? channel?.read() ?? null : explicit, [channel, explicit]);
 }
 
-const subscribeToNothing = () => () => {};
+const unsubscribeFromNothing = () => {};
+const subscribeToNothing = () => unsubscribeFromNothing;
 export function useAvailableMapExporter(explicit?: PreviewPngExporter | null) {
   const channel = useContext(MapExporterContext);
   const read = useReadMapExporter(explicit);

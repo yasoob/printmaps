@@ -1,7 +1,7 @@
 import { Marker, type Map as MapLibreMap } from 'maplibre-gl';
 import type { ContentLayer, ShapeGeometry } from '../domain/project';
 import { isValidPosition } from '../domain/routeGeometry';
-import { previewMapGeometry } from './MapGeometryPreview';
+import { didPreviewMapGeometry } from './MapGeometryPreview';
 
 export type ShapeTransformMarker = {
   addTo: (map: ShapeTransformMap) => ShapeTransformMarker;
@@ -134,7 +134,7 @@ function transformedGeometry(input: TransformInput): ShapeGeometry | null {
 }
 
 function didUpdateSourceGeometry(map: ShapeTransformMap, layer: ContentLayer, geometry: ShapeGeometry): boolean {
-  return previewMapGeometry(map, layer, geometry);
+  return didPreviewMapGeometry(map, layer, geometry);
 }
 
 type EditableShapeLayer = ContentLayer & { geometry: ShapeGeometry };
@@ -188,10 +188,10 @@ export function installShapeTransformEditing(
   };
   const commit = (next: ShapeGeometry) => {
     const result = onCommit(next);
-    if (!result.ok) {
+    if (result.ok) {geometry = structuredClone(next);} else {
       positionMarkers(geometry);
       didUpdateSourceGeometry(map, currentLayer, geometry);
-    } else geometry = structuredClone(next);
+    }
     hasUncommittedPreview = false;
   };
 

@@ -1,7 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
-import { expectOwners, finishProbe, NATIVE_MAP_OWNERS, openScanEditor, startProbe, waitForRenderQuiet } from './react-scan-helpers';
+import { attachInventory, expectOwners, finishProbe, NATIVE_MAP_OWNERS, openScanEditor, startProbe, waitForRenderQuiet } from './react-scan-helpers';
 
 test.skip(process.env.VITE_REACT_SCAN !== 'true', 'Run with npm run audit:renders.');
+test.afterEach(async ({ page }, info) => attachInventory(page, info));
 
 async function enablePoster(page: Page) {
   await page.getByText('Poster typography & paper', { exact: true }).click();
@@ -18,7 +19,11 @@ async function loadPhotoPoster(page: Page) {
     document.studio.terrain.enabled = false;
     document.studio.terrain.contours.enabled = false;
     document.studio.terrain.buildings.enabled = false;
-    document.studio.photos.stops.push({ ...document.studio.photos.stops[0], id: 'photo-2', caption: 'Stable second photo' });
+    const originalPoi = document.layers.find(({ id }) => id === 'poi-cafe');
+    if (!originalPoi) throw new Error('Photo fixture point is missing.');
+    document.layers.unshift({ ...structuredClone(originalPoi), id: 'second-photo-poi', name: 'Second photo point',
+      geometry: { type: 'Point', coordinates: [16.39, 48.2] } });
+    document.studio.photos.stops.push({ ...document.studio.photos.stops[0], id: 'photo-2', layerId: 'second-photo-poi', caption: 'Stable second photo' });
     return document;
   });
   await page.locator('input[accept*=".printmap.json"]').setInputFiles({
@@ -71,7 +76,7 @@ test('one photo caption leaves controls, other photo nodes, and native renderers
   await loadPhotoPoster(page);
   await page.getByText('Photo story', { exact: true }).click();
   const stableImage = page.getByLabel('Poster artwork', { exact: true }).locator('image').last();
-  await stableImage.evaluate((node) => { node.setAttribute('data-scan-identity', 'second-photo'); });
+  await stableImage.evaluate((node) => { node.dataset.scanIdentity = 'second-photo'; });
   await startProbe(page, 'First photo caption');
   await page.getByLabel('Stop 1 caption', { exact: true }).fill('A changed first caption');
   const result = await finishProbe(page, info, 'photo-caption');
@@ -93,6 +98,25 @@ test('decoration toggle leaves poster, photo, terrain and native map owners stab
     ...NATIVE_MAP_OWNERS, 'PosterControls', 'PhotoStoryControls', 'PosterGallery', 'WallPreviewDialog',
   ]);
   expect(result.mapMutations).toEqual([]);
+});
+
+test('moving a photo POI preserves the other photo and unrelated route sources', async ({ page }, info) => {
+  await openScanEditor(page);
+  await loadPhotoPoster(page);
+  await page.getByRole('button', { name: 'Select Coffee stop', exact: true }).click();
+  const otherPhoto = page.getByLabel('Poster artwork', { exact: true }).locator('image').nth(1);
+  await otherPhoto.evaluate((node) => { node.dataset.scanIdentity = 'unmoved-photo'; });
+  const position = await otherPhoto.evaluate((node) => [node.getAttribute('x'), node.getAttribute('y')]);
+  const marker = page.getByRole('button', { name: 'Move Coffee stop', exact: true });
+  await marker.focus();
+  await startProbe(page, 'Photo POI move');
+  await marker.press('ArrowRight');
+  const result = await finishProbe(page, info, 'photo-poi-move');
+  expectOwners(result, ['StudioPosterPreview', 'PoiCoordinateControls'], ['PoiAppearanceControls', 'LocationSearch', 'StudioVideoControls']);
+  expect(result.domMutations).toEqual([]);
+  expect(result.mapMutations.filter(({ operation }) => operation === 'setData').map(({ target }) => target)).toEqual(['studio-source-8:poi-cafe']);
+  await expect(otherPhoto).toHaveAttribute('data-scan-identity', 'unmoved-photo');
+  expect(await otherPhoto.evaluate((node) => [node.getAttribute('x'), node.getAttribute('y')])).toEqual(position);
 });
 
 test('terrain exaggeration updates native terrain without composition or sibling controls', async ({ page }, info) => {

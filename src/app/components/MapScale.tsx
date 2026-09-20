@@ -1,11 +1,12 @@
 import { calculateMapScale } from './mapScaleMath';
+import { memo } from 'react';
 
 type MapScaleProps = {
   latitude: number;
   zoom: number;
 };
 
-export function MapScale({ latitude, zoom }: MapScaleProps) {
+export const MapScale = memo(function MapScale({ latitude, zoom }: MapScaleProps) {
   const scale = calculateMapScale(latitude, zoom);
   return (
     <div
@@ -16,4 +17,4 @@ export function MapScale({ latitude, zoom }: MapScaleProps) {
       <span>{scale.label}</span>
     </div>
   );
-}
+});

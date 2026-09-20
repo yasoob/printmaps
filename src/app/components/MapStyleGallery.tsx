@@ -1,5 +1,5 @@
 import { Check } from 'lucide-react';
-import { useRef } from 'react';
+import { memo, useRef } from 'react';
 import { MAP_STYLE_PRESETS, type MapStylePreset } from '../../domain/mapStylePresets';
 
 type MapStyleGalleryProps = {
@@ -7,7 +7,7 @@ type MapStyleGalleryProps = {
   onSelect: (preset: MapStylePreset) => void;
 };
 
-export function MapStyleGallery({ selectedPreset, onSelect }: MapStyleGalleryProps) {
+export const MapStyleGallery = memo(function MapStyleGallery({ selectedPreset, onSelect }: MapStyleGalleryProps) {
   const cardRefs = useRef(new Map<MapStylePreset, HTMLButtonElement>());
   const visiblePresets = MAP_STYLE_PRESETS;
   const tabStop = selectedPreset;
@@ -60,4 +60,4 @@ export function MapStyleGallery({ selectedPreset, onSelect }: MapStyleGalleryPro
       </div>
     </div>
   );
-}
+});

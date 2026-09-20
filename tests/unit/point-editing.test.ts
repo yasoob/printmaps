@@ -3,8 +3,9 @@ import { installPointEditing, type PointEditingMarker } from '../../src/map/Poin
 
 function harness() {
   const setData = vi.fn();
+  const source = { setData };
   const map = {
-    getSource: vi.fn(() => ({ setData })),
+    getSource: vi.fn(() => source),
     project: vi.fn(([lng, lat]: readonly [number, number]) => ({ x: lng * 10, y: lat * 10 })),
     unproject: vi.fn(({ x, y }: { x: number; y: number }) => ({ lng: x / 10, lat: y / 10 })),
   };
@@ -38,6 +39,29 @@ function coffee(): ContentLayer {
 }
 
 describe('Place marker direct editing', () => {
+  it('retains its handle and acknowledges accepted source previews across commits and undo', () => {
+    const harness_ = harness();
+    const commit = vi.fn(() => ({ ok: true as const }));
+    const layer = coffee();
+    const session = installPointEditing(harness_.map as never, layer, commit, harness_.createMarker);
+    const node = harness_.element;
+    harness_.setCoordinate({ lng: 16.4, lat: 48.25 });
+    harness_.trigger('drag');
+    harness_.trigger('dragend');
+    expect(harness_.setData).toHaveBeenCalledOnce();
+    const changed: ContentLayer = { ...layer, name: 'Moved coffee', geometry: { type: 'Point', coordinates: [16.4, 48.25] } };
+    expect(session.synchronizeLayer(changed)).toBe(true);
+    expect(harness_.element).toBe(node);
+    expect(node).toHaveAccessibleName('Move Moved coffee');
+    expect(harness_.marker.remove).not.toHaveBeenCalled();
+    expect(session.synchronizeLayer(layer)).toBe(true);
+    expect(harness_.marker.getLngLat()).toEqual({ lng: 16.3725, lat: 48.2084 });
+    expect(harness_.setData).toHaveBeenCalledOnce();
+    expect(session.synchronizeLayer({ ...layer, locked: true })).toBe(false);
+    session();
+    expect(harness_.marker.remove).toHaveBeenCalledOnce();
+  });
+
   it('previews drag movement and commits the final coordinate once', () => {
     const session = harness();
     const commit = vi.fn(() => ({ ok: true as const }));

@@ -175,7 +175,7 @@ export function MapDataImportPortals({
             </ul>
             {isReading && <p role="status">Checking files…</p>}
             {dialogError && <p className="export-error" role="alert">{dialogError}</p>}
-            <ReplacementNote target={replacementTarget} />
+            {replacementTarget && <ReplacementNote target={replacementTarget} />}
             {!replacementTarget && <BatchAppearanceControls appearance={batchAppearance} batch={batch} validation={batchAppearanceValidation} onChange={setBatchAppearance} />}
             {batch && (
               <fieldset>

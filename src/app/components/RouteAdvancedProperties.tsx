@@ -22,6 +22,10 @@ type RouteAdvancedPropertiesProps = Omit<
   positions: readonly (readonly [number, number])[];
 };
 
+function directionsProvenance(layer: ContentLayer) {
+  return layer.provenance?.service === "directions-v5" ? layer.provenance : undefined;
+}
+
 function RouteStructureSection({
   directionsProvider,
   documentEpoch,
@@ -218,7 +222,7 @@ function LineRouteAdvanced({
   const isDirectionsRoute = layer.provenance?.service === "directions-v5";
   return (
     <>
-      <DirectionsProvenanceSummary provenance={layer.provenance} />
+      <DirectionsProvenanceSummary provenance={directionsProvenance(layer)} />
       <DirectionsEditStatus
         error={directionsRouteEditError}
         isRouting={directionsRouteEditIsRouting}

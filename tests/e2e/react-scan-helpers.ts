@@ -1,5 +1,6 @@
 import { expect, type Page, type TestInfo } from '@playwright/test';
 import type { ReactScanProbeController, ReactScanProbeResult } from '../../src/dev/reactScanProbe';
+import { writeFile } from 'node:fs/promises';
 
 type ProbeWindow = typeof globalThis & { __PRINT_MAP_REACT_SCAN__?: ReactScanProbeController };
 
@@ -33,9 +34,26 @@ export async function finishProbe(page: Page, testInfo: TestInfo, label: string)
     if (!probe) throw new Error('React Scan probe was not installed.');
     return { ...probe.finish(), inventory: probe.inventory, instances: probe.instances };
   });
-  await testInfo.attach(label, { body: JSON.stringify(result, null, 2), contentType: 'application/json' });
-  console.log(JSON.stringify(result));
+  await writeProbeArtifact(testInfo, label, result);
+  console.log(JSON.stringify({ label: result.label, components: Object.keys(result.components), mutations: result.mapMutations.length }));
   return result;
+}
+
+export async function writeProbeArtifact(testInfo: TestInfo, label: string, result: unknown) {
+  const path = testInfo.outputPath(`${label.replaceAll(/[^a-z\d-]/gi, '-')}.json`);
+  await writeFile(path, JSON.stringify(result, null, 2));
+  await testInfo.attach(label, { path, contentType: 'application/json' });
+}
+
+export async function attachInventory(page: Page, testInfo: TestInfo) {
+  const inventory = await page.evaluate(() => {
+    const probe = (globalThis as ProbeWindow).__PRINT_MAP_REACT_SCAN__;
+    return probe ? { inventory: probe.inventory, instances: probe.instances } : null;
+  });
+  if (!inventory) return;
+  const path = testInfo.outputPath('runtime-inventory.json');
+  await writeFile(path, JSON.stringify({ test: testInfo.title, ...inventory }, null, 2));
+  await testInfo.attach('runtime-inventory', { path, contentType: 'application/json' });
 }
 
 export function expectOwners(result: ReactScanProbeResult, positive: string[], negative: string[]) {

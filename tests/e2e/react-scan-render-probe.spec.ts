@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { waitForRenderQuiet } from "./react-scan-helpers";
+import { attachInventory, waitForRenderQuiet, writeProbeArtifact } from "./react-scan-helpers";
 import type {
   ReactScanProbeController,
 } from "../../src/dev/reactScanProbe";
@@ -30,6 +30,7 @@ test.skip(
   process.env.VITE_REACT_SCAN !== "true",
   "Run with npm run audit:renders so React Scan is enabled.",
 );
+test.afterEach(async ({ page }, info) => attachInventory(page, info));
 
 async function openInstrumentedEditor(page: Page) {
   await page.goto("./");
@@ -97,7 +98,16 @@ async function captureMarkerDrag(
   if (shouldRetainMarker) {
     await expect(marker).toHaveAttribute("data-render-probe-marker", label);
   }
-  return { commitResult, previewResult };
+  await page.evaluate((probeLabel) => {
+    (globalThis as ProbeGlobal).__PRINT_MAP_REACT_SCAN__?.start(probeLabel);
+  }, `Settle ${label} drag`);
+  await page.waitForTimeout(900);
+  const settleResult = await page.evaluate(() => {
+    const probe = (globalThis as ProbeGlobal).__PRINT_MAP_REACT_SCAN__;
+    if (!probe) throw new Error("React Scan probe was not installed.");
+    return probe.finish();
+  });
+  return { commitResult, previewResult, settleResult };
 }
 
 test("reports editor boundaries affected by a layer preview", async ({
@@ -142,10 +152,7 @@ test("reports editor boundaries affected by a layer preview", async ({
     .filter(([name]) => !EXPECTED_HOVER_RENDERS.has(name))
     .map(([name, summary]) => ({ name, ...summary }));
   const report = { ...result, inventory, unexpected };
-  await testInfo.attach("react-scan-render-probe", {
-    body: JSON.stringify(report, null, 2),
-    contentType: "application/json",
-  });
+  await writeProbeArtifact(testInfo, "react-scan-render-probe", report);
   console.log(JSON.stringify(report, null, 2));
 
   expect(result.components.MapCanvas?.callbacks).toBeGreaterThan(0);
@@ -179,10 +186,7 @@ test("captures editor boundaries affected by layer selection", async ({
     if (!probe) throw new Error("React Scan probe was not installed.");
     return probe.finish();
   });
-  await testInfo.attach("react-scan-selection-probe", {
-    body: JSON.stringify(result, null, 2),
-    contentType: "application/json",
-  });
+  await writeProbeArtifact(testInfo, "react-scan-selection-probe", result);
   console.log(JSON.stringify(result, null, 2));
 
   expect(result.components.LayerNavigation?.callbacks).toBeGreaterThan(0);
@@ -221,10 +225,7 @@ test("captures editor boundaries affected by a title commit", async ({
     if (!probe) throw new Error("React Scan probe was not installed.");
     return probe.finish();
   });
-  await testInfo.attach("react-scan-title-probe", {
-    body: JSON.stringify(result, null, 2),
-    contentType: "application/json",
-  });
+  await writeProbeArtifact(testInfo, "react-scan-title-probe", result);
   console.log(JSON.stringify(result, null, 2));
 
   expect(result.components.StudioProjectIdentity?.callbacks).toBeGreaterThan(0);
@@ -257,10 +258,7 @@ test("captures the complete wheel-zoom render wave", async ({
     if (!probe) throw new Error("React Scan probe was not installed.");
     return probe.finish();
   });
-  await testInfo.attach("react-scan-wheel-zoom-probe", {
-    body: JSON.stringify(result, null, 2),
-    contentType: "application/json",
-  });
+  await writeProbeArtifact(testInfo, "react-scan-wheel-zoom-probe", result);
   console.log(JSON.stringify(result, null, 2));
 
   expect(result.components.MapCanvas?.callbacks).toBeGreaterThan(0);
@@ -303,22 +301,27 @@ for (const markerCase of [
     selectionName: "Select City center",
     shouldRetainMarker: true,
   },
+  {
+    label: "shape transform",
+    markerName: "Move selected shape",
+    selectionName: "Select City center",
+    shouldRetainMarker: true,
+    modeName: "Transform area",
+  },
 ]) {
   test(`separates live ${markerCase.label} preview from its committed React update`, async ({
     page,
   }, testInfo) => {
     await openInstrumentedEditor(page);
     await page.getByRole("button", { name: markerCase.selectionName }).click();
+    if ("modeName" in markerCase) await page.getByRole("button", { name: markerCase.modeName, exact: true }).click();
     const results = await captureMarkerDrag(
       page,
       page.getByRole("button", { name: markerCase.markerName }),
       markerCase.label,
       markerCase.shouldRetainMarker,
     );
-    await testInfo.attach(`react-scan-${markerCase.label}-drag-probe`, {
-      body: JSON.stringify(results, null, 2),
-      contentType: "application/json",
-    });
+    await writeProbeArtifact(testInfo, `react-scan-${markerCase.label}-drag-probe`, results);
     console.log(JSON.stringify(results, null, 2));
     console.log(JSON.stringify({
       label: markerCase.label,
@@ -329,6 +332,11 @@ for (const markerCase of [
 
     expect(results.previewResult.components).toEqual({});
     expect(results.previewResult.domMutations).toEqual([]);
+    expect(results.settleResult.domMutations).toEqual([]);
+    expect(results.settleResult.mapMutations).toEqual([]);
+    for (const name of ["MapCanvas", "CanvasWorkspace", "LocationSearch", "PropertiesSidebar", "StudioCompositionControls"]) {
+      expect(results.settleResult.components[name]).toBeUndefined();
+    }
     expect(results.previewResult.mapMutations.length).toBeGreaterThan(0);
     expect(
       results.previewResult.mapMutations.every(
@@ -344,8 +352,10 @@ for (const markerCase of [
     if (markerCase.shouldRetainMarker) {
       expect(results.commitResult.domMutations).toEqual([]);
       expect(results.commitResult.mapMutations).toEqual([]);
+      expect(results.commitResult.events.filter(({ component, phase }) => component === "CoordinateField" && phase === "mount")).toEqual([]);
     }
-    if (markerCase.label === "route point") {
+    if (markerCase.label === "POI point") expect(results.commitResult.components.PoiAppearanceControls).toBeUndefined();
+    else if (markerCase.label === "route point") {
       expect(componentsWithoutHostCommits(results.commitResult)).toEqual([]);
       for (const unrelatedRouteInspectorComponent of [
         "DirectionsEditStatus",

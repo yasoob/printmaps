@@ -2,24 +2,39 @@ import { Map as MapLibreMap } from "maplibre-gl";
 
 export type MapLibreMutation = {
   mapId: number;
-  surface: "editor" | "shared" | "offscreen" | "unknown";
+  surface: "editor" | "shared" | "video" | "offscreen" | "unknown";
   operation: string;
   target: string | null;
 };
 
 const mapIds = new WeakMap<object, number>();
-let nextMapId = 1;
+const maps = new Map<number, WeakRef<MapLibreMap>>();
+const mapSequence = { next: 1 };
+function mapSurface(container: HTMLElement | undefined): MapLibreMutation['surface'] {
+  if (!container?.isConnected) return "offscreen";
+  if (container.matches('[data-video-export-renderer]')) return "video";
+  if (container.closest(".shared-project")) return "shared";
+  if (container.closest('[data-testid="map-canvas"]')) return "editor";
+  return "unknown";
+}
 function mapIdentity(map: MapLibreMap): Pick<MapLibreMutation, "mapId" | "surface"> {
   let mapId = mapIds.get(map);
   if (!mapId) {
-    mapId = nextMapId++;
+    mapId = mapSequence.next++;
     mapIds.set(map, mapId);
+    maps.set(mapId, new WeakRef(map));
   }
   const container = map.getContainer();
-  const surface = !container?.isConnected ? "offscreen"
-    : container.closest(".shared-project") ? "shared"
-    : container.closest('[data-testid="map-canvas"]') ? "editor" : "unknown";
+  const surface = mapSurface(container);
   return { mapId, surface };
+}
+
+export function readMapLibreProbeCameras() {
+  return [...maps.values()].flatMap((reference) => {
+    const map = reference.deref();
+    if (!map?.getContainer()?.isConnected) return [];
+    return [{ ...mapIdentity(map), center: map.getCenter().toArray(), zoom: map.getZoom(), bearing: map.getBearing(), pitch: map.getPitch() }];
+  });
 }
 
 const PATCHED = Symbol.for("print-map-studio:maplibre-render-audit");
@@ -35,6 +50,8 @@ const MAP_METHODS = [
   "setLayoutProperty",
   "setPaintProperty",
   "setTerrain",
+  "addImage",
+  "removeImage",
   "setStyle",
   "jumpTo",
   "easeTo",
@@ -43,6 +60,14 @@ const MAP_METHODS = [
 
 type MutableMethod = (...arguments_: unknown[]) => unknown;
 type MutablePrototype = Record<PropertyKey, unknown>;
+
+function mutationTarget(method: string, argument: unknown): string | null {
+  if (typeof argument === "string") return argument;
+  if (argument !== null && typeof argument === "object" && (method === "addLayer" || method === "setTerrain")) {
+    return String(Reflect.get(argument, method === "addLayer" ? "id" : "source"));
+  }
+  return null;
+}
 
 function patchSource(
   source: object,
@@ -77,9 +102,7 @@ export function installMapLibreMutationProbe(
         record({
           ...mapIdentity(thisArgument),
           operation: methodName,
-          target: typeof arguments_[0] === "string" ? arguments_[0]
-            : methodName === "addLayer" && typeof arguments_[0] === "object" && arguments_[0] !== null
-              ? String(Reflect.get(arguments_[0], "id")) : null,
+          target: mutationTarget(methodName, arguments_[0]),
         });
         return Reflect.apply(target, thisArgument, arguments_);
       },

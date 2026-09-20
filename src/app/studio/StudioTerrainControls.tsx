@@ -10,7 +10,6 @@ export const StudioTerrainControls = memo(function StudioTerrainControls({ expor
 }) {
   const terrain = useProject((state) => state.document.studio.terrain);
   const relief = useProject((state) => state.document.studio.relief);
-  const layers = useProject((state) => state.document.layers);
   const documentEpoch = useProject((state) => state.documentEpoch);
   const { setStudioSection } = useProjectActions();
   const onTerrainChange = useCallback(
@@ -21,7 +20,7 @@ export const StudioTerrainControls = memo(function StudioTerrainControls({ expor
     (value: ReliefSettings) => setStudioSection('relief', value),
     [setStudioSection],
   );
-  return <TerrainProperties terrain={terrain} relief={relief} layers={layers}
+  return <TerrainProperties terrain={terrain} relief={relief}
     documentEpoch={documentEpoch} exporter={exporter} blockedReason={blockedReason}
     onTerrainChange={onTerrainChange} onReliefChange={onReliefChange} />;
 });

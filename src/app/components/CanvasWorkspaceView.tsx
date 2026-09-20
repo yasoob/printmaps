@@ -1,4 +1,4 @@
-import { memo, useMemo, useState, type ComponentProps, type RefObject } from "react";
+import { memo, useMemo, useState, type ComponentProps, type ReactNode, type RefObject } from "react";
 import type { MobilePanel } from "../hooks/useMobilePanels";
 import { StudioMapCanvas } from "../studio/StudioMapCanvas";
 import { EditorStudioMapCanvas } from "../studio/EditorStudioMapCanvas";
@@ -13,14 +13,15 @@ import {
 } from "./CanvasWorkspaceChrome";
 import { RouteDiscardDialog } from "./RouteDiscardDialog";
 import { MapScale } from "./MapScale";
+import { UnfinishedDrawingNotice } from "./UnfinishedDrawingNotice";
 
 export type CanvasWorkspaceViewProps = {
   activePanel: MobilePanel | null;
   activeTool: string;
   chromeProps: Omit<
     ComponentProps<typeof CanvasWorkspaceChrome>,
-    "selectToolRef" | "topDock"
-  >;
+    "selectToolRef"
+  > & { statusNotice?: ReactNode; hasUnfinishedDrawing: boolean; hasUnfinishedPoiList: boolean };
   isRouteDiscardOpen: boolean;
   layersTriggerRef: RefObject<HTMLButtonElement | null>;
   mapProps: Omit<ComponentProps<typeof StudioMapCanvas>, "previewedId">;
@@ -33,19 +34,15 @@ export type CanvasWorkspaceViewProps = {
   searchProps: ComponentProps<typeof LocationSearch>;
 };
 
-const MapCanvasWithLayerPreview = memo(function MapCanvasWithLayerPreview({
-  mapProps,
-  cameraNoticeContainer,
-}: {
-  mapProps: Omit<ComponentProps<typeof StudioMapCanvas>, "previewedId">;
-  cameraNoticeContainer: HTMLDivElement | null;
-}) {
+const MapCanvasWithLayerPreview = memo(function MapCanvasWithLayerPreview(
+  mapProps: Omit<ComponentProps<typeof StudioMapCanvas>, "previewedId">,
+) {
   const requestedPreviewId = useLayerPreviewId();
   const previewedId = visibleLayerPreviewId(
     mapProps.layers,
     requestedPreviewId,
   );
-  return <EditorStudioMapCanvas {...mapProps} cameraNoticeContainer={cameraNoticeContainer} previewedId={previewedId} />;
+  return <EditorStudioMapCanvas {...mapProps} previewedId={previewedId} />;
 });
 
 export function CanvasWorkspaceView({
@@ -64,6 +61,7 @@ export function CanvasWorkspaceView({
   searchProps,
 }: CanvasWorkspaceViewProps) {
   const [cameraNoticeContainer, setCameraNoticeContainer] = useState<HTMLDivElement | null>(null);
+  const { statusNotice, hasUnfinishedDrawing, hasUnfinishedPoiList, ...authoringChromeProps } = chromeProps;
   const {
     onSelect: onSearchSelect,
     provider: searchProvider,
@@ -108,12 +106,12 @@ export function CanvasWorkspaceView({
       data-active-tool={activeTool}
       inert={activePanel !== null}
     >
-      <MapCanvasWithLayerPreview mapProps={mapProps} cameraNoticeContainer={cameraNoticeContainer} />
+      <MapCanvasWithLayerPreview {...mapProps} cameraNoticeContainer={cameraNoticeContainer} />
       <div className="canvas-overlay">
+        <div className="canvas-top-dock">{topDock}{statusNotice}{(hasUnfinishedDrawing || hasUnfinishedPoiList) && <UnfinishedDrawingNotice hasPoiList={hasUnfinishedPoiList} hasDrawing={hasUnfinishedDrawing} />}</div>
         <CanvasWorkspaceChrome
-          {...chromeProps}
+          {...authoringChromeProps}
           selectToolRef={selectToolRef}
-          topDock={topDock}
         />
         {mapProps.camera && (
           <div className="canvas-scale-dock">

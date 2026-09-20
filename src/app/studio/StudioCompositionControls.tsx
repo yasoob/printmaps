@@ -13,6 +13,7 @@ import { WallPreviewDialog } from './WallPreviewDialog';
 import type { PhotoUpload } from './PhotoStoryControls';
 import type { StudioCompositionPanelProps } from './StudioCompositionPanel';
 import { useReadMapExporter } from '../mapExporterContext';
+import type { WallSettings } from '../../domain/studio';
 
 function encodedCanvas(canvas: HTMLCanvasElement): Promise<Blob> {
   return new Promise((resolve, reject) => canvas.toBlob((blob) => {
@@ -117,8 +118,8 @@ export const StudioCompositionControls = memo(function StudioCompositionControls
     catch (error) { return mutationRejected(error instanceof Error ? error.message : 'The poster template could not be applied.'); }
   }, [applyStudioTemplate, blockedReason, store]);
   const onCreateSilhouette = useCallback<StudioCompositionPanelProps['onCreateSilhouette']>((area) => {
-    const exporter = readExporter();
     if (blockedReason) return mutationRejected(blockedReason);
+    const exporter = readExporter();
     if (!exporter?.captureRenderSnapshot) return mutationRejected('Wait for the map to finish loading before fitting a boundary.');
     try {
       const snapshot = exporter.captureRenderSnapshot({ content: 'basemap' });
@@ -126,13 +127,14 @@ export const StudioCompositionControls = memo(function StudioCompositionControls
       return applyStudioTemplate({ ...createSilhouetteApplication(current.document, area, snapshot.frame, snapshot.viewport), expectedDocumentEpoch: current.documentEpoch });
     } catch (error) { return mutationRejected(error instanceof Error ? error.message : 'The boundary could not be fitted.'); }
   }, [applyStudioTemplate, blockedReason, readExporter, store]);
-  const onOpenWall = useCallback(() => { void wallPreview.open(); }, [wallPreview.open]);
-  const onWallOpenChange = useCallback((isOpen: boolean) => { if (!isOpen) wallPreview.close(); }, [wallPreview.close]);
-  const onWallChange = useCallback((value: typeof wallPreview.wall) => {
+  const { open: openWall, close: closeWall, setError: setWallError } = wallPreview;
+  const onOpenWall = useCallback(() => { void openWall(); }, [openWall]);
+  const onWallOpenChange = useCallback((isOpen: boolean) => { if (!isOpen) closeWall(); }, [closeWall]);
+  const onWallChange = useCallback((value: WallSettings) => {
     const result = setStudioSection('wall', value);
-    if (!result.ok) wallPreview.setError(result.error);
+    if (!result.ok) setWallError(result.error);
     return result;
-  }, [setStudioSection, wallPreview.setError]);
+  }, [setStudioSection, setWallError]);
   return <>
     {blockedReason && <p role="status">{blockedReason}</p>}
     {wallPreview.error && !wallPreview.isOpen && <p className="studio-composition-error" role="alert">{wallPreview.error}</p>}
