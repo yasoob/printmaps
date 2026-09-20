@@ -10,6 +10,12 @@ it never silently crops the composition. Standard output is bounded by a
 1280-pixel edge and 921,600 pixels; High is bounded by a 1920-pixel edge and
 2,073,600 pixels. Actual even-numbered dimensions are displayed before recording.
 
+Static recording caveats are available from **Video recording help**, and
+composition fitting details from **Video aspect help**. Both support hover,
+keyboard focus, and click/tap pinning. Escape dismisses help before the dialog.
+Current output dimensions, export failures, cancellation, and progress remain
+visible; active recording also reminds the user to keep the tab visible.
+
 ## Browser behavior
 
 Recording requires `canvas.captureStream` and a supported `video/mp4`

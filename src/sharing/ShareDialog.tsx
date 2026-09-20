@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type RefObject } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '../components/ui/dialog';
 import { StudioDialogActions, StudioDialogBody, StudioDialogButton, StudioDialogHeader, StudioDialogSection } from '../components/ui/studio-dialog';
 import { createEmbedHtml, createShareUrl } from './urls';
+import { FeatureHelp } from '../app/components/FeatureHelp';
 
 type ShareResult = { payload: string; title: string } | { error: string };
 
@@ -30,6 +31,7 @@ export function ShareDialog({ result, onClose, returnFocusRef }: {
   onClose: () => void;
   returnFocusRef: RefObject<HTMLButtonElement | null>;
 }) {
+  const dialogRef = useRef<HTMLDivElement>(null);
   const [navigation, setNavigation] = useState(true);
   const [height, setHeight] = useState('480');
   const [feedback, setFeedback] = useState<{ error: boolean; text: string } | null>(null);
@@ -49,13 +51,13 @@ export function ShareDialog({ result, onClose, returnFocusRef }: {
     }
   };
   return <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
-    <DialogContent className="share-dialog" finalFocus={returnFocusRef}>
+    <DialogContent ref={dialogRef} initialFocus={dialogRef} className="share-dialog" finalFocus={returnFocusRef}>
       <StudioDialogBody>
         <StudioDialogHeader><div>
-          <DialogTitle>Share this map</DialogTitle>
-          <DialogDescription>A read-only snapshot, with no account or upload. Later edits do not change this link.</DialogDescription>
+          <div className="feature-help-row"><DialogTitle>Share this map</DialogTitle><FeatureHelp label="Share snapshot help">A read-only snapshot, with no account or upload. Later edits do not change this link.</FeatureHelp></div>
+          <DialogDescription>Anyone with the link can view, download and remix.</DialogDescription>
         </div></StudioDialogHeader>
-        <p>Anyone with the link can view, download and remix all included data and images. Links are not encrypted or revocable. Do not share private information.</p>
+        <div className="feature-help-row"><span>Not private. Links cannot be revoked.</span><FeatureHelp label="Share privacy help">Anyone with the link can access all included data and images. Links are not encrypted. Do not share private information.</FeatureHelp></div>
         {'error' in output ? <p role="alert">{output.error}</p> : <>
           <StudioDialogSection>
             <label htmlFor="share-link">Read-only link</label>
@@ -63,7 +65,7 @@ export function ShareDialog({ result, onClose, returnFocusRef }: {
             <StudioDialogButton variant="secondary" onClick={() => void copy(output.link)}>Copy link</StudioDialogButton>
           </StudioDialogSection>
           <StudioDialogSection>
-            <h3>Embed this map</h3>
+            <div className="feature-help-row"><h3>Embed this map</h3><FeatureHelp label="Embed preview help">Responsive width, map attribution retained. Preview pan and zoom never changes the shared design.</FeatureHelp></div>
             <label><input type="checkbox" checked={navigation} onChange={(event) => { request.current += 1; setFeedback(null); setNavigation(event.target.checked); }} /> Allow preview pan and zoom</label>
             <label htmlFor="embed-height">Embed height (pixels)</label>
             <input id="embed-height" type="number" min={240} max={2000} value={height} onChange={(event) => { request.current += 1; setFeedback(null); setHeight(event.currentTarget.value); }} />
@@ -72,7 +74,6 @@ export function ShareDialog({ result, onClose, returnFocusRef }: {
               <textarea id="embed-code" readOnly value={embed.html} rows={4} onFocus={(event) => event.currentTarget.select()} />
               <StudioDialogButton variant="secondary" onClick={() => void copy(embed.html)}>Copy embed code</StudioDialogButton>
             </>}
-            <p>Responsive width, map attribution retained. Preview navigation never changes the shared design.</p>
           </StudioDialogSection>
         </>}
         {feedback && <p role={feedback.error ? 'alert' : 'status'}>{feedback.text}</p>}

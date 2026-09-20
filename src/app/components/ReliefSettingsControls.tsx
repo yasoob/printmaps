@@ -5,6 +5,7 @@ import { Checkbox } from './UiControls';
 import { PropertyRow } from './PropertyControls';
 import { ValidatedNumberField } from './ValidatedNumberField';
 import { useMutationFeedback } from '../hooks/useMutationFeedback';
+import { FeatureHelp } from './FeatureHelp';
 
 export type ReliefControlsProps = {
   settings: ReliefSettings;
@@ -27,12 +28,14 @@ export function ReliefSettingsControls({ settings, layers, documentEpoch, onChan
     <PropertyRow label="Base thickness"><ValidatedNumberField {...numberProps} label="Relief base thickness" value={settings.baseMm} minimum={0.2} maximum={100} unit="mm" onCommit={(baseMm) => onChange({ ...settings, baseMm })} /></PropertyRow>
     <PropertyRow label="Exaggeration"><ValidatedNumberField {...numberProps} label="Relief exaggeration" value={settings.exaggeration} minimum={0.1} maximum={50} unit="×" onCommit={(exaggeration) => onChange({ ...settings, exaggeration })} /></PropertyRow>
     <PropertyRow label="Detail"><select aria-label="Relief detail" value={settings.detail} onChange={(event) => commit({ ...settings, detail: event.target.value as ReliefSettings['detail'] })}><option value="low">Low · 64 samples</option><option value="medium">Medium · 128 samples</option><option value="high">High · 256 samples</option></select></PropertyRow>
-    <Checkbox isChecked={ridge.enabled} label="Raise a route ridge" onCheckedChange={(enabled) => commit({ ...settings, routeRidge: { ...ridge, enabled, layerId: ridge.layerId ?? routes[0]?.id ?? null } })} />
+    <div className="feature-help-row">
+      <Checkbox isChecked={ridge.enabled} label="Raise a route ridge" onCheckedChange={(enabled) => commit({ ...settings, routeRidge: { ...ridge, enabled, layerId: ridge.layerId ?? routes[0]?.id ?? null } })} />
+      <FeatureHelp label="Route ridge help">The ridge is fused into the terrain. Narrow ridges require higher detail or a smaller model; an unresolvable ridge blocks export.</FeatureHelp>
+    </div>
     {ridge.enabled && <>
       <PropertyRow label="Route"><select aria-label="Relief ridge route" value={ridge.layerId ?? ''} onChange={(event) => commit({ ...settings, routeRidge: { ...ridge, layerId: event.target.value || null } })}><option value="" disabled>Choose visible route</option>{routes.map((layer) => <option key={layer.id} value={layer.id}>{layer.name}</option>)}</select></PropertyRow>
       <PropertyRow label="Ridge height"><ValidatedNumberField {...numberProps} label="Route ridge height" value={ridge.heightMm} minimum={0.1} maximum={20} unit="mm" onCommit={(heightMm) => onChange({ ...settings, routeRidge: { ...ridge, heightMm } })} /></PropertyRow>
       <PropertyRow label="Ridge width"><ValidatedNumberField {...numberProps} label="Route ridge width" value={ridge.widthMm} minimum={0.1} maximum={20} unit="mm" onCommit={(widthMm) => onChange({ ...settings, routeRidge: { ...ridge, widthMm } })} /></PropertyRow>
-      <p className="terrain-hint">The ridge is fused into the terrain. Narrow ridges require higher detail or a smaller model; an unresolvable ridge blocks export.</p>
     </>}
     {feedback.error && <p role="alert" className="coordinate-validation">{feedback.error}</p>}
   </>;

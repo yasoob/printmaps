@@ -1,22 +1,26 @@
+import { useId, type ReactNode } from 'react';
 import type { VideoOptions } from '../../video/types';
+import { FeatureHelp } from './FeatureHelp';
 
 type Choice<T extends string | number> = Readonly<{ value: T; label: string }>;
 
-function VideoChoice<T extends string | number>({ label, value, choices, onChange }: Readonly<{
+function VideoChoice<T extends string | number>({ label, value, choices, onChange, help }: Readonly<{
   label: string;
   value: T;
   choices: readonly Choice<T>[];
   onChange: (value: T) => void;
+  help?: ReactNode;
 }>) {
-  return <label className="video-export-choice">
-    <span>{label}</span>
-    <select value={value} onChange={(event) => {
+  const id = useId();
+  return <div className="video-export-choice">
+    <div className="feature-help-row"><label htmlFor={id}>{label}</label>{help ? <FeatureHelp label={`${label} help`}>{help}</FeatureHelp> : null}</div>
+    <select id={id} value={value} onChange={(event) => {
       const choice = choices.find((item) => String(item.value) === event.target.value);
       if (choice) onChange(choice.value);
     }}>
       {choices.map((choice) => <option key={choice.value} value={choice.value}>{choice.label}</option>)}
     </select>
-  </label>;
+  </div>;
 }
 
 const MOTIONS: readonly Choice<VideoOptions['motion']>[] = [{ value: 'orbit', label: 'Orbit (one full turn)' }, { value: 'sway', label: 'Sway (gentle back and forth)' }];
@@ -38,7 +42,7 @@ export function VideoExportSettings({ settings, busy, onChange }: Readonly<{
     <VideoChoice label="Motion" value={settings.motion} choices={MOTIONS} onChange={(motion) => onChange({ ...settings, motion })} />
     <VideoChoice label="Duration" value={settings.durationSeconds} choices={DURATIONS} onChange={(durationSeconds) => onChange({ ...settings, durationSeconds })} />
     <VideoChoice label="Target frame rate" value={settings.fps} choices={FRAME_RATES} onChange={(fps) => onChange({ ...settings, fps })} />
-    <VideoChoice label="Video aspect" value={settings.aspect} choices={ASPECTS} onChange={(aspect) => onChange({ ...settings, aspect })} />
+    <VideoChoice label="Video aspect" value={settings.aspect} choices={ASPECTS} help="The complete poster, photos, decorations, and attribution fit inside the video. Other aspect ratios may have white borders." onChange={(aspect) => onChange({ ...settings, aspect })} />
     <VideoChoice label="Video quality" value={settings.quality} choices={QUALITIES} onChange={(quality) => onChange({ ...settings, quality })} />
   </fieldset>;
 }

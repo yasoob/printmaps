@@ -3,6 +3,7 @@ import type { ContentLayer } from '../../domain/project';
 import type { ProjectMutationResult } from '../../domain/projectMutation';
 import type { PhotoSettings } from '../../domain/studio';
 import { StudioColor, StudioNumber, StudioSelect, StudioToggle } from './StudioFields';
+import { FeatureHelp } from '../components/FeatureHelp';
 
 export type PhotoUpload = (file: File, layerId: string | null, expectedDocumentEpoch: number) => Promise<ProjectMutationResult>;
 
@@ -27,14 +28,19 @@ export const PhotoStoryControls = memo(function PhotoStoryControls({ value, poin
     }
   }
   return <div className="studio-composition-controls">
-    <p>Photos stay on this device and inside your project file. PNG or JPEG, up to 1 MiB and 2048 pixels per side. Photos are center-cropped, never stretched.</p>
     <StudioSelect label="Attach photo to" value={selectedLayer} options={[{ value: '', label: 'New point at map center' }, ...pointLayers.map((layer) => ({ value: layer.id, label: layer.name }))]} onChange={setSelectedLayer} />
     <input ref={input} className="sr-only" type="file" accept="image/png,image/jpeg" aria-label="Upload story photo" disabled={isUploading} onChange={(event) => {
       const file = event.currentTarget.files?.[0];
       event.currentTarget.value = '';
       if (file) void upload(file);
     }} />
-    <button type="button" disabled={isUploading} onClick={() => input.current?.click()}>{isUploading ? 'Adding photo...' : 'Add local photo'}</button>
+    <div className="feature-help-row">
+      <button type="button" disabled={isUploading} onClick={() => input.current?.click()}>{isUploading ? 'Adding photo...' : 'Add local photo'}</button>
+      <FeatureHelp label="Local photo help">
+        <p>Photos stay on this device and inside your project file. PNG or JPEG, up to 1 MiB and 2048 pixels per side. Photos are center-cropped, never stretched.</p>
+        <p>Move or hide a point with the map tools. Removing a photo keeps its point; deleting a point removes its photo.</p>
+      </FeatureHelp>
+    </div>
     {error && <p role="alert" className="studio-composition-error">{error}</p>}
     <StudioToggle label="Show anchored photos" checked={value.map.enabled} onChange={(enabled) => onChange({ ...value, map: { ...value.map, enabled } })} />
     <StudioSelect label="Photo shape" value={value.map.shape} options={[{ value: 'circle', label: 'Circle' }, { value: 'square', label: 'Square' }]} onChange={(shape) => onChange({ ...value, map: { ...value.map, shape } })} />
@@ -52,6 +58,5 @@ export const PhotoStoryControls = memo(function PhotoStoryControls({ value, poin
         setError(result.ok ? '' : result.error);
       }}>Remove</button>
     </li>)}</ol>
-    <p>Move or hide a point using the existing map tools. Removing a photo keeps its point; deleting a point removes its photo.</p>
   </div>;
 });

@@ -6,6 +6,7 @@ import { exportTerrainRelief, reliefAttributionNotice } from '../../terrain/reli
 import { terrainFrame } from '../../terrain/terrainFootprint';
 import { downloadBlob } from '../../lib/downloadBlob';
 import { ReliefSettingsControls, type ReliefControlsProps } from './ReliefSettingsControls';
+import { FeatureHelp } from './FeatureHelp';
 import './terrainControls.css';
 
 type ReliefExportDialogProps = ReliefControlsProps & {
@@ -19,6 +20,7 @@ function isExportAvailable(exporter: PreviewPngExporter | null, blockedReason?: 
 }
 
 export function ReliefExportDialog({ exporter, onClose, blockedReason, ...controls }: ReliefExportDialogProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
   const canExport = isExportAvailable(exporter, blockedReason);
   const [progress, setProgress] = useState({ fraction: 0, message: 'Fit model dimensions to the current print frame, then download.' });
   const [error, setError] = useState<string | null>(null);
@@ -74,15 +76,20 @@ export function ReliefExportDialog({ exporter, onClose, blockedReason, ...contro
     }
   };
   return <Dialog open onOpenChange={(open, details) => { if (!open && isBusy) details.cancel(); else if (!open) onClose(); }}>
-    <DialogContent className="export-dialog relief-export-dialog" overlayClassName="export-dialog-backdrop" showCloseButton={false} aria-busy={isBusy}>
-      <StudioDialogHeader><div><DialogTitle>Export 3D terrain relief</DialogTitle><DialogDescription>A watertight binary STL of the actual print area. Set Pitch to 0; bearing is preserved.</DialogDescription></div></StudioDialogHeader>
+    <DialogContent ref={dialogRef} initialFocus={dialogRef} className="export-dialog relief-export-dialog" overlayClassName="export-dialog-backdrop" showCloseButton={false} aria-busy={isBusy}>
+      <StudioDialogHeader><div>
+        <div className="feature-help-row"><DialogTitle>Export 3D terrain relief</DialogTitle><FeatureHelp label="Terrain STL help">
+          <p>A watertight binary STL of the print area. Set Pitch to 0; bearing is preserved. Import as millimeters in your slicer.</p>
+          <p>The lowest sample sits on the base. The four elevation-aware frame corners are interpolated across the model; scale uses average edge lengths at the frame center. Exaggeration multiplies relief height. Elevation tiles are approximate, not survey data.</p>
+        </FeatureHelp></div>
+        <DialogDescription>Print-area terrain model · STL · millimeters</DialogDescription>
+      </div></StudioDialogHeader>
       <StudioDialogBody>
         <fieldset disabled={isBusy || !!blockedReason} className="relief-fields">
           <ReliefSettingsControls {...controls} />
           <button type="button" className="secondary-button" disabled={!canExport} onClick={fitDimensions}>Fit dimensions to print frame</button>
         </fieldset>
-        <p className="terrain-hint">The lowest terrain sample sits on the base. All four elevation-aware frame corners are interpolated across the model; scale uses average edge lengths at the frame center. Exaggeration multiplies relief height. Elevation tiles are an approximation, not survey data.</p>
-        <p className="terrain-hint">{reliefAttributionNotice()}</p>
+        <div className="feature-help-row"><span>Elevation data & credits</span><FeatureHelp label="Elevation data and credits">{reliefAttributionNotice()}</FeatureHelp></div>
         <progress max={1} value={progress.fraction} aria-label="Terrain export progress" />
         <p role="status">{progress.message}</p>
         {blockedReason && <p role="status">{blockedReason}</p>}

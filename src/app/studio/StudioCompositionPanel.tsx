@@ -9,6 +9,7 @@ import { DecorationControls } from './DecorationControls';
 import { PhotoStoryControls, type PhotoUpload } from './PhotoStoryControls';
 import { PosterControls } from './PosterControls';
 import { PosterGallery } from './PosterGallery';
+import { FeatureHelp } from '../components/FeatureHelp';
 import './studioComposition.css';
 
 export type StudioCompositionPanelProps = Readonly<{
@@ -50,13 +51,15 @@ export const StudioCompositionPanel = memo(function StudioCompositionPanel(props
     }
   }
   return <section className="studio-composition-panel" aria-label="Poster composition">
-    <h3>Poster studio</h3>
+    <div className="feature-help-row"><h3>Poster studio</h3><FeatureHelp label="Poster artwork export help">Poster artwork is included in PNG, SVG, PDF, and PSD. Map attribution stays visible. PDF typography supports Latin text; use SVG or PNG for other scripts.</FeatureHelp></div>
     {error && <p role="alert" className="studio-composition-error">{error}</p>}
     <details><summary>Templates & starter gallery</summary><PosterGallery cameraLocked={props.cameraLocked} onApply={applyTemplate} /></details>
     <details><summary>Poster typography & paper</summary><PosterControls value={props.poster} epoch={props.documentEpoch} onChange={changePoster} /></details>
     <details><summary>Country & region silhouette</summary>
-      <p>Fill an administrative outline with the current map. Islands and holes are kept. A previous poster silhouette is hidden, not deleted; locked silhouettes must be unlocked first. Other layers are kept.</p>
-      <button type="button" disabled={props.cameraLocked || isFitting} onClick={() => setBoundaryPickerOpen(true)}>Choose country or region</button>
+      <div className="feature-help-row">
+        <button type="button" disabled={props.cameraLocked || isFitting} onClick={() => setBoundaryPickerOpen(true)}>Choose country or region</button>
+        <FeatureHelp label="Country and region silhouette help">Fill an administrative outline with the current map, keeping islands and holes. A previous silhouette is hidden, not deleted; unlock locked silhouettes first. Other layers are kept.</FeatureHelp>
+      </div>
       {props.cameraLocked && <p role="status">Unlock the map area to fit a silhouette.</p>}
       {isFitting && <p role="status">Fitting boundary...</p>}
       {isBoundaryPickerOpen && !isFitting && <AdministrativeAreaPicker onAdd={(area) => void createSilhouette(area)} onCancel={() => setBoundaryPickerOpen(false)} />}
@@ -64,6 +67,5 @@ export const StudioCompositionPanel = memo(function StudioCompositionPanel(props
     <details><summary>Photo story</summary><PhotoStoryControls value={props.photos} epoch={props.documentEpoch} pointLayers={props.pointLayers} onChange={changePhotos} onUpload={props.onPhotoUpload} onRemove={props.onPhotoRemove} /></details>
     <details><summary>Compass, scale, grid & QR</summary><DecorationControls value={props.decorations} epoch={props.documentEpoch} pointLayers={props.pointLayers} isFlat={props.isFlat} onChange={changeDecorations} /></details>
     <button type="button" onClick={props.onOpenWall}>Preview on a wall</button>
-    <p className="studio-composition-note">Poster artwork is included in PNG, SVG, PDF, and PSD. Map attribution always stays visible. PDF typography supports Latin text; use SVG or PNG for other scripts.</p>
   </section>;
 });

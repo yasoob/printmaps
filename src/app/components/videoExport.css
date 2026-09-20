@@ -29,6 +29,7 @@
 
 .video-export-choice {
   display: grid;
+  grid-template-rows: 1fr auto;
   gap: 6px;
   min-width: 0;
 }

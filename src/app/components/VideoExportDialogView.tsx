@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/compone
 import { StudioDialogActions, StudioDialogBody, StudioDialogButton, StudioDialogHeader } from '@/components/ui/studio-dialog';
 import type { VideoOptions, VideoPlan, VideoProgress } from '../../video/types';
 import { VideoExportSettings } from './VideoExportSettings';
+import { FeatureHelp } from './FeatureHelp';
 
 type Props = Readonly<{
   busy: boolean;
@@ -29,7 +30,7 @@ function progressLabel(progress: VideoProgress | null): string {
 function VideoExportMessages({ busy, progress, status, unavailable, error }: Pick<Props, 'busy' | 'progress' | 'status' | 'unavailable' | 'error'>) {
   return <>
     {busy ? <progress aria-label="Video export progress" max={1} value={progress?.fraction ?? 0} /> : null}
-    <p role="status" className="video-export-status">{busy ? progressLabel(progress) : status}</p>
+    <p role="status" className="video-export-status">{busy ? `${progressLabel(progress)} Keep this tab visible.` : status}</p>
     {unavailable && !busy ? <p role="alert" className="export-error">{unavailable}</p> : null}
     {error ? <p role="alert" className="export-error">{error}</p> : null}
   </>;
@@ -40,13 +41,17 @@ export function VideoExportDialogView(props: Props) {
   return <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
     <DialogContent className="export-dialog video-export-dialog" overlayClassName="export-dialog-backdrop" showCloseButton={false} initialFocus={unavailable ? cancelRef : downloadRef} aria-busy={busy}>
       <StudioDialogHeader>
-        <div><DialogTitle>Export map video</DialogTitle><DialogDescription>Download an MP4 from an isolated snapshot of your poster.</DialogDescription></div>
+        <div>
+          <div className="feature-help-row"><DialogTitle>Export map video</DialogTitle><FeatureHelp label="Video recording help">
+            <p>Real-time recording is best-effort, not fixed frame rate. Slow tiles or devices can repeat frames. Keep this tab visible while recording.</p>
+            <p>The video uses an isolated poster snapshot. The editor camera and undo history are not animated.</p>
+          </FeatureHelp></div>
+          <DialogDescription>MP4 video of your poster.</DialogDescription>
+        </div>
       </StudioDialogHeader>
       <StudioDialogBody>
         <VideoExportSettings settings={settings} busy={busy} onChange={onSettingsChange} />
         {plan ? <p className="video-export-output"><strong>{plan.width} × {plan.height} px</strong> · {settings.durationSeconds} seconds · {settings.fps} fps target</p> : null}
-        <p>The complete poster, photos, decorations, and attribution are fitted inside the video. Other aspect ratios may have white borders.</p>
-        <p>Real-time recording is best-effort, not fixed frame rate. Slow tiles or devices can repeat frames. Keep this tab visible. The editor camera and undo history are not animated.</p>
         <VideoExportMessages busy={busy} progress={progress} status={status} unavailable={unavailable} error={error} />
       </StudioDialogBody>
       <StudioDialogActions stackOnMobile>

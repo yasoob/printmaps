@@ -46,7 +46,9 @@ describe('controlled video export dialog', () => {
     expect(input.onSettingsChange).toHaveBeenLastCalledWith({ ...input.settings, aspect: '4:5' });
     expect(screen.getByRole('option', { name: '15 seconds' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: '60 fps target' })).toBeInTheDocument();
-    expect(screen.getByText(/best-effort, not fixed frame rate/)).toBeInTheDocument();
+    expect(screen.queryByText(/best-effort, not fixed frame rate/)).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Video recording help' }));
+    expect(screen.getByRole('tooltip')).toHaveTextContent('best-effort, not fixed frame rate');
   });
 
   it('blocks unsupported MP4, incomplete drawing, and missing snapshot capability', () => {

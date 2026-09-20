@@ -3,6 +3,7 @@ import type { ContentLayer } from '../../domain/project';
 import type { ProjectMutationResult } from '../../domain/projectMutation';
 import type { DecorationSettings } from '../../domain/studio';
 import { StudioColor, StudioNumber, StudioSelect, StudioToggle } from './StudioFields';
+import { FeatureHelp } from '../components/FeatureHelp';
 
 const POSITIONS = [
   { value: 'top-left', label: 'Top left' }, { value: 'top-right', label: 'Top right' },
@@ -35,7 +36,7 @@ export const DecorationControls = memo(function DecorationControls({ value, epoc
       <StudioColor label="Grid color" value={value.grid.color} onChange={(color) => onChange({ ...value, grid: { ...value.grid, color } })} />
     </fieldset>
     <fieldset><legend>Location QR code</legend>
-      <p>Scans to Google Maps. The white quiet zone is included in every export.</p>
+      <div className="feature-help-row"><span>Opens Google Maps</span><FeatureHelp label="Location QR code help">The white quiet zone around the code is included in every export so it can be scanned.</FeatureHelp></div>
       <StudioToggle label="Show location QR" checked={value.qr.enabled} onChange={(enabled) => onChange({ ...value, qr: { ...value.qr, enabled } })} />
       <StudioSelect label="QR destination" value={value.qr.target === 'map-center' ? '' : value.qr.layerId ?? ''} options={[{ value: '', label: 'Current map center' }, ...pointLayers.map((layer) => ({ value: layer.id, label: layer.name }))]} onChange={(layerId) => onChange({ ...value, qr: { ...value.qr, target: layerId ? 'layer' : 'map-center', layerId: layerId || null } })} />
       <StudioSelect label="QR corner" value={value.qr.position} options={POSITIONS} onChange={(position) => onChange({ ...value, qr: { ...value.qr, position } })} />
