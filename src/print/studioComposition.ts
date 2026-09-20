@@ -14,11 +14,16 @@ export function hasStudioComposition(document: StudioCompositionDocument): boole
 export function deriveStudioComposition(document: StudioCompositionDocument, project: StudioProjector, camera: StudioCamera = document.camera): StudioPrimitive[] {
   if (!hasStudioComposition(document)) return [];
   const layout = deriveStudioLayout(document);
+  const checkedProject: StudioProjector = (coordinate) => {
+    const point = project(coordinate);
+    if (!Number.isFinite(point.x) || !Number.isFinite(point.y)) throw new Error('The map projection is unavailable for poster artwork. Wait for the map and try again.');
+    return point;
+  };
   return [
-    ...gridPrimitives(document.studio.decorations.grid, camera, layout.map, project),
+    ...gridPrimitives(document.studio.decorations.grid, camera, layout.map, checkedProject),
     ...posterPrimitives(document, layout, camera),
-    ...photoPrimitives(document, layout, project),
-    ...decorationPrimitives(document, layout.map, project, camera),
+    ...photoPrimitives(document, layout, checkedProject),
+    ...decorationPrimitives(document, layout.map, checkedProject, camera),
   ].map((primitive) => ({ ...primitive, clip: primitive.clip ?? layout.printable }));
 }
 

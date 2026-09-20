@@ -85,6 +85,13 @@ describe('canonical poster composition', () => {
     const radians = Math.PI / 4;
     const projector = ([lng, lat]: readonly [number, number]) => ({ x: lng * Math.cos(radians) + lat * Math.sin(radians), y: lng * Math.sin(radians) - lat * Math.cos(radians) });
     expect(projectedNorthAngle([0, 0], projector)).toBeCloseTo(45);
+    expect(projectedNorthAngle([0, 85.051129], projector)).toBeCloseTo(45);
+  });
+
+  it('rejects non-finite projection consistently before any renderer sees the primitives', () => {
+    const document = fixture();
+    document.studio.decorations.compass.enabled = true;
+    expect(() => deriveStudioComposition(document, () => ({ x: NaN, y: 10 }))).toThrow('projection is unavailable');
   });
 
   it('rejects dishonest pitched scale and over-dense coordinate grids', () => {

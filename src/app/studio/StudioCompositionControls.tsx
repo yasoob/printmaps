@@ -32,8 +32,6 @@ function useWallPreview(exporter: PreviewPngExporter | null, blockedReason?: str
     request.current?.abort();
     setOpenEpoch(null);
     setPreview(null);
-    const current = store.getState();
-    return current.setStudioSection('wall', { ...current.document.studio.wall, enabled: false });
   };
   const open = async () => {
     if (blockedReason || !exporter) {
@@ -44,10 +42,8 @@ function useWallPreview(exporter: PreviewPngExporter | null, blockedReason?: str
     const controller = new AbortController();
     request.current = controller;
     const current = store.getState();
-    const result = current.setStudioSection('wall', { ...current.document.studio.wall, enabled: true });
-    if (!result.ok) { setError(result.error); return; }
     setOpenEpoch(current.documentEpoch);
-    const document = store.getState().document, documentEpoch = current.documentEpoch;
+    const document = current.document, documentEpoch = current.documentEpoch;
     setError('');
     setPreview(null);
     try {

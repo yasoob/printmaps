@@ -12,16 +12,17 @@ export function WallPreviewDialog({ open, onOpenChange, wall, page, previewUrl, 
 }) {
   const style = {
     '--wall-color': wall.wallColor, '--mat-color': wall.matColor,
-    '--mat-padding': `${wall.matWidthMm / page.widthMm * 100}%`,
-    aspectRatio: page.widthMm / page.heightMm,
+    gridTemplateColumns: `${wall.matWidthMm}fr ${page.widthMm}fr ${wall.matWidthMm}fr`,
+    gridTemplateRows: `${wall.matWidthMm}fr ${page.heightMm}fr ${wall.matWidthMm}fr`,
+    aspectRatio: (page.widthMm + wall.matWidthMm * 2) / (page.heightMm + wall.matWidthMm * 2),
   } as CSSProperties;
   return <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent className="studio-wall-dialog">
+    <DialogContent className="export-dialog studio-wall-dialog" overlayClassName="export-dialog-backdrop">
       <DialogTitle>On your wall</DialogTitle>
       <DialogDescription>A presentation preview of your finished poster. Frames, mats, and walls are not added to print exports.</DialogDescription>
       <div className="studio-wall-scene" style={{ backgroundColor: wall.wallColor }}>
         <div className={`studio-wall-frame studio-wall-frame-${wall.frame}${wall.shadow ? ' has-shadow' : ''}`} style={style}>
-          {previewUrl ? <img src={previewUrl} alt="Your finished map poster in a frame" style={{ aspectRatio: page.widthMm / page.heightMm }} /> : <p role="status">{error || 'Preparing poster preview...'}</p>}
+          {previewUrl ? <img src={previewUrl} alt="Your finished map poster in a frame" style={{ aspectRatio: page.widthMm / page.heightMm }} /> : <p role={error ? 'alert' : 'status'}>{error || 'Preparing poster preview...'}</p>}
         </div>
         <div className="studio-wall-console" aria-hidden="true" />
       </div>

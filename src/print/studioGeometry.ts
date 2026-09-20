@@ -71,21 +71,10 @@ export function scaleAtCenter(
 }
 
 export function projectedNorthAngle(center: readonly [number, number], project: StudioProjector): number {
-  const from = project(center);
+  const from = project([center[0], Math.max(-85.051129, center[1] - 0.001)]);
   const to = project([center[0], Math.min(85.051129, center[1] + 0.001)]);
   if (Math.hypot(to.x - from.x, to.y - from.y) < 1e-9) {
     throw new Error('North cannot be determined at this camera position.');
   }
   return Math.atan2(to.x - from.x, from.y - to.y) * 180 / Math.PI;
-}
-
-export function fittedText(options: Readonly<{
-  text: string; x: number; y: number; size: number; maxWidth: number;
-  color: string; family: string; weight?: number; anchor?: 'start' | 'middle';
-}>): string {
-  const { text, x, y, size, maxWidth, color, family, weight = 400, anchor = 'middle' } = options;
-  if (!text) return '';
-  const length = [...text].length;
-  const fittedSize = Math.min(size, maxWidth / Math.max(1, length * 0.72));
-  return `<text x="${decimal(x)}" y="${decimal(y)}" fill="${xml(color)}" font-family="${xml(family)}" font-size="${decimal(fittedSize)}" font-weight="${weight}" text-anchor="${anchor}">${xml(text)}</text>`;
 }

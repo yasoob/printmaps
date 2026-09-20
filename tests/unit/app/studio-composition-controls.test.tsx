@@ -7,6 +7,8 @@ import { createInitialProjectDocument } from '../../../src/domain/project';
 import { parseProjectFileText } from '../../../src/domain/projectFile';
 import { portableProjectText } from '../../../src/domain/projectSerialization';
 
+async function unavailableExporter(): Promise<never> { throw new Error('A test capture failure.'); }
+
 it('applies the gallery in one undo step without removing geography, and survives save/open', async () => {
   const user = userEvent.setup(), store = createProjectStore(createInitialProjectDocument());
   const original = store.getState().document;
@@ -48,4 +50,16 @@ it('reports unavailable wall capture instead of opening an empty success-shaped 
   await user.click(screen.getByRole('button', { name: 'Preview on a wall' }));
   expect(screen.getByRole('alert')).toHaveTextContent('Wait for the map');
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+});
+
+it('opening and closing the wall modal do not write a document or history entry', async () => {
+  const user = userEvent.setup(), store = createProjectStore(createInitialProjectDocument());
+  const initial = store.getState();
+  render(<ProjectStoreContext value={store}><StudioCompositionControls exporter={unavailableExporter} /></ProjectStoreContext>);
+  await user.click(screen.getByRole('button', { name: 'Preview on a wall' }));
+  expect(await screen.findByRole('dialog')).toBeVisible();
+  expect(store.getState()).toBe(initial);
+  await user.keyboard('{Escape}');
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(store.getState()).toBe(initial);
 });

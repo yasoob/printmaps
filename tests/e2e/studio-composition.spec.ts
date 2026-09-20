@@ -32,6 +32,18 @@ for (const width of [1280, 390]) {
 test('SVG and canvas use the same physical composition, including the real QR artwork', async ({ page }) => {
   await page.goto('/tests/e2e/fixtures/studioComposition.html');
   await expect(page.getByRole('heading', { name: 'Poster studio' })).toBeVisible();
-  const error = await page.evaluate(() => window.studioAcceptance.compareRenderers());
-  expect(error).toBeLessThan(2);
+  const result = await page.evaluate(() => window.studioAcceptance.compareRenderers());
+  expect(result.difference).toBeLessThan(2);
+  expect(result.imageCount).toBe(3);
+  expect(result.hasSoftMask).toBe(true);
+});
+
+test('tile composition is seam-free and PDF keeps poster typography as vector commands', async ({ page }) => {
+  await page.goto('/tests/e2e/fixtures/studioComposition.html');
+  await expect(page.getByRole('heading', { name: 'Poster studio' })).toBeVisible();
+  const result = await page.evaluate(() => window.studioAcceptance.comparePngTiles());
+  expect(result.attribution).toBe(true);
+  expect(result.error).toBeLessThan(0.1);
+  expect(result.pdf).toContain('(Tile-safe poster) Tj');
+  expect(result.pdf).toContain('/Name (Poster composition)');
 });
