@@ -107,7 +107,10 @@ function SemanticColorRow({
   const finish = () => { isEditing.current = false; };
   return (
     <div className="map-style-color-row">
-      <span>{label}{customColor ? <small className="is-custom">Custom</small> : null}</span>
+      <span title={customColor ? `${label} · Custom color` : label}>
+        <span className="map-style-color-label">{label}</span>
+        {customColor ? <small className="is-custom"><span aria-hidden="true" /><span className="sr-only">Custom</span></small> : null}
+      </span>
       <ColorField
         label={`${label} color`}
         value={color}
