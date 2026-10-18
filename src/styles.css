@@ -2137,4 +2137,3 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
 }
 
 .route-vertex-actions { @apply mt-2 flex flex-wrap gap-2; }
-.segmented-edge-keys { display: contents; }
