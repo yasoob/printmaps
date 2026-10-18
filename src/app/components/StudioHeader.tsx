@@ -1,6 +1,6 @@
 import { Download, FileUp, Redo2, Undo2 } from 'lucide-react';
 import { memo, useCallback, useRef, type RefObject } from 'react';
-import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
+import { DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import type { ProjectDocument } from '../../domain/project';
 import type { ProjectMutationResult } from '../../domain/projectMutation';
 import { publicAssetUrl } from '../../domain/publicAssetUrl';
@@ -40,6 +40,35 @@ type StudioHeaderProps = {
   onRenameProject: () => void;
 };
 
+const IS_APPLE_PLATFORM = typeof navigator !== 'undefined' && /mac|iphone|ipad/i.test(navigator.platform || navigator.userAgent);
+const UNDO_HINT = IS_APPLE_PLATFORM ? 'Undo (⌘Z)' : 'Undo (Ctrl+Z)';
+const REDO_HINT = IS_APPLE_PLATFORM ? 'Redo (⇧⌘Z)' : 'Redo (Ctrl+Shift+Z)';
+
+function HistoryActions({ presentation = 'toolbar' }: { presentation?: 'toolbar' | 'menu' }) {
+  const { redo, undo } = useProjectActions();
+  const canUndo = useProject((state) => state.canUndo);
+  const canRedo = useProject((state) => state.canRedo);
+  if (presentation === 'menu') {
+    return (
+      <>
+        <DropdownMenuSeparator className="project-file-menu-separator" />
+        <DropdownMenuItem className="project-file-menu-item" disabled={!canUndo} onClick={undo}>
+          <Undo2 aria-hidden="true" size={15} /> Undo
+        </DropdownMenuItem>
+        <DropdownMenuItem className="project-file-menu-item" disabled={!canRedo} onClick={redo}>
+          <Redo2 aria-hidden="true" size={15} /> Redo
+        </DropdownMenuItem>
+      </>
+    );
+  }
+  return (
+    <div className="history-actions" aria-label="History">
+      <button className="icon-button" type="button" aria-label="Undo" title={UNDO_HINT} disabled={!canUndo} onClick={undo}><Undo2 aria-hidden="true" size={16} strokeWidth={1.8} /></button>
+      <button className="icon-button" type="button" aria-label="Redo" title={REDO_HINT} disabled={!canRedo} onClick={redo}><Redo2 aria-hidden="true" size={16} strokeWidth={1.8} /></button>
+    </div>
+  );
+}
+
 const StudioBrand = memo(function StudioBrand({
   buttonRef,
   onChange,
@@ -56,6 +85,7 @@ const StudioBrand = memo(function StudioBrand({
         <span className="brand-name">Print Map Studio</span>
       </a>
       <ProjectTitleEditor buttonRef={buttonRef} title={title} onChange={onChange} />
+      <HistoryActions />
     </div>
   );
 });
@@ -75,30 +105,6 @@ const StudioProjectIdentity = memo(function StudioProjectIdentity({
     />
   );
 });
-
-function HistoryActions({ presentation = 'toolbar' }: { presentation?: 'toolbar' | 'menu' }) {
-  const { redo, undo } = useProjectActions();
-  const canUndo = useProject((state) => state.canUndo);
-  const canRedo = useProject((state) => state.canRedo);
-  if (presentation === 'menu') {
-    return (
-      <>
-        <DropdownMenuItem className="project-file-menu-item" disabled={!canUndo} onClick={undo}>
-          <Undo2 aria-hidden="true" size={15} /> Undo
-        </DropdownMenuItem>
-        <DropdownMenuItem className="project-file-menu-item" disabled={!canRedo} onClick={redo}>
-          <Redo2 aria-hidden="true" size={15} /> Redo
-        </DropdownMenuItem>
-      </>
-    );
-  }
-  return (
-    <div className="history-actions" aria-label="History">
-      <button className="icon-button" type="button" aria-label="Undo" title="Undo" disabled={!canUndo} onClick={undo}><Undo2 size={15} /></button>
-      <button className="icon-button" type="button" aria-label="Redo" title="Redo" disabled={!canRedo} onClick={redo}><Redo2 size={15} /></button>
-    </div>
-  );
-}
 
 export const StudioHeader = memo(function StudioHeader({
   projectTitleRef,
@@ -131,7 +137,6 @@ export const StudioHeader = memo(function StudioHeader({
   return (
     <header className="topbar" inert={inert}>
       <StudioProjectIdentity projectTitleRef={projectTitleRef} />
-      <HistoryActions />
       <div className="document-actions">
         <FileFeedbackGroup>
         <ProjectFileActions
@@ -141,6 +146,7 @@ export const StudioHeader = memo(function StudioHeader({
           onOpen={onOpen}
           onNewFromTemplate={onNewFromTemplate}
         >
+          <DropdownMenuSeparator className="project-file-menu-separator" />
           <DropdownMenuItem
             className="project-file-menu-item"
             disabled={importDisabled || isImportWorkActive}

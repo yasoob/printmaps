@@ -86,7 +86,6 @@ export function ShapeDrawingPanel(props: ShapeDrawingPanelProps) {
         <ToolSettingsButton buttonRef={disclosure.settingsButtonRef} label="Show area settings" onOpen={disclosure.openSettings} />
       </>}
       <div className="shape-drawing-content">
-        <span className="shape-control-label">Outline</span>
         <p id="area-drawing-instructions">Click the map or enter coordinates. Use at least 3 distinct points.</p>
         <ShapePointInputs {...props.pointInput} />
         <p>With the map focused: Enter finishes; Backspace/Delete undoes a point; Escape closes and keeps the outline.</p>

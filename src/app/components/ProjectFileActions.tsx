@@ -5,6 +5,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { createNewProjectDocument, type ProjectDocument } from '../../domain/project';
@@ -155,7 +156,7 @@ export function ProjectFileActions({ children, getDocument, menuHeader, openButt
       >
         {projectMenuTrigger(triggerRef, isOpen, () => setIsOpen(true))}
         <DropdownMenuContent ref={menuRef} className="project-file-menu" align="end" collisionPadding={8} aria-label="Project actions" aria-labelledby="">
-          {menuHeader}
+          {menuHeader && <>{menuHeader}<DropdownMenuSeparator className="project-file-menu-separator" /></>}
           <DropdownMenuItem className="project-file-menu-item" onClick={newProject}>
             <FilePlus2 aria-hidden="true" size={15} /> New project
           </DropdownMenuItem>
@@ -168,6 +169,7 @@ export function ProjectFileActions({ children, getDocument, menuHeader, openButt
           }}>
             <LayoutTemplate aria-hidden="true" size={15} /> New from template
           </DropdownMenuItem>}
+          <DropdownMenuSeparator className="project-file-menu-separator" />
           <DropdownMenuItem className="project-file-menu-item" onClick={() => inputRef.current?.click()}>
             <FolderOpen aria-hidden="true" size={15} /> Open project
           </DropdownMenuItem>

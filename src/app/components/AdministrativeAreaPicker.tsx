@@ -5,6 +5,7 @@ import type { GeneratedAdministrativeCountry, GeneratedAdministrativeShard } fro
 import { useCountryBoundaryCatalogue } from '../hooks/useCountryBoundaryCatalogue';
 import { ShadcnSingleCombobox } from './ShadcnCombobox';
 import { trackEditorAction } from '../../analytics/editorAnalytics';
+import { ToolCardActions } from './ToolAuthoringCard';
 
 type AdministrativeAreaPickerProps = Readonly<{
   onAdd: (area: AdministrativeArea) => void;
@@ -43,14 +44,14 @@ function BoundaryChooser({ onAdd, onCancel, shard }: Readonly<{
           }}
         />
       </div>
-      <div className="administrative-picker-footer">
+      <ToolCardActions>
         <button type="button" aria-label="Cancel area" onClick={onCancel}>Cancel</button>
         <button className="primary-button" type="button" disabled={!selectedArea} onClick={() => {
           if (!selectedArea) return;
           trackEditorAction('boundaryAddRequested');
           onAdd(selectedArea);
         }}>Add area</button>
-      </div>
+      </ToolCardActions>
     </>
   );
 }
@@ -106,10 +107,10 @@ export function AdministrativeAreaPicker({ onAdd, onCancel }: AdministrativeArea
                 onValueChange={() => {}}
               />
             </div>
-            <div className="administrative-picker-footer">
+            <ToolCardActions>
               <button type="button" aria-label="Cancel area" onClick={cancel}>Cancel</button>
               <button className="primary-button" type="button" disabled>Add area</button>
-            </div>
+            </ToolCardActions>
           </>
         )}
       <span role="status" aria-label="Administrative catalogue status">

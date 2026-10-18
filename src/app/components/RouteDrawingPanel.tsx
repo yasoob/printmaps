@@ -1,5 +1,7 @@
 import {
+  ChevronDown,
   Minus,
+  Plus,
   Route,
   Spline,
   Undo2,
@@ -20,6 +22,7 @@ import { useAuthoringPanelDisclosure } from "../hooks/useAuthoringPanelDisclosur
 import { RoutePointInputs } from "./RoutePointInputs";
 import { ToolCardActions, ToolCardHeader } from "./ToolAuthoringCard";
 import { RouteDraftPointList } from "./RouteDraftPointList";
+import { PropertyRow } from "./PropertyControls";
 import type { RoutePointInput } from "../hooks/useRoutePointInput";
 
 export type RouteDrawingPanelProps = Readonly<{
@@ -62,55 +65,52 @@ export type RouteDrawingPanelProps = Readonly<{
 function RoutePathControl(props: RouteDrawingPanelProps) {
   const isDisabled = props.isRouting || props.pathLocked;
   return (
-    <fieldset className="route-path-field">
-      <legend className="tool-control-label">Path</legend>
-      <div
-        className="tool-segmented-control route-path-options"
-        role="radiogroup"
-        aria-label="Route path"
-        onKeyDown={(event) => didHandleRovingSelection(event, '[role="radio"]')}
+    <div
+      className="tool-segmented-control route-path-options"
+      role="radiogroup"
+      aria-label="Route path"
+      onKeyDown={(event) => didHandleRovingSelection(event, '[role="radio"]')}
+    >
+      <button
+        disabled={isDisabled}
+        type="button"
+        role="radio"
+        aria-checked={props.lineShape === "straight"}
+        tabIndex={props.lineShape === "straight" ? 0 : -1}
+        aria-label="Straight"
+        title="Straight segments"
+        onClick={() => props.onLineShapeChange("straight")}
       >
-        <button
-          disabled={isDisabled}
-          type="button"
-          role="radio"
-          aria-checked={props.lineShape === "straight"}
-          tabIndex={props.lineShape === "straight" ? 0 : -1}
-          aria-label="Straight"
-          title="Straight segments"
-          onClick={() => props.onLineShapeChange("straight")}
-        >
-          <Minus size={15} />
-          <span>Straight</span>
-        </button>
-        <button
-          disabled={isDisabled}
-          type="button"
-          role="radio"
-          aria-checked={props.lineShape === "arc"}
-          tabIndex={props.lineShape === "arc" ? 0 : -1}
-          aria-label="Arc"
-          title="Curved arcs"
-          onClick={() => props.onLineShapeChange("arc")}
-        >
-          <Spline size={15} />
-          <span>Arc</span>
-        </button>
-        <button
-          disabled={isDisabled}
-          type="button"
-          role="radio"
-          aria-checked={props.lineShape === "road"}
-          tabIndex={props.lineShape === "road" ? 0 : -1}
-          aria-label="Road"
-          title="Route along roads with Mapbox"
-          onClick={() => props.onLineShapeChange("road")}
-        >
-          <Route size={15} />
-          <span>Road</span>
-        </button>
-      </div>
-    </fieldset>
+        <Minus size={15} />
+        <span>Straight</span>
+      </button>
+      <button
+        disabled={isDisabled}
+        type="button"
+        role="radio"
+        aria-checked={props.lineShape === "arc"}
+        tabIndex={props.lineShape === "arc" ? 0 : -1}
+        aria-label="Arc"
+        title="Curved arcs"
+        onClick={() => props.onLineShapeChange("arc")}
+      >
+        <Spline size={15} />
+        <span>Arc</span>
+      </button>
+      <button
+        disabled={isDisabled}
+        type="button"
+        role="radio"
+        aria-checked={props.lineShape === "road"}
+        tabIndex={props.lineShape === "road" ? 0 : -1}
+        aria-label="Road"
+        title="Route along roads with Mapbox"
+        onClick={() => props.onLineShapeChange("road")}
+      >
+        <Route size={15} />
+        <span>Road</span>
+      </button>
+    </div>
   );
 }
 
@@ -118,8 +118,7 @@ function RouteTravelControls(props: RouteDrawingPanelProps) {
   return (
     <>
       {props.lineShape === "road" && (
-        <label className="route-marker-field">
-          <span className="tool-control-label">Road travel mode</span>
+        <PropertyRow label="Travel mode">
           <select
             aria-label="Road travel mode"
             disabled={props.isRouting}
@@ -134,10 +133,9 @@ function RouteTravelControls(props: RouteDrawingPanelProps) {
               </option>
             ))}
           </select>
-        </label>
+        </PropertyRow>
       )}
-      <label className="route-marker-field">
-        <span className="tool-control-label">Travel marker</span>
+      <PropertyRow label="Travel marker">
         <select
           aria-label="Travel marker"
           disabled={props.isRouting}
@@ -157,7 +155,7 @@ function RouteTravelControls(props: RouteDrawingPanelProps) {
             </option>
           ))}
         </select>
-      </label>
+      </PropertyRow>
     </>
   );
 }
@@ -248,7 +246,11 @@ export function RouteDrawingPanel(props: RouteDrawingPanelProps) {
         <RoutePathControl {...props} />
         <RouteTravelControls {...props} />
         <details className="route-point-sources">
-          <summary>Add by coordinates or existing place</summary>
+          <summary>
+            <Plus aria-hidden="true" size={14} strokeWidth={1.8} />
+            <span>Add by coordinates or place</span>
+            <ChevronDown className="route-disclosure-chevron" aria-hidden="true" size={14} strokeWidth={1.8} />
+          </summary>
           <RoutePointInputs
             disabled={props.isRouting}
             pointInput={props.pointInput}

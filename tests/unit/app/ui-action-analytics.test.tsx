@@ -117,8 +117,8 @@ it('records deliberate route option changes and preview requests, not unchanged 
   await user.click(screen.getByRole('radio', { name: 'Road' }));
   await user.selectOptions(screen.getByRole('combobox', { name: 'Road travel mode' }), 'bike');
   await user.selectOptions(screen.getByRole('combobox', { name: 'Travel marker' }), 'air');
-  await user.click(screen.getByText('Add by coordinates or existing place'));
-  await user.click(screen.getByRole('checkbox', { name: 'Snap map clicks to nearby places and route anchors' }));
+  await user.click(screen.getByText('Add by coordinates or place'));
+  await user.click(screen.getByRole('switch', { name: 'Snap map clicks to nearby places and route anchors' }));
   await user.click(screen.getByRole('button', { name: 'Map route point 1' }));
   await user.click(screen.getByRole('button', { name: 'Map route point 2' }));
   await user.click(screen.getByRole('button', { name: 'Road Preview' }));

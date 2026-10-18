@@ -56,13 +56,22 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .topbar {
   @apply relative z-50 grid min-w-0 items-center px-2;
   grid-area: header;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 0.75rem;
   border-bottom: var(--studio-border-width) solid var(--studio-line);
   background: var(--studio-surface);
 }
 
 .brand-block, .studio-home-link, .document-actions, .history-actions { @apply flex items-center gap-1; }
 .brand-block { min-width: 0; }
+.history-actions { @apply shrink-0 gap-0.5; margin-left: 0.25rem; padding-left: 0.5rem; }
+.history-actions::before {
+  width: var(--studio-border-width);
+  height: 1rem;
+  margin-right: 0.25rem;
+  background: var(--studio-line-strong);
+  content: "";
+}
 .studio-home-link { flex-shrink: 0; color: inherit; text-decoration: none; }
 .document-actions { @apply justify-end gap-2; }
 .document-actions :is(.quiet-button, .primary-button) { height: var(--studio-control-height); }
@@ -118,7 +127,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   height: var(--studio-control-height);
   border-radius: var(--studio-radius-md);
 }
-.brand-name { @apply mx-1.5 text-xs font-semibold tracking-tight; }
+.brand-name { @apply mx-1.5 text-xs font-semibold tracking-tight; color: var(--studio-text-secondary); }
 .project-title, .icon-button, .quiet-button, .primary-button, .tool-button { @apply cursor-pointer; }
 .icon-button:disabled,
 .quiet-button:disabled,
@@ -130,9 +139,16 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .icon-button:disabled:hover,
 .quiet-button:disabled:hover { background: transparent; }
 .project-file-menu-wrap { @apply relative min-w-0; }
-.project-title { @apply flex min-w-0 max-w-full items-center gap-1 rounded px-2 py-1.5 text-xs font-medium; }
+.project-title {
+  @apply flex min-w-0 items-center gap-1.5 px-2 font-medium;
+  max-width: min(22rem, 100%);
+  height: var(--studio-control-height);
+  border-radius: var(--studio-radius-md);
+  color: var(--studio-text-strong);
+  font-size: var(--studio-font-control);
+}
 .project-title span { @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap; }
-.project-title-pencil { opacity: 0; transition: opacity 120ms ease; }
+.project-title-pencil { @apply shrink-0; color: var(--studio-text-muted); opacity: 0; transition: opacity 120ms ease; }
 .project-title:hover .project-title-pencil,
 .project-title:focus-visible .project-title-pencil { opacity: 1; }
 .project-title-input {
@@ -164,6 +180,9 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   font-size: var(--studio-font-control);
 }
 .project-file-menu-item:hover, .project-file-menu-item:focus { background: var(--studio-field); }
+.project-file-menu-item > svg { @apply shrink-0; color: var(--studio-text-secondary); }
+.project-file-menu-item[data-disabled] { opacity: 0.45; }
+.project-file-menu-separator { margin: 0.25rem -0.25rem; height: var(--studio-border-width); background: var(--studio-line); }
 .project-menu-identity {
   @apply grid min-w-0 gap-1 px-2.5 py-2;
   max-width: min(18rem, calc(100vw - 2rem));
@@ -349,6 +368,11 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   grid-area: canvas;
   container-type: inline-size;
   background: var(--studio-canvas);
+  --studio-pasteboard-scrim: color-mix(in srgb, var(--studio-canvas) 52%, transparent);
+  --studio-map-control-surface: var(--studio-surface-raised);
+  --studio-map-control-border: var(--studio-line-strong);
+  --studio-map-control-radius: var(--studio-radius-lg);
+  --studio-tool-field-hover: color-mix(in srgb, var(--studio-text) 5%, var(--studio-field));
 }
 .canvas-overlay {
   @apply pointer-events-none absolute inset-0 z-40 grid;
@@ -472,6 +496,8 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   aspect-ratio: var(--studio-page-ratio, 1.4142857);
   transform: translate(-50%, -50%);
   border: var(--studio-border-width) solid var(--studio-frame);
+  /* Pasteboard scrim: washes out the live map outside the printable area. DOM-only, so exports and map hit-testing are unaffected. */
+  box-shadow: 0 0 0 200vmax var(--studio-pasteboard-scrim);
 }
 .print-frame::before, .print-frame::after {
   content: "";
@@ -482,13 +508,15 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .print-frame::after { inset: 0; border-color: var(--studio-frame-inner); }
 .print-frame.is-boundary-hidden { visibility: hidden; }
 .page-label {
-  @apply absolute px-1.5 py-1;
-  top: -23px;
-  left: -1px;
-  border-radius: var(--studio-radius-xs);
+  @apply absolute whitespace-nowrap px-1.5 font-medium;
+  bottom: calc(100% + 3px);
+  left: -3px;
+  line-height: 1.25rem;
+  border-radius: var(--studio-radius-sm) var(--studio-radius-sm) 0 0;
   color: var(--studio-text-secondary);
-  background: var(--studio-surface-overlay);
+  background: var(--studio-surface);
   font-size: var(--studio-font-meta);
+  font-variant-numeric: tabular-nums;
 }
 .map-fallback {
   @apply absolute inset-0 z-[60] grid items-start justify-items-center px-4 pt-16 text-center;
@@ -530,14 +558,21 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .canvas-camera-notice .map-camera-mutation-error { position: static; transform: none; width: 100%; }
 .maplibregl-ctrl-group, .maplibregl-ctrl-attrib {
   box-shadow: none !important;
-  border: var(--studio-border-width) solid var(--studio-line-hover);
+  border: var(--studio-border-width) solid var(--studio-map-control-border);
+  background: var(--studio-map-control-surface) !important;
 }
+.maplibregl-ctrl-group { overflow: hidden; border-radius: var(--studio-map-control-radius) !important; }
+.maplibregl-ctrl-group button { color: var(--studio-text-secondary); }
+.maplibregl-ctrl-group button:not(:disabled):hover { background-color: var(--studio-field) !important; }
+.maplibregl-ctrl-group button + button { border-top-color: var(--studio-line) !important; }
 .maplibregl-ctrl-attrib {
   max-width: 12rem;
+  border-radius: var(--studio-map-control-radius) !important;
+  color: var(--studio-text-muted);
   font-size: var(--studio-font-micro);
   line-height: 1.15;
-  opacity: .72;
 }
+.maplibregl-ctrl-attrib a { color: inherit; }
 .maplibregl-ctrl-attrib.maplibregl-compact {
   min-height: 16px;
   margin: 0;
@@ -559,22 +594,23 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .maplibregl-ctrl-attrib-button {
   width: 16px;
   height: 16px;
-  background-size: 8px 8px;
+  background-size: 12px 12px;
   background-repeat: no-repeat;
   background-position: center;
 }
-.maplibregl-ctrl-bottom-right { bottom: 42px; right: 12px; }
-.maplibregl-ctrl-bottom-left { bottom: 3px; left: 4px; }
+.maplibregl-ctrl-bottom-right { bottom: calc(max(1.125rem, var(--studio-safe-bottom)) + 2.25rem); right: 0.75rem; }
+.maplibregl-ctrl-bottom-left { bottom: max(1.125rem, var(--studio-safe-bottom)); left: 0.75rem; }
+.maplibregl-ctrl-bottom-right .maplibregl-ctrl, .maplibregl-ctrl-bottom-left .maplibregl-ctrl { margin: 0; }
 .map-root[data-interaction-mode="select"] .maplibregl-canvas { cursor: default !important; }
 .map-root[data-interaction-mode="select"] .maplibregl-canvas:active { cursor: grabbing !important; }
 .map-root:is([data-interaction-mode="pin"], [data-interaction-mode="route"], [data-interaction-mode="shape"]) .maplibregl-canvas { cursor: crosshair !important; }
 .mobile-panel-actions > button, .mobile-panel-backdrop, .mobile-drawer-close { display: none; }
 .tool-palette {
-  @apply relative z-50 flex items-center p-1;
+  @apply relative z-50 flex items-center gap-0.5 p-1;
   height: 2.75rem;
-  border: var(--studio-border-width) solid var(--studio-line-strong);
-  border-radius: var(--studio-radius-lg);
-  background: var(--studio-surface-raised);
+  border: var(--studio-border-width) solid var(--studio-map-control-border);
+  border-radius: var(--studio-map-control-radius);
+  background: var(--studio-map-control-surface);
 }
 .tool-slot { @apply flex items-center; }
 .tool-button {
@@ -629,7 +665,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .map-authoring-panel > label { @apply flex items-center gap-1 whitespace-nowrap; }
 .map-authoring-panel > label > select { min-width: 5.25rem; }
 .authoring-option-group { @apply flex items-center gap-1.5 border-0 p-0; }
-.authoring-option-group legend { @apply mr-1 text-[10px] font-medium uppercase tracking-wide; color: var(--studio-text-muted); }
+.authoring-option-group legend { @apply mr-1 font-medium; color: var(--studio-text-muted); font-size: var(--studio-font-label); }
 .tool-authoring-card {
   @apply flex-col items-stretch justify-start gap-3 p-4;
   flex-wrap: nowrap;
@@ -651,21 +687,40 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .tool-card-heading-actions { @apply flex shrink-0 items-center gap-1; }
 .tool-compact-summary { @apply m-0 px-1.5 text-xs; grid-column: 1 / -1; color: var(--studio-text-muted); }
 .tool-control-label,
-.shape-control-label { @apply text-[10px] font-semibold uppercase tracking-[0.1em]; color: var(--studio-text-muted); }
-.tool-card-actions { @apply flex items-center justify-end gap-1 pt-1; }
-.tool-card-actions > button { @apply min-h-8 rounded px-2.5 text-xs font-medium; }
-.tool-card-actions > button:not(.primary-button) { color: var(--studio-text-muted); }
-.tool-card-actions > button:not(.primary-button):hover { background: var(--studio-field); }
-.shape-mode-tabs {
-  @apply flex items-center gap-1 p-1;
-  border-radius: var(--studio-radius-lg);
+.shape-control-label { @apply font-medium; color: var(--studio-text-muted); font-size: var(--studio-font-label); }
+.tool-authoring-card .property-row { min-height: var(--studio-control-height); }
+.tool-card-actions { @apply flex items-center justify-end gap-2 pt-1; }
+.tool-card-actions > button {
+  @apply inline-flex items-center justify-center px-3 font-medium;
+  height: var(--studio-control-height);
+  border-radius: var(--studio-radius-md);
+  font-size: var(--studio-font-control);
+}
+.tool-card-actions > button:not(.primary-button) { color: var(--studio-text-secondary); }
+.tool-card-actions > button:not(.primary-button):hover { background: var(--studio-field); color: var(--studio-text-strong); }
+.shape-mode-tabs,
+.tool-segmented-control,
+.isochrone-profiles {
+  @apply flex items-center gap-0.5 p-0.5;
+  border-radius: var(--studio-radius-md);
   background: var(--studio-field);
 }
-.shape-mode-tabs > button { @apply flex min-h-10 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded px-2.5 py-1.5 text-xs leading-tight; }
-.shape-mode-tabs > button[aria-selected="true"] {
-  color: var(--studio-tool-card-accent);
+:is(.shape-mode-tabs, .tool-segmented-control, .isochrone-profiles) > button {
+  @apply flex min-w-0 flex-1 items-center justify-center gap-1.5 whitespace-nowrap px-2 font-medium leading-tight;
+  height: 1.75rem;
+  border: var(--studio-border-width) solid var(--studio-transparent);
+  border-radius: var(--studio-radius-sm);
+  color: var(--studio-text-secondary);
+  font-size: var(--studio-font-label);
+}
+:is(.shape-mode-tabs, .tool-segmented-control, .isochrone-profiles) > button:hover:not(:disabled) { color: var(--studio-text-strong); }
+:is(.shape-mode-tabs, .tool-segmented-control, .isochrone-profiles) > button > svg { @apply shrink-0; }
+:is(.tool-segmented-control, .isochrone-profiles) > button > span { @apply min-w-0 truncate; }
+:is(.shape-mode-tabs, .tool-segmented-control, .isochrone-profiles) > button:disabled { cursor: default; opacity: .45; }
+:is(.shape-mode-tabs > button[aria-selected="true"], .tool-segmented-control > button[aria-checked="true"], .isochrone-profiles > button[aria-checked="true"]) {
+  border-color: var(--studio-line-strong);
+  color: var(--studio-text-strong);
   background: var(--studio-surface);
-  box-shadow: var(--studio-tool-card-selected-shadow);
 }
 .shape-authoring-panel > .shape-mode-tabs { width: 100%; }
 .shape-drawing-content { @apply grid gap-2 py-1; }
@@ -678,25 +733,20 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .shape-drawing-content > p { @apply m-0 text-xs leading-relaxed; color: var(--studio-text-muted); }
 .shape-drawing-progress { @apply mt-1 flex items-center justify-between gap-3; }
 .shape-drawing-progress > span { @apply text-xs font-medium; color: var(--studio-text); }
-.shape-drawing-progress > button { @apply flex min-h-8 items-center gap-1.5 rounded px-2 text-xs; color: var(--studio-tool-card-accent); }
+.shape-drawing-progress > button { @apply flex min-h-8 items-center gap-1.5 rounded px-2 text-xs font-medium; color: var(--studio-text-secondary); }
 .shape-drawing-progress > button:hover { background: var(--studio-field); }
 .shape-drawing-progress > button:disabled { cursor: default; opacity: .38; }
-.shape-coordinate-entry { @apply grid grid-cols-2 gap-2; }
-.shape-coordinate-entry > label { @apply grid min-w-0 content-start gap-1 text-xs; }
-.shape-coordinate-entry > button { @apply col-span-2 min-h-11 rounded px-3 text-xs font-medium; border: var(--studio-border-width) solid var(--studio-line-strong); }
+.shape-coordinate-entry { @apply grid gap-1; }
 .shape-authoring-panel > [role="alert"] { @apply m-0 whitespace-normal; grid-column: 1 / -1; }
-.isochrone-panel { @apply grid gap-4; width: 100%; }
+.isochrone-panel { @apply grid min-w-0 gap-4; grid-template-columns: minmax(0, 1fr); width: 100%; }
 .isochrone-field { @apply grid gap-1.5; }
 .isochrone-center { @apply flex min-w-0 items-center gap-2 py-0.5; }
 .isochrone-center > svg { @apply shrink-0; color: var(--studio-text-muted); }
 .isochrone-center > span { @apply flex min-w-0 flex-1 flex-col; }
 .isochrone-center strong { @apply truncate text-xs font-medium; color: var(--studio-text); }
-.isochrone-center small { @apply truncate text-[10px] tabular-nums; color: var(--studio-text-muted); }
+.isochrone-center small { @apply truncate tabular-nums; color: var(--studio-text-muted); font-size: var(--studio-font-meta); }
 .isochrone-travel-mode { @apply m-0 border-0 p-0; }
-.isochrone-profiles { @apply mt-1.5 grid grid-cols-3 gap-1 rounded-lg p-1; background: var(--studio-field); }
-.isochrone-profiles > button { @apply flex min-h-12 flex-col items-center justify-center gap-1 rounded text-[10px] font-medium; color: var(--studio-text-muted); }
-.isochrone-profiles > button:hover { color: var(--studio-text); }
-.isochrone-profiles > button[aria-checked="true"] { color: var(--studio-tool-card-accent); background: var(--studio-surface); box-shadow: var(--studio-tool-card-selected-shadow); }
+.isochrone-profiles { margin-top: 0.375rem; }
 .isochrone-duration-row { @apply grid gap-1.5; }
 .isochrone-duration-heading { @apply flex items-center justify-between; }
 .isochrone-duration-heading > strong { @apply text-xs font-semibold tabular-nums; color: var(--studio-text); }
@@ -705,16 +755,20 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   accent-color: var(--studio-tool-card-accent);
 }
 .isochrone-duration-row > input[type="range"]:focus-visible { outline: var(--studio-focus-width) solid var(--studio-focus); outline-offset: 2px; }
-.isochrone-duration-limits { @apply flex items-center justify-between text-[9px]; color: var(--studio-text-muted); }
+.isochrone-duration-limits { @apply flex items-center justify-between; color: var(--studio-text-muted); font-size: var(--studio-font-meta); }
 .isochrone-error { @apply text-xs; color: var(--studio-danger); }
 .shadcn-combobox-input-group {
-  @apply flex h-10 min-w-0 items-center gap-2 rounded-md px-3;
-  border: var(--studio-border-width) solid var(--studio-line-strong);
-  background: var(--studio-surface);
+  @apply flex min-w-0 items-center gap-2 px-2.5;
+  height: var(--studio-control-height);
+  border: var(--studio-border-width) solid var(--studio-transparent);
+  border-radius: var(--studio-radius-sm);
+  background: var(--studio-field);
 }
-.shadcn-combobox-input-group:focus-within { border-color: var(--studio-tool-card-accent); box-shadow: var(--studio-tool-card-focus-shadow); }
+.shadcn-combobox-input-group:hover { border-color: var(--studio-line-hover); }
+.shadcn-combobox-input-group:focus-within { border-color: var(--studio-focus); }
 .shadcn-combobox-input-group > svg { @apply shrink-0; color: var(--studio-text-muted); }
-.shadcn-combobox-input-group > input { @apply min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap border-0 bg-transparent text-xs outline-none; }
+.shadcn-combobox-input-group > input { @apply min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap border-0 bg-transparent outline-none; font-size: var(--studio-font-control); }
+.shadcn-combobox-input-group:has(input:disabled) { opacity: .6; }
 .shadcn-combobox-positioner { z-index: 100; }
 .shadcn-combobox-popup {
   width: var(--anchor-width);
@@ -726,26 +780,23 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   background: var(--studio-surface);
   box-shadow: 0 14px 35px color-mix(in srgb, var(--studio-text) 18%, transparent);
 }
-.shadcn-combobox-count { @apply px-3 pb-1 pt-2 text-[10px] font-medium; color: var(--studio-text-muted); }
+.shadcn-combobox-count { @apply px-3 pb-1 pt-2 font-medium; color: var(--studio-text-muted); font-size: var(--studio-font-meta); }
 .shadcn-combobox-list { @apply max-h-44 overflow-y-auto p-1; overscroll-behavior: contain; }
 .shadcn-combobox-item { @apply flex min-h-11 cursor-default items-center gap-2 rounded-md px-2 outline-none; color: var(--studio-text-secondary); }
 .shadcn-combobox-item[data-highlighted] { background: var(--studio-field); }
-.shadcn-combobox-item[data-selected] { color: var(--studio-tool-card-accent); background: var(--studio-tool-card-accent-soft); }
+.shadcn-combobox-item[data-selected] { color: var(--studio-text-strong); background: var(--studio-accent-soft); }
 .shadcn-combobox-indicator { @apply grid h-4 w-4 shrink-0 place-items-center; color: var(--studio-tool-card-accent); }
 .shadcn-combobox-item-copy { @apply flex min-w-0 flex-1 flex-col; }
 .shadcn-combobox-item-copy > strong { @apply truncate text-xs font-medium; color: var(--studio-text); }
-.shadcn-combobox-item-copy > small { @apply truncate text-[10px]; color: var(--studio-text-muted); }
+.shadcn-combobox-item-copy > small { @apply truncate; color: var(--studio-text-muted); font-size: var(--studio-font-meta); }
 .shadcn-combobox-empty { @apply px-3 py-8 text-center text-xs; color: var(--studio-text-muted); }
 .shadcn-combobox-empty:empty { display: none; }
-.administrative-boundary-picker { @apply grid min-h-0 gap-4; width: 100%; }
+.administrative-boundary-picker { @apply grid min-h-0; gap: var(--studio-tool-card-gap); width: 100%; }
 .administrative-combobox-field { @apply grid gap-1.5; }
-.administrative-combobox-field > label { @apply text-[10px] font-semibold uppercase tracking-[0.1em]; color: var(--studio-text-muted); }
+.administrative-combobox-field > label { @apply font-medium; color: var(--studio-text-muted); font-size: var(--studio-font-label); }
 .is-spinning { animation: studio-spin 900ms linear infinite; }
 @keyframes studio-spin { to { rotate: 360deg; } }
-.administrative-picker-footer { @apply flex items-center justify-end gap-1 pt-1; }
-.administrative-picker-footer > button:not(.primary-button) { @apply min-h-8 rounded px-2 text-xs; color: var(--studio-text-muted); }
-.administrative-picker-footer > button:not(.primary-button):hover { background: var(--studio-field); }
-.administrative-boundary-picker > [role="status"] { @apply flex items-center justify-center gap-1 text-center text-[10px]; color: var(--studio-danger); }
+.administrative-boundary-picker > [role="status"] { @apply flex items-center justify-center gap-1 text-center; color: var(--studio-danger); font-size: var(--studio-font-meta); }
 .administrative-boundary-picker > [role="status"]:empty { display: none; }
 .map-authoring-panel > span { @apply whitespace-nowrap px-1; }
 .map-authoring-panel > button:not(.primary-button):not(.tool-settings-toggle) {
@@ -754,28 +805,19 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 .map-authoring-panel > button:not(.primary-button):not(.tool-settings-toggle):hover { background: var(--studio-field); }
 .map-authoring-panel > .primary-button { @apply h-7 px-2.5; }
-.tool-segmented-control { @apply grid grid-cols-3 gap-1 rounded-lg p-1; background: var(--studio-field); }
-.tool-segmented-control > button { @apply flex min-h-10 items-center justify-center gap-1.5 rounded px-2 text-xs font-medium; color: var(--studio-text-muted); }
-.tool-segmented-control > button:hover { color: var(--studio-text); }
-.tool-segmented-control > button[aria-checked="true"] { color: var(--studio-tool-card-accent); background: var(--studio-surface); box-shadow: var(--studio-tool-card-selected-shadow); }
-.route-path-field { @apply m-0 border-0 p-0; }
-.route-path-field > legend { @apply mb-1.5; }
 .route-authoring-settings { @apply grid gap-3; gap: var(--studio-tool-card-gap); }
-.route-authoring-settings > .route-marker-field { @apply grid gap-1.5 whitespace-normal; }
 .tool-settings-toggle {
   @apply min-h-11 items-center justify-center gap-1.5 rounded-md px-3 text-xs font-medium;
   display: inline-flex;
   border: 0;
-  color: var(--studio-tool-card-accent);
+  color: var(--studio-text-secondary);
   background: transparent;
 }
 .tool-settings-toggle:hover { background: var(--studio-field); }
-.route-marker-field > select { @apply h-10 w-full rounded-md px-3 text-xs outline-none; border: var(--studio-border-width) solid var(--studio-line-strong); background: var(--studio-surface); }
-.route-marker-field > select:focus-visible { border-color: var(--studio-tool-card-accent); box-shadow: var(--studio-tool-card-focus-shadow); }
 .route-progress { @apply flex items-center justify-between gap-3 py-1; }
-.route-progress > span { @apply min-w-0 flex-1 text-xs; color: var(--studio-text-muted); }
+.route-progress > span { @apply min-w-0 flex-1; color: var(--studio-text-secondary); font-size: var(--studio-font-label); }
 .route-finish-compact, .shape-finish-compact { display: none; }
-.route-progress > button { @apply flex min-h-8 shrink-0 items-center gap-1.5 rounded px-2 text-xs; color: var(--studio-tool-card-accent); }
+.route-progress > button { @apply flex min-h-8 shrink-0 items-center gap-1.5 rounded px-2 text-xs font-medium; color: var(--studio-text-secondary); }
 .route-progress > button:hover { background: var(--studio-field); }
 .route-progress > button:disabled { cursor: default; opacity: .38; }
 .route-authoring-panel {
@@ -866,33 +908,38 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   .tool-settings-toggle { width: var(--studio-touch-target); padding: 0; }
   .tool-settings-toggle > span, .tool-card-heading > strong > svg { display: none; }
 }
-.route-point-sources {
-  @apply min-w-0 rounded-md;
-  border: var(--studio-border-width) solid var(--studio-line);
+.route-point-sources, .route-draft-points { @apply min-w-0; }
+:is(.route-point-sources, .route-draft-points) > summary {
+  @apply flex cursor-pointer select-none items-center gap-2 px-2.5 font-medium;
+  min-height: var(--studio-control-height);
+  border-radius: var(--studio-radius-md);
+  color: var(--studio-text-strong);
+  background: var(--studio-field);
+  font-size: var(--studio-font-control);
+  list-style: none;
 }
-.route-point-sources > summary {
-  @apply flex min-h-10 cursor-pointer items-center px-3 text-xs font-medium;
-  color: var(--studio-text-secondary);
-}
-.route-point-sources[open] > summary {
-  border-bottom: var(--studio-border-width) solid var(--studio-line);
-}
-.route-point-sources > .route-point-inputs { @apply p-2; }
+:is(.route-point-sources, .route-draft-points) > summary::-webkit-details-marker { display: none; }
+:is(.route-point-sources, .route-draft-points) > summary:hover { background: var(--studio-tool-field-hover); }
+:is(.route-point-sources, .route-draft-points) > summary > svg { @apply shrink-0; color: var(--studio-text-secondary); }
+:is(.route-point-sources, .route-draft-points) > summary > span { @apply min-w-0 flex-1 py-1.5 leading-snug; }
+.route-draft-points > summary { background: transparent; padding-left: 0.375rem; }
+.route-disclosure-chevron { transition: transform 120ms ease-out; }
+:is(.route-point-sources, .route-draft-points)[open] .route-disclosure-chevron { transform: rotate(180deg); }
+.route-point-sources > .route-point-inputs { @apply pt-3; }
 .route-point-inputs { @apply grid gap-2; }
-.route-coordinate-entry { @apply grid grid-cols-2 gap-2; }
-.route-coordinate-entry > button { @apply col-span-2 min-h-9 rounded px-3 text-xs font-medium; border: var(--studio-border-width) solid var(--studio-line-strong); }
-.route-poi-entry { @apply grid gap-1.5 whitespace-normal; }
-.route-poi-entry > select { @apply h-10 min-w-0 w-full rounded-md px-3 text-xs; border: var(--studio-border-width) solid var(--studio-line-strong); background: var(--studio-surface); }
-.route-point-inputs > button { @apply min-h-9 rounded px-3 text-xs font-medium; border: var(--studio-border-width) solid var(--studio-line-strong); }
-.route-snap-control { @apply flex items-start gap-2 whitespace-normal text-xs leading-snug; }
-.route-draft-points {
-  @apply min-w-0 rounded-md;
-  border: var(--studio-border-width) solid var(--studio-line);
+.route-coordinate-entry { @apply grid gap-1; }
+.route-coordinate-entry > button,
+.route-poi-entry > button,
+.shape-coordinate-entry > button {
+  @apply justify-self-end rounded px-3 text-xs font-medium;
+  min-height: var(--studio-control-height);
+  background: var(--studio-field);
+  color: var(--studio-text-strong);
 }
-.route-draft-points > summary {
-  @apply flex min-h-11 cursor-pointer items-center px-3 text-xs font-medium;
-  color: var(--studio-text-secondary);
-}
+:is(.route-coordinate-entry, .route-poi-entry, .shape-coordinate-entry) > button:hover:not(:disabled) { background: var(--studio-tool-field-hover); }
+:is(.route-coordinate-entry, .route-poi-entry, .shape-coordinate-entry) > button:disabled { cursor: default; opacity: .45; }
+.route-poi-entry { @apply grid gap-1; }
+.route-snap-control { @apply whitespace-normal leading-snug; font-size: var(--studio-font-label); }
 .route-point-list {
   @apply m-0 grid max-h-48 min-w-0 list-none gap-1 overflow-y-auto p-1 text-[10px] tabular-nums;
   color: var(--studio-text-muted);
@@ -909,15 +956,16 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .route-point-actions > button:disabled { @apply cursor-default; color: var(--studio-text-subtle); }
 .route-point-actions > button:focus-visible,
 .route-preview-button:focus-visible { outline: 2px solid var(--studio-focus); outline-offset: -2px; }
-.route-loop-note { @apply block px-3 pb-3 text-[10px] leading-snug; color: var(--studio-text-muted); }
+.route-loop-note { @apply block px-3 pb-3 leading-snug; color: var(--studio-text-muted); font-size: var(--studio-font-meta); }
 .route-preview-button {
-  @apply min-h-11 w-full rounded px-3 text-xs font-medium;
-  border: var(--studio-border-width) solid var(--studio-line-strong);
-  color: var(--studio-tool-card-accent);
+  @apply w-full rounded px-3 text-xs font-medium;
+  min-height: var(--studio-control-height);
+  background: var(--studio-field);
+  color: var(--studio-text-strong);
 }
-.route-preview-button:hover:not(:disabled) { background: var(--studio-field); }
+.route-preview-button:hover:not(:disabled) { background: var(--studio-tool-field-hover); }
 .route-preview-button:disabled { @apply cursor-default; opacity: .5; }
-.route-finish-explanation { @apply text-[10px] leading-snug; color: var(--studio-text-muted); }
+.route-finish-explanation { @apply leading-snug; color: var(--studio-text-muted); font-size: var(--studio-font-meta); }
 .route-extend-actions { @apply grid grid-cols-2 gap-2; }
 .route-extend-actions > button { @apply min-h-9 rounded px-2 text-xs; border: var(--studio-border-width) solid var(--studio-line-strong); }
 .route-structure-controls { @apply grid gap-2; }
@@ -976,14 +1024,15 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .poi-placement-content { @apply grid gap-1.5 py-1; }
 .poi-placement-content > p { @apply m-0 text-xs leading-relaxed; color: var(--studio-text-muted); }
 .map-authoring-panel > .tool-card-secondary-action {
-  @apply flex h-auto min-h-12 w-full items-center gap-2 rounded-md px-3 py-2 text-left;
-  color: var(--studio-tool-card-accent);
+  @apply flex h-auto min-h-12 w-full items-center gap-2.5 rounded-md px-3 py-2 text-left;
+  color: var(--studio-text-secondary);
   background: var(--studio-field);
 }
+.map-authoring-panel > .tool-card-secondary-action:hover { background: var(--studio-tool-field-hover); }
 .tool-card-secondary-action > svg { @apply shrink-0; }
-.tool-card-secondary-action > span { @apply flex min-w-0 flex-1 flex-col; }
-.tool-card-secondary-action strong { @apply text-xs font-medium; color: var(--studio-text); }
-.tool-card-secondary-action small { @apply text-[10px]; color: var(--studio-text-muted); }
+.tool-card-secondary-action > span { @apply flex min-w-0 flex-1 flex-col gap-0.5; }
+.tool-card-secondary-action strong { @apply font-medium; color: var(--studio-text-strong); font-size: var(--studio-font-control); }
+.tool-card-secondary-action small { color: var(--studio-text-muted); font-size: var(--studio-font-meta); }
 .poi-spreadsheet-panel { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; }
 .poi-spreadsheet-expanded-dialog { width: min(48rem, calc(100vw - 2rem)); max-width: none; height: calc(100dvh - 2rem); max-height: calc(100dvh - 2rem); grid-template-rows: minmax(0, 1fr); gap: 0; padding: 0; overflow: hidden; }
 .poi-spreadsheet-expanded-dialog > .poi-spreadsheet-panel { height: 100%; max-height: 100%; border: 0; box-shadow: none; }
@@ -1033,9 +1082,17 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .poi-spreadsheet-panel textarea[aria-invalid="true"] { border-color: var(--studio-danger); }
 .poi-spreadsheet-panel > p { @apply m-0; color: var(--studio-danger); font-size: var(--studio-font-meta); }
 .poi-spreadsheet-panel > p[role="status"] { color: var(--studio-text-subtle); }
+.canvas-scale-dock {
+  @apply flex items-end;
+  height: 1.75rem;
+  padding: 0 0.5rem 0.375rem;
+  border: var(--studio-border-width) solid var(--studio-map-control-border);
+  border-radius: var(--studio-map-control-radius);
+  background: var(--studio-map-control-surface);
+}
 .map-scale {
   @apply relative z-30;
-  height: 0.5rem;
+  height: 0.375rem;
   border-right: 1px solid color-mix(in srgb, var(--studio-text-strong) 82%, transparent);
   border-bottom: 2px solid color-mix(in srgb, var(--studio-text-strong) 82%, transparent);
   border-left: 1px solid color-mix(in srgb, var(--studio-text-strong) 82%, transparent);
@@ -1043,11 +1100,11 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   pointer-events: none;
 }
 .map-scale span {
-  @apply absolute bottom-full left-1/2 -translate-x-1/2 whitespace-nowrap px-1 py-0.5;
-  border-radius: var(--studio-radius-xs);
-  background: var(--studio-surface);
-  font-size: 0.625rem;
+  @apply absolute bottom-full left-1/2 -translate-x-1/2 whitespace-nowrap;
+  margin-bottom: 0.1875rem;
+  font-size: var(--studio-font-meta);
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
   line-height: 1;
 }
 
@@ -1120,6 +1177,9 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .property-control { @apply min-w-0; color: var(--studio-text); }
 @media (max-width: 899px), (pointer: coarse) {
   .right-sidebar .property-row { min-height: 3.25rem; }
+  .tool-authoring-card :is(.property-control select, .number-field, .tool-card-actions > button, .route-point-sources > summary, .route-draft-points > summary, .route-coordinate-entry > button, .route-poi-entry > button, .route-preview-button, .shape-coordinate-entry > button),
+  .shadcn-combobox-input-group { min-height: var(--studio-touch-target); }
+  :is(.shape-mode-tabs, .tool-segmented-control, .isochrone-profiles) > button { height: calc(var(--studio-touch-target) - 0.25rem); }
   .right-sidebar :is(.property-control > input, .property-control select, .input-group, .number-field, .color-field, .segmented) {
     height: var(--studio-touch-target);
   }
@@ -2196,7 +2256,6 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
     grid-row: 2;
     align-self: start;
     justify-self: start;
-    margin-top: 3.375rem;
   }
   .tool-palette {
     height: 3.25rem;
@@ -2217,17 +2276,14 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
   }
   .shape-authoring-panel { overflow-x: hidden; }
   .shape-mode-tabs > button {
-    min-width: 0;
     gap: 0.25rem;
     padding-right: 0.25rem;
     padding-left: 0.25rem;
-    font-size: 0.625rem;
   }
-  .shape-mode-tabs > button > svg {
+  :is(.shape-mode-tabs, .tool-segmented-control, .isochrone-profiles) > button > svg {
     display: none;
   }
-  .tool-authoring-card > .tool-card-actions,
-  .tool-authoring-card .administrative-picker-footer {
+  .tool-authoring-card .tool-card-actions {
     position: sticky;
     z-index: 2;
     bottom: 0;
@@ -2266,7 +2322,7 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
   .maplibregl-ctrl-attrib-button {
     width: 2.75rem !important;
     height: 2.75rem !important;
-    background-size: 8px 8px !important;
+    background-size: 1.125rem 1.125rem !important;
   }
   .maplibregl-ctrl-attrib.maplibregl-compact[open] {
     max-width: min(72vw, 13rem);

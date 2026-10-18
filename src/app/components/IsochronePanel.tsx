@@ -45,14 +45,14 @@ export function IsochronePanel(props: IsochronePanelProps) {
         <div className="isochrone-profiles" role="radiogroup" aria-label="Travel mode" onKeyDown={handleProfileKeyDown}>
           {profiles.map(({ id, label, icon: Icon }) => (
             <button key={id} type="button" role="radio" aria-checked={props.profile === id} tabIndex={props.profile === id ? 0 : -1} onClick={() => props.onProfileChange(id)}>
-              <Icon aria-hidden="true" size={16} /> <span>{label}</span>
+              <Icon aria-hidden="true" size={15} /><span>{label}</span>
             </button>
           ))}
         </div>
       </fieldset>
       <div className="isochrone-duration-row">
         <div className="isochrone-duration-heading">
-          <span className="shape-control-label">Travel time</span>
+          <span className="shape-control-label">Duration</span>
           <strong>{props.minutes} min</strong>
         </div>
         <input type="range" aria-label="Travel time in minutes" aria-describedby={isInvalidMinutes ? 'isochrone-duration-limit isochrone-duration-error' : 'isochrone-duration-limit'} aria-invalid={isInvalidMinutes} aria-valuetext={`${props.minutes} minutes`} min={5} max={60} step={1} value={props.minutes} onChange={(event) => props.onMinutesChange(event.currentTarget.valueAsNumber)} />

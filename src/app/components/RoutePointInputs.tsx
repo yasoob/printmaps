@@ -2,6 +2,7 @@ import { useId } from "react";
 import type { ContentLayer } from "../../domain/project";
 import type { RoutePointInput } from "../hooks/useRoutePointInput";
 import { PropertyRow } from "./PropertyControls";
+import { Switch } from "./UiControls";
 
 type RoutePointInputsProps = Readonly<{
   disabled: boolean;
@@ -63,49 +64,48 @@ export function RoutePointInputs({
           Add coordinates
         </button>
       </form>
-      <label className="route-poi-entry">
-        <span className="tool-control-label">Existing place</span>
-        <select
-          aria-label="Existing place for route point"
-          disabled={disabled || pois.length === 0}
-          value={pointInput.poiId}
-          onChange={(event) => pointInput.onPoiChange(event.target.value)}
+      <div className="route-poi-entry">
+        <PropertyRow label="Existing place">
+          <select
+            aria-label="Existing place for route point"
+            disabled={disabled || pois.length === 0}
+            value={pointInput.poiId}
+            onChange={(event) => pointInput.onPoiChange(event.target.value)}
+          >
+            <option value="">
+              {pois.length === 0 ? "No places available" : "Choose a place"}
+            </option>
+            {pois.map((poi) => {
+              if (poi.geometry?.type !== "Point") return null;
+              return (
+                <option key={poi.id} value={poi.id}>
+                  {poi.name} ({poi.geometry.coordinates[0]},{" "}
+                  {poi.geometry.coordinates[1]})
+                </option>
+              );
+            })}
+          </select>
+        </PropertyRow>
+        <button
+          type="button"
+          disabled={disabled || selectedPoi?.geometry?.type !== "Point"}
+          onClick={() => {
+            if (selectedPoi?.geometry?.type === "Point"
+              && onAdd(selectedPoi.geometry.coordinates, selectedPoi.name)) {
+              pointInput.onPoiChange("");
+            }
+          }}
         >
-          <option value="">
-            {pois.length === 0 ? "No places available" : "Choose a place"}
-          </option>
-          {pois.map((poi) => {
-            if (poi.geometry?.type !== "Point") return null;
-            return (
-              <option key={poi.id} value={poi.id}>
-                {poi.name} ({poi.geometry.coordinates[0]},{" "}
-                {poi.geometry.coordinates[1]})
-              </option>
-            );
-          })}
-        </select>
-      </label>
-      <button
-        type="button"
-        disabled={disabled || selectedPoi?.geometry?.type !== "Point"}
-        onClick={() => {
-          if (selectedPoi?.geometry?.type === "Point"
-            && onAdd(selectedPoi.geometry.coordinates, selectedPoi.name)) {
-            pointInput.onPoiChange("");
-          }
-        }}
-      >
-        Add place
-      </button>
-      <label className="route-snap-control">
-        <input
-          type="checkbox"
-          checked={snapEnabled}
-          disabled={disabled}
-          onChange={(event) => onSnapChange(event.target.checked)}
-        />
-        <span>Snap map clicks to nearby places and route anchors</span>
-      </label>
+          Add place
+        </button>
+      </div>
+      <Switch
+        className="route-snap-control"
+        isChecked={snapEnabled}
+        disabled={disabled}
+        label="Snap map clicks to nearby places and route anchors"
+        onCheckedChange={onSnapChange}
+      />
     </div>
   );
 }
