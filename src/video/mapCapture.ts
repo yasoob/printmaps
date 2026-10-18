@@ -6,6 +6,7 @@ import { visibleContentLayers } from '../map/MapContentLayerRendering';
 import { waitForMapExportReady } from '../map/MapExportReadiness';
 import { scaleNativeMapStyle, updatePrintLayerPaint } from '../map/NativeMapStyle';
 import { registerRoutePictogramImages } from '../map/RoutePictogramMapImages';
+import { registerPoiShapeImages } from '../map/PoiShapeMapImages';
 import { requireVideoActive } from './abort';
 import type { VideoCamera } from './camera';
 import { prepareVideoMapImages } from './mapImages';
@@ -151,6 +152,7 @@ export function createMapVideoSnapshot(
         const layers = visibleContentLayers([...snapshot.layers]);
         for (const id of deferred) map.setLayoutProperty(id, 'visibility', 'visible');
         registerRoutePictogramImages(map, layers);
+        registerPoiShapeImages(map, layers);
         for (const layer of layers) updatePrintLayerPaint(map, layer, pixelsPerMillimetre, snapshot.assets);
         const activeMap = map;
         return {

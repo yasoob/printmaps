@@ -7,6 +7,7 @@ import {
   type RenderedMapContent,
 } from './MapContentLayerRendering';
 import { registerRoutePictogramImages } from './RoutePictogramMapImages';
+import { registerPoiShapeImages } from './PoiShapeMapImages';
 import { createMapContentIncrementalState } from './MapContentIncremental';
 
 export type MapContentState = {
@@ -161,6 +162,7 @@ function createMarkerImageRegistry(map: MapLibreMap, decodeImage: NonNullable<Ma
       registeredRouteImages.clear();
     },
     ensure: (state: MapContentState, layers: ContentLayer[]) => {
+      registerPoiShapeImages(map, layers);
       for (const imageId of registerRoutePictogramImages(map, layers)) {
         registeredRouteImages.add(imageId);
       }

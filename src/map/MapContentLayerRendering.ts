@@ -2,6 +2,7 @@ import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { ContentLayer, PoiAppearance } from '../domain/project';
 import { customMarkerRasterDimensions, type CustomMarkerAsset } from '../domain/customMarkerAssets';
 import { POI_MARKER_SYMBOL_GLYPHS } from '../domain/poiMarkers';
+import { POI_SHAPE_IMAGE_SIDE, poiShapeImageId } from './PoiShapeMapImages';
 import { addMapContentSource, mapContentSourceId, mapGeometryForLayer } from './MapContentGeometry';
 import { customMarkerImageId, encodedContentId, mapContentLayerId } from './MapContentLayerIds';
 import { shapeLayerDescriptors } from './MapShapeLayerRendering';
@@ -146,17 +147,16 @@ function standardPoiMarkerDescriptor(layer: ContentLayer, appearance: PoiAppeara
     id: mapContentLayerId(layer.id),
     type: 'symbol',
     layout: {
-      'text-field': appearance.markerShape === 'square' ? '■' : '◆',
-      'text-font': ['Noto Sans Regular'],
-      'text-size': appearance.size * 1.25,
-      'text-allow-overlap': true,
-      'text-ignore-placement': true,
+      'icon-image': poiShapeImageId(appearance.markerShape),
+      'icon-size': appearance.size / POI_SHAPE_IMAGE_SIDE,
+      'icon-allow-overlap': true,
+      'icon-ignore-placement': true,
     },
     paint: {
-      'text-color': appearance.color,
-      'text-opacity': layer.opacity / 100,
-      'text-halo-color': isHighlighted ? HIGHLIGHT_COLOR : POI_STROKE,
-      'text-halo-width': isHighlighted ? 2.5 : 1.5,
+      'icon-color': appearance.color,
+      'icon-opacity': layer.opacity / 100,
+      'icon-halo-color': isHighlighted ? HIGHLIGHT_COLOR : POI_STROKE,
+      'icon-halo-width': isHighlighted ? 2.5 : 1.5,
     },
   };
 }
