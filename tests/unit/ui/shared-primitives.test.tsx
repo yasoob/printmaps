@@ -63,6 +63,24 @@ describe('SegmentedControl', () => {
     expect(onValueChange).toHaveBeenLastCalledWith('outline');
   });
 
+  it('selects the first and last enabled options with Home and End', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    render(<SegmentedHarness onValueChange={onValueChange} />);
+    screen.getByRole('radio', { name: 'Fill' }).focus();
+    await user.keyboard('{End}');
+    const outline = screen.getByRole('radio', { name: 'Outline' });
+    expect(outline).toHaveFocus();
+    expect(outline).toHaveAttribute('aria-checked', 'true');
+    expect(onValueChange).toHaveBeenLastCalledWith('outline');
+    await user.keyboard('{Home}');
+    const fill = screen.getByRole('radio', { name: 'Fill' });
+    expect(fill).toHaveFocus();
+    expect(fill).toHaveAttribute('aria-checked', 'true');
+    expect(onValueChange).toHaveBeenLastCalledWith('fill');
+    expect(onValueChange).toHaveBeenCalledTimes(2);
+  });
+
   it('does not select disabled options on click', async () => {
     const user = userEvent.setup();
     const onValueChange = vi.fn();
