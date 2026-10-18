@@ -1,6 +1,7 @@
 import { buffer } from 'node:stream/consumers';
 import { expect, test, type Page } from '@playwright/test';
 import { openInstrumentedMap } from './map-recovery-support';
+import { chooseOption } from './select-support';
 
 async function installTerrainFixtures(page: Page) {
   const png = await page.evaluate(() => {
@@ -59,7 +60,7 @@ test('terrain and real contour worker render, persist through style change, and 
   await expect(page.getByRole('dialog', { name: 'Export map' })).toBeVisible();
   await page.getByRole('button', { name: 'Fit dimensions to print frame' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Dimensions match' })).toBeVisible();
-  await page.getByLabel('Relief detail', { exact: true }).selectOption('low');
+  await chooseOption(page, 'Relief detail', 'Low · 64 samples');
   await page.getByRole('switch', { name: 'Raise a route ridge' }).click();
   await page.getByLabel('Route ridge width', { exact: true }).fill('8');
   await page.getByLabel('Route ridge width', { exact: true }).press('Enter');

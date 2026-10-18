@@ -6,7 +6,7 @@ import { LayerProperties as UnwrappedLayerProperties } from '../../src/app/compo
 import { createProjectStore } from '../../src/app/store';
 import { ProjectStoreContext } from '../../src/app/projectStoreContext';
 import { ElevationProfileProvider } from '../../src/app/elevation/ElevationProfileProvider';
-import { chooseOption, selectedValue } from './select-support';
+import { chooseOption } from './select-support';
 
 function RouteLayerWithProfile(props: ComponentProps<typeof UnwrappedLayerProperties>) {
   const [store] = useState(() => {

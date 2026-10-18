@@ -238,7 +238,7 @@ describe('editor content appearance and POI geometry fields', () => {
 
     await user.click(screen.getByRole('button', { name: 'Select City center' }));
     await openVertices(user);
-    const vertex = screen.getByRole('combobox', { name: 'Shape vertex' });
+    screen.getByRole('combobox', { name: 'Shape vertex' });
     await chooseOption(user, 'Shape vertex', 'Vertex 2');
     const secondLongitude = screen.getByRole('textbox', { name: 'Shape vertex longitude' });
     await user.clear(secondLongitude);
@@ -289,7 +289,7 @@ describe('editor POI appearance and geometry fields', () => {
     render(<App />);
 
     await user.click(screen.getByRole('button', { name: 'Select Coffee stop' }));
-    const shape = screen.getByRole('combobox', { name: 'POI marker shape' });
+    screen.getByRole('combobox', { name: 'POI marker shape' });
 
     await chooseOption(user, 'POI marker shape', 'Diamond');
     expect(screen.getByRole('combobox', { name: 'POI marker shape' })).toHaveFocus();
@@ -401,7 +401,7 @@ describe('route travel-marker properties', () => {
     render(<App />);
 
     await user.click(screen.getByRole('button', { name: 'Select Route 01' }));
-    const legacyMarker = screen.getByRole('combobox', { name: 'Route travel marker' });
+    screen.getByRole('combobox', { name: 'Route travel marker' });
     await chooseOption(user, 'Route travel marker', 'Car');
     await user.click(screen.getByText('Advanced'));
     const advancedMarker = screen.getByRole('combobox', { name: 'Route marker pictogram' });

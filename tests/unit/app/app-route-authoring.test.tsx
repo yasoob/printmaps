@@ -143,7 +143,7 @@ describe('straight route authoring', () => {
     expect(screen.getByRole('radio', { name: 'Straight' })).toHaveTextContent('Straight');
     expect(screen.getByRole('radio', { name: 'Arc' })).toHaveTextContent('Arc');
     expect(screen.getByRole('radio', { name: 'Road' })).toHaveTextContent('Road');
-    expect(screen.getByRole('combobox', { name: 'Travel marker' })).toHaveValue('none');
+    expect(screen.getByRole('combobox', { name: 'Travel marker' })).toHaveAttribute('data-value', 'none');
     expect(screen.queryByRole('radiogroup', { name: 'Travel mode marker' })).not.toBeInTheDocument();
     expect(screen.getByRole('status', { name: 'Route drawing status' })).toHaveTextContent('Click the map to add route points');
   });
@@ -165,9 +165,8 @@ describe('straight route authoring', () => {
     await user.keyboard('{Home}');
     expect(straight).toHaveFocus();
 
-    const marker = screen.getByRole('combobox', { name: 'Travel marker' });
-    await user.selectOptions(marker, 'ship');
-    expect(marker).toHaveValue('ship');
+    await chooseOption(user, 'Travel marker', 'Ship');
+    expect(screen.getByRole('combobox', { name: 'Travel marker' })).toHaveAttribute('data-value', 'ship');
   });
 
   it('authors a multi-segment arc only after explicit Finish', async () => {
@@ -177,7 +176,7 @@ describe('straight route authoring', () => {
     await user.click(screen.getByRole('button', { name: 'Route (R)' }));
     expect(screen.queryByRole('combobox', { name: 'Route line shape' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('radio', { name: 'Arc' }));
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Travel marker' }), 'air');
+    await chooseOption(user, 'Travel marker', 'Air');
     await user.click(screen.getByRole('button', { name: 'Map route point 1' }));
     expect(screen.getByRole('status', { name: 'Route drawing status' })).toHaveTextContent('1 point');
     await user.click(screen.getByRole('button', { name: 'Map route point 2' }));
@@ -400,7 +399,7 @@ describe('straight route draft lifecycle', () => {
     await user.click(screen.getByRole('button', { name: 'Add coordinates' }));
     expect(screen.getByText('Point 1: 12.5, 40.5')).toBeInTheDocument();
 
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Existing place for route point' }), 'poi-cafe');
+    await chooseOption(user, 'Existing place for route point', /^Coffee stop/);
     await user.click(screen.getByRole('button', { name: 'Add place' }));
     expect(screen.getByText(/Point 2:/)).toBeInTheDocument();
 

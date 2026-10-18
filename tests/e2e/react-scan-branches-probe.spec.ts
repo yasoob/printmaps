@@ -60,7 +60,7 @@ test('POI address review, correction and discard isolate native map and route to
   await expect(page.getByText('First suggestion (not selected): Audit address 1, Vienna')).toBeVisible();
   await page.getByText('Review or correct row 1', { exact: true }).click();
   await startProbe(page, 'POI reviewed match');
-  await page.getByRole('combobox', { name: 'Matched location for row 1' }).selectOption('1');
+  await chooseOption(page, 'Matched location for row 1', 'Audit address 2, Vienna');
   result = await finishProbe(page, info, 'poi-review-choice');
   expectOwners(result, ['PoiAddressReview'], ['MapCanvas', 'RouteDrawingPanel', 'ShapeDrawingPanel', 'ProjectProperties']);
   expect(result.mapMutations).toEqual([]);

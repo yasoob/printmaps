@@ -1,6 +1,7 @@
 import { Pencil } from 'lucide-react';
 import { useId, useRef, useState, type RefObject } from 'react';
 import { Dialog } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { StudioDialog, StudioDialogActions, StudioDialogBody, StudioDialogButton, StudioDialogHeader } from '@/components/ui/studio-dialog';
 import { DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
 import { useProject, useProjectActions } from '../projectStoreContext';
@@ -52,10 +53,10 @@ export function ProjectRenameDialog({ onClose, returnFocusRef }: {
         }}>
           <StudioDialogBody className="project-rename-body">
             <label htmlFor={inputId}>Project name</label>
-            <input
+            <Input
               ref={inputRef}
               id={inputId}
-              className="project-title-input"
+              className="h-10 text-[0.9375rem] text-ink-strong"
               aria-describedby={hintId}
               aria-invalid={!canSave || !!error}
               maxLength={120}

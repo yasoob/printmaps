@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RouteVertexControls } from '../../../src/app/components/RouteVertexControls';
-import { chooseOption, selectedValue } from '../select-support';
+import { chooseOption } from '../select-support';
 
 const points: [number, number][] = [[0, 0], [1, 1], [2, 0], [0, 0]];
 

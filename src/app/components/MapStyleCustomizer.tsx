@@ -13,7 +13,7 @@ import { Button } from '../../components/ui/button';
 import { ColorField } from '../../components/ui/color-field';
 import { SegmentedControl } from '../../components/ui/segmented-control';
 import { Slider } from '../../components/ui/slider';
-import { HintTooltip } from './HintTooltip';
+import { IconTooltip } from './IconTooltip';
 
 type EditMode = 'history' | 'amend';
 
@@ -126,7 +126,7 @@ function SemanticColorRow({
           if (result.ok && result.changed !== false) isEditing.current = true;
         }}
       />
-      <HintTooltip label={`Reset ${label} to Quick Tune`}>
+      <IconTooltip label={`Reset ${label} to Quick Tune`}>
       <Button
         variant="ghost"
         size="icon-sm"
@@ -136,7 +136,7 @@ function SemanticColorRow({
       >
         <RotateCcw aria-hidden="true" />
       </Button>
-      </HintTooltip>
+      </IconTooltip>
       {feedback.error && <small className="coordinate-validation" role="alert">{feedback.error}</small>}
     </div>
   );

@@ -5,7 +5,9 @@ import { ColorField } from '@/components/ui/color-field';
 import { Dialog } from '@/components/ui/dialog';
 import { Notice } from '@/components/ui/notice';
 import { StudioDialog, StudioDialogActions, StudioDialogBody, StudioDialogButton, StudioDialogHeader } from '@/components/ui/studio-dialog';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
 import { SegmentedControl } from '@/components/ui/segmented-control';
+import { SimpleSelect } from '@/components/ui/select';
 import { PropertyRow } from './PropertyControls';
 import type { ContentLayer } from '../../domain/project';
 import {
@@ -42,6 +44,8 @@ function commitLabel(replacementLabel: string | null, fileCount: number) {
   return replacementLabel ?? `Import ${fileCount} ${fileCount === 1 ? 'file' : 'files'}`;
 }
 
+const MARKER_SHAPE_OPTIONS = POI_MARKER_SHAPES.map((shape) => ({ value: shape, label: POI_MARKER_SHAPE_LABELS[shape] }));
+
 function ImportNumberField({ label, name, value, validation, onChange }: {
   label: string;
   name: string;
@@ -52,10 +56,10 @@ function ImportNumberField({ label, name, value, validation, onChange }: {
   const errorId = useId();
   return <>
     <PropertyRow label={label}>
-      <span className="number-field">
-        <input aria-label={name} aria-invalid={!validation.ok} aria-describedby={validation.ok ? undefined : errorId} inputMode="decimal" value={value} onChange={(event) => onChange(event.target.value)} />
-        <small>px</small>
-      </span>
+      <InputGroup>
+        <InputGroupInput aria-label={name} aria-invalid={!validation.ok} aria-describedby={validation.ok ? undefined : errorId} inputMode="decimal" value={value} onChange={(event) => onChange(event.target.value)} />
+        <InputGroupAddon align="inline-end">px</InputGroupAddon>
+      </InputGroup>
     </PropertyRow>
     {!validation.ok && <small id={errorId} className="map-data-style-error">{validation.error}</small>}
   </>;
@@ -102,7 +106,7 @@ function BatchAppearanceControls({
         <StyleGroup legend="Style imported POIs" count={`${poiCount} ${poiCount === 1 ? 'POI' : 'POIs'}`}>
           <ImportColorField label="Color" name="Import POI color" value={appearance.poi.color} onChange={(color) => onChange({ ...appearance, poi: { ...appearance.poi, color } })} />
           <ImportNumberField label="Size" name="Import POI marker size" value={appearance.poi.size} validation={validation.fields.poiSize} onChange={(size) => onChange({ ...appearance, poi: { ...appearance.poi, size } })} />
-          <PropertyRow label="Shape"><select aria-label="Import POI marker shape" value={appearance.poi.markerShape} onChange={(event) => onChange({ ...appearance, poi: { ...appearance.poi, markerShape: event.target.value as PoiMarkerShape } })}>{POI_MARKER_SHAPES.map((shape) => <option key={shape} value={shape}>{POI_MARKER_SHAPE_LABELS[shape]}</option>)}</select></PropertyRow>
+          <PropertyRow label="Shape"><SimpleSelect<PoiMarkerShape> label="Import POI marker shape" value={appearance.poi.markerShape} options={MARKER_SHAPE_OPTIONS} onValueChange={(markerShape) => onChange({ ...appearance, poi: { ...appearance.poi, markerShape } })} /></PropertyRow>
         </StyleGroup>
       )}
       {shapeCount > 0 && (

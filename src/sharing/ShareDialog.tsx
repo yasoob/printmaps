@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { Copy } from 'lucide-react';
 import { Dialog } from '../components/ui/dialog';
+import { Input } from '../components/ui/input';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '../components/ui/input-group';
 import { Notice } from '../components/ui/notice';
+import { Textarea } from '../components/ui/textarea';
 import { StudioDialog, StudioDialogActions, StudioDialogBody, StudioDialogButton, StudioDialogHeader } from '../components/ui/studio-dialog';
 import { PropertyRow } from '../app/components/PropertyControls';
 import { Switch } from '../app/components/UiControls';
@@ -54,7 +57,7 @@ export function ShareDialog({ result, onClose, returnFocusRef }: {
       if (request.current === id) setFeedback({ error: true, text: error instanceof Error ? error.message : 'Copy failed. Select and copy the text manually.' });
     }
   };
-  const changeEmbed = (update: () => void) => { request.current += 1; setFeedback(null); update(); };
+  const clearCopyFeedback = () => { request.current += 1; setFeedback(null); };
   return <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
     <StudioDialog ref={dialogRef} initialFocus={dialogRef} className="share-dialog" finalFocus={returnFocusRef}>
       <StudioDialogHeader title="Share this map" description="Anyone with the link can view, download and remix."
@@ -66,22 +69,22 @@ export function ShareDialog({ result, onClose, returnFocusRef }: {
           <section className="share-section">
             <label className="share-section-title" htmlFor="share-link">Read-only link</label>
             <div className="share-copy-row">
-              <input id="share-link" readOnly value={output.link} onFocus={(event) => event.currentTarget.select()} />
+              <Input id="share-link" className="flex-1 text-label text-ink-secondary text-ellipsis" readOnly value={output.link} onFocus={(event) => event.currentTarget.select()} />
               <StudioDialogButton variant="secondary" aria-label="Copy link" onClick={() => void copy(output.link)}><Copy aria-hidden="true" strokeWidth={1.75} />Copy</StudioDialogButton>
             </div>
           </section>
           <section className="share-section" aria-labelledby="share-embed-title">
             <div className="feature-help-row"><h3 id="share-embed-title" className="share-section-title">Embed this map</h3><FeatureHelp label="Embed preview help">Responsive width, map attribution retained. Preview pan and zoom never changes the shared design.</FeatureHelp></div>
-            <Switch className="share-switch" label="Allow preview pan and zoom" labelPlacement="start" isChecked={navigation} onCheckedChange={(checked) => changeEmbed(() => setNavigation(checked))} />
+            <Switch className="share-switch" label="Allow preview pan and zoom" labelPlacement="start" isChecked={navigation} onCheckedChange={(checked) => { clearCopyFeedback(); setNavigation(checked); }} />
             <PropertyRow label="Height">
-              <span className="number-field">
-                <input id="embed-height" aria-label="Embed height (pixels)" inputMode="numeric" value={height} onChange={(event) => { const next = event.currentTarget.value; changeEmbed(() => setHeight(next)); }} />
-                <small>px</small>
-              </span>
+              <InputGroup>
+                <InputGroupInput id="embed-height" aria-label="Embed height (pixels)" inputMode="numeric" value={height} onChange={(event) => { clearCopyFeedback(); setHeight(event.currentTarget.value); }} />
+                <InputGroupAddon align="inline-end">px</InputGroupAddon>
+              </InputGroup>
             </PropertyRow>
             {'error' in embed ? <p role="alert" className="export-error">{embed.error}</p> : <>
               <div className="share-copy-row is-multiline">
-                <textarea id="embed-code" aria-label="Embed HTML" className="share-code" readOnly value={embed.html} rows={4} onFocus={(event) => event.currentTarget.select()} />
+                <Textarea id="embed-code" aria-label="Embed HTML" className="h-24 flex-1 [field-sizing:fixed] font-mono text-meta text-ink-secondary break-all" readOnly value={embed.html} rows={4} onFocus={(event) => event.currentTarget.select()} />
                 <StudioDialogButton variant="secondary" aria-label="Copy embed code" onClick={() => void copy(embed.html)}><Copy aria-hidden="true" strokeWidth={1.75} />Copy</StudioDialogButton>
               </div>
             </>}

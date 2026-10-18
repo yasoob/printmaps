@@ -1,4 +1,6 @@
-import { LocateFixed, Search } from 'lucide-react';
+import { CornerDownLeft, Search } from 'lucide-react';
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group';
+import { IconTooltip } from './IconTooltip';
 import { memo, useEffect, useRef } from 'react';
 import { useStableEvent } from '../hooks/useStableEvent';
 import type { SearchProvider, SearchResult } from '../../services/mapbox/contracts';
@@ -13,6 +15,9 @@ type LocationSearchProps = {
   feedback?: SearchSelectionFeedback | null;
   onClearFeedback?: () => void;
 };
+
+// The map search floats over the canvas, so it uses the map-control surface rather than a field fill.
+const SEARCH_FIELD_CLASS = 'h-[2.375rem] rounded-lg border-line-strong bg-surface pr-0.5 hover:border-line-strong touch:h-[calc(var(--spacing-touch)+2px)]';
 
 const defaultProvider = createMapboxSearchProvider({
   token: import.meta.env.VITE_MAPBOX_PUBLIC_ACCESS,
@@ -98,28 +103,34 @@ export function LocationSearch({ onSelect, proximity, provider = defaultProvider
           void search.search(query);
         }}
       >
-        <Search aria-hidden="true" size={15} />
-        <input
-          ref={inputRef}
-          role="combobox"
-          aria-label="Search places and addresses"
-          aria-autocomplete="list"
-          aria-busy={phase === 'searching'}
-          aria-expanded={results.length > 0}
-          aria-controls={results.length > 0 ? 'location-search-results' : undefined}
-          aria-activedescendant={activeIndex >= 0 ? `location-result-${activeIndex}` : undefined}
-          autoComplete="off"
-          placeholder="Place or address…"
-          value={query}
-          onChange={(event) => {
-            onClearFeedback?.();
-            search.changeQuery(event.currentTarget.value);
-          }}
-          onKeyDown={handleKeyDown}
-        />
-        <button type="submit" aria-label="Search locations" disabled={phase === 'searching'}>
-          <LocateFixed aria-hidden="true" size={15} />
-        </button>
+        <InputGroup className={SEARCH_FIELD_CLASS}>
+          <InputGroupAddon><Search aria-hidden="true" /></InputGroupAddon>
+          <InputGroupInput
+            ref={inputRef}
+            role="combobox"
+            aria-label="Search places and addresses"
+            aria-autocomplete="list"
+            aria-busy={phase === 'searching'}
+            aria-expanded={results.length > 0}
+            aria-controls={results.length > 0 ? 'location-search-results' : undefined}
+            aria-activedescendant={activeIndex >= 0 ? `location-result-${activeIndex}` : undefined}
+            autoComplete="off"
+            placeholder="Place or address…"
+            value={query}
+            onChange={(event) => {
+              onClearFeedback?.();
+              search.changeQuery(event.currentTarget.value);
+            }}
+            onKeyDown={handleKeyDown}
+          />
+          <InputGroupAddon align="inline-end">
+            <IconTooltip label="Search" shortcut="Enter">
+              <InputGroupButton type="submit" size="icon-sm" className="touch:size-touch" aria-label="Search locations" disabled={phase === 'searching'}>
+                <CornerDownLeft aria-hidden="true" />
+              </InputGroupButton>
+            </IconTooltip>
+          </InputGroupAddon>
+        </InputGroup>
       </form>
       {results.length > 0 && <LocationSearchResults activeIndex={activeIndex} onChoose={choose} results={results} />}
       <span className="sr-only" role="status" aria-label="Place search status">{status}</span>

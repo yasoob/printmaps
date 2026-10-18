@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RouteLayerProperties } from '../../../src/app/components/RouteLayerProperties';
 import type { ContentLayer } from '../../../src/domain/project';
-import { chooseOption, selectedValue } from '../select-support';
+import { chooseOption } from '../select-support';
 
 const arcRoute: ContentLayer = {
   id: 'arc',

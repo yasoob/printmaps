@@ -60,7 +60,10 @@ test('travel-time area becomes one durable editable and exportable project layer
   await page.getByRole('option', { name: 'Vienna, Austria' }).click();
   await expect(page.locator('.isochrone-center')).toContainText('Vienna, Austria');
   await page.getByRole('radio', { name: 'Cycling' }).click();
-  await page.getByRole('slider', { name: 'Travel time in minutes' }).fill('20');
+  const duration = page.getByRole('slider', { name: 'Travel time in minutes' });
+  await duration.focus();
+  for (let step = 0; step < 5; step += 1) await duration.press('ArrowRight');
+  await expect(duration).toHaveAttribute('aria-valuenow', '20');
   await expect(page.getByText('5 min')).toBeVisible();
   await expect(page.getByText('60 min', { exact: true })).toBeVisible();
   await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/travel-time-provider-limit-20260826.png' });

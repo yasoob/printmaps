@@ -9,7 +9,7 @@ import type { PreviewPngExporter } from '../../../src/export/previewPng';
 import { planPdfExport, runPdfExport } from '../../../src/app/components/exportDialogPdf';
 import { NATIVE_SYMBOL_BUFFER_PX } from '../../../src/app/components/exportDialogRaster';
 import { exportMocks } from './exportMocks';
-import { chooseOption, selectedValue } from '../select-support';
+import { chooseOption } from '../select-support';
 
 vi.mock('../../../src/map/MapCanvas', async () => import('./MapCanvasMock'));
 

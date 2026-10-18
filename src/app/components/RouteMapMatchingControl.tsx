@@ -1,26 +1,21 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
+import { SimpleSelect } from "@/components/ui/select";
+import { ROAD_TRAVEL_MODE_OPTIONS } from "./routeSelectOptions";
 import type {
   MapMatchingInput,
   MapMatchingProvenance,
 } from "../../domain/project";
-import {
-  ROAD_TRAVEL_MODES,
-  ROAD_TRAVEL_MODE_LABELS,
-  type RoadTravelMode,
-} from "../../domain/routeProfiles";
+import type { RoadTravelMode } from "../../domain/routeProfiles";
 import type {
   MapMatchingProvider,
   ProviderTravelProfile,
 } from "../../services/mapbox/contracts";
 import { createMapboxMapMatchingProvider } from "../../services/mapbox/mapMatching";
 import { PropertyRow } from "./PropertyControls";
-import { SimpleSelect } from "@/components/ui/select";
 import type { ProjectMutationResult } from "../../domain/projectMutation";
 import { trackEditorAction } from "../../analytics/editorAnalytics";
-
-const MATCHING_MODE_OPTIONS = ROAD_TRAVEL_MODES.map((mode) => ({ value: mode, label: ROAD_TRAVEL_MODE_LABELS[mode] }));
 
 const defaultProvider = createMapboxMapMatchingProvider({
   token: import.meta.env.VITE_MAPBOX_PUBLIC_ACCESS,
@@ -194,10 +189,10 @@ export function RouteMapMatchingControl({
           label="Road matching travel mode"
           disabled={disabled || isMatching}
           value={mode}
-          options={MATCHING_MODE_OPTIONS}
-          onValueChange={(next) => {
+          options={ROAD_TRAVEL_MODE_OPTIONS}
+          onValueChange={(nextMode) => {
             trackEditorAction('mapMatchingModeSelected');
-            setMode(next);
+            setMode(nextMode);
           }}
         />
       </PropertyRow>

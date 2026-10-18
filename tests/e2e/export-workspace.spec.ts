@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { chooseOption, expectSelectValue } from './select-support';
 
 async function openWorkspace(page: Page) {
   await page.goto('./');
@@ -39,7 +40,7 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
     await expectSingleFittingDialog(page, dialog);
     await page.screenshot({ path: info.outputPath(`print-${viewport.width}.png`) });
     await dialog.getByRole('radio', { name: /Layered SVG/ }).click();
-    await dialog.getByLabel('Basemap rendering', { exact: true }).selectOption('vector');
+    await chooseOption(dialog, 'Basemap rendering', 'True vector artwork (reflowed labels)');
     await expectSingleFittingDialog(page, dialog);
     await page.screenshot({ path: info.outputPath(`vector-${viewport.width}.png`) });
     await dialog.getByRole('button', { name: 'Basemap rendering help' }).click();
@@ -56,22 +57,22 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
       info.annotations.push({ type: 'native-mp4-unavailable', description: await dialog.getByRole('alert').textContent() ?? 'MP4 unsupported' });
     }
     await page.screenshot({ path: info.outputPath(`video-${capability ? 'capability' : 'idle'}-${viewport.width}.png`) });
-    await dialog.getByLabel('Duration').selectOption('15');
+    await chooseOption(dialog, 'Duration', '15 seconds');
     await dialog.getByRole('tab', { name: '3D model', exact: true }).click();
     await expect(dialog.getByRole('button', { name: 'Download STL' })).toBeInViewport();
     await expectSingleFittingDialog(page, dialog);
     await page.screenshot({ path: info.outputPath(`3d-model-${viewport.width}.png`) });
     await dialog.getByRole('tab', { name: 'Video', exact: true }).click();
-    await expect(dialog.getByLabel('Duration')).toHaveValue('15');
+    await expectSelectValue(dialog, 'Duration', '15');
     await dialog.getByRole('tab', { name: 'Print', exact: true }).click();
-    await expect(dialog.getByLabel('Basemap rendering', { exact: true })).toHaveValue('vector');
+    await expectSelectValue(dialog, 'Basemap rendering', 'vector');
     await dialog.getByRole('button', { name: 'Preview on wall' }).click();
     await expect(dialog.getByRole('img', { name: /finished map poster/ })).toBeVisible({ timeout: 20_000 });
     await expect(dialog.getByRole('button', { name: 'Back to export' })).toBeFocused();
     await expectSingleFittingDialog(page, dialog);
     await page.screenshot({ path: info.outputPath(`framed-preview-${viewport.width}.png`) });
     await dialog.getByRole('button', { name: 'Back to export' }).click();
-    await expect(dialog.getByLabel('Basemap rendering', { exact: true })).toHaveValue('vector');
+    await expectSelectValue(dialog, 'Basemap rendering', 'vector');
     await expect(dialog.getByRole('button', { name: 'Download layered SVG' })).toBeFocused();
     expect(await shell!.evaluate((element) => element === document.querySelector('[role="dialog"]'))).toBe(true);
     await page.screenshot({ path: info.outputPath(`back-to-export-${viewport.width}.png`) });
@@ -137,7 +138,7 @@ test('the workspace downloads real PNG, true-vector SVG, and binary terrain STL'
   expect(png.readUInt32BE(16)).toBe(3508);
   expect(png.readUInt32BE(20)).toBe(2480);
   await dialog.getByRole('radio', { name: /Layered SVG/ }).click();
-  await dialog.getByLabel('Basemap rendering', { exact: true }).selectOption('vector');
+  await chooseOption(dialog, 'Basemap rendering', 'True vector artwork (reflowed labels)');
   const svgDownload = page.waitForEvent('download', { timeout: 60_000 });
   await dialog.getByRole('button', { name: 'Download layered SVG' }).click();
   const svgPath = info.outputPath('workspace-map.svg');
@@ -166,7 +167,7 @@ test('the workspace downloads real PNG, true-vector SVG, and binary terrain STL'
   }));
   await dialog.getByRole('tab', { name: '3D model' }).click();
   await dialog.getByRole('button', { name: 'Fit dimensions to print frame' }).click();
-  await dialog.getByLabel('Relief detail').selectOption('low');
+  await chooseOption(dialog, 'Relief detail', 'Low · 64 samples');
   const stlDownload = page.waitForEvent('download');
   await dialog.getByRole('button', { name: 'Download STL' }).click();
   const stlPath = info.outputPath('workspace-terrain.stl');

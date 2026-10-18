@@ -7,7 +7,7 @@ import {
   loadAutosavedProject,
   type AutosaveRepository,
 } from '../../../src/storage/autosave';
-import { chooseOption, selectedValue } from '../select-support';
+import { selectedValue } from '../select-support';
 
 vi.mock('../../../src/map/MapCanvas', async () => import('./MapCanvasMock'));
 

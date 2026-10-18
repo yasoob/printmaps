@@ -11,7 +11,7 @@ import { Switch } from '../components/UiControls';
 import { FeatureHelp } from '../components/FeatureHelp';
 import { useSettingActions } from '../hooks/useSettingActions';
 import { Input } from '../../components/ui/input';
-import { HintTooltip } from '../components/HintTooltip';
+import { IconTooltip } from '../components/IconTooltip';
 
 export type PhotoUpload = (file: File, layerId: string | null, expectedDocumentEpoch: number) => Promise<ProjectMutationResult>;
 const PHOTO_KEYS = ['map', 'strip'] as const;
@@ -65,10 +65,10 @@ export const PhotoStoryControls = memo(function PhotoStoryControls({ value, poin
     {value.stops.length > 0 && <ol className="studio-photo-list">{value.stops.map((stop, index) => <li key={stop.id}>
       <img src={value.assets[stop.assetId]?.dataUri} alt="" />
       <Input aria-label={`Stop ${index + 1} caption`} placeholder={`Caption for photo ${index + 1}`} maxLength={200} value={stop.caption} onChange={(event) => onChange({ ...value, stops: value.stops.map((candidate) => candidate.id === stop.id ? { ...candidate, caption: event.target.value } : candidate) })} />
-      <HintTooltip label="Remove photo"><Button variant="ghost" size="icon" aria-label={`Remove photo ${index + 1}`} onClick={() => {
+      <IconTooltip label="Remove photo"><Button variant="ghost" size="icon" aria-label={`Remove photo ${index + 1}`} onClick={() => {
         const result = onRemove(stop.id);
         setError(result.ok ? '' : result.error);
-      }}><Trash2 aria-hidden="true" /></Button></HintTooltip>
+      }}><Trash2 aria-hidden="true" /></Button></IconTooltip>
     </li>)}</ol>}
     <ToggleSection title="Photos on the map" switchLabel="Show anchored photos" checked={value.map.enabled} onCheckedChange={map.enabled}>
       <StudioSelect label="Photo shape" rowLabel="Shape" value={value.map.shape} options={SHAPES} onChange={map.shape} />

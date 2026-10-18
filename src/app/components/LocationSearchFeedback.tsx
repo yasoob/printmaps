@@ -1,6 +1,7 @@
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useId } from 'react';
+import { IconTooltip } from './IconTooltip';
 
 export type SearchSelectionFeedback = {
   message: string;
@@ -29,9 +30,11 @@ export function LocationSearchFeedback({ feedback }: {
             onClick={action.onInvoke}
           >{action.label}</Button>
         )}
-        <Button variant="ghost" size="icon" aria-label="Dismiss place confirmation" onClick={feedback.onDismiss}>
-          <X aria-hidden="true" size={16} strokeWidth={1.75} />
-        </Button>
+        <IconTooltip label="Dismiss">
+          <Button variant="ghost" size="icon" aria-label="Dismiss place confirmation" onClick={feedback.onDismiss}>
+            <X aria-hidden="true" size={16} strokeWidth={1.75} />
+          </Button>
+        </IconTooltip>
       </div>
       {action?.disabledReason && <small id={reasonId}>{action.disabledReason}</small>}
     </div>

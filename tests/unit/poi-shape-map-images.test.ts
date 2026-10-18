@@ -12,6 +12,12 @@ function alphaAt(image: ReturnType<typeof createPoiShapeImage>, x: number, y: nu
   return image.data[(y * image.width + x) * 4 + 3];
 }
 
+function poi(id: string, markerShape: 'circle' | 'square' | 'diamond', customAssetId?: string) {
+  return {
+    id, type: 'poi', appearance: { kind: 'poi', markerShape, ...(customAssetId && { customAssetId }) },
+  } as unknown as ContentLayer;
+}
+
 describe('POI shape SDF images', () => {
   it('encodes the square edge at the MapLibre SDF cutoff', () => {
     const image = createPoiShapeImage('square');
@@ -38,9 +44,6 @@ describe('POI shape SDF images', () => {
       hasImage: vi.fn((id: string) => images.has(id)),
       addImage: vi.fn((id: string) => { images.add(id); }),
     } as unknown as MapLibreMap;
-    const poi = (id: string, markerShape: 'circle' | 'square' | 'diamond', customAssetId?: string) => ({
-      id, type: 'poi', appearance: { kind: 'poi', markerShape, ...(customAssetId ? { customAssetId } : {}) },
-    }) as unknown as ContentLayer;
     registerPoiShapeImages(map, [poi('a', 'circle'), poi('b', 'diamond'), poi('c', 'square', 'asset')]);
     expect([...images]).toEqual([poiShapeImageId('diamond')]);
     expect(map.addImage).toHaveBeenCalledWith(poiShapeImageId('diamond'), expect.any(Object), { sdf: true, pixelRatio: 1 });

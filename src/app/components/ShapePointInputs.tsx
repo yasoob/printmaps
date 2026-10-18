@@ -1,7 +1,7 @@
 import { useId, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { PropertyRow } from "./PropertyControls";
-import { InputGroup, InputGroupAddon, InputGroupInput } from '../../components/ui/input-group';
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 
 export type ShapePointInputsProps = {
   coordinates: readonly [string, string];

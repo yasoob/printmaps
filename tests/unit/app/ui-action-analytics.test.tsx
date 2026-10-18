@@ -7,6 +7,7 @@ import { useAuthoringPanelDisclosure } from '../../../src/app/hooks/useAuthoring
 import { useMobilePanels } from '../../../src/app/hooks/useMobilePanels';
 import { flushEditorAnalytics, type EditorAction } from '../../../src/analytics/editorAnalytics';
 import type { RouteAuthoring } from '../../../src/map/useTerraDrawRoutes';
+import { chooseOption } from '../select-support';
 
 const mapInputs = vi.hoisted(() => ({ routeAuthoring: undefined as RouteAuthoring | undefined }));
 vi.mock('../../../src/map/MapCanvas', async () => {
@@ -115,8 +116,8 @@ it('records deliberate route option changes and preview requests, not unchanged 
   await user.click(arc);
   await user.keyboard('{Home}');
   await user.click(screen.getByRole('radio', { name: 'Road' }));
-  await user.selectOptions(screen.getByRole('combobox', { name: 'Road travel mode' }), 'bike');
-  await user.selectOptions(screen.getByRole('combobox', { name: 'Travel marker' }), 'air');
+  await chooseOption(user, 'Road travel mode', 'Cycling');
+  await chooseOption(user, 'Travel marker', 'Air');
   await user.click(screen.getByText('Add by coordinates or place'));
   await user.click(screen.getByRole('switch', { name: 'Snap map clicks to nearby places and route anchors' }));
   await user.click(screen.getByRole('button', { name: 'Map route point 1' }));

@@ -6,7 +6,7 @@ import {
   RouteMarkerControls,
   RouteSegmentControls,
 } from '../../../src/app/components/RouteAppearanceAdvancedControls';
-import { chooseOption, selectedValue } from '../select-support';
+import { chooseOption } from '../select-support';
 
 function Controls({ initial, onChange }: {
   initial: RouteAppearance;

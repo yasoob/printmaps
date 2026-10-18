@@ -2,7 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { App } from "../../../src/app/App";
 import type { DirectionsProvider } from "../../../src/services/mapbox/contracts";
-import { chooseOption, selectedValue } from '../select-support';
+import { chooseOption } from '../select-support';
 
 vi.mock("../../../src/map/MapCanvas", async () => import("./MapCanvasMock"));
 

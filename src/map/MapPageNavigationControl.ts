@@ -1,4 +1,5 @@
 import { NavigationControl, type Map as MapLibreMap } from 'maplibre-gl';
+import { adoptControlTooltips } from './mapControlTooltips';
 
 class PageNavigationControl {
   private readonly navigation = new NavigationControl({ showCompass: false });
@@ -13,9 +14,11 @@ class PageNavigationControl {
     fitButton.type = 'button';
     fitButton.className = 'maplibregl-ctrl-icon map-fit-control';
     fitButton.setAttribute('aria-label', 'Fit page');
-    fitButton.title = 'Fit page · Shift+1';
+    fitButton.dataset.tooltip = 'Fit page';
+    fitButton.dataset.tooltipShortcut = '⇧1';
     fitButton.addEventListener('click', this.fitPage);
     container.prepend(fitButton);
+    adoptControlTooltips(container);
     this.fitButton = fitButton;
     return container;
   }

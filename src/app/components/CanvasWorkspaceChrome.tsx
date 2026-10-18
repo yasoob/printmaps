@@ -8,6 +8,7 @@ import { PoiAuthoringControls } from './PoiAuthoringControls';
 import { RouteDrawingPanel } from './RouteDrawingPanel';
 import { ShapeDrawingPanel } from './ShapeDrawingPanel';
 import { ShapeEditingToolbar } from './ShapeEditingToolbar';
+import { IconTooltip } from './IconTooltip';
 
 const tools = [
   { id: 'select', label: 'Select', mobileLabel: 'Select', shortcut: 'V', icon: MousePointer2 },
@@ -25,21 +26,22 @@ const CanvasToolPalette = memo(function CanvasToolPalette({
     <nav className="tool-palette" aria-label="Map tools">
       {tools.map(({ id, label, mobileLabel, shortcut, icon: Icon }) => (
         <div className="tool-slot" key={id}>
-          <Button
-            ref={id === 'select' ? selectToolRef : undefined}
-            variant="ghost"
-            size="icon"
-            className={`tool-button${activeTool === id ? ' is-active' : ''}`}
-            aria-label={`${label} (${shortcut})`}
-            aria-pressed={activeTool === id}
-            title={`${label} · ${shortcut}`}
-            onPointerEnter={id === 'route' ? preloadRouteEditor : undefined}
-            onFocus={id === 'route' ? preloadRouteEditor : undefined}
-            onClick={() => onActivateTool(id)}
-          >
-            <Icon size={17} strokeWidth={1.8} />
-            <span className="tool-label" aria-hidden="true">{mobileLabel}</span>
-          </Button>
+          <IconTooltip label={label} shortcut={shortcut} side="top">
+            <Button
+              ref={id === 'select' ? selectToolRef : undefined}
+              variant="ghost"
+              size="icon"
+              className={`tool-button${activeTool === id ? ' is-active' : ''}`}
+              aria-label={`${label} (${shortcut})`}
+              aria-pressed={activeTool === id}
+              onPointerEnter={id === 'route' ? preloadRouteEditor : undefined}
+              onFocus={id === 'route' ? preloadRouteEditor : undefined}
+              onClick={() => onActivateTool(id)}
+            >
+              <Icon size={17} strokeWidth={1.8} aria-hidden="true" />
+              <span className="tool-label" aria-hidden="true">{mobileLabel}</span>
+            </Button>
+          </IconTooltip>
         </div>
       ))}
     </nav>
@@ -112,9 +114,9 @@ export function MobilePanelActions({
 }) {
   return (
     <div className="mobile-panel-actions" aria-label="Editor panels">
-      <button ref={layersTriggerRef} type="button" aria-label="Open layers" title="Layers" aria-controls="layers-panel" aria-expanded={activePanel === 'layers'} onClick={() => onOpenPanel('layers')}><Layers3 size={15} /><span>Layers</span></button>
+      <IconTooltip label="Layers"><button ref={layersTriggerRef} type="button" aria-label="Open layers" aria-controls="layers-panel" aria-expanded={activePanel === 'layers'} onClick={() => onOpenPanel('layers')}><Layers3 size={15} aria-hidden="true" /><span>Layers</span></button></IconTooltip>
       {children}
-      <button ref={propertiesTriggerRef} type="button" aria-label="Open properties" title="Properties" aria-controls="properties-panel" aria-expanded={activePanel === 'properties'} onClick={() => onOpenPanel('properties')}><SlidersHorizontal size={15} /><span>Properties</span></button>
+      <IconTooltip label="Properties"><button ref={propertiesTriggerRef} type="button" aria-label="Open properties" aria-controls="properties-panel" aria-expanded={activePanel === 'properties'} onClick={() => onOpenPanel('properties')}><SlidersHorizontal size={15} aria-hidden="true" /><span>Properties</span></button></IconTooltip>
     </div>
   );
 }

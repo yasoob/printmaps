@@ -8,7 +8,7 @@ import { createProjectStore } from '../../src/app/store';
 import { ProjectStoreContext } from '../../src/app/projectStoreContext';
 import { ElevationProfileProvider } from '../../src/app/elevation/ElevationProfileProvider';
 import { PROVIDER_RESPONSE_USE_REQUIRES_TERMS_REVIEW, type MapMatchingProvider } from '../../src/services/mapbox';
-import { chooseOption, selectedValue } from './select-support';
+import { chooseOption } from './select-support';
 
 const route: ContentLayer = {
   id: 'route-01', name: 'Imported walk', type: 'route', visible: true, locked: false, opacity: 100,

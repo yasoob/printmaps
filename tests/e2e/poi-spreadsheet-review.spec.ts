@@ -2,6 +2,7 @@ import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { admissionFixture, openAdmissionProject, savedAdmissionRecord } from './project-admission-support';
 import { downloadPortable, portableFixture, stagePortable } from './portable-budget-support';
 import { trackWrites } from './autosave-conflict-support';
+import { chooseOption } from './select-support';
 
 type Suggestion = { label: string; coordinates: [number, number] };
 const matched = (label = 'Herrengasse 14, Vienna, Austria'): Suggestion => ({ label, coordinates: [16.365, 48.2105] });
@@ -57,7 +58,7 @@ test('UX033 reviews actual ambiguous locality, corrects queries and excludes row
   await expect(page.locator('.layer-row')).toHaveCount(4);
   await saveEvidence(page, info, '033-actual-locality-before-commit');
   await page.getByText('Review or correct row 1', { exact: true }).click();
-  await page.getByRole('combobox', { name: 'Matched location for row 1' }).selectOption('1');
+  await chooseOption(page, 'Matched location for row 1', 'Main Street, Springfield, Massachusetts, United States');
   await page.getByText('Review or correct row 2', { exact: true }).click();
   await page.getByRole('textbox', { name: 'Address for row 2' }).fill('Correct Vienna');
   await page.getByRole('button', { name: 'Look up row 2 again' }).click();

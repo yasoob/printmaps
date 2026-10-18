@@ -14,6 +14,7 @@ import { ProjectIdentityMenu } from './ProjectRenameDialog';
 import { FileFeedbackGroup } from './FileFeedback';
 import type { ProjectOpeningIntent } from '../hooks/useProjectOpening';
 import { ShareControl } from '../../sharing/ShareControl';
+import { IconTooltip } from './IconTooltip';
 
 const LOGO_URL = publicAssetUrl('logo.png');
 const OUTPUT_BLOCKED_HINT_ID = 'header-output-blocked-hint';
@@ -44,8 +45,8 @@ type StudioHeaderProps = {
 };
 
 const IS_APPLE_PLATFORM = typeof navigator !== 'undefined' && /mac|iphone|ipad/i.test(navigator.platform || navigator.userAgent);
-const UNDO_HINT = IS_APPLE_PLATFORM ? 'Undo (⌘Z)' : 'Undo (Ctrl+Z)';
-const REDO_HINT = IS_APPLE_PLATFORM ? 'Redo (⇧⌘Z)' : 'Redo (Ctrl+Shift+Z)';
+const UNDO_SHORTCUT = IS_APPLE_PLATFORM ? '⌘Z' : 'Ctrl+Z';
+const REDO_SHORTCUT = IS_APPLE_PLATFORM ? '⇧⌘Z' : 'Ctrl+Shift+Z';
 
 function HistoryActions({ presentation = 'toolbar' }: { presentation?: 'toolbar' | 'menu' }) {
   const { redo, undo } = useProjectActions();
@@ -66,8 +67,12 @@ function HistoryActions({ presentation = 'toolbar' }: { presentation?: 'toolbar'
   }
   return (
     <div className="history-actions" aria-label="History">
-      <Button variant="ghost" size="icon" aria-label="Undo" title={UNDO_HINT} disabled={!canUndo} onClick={undo}><Undo2 aria-hidden="true" size={16} strokeWidth={1.75} /></Button>
-      <Button variant="ghost" size="icon" aria-label="Redo" title={REDO_HINT} disabled={!canRedo} onClick={redo}><Redo2 aria-hidden="true" size={16} strokeWidth={1.75} /></Button>
+      <IconTooltip label="Undo" shortcut={UNDO_SHORTCUT}>
+        <Button variant="ghost" size="icon" aria-label="Undo" disabled={!canUndo} onClick={undo}><Undo2 aria-hidden="true" size={16} strokeWidth={1.75} /></Button>
+      </IconTooltip>
+      <IconTooltip label="Redo" shortcut={REDO_SHORTCUT}>
+        <Button variant="ghost" size="icon" aria-label="Redo" disabled={!canRedo} onClick={redo}><Redo2 aria-hidden="true" size={16} strokeWidth={1.75} /></Button>
+      </IconTooltip>
     </div>
   );
 }

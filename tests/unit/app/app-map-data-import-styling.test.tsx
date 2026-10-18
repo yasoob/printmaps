@@ -48,7 +48,7 @@ describe('reviewed map-data batch styling', () => {
     fireEvent.change(within(dialog).getByLabelText('Import route color'), { target: { value: '#112233' } });
     await user.clear(within(dialog).getByRole('textbox', { name: 'Import POI marker size' }));
     await user.type(within(dialog).getByRole('textbox', { name: 'Import POI marker size' }), '22');
-    await user.selectOptions(within(dialog).getByRole('combobox', { name: 'Import POI marker shape' }), 'diamond');
+    await chooseOption(user, 'Import POI marker shape', 'Diamond', within(dialog));
     fireEvent.change(within(dialog).getByLabelText('Import POI color'), { target: { value: '#445566' } });
     await user.clear(within(dialog).getByRole('textbox', { name: 'Import shape outline width' }));
     await user.type(within(dialog).getByRole('textbox', { name: 'Import shape outline width' }), '3');

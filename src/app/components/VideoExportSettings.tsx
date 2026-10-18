@@ -1,4 +1,5 @@
-import { memo, useId, type ReactNode } from 'react';
+import { memo, useId, useMemo, type ReactNode } from 'react';
+import { SimpleSelect } from '@/components/ui/select';
 import type { VideoOptions } from '../../video/types';
 import { FeatureHelp } from './FeatureHelp';
 import { useSettingActions } from '../hooks/useSettingActions';
@@ -16,14 +17,13 @@ type VideoChoiceProps<T extends string | number> = Readonly<{
 }>;
 const VideoChoice = memo(function VideoChoice<T extends string | number>({ label, rowLabel = label, value, choices, onChange, help }: VideoChoiceProps<T>) {
   const id = useId();
+  const options = useMemo(() => choices.map((choice) => ({ value: String(choice.value), label: choice.label })), [choices]);
   return <PropertyRow label={rowLabel}>
     <div className="export-field-with-help">
-      <select id={id} aria-label={label} value={value} onChange={(event) => {
-        const choice = choices.find((item) => String(item.value) === event.target.value);
+      <SimpleSelect id={id} label={label} value={String(value)} options={options} onValueChange={(next) => {
+        const choice = choices.find((item) => String(item.value) === next);
         if (choice) onChange(choice.value);
-      }}>
-        {choices.map((choice) => <option key={choice.value} value={choice.value}>{choice.label}</option>)}
-      </select>
+      }} />
       {help ? <FeatureHelp label={`${label} help`}>{help}</FeatureHelp> : null}
     </div>
   </PropertyRow>;
