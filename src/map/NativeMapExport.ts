@@ -11,6 +11,7 @@ import {
 import { visibleContentLayers } from './MapContentLayerRendering';
 import { deferCustomMarkerLayers, registerCustomMarkerImages } from './CustomMarkerMapImages';
 import { registerRoutePictogramImages } from './RoutePictogramMapImages';
+import { registerPoiShapeImages } from './PoiShapeMapImages';
 import {
   copyNativeMapCanvas,
 } from './NativeMapTileSupport';
@@ -91,6 +92,7 @@ function waitForNativeMap(
           await registerCustomMarkerImages(map, visibleLayers, options.assets);
           for (const id of options.deferredMarkerLayerIds) map.setLayoutProperty(id, 'visibility', 'visible');
           registerRoutePictogramImages(map, visibleLayers);
+          registerPoiShapeImages(map, visibleLayers);
           for (const layer of visibleLayers) {
             updatePrintLayerPaint(map, layer, options.pixelsPerMillimetre, options.assets);
           }

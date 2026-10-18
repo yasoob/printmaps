@@ -1778,16 +1778,13 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
     height: 24px;
     border-radius: 50%;
   }
+  /* Lucide "plus" mask: a text '+' would change shape with each platform font. */
   .shape-transform-marker.is-move::after {
-    content: '+';
-    width: 24px;
-    height: 24px;
-    color: var(--studio-accent-strong);
-    background: transparent;
-    font-size: 18px;
-    font-weight: 600;
-    line-height: 22px;
-    text-align: center;
+    content: '';
+    width: 14px;
+    height: 14px;
+    background: var(--studio-accent-strong);
+    mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 12h14M12 5v14' fill='none' stroke='black' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
   }
 }
 

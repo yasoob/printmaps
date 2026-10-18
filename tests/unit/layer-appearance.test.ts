@@ -138,8 +138,8 @@ describe('canonical layer appearance', () => {
     expect(descriptors).toHaveLength(3);
     expect(descriptors[0]).toMatchObject({
       type: 'symbol',
-      layout: { 'text-field': '◆', 'text-size': 30 },
-      paint: { 'text-color': '#445566' },
+      layout: { 'icon-image': 'studio-poi-shape-diamond', 'icon-size': 1 },
+      paint: { 'icon-color': '#445566', 'icon-halo-width': 1.5 },
     });
     expect(descriptors[1]).toMatchObject({
       type: 'symbol',
