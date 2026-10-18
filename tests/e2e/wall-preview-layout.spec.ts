@@ -54,7 +54,7 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
 
       const headerTop = await dialog.locator('.export-dialog-header').evaluate((element) => element.getBoundingClientRect().top);
       await dialog.locator('.studio-wall-body').evaluate((element) => { element.scrollTop = element.scrollHeight; });
-      await expect(dialog.getByRole('checkbox', { name: 'Cast frame shadow' })).toBeVisible();
+      await expect(dialog.getByRole('switch', { name: 'Cast frame shadow' })).toBeVisible();
       const afterScroll = await dialog.locator('.export-dialog-header').evaluate((element) => element.getBoundingClientRect().top);
       expect(afterScroll).toBeCloseTo(headerTop, 1);
       expect(await dialog.evaluate((element) => {

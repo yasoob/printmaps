@@ -108,7 +108,7 @@ for (const isMobile of [false, true]) {
       }
       await dialog.getByRole('tab', { name: '3D model', exact: true }).click();
       await checkHelp(page, dialog, 'Terrain STL help', { isMobile, info });
-      await dialog.getByRole('checkbox', { name: 'Raise a route ridge' }).click();
+      await dialog.getByRole('switch', { name: 'Raise a route ridge' }).click();
       await checkHelp(page, dialog, 'Route ridge help', { isMobile, info });
       await checkHelp(page, dialog, 'Elevation data and credits', { isMobile, info });
       await expect(dialog.getByRole('button', { name: 'Download STL' })).toBeEnabled();

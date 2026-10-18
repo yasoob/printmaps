@@ -1,14 +1,11 @@
-/* One stable shell for Print, Video, 3D model and the framed preview. */
+/* One stable size for Print, Video, 3D model and the framed preview (StudioDialog lg width). */
 .export-dialog.export-workspace {
-  display: flex;
-  flex-direction: column;
-  width: min(52rem, calc(100vw - 2rem - var(--studio-safe-left) - var(--studio-safe-right)));
-  height: min(40rem, calc(100dvh - max(2rem, var(--studio-safe-top)) - max(2rem, var(--studio-safe-bottom))));
+  height: min(40rem, calc(100dvh - 2rem - var(--studio-safe-top) - var(--studio-safe-bottom)));
 }
 
 .export-destinations {
   flex-shrink: 0;
-  padding: 0 1rem 0.75rem;
+  padding: 0 var(--studio-dialog-padding) 0.75rem;
 }
 
 .export-workspace-layout {
@@ -25,9 +22,10 @@
   min-height: 0;
 }
 
-.export-workspace .export-destination-panel > .studio-dialog-body { flex: 1; align-content: start; padding-top: 0.25rem; }
-.export-workspace .export-destination-panel > .studio-dialog-feedback:not([data-empty="true"]) { padding-top: 0.25rem; }
-.export-workspace .export-destination-panel > .studio-dialog-actions { padding-bottom: 1rem; }
+.export-workspace .export-destination-panel > .studio-dialog-body { flex: 1; padding: 0.25rem var(--studio-dialog-padding) var(--studio-dialog-padding) 1rem; }
+.export-workspace .export-destination-panel > .studio-dialog-feedback { padding: 0.25rem var(--studio-dialog-padding) 0.75rem 1rem; }
+.export-workspace .export-destination-panel > .studio-dialog-feedback[data-empty="true"] { padding: 0; }
+.export-workspace .export-destination-panel > .studio-dialog-actions { padding: 0.75rem var(--studio-dialog-padding) var(--studio-dialog-padding) 1rem; }
 
 /* Preview pane: the same poster capture the framed wall view uses. */
 .export-preview {
@@ -35,7 +33,7 @@
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  margin: 0.25rem 0 1rem 1rem;
+  margin: 0.25rem 0 var(--studio-dialog-padding) var(--studio-dialog-padding);
   overflow: hidden;
   border-radius: var(--studio-radius-md);
   background: var(--studio-field);
@@ -70,22 +68,12 @@
   text-align: center;
 }
 
-.export-preview-wall {
-  display: inline-flex;
-  align-items: center;
+.export-preview-wall.studio-button {
   align-self: center;
-  gap: 0.375rem;
-  min-height: var(--studio-control-height);
   margin: 0 0.75rem 0.75rem;
-  padding: 0 0.75rem;
-  border-radius: var(--studio-radius-sm);
   background: var(--studio-surface);
-  color: var(--studio-text-strong);
-  font-size: var(--studio-font-control);
-  font-weight: 500;
 }
-.export-preview-wall:not(:disabled):hover { background: var(--studio-hover); }
-.export-preview-wall:disabled { opacity: 0.45; }
+.export-preview-wall.studio-button:not(:disabled):hover { background: var(--studio-hover); }
 
 .export-preview .studio-wall-frame { --frame-width-limit: 88cqw; }
 .export-preview .studio-wall-scene {
@@ -114,44 +102,16 @@
 }
 .export-field-with-help > select { flex: 1; min-width: 0; }
 
-.export-back-button {
-  display: inline-flex;
-  align-items: center;
-  justify-self: start;
-  gap: 0.375rem;
-  min-height: var(--studio-control-height);
-  margin-left: -0.5rem;
-  padding: 0 0.5rem;
-  border-radius: var(--studio-radius-sm);
-  color: var(--studio-text-secondary);
-  font-size: var(--studio-font-control);
-}
-.export-back-button:not(:disabled):hover { background: var(--studio-field); color: var(--studio-text-strong); }
-.export-back-button:disabled { opacity: 0.45; }
+.export-back-button.studio-button { justify-self: start; margin-left: -0.5rem; color: var(--studio-text-secondary); }
 
 .export-workspace .studio-wall-controls { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; }
+.studio-wall-shadow.studio-switch { min-height: 2.5rem; }
 
 .relief-fit-row { padding-bottom: 0.25rem; }
 
 .export-footnote { color: var(--studio-text-muted); font-size: var(--studio-font-label); }
 
-/* Static notices; replaced by the shared Notice primitive. */
-.export-notice {
-  display: grid;
-  gap: 0.25rem;
-  padding: 0.625rem 0.75rem;
-  border-radius: var(--studio-radius-sm);
-  background: color-mix(in srgb, var(--studio-danger) 8%, var(--studio-surface));
-  font-size: var(--studio-font-control);
-  line-height: 1.45;
-}
-.export-notice.is-warning {
-  background: var(--studio-field);
-  color: var(--studio-text) !important;
-}
-.export-notice strong { color: inherit; font-weight: 600; }
-.export-notice p, .export-notice ul { margin: 0; }
-.export-notice ul { padding-left: 1.125rem; }
+.export-notice-list { margin: 0; padding-left: 1.125rem; }
 
 .export-workspace progress { width: 100%; accent-color: var(--studio-accent); }
 .export-workspace .video-export-status:empty { display: none; }
@@ -165,8 +125,9 @@
   }
   .export-preview {
     height: clamp(8.5rem, 24dvh, 13rem);
-    margin: 0 1rem 0.5rem;
+    margin: 0 var(--studio-dialog-padding) 0.5rem;
   }
+  .export-workspace .export-destination-panel > :is(.studio-dialog-body, .studio-dialog-feedback, .studio-dialog-actions) { padding-left: var(--studio-dialog-padding); }
   .export-workspace[data-framed="true"] .export-preview { height: clamp(11rem, 32dvh, 17rem); }
   .export-poster-stage { padding: 0.75rem; }
   .export-preview .studio-wall-scene { padding: 1rem; }
@@ -174,8 +135,14 @@
 }
 
 @media (pointer: coarse), (max-width: 899px) {
-  .export-preview-wall,
-  .export-back-button,
+  .export-preview-wall.studio-button,
+  .export-back-button.studio-button,
   .export-workspace .studio-dialog-button,
   .export-field-with-help > select { min-height: var(--studio-touch-target); }
+}
+
+@media (max-width: 479px) {
+  .export-destinations { padding-left: 1rem; padding-right: 1rem; }
+  .export-preview { margin-left: 1rem; margin-right: 1rem; }
+  .export-workspace .export-destination-panel > :is(.studio-dialog-body, .studio-dialog-feedback, .studio-dialog-actions) { padding-left: 1rem; padding-right: 1rem; }
 }

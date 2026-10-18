@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { StudioDialogActions, StudioDialogBody, StudioDialogButton, StudioDialogHeader } from '@/components/ui/studio-dialog';
+import { Dialog } from '@/components/ui/dialog';
+import { StudioDialog, StudioDialogActions, StudioDialogBody, StudioDialogButton, StudioDialogHeader } from '@/components/ui/studio-dialog';
 import { downloadAutosaveRecovery } from './autosaveRecovery';
 
 export function AutosaveCorruptionDialog({ busy, error, recoveryData, onContinue, onDiscard }: {
@@ -33,19 +33,15 @@ export function AutosaveCorruptionDialog({ busy, error, recoveryData, onContinue
 
   return (
     <Dialog open>
-      <DialogContent
+      <StudioDialog
         ref={dialogRef}
         className="recovery-dialog"
         overlayClassName="recovery-backdrop"
-        showCloseButton={false}
         initialFocus={busy ? dialogRef : continueRef}
         tabIndex={-1}
         aria-busy={busy}
-        aria-labelledby="corrupt-recovery-title"
       >
-        <StudioDialogHeader>
-          <div><h2 id="corrupt-recovery-title">Local draft unavailable</h2><p>Local autosave</p></div>
-        </StudioDialogHeader>
+        <StudioDialogHeader title="Local draft unavailable" description="Local autosave" showClose={false} />
         <StudioDialogBody role="region" aria-label="Local draft recovery details" tabIndex={0}>
           <p>The local draft is damaged or unsupported and could not be opened. It has not been replaced.</p>
           <p>Download recovery data for inspection before discarding it. This is not a portable project file and may need repair.</p>
@@ -54,12 +50,11 @@ export function AutosaveCorruptionDialog({ busy, error, recoveryData, onContinue
           {error && <p role="alert" aria-label="Autosave status">{error}</p>}
           {downloadError && <p role="alert" aria-label="Recovery download status">{downloadError}</p>}
         </StudioDialogBody>
-        <StudioDialogActions stackOnMobile>
-          <StudioDialogButton variant="secondary" className="recovery-dialog-secondary" disabled={busy || !recoveryData} onClick={downloadRecovery}>Download recovery data</StudioDialogButton>
+        <StudioDialogActions stackOnMobile start={<StudioDialogButton variant="secondary" disabled={busy || !recoveryData} onClick={downloadRecovery}>Download recovery data</StudioDialogButton>}>
           <StudioDialogButton disabled={busy} onClick={onDiscard}>Discard damaged draft</StudioDialogButton>
           <StudioDialogButton ref={continueRef} variant="primary" disabled={busy} onClick={onContinue}>Continue without autosave</StudioDialogButton>
         </StudioDialogActions>
-      </DialogContent>
+      </StudioDialog>
     </Dialog>
   );
 }

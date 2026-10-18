@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from '../components/ui/dialog';
-import { Copy, Lock, X } from 'lucide-react';
-import { StudioDialogActions, StudioDialogBody, StudioDialogButton, StudioDialogHeader } from '../components/ui/studio-dialog';
+import { Copy } from 'lucide-react';
+import { Dialog } from '../components/ui/dialog';
+import { Notice } from '../components/ui/notice';
+import { StudioDialog, StudioDialogActions, StudioDialogBody, StudioDialogButton, StudioDialogHeader } from '../components/ui/studio-dialog';
 import { PropertyRow } from '../app/components/PropertyControls';
 import { Switch } from '../app/components/UiControls';
 import { createEmbedHtml, createShareUrl } from './urls';
@@ -55,31 +56,23 @@ export function ShareDialog({ result, onClose, returnFocusRef }: {
   };
   const changeEmbed = (update: () => void) => { request.current += 1; setFeedback(null); update(); };
   return <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
-    <DialogContent ref={dialogRef} initialFocus={dialogRef} className="share-dialog" finalFocus={returnFocusRef} showCloseButton={false}>
-      <StudioDialogHeader>
-        <div>
-          <div className="feature-help-row"><DialogTitle>Share this map</DialogTitle><FeatureHelp label="Share snapshot help">A read-only snapshot, with no account or upload. Later edits do not change this link.</FeatureHelp></div>
-          <DialogDescription>Anyone with the link can view, download and remix.</DialogDescription>
-        </div>
-        <button className="icon-button close-button" type="button" aria-label="Close share" onClick={onClose}><X size={16} /></button>
-      </StudioDialogHeader>
+    <StudioDialog ref={dialogRef} initialFocus={dialogRef} className="share-dialog" finalFocus={returnFocusRef}>
+      <StudioDialogHeader title="Share this map" description="Anyone with the link can view, download and remix."
+        help={<FeatureHelp label="Share snapshot help">A read-only snapshot, with no account or upload. Later edits do not change this link.</FeatureHelp>} />
       <StudioDialogBody className="share-dialog-body">
-        <div className="share-privacy-note">
-          <Lock size={14} strokeWidth={1.8} aria-hidden="true" />
-          <span>Not private. Links cannot be revoked.</span>
-          <FeatureHelp label="Share privacy help">Anyone with the link can access all included data and images. Links are not encrypted. Do not share private information.</FeatureHelp>
-        </div>
-        {'error' in output ? <p role="alert" className="export-error">{output.error}</p> : <>
+        <Notice tone="warning" role="note" title="Not private. Links cannot be revoked."
+          action={<FeatureHelp label="Share privacy help">Anyone with the link can access all included data and images. Links are not encrypted. Do not share private information.</FeatureHelp>} />
+        {'error' in output ? <Notice tone="error">{output.error}</Notice> : <>
           <section className="share-section">
             <label className="share-section-title" htmlFor="share-link">Read-only link</label>
             <div className="share-copy-row">
               <input id="share-link" readOnly value={output.link} onFocus={(event) => event.currentTarget.select()} />
-              <StudioDialogButton variant="secondary" aria-label="Copy link" onClick={() => void copy(output.link)}><Copy size={14} strokeWidth={1.8} aria-hidden="true" />Copy</StudioDialogButton>
+              <StudioDialogButton variant="secondary" aria-label="Copy link" onClick={() => void copy(output.link)}><Copy aria-hidden="true" strokeWidth={1.75} />Copy</StudioDialogButton>
             </div>
           </section>
           <section className="share-section" aria-labelledby="share-embed-title">
-            <div className="feature-help-row"><h3 id="share-embed-title">Embed this map</h3><FeatureHelp label="Embed preview help">Responsive width, map attribution retained. Preview pan and zoom never changes the shared design.</FeatureHelp></div>
-            <Switch className="share-switch" label="Allow preview pan and zoom" isChecked={navigation} onCheckedChange={(checked) => changeEmbed(() => setNavigation(checked))} />
+            <div className="feature-help-row"><h3 id="share-embed-title" className="share-section-title">Embed this map</h3><FeatureHelp label="Embed preview help">Responsive width, map attribution retained. Preview pan and zoom never changes the shared design.</FeatureHelp></div>
+            <Switch className="share-switch" label="Allow preview pan and zoom" labelPlacement="start" isChecked={navigation} onCheckedChange={(checked) => changeEmbed(() => setNavigation(checked))} />
             <PropertyRow label="Height">
               <span className="number-field">
                 <input id="embed-height" aria-label="Embed height (pixels)" inputMode="numeric" value={height} onChange={(event) => { const next = event.currentTarget.value; changeEmbed(() => setHeight(next)); }} />
@@ -88,13 +81,13 @@ export function ShareDialog({ result, onClose, returnFocusRef }: {
             </PropertyRow>
             {'error' in embed ? <p role="alert" className="export-error">{embed.error}</p> : <>
               <textarea id="embed-code" aria-label="Embed HTML" className="share-code" readOnly value={embed.html} rows={4} onFocus={(event) => event.currentTarget.select()} />
-              <StudioDialogButton variant="secondary" className="share-copy-embed" onClick={() => void copy(embed.html)}><Copy size={14} strokeWidth={1.8} aria-hidden="true" />Copy embed code</StudioDialogButton>
+              <StudioDialogButton variant="secondary" className="share-copy-embed" onClick={() => void copy(embed.html)}><Copy aria-hidden="true" strokeWidth={1.75} />Copy embed code</StudioDialogButton>
             </>}
           </section>
         </>}
         {feedback && <p className={feedback.error ? 'export-error' : 'share-feedback'} role={feedback.error ? 'alert' : 'status'}>{feedback.text}</p>}
       </StudioDialogBody>
       <StudioDialogActions><StudioDialogButton onClick={onClose}>Done</StudioDialogButton></StudioDialogActions>
-    </DialogContent>
+    </StudioDialog>
   </Dialog>;
 }

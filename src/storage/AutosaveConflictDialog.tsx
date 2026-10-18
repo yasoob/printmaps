@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState, type RefObject } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
-import { StudioDialogActions, StudioDialogBody, StudioDialogButton, StudioDialogHeader } from '@/components/ui/studio-dialog';
+import { Dialog, DialogDescription } from '@/components/ui/dialog';
+import { StudioDialog, StudioDialogActions, StudioDialogBody, StudioDialogButton, StudioDialogHeader } from '@/components/ui/studio-dialog';
 import { useProject, useProjectStoreApi } from '../app/projectStoreContext';
 import { downloadProjectDocument } from '../app/components/projectDownload';
 import { useAutosaveErrorState } from './projectAutosaveContext';
@@ -28,14 +28,13 @@ export function AutosaveConflictDialog({ returnFocusRef }: { returnFocusRef: Ref
   };
   return (
     <Dialog open onOpenChange={(open) => { if (!open) autosave.keepEditingConflict(); }}>
-      <DialogContent
+      <StudioDialog
         className="recovery-dialog autosave-conflict-dialog"
         overlayClassName="recovery-backdrop"
-        showCloseButton={false}
         initialFocus={keepEditingRef}
         finalFocus={returnFocusRef}
       >
-        <StudioDialogHeader><div><DialogTitle>Keep this tab’s version?</DialogTitle></div></StudioDialogHeader>
+        <StudioDialogHeader title="Keep this tab’s version?" showClose={false} />
         <StudioDialogBody role="region" aria-label="Autosave conflict details" tabIndex={0}>
           <DialogDescription>Another tab changed the saved project. This tab’s changes are not saved locally. Autosave is paused to protect both versions.</DialogDescription>
           <p>Download this tab’s completed project and confirm that you have saved the file before replacing this version. Starting a browser download does not confirm that a file was saved.</p>
@@ -47,12 +46,11 @@ export function AutosaveConflictDialog({ returnFocusRef }: { returnFocusRef: Ref
           {autosave.conflictError && <p role="alert" aria-label="Conflict recovery error">{autosave.conflictError}</p>}
           {autosave.conflictPending && <p role="status">Reading the saved version… Keep editing cancels replacement.</p>}
         </StudioDialogBody>
-        <StudioDialogActions stackOnMobile>
-          <StudioDialogButton variant="secondary" className="recovery-dialog-secondary" disabled={autosave.conflictPending} onClick={downloadCurrent}>Download this tab’s version</StudioDialogButton>
+        <StudioDialogActions stackOnMobile start={<StudioDialogButton variant="secondary" disabled={autosave.conflictPending} onClick={downloadCurrent}>Download this tab’s version</StudioDialogButton>}>
           <StudioDialogButton disabled={autosave.conflictPending} onClick={() => { void autosave.loadSavedVersion(); }}>Discard this tab and load saved version</StudioDialogButton>
           <StudioDialogButton ref={keepEditingRef} variant="primary" onClick={autosave.keepEditingConflict}>Keep editing</StudioDialogButton>
         </StudioDialogActions>
-      </DialogContent>
+      </StudioDialog>
     </Dialog>
   );
 }

@@ -1,6 +1,7 @@
 import { memo, useCallback, type RefObject } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
-import { StudioDialogActions, StudioDialogBody, StudioDialogButton, StudioDialogFeedback, StudioDialogHeader } from '@/components/ui/studio-dialog';
+import { Dialog } from '@/components/ui/dialog';
+import { Notice } from '@/components/ui/notice';
+import { StudioDialog, StudioDialogActions, StudioDialogBody, StudioDialogButton, StudioDialogFeedback, StudioDialogHeader } from '@/components/ui/studio-dialog';
 import type { VideoOptions, VideoPlan, VideoProgress } from '../../video/types';
 import { VideoExportSettings } from './VideoExportSettings';
 import { FeatureHelp } from './FeatureHelp';
@@ -43,12 +44,7 @@ const VideoExportHelp = memo(function VideoExportHelp() {
   </FeatureHelp>;
 });
 
-const videoHeader = <StudioDialogHeader>
-        <div>
-          <DialogTitle>Export map video</DialogTitle>
-          <DialogDescription>MP4 video of your poster.</DialogDescription>
-        </div>
-      </StudioDialogHeader>;
+const videoHeader = <StudioDialogHeader title="Export map video" description="MP4 video of your poster." />;
 
 const VideoExportActions = memo(function VideoExportActions({ busy, completed, unavailable, cancelRef, downloadRef, onCancel, onClose, onDownload }: Pick<Props, 'busy' | 'unavailable' | 'cancelRef' | 'downloadRef' | 'onCancel' | 'onClose' | 'onDownload'> & { completed: boolean }) {
   return <StudioDialogActions>
@@ -61,10 +57,10 @@ export function VideoExportDialogView(props: Props) {
   const { busy, unavailable, cancelRef, downloadRef, onClose } = props;
   const onOpenChange = useCallback((isOpen: boolean) => { if (!isOpen) onClose(); }, [onClose]);
   return <Dialog open onOpenChange={onOpenChange}>
-    <DialogContent className="export-dialog video-export-dialog" overlayClassName="export-dialog-backdrop" showCloseButton={false} initialFocus={unavailable ? cancelRef : downloadRef} aria-busy={busy}>
+    <StudioDialog className="export-dialog video-export-dialog" overlayClassName="export-dialog-backdrop" initialFocus={unavailable ? cancelRef : downloadRef} aria-busy={busy}>
       {videoHeader}
       <VideoExportPanelView {...props} />
-    </DialogContent>
+    </StudioDialog>
   </Dialog>;
 }
 
@@ -73,7 +69,7 @@ export function VideoExportPanelView(props: Props) {
   return <>
       <VideoExportMessages busy={busy} progress={progress} status={status} error={error} />
       <StudioDialogBody className="export-dialog-body">
-        {unavailable && !busy ? <div role="alert" className="export-notice is-warning"><strong>Video export unavailable</strong><p>{unavailable}</p></div> : null}
+        {unavailable && !busy ? <Notice tone="warning" role="alert" title="Video export unavailable">{unavailable}</Notice> : null}
         <div className="export-panel-heading">
           <div className="feature-help-row"><h3 className="export-panel-title">MP4 video</h3><VideoExportHelp /></div>
           {plan ? <p className="video-export-output"><strong>{plan.width} × {plan.height} px</strong> · {settings.durationSeconds} seconds · {settings.fps} fps target</p> : null}

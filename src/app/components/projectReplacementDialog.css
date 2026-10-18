@@ -1,5 +1,5 @@
 .project-replacement-dialog { z-index: 106; }
-.project-replacement-content { gap: 1rem; padding-top: 0.25rem; }
+.project-replacement-content { gap: 1rem; }
 
 .project-replacement-dialog h3 {
   margin: 0 0 0.25rem;
@@ -11,23 +11,9 @@
 
 .project-replacement-backup { gap: 0.75rem; padding: 0.75rem; }
 .project-replacement-backup .studio-dialog-button { justify-self: start; }
+.project-replacement-backup .studio-button[data-variant="secondary"] { background: var(--studio-surface); }
+.project-replacement-backup .studio-button[data-variant="secondary"]:not(:disabled):hover { background: var(--studio-hover); }
 
-.project-replacement-warning {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.625rem;
-  padding: 0.75rem;
-  border-radius: var(--studio-radius-sm);
-  background: color-mix(in srgb, var(--studio-danger) 8%, var(--studio-surface));
-}
-
-.project-replacement-warning > svg {
-  flex-shrink: 0;
-  margin-top: 0.125rem;
-  color: var(--studio-danger);
-}
-
-.project-replacement-warning h3 { color: var(--studio-danger); }
 .project-replacement-dialog .project-replacement-error {
   color: var(--studio-danger);
   scroll-margin-block: 0.5rem;

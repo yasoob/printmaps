@@ -1,7 +1,7 @@
 import { Scan } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
-import { StudioDialogActions, StudioDialogBody, StudioDialogButton, StudioDialogFeedback, StudioDialogHeader } from '@/components/ui/studio-dialog';
+import { Dialog } from '@/components/ui/dialog';
+import { StudioDialog, StudioDialogActions, StudioDialogBody, StudioDialogButton, StudioDialogFeedback, StudioDialogHeader } from '@/components/ui/studio-dialog';
 import type { PreviewPngExporter } from '../../export/previewPng';
 import { exportTerrainRelief, reliefAttributionNotice } from '../../terrain/reliefExport';
 import { terrainFrame } from '../../terrain/terrainFootprint';
@@ -24,10 +24,10 @@ export function ReliefExportDialog(props: ReliefExportDialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
   return <Dialog open onOpenChange={(open, details) => { if (!open && busy) details.cancel(); else if (!open) props.onClose(); }}>
-    <DialogContent ref={dialogRef} initialFocus={dialogRef} className="export-dialog relief-export-dialog" overlayClassName="export-dialog-backdrop" showCloseButton={false} aria-busy={busy}>
-      <StudioDialogHeader><div><DialogTitle>Export 3D terrain relief</DialogTitle><DialogDescription>Print-area terrain model · STL · millimeters</DialogDescription></div></StudioDialogHeader>
+    <StudioDialog ref={dialogRef} initialFocus={dialogRef} className="export-dialog relief-export-dialog" overlayClassName="export-dialog-backdrop" aria-busy={busy}>
+      <StudioDialogHeader title="Export 3D terrain relief" description="Print-area terrain model · STL · millimeters" showClose={!busy} />
       <ReliefExportPanel {...props} onBusyChange={setBusy} />
-    </DialogContent>
+    </StudioDialog>
   </Dialog>;
 }
 
@@ -120,7 +120,7 @@ export function ReliefExportPanel({ exporter, onClose, blockedReason, onBusyChan
           <p>The lowest sample sits on the base. The four elevation-aware frame corners are interpolated across the model; scale uses average edge lengths at the frame center. Exaggeration multiplies relief height. Elevation tiles are approximate, not survey data.</p>
         </FeatureHelp></div>
         <fieldset disabled={isBusy || !!blockedReason} className="relief-fields">
-          <ReliefSettingsControls {...controls} fitAction={<StudioDialogButton variant="secondary" className="relief-fit-button" disabled={!canExport} onClick={fitDimensions}>
+          <ReliefSettingsControls {...controls} fitAction={<StudioDialogButton variant="secondary" size="sm" className="relief-fit-button" disabled={!canExport} onClick={fitDimensions}>
             <Scan size={14} strokeWidth={1.8} aria-hidden="true" />Fit dimensions to print frame
           </StudioDialogButton>} />
         </fieldset>

@@ -1,7 +1,8 @@
 import { X } from 'lucide-react';
 import { lazy, Suspense, useCallback, useRef, useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
-import { StudioDialogBody, StudioDialogHeader } from '@/components/ui/studio-dialog';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { StudioDialog, StudioDialogBody, StudioDialogHeader } from '@/components/ui/studio-dialog';
 import { useStableEvent } from '../hooks/useStableEvent';
 import { useAvailableMapExporter } from '../mapExporterContext';
 import { ExportDialogView } from './ExportDialogView';
@@ -80,14 +81,20 @@ function ExportWorkspace(props: ExportDialogProps) {
     if (busy) details.cancel();
     else props.onClose();
   }}>
-    <DialogContent ref={dialogRef} initialFocus={printAction}
+    <StudioDialog ref={dialogRef} size="lg" initialFocus={printAction}
       className="export-dialog export-workspace" data-framed={framed}
-      overlayClassName="export-dialog-backdrop" showCloseButton={false} aria-busy={busy} tabIndex={-1}>
-      <StudioDialogHeader className="export-dialog-header">
-        <div><DialogTitle>Export map</DialogTitle><DialogDescription>
-          {framed ? 'Preview your finished poster in a frame.' : destinations.find((item) => item.value === mode)?.description}
-        </DialogDescription></div>
-        <button className="icon-button close-button" type="button" aria-label="Close export" disabled={busy} onClick={props.onClose}><X size={16} /></button>
+      overlayClassName="export-dialog-backdrop" aria-busy={busy} tabIndex={-1}>
+      {/* Standard header markup; the close button must disable while an export is running. */}
+      <StudioDialogHeader className="export-dialog-header" data-standard="true">
+        <div className="studio-dialog-heading">
+          <div className="studio-dialog-title-row"><DialogTitle className="studio-dialog-title">Export map</DialogTitle></div>
+          <DialogDescription className="studio-dialog-description">
+            {framed ? 'Preview your finished poster in a frame.' : destinations.find((item) => item.value === mode)?.description}
+          </DialogDescription>
+        </div>
+        <Button variant="ghost" size="icon" className="studio-dialog-close close-button" aria-label="Close export" disabled={busy} onClick={props.onClose}>
+          <X aria-hidden="true" size={16} strokeWidth={1.75} />
+        </Button>
       </StudioDialogHeader>
       <div className="export-destinations">
         <StudioModeTabs choices={destinations} value={mode} disabled={busy} onValueChange={changeMode}
@@ -106,7 +113,7 @@ function ExportWorkspace(props: ExportDialogProps) {
           </Suspense>
         </div>
       </div>
-    </DialogContent>
+    </StudioDialog>
   </Dialog>;
 }
 

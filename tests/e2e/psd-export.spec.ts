@@ -172,7 +172,7 @@ test('layered PSD respects editor order for real route and point overlaps', asyn
   expect(svgByFilename.get('002-coffee-stop.svg')).toContain('<circle');
   expect(svgByFilename.get('003-city-center.svg')).toContain('<path');
   expect(svgByFilename.get('004-attribution.svg')).toContain('<text');
-  await routeTop.dialog.getByRole('button', { name: 'Cancel' }).click();
+  await routeTop.dialog.getByRole('button', { name: 'Done' }).click();
 
   const coffeeHandle = page.getByRole('button', { name: 'Reorder Coffee stop' });
   await coffeeHandle.press('Alt+ArrowUp');
@@ -190,7 +190,7 @@ test('layered PSD respects editor order for real route and point overlaps', asyn
   if (testInfo.project.name === 'chromium') {
     await page.screenshot({ path: 'docs/screenshots/layered-psd-export-20260830.png' });
   }
-  await pointTop.dialog.getByRole('button', { name: 'Cancel' }).click();
+  await pointTop.dialog.getByRole('button', { name: 'Done' }).click();
 
   const cityHandle = page.getByRole('button', { name: 'Reorder City center' });
   await cityHandle.press('Alt+ArrowUp');

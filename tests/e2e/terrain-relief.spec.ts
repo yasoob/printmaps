@@ -60,7 +60,7 @@ test('terrain and real contour worker render, persist through style change, and 
   await page.getByRole('button', { name: 'Fit dimensions to print frame' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Dimensions match' })).toBeVisible();
   await page.getByLabel('Relief detail', { exact: true }).selectOption('low');
-  await page.getByRole('checkbox', { name: 'Raise a route ridge' }).click();
+  await page.getByRole('switch', { name: 'Raise a route ridge' }).click();
   await page.getByLabel('Route ridge width', { exact: true }).fill('8');
   await page.getByLabel('Route ridge width', { exact: true }).press('Enter');
   const downloading = page.waitForEvent('download');

@@ -1,5 +1,6 @@
 import { ChevronRight } from 'lucide-react';
 import type React from 'react';
+import { Notice } from '@/components/ui/notice';
 import { StudioDialogActions, StudioDialogBody, StudioDialogButton, StudioDialogFeedback, StudioDialogSection } from '@/components/ui/studio-dialog';
 import type { ProjectDocument } from '../../domain/project';
 import type { LayeredPsdExportPlan } from '../../export/layeredPsdPlan';
@@ -75,17 +76,15 @@ function formatBytes(bytes: number): string {
 function PreflightNotice({ format, preflight }: { format: ExportFormat; preflight: ExportPreflight }) {
   if (format === 'svg' || preflight.errors.length === 0) return null;
   if (format === 'pdf') {
-    return <div id="export-preflight-error" className="export-notice export-error" role="alert">
-      <strong>PDF export blocked</strong>
+    return <Notice id="export-preflight-error" tone="error" title="PDF export blocked">
       <p>{pdfPreflightErrorMessage(preflight)}</p>
       <p>{PDF_PREFLIGHT_GUIDANCE}</p>
-    </div>;
+    </Notice>;
   }
-  return <div id="export-preflight-error" className="export-notice export-error" role="alert">
-    <strong>Export blocked</strong>
-    <ul>{preflight.errors.map((issue) => <li key={issue.code}>{issue.message}</li>)}</ul>
+  return <Notice id="export-preflight-error" tone="error" title="Export blocked">
+    <ul className="export-notice-list">{preflight.errors.map((issue) => <li key={issue.code}>{issue.message}</li>)}</ul>
     <p>Reduce the page dimensions before retrying.</p>
-  </div>;
+  </Notice>;
 }
 
 function nextFormatIndex(key: string, currentIndex: number): number {
@@ -179,10 +178,9 @@ function StreamingPngNotice({ delivery, canStreamLargePng, selectedFormat }: Rea
   if (selectedFormat !== 'png' || delivery !== 'streaming-png') return null;
   if (canStreamLargePng) return null;
   return (
-    <div className="export-notice export-error" role="alert">
-      <strong>Large single PNG unavailable in this browser</strong>
+    <Notice tone="error" title="Large single PNG unavailable in this browser">
       <p>Use Chrome or Edge with the File System Access API, or reduce the page size.</p>
-    </div>
+    </Notice>
   );
 }
 

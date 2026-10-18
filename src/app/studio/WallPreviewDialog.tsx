@@ -2,7 +2,9 @@ import { memo, type CSSProperties } from 'react';
 import type { PageSettings } from '../../domain/project';
 import type { ProjectMutationResult } from '../../domain/projectMutation';
 import type { WallSettings } from '../../domain/studio';
-import { StudioColor, StudioNumber, StudioSelect, StudioToggle } from './StudioFields';
+import { StudioColor, StudioNumber, StudioSelect } from './StudioFields';
+import { Switch } from '../components/UiControls';
+import { Notice } from '@/components/ui/notice';
 import { FeatureHelp } from '../components/FeatureHelp';
 import './studioComposition.css';
 
@@ -40,8 +42,8 @@ export const WallSettingsControls = memo(function WallSettingsControls({ wall, e
       <StudioNumber label="Mat width" value={wall.matWidthMm} max={50} epoch={epoch} onChange={(matWidthMm) => onChange({ ...wall, matWidthMm })} />
       <StudioColor label="Mat color" value={wall.matColor} onChange={(matColor) => onChange({ ...wall, matColor })} />
       <StudioColor label="Wall color" value={wall.wallColor} onChange={(wallColor) => onChange({ ...wall, wallColor })} />
-      <StudioToggle label="Cast frame shadow" checked={wall.shadow} onChange={(shadow) => onChange({ ...wall, shadow })} />
+      <Switch className="studio-wall-shadow" label="Cast frame shadow" labelPlacement="start" isChecked={wall.shadow} onCheckedChange={(shadow) => onChange({ ...wall, shadow })} />
     </div>
-    {error && <p role="alert" className="export-error">{error}</p>}
+    {error && <Notice tone="error">{error}</Notice>}
   </>;
 });

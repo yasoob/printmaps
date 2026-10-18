@@ -177,7 +177,9 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 .project-rename-dialog { z-index: 100; }
 .project-rename-dialog form { display: flex; flex-direction: column; min-height: 0; }
-.project-rename-body { gap: 0.375rem; padding-top: 0.25rem; }
+.project-rename-dialog form > .studio-dialog-body { padding: 0.25rem var(--studio-dialog-padding) var(--studio-dialog-padding); }
+.project-rename-dialog form > .studio-dialog-actions { padding: 0.75rem var(--studio-dialog-padding) var(--studio-dialog-padding); }
+.project-rename-body { gap: 0.375rem; }
 .project-rename-body label { color: var(--studio-text-secondary); font-size: var(--studio-font-label); }
 .project-rename-dialog .project-title-input {
   width: 100%;
@@ -967,43 +969,16 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .route-discard-backdrop { z-index: 120; background: var(--studio-scrim); backdrop-filter: none; }
 .route-discard-dialog { z-index: 121; }
 
-/* One editor dialog shell: muted perimeter, borderless header/body/footer, three widths. */
+/* Editor dialogs (StudioDialog) open without the zoom animation so focus and layout settle immediately. */
 :is(.export-dialog, .recovery-dialog, .project-replacement-dialog, .project-rename-dialog, .route-discard-dialog,
-  .map-data-import-dialog, .share-dialog, .template-project-dialog) {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  width: min(32rem, calc(100vw - 2rem - var(--studio-safe-left) - var(--studio-safe-right)));
-  max-width: none;
-  max-height: calc(100dvh - max(2rem, var(--studio-safe-top)) - max(2rem, var(--studio-safe-bottom)));
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  overflow-wrap: anywhere;
-  border: var(--studio-border-width) solid var(--studio-line-strong);
-  border-radius: var(--studio-radius-lg);
-  background: var(--studio-surface);
-  color: var(--studio-text);
-  animation: none;
-  transition: none;
-}
-:is(.project-rename-dialog, .route-discard-dialog) { width: min(24rem, calc(100vw - 2rem - var(--studio-safe-left) - var(--studio-safe-right))); }
-.template-project-dialog { width: min(48rem, calc(100vw - 2rem - var(--studio-safe-left) - var(--studio-safe-right))); }
-:is(.export-dialog, .recovery-dialog, .project-replacement-dialog, .project-rename-dialog, .route-discard-dialog,
-  .map-data-import-dialog, .share-dialog, .template-project-dialog) > .studio-dialog-header { flex-shrink: 0; padding: 1rem 1rem 0.75rem; }
-:is(.export-dialog, .recovery-dialog, .project-replacement-dialog, .project-rename-dialog, .route-discard-dialog,
-  .map-data-import-dialog, .share-dialog, .template-project-dialog) .studio-dialog-body { flex: 1 1 auto; }
-:is(.export-dialog, .recovery-dialog, .project-replacement-dialog, .project-rename-dialog, .route-discard-dialog,
-  .map-data-import-dialog, .share-dialog, .template-project-dialog) .studio-dialog-header .close-button { margin: -0.25rem -0.25rem 0 0; }
-:is(.export-dialog, .recovery-dialog, .project-replacement-dialog, .map-data-import-dialog, .share-dialog) .studio-dialog-button[data-dialog-variant="secondary"] {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  background: var(--studio-field);
-}
-:is(.export-dialog, .recovery-dialog, .project-replacement-dialog, .map-data-import-dialog, .share-dialog) .studio-dialog-button[data-dialog-variant="secondary"]:not(:disabled):hover { background: var(--studio-hover); }
-:is(.export-dialog, .project-replacement-dialog) .studio-dialog-section .studio-dialog-button[data-dialog-variant="secondary"] { background: var(--studio-surface); }
+  .map-data-import-dialog, .share-dialog, .template-project-dialog) { animation: none; transition: none; overflow-wrap: anywhere; }
 :is(.map-data-import-dialog, .share-dialog) .number-field small { flex-shrink: 0; }
+@media (max-width: 899px), (pointer: coarse) {
+  /* StudioDialogButton's primary also carries .primary-button, whose legacy height would otherwise win. */
+  .studio-dialog .studio-button.primary-button { min-height: var(--studio-touch-target); }
+  /* Same for the legacy .close-button size on the shared header close. */
+  .studio-dialog .studio-dialog-close.close-button { width: var(--studio-touch-target); height: var(--studio-touch-target); }
+}
 .poi-placement-content { @apply grid gap-1.5 py-1; }
 .poi-placement-content > p { @apply m-0 text-xs leading-relaxed; color: var(--studio-text-muted); }
 .map-authoring-panel > .tool-card-secondary-action {
@@ -1759,7 +1734,7 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
   backdrop-filter: none;
 }
 .map-data-import-dialog { z-index: 120; color: var(--studio-text-secondary); }
-.map-data-import-body { gap: 1rem; padding-top: 0.25rem; }
+.map-data-import-body { gap: 1rem; }
 .map-data-file-list {
   @apply m-0 grid gap-1 p-0;
   max-height: 9rem;
@@ -1791,8 +1766,6 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
 .map-data-style-group > .map-data-style-count { grid-column: 2; padding-top: 0.25rem; color: var(--studio-text-muted); font-size: var(--studio-font-label); }
 .map-data-style-group > :is(.property-row, .map-data-style-error) { grid-column: 1 / -1; }
 .map-data-style-error { color: var(--studio-danger); font-size: var(--studio-font-label); line-height: 1.4; }
-.map-data-import-actions { flex-wrap: wrap; }
-.map-data-import-actions > .map-data-choose-files { margin-right: auto; }
 .map-data-import-actions button,
 .map-data-import-dialog .close-button { min-height: 44px; }
 .map-data-import-dialog .close-button { min-width: 44px; }
@@ -1974,8 +1947,6 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
 }
 .recovery-dialog { z-index: 110; }
 .recovery-dialog .studio-dialog-body { gap: 0.5rem; }
-.recovery-dialog .studio-dialog-actions { flex-wrap: wrap; }
-.recovery-dialog .studio-dialog-actions > .recovery-dialog-secondary { margin-right: auto; }
 
 @media (max-width: 980px) {
   .studio-shell { grid-template-columns: 13rem minmax(360px, 1fr) var(--studio-right-panel-width); }

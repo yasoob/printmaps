@@ -1,8 +1,10 @@
-import { FileUp, X } from 'lucide-react';
+import { FileUp } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useId, useRef, type ReactNode } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { StudioDialogActions, StudioDialogBody, StudioDialogButton, StudioDialogHeader } from '@/components/ui/studio-dialog';
+import { ColorField } from '@/components/ui/color-field';
+import { Dialog } from '@/components/ui/dialog';
+import { Notice } from '@/components/ui/notice';
+import { StudioDialog, StudioDialogActions, StudioDialogBody, StudioDialogButton, StudioDialogHeader } from '@/components/ui/studio-dialog';
 import { PropertyRow } from './PropertyControls';
 import type { ContentLayer } from '../../domain/project';
 import {
@@ -59,9 +61,7 @@ function ImportNumberField({ label, name, value, validation, onChange }: {
 }
 
 function ImportColorField({ label, name, value, onChange }: { label: string; name: string; value: string; onChange: (value: string) => void }) {
-  return <PropertyRow label={label}>
-    <span className="color-field"><input aria-label={name} type="color" value={value} onChange={(event) => onChange(event.target.value)} /></span>
-  </PropertyRow>;
+  return <PropertyRow label={label}><ColorField label={name} value={value} onChange={onChange} /></PropertyRow>;
 }
 
 function StyleGroup({ legend, count, children }: { legend: string; count: string; children: ReactNode }) {
@@ -164,28 +164,20 @@ export function MapDataImportPortals({
       document.body,
     )}
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent
+      <StudioDialog
           className="map-data-import-dialog"
           overlayClassName="map-data-import-backdrop"
-          showCloseButton={false}
           initialFocus={cancelButtonRef}
           finalFocus={finalFocus}
-          aria-labelledby="map-data-import-title"
           tabIndex={-1}
         >
-          <StudioDialogHeader>
-            <div>
-              <h2 id="map-data-import-title">{copy.title}</h2>
-              <p>{copy.description}</p>
-            </div>
-            <button className="icon-button close-button" type="button" aria-label="Close map data import" onClick={onClose}><X size={16} /></button>
-          </StudioDialogHeader>
+          <StudioDialogHeader title={copy.title} description={copy.description} closeLabel="Close map data import" />
           <StudioDialogBody className="map-data-import-body" role="region" aria-label="Import review" tabIndex={0}>
             <ul className="map-data-file-list" aria-label="Selected map data files">
               {selectedNames.map((name, index) => <li key={`${index}-${name}`}>{name}</li>)}
             </ul>
             {isReading && <p role="status">Checking files…</p>}
-            {dialogError && <p className="export-error" role="alert">{dialogError}</p>}
+            {dialogError && <Notice tone="error">{dialogError}</Notice>}
             {replacementTarget && <ReplacementNote target={replacementTarget} />}
             {!replacementTarget && <BatchAppearanceControls appearance={batchAppearance} batch={batch} validation={batchAppearanceValidation} onChange={setBatchAppearance} />}
             {batch && (
@@ -196,12 +188,12 @@ export function MapDataImportPortals({
               </fieldset>
             )}
           </StudioDialogBody>
-          <StudioDialogActions className="map-data-import-actions">
-            <StudioDialogButton variant="secondary" className="map-data-choose-files" disabled={isReading} onClick={onChooseFiles}>{batch ? 'Replace files' : 'Choose replacement files'}</StudioDialogButton>
+          <StudioDialogActions className="map-data-import-actions"
+            start={<StudioDialogButton variant="secondary" disabled={isReading} onClick={onChooseFiles}>{batch ? 'Replace files' : 'Choose replacement files'}</StudioDialogButton>}>
             <StudioDialogButton ref={cancelButtonRef} onClick={onClose}>Cancel</StudioDialogButton>
             {batch && <StudioDialogButton variant="primary" disabled={!isBatchAppearanceValid} onClick={onCommit}>{commitLabel(copy.commitLabel, batch.files.length)}</StudioDialogButton>}
           </StudioDialogActions>
-      </DialogContent>
+      </StudioDialog>
     </Dialog>
   </>;
 }

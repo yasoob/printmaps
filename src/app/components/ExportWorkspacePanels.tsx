@@ -1,4 +1,5 @@
 import { ArrowLeft, Frame } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { memo, useCallback, useEffect, type CSSProperties, type RefObject } from 'react';
 import type { PreviewPngExporter } from '../../export/previewPng';
 import type { ReliefSettings, WallSettings } from '../../domain/studio';
@@ -57,9 +58,9 @@ export const ExportPreviewPane = memo(function ExportPreviewPane({ exporter, blo
         ? <img className="export-poster-image" src={previewUrl} alt="Preview of your poster" />
         : <p className="export-preview-message">{error || 'Preparing poster preview…'}</p>}
     </div>}
-    {canFrame && !framed && <button type="button" className="export-preview-wall" disabled={disabled} onClick={onPreviewWall}>
-      <Frame size={14} strokeWidth={1.8} aria-hidden="true" />Preview on wall
-    </button>}
+    {canFrame && !framed && <Button variant="secondary" size="sm" className="export-preview-wall" disabled={disabled} onClick={onPreviewWall}>
+      <Frame aria-hidden="true" strokeWidth={1.75} />Preview on wall
+    </Button>}
   </div>;
 });
 
@@ -75,9 +76,9 @@ export const WallSettingsPanel = memo(function WallSettingsPanel({ backRef, disa
   const onChange = useStableEvent((value: WallSettings) => feedback.report(setStudioSection('wall', value)));
   useEffect(() => { backRef.current?.focus(); }, [backRef]);
   return <>
-    <button ref={backRef} type="button" className="export-back-button" disabled={disabled} onClick={onBack}>
-      <ArrowLeft size={14} strokeWidth={1.8} aria-hidden="true" />Back to export
-    </button>
+    <Button ref={backRef} variant="ghost" size="sm" className="export-back-button" disabled={disabled} onClick={onBack}>
+      <ArrowLeft aria-hidden="true" strokeWidth={1.75} />Back to export
+    </Button>
     <WallSettingsControls wall={wall} epoch={epoch} error={feedback.error} onChange={onChange} />
   </>;
 });
