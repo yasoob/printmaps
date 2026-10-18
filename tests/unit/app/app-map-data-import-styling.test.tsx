@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../../../src/app/App';
+import { chooseOption, selectedValue } from '../select-support';
 
 vi.mock('../../../src/map/MapCanvas', async () => import('./MapCanvasMock'));
 
@@ -60,7 +61,7 @@ describe('reviewed map-data batch styling', () => {
     expect(screen.getByRole('heading', { name: 'Styled point' })).toBeVisible();
     expect(screen.getByLabelText('POI color')).toHaveValue('#445566');
     expect(screen.getByRole('spinbutton', { name: 'POI marker size' })).toHaveValue(22);
-    expect(screen.getByRole('combobox', { name: 'POI marker shape' })).toHaveValue('diamond');
+    expect(selectedValue(screen.getByRole('combobox', { name: 'POI marker shape' }))).toBe('diamond');
 
     await user.click(screen.getAllByRole('button', { name: 'Select Styled route' })[0]);
     expect(screen.getByLabelText('Route color')).toHaveValue('#112233');

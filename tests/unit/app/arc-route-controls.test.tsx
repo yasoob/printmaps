@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RouteLayerProperties } from '../../../src/app/components/RouteLayerProperties';
 import type { ContentLayer } from '../../../src/domain/project';
+import { chooseOption, selectedValue } from '../select-support';
 
 const arcRoute: ContentLayer = {
   id: 'arc',
@@ -44,7 +45,7 @@ it('exposes Arc coordinates, structure, and per-segment curvature controls', asy
   );
 
   await user.click(screen.getByRole('button', { name: /Advanced/ }));
-  await user.selectOptions(screen.getByRole('combobox', { name: 'Arc segment' }), '1');
+  await chooseOption(user, 'Arc segment', 'Segment 2');
   const amount = screen.getByRole('spinbutton', { name: 'Arc curvature amount' });
   expect(amount).toHaveValue(0.4);
   await user.clear(amount);

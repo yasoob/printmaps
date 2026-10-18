@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { expandToolSettings } from './authoring-panel-support';
 import { dismissReload, downloadDocument, holdNextRead, openConflict, reviewConflict, storedDraft } from './autosave-conflict-support';
+import { chooseOption, expectSelectValue } from './select-support';
 
 test('two real tabs preserve A5, download it without replacement, and keep selection and undo on cancellation', async ({ page }, testInfo) => {
   const { winner, saved } = await openConflict(page);
@@ -38,7 +39,7 @@ test('explicit destructive loading shows A3 without queued A5 writes and only fu
   await reviewConflict(page);
   await page.getByRole('button', { name: 'Discard this tab and load saved version' }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  await expect(page.getByRole('combobox', { name: 'Page preset' })).toHaveValue('A3');
+  await expectSelectValue(page, 'Page preset', 'A3');
   await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Redo', exact: true })).toBeDisabled();
   await expect(page.getByRole('status', { name: 'Autosave status' })).toHaveText('Autosave ready');
@@ -47,7 +48,7 @@ test('explicit destructive loading shows A3 without queued A5 writes and only fu
   expect(await storedDraft(winner)).toEqual(saved);
   expect(await page.evaluate(() => window.conflictInstrumentation.puts)).toBe(0);
   await page.screenshot({ path: testInfo.outputPath('ux-fix-028-loaded-winner.png'), animations: 'disabled' });
-  await page.getByRole('combobox', { name: 'Page preset' }).selectOption('A6');
+  await chooseOption(page, 'Page preset', 'A6');
   await expect(page.getByRole('status', { name: 'Autosave status' })).toHaveText('All changes saved locally');
   const next = await storedDraft(winner);
   expect(next.document.page.preset).toBe('A6');
@@ -58,7 +59,7 @@ test('explicit destructive loading shows A3 without queued A5 writes and only fu
   await page.reload();
   expect(prompts).toEqual([]);
   await page.getByRole('tab', { name: 'Layout' }).click();
-  await expect(page.getByRole('combobox', { name: 'Page preset' })).toHaveValue('A6');
+  await expectSelectValue(page, 'Page preset', 'A6');
 });
 
 test('failed backup preserves the losing tab, recovery choice and native unload protection', async ({ page }, testInfo) => {
@@ -80,7 +81,7 @@ test('failed backup preserves the losing tab, recovery choice and native unload 
   await expect(page.getByRole('status', { name: 'Conflict download status' })).toHaveCount(0);
   await page.screenshot({ path: testInfo.outputPath('ux-fix-028-backup-failure.png'), animations: 'disabled' });
   await page.getByRole('button', { name: 'Keep editing' }).click();
-  await expect(page.getByRole('combobox', { name: 'Page preset' })).toHaveValue('A5');
+  await expectSelectValue(page, 'Page preset', 'A5');
   await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeEnabled();
   await dismissReload(page);
   expect(await storedDraft(winner)).toEqual(saved);
@@ -97,13 +98,13 @@ test('canceling a pending real IndexedDB read preserves newer local work and doe
   await expect(page.getByRole('button', { name: 'Download this tab’s version' })).toBeDisabled();
   await page.screenshot({ path: testInfo.outputPath('ux-fix-028-pending-read-choice.png'), animations: 'disabled' });
   await page.getByRole('button', { name: 'Keep editing' }).click();
-  await page.getByRole('combobox', { name: 'Page preset' }).selectOption('A6');
+  await chooseOption(page, 'Page preset', 'A6');
   await reviewConflict(page);
   await expect(page.getByRole('button', { name: 'Discard this tab and load saved version' })).toBeDisabled();
   await page.evaluate(() => window.conflictInstrumentation.releaseRead!());
   await expect(page.getByRole('button', { name: 'Discard this tab and load saved version' })).toBeEnabled();
   await page.getByRole('button', { name: 'Keep editing' }).click();
-  await expect(page.getByRole('combobox', { name: 'Page preset' })).toHaveValue('A6');
+  await expectSelectValue(page, 'Page preset', 'A6');
   await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pagehide')));
   expect(await storedDraft(winner)).toEqual(saved);
   expect(await page.evaluate(() => window.conflictInstrumentation.puts)).toBe(0);
@@ -115,19 +116,19 @@ test('a newer winner during a delayed recovery read is never overwritten by the 
   await holdNextRead(page);
   await page.getByRole('button', { name: 'Discard this tab and load saved version' }).click();
   await expect.poll(() => page.evaluate(() => window.conflictInstrumentation.readHeld)).toBe(true);
-  await winner.getByRole('combobox', { name: 'Page preset' }).selectOption('A6');
+  await chooseOption(winner, 'Page preset', 'A6');
   await expect(winner.getByRole('status', { name: 'Autosave status' })).toHaveText('All changes saved locally');
   const newer = await storedDraft(winner);
   expect(newer.revision).toBe(saved.revision + 1);
   await page.evaluate(() => window.conflictInstrumentation.releaseRead!());
-  await expect(page.getByRole('combobox', { name: 'Page preset' })).toHaveValue('A3');
-  await page.getByRole('combobox', { name: 'Page preset' }).selectOption('A5');
+  await expectSelectValue(page, 'Page preset', 'A3');
+  await chooseOption(page, 'Page preset', 'A5');
   await expect(page.getByRole('status', { name: 'Autosave conflict notice' })).toBeVisible();
   expect(await storedDraft(winner)).toEqual(newer);
   expect(await page.evaluate(() => window.conflictInstrumentation.puts)).toBe(0);
   await reviewConflict(page);
   await page.getByRole('button', { name: 'Discard this tab and load saved version' }).click();
-  await expect(page.getByRole('combobox', { name: 'Page preset' })).toHaveValue('A6');
+  await expectSelectValue(page, 'Page preset', 'A6');
   expect(await storedDraft(winner)).toEqual(newer);
 });
 

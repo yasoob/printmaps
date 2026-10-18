@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
+import { chooseOption, expectSelectValue } from './select-support';
 
 test('Download project saves the current portable versioned JSON', async ({ context, page }, testInfo) => {
   const origin = new URL(String(testInfo.project.use.baseURL)).origin;
@@ -21,7 +22,7 @@ test('Download project saves the current portable versioned JSON', async ({ cont
   await page.getByRole('radio', { name: 'Portrait' }).click();
   await page.getByRole('tab', { name: 'Map', exact: true }).click();
   await page.getByRole('radio', { name: /^Night Ink:/ }).click();
-  await page.getByRole('combobox', { name: 'Map language' }).selectOption('de');
+  await chooseOption(page, 'Map language', 'German');
 
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Project', exact: true }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
@@ -119,7 +120,7 @@ test('opens a validated portable project as a focused fresh history root', async
   await expect(page.getByRole('spinbutton', { name: 'Pitch' })).toHaveValue('35');
   await expect(page.getByRole('switch', { name: 'Lock map area' })).toBeChecked();
   await expect(page.getByRole('radio', { name: /^Night Ink:/ })).toHaveAttribute('aria-checked', 'true');
-  await expect(page.getByRole('combobox', { name: 'Map language' })).toHaveValue('de');
+  await expectSelectValue(page, 'Map language', 'de');
   await expect(page.getByRole('spinbutton', { name: 'Text scale' })).toHaveValue('150');
   await expect(page.getByRole('checkbox', { name: 'Show roads' })).not.toBeChecked();
   await expect(page.getByRole('checkbox', { name: 'Show buildings' })).toBeChecked();

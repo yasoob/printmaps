@@ -8,6 +8,7 @@ import { createProjectStore } from '../../src/app/store';
 import { ProjectStoreContext } from '../../src/app/projectStoreContext';
 import { ElevationProfileProvider } from '../../src/app/elevation/ElevationProfileProvider';
 import { PROVIDER_RESPONSE_USE_REQUIRES_TERMS_REVIEW, type MapMatchingProvider } from '../../src/services/mapbox';
+import { chooseOption, selectedValue } from './select-support';
 
 const route: ContentLayer = {
   id: 'route-01', name: 'Imported walk', type: 'route', visible: true, locked: false, opacity: 100,
@@ -54,7 +55,7 @@ describe('selected route map matching', () => {
     />);
 
     await user.click(screen.getByRole('button', { name: /Advanced/ }));
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Road matching travel mode' }), 'walk');
+    await chooseOption(user, 'Road matching travel mode', 'Walking');
     await user.click(screen.getByRole('button', { name: 'Snap route to roads' }));
 
     expect(match).toHaveBeenCalledWith({

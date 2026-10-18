@@ -5,6 +5,7 @@ import { PAGE_PRESET_DEFINITIONS } from '../../domain/pagePresets';
 import { useProject, useProjectActions, useProjectStoreApi } from '../projectStoreContext';
 import { InspectorAccordion, PropertyRow, PropertySubheading } from '../components/PropertyControls';
 import { SegmentedControl } from '../../components/ui/segmented-control';
+import { SimpleSelect } from '../../components/ui/select';
 import { ValidatedNumberField } from '../components/ValidatedNumberField';
 import { useMutationFeedback } from '../hooks/useMutationFeedback';
 import { useSettingActions } from '../hooks/useSettingActions';
@@ -16,6 +17,9 @@ import { useStableEvent } from '../hooks/useStableEvent';
 const SIDES = ['top', 'right', 'bottom', 'left'] as const;
 const PAGE_KEYS = ['backgroundColor', ...SIDES] as const;
 const MARGIN_ORDER = ['top', 'bottom', 'left', 'right'] as const;
+const PAGE_PRESET_OPTIONS: readonly { value: PagePreset; label: string }[] = [
+  ...PAGE_PRESET_DEFINITIONS.map(({ id, label }) => ({ value: id, label })), { value: 'Custom', label: 'Custom' },
+];
 const ORIENTATIONS = [{ value: 'landscape', label: 'Landscape' }, { value: 'portrait', label: 'Portrait' }] as const;
 const SIDE_LABELS = { top: 'Top', right: 'Right', bottom: 'Bottom', left: 'Left' } as const;
 const SIDE_PREFIXES = { top: 'T', right: 'R', bottom: 'B', left: 'L' } as const;
@@ -30,11 +34,10 @@ const MarginField = memo(function MarginField({ label, prefix, value, epoch, onC
 const PageDimensions = memo(function PageDimensions({ page, epoch }: { page: PageSettings; epoch: number }) {
   const actions = useProjectActions();
   const feedback = useMutationFeedback(page);
+  const changePreset = useStableEvent((preset: PagePreset) => feedback.report(actions.setPagePreset(preset)));
   const changeOrientation = useStableEvent((orientation: PageSettings['orientation']) => feedback.report(actions.setPageOrientation(orientation)));
   return <>
-    <PropertyRow label="Size"><select aria-label="Page preset" value={page.preset} onChange={(event) => feedback.report(actions.setPagePreset(event.target.value as PagePreset))}>
-      {PAGE_PRESET_DEFINITIONS.map(({ id, label }) => <option key={id} value={id}>{label}</option>)}<option value="Custom">Custom</option>
-    </select></PropertyRow>
+    <PropertyRow label="Size"><SimpleSelect label="Page preset" value={page.preset} options={PAGE_PRESET_OPTIONS} onValueChange={changePreset} /></PropertyRow>
     <div className="inspector-field-grid" role="group" aria-label="Page dimensions">
       <ValidatedNumberField label="Page width" prefix="W" value={page.widthMm} minimum={0.1} step={0.1} unit="mm" resetKey={`${epoch}:${page.preset}`} onCommit={(value) => actions.setPageDimension('widthMm', value)} />
       <ValidatedNumberField label="Page height" prefix="H" value={page.heightMm} minimum={0.1} step={0.1} unit="mm" resetKey={`${epoch}:${page.preset}`} onCommit={(value) => actions.setPageDimension('heightMm', value)} />

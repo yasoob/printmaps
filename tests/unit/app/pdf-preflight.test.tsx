@@ -9,6 +9,7 @@ import type { PreviewPngExporter } from '../../../src/export/previewPng';
 import { planPdfExport, runPdfExport } from '../../../src/app/components/exportDialogPdf';
 import { NATIVE_SYMBOL_BUFFER_PX } from '../../../src/app/components/exportDialogRaster';
 import { exportMocks } from './exportMocks';
+import { chooseOption, selectedValue } from '../select-support';
 
 vi.mock('../../../src/map/MapCanvas', async () => import('./MapCanvasMock'));
 
@@ -62,7 +63,7 @@ it('allows PDF again after a real page-size correction without retaining the obs
   expect(screen.getByRole('button', { name: 'Download PDF' })).toBeDisabled();
   await user.click(screen.getByRole('button', { name: 'Close export' }));
   await user.click(screen.getByRole('tab', { name: 'Layout' }));
-  await user.selectOptions(screen.getByRole('combobox', { name: 'Page preset' }), 'A4');
+  await chooseOption(user, 'Page preset', 'A4');
   await user.click(screen.getByRole('button', { name: 'Export' }));
   await user.click(screen.getByRole('radio', { name: /PDF/ }));
   expect(screen.getByRole('button', { name: 'Download PDF' })).toBeEnabled();

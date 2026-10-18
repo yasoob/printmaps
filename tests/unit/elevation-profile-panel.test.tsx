@@ -6,6 +6,7 @@ import { ElevationProfileSession } from '../../src/app/elevation/ElevationProfil
 import type { ProfileLoader, ProfilePosition } from '../../src/app/elevation/profileSessionTypes';
 import type { ElevationProfile } from '../../src/elevation/profile';
 import { serializeElevationProfileSvg } from '../../src/export/elevationProfile';
+import { chooseOption, selectedValue } from './select-support';
 
 const profile: ElevationProfile = {
   samples: [
@@ -124,7 +125,7 @@ describe('ElevationProfilePanel print-safe fonts', () => {
     const user = userEvent.setup();
     const { container } = render(<ElevationProfilePanel coordinates={[[16, 48], [16.1, 48.1]]} routeName="Alpine <Route>" loadProfile={vi.fn(async () => profile)} />);
     await user.click(screen.getByRole('button', { name: 'Generate elevation profile' }));
-    await user.selectOptions(screen.getByLabelText('Profile font', { exact: true }), 'serif');
+    await chooseOption(user, 'Profile font', 'Serif');
     await user.click(screen.getByRole('radio', { name: 'Imperial' }));
     fireEvent.change(screen.getByLabelText('Profile font size', { exact: true }), { target: { value: '60' } });
     fireEvent.change(screen.getByLabelText('Profile print width', { exact: true }), { target: { value: '220' } });
@@ -150,12 +151,12 @@ describe('ElevationProfilePanel print-safe fonts', () => {
     await user.click(screen.getByRole('button', { name: 'Generate elevation profile' }));
 
     const font = screen.getByRole('combobox', { name: 'Profile font' });
-    await user.selectOptions(font, 'serif');
+    await chooseOption(user, 'Profile font', 'Serif');
 
     expect(container.querySelector('.elevation-chart')).toHaveAttribute('font-family', 'Georgia,Times New Roman,serif');
     const markerLabel = container.querySelector('.elevation-marker-label');
     expect(markerLabel).toHaveAttribute('font-family', 'Georgia,Times New Roman,serif');
-    expect(font).toHaveValue('serif');
+    expect(selectedValue(font)).toBe('serif');
   });
 });
 

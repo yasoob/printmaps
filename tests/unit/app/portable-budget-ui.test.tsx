@@ -5,6 +5,7 @@ import { byteBudgetProject } from '../../fixtures/portableBudget';
 import type { ProjectDocument } from '../../../src/domain/project';
 import { stubMobileViewport } from './mobileViewport';
 import { MapStyleCustomizer } from '../../../src/app/components/MapStyleCustomizer';
+import { chooseOption, selectedValue } from '../select-support';
 
 const { download } = vi.hoisted(() => ({ download: vi.fn() }));
 vi.mock('../../../src/map/MapCanvas', () => ({ MapCanvas: () => null }));
@@ -33,12 +34,12 @@ it('retains valid-but-over-budget numeric drafts and project title choices witho
   expect(width).toHaveValue(298.125);
   expect(width).toHaveAttribute('aria-invalid', 'true');
   expect(screen.getByRole('alert')).toHaveTextContent('10 MB portable limit');
-  expect(screen.getByRole('combobox', { name: 'Page preset' })).toHaveValue('A4');
+  expect(selectedValue(screen.getByRole('combobox', { name: 'Page preset' }))).toBe('A4');
   expect(await downloaded(user)).toEqual(initial);
   fireEvent.change(width, { target: { value: '297' } });
   fireEvent.blur(width);
   expect(width).toHaveAttribute('aria-invalid', 'false');
-  expect(screen.getByRole('combobox', { name: 'Page preset' })).toHaveValue('A4');
+  expect(selectedValue(screen.getByRole('combobox', { name: 'Page preset' }))).toBe('A4');
   await user.click(screen.getByRole('button', { name: initial.title }));
   const title = screen.getByRole('textbox', { name: 'Project title' });
   fireEvent.change(title, { target: { value: initial.title + ' bigger' } });
@@ -75,8 +76,8 @@ it('retains layer name, opacity and POI label drafts and reports their rejected 
 it('rolls back controlled preset, visibility and palette choices with actionable operation feedback', async () => {
   const { user, repository } = setup();
   await user.click(screen.getByRole('tab', { name: 'Layout' }));
-  await user.selectOptions(screen.getByRole('combobox', { name: 'Page preset' }), 'Custom');
-  expect(screen.getByRole('combobox', { name: 'Page preset' })).toHaveValue('A4');
+  await chooseOption(user, 'Page preset', 'Custom');
+  expect(selectedValue(screen.getByRole('combobox', { name: 'Page preset' }))).toBe('A4');
   expect(screen.getAllByRole('alert').some((element) => element.textContent?.includes('portable limit'))).toBe(true);
   await user.click(screen.getByRole('tab', { name: 'Map' }));
   const details = screen.getByRole('button', { name: 'Labels & details' });

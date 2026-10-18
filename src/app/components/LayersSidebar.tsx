@@ -9,6 +9,7 @@ import type { MobilePanel } from '../hooks/useMobilePanels';
 import { layerReorderSensors } from '../hooks/useLayerReordering';
 import { LayerNavigation } from './LayerNavigation';
 import { hasSameLayerRowView } from './layerNavigationModel';
+import { HintTooltip } from './HintTooltip';
 
 type LayersSidebarProps = {
   layers: ContentLayer[];
@@ -75,17 +76,18 @@ export const LayersSidebar = memo(function LayersSidebar(props: LayersSidebarPro
         <LayerNavigation layers={layers} activePanel={activePanel} desktopCollapsed={desktopCollapsed}
           openPanel={props.openPanel} setPreviewedLayerId={props.setPreviewedLayerId}
           collapseButton={
+            <HintTooltip label={toggleLabel}>
             <button
               className={`icon-button${activePanel === 'layers' ? ' close-button' : ''}`}
               type="button"
               aria-label={toggleLabel}
               aria-controls={isMobileOpen ? undefined : 'layers-list'}
               aria-expanded={isMobileOpen ? undefined : !desktopCollapsed}
-              title={toggleLabel}
               onClick={() => isMobileOpen ? closePanel('layers') : onToggleCollapsed()}
             >
               <ToggleIcon size={16} strokeWidth={1.75} />
             </button>
+            </HintTooltip>
           } />
       </DragDropProvider>
       <div className="sidebar-footer"><SidebarAutosaveStatus autosave={autosave} /></div>

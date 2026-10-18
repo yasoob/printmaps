@@ -1,6 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { profilePngChunks, profilePngCrc } from '../fixtures/profilePng';
+import { chooseOption } from './select-support';
 
 async function inspectSvg(page: Page, svg: string) {
   return page.evaluate(async (source) => {
@@ -121,7 +122,7 @@ test('UX042 original Serif 60 output is collision-free and the preview is the co
   await page.getByRole('button', { name: 'Advanced', exact: true }).click();
   await page.getByRole('button', { name: 'Generate elevation profile', exact: true }).click();
   await page.getByRole('radio', { name: 'Imperial' }).check();
-  await page.getByLabel('Profile font', { exact: true }).selectOption('serif');
+  await chooseOption(page, 'Profile font', 'Serif');
   await page.getByLabel('Profile font size', { exact: true }).fill('60');
   await page.getByLabel('Profile print width', { exact: true }).fill('220');
   const chart = page.getByRole('img', { name: 'Route 01 elevation profile', exact: true });

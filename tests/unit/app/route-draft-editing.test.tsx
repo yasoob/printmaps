@@ -2,6 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { App } from "../../../src/app/App";
 import type { DirectionsProvider } from "../../../src/services/mapbox/contracts";
+import { chooseOption, selectedValue } from '../select-support';
 
 vi.mock("../../../src/map/MapCanvas", async () => import("./MapCanvasMock"));
 
@@ -176,10 +177,7 @@ describe("Road draft previews", () => {
     render(<App autosaveRepository={null} directionsProvider={{ directions }} />);
     await user.click(screen.getByRole("button", { name: "Select Route 01" }));
     await openAdvanced(user);
-    await user.selectOptions(
-      screen.getByRole("combobox", { name: "Convert route to" }),
-      "road",
-    );
+    await chooseOption(user, 'Convert route to', 'Road');
     await user.click(screen.getByRole("button", { name: "Convert" }));
     await user.click(screen.getByRole("button", { name: "Route and apply" }));
     await screen.findByText("Mapbox Directions");

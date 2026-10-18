@@ -2,6 +2,7 @@ import { memo, useId, useState } from "react";
 import { PropertyRow } from "./PropertyControls";
 import { isCoordinateInputInvalid } from "./coordinateInput";
 import type { GeometryEditResult } from "../../domain/projectMutation";
+import { InputGroup, InputGroupAddon, InputGroupInput } from '../../components/ui/input-group';
 
 type CoordinateFieldProps = {
   ariaLabel: string;
@@ -80,8 +81,8 @@ export const CoordinateField = memo(function CoordinateField({
   return (
     <PropertyRow label={label}>
       <div className="coordinate-field">
-        <label className="number-field">
-          <input
+        <InputGroup>
+          <InputGroupInput
             aria-label={ariaLabel}
             aria-describedby={
               isInvalid || commitError ? validationId : undefined
@@ -103,8 +104,8 @@ export const CoordinateField = memo(function CoordinateField({
               commit();
             }}
           />
-          <small>°</small>
-        </label>
+          <InputGroupAddon align="inline-end">°</InputGroupAddon>
+        </InputGroup>
         {isInvalid && validationMessage && (
           <small id={validationId} className="coordinate-validation">
             {validationMessage}

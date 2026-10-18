@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
+import { expectSelectValue } from './select-support';
 
 test('reviewed map-data batches apply validated styling before one-step import', async ({ page }, testInfo) => {
   const consoleProblems: string[] = [];
@@ -50,7 +51,7 @@ test('reviewed map-data batches apply validated styling before one-step import',
     .toHaveText('Imported 2 files as 6 layers. Undo removes the whole import.');
   await expect(page.getByLabel('POI color')).toHaveValue('#445566');
   await expect(page.getByRole('spinbutton', { name: 'POI marker size' })).toHaveValue('22');
-  await expect(page.getByRole('combobox', { name: 'POI marker shape' })).toHaveValue('diamond');
+  await expectSelectValue(page, 'POI marker shape', 'diamond');
   await page.getByRole('button', { name: 'Select Río line' }).click();
   await expect(page.getByLabel('Route color')).toHaveValue('#112233');
   await expect(page.getByRole('spinbutton', { name: 'Route width' })).toHaveValue('17');

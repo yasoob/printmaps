@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { expectSelectValue } from './select-support';
 
 for (const field of [
   { name: 'Page width', invalid: '0', valid: '240', explanation: 'at least 0.1 mm' },
@@ -29,7 +30,7 @@ for (const field of [
     await expect(error).toHaveCount(0);
     if (field.name === 'Page width') {
       await expect(page.locator('.print-frame')).toHaveCSS('aspect-ratio', '240 / 210');
-      await expect(page.getByRole('combobox', { name: 'Page preset' })).toHaveValue('Custom');
+      await expectSelectValue(page, 'Page preset', 'Custom');
     }
     await input.press('Tab');
     await page.getByRole('button', { name: 'Undo', exact: true }).click();

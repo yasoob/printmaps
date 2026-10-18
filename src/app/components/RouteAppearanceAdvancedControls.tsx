@@ -1,12 +1,10 @@
-import { memo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import type {
   RouteAppearance,
   RouteMarkerAppearance,
   RouteSegmentStyleOverride,
 } from '../../domain/project';
 import {
-  ROUTE_TRAVEL_MARKERS,
-  ROUTE_TRAVEL_MARKER_LABELS,
   markerAppearanceFor,
   type RouteTravelMarker,
 } from '../../domain/routeProfiles';
@@ -17,6 +15,8 @@ import { mutationRejected, type ProjectMutationResult } from '../../domain/proje
 import { useMutationFeedback } from '../hooks/useMutationFeedback';
 import { Button } from '../../components/ui/button';
 import { ColorField } from '../../components/ui/color-field';
+import { SimpleSelect } from '../../components/ui/select';
+import { LINE_STYLE_OPTIONS, TRAVEL_MARKER_OPTIONS } from './routeSelectOptions';
 
 function percent(value: number) {
   return Number((value * 100).toFixed(4));
@@ -32,6 +32,12 @@ function markerForPictogram(
   }
   return markerAppearanceFor(pictogram as RouteTravelMarker);
 }
+
+const PLACEMENT_OPTIONS = [
+  { value: 'center', label: 'Segment center' },
+  { value: 'fraction', label: 'Same position per segment' },
+  { value: 'repeat', label: 'Repeat per segment' },
+] as const;
 
 function markerPlacement(type: string): RouteMarkerAppearance['placement'] {
   if (type === 'center') return { type: 'center' };
@@ -51,18 +57,13 @@ function RouteMarkerSettings({
   return (
     <>
       <PropertyRow label="Placement per segment">
-        <select
-          aria-label="Route marker placement"
+        <SimpleSelect
+          label="Route marker placement"
           disabled={disabled}
           value={marker.placement.type}
-          onChange={(event) => updateMarker({
-            placement: markerPlacement(event.currentTarget.value),
-          })}
-        >
-          <option value="center">Segment center</option>
-          <option value="fraction">Same position per segment</option>
-          <option value="repeat">Repeat per segment</option>
-        </select>
+          options={PLACEMENT_OPTIONS}
+          onValueChange={(type) => updateMarker({ placement: markerPlacement(type) })}
+        />
       </PropertyRow>
       {marker.placement.type === 'fraction' ? (
         <PropertyRow label="Position">
@@ -149,20 +150,13 @@ export const RouteMarkerControls = memo(function RouteMarkerControls({
   return (
     <>
       <PropertyRow label="Pictogram">
-        <select
-          aria-label="Route marker pictogram"
+        <SimpleSelect
+          label="Route marker pictogram"
           disabled={disabled}
           value={marker?.pictogram ?? 'none'}
-          onChange={(event) => {
-            const pictogram = event.currentTarget.value;
-            update(markerForPictogram(marker, pictogram));
-          }}
-        >
-          <option value="none">None</option>
-          {ROUTE_TRAVEL_MARKERS.map((pictogram) => (
-            <option key={pictogram} value={pictogram}>{ROUTE_TRAVEL_MARKER_LABELS[pictogram]}</option>
-          ))}
-        </select>
+          options={TRAVEL_MARKER_OPTIONS}
+          onValueChange={(pictogram) => update(markerForPictogram(marker, pictogram))}
+        />
       </PropertyRow>
       {marker
         ? <RouteMarkerSettings disabled={disabled} marker={marker} updateMarker={updateMarker} />
@@ -187,6 +181,8 @@ export const RouteSegmentControls = memo(function RouteSegmentControls({
 }) {
   const feedback = useMutationFeedback(appearance);
   const [selectedLeg, setSelectedLeg] = useState(0);
+  const legCount = appearance.segmentStyles.length;
+  const legOptions = useMemo(() => Array.from({ length: legCount }, (_style, index) => ({ value: String(index), label: `Leg ${index + 1}` })), [legCount]);
   if (appearance.segmentStyles.length === 0) return <p className="property-note">This route has no semantic legs.</p>;
   const legIndex = Math.min(selectedLeg, Math.max(0, appearance.segmentStyles.length - 1));
   const override = appearance.segmentStyles[legIndex] ?? {};
@@ -208,16 +204,13 @@ export const RouteSegmentControls = memo(function RouteSegmentControls({
   return (
     <>
       <PropertyRow label="Leg">
-        <select
-          aria-label="Route semantic leg"
+        <SimpleSelect
+          label="Route semantic leg"
           disabled={disabled}
-          value={legIndex}
-          onChange={(event) => setSelectedLeg(Number(event.currentTarget.value))}
-        >
-          {appearance.segmentStyles.map((_style, index) => (
-            <option key={index} value={index}>Leg {index + 1}</option>
-          ))}
-        </select>
+          value={String(legIndex)}
+          options={legOptions}
+          onValueChange={(index) => setSelectedLeg(Number(index))}
+        />
       </PropertyRow>
       <Checkbox
         aria-label="Inherit route segment color"
@@ -275,15 +268,13 @@ export const RouteSegmentControls = memo(function RouteSegmentControls({
       />
       {override.strokeStyle === undefined ? null : (
         <PropertyRow label="Line">
-          <select
-            aria-label="Route segment line style"
+          <SimpleSelect
+            label="Route segment line style"
             disabled={disabled}
             value={override.strokeStyle}
-            onChange={(event) => updateField('strokeStyle', event.currentTarget.value as 'solid' | 'dashed')}
-          >
-            <option value="solid">Solid</option>
-            <option value="dashed">Dashed</option>
-          </select>
+            options={LINE_STYLE_OPTIONS}
+            onValueChange={(strokeStyle) => updateField('strokeStyle', strokeStyle)}
+          />
         </PropertyRow>
       )}
       <Button variant="link" size="sm" className="route-segment-clear" disabled={disabled || appearance.segmentStyles[legIndex] === null} onClick={() => updateOverride(null)}>

@@ -16,8 +16,11 @@ import type {
 } from "../../services/mapbox/contracts";
 import { createMapboxMapMatchingProvider } from "../../services/mapbox/mapMatching";
 import { PropertyRow } from "./PropertyControls";
+import { SimpleSelect } from "@/components/ui/select";
 import type { ProjectMutationResult } from "../../domain/projectMutation";
 import { trackEditorAction } from "../../analytics/editorAnalytics";
+
+const MATCHING_MODE_OPTIONS = ROAD_TRAVEL_MODES.map((mode) => ({ value: mode, label: ROAD_TRAVEL_MODE_LABELS[mode] }));
 
 const defaultProvider = createMapboxMapMatchingProvider({
   token: import.meta.env.VITE_MAPBOX_PUBLIC_ACCESS,
@@ -187,21 +190,16 @@ export function RouteMapMatchingControl({
   return (
     <div className="route-map-matching">
       <PropertyRow label="Travel mode">
-        <select
-          aria-label="Road matching travel mode"
+        <SimpleSelect
+          label="Road matching travel mode"
           disabled={disabled || isMatching}
           value={mode}
-          onChange={(event) => {
+          options={MATCHING_MODE_OPTIONS}
+          onValueChange={(next) => {
             trackEditorAction('mapMatchingModeSelected');
-            setMode(event.target.value as RoadTravelMode);
+            setMode(next);
           }}
-        >
-          {ROAD_TRAVEL_MODES.map((candidate) => (
-            <option key={candidate} value={candidate}>
-              {ROAD_TRAVEL_MODE_LABELS[candidate]}
-            </option>
-          ))}
-        </select>
+        />
       </PropertyRow>
       <Button
         className="secondary-action"

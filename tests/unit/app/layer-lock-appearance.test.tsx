@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { App } from '../../../src/app/App';
 import { createInitialProjectDocument } from '../../../src/domain/project';
 import { createArcGeometry } from '../../../src/domain/routeArcGeometry';
+import { chooseOption, selectedValue } from '../select-support';
 
 vi.mock('../../../src/map/MapCanvas', async () => import('./MapCanvasMock'));
 
@@ -27,6 +28,6 @@ it.each(['straight', 'arc'] as const)('keeps %s route styling editable while its
   expect(screen.getByRole('combobox', { name: 'Route semantic leg' })).toBeEnabled();
   expect(screen.getByRole('textbox', { name: 'Route anchor longitude' })).toBeDisabled();
   expect(screen.getByRole('button', { name: 'Extend end' })).toBeDisabled();
-  await user.selectOptions(marker, 'air');
-  expect(marker).toHaveValue('air');
+  await chooseOption(user, 'Route marker pictogram', 'Air');
+  expect(selectedValue(marker)).toBe('air');
 });

@@ -12,6 +12,8 @@ import { useMutationFeedback } from '../hooks/useMutationFeedback';
 import { Button } from '../../components/ui/button';
 import { ColorField } from '../../components/ui/color-field';
 import { SegmentedControl } from '../../components/ui/segmented-control';
+import { Slider } from '../../components/ui/slider';
+import { HintTooltip } from './HintTooltip';
 
 type EditMode = 'history' | 'amend';
 
@@ -66,25 +68,24 @@ function AdjustmentRange({
   const feedback = useMutationFeedback(customization);
   const finish = () => { isEditing.current = false; };
   return (
-    <label className="map-style-adjustment">
-      <span><strong>{label}</strong><output>{value}%</output></span>
-      <input
-        aria-label={label}
-        max="100"
-        min="0"
-        step="1"
-        type="range"
+    <div className="map-style-adjustment" onBlur={finish} onPointerUp={finish}>
+      <span aria-hidden="true"><strong>{label}</strong><output>{value}%</output></span>
+      <Slider
+        className="-mx-2"
+        thumbLabels={label}
+        min={0}
+        max={100}
+        step={1}
         value={value}
-        onBlur={finish}
-        onChange={(event) => {
-          const result = feedback.report(onChange(event.currentTarget.valueAsNumber, isEditing.current ? 'amend' : 'history'));
+        onValueChange={(next) => {
+          const nextValue = Array.isArray(next) ? next[0]! : next;
+          const result = feedback.report(onChange(nextValue, isEditing.current ? 'amend' : 'history'));
           if (result.ok && result.changed !== false) isEditing.current = true;
         }}
-        onPointerUp={finish}
       />
-      <small><span>{low}</span><span>{high}</span></small>
+      <small aria-hidden="true"><span>{low}</span><span>{high}</span></small>
       {feedback.error && <small className="coordinate-validation" role="alert">{feedback.error}</small>}
-    </label>
+    </div>
   );
 }
 
@@ -125,16 +126,17 @@ function SemanticColorRow({
           if (result.ok && result.changed !== false) isEditing.current = true;
         }}
       />
+      <HintTooltip label={`Reset ${label} to Quick Tune`}>
       <Button
         variant="ghost"
         size="icon-sm"
         aria-label={`Reset ${label} color`}
         disabled={!customColor}
-        title={customColor ? `Reset ${label} to Quick Tune` : `${label} follows Quick Tune`}
         onClick={() => feedback.report(onChange(role, null))}
       >
         <RotateCcw aria-hidden="true" />
       </Button>
+      </HintTooltip>
       {feedback.error && <small className="coordinate-validation" role="alert">{feedback.error}</small>}
     </div>
   );

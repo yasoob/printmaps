@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../../../src/app/App';
 import { exportMocks } from './exportMocks';
+import { chooseOption, selectedValue } from '../select-support';
 
 vi.mock('../../../src/map/MapCanvas', async () => import('./MapCanvasMock'));
 
@@ -134,7 +135,7 @@ describe('editor content appearance and POI geometry fields', () => {
 
     await user.click(screen.getByRole('button', { name: 'Select Route 01' }));
     await user.click(screen.getByRole('button', { name: /Advanced/ }));
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Route anchor' }), '1');
+    await chooseOption(user, 'Route anchor', /^Anchor 2:/);
     const longitude = screen.getByRole('textbox', { name: 'Route anchor longitude' });
     const latitude = screen.getByRole('textbox', { name: 'Route anchor latitude' });
     const map = screen.getByTestId('map-canvas');
@@ -159,7 +160,7 @@ describe('editor content appearance and POI geometry fields', () => {
 
     await user.click(screen.getByRole('button', { name: 'Select Route 01' }));
     await user.click(screen.getByRole('button', { name: /Advanced/ }));
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Route anchor' }), '1');
+    await chooseOption(user, 'Route anchor', /^Anchor 2:/);
     const longitude = screen.getByRole('textbox', { name: 'Route anchor longitude' });
     const map = screen.getByTestId('map-canvas');
     await user.clear(longitude);
@@ -179,10 +180,10 @@ describe('editor content appearance and POI geometry fields', () => {
     await user.click(screen.getByRole('button', { name: 'Select Route 01' }));
     await user.click(screen.getByRole('button', { name: /Advanced/ }));
     const vertex = screen.getByRole('combobox', { name: 'Route anchor' });
-    await user.selectOptions(vertex, '1');
+    await chooseOption(user, 'Route anchor', /^Anchor 2:/);
     await user.click(screen.getByRole('button', { name: 'Insert route anchor after selected' }));
 
-    expect(vertex).toHaveValue('2');
+    expect(selectedValue(vertex)).toBe('2');
     expect(vertex).toHaveAccessibleName('Route anchor');
     expect(screen.getByRole('textbox', { name: 'Route anchor longitude' })).toHaveValue('16.372');
     expect(screen.getByTestId('map-canvas')).toHaveAttribute(
@@ -191,7 +192,7 @@ describe('editor content appearance and POI geometry fields', () => {
     );
 
     await user.click(screen.getByRole('button', { name: 'Remove selected route anchor' }));
-    expect(vertex).toHaveValue('2');
+    expect(selectedValue(vertex)).toBe('2');
     expect(screen.getByRole('textbox', { name: 'Route anchor longitude' })).toHaveValue('16.391');
     expect(screen.getByTestId('map-canvas')).toHaveAttribute(
       'data-layer-geometry',
@@ -215,8 +216,8 @@ describe('editor content appearance and POI geometry fields', () => {
     const vertex = screen.getByRole('combobox', { name: 'Shape vertex' });
     const longitude = screen.getByRole('textbox', { name: 'Shape vertex longitude' });
     const map = screen.getByTestId('map-canvas');
-    expect(ring).toHaveValue('0');
-    expect(vertex).toHaveValue('0');
+    expect(selectedValue(ring)).toBe('0');
+    expect(selectedValue(vertex)).toBe('0');
     expect(longitude).toHaveValue('16.354');
 
     await user.clear(longitude);
@@ -238,13 +239,13 @@ describe('editor content appearance and POI geometry fields', () => {
     await user.click(screen.getByRole('button', { name: 'Select City center' }));
     await openVertices(user);
     const vertex = screen.getByRole('combobox', { name: 'Shape vertex' });
-    await user.selectOptions(vertex, '1');
+    await chooseOption(user, 'Shape vertex', 'Vertex 2');
     const secondLongitude = screen.getByRole('textbox', { name: 'Shape vertex longitude' });
     await user.clear(secondLongitude);
     await user.type(secondLongitude, '16.354');
     await user.tab();
 
-    await user.selectOptions(vertex, '2');
+    await chooseOption(user, 'Shape vertex', 'Vertex 3');
     const thirdLongitude = screen.getByRole('textbox', { name: 'Shape vertex longitude' });
     await user.clear(thirdLongitude);
     await user.type(thirdLongitude, '16.354');
@@ -290,12 +291,12 @@ describe('editor POI appearance and geometry fields', () => {
     await user.click(screen.getByRole('button', { name: 'Select Coffee stop' }));
     const shape = screen.getByRole('combobox', { name: 'POI marker shape' });
 
-    await user.selectOptions(shape, 'diamond');
+    await chooseOption(user, 'POI marker shape', 'Diamond');
     expect(screen.getByRole('combobox', { name: 'POI marker shape' })).toHaveFocus();
     await user.tab();
     const symbol = screen.getByRole('combobox', { name: 'POI marker symbol' });
     expect(symbol).toHaveFocus();
-    await user.selectOptions(symbol, 'coffee');
+    await chooseOption(user, 'POI marker symbol', 'Coffee');
     expect(screen.getByRole('combobox', { name: 'POI marker symbol' })).toHaveFocus();
     await user.tab();
     const label = screen.getByRole('textbox', { name: 'POI label' });
@@ -303,15 +304,15 @@ describe('editor POI appearance and geometry fields', () => {
     await user.type(label, 'Café Central');
     await user.tab();
 
-    expect(screen.getByRole('combobox', { name: 'POI marker shape' })).toHaveValue('diamond');
-    expect(screen.getByRole('combobox', { name: 'POI marker symbol' })).toHaveValue('coffee');
+    expect(selectedValue(screen.getByRole('combobox', { name: 'POI marker shape' }))).toBe('diamond');
+    expect(selectedValue(screen.getByRole('combobox', { name: 'POI marker symbol' }))).toBe('coffee');
     expect(screen.getByRole('textbox', { name: 'POI label' })).toHaveValue('Café Central');
     await user.click(screen.getByRole('button', { name: 'Undo' }));
     expect(screen.getByRole('textbox', { name: 'POI label' })).toHaveValue('');
-    expect(screen.getByRole('combobox', { name: 'POI marker symbol' })).toHaveValue('coffee');
+    expect(selectedValue(screen.getByRole('combobox', { name: 'POI marker symbol' }))).toBe('coffee');
     await user.click(screen.getByRole('button', { name: 'Undo' }));
-    expect(screen.getByRole('combobox', { name: 'POI marker symbol' })).toHaveValue('none');
-    expect(screen.getByRole('combobox', { name: 'POI marker shape' })).toHaveValue('diamond');
+    expect(selectedValue(screen.getByRole('combobox', { name: 'POI marker symbol' }))).toBe('none');
+    expect(selectedValue(screen.getByRole('combobox', { name: 'POI marker shape' }))).toBe('diamond');
   });
 
   it('rejects a POI label over 40 characters without changing history', async () => {
@@ -401,20 +402,20 @@ describe('route travel-marker properties', () => {
 
     await user.click(screen.getByRole('button', { name: 'Select Route 01' }));
     const legacyMarker = screen.getByRole('combobox', { name: 'Route travel marker' });
-    await user.selectOptions(legacyMarker, 'car');
+    await chooseOption(user, 'Route travel marker', 'Car');
     await user.click(screen.getByText('Advanced'));
     const advancedMarker = screen.getByRole('combobox', { name: 'Route marker pictogram' });
-    expect(advancedMarker).toHaveValue('car');
-    expect(screen.getByRole('combobox', { name: 'Route marker placement' })).toHaveValue('center');
+    expect(selectedValue(advancedMarker)).toBe('car');
+    expect(selectedValue(screen.getByRole('combobox', { name: 'Route marker placement' }))).toBe('center');
     expect(screen.getByRole('switch', { name: 'Orient route marker to path' })).toBeChecked();
 
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Route marker placement' }), 'fraction');
+    await chooseOption(user, 'Route marker placement', 'Same position per segment');
     await user.click(screen.getByRole('switch', { name: 'Reverse route marker facing' }));
-    await user.selectOptions(legacyMarker, 'air');
-    expect(screen.getByRole('combobox', { name: 'Route marker placement' })).toHaveValue('fraction');
+    await chooseOption(user, 'Route travel marker', 'Air');
+    expect(selectedValue(screen.getByRole('combobox', { name: 'Route marker placement' }))).toBe('fraction');
     expect(screen.getByRole('switch', { name: 'Reverse route marker facing' })).toBeChecked();
-    await user.selectOptions(legacyMarker, 'none');
-    expect(advancedMarker).toHaveValue('none');
+    await chooseOption(user, 'Route travel marker', 'None');
+    expect(selectedValue(advancedMarker)).toBe('none');
     await user.click(screen.getByText('Advanced'));
   });
 
@@ -425,13 +426,13 @@ describe('route travel-marker properties', () => {
     await user.click(screen.getByRole('button', { name: 'Select Route 01' }));
     await user.click(screen.getByText('Advanced'));
     const marker = screen.getByRole('combobox', { name: 'Route marker pictogram' });
-    await user.selectOptions(marker, 'air');
+    await chooseOption(user, 'Route marker pictogram', 'Air');
 
-    expect(marker).toHaveValue('air');
+    expect(selectedValue(marker)).toBe('air');
     expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-layer-state', expect.stringContaining('route-01:true'));
 
     await user.click(screen.getByRole('button', { name: 'Undo' }));
-    expect(screen.getByRole('combobox', { name: 'Route marker pictogram' })).toHaveValue('none');
+    expect(selectedValue(screen.getByRole('combobox', { name: 'Route marker pictogram' }))).toBe('none');
   });
 });
 

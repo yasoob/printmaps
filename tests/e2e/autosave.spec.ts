@@ -1,5 +1,6 @@
 /* eslint-disable unicorn/prefer-add-event-listener, unicorn/no-global-object-property-assignment, unicorn/no-optional-chaining-on-undeclared-variable -- Browser-realm IndexedDB instrumentation must patch native handlers and a page-local release hook. */
 import { expect, test } from '@playwright/test';
+import { chooseOption, expectSelectValue } from './select-support';
 
 test('autosaves to IndexedDB and restores the local project automatically', async ({ page }) => {
   await page.goto('./');
@@ -13,7 +14,7 @@ test('autosaves to IndexedDB and restores the local project automatically', asyn
   await page.getByRole('spinbutton', { name: 'Text scale' }).press('Tab');
   await page.getByRole('checkbox', { name: 'Show labels' }).uncheck();
   await page.getByRole('checkbox', { name: 'Show land detail' }).uncheck();
-  await page.getByRole('combobox', { name: 'Map language' }).selectOption('de');
+  await chooseOption(page, 'Map language', 'German');
   await page.getByRole('tab', { name: 'Layout' }).click();
   await page.getByRole('radio', { name: 'Portrait' }).click();
   const mapCanvas = page.getByTestId('map-canvas');
@@ -39,7 +40,7 @@ test('autosaves to IndexedDB and restores the local project automatically', asyn
   await expect(page.getByRole('spinbutton', { name: 'Bearing' })).toHaveValue('-20');
   await expect(page.getByRole('spinbutton', { name: 'Pitch' })).toHaveValue('35');
   await expect(page.getByRole('radio', { name: /^Night Ink:/ })).toHaveAttribute('aria-checked', 'true');
-  await expect(page.getByRole('combobox', { name: 'Map language' })).toHaveValue('de');
+  await expectSelectValue(page, 'Map language', 'de');
   await expect(page.getByRole('spinbutton', { name: 'Text scale' })).toHaveValue('135');
   await expect(page.getByRole('checkbox', { name: 'Show labels' })).not.toBeChecked();
   await expect(page.getByRole('checkbox', { name: 'Show land detail' })).not.toBeChecked();

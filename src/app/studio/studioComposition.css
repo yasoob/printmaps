@@ -3,9 +3,6 @@
 .studio-composition-controls { display: grid; gap: 4px; min-width: 0; }
 .studio-composition-controls fieldset, .inspector-field-group { border: 0; margin: 16px 0 0; padding: 0; display: grid; gap: 4px; min-width: 0; }
 .studio-composition-controls legend, .inspector-field-group legend { color: var(--studio-text-strong); font-size: var(--studio-font-label); font-weight: 600; padding: 0 0 8px; }
-.studio-composition-field { display: grid; gap: 5px; min-width: 0; }
-.studio-composition-field input, .studio-photo-list input { width: 100%; min-width: 0; height: var(--studio-control-height); border: var(--studio-border-width) solid var(--studio-transparent); background: var(--studio-field); color: inherit; border-radius: var(--studio-radius-sm); padding: 0 8px; font-size: var(--studio-font-label); }
-.studio-photo-list input:hover { border-color: var(--studio-line-hover); }
 .studio-template-gallery { display: grid; gap: 12px; }
 .studio-template-grid, .studio-starter-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .studio-template-card, .studio-starter-grid button { display: grid; gap: 6px; text-align: left; align-content: start; min-width: 0; border: var(--studio-border-width) solid var(--studio-line); border-radius: var(--studio-radius-md); padding: 8px; color: var(--studio-text); background: var(--studio-surface); }
@@ -52,7 +49,6 @@
 @media (max-width: 600px) {
   .template-project-body .studio-template-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .template-project-body .studio-starter-grid { grid-template-columns: minmax(0, 1fr); }
-  .studio-composition-field input, .studio-photo-list input { min-height: 44px; }
   .studio-photo-list .icon-button { width: 44px; height: 44px; }
 }
 .studio-poster-preview { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }

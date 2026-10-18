@@ -7,6 +7,7 @@ import {
   loadAutosavedProject,
   type AutosaveRepository,
 } from '../../../src/storage/autosave';
+import { chooseOption, selectedValue } from '../select-support';
 
 vi.mock('../../../src/map/MapCanvas', async () => import('./MapCanvasMock'));
 
@@ -56,7 +57,7 @@ describe('editor autosave lifecycle', () => {
     await user.click(screen.getByRole('tab', { name: 'Layout' }));
     await user.click(screen.getByRole('radio', { name: 'Portrait' }));
     await waitFor(() => expect(repository.save).toHaveBeenCalledTimes(1));
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Page preset' }), 'A3');
+    await chooseOption(user, 'Page preset', 'A3');
     await new Promise((resolve) => window.setTimeout(resolve, 350));
 
     unmount();

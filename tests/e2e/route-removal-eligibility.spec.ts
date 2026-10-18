@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { chooseOption } from './select-support';
 import type { ContentLayer, RouteKind } from '../../src/domain/project';
 import { basicRouteProject, installDirectionsMock, openAdvanced, openProject, routeLayer } from './advanced-route-test-support';
 import { downloadProject, openInstrumentedMap } from './map-recovery-support';
@@ -33,7 +34,8 @@ async function selectRoute(page: Page, isMobile: boolean, noun: string) {
   if (isMobile) await page.getByRole('button', { name: 'Open layers', exact: true }).click();
   await page.getByRole('button', { name: 'Select Route 01', exact: true }).click();
   await openAdvanced(page);
-  await page.getByRole('combobox', { name: `Route ${noun}`, exact: true }).selectOption('1');
+  const nounLabel = noun.charAt(0).toUpperCase() + noun.slice(1);
+  await chooseOption(page, `Route ${noun}`, new RegExp(`^${nounLabel} 2:`));
 }
 
 for (const scenario of [

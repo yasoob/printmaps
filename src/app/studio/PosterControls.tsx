@@ -5,6 +5,7 @@ import { StudioColor, StudioNumber, StudioSelect } from './StudioFields';
 import { ToggleSection } from '../../components/ui/toggle-section';
 import { useSettingActions } from '../hooks/useSettingActions';
 import { PropertyRow, PropertySubheading } from '../components/PropertyControls';
+import { Input } from '../../components/ui/input';
 
 const FONTS = [{ value: 'sans', label: 'Modern sans' }, { value: 'serif', label: 'Classic serif' }, { value: 'mono', label: 'Field notes mono' }] as const;
 const LAYOUTS = [{ value: 'top', label: 'Above the map' }, { value: 'bottom', label: 'Below the map' }, { value: 'overlay', label: 'Over the map' }] as const;
@@ -19,7 +20,7 @@ const TextControl = memo(function TextControl({ label, epoch, onChange, ...value
 }) {
   const change = useSettingActions(value, onChange, TEXT_KEYS);
   return <ToggleSection title={label} switchLabel={`Show ${label.toLowerCase()}`} checked={value.enabled} onCheckedChange={change.enabled}>
-    <PropertyRow label="Text"><input aria-label={`${label} text`} placeholder={`Add a ${label.toLowerCase()}`} value={value.text} maxLength={label === 'Title' ? 200 : 400} onChange={(event) => change.text(event.target.value)} /></PropertyRow>
+    <PropertyRow label="Text"><Input aria-label={`${label} text`} placeholder={`Add a ${label.toLowerCase()}`} value={value.text} maxLength={label === 'Title' ? 200 : 400} onChange={(event) => change.text(event.target.value)} /></PropertyRow>
     <StudioSelect label={`${label} font`} rowLabel="Font" value={value.font} options={FONTS} onChange={change.font} />
     <StudioNumber label={`${label} size`} rowLabel="Size" value={value.fontSizePt} min={6} max={120} unit="pt" epoch={epoch} onChange={change.fontSizePt} />
     <StudioColor label={`${label} color`} rowLabel="Color" value={value.color} onChange={change.color} />

@@ -11,6 +11,7 @@ import { createProjectStore } from '../../src/app/store';
 import { createInitialProjectDocument } from '../../src/domain/project';
 import type { ElevationProfile } from '../../src/elevation/profile';
 import type { ProfileRouteBinding } from '../../src/app/elevation/profileSessionTypes';
+import { chooseOption, selectedValue } from './select-support';
 
 const binding: ProfileRouteBinding = { coordinates: [[16, 48], [16.1, 48.1]], name: 'Our route', color: '#123456', kind: 'straight' };
 const profile: ElevationProfile = {
@@ -258,7 +259,7 @@ describe('elevation disclosure and navigation', () => {
     await user.click(screen.getByRole('radio', { name: 'Imperial' }));
     fireEvent.change(screen.getByLabelText('Profile print width'), { target: { value: '220' } });
     fireEvent.change(screen.getByLabelText('Profile font size'), { target: { value: '60' } });
-    await user.selectOptions(screen.getByLabelText('Profile font'), 'serif');
+    await chooseOption(user, 'Profile font', 'Serif');
     await user.click(screen.getByRole('button', { name: 'Advanced' }));
     await user.click(screen.getByRole('button', { name: 'Advanced' }));
     await user.click(screen.getByRole('button', { name: 'Other route' }));
@@ -267,7 +268,7 @@ describe('elevation disclosure and navigation', () => {
     expect(screen.getByRole('radio', { name: 'Imperial' })).toBeChecked();
     expect(screen.getByLabelText('Profile print width')).toHaveValue(220);
     expect(screen.getByLabelText('Profile font size')).toHaveValue(60);
-    expect(screen.getByLabelText('Profile font')).toHaveValue('serif');
+    expect(selectedValue(screen.getByLabelText('Profile font'))).toBe('serif');
     fireEvent.change(screen.getByLabelText('Profile font size'), { target: { value: '' } });
     await user.click(screen.getByRole('button', { name: 'Advanced' }));
     await user.click(screen.getByRole('button', { name: 'Advanced' }));

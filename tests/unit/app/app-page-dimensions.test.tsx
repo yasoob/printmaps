@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../../../src/app/App';
 import { exportMocks } from './exportMocks';
+import { chooseOption, selectedValue } from '../select-support';
 
 vi.mock('../../../src/map/MapCanvas', async () => import('./MapCanvasMock'));
 
@@ -37,7 +38,7 @@ describe('editor page dimensions', () => {
     expect(undo).toBeDisabled();
     await user.click(screen.getByRole('button', { name: 'Vienna field guide' }));
     expect(field).toHaveValue(Number(originalValue));
-    expect(preset).toHaveValue('A4');
+    expect(selectedValue(preset)).toBe('A4');
     expect(undo).toBeDisabled();
 
     await user.click(field);
@@ -45,13 +46,13 @@ describe('editor page dimensions', () => {
     expect(undo).toBeDisabled();
     fireEvent.blur(field);
     expect(field).toHaveValue(Number(nextValue));
-    expect(preset).toHaveValue('Custom');
+    expect(selectedValue(preset)).toBe('Custom');
     expect(map).toHaveAttribute('data-page-size', expectedSize);
     expect(undo).toBeEnabled();
 
     await user.click(undo);
     expect(screen.getByRole('spinbutton', { name: fieldName })).toHaveValue(Number(originalValue));
-    expect(preset).toHaveValue('A4');
+    expect(selectedValue(preset)).toBe('A4');
   });
 
   it('discards a dirty page draft after canonical dimensions change away and back', () => {
@@ -71,7 +72,7 @@ describe('editor page dimensions', () => {
     const restoredField = screen.getByRole('spinbutton', { name: 'Page width' });
     expect(restoredField).toHaveValue(297);
     fireEvent.blur(restoredField);
-    expect(screen.getByRole('combobox', { name: 'Page preset' })).toHaveValue('A4');
+    expect(selectedValue(screen.getByRole('combobox', { name: 'Page preset' }))).toBe('A4');
     expect(undo).toBeEnabled();
   });
 

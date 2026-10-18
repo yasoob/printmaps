@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { waitForAutosaveReady } from './autosave-fixture';
+import { chooseOption, expectSelectValue } from './select-support';
 
 async function openCustomizer(page: Page) {
   await page.getByRole('button', { name: /Customize colors|Edit custom palette/ }).click();
@@ -119,7 +120,7 @@ test('existing map details survive customization and choosing a new base clears 
   await customizePaper(page);
   await page.getByRole('button', { name: 'Back to project properties' }).click();
 
-  await page.getByRole('combobox', { name: 'Map language' }).selectOption('de');
+  await chooseOption(page, 'Map language', 'German');
   await page.getByRole('spinbutton', { name: 'Text scale' }).fill('125');
   await page.getByRole('spinbutton', { name: 'Text scale' }).blur();
   await page.getByRole('checkbox', { name: 'Show roads' }).uncheck();
@@ -131,7 +132,7 @@ test('existing map details survive customization and choosing a new base clears 
 
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-style-preset', 'graphite');
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-style-customized', 'false');
-  await expect(page.getByRole('combobox', { name: 'Map language' })).toHaveValue('de');
+  await expectSelectValue(page, 'Map language', 'de');
   await expect(page.getByRole('spinbutton', { name: 'Text scale' })).toHaveValue('125');
   await expect(page.getByRole('checkbox', { name: 'Show roads' })).not.toBeChecked();
 });

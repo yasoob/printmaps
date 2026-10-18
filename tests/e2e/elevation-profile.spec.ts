@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
+import { chooseOption } from './select-support';
 
 const isHeadlessWebGlDiagnostic = (message: string) => (
   message.includes('GPU stall due to ReadPixels')
@@ -75,7 +76,7 @@ test('a selected route generates an attributed elevation profile with SVG, PNG, 
   await page.getByLabel('Profile gradient color').fill('#ffffff');
   await expect(chart.locator('.elevation-area')).toHaveCSS('fill', /elevation-profile-.*-gradient/);
   await page.getByLabel('Elevation marker color').fill('#7c3aed');
-  await page.getByRole('combobox', { name: 'Profile font' }).selectOption('serif');
+  await chooseOption(page, 'Profile font', 'Serif');
   await expect(chart.locator('.elevation-marker-label').first()).toHaveCSS('font-family', /Georgia/);
   await page.getByRole('spinbutton', { name: 'Profile font size' }).fill('71');
   await expect(page.getByRole('button', { name: 'Download elevation SVG' })).toBeDisabled();

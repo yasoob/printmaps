@@ -7,6 +7,7 @@ import {
   loadAutosavedProject,
   type AutosaveRepository,
 } from '../../../src/storage/autosave';
+import { chooseOption, selectedValue } from '../select-support';
 
 vi.mock('../../../src/map/MapCanvas', async () => import('./MapCanvasMock'));
 
@@ -50,7 +51,7 @@ describe('editor autosave startup', () => {
     expect(screen.queryByRole('dialog', { name: 'Recover local draft' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Recovered field guide' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('tab', { name: 'Layout' }));
-    expect(screen.getByRole('combobox', { name: 'Page preset' })).toHaveValue('A3');
+    expect(selectedValue(screen.getByRole('combobox', { name: 'Page preset' }))).toBe('A3');
     expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
     expect(screen.getByRole('status', { name: 'Autosave status' })).toHaveTextContent('Autosave ready');
     expect(repository.load).toHaveBeenCalledTimes(1);

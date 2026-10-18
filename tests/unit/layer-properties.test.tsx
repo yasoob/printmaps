@@ -6,6 +6,7 @@ import { LayerProperties as UnwrappedLayerProperties } from '../../src/app/compo
 import { createProjectStore } from '../../src/app/store';
 import { ProjectStoreContext } from '../../src/app/projectStoreContext';
 import { ElevationProfileProvider } from '../../src/app/elevation/ElevationProfileProvider';
+import { chooseOption, selectedValue } from './select-support';
 
 function RouteLayerWithProfile(props: ComponentProps<typeof UnwrappedLayerProperties>) {
   const [store] = useState(() => {
@@ -191,7 +192,7 @@ describe('layer appearance draft boundaries', () => {
     render(<LayerProperties layer={shapeWithHole()} {...actions} />);
     await openVertices(user);
 
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Shape ring' }), '1');
+    await chooseOption(user, 'Shape ring', 'Hole 1');
     const longitude = screen.getByRole('textbox', { name: 'Shape vertex longitude' });
     expect(longitude).toHaveValue('1');
     await user.clear(longitude);

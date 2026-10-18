@@ -930,17 +930,6 @@ body {
 .route-finish-explanation { @apply leading-snug; color: var(--studio-text-muted); font-size: var(--studio-font-label); }
 .route-extend-actions { @apply grid grid-cols-2 gap-2; }
 .route-structure-controls { @apply grid gap-2; }
-.route-structure-controls > label { @apply grid gap-1; color: var(--studio-text-muted); font-size: var(--studio-font-meta); }
-.route-structure-controls select {
-  @apply min-w-0 w-full px-2;
-  min-height: var(--studio-control-height);
-  border: var(--studio-border-width) solid var(--studio-transparent);
-  border-radius: var(--studio-radius-sm);
-  background: var(--studio-field);
-  color: var(--studio-text);
-  font-size: var(--studio-font-label);
-}
-.route-structure-controls select:hover { border-color: var(--studio-line-hover); }
 .route-structure-actions { @apply grid grid-cols-2 gap-2; }
 .route-structure-controls > small { color: var(--studio-text-muted); line-height: 1.4; }
 .route-structure-confirmation,
@@ -1171,7 +1160,6 @@ body {
   .right-sidebar :is(.property-control > input, .property-control select, .input-group, .number-field, .color-field, .studio-color-field, .segmented, .studio-segmented) {
     height: var(--studio-touch-target);
   }
-  .right-sidebar :is(.studio-composition-field input, .studio-photo-list input) { min-height: var(--studio-touch-target); }
 }
 .map-style-picker { @apply pb-2; }
 .map-style-gallery { @apply grid grid-cols-3 gap-2; }
@@ -1262,14 +1250,6 @@ body {
 .map-style-adjustment > span { font-size: var(--studio-font-meta); }
 .map-style-adjustment > span strong { font-weight: 550; }
 .map-style-adjustment output { color: var(--studio-text-muted); font-variant-numeric: tabular-nums; }
-/* Range sliders share the interaction accent with switches and checkboxes in every engine. */
-.map-style-adjustment input { width: 100%; height: 1rem; margin: 0; background: transparent; accent-color: var(--studio-accent); appearance: none; cursor: pointer; }
-.map-style-adjustment input:focus-visible { outline: var(--studio-focus-width) solid var(--studio-focus); outline-offset: 2px; }
-.map-style-adjustment input::-webkit-slider-runnable-track { height: 0.25rem; border-radius: 999px; background: var(--studio-switch-off); }
-.map-style-adjustment input::-moz-range-track { height: 0.25rem; border-radius: 999px; background: var(--studio-switch-off); }
-.map-style-adjustment input::-moz-range-progress { height: 0.25rem; border-radius: 999px; background: var(--studio-accent); }
-.map-style-adjustment input::-webkit-slider-thumb { width: 1rem; height: 1rem; margin-top: -0.375rem; border: 2px solid var(--studio-surface); border-radius: 999px; background: var(--studio-accent); box-shadow: 0 0 0 1px var(--studio-accent); appearance: none; }
-.map-style-adjustment input::-moz-range-thumb { width: 0.75rem; height: 0.75rem; border: 2px solid var(--studio-surface); border-radius: 999px; background: var(--studio-accent); box-shadow: 0 0 0 1px var(--studio-accent); }
 .map-style-adjustment > small { color: var(--studio-text-subtle); font-size: var(--studio-font-meta); }
 .map-style-clear-tuning { display: flex; justify-content: flex-end; margin-top: 0.5rem; }
 /* Palette rows follow the PropertyRow grid; the reset action only takes space when a colour is custom. */
@@ -1658,13 +1638,11 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
   .tool-palette { height: calc(var(--studio-touch-target) + 0.5rem); }
   .map-style-color-list { row-gap: 0.5rem; }
   .map-style-color-row { min-height: var(--studio-touch-target); }
-  .map-style-adjustment input { height: var(--studio-touch-target); }
   .route-point-inputs button,
   .route-point-inputs select,
   .route-snap-control,
   .route-extend-actions > button,
-  .route-structure-controls button,
-  .route-structure-controls select { min-height: 44px; }
+  .route-structure-controls button { min-height: 44px; }
   .route-vertex-marker,
   .poi-move-marker,
   .shape-vertex-marker,
@@ -1736,8 +1714,7 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
 }
 
 @media (max-width: 420px) {
-  .route-structure-controls button,
-  .route-structure-controls select { min-height: 44px; }
+  .route-structure-controls button { min-height: 44px; }
   .export-format-option { @apply px-2; }
   .export-format-option small { font-size: var(--studio-font-meta); }
   .export-dialog .icon-button,

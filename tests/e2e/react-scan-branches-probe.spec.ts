@@ -5,6 +5,7 @@ import { openAdvanced, convertRoute } from './advanced-route-test-support';
 import { addCoordinate, loseRenderer, openInstrumentedMap } from './map-recovery-support';
 import { expandToolSettings } from './authoring-panel-support';
 import { openConflict, reviewConflict } from './autosave-conflict-support';
+import { chooseOption } from './select-support';
 
 test.skip(process.env.VITE_REACT_SCAN !== 'true', 'Run with npm run audit:renders.');
 test.afterEach(async ({ page }, info) => attachInventory(page, info));
@@ -76,10 +77,10 @@ test('arc controls, travel markers and draft discard expose their own conditiona
   await page.getByRole('button', { name: 'Select Route 01', exact: true }).click();
   await openAdvanced(page);
   await convertRoute(page, 'arc');
-  await page.getByRole('combobox', { name: 'Route marker pictogram' }).selectOption('air');
+  await chooseOption(page, 'Route marker pictogram', 'Air');
   await page.mouse.move(700, 10);
   await startProbe(page, 'Arc inspector local selection');
-  await page.getByRole('combobox', { name: 'Route anchor' }).selectOption('1');
+  await chooseOption(page, 'Route anchor', /^Anchor 2:/);
   let result = await finishProbe(page, info, 'arc-selection');
   expectOwners(result, ['RouteVertexControls'], ['MapCanvas', 'RouteMarkerControls', 'RouteExtensionControls']);
   await page.getByRole('button', { name: 'Route (R)', exact: true }).click();
