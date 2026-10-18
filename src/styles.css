@@ -1312,7 +1312,12 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 .property-control > input { @apply px-2; }
 .property-control select { padding: 0 1.4375rem 0 0.4375rem; border-right: 6px solid var(--studio-transparent); }
-.property-control > input:hover, .property-control select:hover, .number-field:hover { border-color: var(--studio-line-hover); }
+.property-control > input:hover, .number-field:hover { border-color: var(--studio-line-hover); }
+/* The 6px right border insets the native chevron; draw the hover hairline as an inset outline so it stays uniform. */
+.property-control select:hover:not(:disabled, :focus-visible) {
+  outline: var(--studio-border-width) solid var(--studio-line-hover);
+  outline-offset: calc(-1 * var(--studio-border-width));
+}
 .number-field { @apply flex min-w-0 items-center; }
 .number-field input {
   @apply min-w-0 w-full border-0 bg-transparent px-2 outline-none;
