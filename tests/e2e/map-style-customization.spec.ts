@@ -40,7 +40,7 @@ test('a maker quick-tunes, overrides one semantic color, and returns to the main
   await page.screenshot({ path: 'docs/screenshots/map-style-customization-main-20260830.png' });
 
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Project' }).click();
+  await page.getByRole('button', { name: 'Project', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Download project' }).click();
   const download = await downloadPromise;
   const projectPath = await download.path();

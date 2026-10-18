@@ -113,7 +113,7 @@ test('pasted address rows become one durable geocoded POI batch', async ({ page 
   expect(queries).toEqual(['Herrengasse 14, Vienna', 'Museumsplatz 1, Vienna']);
 
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
+  await page.getByRole('button', { name: 'Project', exact: true }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
   const download = await downloadPromise;
   const projectPath = testInfo.outputPath('geocoded-pois.printmap.json');
   await download.saveAs(projectPath);

@@ -94,7 +94,7 @@ test('converts every route-kind pair and atomically remaps local structure', asy
 
   await page.getByRole('combobox', { name: 'Route line style' }).selectOption('dashed');
   const chooserPromise = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Project' }).click();
+  await page.getByRole('button', { name: 'Project', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Open project' }).click();
   const chooser = await chooserPromise;
   await chooser.setFiles(saved.path);

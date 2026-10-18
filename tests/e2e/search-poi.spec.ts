@@ -47,7 +47,7 @@ test('searched address becomes one durable editable and exportable POI', async (
   expect(searchRequests).toBe(1);
 
   const savePromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
+  await page.getByRole('button', { name: 'Project', exact: true }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
   const save = await savePromise;
   const projectPath = test.info().outputPath('searched-poi.printmap.json');
   await save.saveAs(projectPath);

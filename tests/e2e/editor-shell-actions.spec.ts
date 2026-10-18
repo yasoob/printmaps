@@ -146,7 +146,7 @@ test('initial editor search, live scale, title history, and Project actions work
   await expect(undo).toBeDisabled();
   await expect(redo).toBeDisabled();
   await expect(undo).toHaveCSS('cursor', 'default');
-  await expect(undo).toHaveCSS('opacity', '0.38');
+  await expect(undo).toHaveCSS('opacity', '0.45');
 
   await page.getByRole('button', { name: 'Vienna field guide' }).click();
   const title = page.getByRole('textbox', { name: 'Project title' });
@@ -174,7 +174,7 @@ test('initial editor search, live scale, title history, and Project actions work
   await page.getByRole('button', { name: 'Zoom in' }).click();
   await expect(scale).not.toHaveAttribute('aria-label', initialScale!);
 
-  const project = page.getByRole('button', { name: 'Project' });
+  const project = page.getByRole('button', { name: 'Project', exact: true });
   await expect(project).toBeVisible();
   await expect(page.getByRole('button', { name: 'Export' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Share' })).toHaveCount(0);

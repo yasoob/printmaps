@@ -86,7 +86,7 @@ test('nominal design, author, import, persist, reopen, and export workflow', asy
   await expect(mapCanvas).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
 
   const projectDownloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
+  await page.getByRole('button', { name: 'Project', exact: true }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
   const projectDownload = await projectDownloadPromise;
   const projectPath = testInfo.outputPath('nominal-workflow.printmap.json');
   await projectDownload.saveAs(projectPath);
@@ -100,7 +100,7 @@ test('nominal design, author, import, persist, reopen, and export workflow', asy
 
   await page.getByRole('radio', { name: 'Landscape' }).click();
   const openChooserPromise = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Open project' }).click();
+  await page.getByRole('button', { name: 'Project', exact: true }).click(); await page.getByRole('menuitem', { name: 'Open project' }).click();
   const openChooser = await openChooserPromise;
   await openChooser.setFiles(projectPath);
   await page.getByRole('button', { name: 'Replace project', exact: true }).click();

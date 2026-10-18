@@ -6,7 +6,7 @@ test('Project menu actions round-trip the portable project', async ({ page }, te
   await page.getByRole('radio', { name: 'Portrait' }).click();
 
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
+  await page.getByRole('button', { name: 'Project', exact: true }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
   const download = await downloadPromise;
   const projectPath = testInfo.outputPath('direct-save.printmap.json');
   await download.saveAs(projectPath);
@@ -14,7 +14,7 @@ test('Project menu actions round-trip the portable project', async ({ page }, te
 
   await page.getByRole('radio', { name: 'Landscape' }).click();
   const chooserPromise = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Open project' }).click();
+  await page.getByRole('button', { name: 'Project', exact: true }).click(); await page.getByRole('menuitem', { name: 'Open project' }).click();
   const chooser = await chooserPromise;
   await chooser.setFiles(projectPath);
   await page.getByRole('button', { name: 'Replace project', exact: true }).click();
@@ -27,7 +27,7 @@ test('Project actions and Export remain reachable in the mobile header', async (
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('./');
 
-  const project = page.getByRole('button', { name: 'Project' });
+  const project = page.getByRole('button', { name: 'Project', exact: true });
   const exportAction = page.getByRole('button', { name: 'Export' });
   await expect(project).toBeVisible();
   await expect(exportAction).toBeVisible();

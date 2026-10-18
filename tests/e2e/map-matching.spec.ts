@@ -57,7 +57,7 @@ test('selected route matches to roads and remains durable editable and exportabl
   await page.screenshot({ animations: 'disabled', path: testInfo.outputPath('UX041-existing-open.png') });
 
   const savePromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
+  await page.getByRole('button', { name: 'Project', exact: true }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
   const save = await savePromise;
   const projectPath = testInfo.outputPath('map-matched.printmap.json');
   await save.saveAs(projectPath);
