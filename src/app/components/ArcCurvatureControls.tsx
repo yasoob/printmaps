@@ -1,7 +1,7 @@
 import { Button } from '../../components/ui/button';
 import { useState } from "react";
 import { MAX_ARC_CURVATURE } from "../../domain/routeArcGeometry";
-import { InputGroup, InputGroupAddon, InputNumber } from "./InputGroup";
+import { InputGroup, InputNumber } from "./InputGroup";
 import { PropertyRow } from "./PropertyControls";
 
 type ArcCurvatureControlsProps = {
@@ -63,7 +63,7 @@ export function ArcCurvatureControls({
           ))}
         </select>
       </PropertyRow>
-      <PropertyRow label="Bend">
+      <PropertyRow label="Bend (×)">
         <InputGroup>
           <InputNumber
             aria-label="Arc curvature amount"
@@ -82,7 +82,6 @@ export function ArcCurvatureControls({
             }
             onBlur={commitAmount}
           />
-          <InputGroupAddon align="inline-end">×</InputGroupAddon>
         </InputGroup>
       </PropertyRow>
       <Button variant="secondary"

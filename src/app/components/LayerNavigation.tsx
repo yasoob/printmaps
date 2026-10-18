@@ -60,7 +60,7 @@ export function LayerNavigation(props: Props) {
         }} onKeyDown={handleSearchEscape} />
       <div className="layer-navigation" onKeyDown={handleSearchEscape}>
         <div id={filterId} className="layer-filter" hidden={!searchOpen}>
-          <Search size={14} aria-hidden="true" />
+          <Search size={16} strokeWidth={1.75} aria-hidden="true" />
           {searchOpen && <input
             ref={inputRef}
             type="search"
@@ -80,13 +80,13 @@ export function LayerNavigation(props: Props) {
             trackEditorAction('layerFilterCleared');
             changeQuery('');
             inputRef.current?.focus();
-          }}><X size={14} aria-hidden="true" /></button>}
+          }}><X size={16} strokeWidth={1.75} aria-hidden="true" /></button>}
         </div>
         <p id={countId} className={`layer-navigation-status${!isFiltering && !announcement ? ' sr-only' : ''}`} role="status" aria-label="Layer navigation" aria-atomic="true">
           {isFiltering && <span>{visible.length} of {layers.length} layers</span>}
           {announcement && <span>{announcement}</span>}
         </p>
-        <p id={helpId} className="sr-only">↓ enters layers from search. ↑/↓ and Home/End focus a name; Enter selects it. Tab: actions. Alt+↑/↓ on Reorder: move.</p>
+        <p id={helpId} className="sr-only">Down Arrow enters layers from search. Up and Down Arrow, Home and End focus a name; Enter selects it. Tab reaches its actions. Alt with Up or Down Arrow on Reorder moves it.</p>
         {isFiltering && visible.length === 0 && <p className="layer-navigation-empty">No matching layers. Change or clear the filter.</p>}
       </div>
       <ul

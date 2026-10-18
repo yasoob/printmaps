@@ -2055,3 +2055,11 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
 }
 
 .route-vertex-actions { @apply mt-2 flex flex-wrap gap-2; }
+.inline-breadcrumb { display: inline-flex; align-items: center; gap: 0.125rem; font-weight: 500; vertical-align: bottom; }
+.inline-breadcrumb > svg { flex: none; color: var(--studio-text-muted); }
+/* The native colour input covers the field's border too, so its hit area equals the 32px/44px field. */
+.right-sidebar .studio-color-field-native {
+  inset: calc(-1 * var(--studio-border-width));
+  width: calc(100% + 2 * var(--studio-border-width));
+  height: calc(100% + 2 * var(--studio-border-width));
+}

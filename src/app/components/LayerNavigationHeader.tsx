@@ -47,7 +47,7 @@ export function LayerNavigationHeader({
             title={searchOpen ? 'Close layer search' : 'Search layers'}
             onClick={onToggleSearch}
           >
-            <Search size={15} aria-hidden="true" />
+            <Search size={16} strokeWidth={1.75} aria-hidden="true" />
           </button>
         </div>
         {collapseButton}

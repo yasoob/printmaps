@@ -64,13 +64,13 @@ export const LayerNavigationRow = memo(function LayerNavigationRow({ layer, inde
         const result = feedback.report(toggleLayerVisibility(layer.id));
         if (result.ok) clearPreview();
       }}>
-        {layer.visible ? <Eye size={13} /> : <EyeOff size={13} />}
+        {layer.visible ? <Eye size={16} strokeWidth={1.75} /> : <EyeOff size={16} strokeWidth={1.75} />}
       </button>
       <button className="layer-select" tabIndex={tabIndex} type="button" data-layer-select={layer.id} aria-current={isSelected ? 'true' : undefined} aria-haspopup={activePanel === 'layers' ? 'dialog' : undefined} onClick={select} aria-label={`Select ${layer.name}`}>
-        <Icon size={14} /><span>{layer.name}</span>
+        <Icon size={16} strokeWidth={1.75} /><span>{layer.name}</span>
       </button>
       <button className="layer-lock" tabIndex={tabIndex} type="button" aria-label={`${layer.locked ? 'Unlock' : 'Lock'} ${layer.name}`} onClick={() => feedback.report(toggleLayerLock(layer.id))}>
-        {layer.locked ? <Lock size={12} /> : <Unlock size={12} />}
+        {layer.locked ? <Lock size={16} strokeWidth={1.75} /> : <Unlock size={16} strokeWidth={1.75} />}
       </button>
       <button
         ref={handleRef}
@@ -81,7 +81,7 @@ export const LayerNavigationRow = memo(function LayerNavigationRow({ layer, inde
         aria-label={`Reorder ${layer.name}`}
         aria-keyshortcuts={isBasemap ? undefined : 'Alt+ArrowUp Alt+ArrowDown'}
         title={isBasemap ? 'Basemap is fixed at the bottom' : 'Drag to reorder · Alt+Arrow keys'}
-      ><GripVertical size={13} /></button>
+      ><GripVertical size={16} strokeWidth={1.75} /></button>
       {feedback.error && <p className="layer-mutation-error coordinate-validation" role="alert">{feedback.error}</p>}
     </li>
   );
@@ -91,10 +91,10 @@ export function LayerDragOverlay({ layer }: { layer: ContentLayer }) {
   const Icon = layerIcons[layer.type];
   return (
     <div className="layer-row layer-drag-overlay" aria-hidden="true">
-      <span className="layer-visibility">{layer.visible ? <Eye size={13} /> : <EyeOff size={13} />}</span>
-      <span className="layer-select"><Icon size={14} /><span>{layer.name}</span></span>
-      <span className="layer-lock">{layer.locked ? <Lock size={12} /> : <Unlock size={12} />}</span>
-      <span className="layer-drag"><GripVertical size={13} /></span>
+      <span className="layer-visibility">{layer.visible ? <Eye size={16} strokeWidth={1.75} /> : <EyeOff size={16} strokeWidth={1.75} />}</span>
+      <span className="layer-select"><Icon size={16} strokeWidth={1.75} /><span>{layer.name}</span></span>
+      <span className="layer-lock">{layer.locked ? <Lock size={16} strokeWidth={1.75} /> : <Unlock size={16} strokeWidth={1.75} />}</span>
+      <span className="layer-drag"><GripVertical size={16} strokeWidth={1.75} /></span>
     </div>
   );
 }

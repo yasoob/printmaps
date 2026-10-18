@@ -84,7 +84,7 @@ export const LayersSidebar = memo(function LayersSidebar(props: LayersSidebarPro
               title={toggleLabel}
               onClick={() => isMobileOpen ? closePanel('layers') : onToggleCollapsed()}
             >
-              <ToggleIcon size={15} />
+              <ToggleIcon size={16} strokeWidth={1.75} />
             </button>
           } />
       </DragDropProvider>
