@@ -1,7 +1,7 @@
 import { Radio } from "@base-ui/react/radio"
 import { RadioGroup } from "@base-ui/react/radio-group"
 import type { LucideIcon } from "lucide-react"
-import { memo } from "react"
+import { memo, type KeyboardEvent } from "react"
 
 import { cn } from "@/lib/utils"
 
@@ -31,9 +31,20 @@ export type SegmentedControlProps<V extends string> = Readonly<{
 export const SegmentedControl = memo(function SegmentedControl<V extends string>({
   label, value, options, onValueChange, disabled = false, className,
 }: SegmentedControlProps<V>) {
+  // Base UI's radio group roves with arrows only; Home/End select the first/last enabled option.
+  const selectEdge = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (disabled || (event.key !== "Home" && event.key !== "End")) return
+    const enabled = options.map((option, index) => ({ option, index })).filter(({ option }) => !option.disabled)
+    const target = event.key === "Home" ? enabled[0] : enabled.at(-1)
+    if (!target) return
+    event.preventDefault()
+    if (target.option.value !== value) onValueChange(target.option.value)
+    event.currentTarget.querySelectorAll<HTMLElement>('[role="radio"]')[target.index]?.focus()
+  }
   return (
     <RadioGroup
       aria-label={label}
+      onKeyDown={selectEdge}
       className={cn("studio-segmented", className)}
       value={value}
       disabled={disabled}
