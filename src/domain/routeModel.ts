@@ -224,7 +224,3 @@ export function isCompleteRouteLayer(layer: ContentLayer): layer is CompleteRout
   return routeLayerValidationError(layer) === null;
 }
 
-export function assertCompleteRouteLayer(layer: ContentLayer): asserts layer is CompleteRouteLayer {
-  const error = routeLayerValidationError(layer);
-  if (error) throw new Error(error);
-}

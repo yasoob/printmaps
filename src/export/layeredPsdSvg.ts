@@ -124,6 +124,8 @@ export function rasterizePsdSvgLayer(
   const { context, surface } = createPsdSurface(output.width, output.height);
   let url: string;
   try {
+    // Revoked by cleanup() on load, error, and cancellation below.
+    // react-doctor-disable-next-line react-doctor/no-create-object-url-without-revoke
     url = URL.createObjectURL(new Blob([layer.svg], { type: 'image/svg+xml' }));
   } catch {
     releasePsdSurface(surface);

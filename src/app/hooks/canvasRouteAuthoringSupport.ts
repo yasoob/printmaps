@@ -214,15 +214,3 @@ export function useRouteKeyboard(options: RouteKeyboardOptions) {
   }, [options]);
 }
 
-export function extensionDraftPoints(
-  extension: RouteExtensionRequest | null,
-  points: [number, number][],
-) {
-  if (!extension) return points;
-  const positions = semanticRoutePositions(extension.layer);
-  const endpoint =
-    extension.endpoint === "start" ? positions?.[0] : positions?.at(-1);
-  return endpoint
-    ? [[endpoint[0], endpoint[1]] as [number, number], ...points]
-    : points;
-}

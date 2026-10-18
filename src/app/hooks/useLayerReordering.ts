@@ -169,6 +169,8 @@ export function useLayerReordering(query: string, announce: (text: string) => vo
         return;
       }
       active.current = { ...gesture, activator: event.operation.activatorEvent };
+      // Held in `unsubscribe` and released by release() on drag end, cancel, and unmount cleanup.
+      // react-doctor-disable-next-line react-doctor/effect-needs-cleanup
       unsubscribe.current = store.subscribe((state) => {
         if (state.documentEpoch !== gesture.owner.epoch) cancel('the project changed');
         else if (state.document.layers !== gesture.owner.layers) cancel('the layers changed');

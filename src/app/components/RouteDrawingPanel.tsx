@@ -166,6 +166,8 @@ function compactRouteSummary(pointCount: number) {
   return `${pointCount} ${pointCount === 1 ? "point" : "points"}`;
 }
 
+// Independent environment flags (viewport, routing, preview), not variant combinations of one component.
+// react-doctor-disable-next-line react-doctor/no-many-boolean-props
 export function RouteDrawingPanel(props: RouteDrawingPanelProps) {
   const finishExplanationId = "route-finish-explanation";
   const disclosure = useAuthoringPanelDisclosure(props.pointCount, props.isCompactViewport);

@@ -1,6 +1,6 @@
 import { DragDropProvider } from '@dnd-kit/react';
 import { PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
-import { memo, useContext, type Dispatch, type RefObject, type SetStateAction } from 'react';
+import { memo, useContext, useMemo, type Dispatch, type RefObject, type SetStateAction } from 'react';
 import type { ContentLayer } from '../../domain/project';
 import { ProjectAutosaveStatus } from '../../storage/ProjectAutosaveUi';
 import type { ProjectAutosaveState } from '../../storage/useProjectAutosave';
@@ -70,25 +70,27 @@ export const LayersSidebar = memo(function LayersSidebar(props: LayersSidebarPro
   const isMobileOpen = activePanel === 'layers';
   const toggleLabel = isMobileOpen ? 'Close layers' : (desktopCollapsed ? 'Expand layers' : 'Collapse layers');
   const ToggleIcon = isMobileOpen ? X : (desktopCollapsed ? PanelLeftOpen : PanelLeftClose);
+  // Memoized so layer edits re-render the rows, not the header's collapse control.
+  const collapseButton = useMemo(() => (
+    <IconTooltip label={toggleLabel} side={desktopCollapsed ? 'right' : 'bottom'}>
+      <button
+        className={`icon-button${isMobileOpen ? ' close-button' : ''}`}
+        type="button"
+        aria-label={toggleLabel}
+        aria-controls={isMobileOpen ? undefined : 'layers-list'}
+        aria-expanded={isMobileOpen ? undefined : !desktopCollapsed}
+        onClick={() => isMobileOpen ? closePanel('layers') : onToggleCollapsed()}
+      >
+        <ToggleIcon size={16} strokeWidth={1.75} aria-hidden="true" />
+      </button>
+    </IconTooltip>
+  ), [ToggleIcon, closePanel, desktopCollapsed, isMobileOpen, onToggleCollapsed, toggleLabel]);
   return (
     <aside ref={panelRef} id="layers-panel" className={`left-sidebar${activePanel === 'layers' ? ' is-mobile-open' : ''}`} aria-label="Layers sidebar" role={activePanel === 'layers' ? 'dialog' : undefined} aria-modal={activePanel === 'layers' ? true : undefined} inert={activePanel === 'properties'} onKeyDown={(event) => onKeyDown(event, 'layers')}>
       <DragDropProvider sensors={layerReorderSensors}>
         <LayerNavigation layers={layers} activePanel={activePanel} desktopCollapsed={desktopCollapsed}
           openPanel={props.openPanel} setPreviewedLayerId={props.setPreviewedLayerId}
-          collapseButton={
-            <IconTooltip label={toggleLabel} side={desktopCollapsed ? 'right' : 'bottom'}>
-              <button
-                className={`icon-button${activePanel === 'layers' ? ' close-button' : ''}`}
-                type="button"
-                aria-label={toggleLabel}
-                aria-controls={isMobileOpen ? undefined : 'layers-list'}
-                aria-expanded={isMobileOpen ? undefined : !desktopCollapsed}
-                onClick={() => isMobileOpen ? closePanel('layers') : onToggleCollapsed()}
-              >
-                <ToggleIcon size={16} strokeWidth={1.75} aria-hidden="true" />
-              </button>
-            </IconTooltip>
-          } />
+          collapseButton={collapseButton} />
       </DragDropProvider>
       <div className="sidebar-footer"><SidebarAutosaveStatus autosave={autosave} /></div>
     </aside>

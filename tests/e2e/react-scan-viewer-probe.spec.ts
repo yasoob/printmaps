@@ -36,7 +36,7 @@ for (const embedded of [false, true]) {
     const result = await finishProbe(page, info, 'readonly-pan');
     expectOwners(result, ['SharedCompositionOverlay', 'StudioPosterPreview'], [
       'SharedProjectApp', 'SharedProjectView', 'SharedMapPreview', 'MapCanvas',
-      'App', 'StudioApp', 'HistoryActions', 'ProjectAutosaveProvider',
+      'App', 'StudioApp', 'HistoryActions', 'UndoButton', 'RedoButton', 'ProjectAutosaveProvider',
     ]);
     expect(result.domMutations).toEqual([]);
     expect(result.mapMutations.filter(({ operation }) => ['setData', 'addLayer', 'removeLayer', 'setPaintProperty'].includes(operation))).toEqual([]);

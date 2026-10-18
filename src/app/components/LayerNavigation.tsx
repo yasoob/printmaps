@@ -4,6 +4,7 @@ import { useId, useLayoutEffect, useRef, useState, type Dispatch, type KeyboardE
 import type { ContentLayer } from '../../domain/project';
 import { trackEditorAction } from '../../analytics/editorAnalytics';
 import type { MobilePanel } from '../hooks/useMobilePanels';
+import { useStableEvent } from '../hooks/useStableEvent';
 import { useLayerNavigation } from '../hooks/useLayerNavigation';
 import { LayerNavigationHeader } from './LayerNavigationHeader';
 import { LayerDragOverlay, LayerNavigationRow } from './LayerNavigationRow';
@@ -41,24 +42,26 @@ export function LayerNavigation(props: Props) {
     setSearchOpen(false);
     searchButtonRef.current?.focus();
   };
-  const handleSearchEscape = (event: KeyboardEvent<HTMLElement>) => {
+  // Stable so the memoized header only re-renders for its own inputs, not layer edits.
+  const handleSearchEscape = useStableEvent((event: KeyboardEvent<HTMLElement>) => {
     if (!searchOpen || event.key !== 'Escape' || event.defaultPrevented || event.nativeEvent.isComposing || reorder.isDragging()) return;
     event.preventDefault();
     event.stopPropagation();
     closeSearch();
-  };
+  });
+  const toggleSearch = useStableEvent(() => {
+    if (searchOpen) closeSearch();
+    else {
+      trackEditorAction('layerFilterOpened');
+      setSearchOpen(true);
+    }
+  });
 
   return (
     <>
       <LayerNavigationHeader collapseButton={props.collapseButton} filterId={filterId}
         helpKey={`${activePanel}-${props.desktopCollapsed}`} searchOpen={searchOpen} searchButtonRef={searchButtonRef}
-        onToggleSearch={() => {
-          if (searchOpen) closeSearch();
-          else {
-            trackEditorAction('layerFilterOpened');
-            setSearchOpen(true);
-          }
-        }} onKeyDown={handleSearchEscape} />
+        onToggleSearch={toggleSearch} onKeyDown={handleSearchEscape} />
       <div className="layer-navigation" onKeyDown={handleSearchEscape}>
         <div id={filterId} className="layer-filter" hidden={!searchOpen}>
           {searchOpen && <InputGroup>

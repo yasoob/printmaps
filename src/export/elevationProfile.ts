@@ -42,7 +42,7 @@ function serializePlot(scene: ElevationProfileScene, id: string): string {
   const gradient = options.showGradient ? `<defs><linearGradient id="${id}-gradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${options.fillColor}"/><stop offset="1" stop-color="${options.gradientColor}"/></linearGradient></defs>` : '';
   const fill = options.showFill ? `${gradient}<path class="elevation-area" data-profile-fill="true" d="${area}" fill="${options.showGradient ? `url(#${id}-gradient)` : options.fillColor}"/>` : '';
   const curve = options.showCurve ? `<path class="elevation-line" d="${line}" fill="none" stroke="${options.curveColor}" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>` : '';
-  const markers = options.showElevationMarkers ? `<g class="elevation-markers" data-elevation-markers="true" fill="${options.markerColor}">${scene.markers.map((marker) => `<circle cx="${number(marker.point.x)}" cy="${number(marker.point.y)}" r="8" stroke="#ffffff" stroke-width="3"/>`).join('')}${scene.texts.filter((text) => text.role === 'marker').map((text) => serializeText(text, scene)).join('')}</g>` : '';
+  const markers = options.showElevationMarkers ? `<g class="elevation-markers" data-elevation-markers="true" fill="${options.markerColor}">${scene.markers.map((marker) => `<circle cx="${number(marker.point.x)}" cy="${number(marker.point.y)}" r="8" stroke="#ffffff" stroke-width="3"/>`).join('')}${scene.texts.flatMap((text) => text.role === 'marker' ? [serializeText(text, scene)] : []).join('')}</g>` : '';
   return `${fill}${curve}${markers}`;
 }
 
@@ -52,7 +52,7 @@ export function serializeElevationProfileSvg(profile: ElevationProfile, title: s
   const { layout, options: resolved } = scene;
   const summary = formatElevationProfileSummary(profile, resolved.units);
   const description = `${summary.distance} route with an elevation range of ${summary.elevationRange}. ${profile.sourceLabel}.`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" class="elevation-chart" width="${resolved.printWidthMm}mm" height="${resolved.printWidthMm / 2}mm" viewBox="0 0 ${layout.width} ${layout.height}" data-elevation-profile="true" data-print-width-mm="${resolved.printWidthMm}" font-family="${elevationProfileFontStack(resolved.fontFamily)}" role="img" aria-labelledby="${id}-title" aria-describedby="${id}-description"><title id="${id}-title">${escapeXml(title)} elevation profile</title><desc id="${id}-description">${escapeXml(description)}</desc><rect width="${layout.width}" height="${layout.height}" fill="#ffffff"/>${serializeGrid(scene)}${serializePlot(scene, id)}${scene.texts.filter((text) => text.role !== 'marker').map((text) => serializeText(text, scene)).join('')}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" class="elevation-chart" width="${resolved.printWidthMm}mm" height="${resolved.printWidthMm / 2}mm" viewBox="0 0 ${layout.width} ${layout.height}" data-elevation-profile="true" data-print-width-mm="${resolved.printWidthMm}" font-family="${elevationProfileFontStack(resolved.fontFamily)}" role="img" aria-labelledby="${id}-title" aria-describedby="${id}-description"><title id="${id}-title">${escapeXml(title)} elevation profile</title><desc id="${id}-description">${escapeXml(description)}</desc><rect width="${layout.width}" height="${layout.height}" fill="#ffffff"/>${serializeGrid(scene)}${serializePlot(scene, id)}${scene.texts.flatMap((text) => text.role === 'marker' ? [] : [serializeText(text, scene)]).join('')}</svg>`;
 }
 
 type ElevationPngOptions = ElevationProfileRenderOptions & Readonly<{

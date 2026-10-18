@@ -186,24 +186,6 @@ export function extendedLocalRouteGeometry(
   );
 }
 
-type RoadDirections = {
-  route: (
-    waypoints: readonly (readonly [number, number])[],
-    options: RouteAuthoringOptions,
-  ) => Promise<RouteMutationResult | null>;
-};
-
-type FinishRouteOptions = {
-  coordinates: [number, number][];
-  directions: RoadDirections;
-  exit: () => void;
-  onCreateRoute: (
-    coordinates: readonly (readonly [number, number])[],
-    options?: RouteAuthoringOptions,
-  ) => RouteMutationResult;
-  routeOptions: RouteAuthoringOptions;
-};
-
 export function canFinishRoute(
   points: readonly (readonly [number, number])[],
   options: RouteAuthoringOptions,
@@ -228,23 +210,6 @@ export function routeFinishExplanation(
     return "Move an Arc endpoint so every segment has valid geometry.";
   }
   return "Ready to finish this route.";
-}
-
-export function finishRouteCoordinates(options: FinishRouteOptions) {
-  if (countDistinctPoints(options.coordinates) < 2) return;
-  if (options.routeOptions.lineShape === "road") {
-    void options.directions
-      .route(options.coordinates, options.routeOptions)
-      .then((result) => {
-        if (result?.ok) options.exit();
-      });
-    return;
-  }
-  const result = options.onCreateRoute(
-    options.coordinates,
-    options.routeOptions,
-  );
-  if (result.ok) options.exit();
 }
 
 export type CreateDirectionsRoute = (

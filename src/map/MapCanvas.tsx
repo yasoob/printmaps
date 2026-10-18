@@ -114,6 +114,8 @@ const CameraMutationError = memo(function CameraMutationError({ error, container
   if (!error) return null;
   const notice = <details className="map-camera-mutation-error" role="alert" aria-label="Camera change not saved">
     <summary>Map view not saved · Previous map view restored</summary>
+    {/* Scrollable error text (max-height, overflow-y: auto) must be keyboard focusable to scroll. */}
+    {/* react-doctor-disable-next-line react-doctor/no-noninteractive-tabindex */}
     <p tabIndex={0}>{error}</p>
   </details>;
   return container ? createPortal(notice, container) : notice;

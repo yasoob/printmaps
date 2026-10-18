@@ -97,6 +97,10 @@ function SelectLabel({ className, ...props }: SelectPrimitive.GroupLabel.Props) 
   )
 }
 
+// Static, so open items re-rendering on highlight do not hand the indicator fresh elements.
+const selectItemIndicator = <span className="pointer-events-none absolute right-2 flex size-4 items-center justify-center text-studio-accent" />
+const selectItemCheck = <CheckIcon aria-hidden="true" size={16} strokeWidth={1.75} />
+
 function SelectItem({ className, children, ...props }: SelectPrimitive.Item.Props) {
   return (
     <SelectPrimitive.Item
@@ -108,11 +112,7 @@ function SelectItem({ className, children, ...props }: SelectPrimitive.Item.Prop
       {...props}
     >
       <SelectPrimitive.ItemText className="flex min-w-0 flex-1 gap-2 truncate">{children}</SelectPrimitive.ItemText>
-      <SelectPrimitive.ItemIndicator
-        render={<span className="pointer-events-none absolute right-2 flex size-4 items-center justify-center text-studio-accent" />}
-      >
-        <CheckIcon aria-hidden="true" size={16} strokeWidth={1.75} />
-      </SelectPrimitive.ItemIndicator>
+      <SelectPrimitive.ItemIndicator render={selectItemIndicator}>{selectItemCheck}</SelectPrimitive.ItemIndicator>
     </SelectPrimitive.Item>
   )
 }
@@ -194,6 +194,22 @@ const SimpleSelect = React.memo(function SimpleSelect<V extends string>({
     const flat = isGrouped(options) ? options.flatMap((group) => group.options) : options
     return flat.map(({ value: itemValue, label: itemLabel }) => ({ value: itemValue, label: itemLabel }))
   }, [options])
+  // The popup content only depends on the options; a value change must not re-render it while closed.
+  const content = React.useMemo(() => (
+    <SelectContent>
+      {isGrouped(options)
+        ? options.map((group, index) => (
+            <React.Fragment key={group.label}>
+              {index > 0 && <SelectSeparator />}
+              <SelectGroup>
+                <SelectLabel>{group.label}</SelectLabel>
+                {group.options.map((option) => renderOption(option))}
+              </SelectGroup>
+            </React.Fragment>
+          ))
+        : options.map((option) => renderOption(option))}
+    </SelectContent>
+  ), [options])
   return (
     <Select
       items={items}
@@ -214,19 +230,7 @@ const SimpleSelect = React.memo(function SimpleSelect<V extends string>({
       >
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
-      <SelectContent>
-        {isGrouped(options)
-          ? options.map((group, index) => (
-              <React.Fragment key={group.label}>
-                {index > 0 && <SelectSeparator />}
-                <SelectGroup>
-                  <SelectLabel>{group.label}</SelectLabel>
-                  {group.options.map((option) => renderOption(option))}
-                </SelectGroup>
-              </React.Fragment>
-            ))
-          : options.map((option) => renderOption(option))}
-      </SelectContent>
+      {content}
     </Select>
   )
 }) as <V extends string>(props: SimpleSelectProps<V>) => React.JSX.Element

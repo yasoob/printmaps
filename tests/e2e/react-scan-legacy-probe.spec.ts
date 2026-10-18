@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { attachInventory, expectOwners, finishProbe, openScanEditor, startProbe, waitForRenderQuiet } from './react-scan-helpers';
 import { installDirectionsMock, openAdvanced } from './advanced-route-test-support';
 import { chooseOption } from './select-support';
+import type { ReactScanProbeResult } from '../../src/dev/reactScanProbe';
 
 test.skip(process.env.VITE_REACT_SCAN !== 'true', 'Run with npm run audit:renders.');
 test.afterEach(async ({ page }, info) => attachInventory(page, info));
@@ -98,22 +99,48 @@ test('search typing results and selection do not wake inactive authoring or insp
   expectOwners(result, ['LocationSearch'], ['ProjectProperties', 'StudioCompositionControls', 'StudioTerrainControls', 'StudioVideoControls']);
 });
 
+function toolButtonLabels(result: ReactScanProbeResult) {
+  return new Set(result.events.filter(({ component }) => component === 'ToolButton').map(({ instanceId }) => instanceId));
+}
+
 for (const tool of ['Place (P)', 'Route (R)', 'Area (S)']) {
+  // StudioCompositionControls lives on the Layout tab; the blocked reason reaches it through context only.
   test(`${tool} activation and cancellation preserve inactive domains`, async ({ page }, info) => {
     await openScanEditor(page);
+    await page.getByRole('tab', { name: 'Layout' }).click();
     await startProbe(page, `Activate ${tool}`);
     await page.getByRole('button', { name: tool, exact: true }).click();
+    await expect(page.getByText('Finish or cancel the current drawing first.', { exact: true })).toBeVisible();
     let result = await finishProbe(page, info, 'tool-activate');
-    expectOwners(result, ['CanvasWorkspace', 'CanvasWorkspaceChrome', 'StudioCompositionControls'], ['PosterControls', 'PhotoStoryControls', 'DecorationControls']);
-    expect(result.components.StudioCompositionControls.changes).toEqual(['props:blockedReason']);
+    expectOwners(result, ['CanvasWorkspace', 'CanvasWorkspaceChrome', 'StudioCompositionControls'], [
+      'ProjectProperties', 'PageDimensions', 'PageAppearance', 'PosterControls', 'PhotoStoryControls', 'DecorationControls',
+      'StudioModeTabs', 'LayerNavigation', 'LayerNavigationHeader', 'LocationSearch', 'UndoButton', 'RedoButton', 'MobilePanelButton',
+    ]);
+    expect(result.components.StudioCompositionControls.changes.filter((change) => change.startsWith('props:'))).toEqual([]);
+    expect(toolButtonLabels(result).size, 'only the previous and next tool buttons update').toBe(2);
     await startProbe(page, `Cancel ${tool}`);
     if (tool === 'Place (P)') await page.getByRole('button', { name: 'Cancel POI', exact: true }).click();
     else await page.keyboard.press('Escape');
     await expect(page.getByRole('button', { name: 'Select (V)' })).toHaveAttribute('aria-pressed', 'true');
     result = await finishProbe(page, info, 'tool-cancel');
-    expectOwners(result, ['CanvasWorkspace', 'StudioCompositionControls'], ['PosterControls', 'PhotoStoryControls', 'DecorationControls']);
+    expectOwners(result, ['CanvasWorkspace', 'StudioCompositionControls'], [
+      'ProjectProperties', 'PosterControls', 'PhotoStoryControls', 'DecorationControls', 'LayerNavigationHeader',
+    ]);
+    expect(toolButtonLabels(result).size).toBe(2);
   });
 }
+
+test('tool activation on the Map tab leaves the whole project inspector silent', async ({ page }, info) => {
+  await openScanEditor(page);
+  await startProbe(page, 'Activate Place on Map tab');
+  await page.getByRole('button', { name: 'Place (P)', exact: true }).click();
+  const result = await finishProbe(page, info, 'tool-activate-map-tab');
+  expectOwners(result, ['CanvasWorkspaceChrome', 'PoiAuthoringControls'], [
+    'ProjectProperties', 'StudioTerrainControls', 'TerrainProperties', 'ProjectStyleSection', 'ProjectCameraSection',
+    'ProjectDetailsSection', 'StudioCompositionControls', 'LayerNavigationHeader', 'LocationSearch',
+  ]);
+  expect(result.mapMutations).toEqual([]);
+});
 
 test('route advanced disclosure and async elevation stay within route owners', async ({ page }, info) => {
   await page.route('https://api.open-meteo.com/v1/elevation**', async (route) => {

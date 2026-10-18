@@ -15,16 +15,6 @@ export const AutosaveCorruptionContext = createContext<
   ProjectAutosaveState | null | undefined
 >(undefined);
 
-export function useProjectAutosaveState(): ProjectAutosaveState {
-  const autosave = useContext(ProjectAutosaveContext);
-  if (!autosave) {
-    throw new Error(
-      "Autosave consumers must render inside ProjectAutosaveProvider.",
-    );
-  }
-  return autosave;
-}
-
 export function useIsAutosaveCorrupted(): boolean {
   const isCorrupted = useContext(AutosaveCorruptedContext);
   if (isCorrupted === undefined) {

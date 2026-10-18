@@ -168,6 +168,8 @@ function usePendingDraftReport(
 
 export function CanvasWorkspace(props: CanvasWorkspaceProps) {
   const [storedActiveTool, setStoredActiveTool] = useState("select");
+  // Epoch snapshot taken when a tool activates; a mismatch with the live epoch deliberately resets to Select.
+  // react-doctor-disable-next-line react-doctor/no-derived-useState
   const [toolDocumentEpoch, setToolDocumentEpoch] = useState(props.documentEpoch);
   const [fitRequest, setFitRequest] = useState(0);
   const [fitLayerRequest, setFitLayerRequest] = useState({ id: null as string | null, request: 0 });

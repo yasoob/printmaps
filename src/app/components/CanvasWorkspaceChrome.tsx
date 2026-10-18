@@ -17,6 +17,36 @@ const tools = [
   { id: 'shape', label: 'Area', mobileLabel: 'Area', shortcut: 'S', icon: Shapes },
 ];
 
+// One boundary per tool: switching tools re-renders only the previous and next buttons.
+const ToolButton = memo(function ToolButton({ tool, isActive, onActivateTool, buttonRef }: {
+  tool: (typeof tools)[number];
+  isActive: boolean;
+  onActivateTool: (id: string) => void;
+  buttonRef?: RefObject<HTMLButtonElement | null>;
+}) {
+  const { id, label, mobileLabel, shortcut, icon: Icon } = tool;
+  return (
+    <div className="tool-slot">
+      <IconTooltip label={label} shortcut={shortcut} side="top">
+        <Button
+          ref={buttonRef}
+          variant="ghost"
+          size="icon"
+          className={`tool-button${isActive ? ' is-active' : ''}`}
+          aria-label={`${label} (${shortcut})`}
+          aria-pressed={isActive}
+          onPointerEnter={id === 'route' ? preloadRouteEditor : undefined}
+          onFocus={id === 'route' ? preloadRouteEditor : undefined}
+          onClick={() => onActivateTool(id)}
+        >
+          <Icon size={17} strokeWidth={1.8} aria-hidden="true" />
+          <span className="tool-label" aria-hidden="true">{mobileLabel}</span>
+        </Button>
+      </IconTooltip>
+    </div>
+  );
+});
+
 const CanvasToolPalette = memo(function CanvasToolPalette({
   activeTool,
   onActivateTool,
@@ -24,25 +54,9 @@ const CanvasToolPalette = memo(function CanvasToolPalette({
 }: Pick<CanvasWorkspaceChromeProps, "activeTool" | "onActivateTool" | "selectToolRef">) {
   return (
     <nav className="tool-palette" aria-label="Map tools">
-      {tools.map(({ id, label, mobileLabel, shortcut, icon: Icon }) => (
-        <div className="tool-slot" key={id}>
-          <IconTooltip label={label} shortcut={shortcut} side="top">
-            <Button
-              ref={id === 'select' ? selectToolRef : undefined}
-              variant="ghost"
-              size="icon"
-              className={`tool-button${activeTool === id ? ' is-active' : ''}`}
-              aria-label={`${label} (${shortcut})`}
-              aria-pressed={activeTool === id}
-              onPointerEnter={id === 'route' ? preloadRouteEditor : undefined}
-              onFocus={id === 'route' ? preloadRouteEditor : undefined}
-              onClick={() => onActivateTool(id)}
-            >
-              <Icon size={17} strokeWidth={1.8} aria-hidden="true" />
-              <span className="tool-label" aria-hidden="true">{mobileLabel}</span>
-            </Button>
-          </IconTooltip>
-        </div>
+      {tools.map((tool) => (
+        <ToolButton key={tool.id} tool={tool} isActive={activeTool === tool.id} onActivateTool={onActivateTool}
+          buttonRef={tool.id === 'select' ? selectToolRef : undefined} />
       ))}
     </nav>
   );
@@ -99,6 +113,24 @@ function isSameCanvasWorkspaceChromeProps(
     && previous.selectedShape.selectedId === next.selectedShape.selectedId;
 }
 
+// Memoized so search updates (children, e.g. map-centre proximity) leave both panel buttons alone.
+const MobilePanelButton = memo(function MobilePanelButton({ panel, isExpanded, triggerRef, onOpenPanel }: {
+  panel: MobilePanel;
+  isExpanded: boolean;
+  triggerRef: RefObject<HTMLButtonElement | null>;
+  onOpenPanel: (panel: MobilePanel) => void;
+}) {
+  const label = panel === 'layers' ? 'Layers' : 'Properties';
+  const Icon = panel === 'layers' ? Layers3 : SlidersHorizontal;
+  return (
+    <IconTooltip label={label}>
+      <button ref={triggerRef} type="button" aria-label={`Open ${panel}`} aria-controls={`${panel}-panel`} aria-expanded={isExpanded} onClick={() => onOpenPanel(panel)}>
+        <Icon size={15} aria-hidden="true" /><span>{label}</span>
+      </button>
+    </IconTooltip>
+  );
+});
+
 export function MobilePanelActions({
   activePanel,
   children,
@@ -114,9 +146,9 @@ export function MobilePanelActions({
 }) {
   return (
     <div className="mobile-panel-actions" aria-label="Editor panels">
-      <IconTooltip label="Layers"><button ref={layersTriggerRef} type="button" aria-label="Open layers" aria-controls="layers-panel" aria-expanded={activePanel === 'layers'} onClick={() => onOpenPanel('layers')}><Layers3 size={15} aria-hidden="true" /><span>Layers</span></button></IconTooltip>
+      <MobilePanelButton panel="layers" isExpanded={activePanel === 'layers'} triggerRef={layersTriggerRef} onOpenPanel={onOpenPanel} />
       {children}
-      <IconTooltip label="Properties"><button ref={propertiesTriggerRef} type="button" aria-label="Open properties" aria-controls="properties-panel" aria-expanded={activePanel === 'properties'} onClick={() => onOpenPanel('properties')}><SlidersHorizontal size={15} aria-hidden="true" /><span>Properties</span></button></IconTooltip>
+      <MobilePanelButton panel="properties" isExpanded={activePanel === 'properties'} triggerRef={propertiesTriggerRef} onOpenPanel={onOpenPanel} />
     </div>
   );
 }

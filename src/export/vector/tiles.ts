@@ -101,6 +101,8 @@ export async function captureVectorTiles(source: VectorSourceSpecification, proj
     if (url.includes('{')) vectorUnsupported('The vector source requires an unsupported tile URL parameter.');
     const base = source.url ? new URL(source.url, globalThis.location?.href ?? 'http://localhost') : undefined;
     const absoluteUrl = base ? new URL(url, base).href : url;
+    // Sequential on purpose: enforces the shared byte budget deterministically and stops at the first abort.
+    // react-doctor-disable-next-line react-doctor/async-await-in-loop
     const bytes = await boundedVectorFetch(absoluteUrl, signal, budget);
     output.push({ x, y, z, tile: new VectorTile(new PbfReader(bytes)) });
   }

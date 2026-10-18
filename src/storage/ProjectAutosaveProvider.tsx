@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type { ProjectState } from "../app/store";
 import {
@@ -39,16 +39,10 @@ export function ProjectAutosaveProvider({
     resolvedRepository,
     loadError,
   );
-  const errorState = useMemo(
-    () => autosave.statusKind !== "status" && !autosave.corrupted
-      ? autosave
-      : null,
-    [autosave],
-  );
-  const corruptionState = useMemo(
-    () => autosave.corrupted ? autosave : null,
-    [autosave],
-  );
+  // Both are the existing autosave reference or null, so their identity only
+  // changes with `autosave`; no memo is required for stable context values.
+  const errorState = autosave.statusKind !== "status" && !autosave.corrupted ? autosave : null;
+  const corruptionState = autosave.corrupted ? autosave : null;
   return (
     <AutosaveCorruptedContext value={autosave.corrupted}>
       <AutosaveConflictOpenContext value={autosave.conflictOpen}>

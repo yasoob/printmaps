@@ -9,8 +9,7 @@ import { vectorCircle } from './geometry';
 import { vectorUnsupported, type VectorBasemapScene, type VectorPath, type VectorPoint, type VectorText } from './scene';
 
 export async function loadVectorFont(signal: AbortSignal, budget: VectorBudget) {
-  const bytes = await boundedVectorFetch(fontUrl, signal, budget);
-  const document = await PDFDocument.create();
+  const [bytes, document] = await Promise.all([boundedVectorFetch(fontUrl, signal, budget), PDFDocument.create()]);
   document.registerFontkit(fontkit);
   const font = await document.embedFont(bytes);
   let binary = '';

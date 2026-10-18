@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo } from 'react';
+import { memo, useCallback, useContext, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { createDefaultLayerAppearance, type ContentLayer } from '../../domain/project';
 import { mutationRejected } from '../../domain/projectMutation';
@@ -10,6 +10,7 @@ import { StudioCompositionPanel, type StudioCompositionPanelProps } from './Stud
 import type { PhotoUpload } from './PhotoStoryControls';
 import { useReadMapExporter } from '../mapExporterContext';
 import { currentLayoutApplication } from './templateProjects';
+import { StudioBlockedReasonContext } from './studioBlockedReasonContext';
 import { PageProperties } from './PageProperties';
 import { editablePoster } from './posterEditing';
 import { Notice } from '../../components/ui/notice';
@@ -36,9 +37,10 @@ function usePhotoUpload(): PhotoUpload {
   }, [store]);
 }
 
-export const StudioCompositionControls = memo(function StudioCompositionControls({ exporter, blockedReason }: {
-  exporter?: PreviewPngExporter | null; blockedReason?: string;
+export const StudioCompositionControls = memo(function StudioCompositionControls({ exporter }: {
+  exporter?: PreviewPngExporter | null;
 }) {
+  const blockedReason = useContext(StudioBlockedReasonContext);
   const readExporter = useReadMapExporter(exporter);
   const store = useProjectStoreApi(), actions = useProjectActions();
   const poster = useProject((state) => state.document.studio.poster);

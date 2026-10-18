@@ -107,7 +107,7 @@ test('real video recording progress leaves the live map camera and renderer unto
   await download.click();
   await downloaded;
   const result = await finishProbe(page, info, 'video-progress');
-  expectOwners(result, ['VideoExportSession', 'VideoExportMessages'], ['StudioCanvas', 'MapCanvas', 'StudioPosterPreview', 'HistoryActions', 'StudioCompositionControls']);
+  expectOwners(result, ['VideoExportSession', 'VideoExportMessages'], ['StudioCanvas', 'MapCanvas', 'StudioPosterPreview', 'HistoryActions', 'UndoButton', 'RedoButton', 'StudioCompositionControls']);
   expect(result.components.VideoExportSettings?.callbacks).toBe(2);
   expect(result.components.VideoExportActions?.callbacks).toBe(2);
   expect(result.components.FeatureHelp?.callbacks ?? 0).toBeLessThanOrEqual(2);
@@ -154,7 +154,7 @@ test('simulated video controller progress preserves settings and help render bou
   await expect(dialog.getByRole('status')).toContainText('No file downloaded');
   const result = await finishProbe(page, info, 'simulated-video-progress');
   expectOwners(result, ['VideoExportSession', 'VideoExportMessages'], [
-    'StudioCanvas', 'MapCanvas', 'StudioPosterPreview', 'HistoryActions', 'StudioCompositionControls', 'VideoExportHelp',
+    'StudioCanvas', 'MapCanvas', 'StudioPosterPreview', 'HistoryActions', 'UndoButton', 'RedoButton', 'StudioCompositionControls', 'VideoExportHelp',
   ]);
   expect(result.components.VideoExportSettings?.callbacks).toBe(2);
   expect(result.components.VideoExportActions?.callbacks).toBe(2);

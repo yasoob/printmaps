@@ -43,6 +43,8 @@ export async function prepareVideoMapImages(snapshot: MapRenderSnapshot, signal:
       requireVideoActive(signal);
       const asset = snapshot.assets[id];
       if (!asset) throw new Error('A video custom marker asset is missing from the snapshot.');
+      // Sequential decode bounds memory and checks cancellation between custom marker assets.
+      // react-doctor-disable-next-line react-doctor/async-await-in-loop
       images.set(`studio-marker-${id}`, await decodeImage(asset, signal));
     }
     return {

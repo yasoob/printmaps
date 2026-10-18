@@ -168,6 +168,8 @@ export function prepareStudioComposition(document: StudioCompositionDocument) {
         context.scale(output.width / document.page.widthMm, output.height / document.page.heightMm);
         for (const primitive of primitives) {
           throwIfCancelled(options.signal);
+          // Canvas painting must follow primitive z-order.
+          // react-doctor-disable-next-line react-doctor/async-await-in-loop
           await drawPrimitive(context, primitive, images, options.signal);
         }
         throwIfCancelled(options.signal);

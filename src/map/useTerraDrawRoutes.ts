@@ -170,6 +170,8 @@ function useRouteSession(
     editableRouteRef.current = editableRoute;
   }, [editableRoute]);
 
+  // The post-await setter is guarded by this effect run's isCancelled flag.
+  // react-doctor-disable-next-line react-doctor/no-set-state-after-await-in-effect
   useEffect(() => {
     if (!lineShape || !map) {
       if (!isAuthoring) callbacks.current.editorError?.(null);

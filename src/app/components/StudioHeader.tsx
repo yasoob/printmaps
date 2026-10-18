@@ -48,31 +48,50 @@ const IS_APPLE_PLATFORM = typeof navigator !== 'undefined' && /mac|iphone|ipad/i
 const UNDO_SHORTCUT = IS_APPLE_PLATFORM ? '⌘Z' : 'Ctrl+Z';
 const REDO_SHORTCUT = IS_APPLE_PLATFORM ? '⇧⌘Z' : 'Ctrl+Shift+Z';
 
-function HistoryActions({ presentation = 'toolbar' }: { presentation?: 'toolbar' | 'menu' }) {
+function HistoryMenuItems() {
   const { redo, undo } = useProjectActions();
   const canUndo = useProject((state) => state.canUndo);
   const canRedo = useProject((state) => state.canRedo);
-  if (presentation === 'menu') {
-    return (
-      <>
-        <DropdownMenuSeparator className="project-file-menu-separator" />
-        <DropdownMenuItem className="project-file-menu-item" disabled={!canUndo} onClick={undo}>
-          <Undo2 aria-hidden="true" size={15} /> Undo
-        </DropdownMenuItem>
-        <DropdownMenuItem className="project-file-menu-item" disabled={!canRedo} onClick={redo}>
-          <Redo2 aria-hidden="true" size={15} /> Redo
-        </DropdownMenuItem>
-      </>
-    );
-  }
+  return (
+    <>
+      <DropdownMenuSeparator className="project-file-menu-separator" />
+      <DropdownMenuItem className="project-file-menu-item" disabled={!canUndo} onClick={undo}>
+        <Undo2 aria-hidden="true" size={15} /> Undo
+      </DropdownMenuItem>
+      <DropdownMenuItem className="project-file-menu-item" disabled={!canRedo} onClick={redo}>
+        <Redo2 aria-hidden="true" size={15} /> Redo
+      </DropdownMenuItem>
+    </>
+  );
+}
+
+// Each toolbar button subscribes to its own flag, so the first edit enables Undo without re-rendering Redo.
+const UndoButton = memo(function UndoButton() {
+  const { undo } = useProjectActions();
+  const canUndo = useProject((state) => state.canUndo);
+  return (
+    <IconTooltip label="Undo" shortcut={UNDO_SHORTCUT}>
+      <Button variant="ghost" size="icon" aria-label="Undo" disabled={!canUndo} onClick={undo}><Undo2 aria-hidden="true" size={16} strokeWidth={1.75} /></Button>
+    </IconTooltip>
+  );
+});
+
+const RedoButton = memo(function RedoButton() {
+  const { redo } = useProjectActions();
+  const canRedo = useProject((state) => state.canRedo);
+  return (
+    <IconTooltip label="Redo" shortcut={REDO_SHORTCUT}>
+      <Button variant="ghost" size="icon" aria-label="Redo" disabled={!canRedo} onClick={redo}><Redo2 aria-hidden="true" size={16} strokeWidth={1.75} /></Button>
+    </IconTooltip>
+  );
+});
+
+function HistoryActions({ presentation = 'toolbar' }: { presentation?: 'toolbar' | 'menu' }) {
+  if (presentation === 'menu') return <HistoryMenuItems />;
   return (
     <div className="history-actions" aria-label="History">
-      <IconTooltip label="Undo" shortcut={UNDO_SHORTCUT}>
-        <Button variant="ghost" size="icon" aria-label="Undo" disabled={!canUndo} onClick={undo}><Undo2 aria-hidden="true" size={16} strokeWidth={1.75} /></Button>
-      </IconTooltip>
-      <IconTooltip label="Redo" shortcut={REDO_SHORTCUT}>
-        <Button variant="ghost" size="icon" aria-label="Redo" disabled={!canRedo} onClick={redo}><Redo2 aria-hidden="true" size={16} strokeWidth={1.75} /></Button>
-      </IconTooltip>
+      <UndoButton />
+      <RedoButton />
     </div>
   );
 }

@@ -25,7 +25,7 @@ export class ElevationProfileRegistry {
     if (this.layers === state.document.layers) return;
     this.layers = state.document.layers;
     if (this.sessions.size === 0) return;
-    const routes = new Map(this.layers.filter((layer) => layer.type === 'route').map((layer) => [layer.id, layer]));
+    const routes = new Map(this.layers.flatMap((layer) => layer.type === 'route' ? [[layer.id, layer] as const] : []));
     for (const [id, entry] of this.sessions) {
       const layer = routes.get(id);
       if (!layer) { entry.session.dispose(); this.sessions.delete(id); }

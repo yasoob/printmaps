@@ -33,6 +33,8 @@ export function studioPrimitiveElements(primitives: readonly StudioPrimitive[], 
     const key = primitive.key ?? `${primitive.kind}-${index}`;
     const id = `${prefix}-${[...key].map((character) => character.codePointAt(0)!.toString(16)).join('-')}`;
     const element = primitiveElement(primitive, id);
+    // Identity-bearing photo primitives carry semantic keys; the index fallback only keys stateless paint-order SVG leaves.
+    // react-doctor-disable-next-line react-doctor/no-array-index-as-key
     return <Fragment key={key}>{primitive.clip ? <>
       <defs><clipPath id={`${id}-clip`}><rect {...boxProps(primitive.clip)} /></clipPath></defs>
       <g clipPath={`url(#${id}-clip)`}>{element}</g>

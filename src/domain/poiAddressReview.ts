@@ -59,8 +59,9 @@ export function poiAddressCommitError(rows: readonly PoiAddressReviewRow[]): str
 export function poiAddressEntries(rows: readonly PoiAddressReviewRow[]): PoiSpreadsheetEntry[] {
   const error = poiAddressCommitError(rows);
   if (error) throw new Error(error);
-  return rows.filter((row) => row.included).map((row) => {
+  return rows.flatMap((row) => {
+    if (!row.included) return [];
     const candidate = selectedPoiAddress(row)!;
-    return { name: row.name.trim(), coordinates: [...candidate.center], providerFeatureId: candidate.providerFeatureId };
+    return [{ name: row.name.trim(), coordinates: [...candidate.center], providerFeatureId: candidate.providerFeatureId }];
   });
 }

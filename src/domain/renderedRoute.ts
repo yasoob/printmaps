@@ -167,15 +167,11 @@ type RenderedEdge = {
 function renderedEdges(legs: readonly RenderedRouteLeg[]): RenderedEdge[] {
   return legs.flatMap((leg) => {
     const projected = continuousProjectedPath(leg.path);
-    return projected.slice(1).map((end, index) => {
+    return projected.slice(1).flatMap((end, index) => {
       const start = projected[index];
-      return {
-        start,
-        end,
-        length: Math.hypot(end.x - start.x, end.y - start.y),
-        legIndex: leg.index,
-      };
-    }).filter((edge) => edge.length > 0);
+      const length = Math.hypot(end.x - start.x, end.y - start.y);
+      return length > 0 ? [{ start, end, length, legIndex: leg.index }] : [];
+    });
   });
 }
 

@@ -15,6 +15,7 @@ import { useLatestValue } from '../hooks/useLatestValue';
 import type { PreviewPngExporter } from '../../export/previewPng';
 import { StudioTerrainControls } from '../studio/StudioTerrainControls';
 import { StudioCompositionControls } from '../studio/StudioCompositionControls';
+import { StudioBlockedReasonContext } from '../studio/studioBlockedReasonContext';
 
 type PropertiesSidebarProps = {
   exporter?: PreviewPngExporter | null;
@@ -202,6 +203,8 @@ export const PropertiesSidebar = memo(function PropertiesSidebar(props: Properti
   );
 });
 
+const TERRAIN_CONTROLS = <StudioTerrainControls />;
+
 /**
  * Isolates the project inspector's camera subscription. Bearing, pitch and lock
  * are rendered here, but panning writes centre and zoom at pointer rate; keeping
@@ -225,13 +228,17 @@ const ProjectPropertiesPanel = memo(function ProjectPropertiesPanel({ onLocate, 
     () => ({ bearing, locked, pitch }),
     [bearing, locked, pitch],
   );
+  // Stable elements: tool activation (blockedReason) reaches only the composition
+  // controls through context, so the inspector and the Map tab stay silent.
+  const studioControls = useMemo(() => <StudioCompositionControls exporter={exporter} />, [exporter]);
 
   return (
+    <StudioBlockedReasonContext value={blockedReason}>
     <ProjectProperties
       layoutRequest={layoutRequest}
       mapRequest={mapRequest}
-      terrainControls={<StudioTerrainControls />}
-      studioControls={<StudioCompositionControls exporter={exporter} blockedReason={blockedReason} />}
+      terrainControls={TERRAIN_CONTROLS}
+      studioControls={studioControls}
       camera={camera}
       documentEpoch={documentEpoch}
       style={style}
@@ -251,5 +258,6 @@ const ProjectPropertiesPanel = memo(function ProjectPropertiesPanel({ onLocate, 
       onStyleToneChange={project.setMapStyleTone}
       onTextScaleChange={project.setMapTextScale}
     />
+    </StudioBlockedReasonContext>
   );
 });

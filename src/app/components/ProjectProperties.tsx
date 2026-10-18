@@ -54,7 +54,8 @@ const MAP_LANGUAGE_LABELS: Record<MapLanguage, string> = {
 const MAP_LANGUAGE_OPTIONS = (Object.entries(MAP_LANGUAGE_LABELS) as [MapLanguage, string][]).map(([value, label]) => ({ value, label }));
 const TABS = [{ value: 'Map', label: 'Map' }, { value: 'Layout', label: 'Layout' }] as const;
 
-export function ProjectProperties(props: ProjectPropertiesProps) {
+// Memoized: inputs are narrow subscriptions and stable actions, so canvas-only changes stop here.
+export const ProjectProperties = memo(function ProjectProperties(props: ProjectPropertiesProps) {
   const { camera, documentEpoch, style } = props;
   const [tab, setTab] = useState<'Map' | 'Layout'>('Map');
   const [lastLayoutRequest, setLastLayoutRequest] = useState(0);
@@ -117,7 +118,7 @@ export function ProjectProperties(props: ProjectPropertiesProps) {
       <div id={`${id}-Layout-panel`} role="tabpanel" aria-labelledby={`${id}-Layout-tab`}>{props.studioControls}</div>
     </Activity>}
   </div>;
-}
+});
 
 const ProjectStyleSection = memo(function ProjectStyleSection({ preset, customization, onStyleChange, onStyleReset, customizeTriggerRef, onOpenCustomizer }:
   Pick<MapStyleSettings, 'preset' | 'customization'> &

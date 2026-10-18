@@ -1,6 +1,6 @@
 import { ChevronDown, Download, FilePlus2, FolderKanban, FolderOpen, LayoutTemplate } from 'lucide-react';
 import { trackEditorAction } from '../../analytics/editorAnalytics';
-import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode, type RefObject } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -67,6 +67,7 @@ export function ProjectFileActions({ children, getDocument, menuHeader, openButt
   const [status, setStatus] = useState<ProjectFileStatus | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const menuLabelId = useId();
   const fallbackTriggerRef = useRef<HTMLButtonElement>(null);
   const triggerRef = openButtonRef ?? fallbackTriggerRef;
   const readSequence = useRef(0);
@@ -144,6 +145,8 @@ export function ProjectFileActions({ children, getDocument, menuHeader, openButt
         accept=".printmap.json,.printmap.zip,application/json,application/zip"
         onChange={handleChange}
       />
+      {/* Names the menu instead of Base UI's default trigger reference ("Project"). */}
+      <span id={menuLabelId} hidden>Project actions</span>
       <DropdownMenu
         open={isOpen}
         onOpenChange={(open) => {
@@ -155,7 +158,7 @@ export function ProjectFileActions({ children, getDocument, menuHeader, openButt
         }}
       >
         {projectMenuTrigger(triggerRef, isOpen, () => setIsOpen(true))}
-        <DropdownMenuContent ref={menuRef} className="project-file-menu" align="end" collisionPadding={8} aria-label="Project actions" aria-labelledby="">
+        <DropdownMenuContent ref={menuRef} className="project-file-menu" align="end" collisionPadding={8} aria-labelledby={menuLabelId}>
           {menuHeader && <>{menuHeader}<DropdownMenuSeparator className="project-file-menu-separator" /></>}
           <DropdownMenuItem className="project-file-menu-item" onClick={newProject}>
             <FilePlus2 aria-hidden="true" size={15} /> New project

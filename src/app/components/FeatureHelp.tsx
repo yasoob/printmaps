@@ -1,9 +1,11 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { CircleHelp } from 'lucide-react';
-import { useCallback, useEffect, useId, useState, type ReactNode } from 'react';
+import { memo, useCallback, useEffect, useId, useState, type ReactNode } from 'react';
 import './featureHelp.css';
 
-export function FeatureHelp({ label, children, className = '' }: Readonly<{
+// Memoized: callers pass string or hoisted content, so an owner's unrelated update
+// does not re-render the closed tooltip portal.
+export const FeatureHelp = memo(function FeatureHelp({ label, children, className = '' }: Readonly<{
   label: string;
   children: ReactNode;
   className?: string;
@@ -79,4 +81,4 @@ export function FeatureHelp({ label, children, className = '' }: Readonly<{
       </TooltipContent>
     </Tooltip>
   </span>;
-}
+});

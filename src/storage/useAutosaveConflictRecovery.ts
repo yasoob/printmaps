@@ -83,6 +83,8 @@ export function useAutosaveConflictRecovery({
       return false;
     } finally {
       decisionPendingRef.current = false;
+      // This reset is already inside finally; the mounted guard only skips unmounted updates.
+      // react-doctor-disable-next-line react-doctor/no-loading-flag-reset-outside-finally
       if (mountedRef.current) setPending(false);
     }
   }, [active, decisionPendingRef, mountedRef, onLoaded, open, repository, store]);

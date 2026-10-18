@@ -5,7 +5,8 @@ export function studioObject(value: unknown, label: string, keys?: readonly stri
     || ![Object.prototype, null].includes(Object.getPrototypeOf(value))) {
     throw new ProjectFileError(`${label} must be a plain JSON object.`);
   }
-  if (keys && Object.keys(value).some((key) => !keys.includes(key))) {
+  const allowedKeys = keys && new Set(keys);
+  if (allowedKeys && Object.keys(value).some((key) => !allowedKeys.has(key))) {
     throw new ProjectFileError(`${label} contains an unsupported setting.`);
   }
   return value as Record<string, unknown>;

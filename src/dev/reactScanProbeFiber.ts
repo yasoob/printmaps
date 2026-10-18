@@ -25,9 +25,7 @@ function changedProps(fiber: ReactScanFiber): string[] {
   const current = fiber.memoizedProps;
   if (!isPropsRecord(previous) || !isPropsRecord(current)) return [];
   const names = new Set([...Object.keys(previous), ...Object.keys(current)]);
-  return [...names]
-    .filter((name) => !Object.is(previous[name], current[name]))
-    .map((name) => `props:${name}`);
+  return [...names].flatMap((name) => Object.is(previous[name], current[name]) ? [] : [`props:${name}`]);
 }
 
 function sourcePath(fiber: ReactScanFiber): string | null {

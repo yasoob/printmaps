@@ -31,6 +31,12 @@ export function ReliefExportDialog(props: ReliefExportDialogProps) {
   </Dialog>;
 }
 
+const RELIEF_HELP = <FeatureHelp label="Terrain STL help">
+  <p>A watertight binary STL of the print area. Set Pitch to 0; bearing is preserved. Import as millimeters in your slicer.</p>
+  <p>The lowest sample sits on the base. The four elevation-aware frame corners are interpolated across the model; scale uses average edge lengths at the frame center. Exaggeration multiplies relief height. Elevation tiles are approximate, not survey data.</p>
+  <p><strong>Elevation data & credits.</strong> {reliefAttributionNotice()}</p>
+</FeatureHelp>;
+
 function dismissLabel(isBusy: boolean, isComplete: boolean) {
   if (isBusy) return 'Cancel export';
   return isComplete ? 'Done' : 'Cancel';
@@ -115,11 +121,7 @@ export function ReliefExportPanel({ exporter, onClose, blockedReason, onBusyChan
   return <>
       <ReliefFeedback isBusy={isBusy} progress={progress} blockedReason={blockedReason} canExport={canExport} error={error} />
       <StudioDialogBody className="export-dialog-body">
-        <div className="feature-help-row export-panel-heading"><h3 className="export-panel-title">Terrain relief · STL</h3><FeatureHelp label="Terrain STL help">
-          <p>A watertight binary STL of the print area. Set Pitch to 0; bearing is preserved. Import as millimeters in your slicer.</p>
-          <p>The lowest sample sits on the base. The four elevation-aware frame corners are interpolated across the model; scale uses average edge lengths at the frame center. Exaggeration multiplies relief height. Elevation tiles are approximate, not survey data.</p>
-          <p><strong>Elevation data & credits.</strong> {reliefAttributionNotice()}</p>
-        </FeatureHelp></div>
+        <div className="feature-help-row export-panel-heading"><h3 className="export-panel-title">Terrain relief · STL</h3>{RELIEF_HELP}</div>
         <fieldset disabled={isBusy || !!blockedReason} className="relief-fields">
           <ReliefSettingsControls {...controls} fitAction={<StudioDialogButton variant="secondary" size="sm" className="relief-fit-button" disabled={!canExport} onClick={fitDimensions}>
             <Scan aria-hidden="true" strokeWidth={1.75} />Fit dimensions to print frame

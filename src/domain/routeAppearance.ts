@@ -124,7 +124,8 @@ function colorValue(value: unknown, label: string, fail: Fail): string {
 }
 
 function exactKeys(value: JsonObject, allowed: readonly string[], label: string, fail: Fail) {
-  const unexpected = Object.keys(value).find((key) => !allowed.includes(key));
+  const allowedKeys = new Set(allowed);
+  const unexpected = Object.keys(value).find((key) => !allowedKeys.has(key));
   if (unexpected) fail(`${label} contains unsupported field "${unexpected}".`);
 }
 

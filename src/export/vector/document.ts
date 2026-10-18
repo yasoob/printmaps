@@ -14,7 +14,7 @@ export async function createVectorPdfDocument(
   const { scene } = capture;
   if (!(scene.width > 0) || !(scene.height > 0)) throw new Error('Vector basemap dimensions must be positive.');
   const form = vectorPdfForm(scene);
-  const pdf = await render(document, capture, {
+  const [pdf, { embedVectorPdfText }] = await Promise.all([render(document, capture, {
     images: [{
       bytes: asciiBytes(form.commands),
       destination: { x: 0, y: 0, width: scene.width, height: scene.height },
@@ -22,7 +22,6 @@ export async function createVectorPdfDocument(
       resourceName: 'BasemapImage0',
     }],
     output: { width: scene.width, height: scene.height },
-  }, { signal, subject: 'True vector artwork. Reflowed Noto Sans Latin labels; generic vector markers and reference shields; sharp halos. Not pixel-identical to the live map.' });
-  const { embedVectorPdfText } = await import('./pdfFont');
+  }, { signal, subject: 'True vector artwork. Reflowed Noto Sans Latin labels; generic vector markers and reference shields; sharp halos. Not pixel-identical to the live map.' }), import('./pdfFont')]);
   return embedVectorPdfText(pdf, scene, signal);
 }

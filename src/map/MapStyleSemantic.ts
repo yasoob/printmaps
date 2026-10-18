@@ -74,9 +74,8 @@ function semanticMapAssignments(map: MapLibreMap) {
   return layers.flatMap((layer) => {
     const layerId = layer.id;
     if (!layerId) return [];
-    return assignmentsForLayer(layer)
-      .filter(({ property }) => Object.hasOwn(layer.paint ?? {}, property))
-      .map(({ property, role }) => ({ layerId, property, role }));
+    return assignmentsForLayer(layer).flatMap(({ property, role }) =>
+      Object.hasOwn(layer.paint ?? {}, property) ? [{ layerId, property, role }] : []);
   });
 }
 

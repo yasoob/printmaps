@@ -45,14 +45,19 @@ function validateProperties(layer: SupportedLayer): void {
   if ('filter' in layer) checkExpression(layer.filter, `"${layer.id}" filter`);
 }
 
+function isActiveVectorLayer(layer: StyleSpecification['layers'][number], zoom: number) {
+  return !layer.id.startsWith('studio-') && layer.layout?.visibility !== 'none'
+    && zoom >= (layer.minzoom ?? 0) && zoom < (layer.maxzoom ?? 24);
+}
+
 export function activeVectorLayers(style: StyleSpecification, zoom: number): SupportedLayer[] {
-  return style.layers.filter((layer) => !layer.id.startsWith('studio-') && layer.layout?.visibility !== 'none'
-    && zoom >= (layer.minzoom ?? 0) && zoom < (layer.maxzoom ?? 24)).map((layer) => {
+  return style.layers.flatMap((layer) => {
+    if (!isActiveVectorLayer(layer, zoom)) return [];
     if (layer.type !== 'background' && layer.type !== 'fill' && layer.type !== 'line' && layer.type !== 'circle' && layer.type !== 'symbol') {
       vectorUnsupported(`Layer "${layer.id}" uses ${layer.type}. Use a flat vector style without raster, relief, or 3D layers.`);
     }
     validateProperties(layer);
-    return layer;
+    return [layer];
   });
 }
 

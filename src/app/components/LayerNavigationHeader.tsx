@@ -1,9 +1,9 @@
 import { Search } from 'lucide-react';
-import type { KeyboardEvent, ReactNode, RefObject } from 'react';
+import { memo, type KeyboardEvent, type ReactNode, type RefObject } from 'react';
 import { FeatureHelp } from './FeatureHelp';
 import { IconTooltip } from './IconTooltip';
 
-function LayerNavigationHelp() {
+const LayerNavigationHelp = memo(function LayerNavigationHelp() {
   return (
     <FeatureHelp label="Layer keyboard shortcuts" className="layer-help">
       <strong>Layer shortcuts</strong>
@@ -17,7 +17,7 @@ function LayerNavigationHelp() {
       </dl>
     </FeatureHelp>
   );
-}
+});
 
 type Props = {
   collapseButton: ReactNode;
@@ -29,7 +29,7 @@ type Props = {
   onKeyDown: (event: KeyboardEvent<HTMLElement>) => void;
 };
 
-export function LayerNavigationHeader({
+export const LayerNavigationHeader = memo(function LayerNavigationHeader({
   collapseButton, filterId, helpKey, searchOpen, searchButtonRef, onToggleSearch, onKeyDown,
 }: Props) {
   return (
@@ -56,4 +56,4 @@ export function LayerNavigationHeader({
       </div>
     </div>
   );
-}
+});

@@ -184,6 +184,8 @@ export async function createLayeredPsd(
     for (const [index, svgLayer] of svgLayers.entries()) {
       throwIfPsdCancelled(options.signal);
       options.onStage?.('layers', svgLayer.name);
+      // Sequential on purpose: bounds peak canvas memory and allows cancellation between full-size layers.
+      // react-doctor-disable-next-line react-doctor/async-await-in-loop
       const canvas = await rasterizePsdSvgLayer(svgLayer, output, options.signal);
       ownedSurfaces.push(canvas);
       const smartObject = createPsdSmartObject(svgLayer, {

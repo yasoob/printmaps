@@ -116,6 +116,8 @@ export function replaceRouteGeometry(
   }
   const isUnchanged =
     coordinates.length === current.length - (source.route.closed ? 1 : 0) &&
+    // The preceding clause already compares lengths before this every().
+    // react-doctor-disable-next-line react-doctor/js-length-check-first
     coordinates.every(
       ([longitude, latitude], index) =>
         current[index][0] === longitude && current[index][1] === latitude,

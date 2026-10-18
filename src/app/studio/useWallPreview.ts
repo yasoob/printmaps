@@ -64,6 +64,8 @@ export function useWallPreview(readExporter: () => PreviewPngExporter | null, bl
         });
         const blob = await encodedCanvas(capture.surface);
         if (!isCurrent()) return;
+        // Stored in previewUrl and revoked by releasePreview() on replacement, close, and unmount.
+        // react-doctor-disable-next-line react-doctor/no-create-object-url-without-revoke
         const url = URL.createObjectURL(blob);
         previewUrl.current = url;
         setPreview({ epoch: documentEpoch, url });

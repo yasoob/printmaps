@@ -67,6 +67,8 @@ function sameRoutePositions(layer: ContentLayer, positions: readonly (readonly [
     && positions[0][0] === positions.at(-1)![0] && positions[0][1] === positions.at(-1)![1];
   const length = positions.length - (closing ? 1 : 0);
   return length === current.length - (layer.route?.closed ? 1 : 0)
+    // The preceding clause already compares lengths before this every().
+    // react-doctor-disable-next-line react-doctor/js-length-check-first
     && positions.slice(0, length).every(([lng, lat], index) => current[index][0] === lng && current[index][1] === lat);
 }
 

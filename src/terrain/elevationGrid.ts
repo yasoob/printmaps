@@ -63,6 +63,8 @@ async function loadTiles(tiles: readonly Tile[], zoom: number, options: {
     while (next < tiles.length) {
       throwIfTerrainAborted(options.signal);
       const tile = tiles[next++];
+      // This loop is one worker of a bounded four-way Promise.all pool.
+      // react-doctor-disable-next-line react-doctor/async-await-in-loop
       loaded.set(tile.key, await options.cache.get(zoom, tile.x, tile.y, options.signal));
       options.onProgress?.(loaded.size / tiles.length * 0.65, `Loading elevation tiles (${loaded.size}/${tiles.length})`);
     }
