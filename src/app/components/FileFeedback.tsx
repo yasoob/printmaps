@@ -1,6 +1,8 @@
 import { createContext, useContext, useMemo, useState, type ReactNode, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Notice } from '@/components/ui/notice';
 import { isInteractiveElement } from '../../lib/focus';
 
 type FeedbackHosts = { error: HTMLDivElement | null; success: HTMLDivElement | null };
@@ -27,14 +29,14 @@ export function FileFeedback({ kind, label, message, onDismiss, returnFocusRef }
   returnFocusRef: RefObject<HTMLButtonElement | null>;
 }) {
   const hosts = useContext(FeedbackContext);
-  const notice = <div className={`project-file-status${kind === 'error' ? ' is-error' : ''}`} role={kind === 'error' ? 'alert' : 'status'} aria-label={label}>
-    <span>{message}</span>
-    <button type="button" className="project-file-status-dismiss" aria-label={`Dismiss ${label.toLowerCase()}`} onClick={(event) => {
+  const notice = <Notice tone={kind} className="file-feedback-notice" aria-label={label}
+    action={<Button variant="ghost" size="icon" className="file-feedback-dismiss" aria-label={`Dismiss ${label.toLowerCase()}`} onClick={(event) => {
       const target = returnFocusRef.current;
       if (target && document.activeElement === event.currentTarget && isInteractiveElement(target)) target.focus();
       onDismiss();
-    }}><X size={16} aria-hidden="true" /></button>
-  </div>;
+    }}><X aria-hidden="true" strokeWidth={1.75} /></Button>}>
+    {message}
+  </Notice>;
   const host = hosts?.[kind];
   return host ? createPortal(notice, host) : notice;
 }

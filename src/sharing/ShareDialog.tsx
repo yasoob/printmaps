@@ -80,8 +80,10 @@ export function ShareDialog({ result, onClose, returnFocusRef }: {
               </span>
             </PropertyRow>
             {'error' in embed ? <p role="alert" className="export-error">{embed.error}</p> : <>
-              <textarea id="embed-code" aria-label="Embed HTML" className="share-code" readOnly value={embed.html} rows={4} onFocus={(event) => event.currentTarget.select()} />
-              <StudioDialogButton variant="secondary" className="share-copy-embed" onClick={() => void copy(embed.html)}><Copy aria-hidden="true" strokeWidth={1.75} />Copy embed code</StudioDialogButton>
+              <div className="share-copy-row is-multiline">
+                <textarea id="embed-code" aria-label="Embed HTML" className="share-code" readOnly value={embed.html} rows={4} onFocus={(event) => event.currentTarget.select()} />
+                <StudioDialogButton variant="secondary" aria-label="Copy embed code" onClick={() => void copy(embed.html)}><Copy aria-hidden="true" strokeWidth={1.75} />Copy</StudioDialogButton>
+              </div>
             </>}
           </section>
         </>}

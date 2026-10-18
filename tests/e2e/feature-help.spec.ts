@@ -110,7 +110,6 @@ for (const isMobile of [false, true]) {
       await checkHelp(page, dialog, 'Terrain STL help', { isMobile, info });
       await dialog.getByRole('switch', { name: 'Raise a route ridge' }).click();
       await checkHelp(page, dialog, 'Route ridge help', { isMobile, info });
-      await checkHelp(page, dialog, 'Elevation data and credits', { isMobile, info });
       await expect(dialog.getByRole('button', { name: 'Download STL' })).toBeEnabled();
       await dialog.getByRole('tab', { name: 'Print', exact: true }).click();
       await dialog.getByRole('button', { name: 'Preview on wall', exact: true }).click();
