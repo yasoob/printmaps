@@ -36,9 +36,3 @@
   width: 100%;
   height: 12px;
 }
-
-@media (max-width: 480px) {
-  .relief-fields .paired-fields {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
