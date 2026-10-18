@@ -1118,7 +1118,7 @@ body {
   .shape-editing-toolbar.studio-segmented { height: calc(var(--studio-touch-target) + 0.5rem); padding: 0.25rem; }
   .tool-authoring-card :is(.route-point-sources > summary, .route-draft-points > summary),
   .shadcn-combobox-input-group { min-height: var(--studio-touch-target); }
-  .right-sidebar :is(.property-control > input, .property-control select, .input-group, .number-field, .color-field, .studio-color-field, .segmented, .studio-segmented) {
+  .right-sidebar :is(.input-group, .color-field, .studio-color-field, .segmented, .studio-segmented) {
     height: var(--studio-touch-target);
   }
 }
@@ -1228,28 +1228,6 @@ body {
 .map-style-color-row small.is-custom > span[aria-hidden] { width: 0.375rem; height: 0.375rem; border-radius: 999px; background: var(--studio-accent); }
 .map-style-color-row > .studio-button:disabled { display: none; }
 .map-style-color-row > .coordinate-validation { grid-column: 1 / -1; }
-.property-control > input, .property-control select, .number-field {
-  @apply w-full;
-  height: var(--studio-control-height);
-  border: var(--studio-border-width) solid var(--studio-transparent);
-  border-radius: var(--studio-radius-sm);
-  background: var(--studio-field);
-}
-.property-control > input { @apply px-2; }
-.property-control select { padding: 0 1.4375rem 0 0.4375rem; border-right: 6px solid var(--studio-transparent); }
-.property-control > input:hover, .number-field:hover { border-color: var(--studio-line-hover); }
-/* The 6px right border insets the native chevron; draw the hover hairline as an inset outline so it stays uniform. */
-.property-control select:hover:not(:disabled, :focus-visible) {
-  outline: var(--studio-border-width) solid var(--studio-line-hover);
-  outline-offset: calc(-1 * var(--studio-border-width));
-}
-.number-field { @apply flex min-w-0 items-center; }
-.number-field input {
-  @apply min-w-0 w-full border-0 bg-transparent px-2 outline-none;
-  font-size: var(--studio-font-control);
-  font-variant-numeric: tabular-nums;
-}
-.number-field small { @apply pr-2; color: var(--studio-text-subtle); font-size: var(--studio-font-meta); }
 /* Numeric InputGroup (app/components/InputGroup.tsx) is a shadcn input-group; these rules only tune the number input and addons. */
 .input-group:focus-within { border-color: var(--studio-line-strong); }
 .input-number { appearance: textfield; font-variant-numeric: tabular-nums; }

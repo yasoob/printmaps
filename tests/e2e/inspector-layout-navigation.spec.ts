@@ -42,7 +42,7 @@ for (const width of [1440, 390, 320]) {
           return suffix.left >= group.left && suffix.right <= group.right;
         }));
         expect(suffixesFit).toBe(true);
-        const fieldGeometry = await inspector.locator('.property-control > select:visible, .input-group:visible, .color-field:visible, .studio-color-field:visible').evaluateAll((elements) =>
+        const fieldGeometry = await inspector.locator('.property-control > [data-slot="select-trigger"]:visible, .property-control > [data-slot="input"]:visible, .input-group:visible, .color-field:visible, .studio-color-field:visible').evaluateAll((elements) =>
           elements.map((element) => Math.round(element.getBoundingClientRect().height)));
         expect(fieldGeometry.every((height) => height === (width < 900 ? 44 : 32))).toBe(true);
         const labelGutters = await inspector.locator('.property-row:visible').evaluateAll((elements) => elements.map((element) => {
