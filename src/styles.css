@@ -420,13 +420,16 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .offline-autosave-notice > summary { min-height: 2.75rem; padding: 0.625rem 0.75rem; cursor: pointer; }
 .unfinished-drawing-notice > p,
 .offline-autosave-notice > p { margin: 0; padding: 0 0.75rem 0.75rem; }
-.conflict-autosave-notice > button {
-  min-height: var(--studio-touch-target);
-  margin: 0 0.75rem 0.75rem;
-  padding: 0.5rem 0.75rem;
-  border: var(--studio-border-width) solid var(--studio-line-strong);
-  border-radius: var(--studio-radius-md);
-}
+.offline-autosave-notice > summary { display: flex; align-items: center; gap: 0.5rem; list-style: none; }
+.offline-autosave-notice > summary::-webkit-details-marker { display: none; }
+.offline-autosave-notice > summary > span { min-width: 0; flex: 1; }
+.offline-autosave-notice-icon { flex-shrink: 0; color: var(--studio-text-muted); }
+.conflict-autosave-notice .offline-autosave-notice-icon { color: var(--studio-warning); }
+.offline-autosave-notice-chevron { flex-shrink: 0; color: var(--studio-text-muted); transition: transform 120ms ease-out; }
+.offline-autosave-notice[open] .offline-autosave-notice-chevron { transform: rotate(180deg); }
+.offline-autosave-notice > p { padding-left: 2.25rem; color: var(--studio-text-secondary); }
+.conflict-autosave-review.studio-button { margin: 0 0.75rem 0.75rem 2.25rem; }
+@media (pointer: coarse), (max-width: 899px) { .conflict-autosave-review.studio-button { min-height: var(--studio-touch-target); } }
 .canvas-authoring-dock {
   @apply flex max-h-full w-full flex-col items-stretch justify-end gap-2;
   grid-column: 1 / -1;
