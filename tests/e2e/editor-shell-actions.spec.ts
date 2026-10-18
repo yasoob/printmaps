@@ -176,8 +176,8 @@ test('initial editor search, live scale, title history, and Project actions work
 
   const project = page.getByRole('button', { name: 'Project', exact: true });
   await expect(project).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Export' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Share' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Export', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Share', exact: true })).toBeVisible();
   await project.click();
   await expect(page.getByRole('menuitem', { name: 'Open project' })).toBeVisible();
   await expect(page.getByRole('menuitem', { name: 'Download project' })).toBeVisible();
