@@ -80,6 +80,7 @@
   font-weight: 500;
   line-height: 1.2;
   white-space: nowrap;
+  box-shadow: none;
   cursor: pointer;
 }
 /* Inside a 304px inspector row the control column is narrow; segments use label-size text. */
@@ -100,8 +101,9 @@
   :is(.studio-segmented, .segmented) > button { border-radius: var(--studio-radius-md); }
 }
 
-/* ------------------------------------------------------------ Color field */
-.studio-color-field, .color-field {
+/* ------------------------------------------------------- Legacy color field
+ * `label.color-field > input[type=color]` (unmigrated surfaces) shares ColorField's field surface. */
+.color-field {
   position: relative;
   display: flex;
   align-items: center;
@@ -116,39 +118,8 @@
   background: var(--studio-field);
   cursor: pointer;
 }
-:is(.studio-color-field, .color-field):hover:not([data-disabled]) { border-color: var(--studio-line-hover); }
-.studio-color-field:has(.studio-color-field-native:focus-visible),
+.color-field:hover { border-color: var(--studio-line-hover); }
 .color-field:has(input:focus-visible) { outline: var(--studio-focus-width) solid var(--studio-focus); outline-offset: -1px; }
-.studio-color-field[data-disabled] { cursor: default; opacity: var(--studio-disabled-opacity); }
-.studio-color-field-native {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  opacity: 0;
-  cursor: inherit;
-}
-.studio-color-field-native:focus-visible { outline: none; }
-.studio-color-field-swatch {
-  flex: none;
-  width: 1.25rem;
-  height: 1.25rem;
-  border: var(--studio-border-width) solid var(--studio-swatch-border);
-  border-radius: var(--studio-radius-sm);
-}
-.studio-color-field-value {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: var(--studio-font-control);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.01em;
-}
-/* Legacy markup (`label.color-field > input[type=color]`) renders the same swatch without hex text. */
 .color-field > input[type="color"] {
   flex: none;
   width: 1.25rem;
@@ -165,10 +136,7 @@
 .color-field > input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 0.1875rem; }
 .color-field > input[type="color"]::-moz-color-swatch { border: 0; border-radius: 0.1875rem; }
 @media (max-width: 899px), (pointer: coarse) {
-  .studio-color-field, .color-field { height: var(--studio-touch-target); }
-}
-@media (forced-colors: active) {
-  .studio-color-field-swatch { forced-color-adjust: none; border-color: CanvasText; }
+  .color-field { height: var(--studio-touch-target); }
 }
 
 /* --------------------------------------------- Section and group headings */
@@ -208,34 +176,4 @@
 .studio-toggle-section-body { display: grid; min-width: 0; padding-bottom: 0.5rem; }
 @media (max-width: 899px), (pointer: coarse) {
   .studio-toggle-section-header { min-height: var(--studio-touch-target); }
-}
-
-/* ----------------------------------------------------------------- Notice */
-.studio-notice {
-  display: grid;
-  grid-template-columns: 1rem minmax(0, 1fr) auto;
-  align-items: start;
-  gap: 0.5rem;
-  min-width: 0;
-  padding: 0.625rem 0.75rem;
-  border-radius: var(--studio-radius-md);
-  color: var(--studio-text);
-  background: var(--studio-info-soft);
-  font-size: var(--studio-font-label);
-  line-height: 1.45;
-}
-.studio-notice-icon { margin-top: 0.0625rem; color: var(--studio-accent); }
-.studio-notice[data-tone="warning"] { background: var(--studio-warning-soft); }
-.studio-notice[data-tone="warning"] .studio-notice-icon { color: var(--studio-warning); }
-.studio-notice[data-tone="error"] { background: var(--studio-danger-soft); }
-.studio-notice[data-tone="error"] .studio-notice-icon { color: var(--studio-danger); }
-.studio-notice[data-tone="success"] { background: var(--studio-success-soft); }
-.studio-notice[data-tone="success"] .studio-notice-icon { color: var(--studio-success); }
-.studio-notice-content { display: grid; gap: 0.125rem; min-width: 0; overflow-wrap: anywhere; }
-.studio-notice-title { margin: 0; color: var(--studio-text-strong); font-weight: 600; }
-.studio-notice-body, .studio-notice-body p { margin: 0; }
-.studio-notice-body { color: var(--studio-text-secondary); }
-.studio-notice-action { align-self: center; }
-@media (forced-colors: active) {
-  .studio-notice { border: var(--studio-border-width) solid CanvasText; }
 }

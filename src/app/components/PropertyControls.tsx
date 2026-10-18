@@ -1,5 +1,6 @@
 import { ChevronRight } from 'lucide-react';
 import { Activity, useId, useState } from 'react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { trackEditorAction } from '../../analytics/editorAnalytics';
 
 export function PropertySection({ title, children }: { title: string; children: React.ReactNode }) {
@@ -25,14 +26,17 @@ function readDisclosurePreference(storageKey: string, isDefaultExpanded: boolean
   return isDefaultExpanded;
 }
 
+/**
+ * Persisted inspector disclosure on shadcn Collapsible. The trigger keeps `aria-expanded`/`aria-controls`;
+ * the collapsed summary describes it; content mounts on first open and stays in an Activity boundary.
+ */
 export function InspectorAccordion({ children, isDefaultExpanded, storageKey, summary, title }: InspectorAccordionProps) {
-  const contentId = useId();
-  const labelId = `${contentId}-label`;
-  const summaryId = `${contentId}-summary`;
+  const baseId = useId();
+  const labelId = `${baseId}-label`;
+  const summaryId = `${baseId}-summary`;
   const [isExpanded, setIsExpanded] = useState(() => readDisclosurePreference(storageKey, isDefaultExpanded));
   const [hasExpanded, setHasExpanded] = useState(isExpanded);
-  const toggle = () => {
-    const isNextExpanded = !isExpanded;
+  const changeExpanded = (isNextExpanded: boolean) => {
     trackEditorAction('inspectorSectionToggled', { enabled: isNextExpanded });
     setIsExpanded(isNextExpanded);
     if (isNextExpanded) setHasExpanded(true);
@@ -44,18 +48,18 @@ export function InspectorAccordion({ children, isDefaultExpanded, storageKey, su
   };
 
   return (
-    <section className="inspector-accordion">
+    <Collapsible open={isExpanded} onOpenChange={changeExpanded} render={<section className="inspector-accordion" />}>
       <h3>
-        <button type="button" aria-controls={contentId} aria-describedby={isExpanded ? undefined : summaryId} aria-expanded={isExpanded} aria-labelledby={labelId} onClick={toggle}>
-          <ChevronRight aria-hidden="true" className="inspector-chevron" size={16} />
+        <CollapsibleTrigger aria-describedby={isExpanded ? undefined : summaryId} aria-labelledby={labelId}>
+          <ChevronRight aria-hidden="true" className="inspector-chevron" size={16} strokeWidth={1.75} />
           <span id={labelId} className="inspector-section-label">{title}</span>
           {!isExpanded && <span id={summaryId} className="inspector-section-summary">{summary}</span>}
-        </button>
+        </CollapsibleTrigger>
       </h3>
-      <div id={contentId} className="inspector-accordion-content" hidden={!isExpanded}>
+      <CollapsibleContent keepMounted className="inspector-accordion-content">
         {hasExpanded && <Activity mode={isExpanded ? 'visible' : 'hidden'}>{children}</Activity>}
-      </div>
-    </section>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
 

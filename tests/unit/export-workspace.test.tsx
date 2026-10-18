@@ -12,6 +12,7 @@ import { exportVideoDocument } from '../../src/video/exportVideoDocument';
 import { getVideoCapability } from '../../src/video/capability';
 import { exportTerrainRelief } from '../../src/terrain/reliefExport';
 import { downloadBlob } from '../../src/lib/downloadBlob';
+import { chooseOption } from './select-support';
 
 vi.mock('../../src/video/exportVideoDocument', () => ({ exportVideoDocument: vi.fn() }));
 vi.mock('../../src/video/capability', () => ({ getVideoCapability: vi.fn() }));
@@ -256,7 +257,7 @@ it('shows one poster capture for print and the framed view, preserves print choi
   expect(store.getState()).toBe(original);
   expect(captures[0].width).toBe(0);
   expect(captures[0].height).toBe(0);
-  await user.selectOptions(screen.getByLabelText('Frame finish'), 'oak');
+  await chooseOption(user, 'Frame finish', 'Oak');
   expect(store.getState().document.studio.wall.frame).toBe('oak');
   expect(store.getState().past).toHaveLength(1);
   await user.click(screen.getByRole('button', { name: 'Back to export' }));

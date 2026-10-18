@@ -1,5 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import { memo, useRef } from 'react';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { cn } from '@/lib/utils';
 
 export type StudioModeTabChoice<Value extends string> = Readonly<{
   value: Value;
@@ -24,29 +26,50 @@ type StudioModeTabsProps<Value extends string> = {
   className?: string;
 };
 
+/**
+ * Panel switcher on shadcn Tabs (tab semantics; arrow keys and Home/End activate with focus).
+ * The caller renders the panels: tabs have ids `${idPrefix}-${value}-tab` and point at `panelId`
+ * or `${idPrefix}-${value}-panel`. Shares the `.studio-segmented` visual with SegmentedControl.
+ */
 export const StudioModeTabs = memo(function StudioModeTabs<Value extends string>({ choices, value, onValueChange, label, idPrefix, panelId, disabled, className }: StudioModeTabsProps<Value>) {
-  const listRef = useRef<HTMLDivElement>(null);
-  return <div ref={listRef} className={`studio-mode-tabs studio-segmented${className ? ` ${className}` : ''}`} role="tablist" aria-label={label} onKeyDown={(event) => {
-    if (disabled || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
-    event.preventDefault();
-    const current = choices.findIndex((choice) => choice.value === value);
-    const adjacent = (current + (event.key === 'ArrowLeft' ? -1 : 1) + choices.length) % choices.length;
-    const boundary = event.key === 'Home' ? 0 : choices.length - 1;
-    const index = event.key === 'Home' || event.key === 'End' ? boundary : adjacent;
-    const next = choices[index];
-    if (!next) return;
-    onValueChange(next.value, { source: 'keyboard' });
-    listRef.current?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[index]?.focus();
-  }}>
-    {choices.map((choice) => <button key={choice.value} id={`${idPrefix}-${choice.value}-tab`} type="button" role="tab"
-      aria-selected={value === choice.value} aria-controls={panelId ?? `${idPrefix}-${choice.value}-panel`}
-      tabIndex={value === choice.value ? 0 : -1} disabled={disabled} aria-label={choice.ariaLabel}
-      onClick={(event) => onValueChange(choice.value, { source: event.detail === 0 ? 'keyboard' : 'pointer' })}>
-      {choice.icon && <choice.icon aria-hidden="true" size={16} strokeWidth={1.75} />}
-      {/* The compact label is CSS-generated so it never joins the tab's text or accessible name. */}
-      <span className="studio-segmented-label" data-short-label={choice.shortLabel}>
-        {choice.shortLabel ? <span className="studio-segmented-label-full">{choice.label}</span> : choice.label}
-      </span>
-    </button>)}
-  </div>;
+  // The last input modality decides whether an activation came from a pointer or the keyboard.
+  const pointerActivation = useRef(false);
+  return (
+    <Tabs
+      value={value}
+      className="contents"
+      onValueChange={(next) => {
+        if (next === value) return;
+        onValueChange(next as Value, { source: pointerActivation.current ? 'pointer' : 'keyboard' });
+      }}
+    >
+      <TabsList
+        className={cn('studio-mode-tabs', className)}
+        aria-label={label}
+        activateOnFocus
+        loopFocus
+        onPointerDown={() => { pointerActivation.current = true; }}
+        onKeyDown={() => { pointerActivation.current = false; }}
+      >
+        {choices.map((choice) => (
+          <TabsTrigger
+            key={choice.value}
+            value={choice.value}
+            id={`${idPrefix}-${choice.value}-tab`}
+            aria-controls={panelId ?? `${idPrefix}-${choice.value}-panel`}
+            aria-label={choice.ariaLabel}
+            // Locked tabs (e.g. during a busy export) are natively disabled so they leave the tab order;
+            // Base UI's own `disabled` keeps them focusable, which would break dialog focus loops.
+            render={<button type="button" disabled={disabled} />}
+          >
+            {choice.icon && <choice.icon aria-hidden="true" size={16} strokeWidth={1.75} />}
+            {/* The compact label is CSS-generated so it never joins the tab's text or accessible name. */}
+            <span className="studio-segmented-label" data-short-label={choice.shortLabel}>
+              {choice.shortLabel ? <span className="studio-segmented-label-full">{choice.label}</span> : choice.label}
+            </span>
+          </TabsTrigger>
+        ))}
+      </TabsList>
+    </Tabs>
+  );
 }) as <Value extends string>(props: StudioModeTabsProps<Value>) => React.JSX.Element;

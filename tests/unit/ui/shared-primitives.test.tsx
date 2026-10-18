@@ -1,11 +1,15 @@
 import { useState } from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Palette, Square } from 'lucide-react';
 import { Button } from '../../../src/components/ui/button';
 import { ColorField } from '../../../src/components/ui/color-field';
 import { Dialog } from '../../../src/components/ui/dialog';
 import { Notice } from '../../../src/components/ui/notice';
+import { SimpleSelect } from '../../../src/components/ui/select';
+import { Slider } from '../../../src/components/ui/slider';
+import { StudioModeTabs } from '../../../src/app/components/StudioModeTabs';
+import { chooseOption, selectedValue } from '../select-support';
 import { SegmentedControl } from '../../../src/components/ui/segmented-control';
 import {
   StudioDialog,
@@ -239,6 +243,86 @@ describe('field grammar', () => {
     </>);
     expect(screen.getByRole('heading', { name: 'Margins', level: 4 })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Caption' }).closest('.property-row')).toHaveAttribute('data-layout', 'stacked');
-    expect(screen.getByRole('switch', { name: 'Visible' }).closest('label')).toHaveAttribute('data-label-placement', 'start');
+    expect(screen.getByRole('switch', { name: 'Visible' }).closest('.studio-switch')).toHaveAttribute('data-label-placement', 'start');
+  });
+});
+
+function SelectHarness({ onValueChange }: { onValueChange: (value: string) => void }) {
+  const [value, setValue] = useState<'metric' | 'imperial' | 'nautical'>('metric');
+  return (
+    <SimpleSelect
+      label="Scale units"
+      value={value}
+      options={[{ value: 'metric', label: 'Metric' }, { value: 'imperial', label: 'Imperial' }, { value: 'nautical', label: 'Nautical', disabled: true }]}
+      onValueChange={(next) => { onValueChange(next); setValue(next); }}
+    />
+  );
+}
+
+describe('SimpleSelect', () => {
+  it('shows the selected label, exposes the raw value and commits a chosen option', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    render(<SelectHarness onValueChange={onValueChange} />);
+    const trigger = screen.getByRole('combobox', { name: 'Scale units' });
+    expect(trigger).toHaveTextContent('Metric');
+    expect(selectedValue(trigger)).toBe('metric');
+    await chooseOption(user, 'Scale units', 'Imperial');
+    expect(onValueChange).toHaveBeenCalledWith('imperial');
+    expect(trigger).toHaveTextContent('Imperial');
+    expect(trigger).toHaveAttribute('data-value', 'imperial');
+  });
+
+  it('supports grouped options and leaves disabled options unselectable', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    render(<SimpleSelect label="Units" value="m" onValueChange={onValueChange} options={[
+      { label: 'Metric', options: [{ value: 'm', label: 'Meters' }, { value: 'km', label: 'Kilometers', disabled: true }] },
+      { label: 'Imperial', options: [{ value: 'mi', label: 'Miles' }] },
+    ]} />);
+    await user.click(screen.getByRole('combobox', { name: 'Units' }));
+    const listbox = await screen.findByRole('listbox');
+    expect(within(listbox).getByRole('group', { name: 'Imperial' })).toBeInTheDocument();
+    expect(within(listbox).getByRole('option', { name: 'Kilometers' })).toHaveAttribute('aria-disabled', 'true');
+    await user.click(within(listbox).getByRole('option', { name: 'Miles' }));
+    expect(onValueChange).toHaveBeenCalledWith('mi');
+  });
+
+  it('uses the same helper for native selects during migration', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<select aria-label="Legacy units" defaultValue="a" onChange={(event) => onChange(event.target.value)}><option value="a">Alpha</option><option value="b">Beta</option></select>);
+    await chooseOption(user, 'Legacy units', 'Beta');
+    expect(onChange).toHaveBeenCalledWith('b');
+    expect(selectedValue(screen.getByRole('combobox', { name: 'Legacy units' }))).toBe('b');
+  });
+});
+
+describe('Slider', () => {
+  it('renders one named thumb for a single value', () => {
+    render(<Slider value={40} min={0} max={100} thumbLabels="Contrast" onValueChange={vi.fn()} />);
+    expect(screen.getAllByRole('slider')).toHaveLength(1);
+    expect(screen.getByRole('slider', { name: 'Contrast' })).toHaveAttribute('aria-valuenow', '40');
+  });
+});
+
+describe('StudioModeTabs', () => {
+  it('keeps tab semantics, reports the activation source and activates with arrow keys', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    function TabsHarness() {
+      const [value, setValue] = useState<'map' | 'layout'>('map');
+      return <StudioModeTabs label="Inspector" idPrefix="t" value={value} choices={[{ value: 'map', label: 'Map' }, { value: 'layout', label: 'Layout', shortLabel: 'Lay.' }]}
+        onValueChange={(next, activation) => { onValueChange(next, activation); setValue(next); }} />;
+    }
+    render(<TabsHarness />);
+    const layout = screen.getByRole('tab', { name: 'Layout' });
+    expect(layout).toHaveAttribute('aria-controls', 't-layout-panel');
+    await user.click(layout);
+    expect(onValueChange).toHaveBeenLastCalledWith('layout', { source: 'pointer' });
+    expect(layout).toHaveAttribute('aria-selected', 'true');
+    await user.keyboard('{ArrowLeft}');
+    expect(screen.getByRole('tab', { name: 'Map' })).toHaveAttribute('aria-selected', 'true');
+    expect(onValueChange).toHaveBeenLastCalledWith('map', { source: 'keyboard' });
   });
 });

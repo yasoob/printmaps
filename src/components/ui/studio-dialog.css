@@ -123,3 +123,8 @@
   }
   .studio-dialog-actions[data-stack-on-mobile="true"] > .studio-dialog-actions-start { margin-right: 0; }
 }
+
+/* Fields inside a field-filled section switch to the surface fill so they stay visible. */
+.studio-dialog-section :is([data-slot="select-trigger"], [data-slot="input"], [data-slot="textarea"], [data-slot="input-group"], .studio-color-field) {
+  background: var(--studio-surface);
+}

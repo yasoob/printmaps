@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { attachInventory, expectOwners, finishProbe, NATIVE_MAP_OWNERS, openScanEditor, startProbe, waitForRenderQuiet } from './react-scan-helpers';
 import type { ReactScanProbeResult } from '../../src/dev/reactScanProbe';
+import { chooseOption } from './select-support';
 
 function expectOnlyControls(result: ReactScanProbeResult, components: string[], labels: string[]) {
   const events = result.events.filter((event) => components.includes(event.component));
@@ -176,20 +177,20 @@ test('nearby poster photo and decoration fields keep all unchanged field instanc
   await page.getByRole('tab', { name: 'Layout' }).click();
   await page.getByRole('button', { name: 'Text', exact: true }).click();
   await startProbe(page, 'Subtitle font');
-  await page.getByRole('combobox', { name: 'Subtitle font', exact: true }).selectOption('mono');
+  await chooseOption(page, 'Subtitle font', 'Field notes mono');
   let result = await finishProbe(page, info, 'subtitle-font');
   expectOnlyControls(result, ['TextControl'], ['Subtitle']);
   expectOnlyControls(result, STUDIO_FIELDS, ['Subtitle font']);
   expect(result.mapMutations).toEqual([]);
   await page.getByRole('button', { name: 'Photos', exact: true }).click();
   await startProbe(page, 'Photo shape');
-  await page.getByRole('combobox', { name: 'Photo shape', exact: true }).selectOption('square');
+  await chooseOption(page, 'Photo shape', 'Square');
   result = await finishProbe(page, info, 'photo-shape');
   expectOnlyControls(result, STUDIO_FIELDS, ['Photo shape']);
   expect(result.mapMutations).toEqual([]);
   await page.getByRole('button', { name: 'Map elements', exact: true }).click();
   await startProbe(page, 'Compass corner');
-  await page.getByRole('combobox', { name: 'Compass corner', exact: true }).selectOption('top-left');
+  await chooseOption(page, 'Compass corner', 'Top left');
   result = await finishProbe(page, info, 'compass-corner');
   expectOnlyControls(result, STUDIO_FIELDS, ['Compass corner']);
   expect(result.mapMutations).toEqual([]);
@@ -218,7 +219,7 @@ test('wall preferences do not rebuild composition controls or live map', async (
   await dialog.getByRole('button', { name: 'Preview on wall', exact: true }).click();
   await expect(dialog.locator('.studio-wall-scene img')).toBeVisible();
   await startProbe(page, 'Wall frame preference');
-  await dialog.getByLabel('Frame finish').selectOption('walnut');
+  await chooseOption(dialog, 'Frame finish', 'Walnut');
   const result = await finishProbe(page, info, 'wall-preference');
   expectOwners(result, ['WallPreviewPanel'], [...NATIVE_MAP_OWNERS, 'StudioPosterPreview', 'StudioCompositionPanel', 'PosterControls', 'PhotoStoryControls', 'DecorationControls']);
   expect(result.mapMutations).toEqual([]);

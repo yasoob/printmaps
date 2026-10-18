@@ -1,12 +1,25 @@
-import { Check } from 'lucide-react';
-import type { InputHTMLAttributes, ReactNode } from 'react';
+import { memo, useId, type FocusEventHandler, type ReactNode } from 'react';
+import { Checkbox as CheckboxPrimitive } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { Switch as SwitchPrimitive } from '@/components/ui/switch';
+import { cn } from '@/lib/utils';
 
-type SharedControlProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'checked' | 'className' | 'onChange' | 'type'> & Readonly<{
+type SharedControlProps = Readonly<{
   isChecked: boolean;
   className?: string;
   label: ReactNode;
   labelHidden?: boolean;
   onCheckedChange?: (isChecked: boolean) => void;
+  id?: string;
+  name?: string;
+  disabled?: boolean;
+  title?: string;
+  'aria-label'?: string;
+  'aria-describedby'?: string;
+  'aria-labelledby'?: string;
+  'aria-controls'?: string;
+  onBlur?: FocusEventHandler<HTMLElement>;
+  onFocus?: FocusEventHandler<HTMLElement>;
 }>;
 
 type SwitchProps = SharedControlProps & Readonly<{
@@ -16,39 +29,47 @@ type SwitchProps = SharedControlProps & Readonly<{
   labelPlacement?: 'end' | 'start';
 }>;
 
-function controlClassName(base: string, className?: string): string {
-  return className ? `${base} ${className}` : base;
-}
+/*
+ * The label targets the control by id instead of wrapping it: Base UI renders a hidden form input
+ * beside the control, and a wrapping label would also name that input (ambiguous label queries).
+ */
 
-export function Checkbox({ isChecked, className, label, labelHidden = false, onCheckedChange, ...inputProps }: SharedControlProps) {
+/**
+Multi-select list item on shadcn Checkbox; clicking the visible label toggles it.
+*/
+export const Checkbox = memo(function Checkbox({ isChecked, className, label, labelHidden = false, onCheckedChange, id, ...controlProps }: SharedControlProps) {
+  const generatedId = useId();
+  const controlId = id ?? generatedId;
   return (
-    <label className={controlClassName('studio-checkbox', className)}>
-      <input
-        {...inputProps}
-        className="studio-checkbox-native"
-        type="checkbox"
+    <div className={cn('studio-checkbox', className)}>
+      <CheckboxPrimitive
+        {...controlProps}
+        id={controlId}
+        className="studio-checkbox-box"
         checked={isChecked}
-        onChange={(event) => onCheckedChange?.(event.currentTarget.checked)}
+        onCheckedChange={(checked) => onCheckedChange?.(checked)}
       />
-      <span className="studio-checkbox-box" aria-hidden="true"><Check size={12} strokeWidth={2.5} /></span>
-      <span className={labelHidden ? 'sr-only' : 'studio-control-label'}>{label}</span>
-    </label>
+      <Label htmlFor={controlId} className={labelHidden ? 'sr-only' : 'studio-control-label'}>{label}</Label>
+    </div>
   );
-}
+});
 
-export function Switch({ isChecked, className, label, labelHidden = false, labelPlacement = 'end', onCheckedChange, ...inputProps }: SwitchProps) {
+/**
+Standalone on/off behaviour on shadcn Switch.
+*/
+export const Switch = memo(function Switch({ isChecked, className, label, labelHidden = false, labelPlacement = 'end', onCheckedChange, id, ...controlProps }: SwitchProps) {
+  const generatedId = useId();
+  const controlId = id ?? generatedId;
   return (
-    <label className={controlClassName('studio-switch', className)} data-label-placement={labelPlacement}>
-      <input
-        {...inputProps}
-        className="studio-switch-native"
-        type="checkbox"
-        role="switch"
+    <div className={cn('studio-switch', className)} data-label-placement={labelPlacement}>
+      <SwitchPrimitive
+        {...controlProps}
+        id={controlId}
+        className="studio-switch-track"
         checked={isChecked}
-        onChange={(event) => onCheckedChange?.(event.currentTarget.checked)}
+        onCheckedChange={(checked) => onCheckedChange?.(checked)}
       />
-      <span className="studio-switch-track" aria-hidden="true"><span /></span>
-      <span className={labelHidden ? 'sr-only' : 'studio-control-label'}>{label}</span>
-    </label>
+      <Label htmlFor={controlId} className={labelHidden ? 'sr-only' : 'studio-control-label'}>{label}</Label>
+    </div>
   );
-}
+});

@@ -1,4 +1,4 @@
-import { Tooltip } from '@base-ui/react/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { CircleHelp } from 'lucide-react';
 import { useCallback, useEffect, useId, useState, type ReactNode } from 'react';
 import './featureHelp.css';
@@ -36,7 +36,7 @@ export function FeatureHelp({ label, children, className = '' }: Readonly<{
   }, []);
 
   return <span ref={attach} className={`feature-help ${className}`}>
-    <Tooltip.Root
+    <Tooltip
       open={open}
       onOpenChange={(nextOpen, details) => {
         setPreviewOpen(nextOpen);
@@ -45,7 +45,7 @@ export function FeatureHelp({ label, children, className = '' }: Readonly<{
         }
       }}
     >
-      <Tooltip.Trigger
+      <TooltipTrigger
         type="button"
         className="icon-button feature-help-trigger"
         aria-label={label}
@@ -59,23 +59,24 @@ export function FeatureHelp({ label, children, className = '' }: Readonly<{
           setPreviewOpen(false);
         }}
       >
-        <CircleHelp size={15} aria-hidden="true" />
-      </Tooltip.Trigger>
-      <Tooltip.Portal container={container}>
-        <Tooltip.Positioner
-          className="feature-help-positioner"
-          side="bottom"
-          align="start"
-          sideOffset={6}
-          positionMethod="fixed"
-          collisionBoundary={boundary}
-          collisionPadding={12}
-        >
-          <Tooltip.Popup id={popupId} role="tooltip" className="feature-help-popup">
-            {children}
-          </Tooltip.Popup>
-        </Tooltip.Positioner>
-      </Tooltip.Portal>
-    </Tooltip.Root>
+        <CircleHelp size={16} strokeWidth={1.75} aria-hidden="true" />
+      </TooltipTrigger>
+      <TooltipContent
+        container={container}
+        positionerClassName="feature-help-positioner"
+        side="bottom"
+        align="start"
+        sideOffset={6}
+        positionMethod="fixed"
+        collisionBoundary={boundary}
+        collisionPadding={12}
+        showArrow={false}
+        id={popupId}
+        role="tooltip"
+        className="feature-help-popup block w-auto max-w-none animate-none"
+      >
+        {children}
+      </TooltipContent>
+    </Tooltip>
   </span>;
 }
