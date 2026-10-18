@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { chooseOption } from './select-support';
 
 for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844 }]) {
   for (const orientation of ['Portrait', 'Landscape'] as const) {
@@ -22,7 +23,7 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
       await page.getByRole('button', { name: 'Preview on wall', exact: true }).click();
       const dialog = page.getByRole('dialog', { name: 'Export map' });
       await expect(dialog.getByRole('img', { name: /finished map poster/ })).toBeVisible();
-      await dialog.getByLabel('Frame finish').selectOption('oak');
+      await chooseOption(dialog, 'Frame finish', 'Oak');
       const matWidth = dialog.getByRole('spinbutton', { name: 'Mat width', exact: true });
       await matWidth.fill('18');
       await matWidth.press('Tab');

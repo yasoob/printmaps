@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
+import { chooseOption } from './select-support';
 
 async function downloadedProject(page: Page) {
   const pending = page.waitForEvent('download');
@@ -73,7 +74,7 @@ test('real editor controls create a photo poster, keep wall preview ephemeral, a
   await panel.getByLabel('Title text', { exact: true }).fill('Vienna memory');
   await expect(page.getByLabel('Poster artwork').getByText('Vienna memory', { exact: true })).toBeVisible();
   await panel.getByRole('button', { name: 'Photos', exact: true }).click();
-  await panel.getByLabel('Attach photo to').selectOption('poi-cafe');
+  await chooseOption(panel, 'Attach photo to', 'Coffee stop');
   const photo = await page.evaluate(() => {
     const canvas = document.createElement('canvas');
     canvas.width = 64; canvas.height = 32;

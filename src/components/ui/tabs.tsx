@@ -14,7 +14,9 @@ function Tabs({ className, orientation = "horizontal", ...props }: TabsPrimitive
   )
 }
 
-/** `default` is the shared studio segmented track (see `.studio-segmented` in primitives.css). */
+/**
+`default` is the shared studio segmented track (see `.studio-segmented` in primitives.css).
+*/
 const tabsListVariants = cva("group/tabs-list", {
   variants: {
     variant: {

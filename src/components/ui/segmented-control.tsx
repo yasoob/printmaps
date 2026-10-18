@@ -12,7 +12,9 @@ export type SegmentedControlOption<V extends string> = Readonly<{
 }>
 
 export type SegmentedControlProps<V extends string> = Readonly<{
-  /** Accessible name of the radio group. */
+  /**
+  Accessible name of the radio group.
+  */
   label: string
   value: V
   options: readonly SegmentedControlOption<V>[]
@@ -47,9 +49,9 @@ export const SegmentedControl = memo(function SegmentedControl<V extends string>
     const step = event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1 : 1
     const targetIndex = event.key === "Home"
       ? enabledIndexes[0]!
-      : event.key === "End"
+      : (event.key === "End"
         ? enabledIndexes.at(-1)!
-        : enabledIndexes[(position + step + enabledIndexes.length) % enabledIndexes.length]!
+        : enabledIndexes[(position + step + enabledIndexes.length) % enabledIndexes.length]!)
     const target = options[targetIndex]!
     if (target.value !== value) onValueChange(target.value)
     event.currentTarget.querySelectorAll<HTMLElement>('[role="radio"]')[targetIndex]?.focus()
@@ -60,7 +62,7 @@ export const SegmentedControl = memo(function SegmentedControl<V extends string>
       role="radiogroup"
       aria-label={label}
       aria-disabled={disabled || undefined}
-      className={cn("studio-segmented", className)}
+      className={cn("studio-segmented w-full", className)}
       spacing={0}
       value={[value]}
       disabled={disabled}

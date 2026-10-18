@@ -35,7 +35,9 @@ function TooltipContent({
   ...props
 }: TooltipPrimitive.Popup.Props &
   TooltipPositionerProps & {
-    /** Portal container, e.g. the enclosing dialog so the tooltip stays in its focus scope. */
+    /**
+    Portal container, e.g. the enclosing dialog so the tooltip stays in its focus scope.
+    */
     container?: TooltipPrimitive.Portal.Props["container"]
     positionerClassName?: string
     showArrow?: boolean

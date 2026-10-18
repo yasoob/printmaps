@@ -2,7 +2,9 @@ import { Switch as SwitchPrimitive } from "@base-ui/react/switch"
 
 import { cn } from "@/lib/utils"
 
-/** Renders a native button (role="switch") so it is labelable, focusable and natively disableable. */
+/**
+Renders a native button (role="switch") so it is labelable, focusable and natively disableable.
+*/
 function Switch({ className, size = "default", ...props }: SwitchPrimitive.Root.Props & { size?: "sm" | "default" }) {
   return (
     <SwitchPrimitive.Root
@@ -11,7 +13,7 @@ function Switch({ className, size = "default", ...props }: SwitchPrimitive.Root.
       nativeButton
       render={<button type="button" />}
       className={cn(
-        "peer group/switch relative inline-flex shrink-0 cursor-pointer items-center rounded-full border border-transparent p-px transition-colors outline-none after:absolute after:-inset-x-3 after:-inset-y-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--studio-focus)] data-[size=default]:h-[18px] data-[size=default]:w-8 data-[size=sm]:h-3.5 data-[size=sm]:w-6 data-checked:bg-studio-accent data-unchecked:bg-switch-off data-unchecked:hover:bg-switch-off-hover disabled:cursor-default disabled:opacity-(--studio-disabled-opacity) forced-colors:forced-color-adjust-none forced-colors:border-[CanvasText] forced-colors:data-checked:bg-[Highlight]",
+        "peer group/switch relative inline-flex shrink-0 cursor-pointer items-center rounded-full border border-transparent p-px transition-colors outline-none after:absolute after:-inset-x-3 after:-inset-y-2 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-[color:var(--studio-focus)] data-[size=default]:h-[18px] data-[size=default]:w-8 data-[size=sm]:h-3.5 data-[size=sm]:w-6 data-checked:bg-studio-accent data-unchecked:bg-switch-off data-unchecked:hover:bg-switch-off-hover disabled:cursor-default disabled:opacity-(--studio-disabled-opacity) forced-colors:forced-color-adjust-none forced-colors:border-[CanvasText] forced-colors:data-checked:bg-[Highlight]",
         className
       )}
       {...props}

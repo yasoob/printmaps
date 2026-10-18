@@ -1340,6 +1340,7 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
   color: var(--studio-text-secondary);
   font-size: var(--studio-font-label);
 }
+.studio-checkbox > .studio-control-label, .studio-switch > .studio-control-label { flex: 1 1 auto; min-width: 0; align-self: stretch; display: flex; align-items: center; cursor: inherit; }
 .studio-checkbox:has(:disabled), .studio-switch:has(:disabled) { @apply cursor-default; }
 .studio-checkbox:has(:disabled) > .studio-control-label,
 .studio-switch:has(:disabled) > .studio-control-label { opacity: var(--studio-disabled-opacity); }

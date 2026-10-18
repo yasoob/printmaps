@@ -29,7 +29,7 @@ export const ColorField = memo(function ColorField({ value, onChange, label, dis
       className={cn(
         fieldSurfaceClassName,
         fieldHeightClassName,
-        "studio-color-field relative flex w-full min-w-0 cursor-pointer items-center gap-2 pr-2 pl-1.5 has-[:focus-visible]:outline-2 has-[:focus-visible]:-outline-offset-1 has-[:focus-visible]:outline-[var(--studio-focus)] data-[disabled]:cursor-default data-[disabled]:opacity-(--studio-disabled-opacity) data-[disabled]:hover:border-transparent",
+        "studio-color-field relative flex w-full min-w-0 cursor-pointer items-center gap-2 pr-2 pl-1.5 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-solid has-[:focus-visible]:-outline-offset-1 has-[:focus-visible]:outline-[color:var(--studio-focus)] data-[disabled]:cursor-default data-[disabled]:opacity-(--studio-disabled-opacity) data-[disabled]:hover:border-transparent",
         className
       )}
       data-disabled={disabled || undefined}
@@ -37,7 +37,7 @@ export const ColorField = memo(function ColorField({ value, onChange, label, dis
       <input
         {...inputProps}
         id={id}
-        className="studio-color-field-native absolute inset-0 m-0 size-full cursor-[inherit] border-0 p-0 opacity-0 focus-visible:outline-none"
+        className="studio-color-field-native absolute -inset-px m-0 h-[calc(100%+2px)] w-[calc(100%+2px)] cursor-[inherit] border-0 p-0 opacity-0 focus-visible:outline-none"
         aria-label={label}
         type="color"
         value={value}

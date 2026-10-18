@@ -18,7 +18,9 @@ import {
 
 const InputGroupContext = createContext<RefObject<HTMLDivElement | null> | null>(null);
 
-/** Numeric field on shadcn InputGroup: one field surface with optional unit/prefix addons. */
+/**
+Numeric field on shadcn InputGroup: one field surface with optional unit/prefix addons.
+*/
 export function InputGroup({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   const rootRef = useRef<HTMLDivElement>(null);
   return (

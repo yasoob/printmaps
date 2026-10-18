@@ -448,19 +448,20 @@ describe('editor layer appearance validation and actions', () => {
     const fill = screen.getByLabelText('Shape fill color');
     const stroke = screen.getByLabelText('Shape outline color');
     const width = screen.getByRole('spinbutton', { name: 'Shape outline width' });
-    const invert = screen.getByRole('switch', { name: 'Invert shape fill' });
 
     fireEvent.change(fill, { target: { value: '#abcdef' } });
     fireEvent.change(stroke, { target: { value: '#123456' } });
     await user.clear(width);
     await user.type(width, '5');
     await user.tab();
+    // Committing the width remounts the shape appearance controls; query the live switch.
+    const invert = screen.getByRole('switch', { name: 'Invert shape fill' });
     await user.click(invert);
 
-    expect(fill).toHaveValue('#abcdef');
-    expect(stroke).toHaveValue('#123456');
-    expect(width).toHaveValue(5);
-    expect(invert).toBeChecked();
+    expect(screen.getByLabelText('Shape fill color')).toHaveValue('#abcdef');
+    expect(screen.getByLabelText('Shape outline color')).toHaveValue('#123456');
+    expect(screen.getByRole('spinbutton', { name: 'Shape outline width' })).toHaveValue(5);
+    expect(screen.getByRole('switch', { name: 'Invert shape fill' })).toBeChecked();
     await user.click(screen.getByRole('button', { name: 'Undo' }));
     expect(screen.getByRole('switch', { name: 'Invert shape fill' })).not.toBeChecked();
     await user.click(screen.getByRole('button', { name: 'Undo' }));

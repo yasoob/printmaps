@@ -10,8 +10,8 @@ describe('Felt-inspired inspector cohesion', () => {
     render(<App autosaveRepository={null} />);
 
     expect(screen.queryByRole('button', { name: 'Project menu' })).not.toBeInTheDocument();
-    expect(screen.getByRole('checkbox', { name: 'Show roads' })).toHaveClass('studio-checkbox-native');
-    expect(screen.getByRole('switch', { name: 'Lock map area' })).toHaveClass('studio-switch-native');
+    expect(screen.getByRole('checkbox', { name: 'Show roads' })).toHaveAttribute('data-slot', 'checkbox');
+    expect(screen.getByRole('switch', { name: 'Lock map area' })).toHaveAttribute('data-slot', 'switch');
 
     await user.click(screen.getByRole('button', { name: 'Select Route 01' }));
     expect(screen.queryByText('Layer properties')).not.toBeInTheDocument();
@@ -24,6 +24,6 @@ describe('Felt-inspired inspector cohesion', () => {
     expect(screen.getByText('Advanced')).toBeVisible();
 
     await user.click(screen.getByRole('button', { name: 'Select City center' }));
-    expect(screen.getByRole('switch', { name: 'Invert shape fill' })).toHaveClass('studio-switch-native');
+    expect(screen.getByRole('switch', { name: 'Invert shape fill' })).toHaveAttribute('data-slot', 'switch');
   });
 });

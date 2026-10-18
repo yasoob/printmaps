@@ -58,7 +58,9 @@ export const StudioModeTabs = memo(function StudioModeTabs<Value extends string>
             id={`${idPrefix}-${choice.value}-tab`}
             aria-controls={panelId ?? `${idPrefix}-${choice.value}-panel`}
             aria-label={choice.ariaLabel}
-            disabled={disabled}
+            // Locked tabs (e.g. during a busy export) are natively disabled so they leave the tab order;
+            // Base UI's own `disabled` keeps them focusable, which would break dialog focus loops.
+            render={<button type="button" disabled={disabled} />}
           >
             {choice.icon && <choice.icon aria-hidden="true" size={16} strokeWidth={1.75} />}
             {/* The compact label is CSS-generated so it never joins the tab's text or accessible name. */}

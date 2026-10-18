@@ -3,7 +3,7 @@ import { Select as SelectPrimitive } from "@base-ui/react/select"
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
-import { fieldHeightClassName, fieldSurfaceClassName, floatingSurfaceClassName } from "./field-styles"
+import { fieldSurfaceClassName, floatingSurfaceClassName } from "./field-styles"
 
 const Select = SelectPrimitive.Root
 
@@ -155,7 +155,9 @@ export type SimpleSelectOption<V extends string> = Readonly<{ value: V; label: s
 export type SimpleSelectGroup<V extends string> = Readonly<{ label: string; options: readonly SimpleSelectOption<V>[] }>
 
 export type SimpleSelectProps<V extends string> = Readonly<{
-  /** Accessible name of the trigger (combobox). */
+  /**
+  Accessible name of the trigger (combobox).
+  */
   label: string
   value: V
   options: readonly SimpleSelectOption<V>[] | readonly SimpleSelectGroup<V>[]
@@ -219,11 +221,11 @@ const SimpleSelect = React.memo(function SimpleSelect<V extends string>({
                 {index > 0 && <SelectSeparator />}
                 <SelectGroup>
                   <SelectLabel>{group.label}</SelectLabel>
-                  {group.options.map(renderOption)}
+                  {group.options.map((option) => renderOption(option))}
                 </SelectGroup>
               </React.Fragment>
             ))
-          : options.map(renderOption)}
+          : options.map((option) => renderOption(option))}
       </SelectContent>
     </Select>
   )
