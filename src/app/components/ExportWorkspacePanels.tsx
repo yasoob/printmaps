@@ -1,6 +1,6 @@
 import { ArrowLeft, Frame } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { memo, useCallback, useEffect, type CSSProperties, type RefObject } from 'react';
+import { memo, useCallback, useEffect, type RefObject } from 'react';
 import type { PreviewPngExporter } from '../../export/previewPng';
 import type { ReliefSettings, WallSettings } from '../../domain/studio';
 import type { VideoOptions } from '../../video/types';
@@ -51,9 +51,8 @@ export const ExportPreviewPane = memo(function ExportPreviewPane({ exporter, blo
   const { wall, previewUrl, error, open } = useWallPreview(readExporter, blockedReason);
   const page = useProject((state) => state.document.page);
   useEffect(() => { void open(); }, [open]);
-  const ratio = page.widthMm / page.heightMm;
   return <div className="export-preview" data-framed={framed}>
-    {framed ? <WallPreviewPanel wall={wall} page={page} previewUrl={previewUrl} error={error} /> : <div className="export-poster-stage" style={{ '--poster-ratio': ratio } as CSSProperties}>
+    {framed ? <WallPreviewPanel wall={wall} page={page} previewUrl={previewUrl} error={error} /> : <div className="export-poster-stage">
       {previewUrl
         ? <img className="export-poster-image" src={previewUrl} alt="Preview of your poster" />
         : <p className="export-preview-message">{error || 'Preparing poster preview…'}</p>}

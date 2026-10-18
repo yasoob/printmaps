@@ -11,7 +11,7 @@
 .export-workspace-layout {
   display: grid;
   flex: 1;
-  grid-template-columns: minmax(0, 19rem) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1fr);
   min-height: 0;
 }
 
@@ -40,27 +40,25 @@
 }
 
 .export-poster-stage {
-  display: grid;
+  display: flex;
   flex: 1;
   min-height: 0;
-  place-items: center;
-  padding: 1.25rem;
-  container-type: size;
+  padding: 0.75rem;
 }
 
+/* Fill the stage; contain keeps the poster's ratio and drop-shadow follows only the visible paper. */
 .export-poster-image {
   display: block;
-  width: min(100cqw, calc(100cqh * var(--poster-ratio, 1)));
-  height: auto;
-  aspect-ratio: var(--poster-ratio, 1);
+  width: 100%;
+  height: 100%;
+  min-height: 0;
   object-fit: contain;
-  background: var(--studio-surface);
-  box-shadow: 0 1px 2px color-mix(in srgb, var(--studio-text-strong) 12%, transparent),
-    0 6px 16px color-mix(in srgb, var(--studio-text-strong) 10%, transparent);
+  filter: drop-shadow(0 1px 1px color-mix(in srgb, var(--studio-text-strong) 14%, transparent))
+    drop-shadow(0 4px 10px color-mix(in srgb, var(--studio-text-strong) 8%, transparent));
 }
 
 .export-preview-message {
-  margin: 0;
+  margin: auto;
   padding: 0 0.5rem;
   color: var(--studio-text-muted);
   font-size: var(--studio-font-label);
@@ -129,7 +127,7 @@
   }
   .export-workspace .export-destination-panel > :is(.studio-dialog-body, .studio-dialog-feedback, .studio-dialog-actions) { padding-left: var(--studio-dialog-padding); }
   .export-workspace[data-framed="true"] .export-preview { height: clamp(11rem, 32dvh, 17rem); }
-  .export-poster-stage { padding: 0.75rem; }
+  .export-poster-stage { padding: 0.5rem; }
   .export-preview .studio-wall-scene { padding: 1rem; }
   .export-preview-wall { margin-bottom: 0.5rem; }
 }
@@ -145,4 +143,19 @@
   .export-destinations { padding-left: 1rem; padding-right: 1rem; }
   .export-preview { margin-left: 1rem; margin-right: 1rem; }
   .export-workspace .export-destination-panel > :is(.studio-dialog-body, .studio-dialog-feedback, .studio-dialog-actions) { padding-left: 1rem; padding-right: 1rem; }
+}
+
+/* Relief Width/Height share one row: the first field aligns with the label column of the rows below. */
+.relief-fields > .paired-fields {
+  grid-template-columns: 6.5rem minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: 0.5rem;
+  min-height: 2.5rem;
+  margin: 0;
+}
+.relief-fields > .paired-fields > .property-row { display: contents; }
+.relief-fields > .paired-fields > .property-row + .property-row > span { padding-left: 0.25rem; }
+@media (max-width: 479px) {
+  .relief-fields > .paired-fields { grid-template-columns: 6.5rem minmax(0, 1fr); row-gap: 0.5rem; }
+  .relief-fields > .paired-fields > .property-row + .property-row > span { padding-left: 0; }
 }
