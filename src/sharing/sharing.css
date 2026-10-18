@@ -17,6 +17,8 @@
   text-overflow: ellipsis;
 }
 .share-copy-row > button { flex-shrink: 0; }
+.share-copy-row.is-multiline { align-items: flex-start; }
+.share-copy-row > .share-code { flex: 1; min-width: 0; }
 .share-switch { min-height: var(--studio-control-height); }
 .share-code {
   width: 100%;
@@ -32,7 +34,6 @@
   overflow-wrap: anywhere;
   resize: none;
 }
-.share-copy-embed { justify-self: start; }
 .share-feedback { color: var(--studio-text-secondary); }
 @media (pointer: coarse), (max-width: 899px) {
   .share-copy-row > input, .share-switch, .share-dialog .number-field { min-height: var(--studio-touch-target); }

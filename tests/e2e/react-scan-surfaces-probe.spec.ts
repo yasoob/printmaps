@@ -38,7 +38,6 @@ for (const touch of [false, true]) {
       await helpProbe(page, info, 'Video aspect help', { owner: 'VideoExportSettings', isTouch: touch });
       await dialog.getByRole('tab', { name: '3D model', exact: true }).click();
       await helpProbe(page, info, 'Terrain STL help', { owner: 'ReliefExportPanel', isTouch: touch });
-      await helpProbe(page, info, 'Elevation data and credits', { owner: 'ReliefExportPanel', isTouch: touch });
       await startProbe(page, 'Relief dimensions');
       await dialog.getByRole('button', { name: 'Fit dimensions to print frame', exact: true }).click();
       await expect(dialog.getByRole('status')).toContainText('Dimensions match');

@@ -1,3 +1,6 @@
+import { ChevronLeft, ChevronRight, RotateCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from './UiControls';
 import { POI_ADDRESS_REVIEW_PAGE_SIZE, poiAddressNameError, poiAddressQueryError, selectedPoiAddress, type PoiAddressReviewRow } from '../../domain/poiAddressReview';
 import type { usePoiSpreadsheet } from '../hooks/usePoiSpreadsheet';
 
@@ -33,17 +36,15 @@ function AddressRow({ row, model }: { row: PoiAddressReviewRow; model: Spreadshe
   const nameId = `poi-review-name-${row.id}`;
   const addressId = `poi-review-address-${row.id}`;
   return <li className="poi-address-row">
-    <label className="poi-address-include">
-      <input type="checkbox" checked={row.included} disabled={isBusy} aria-label={`Include row ${row.id + 1}: ${row.name}`} onChange={(event) => model.changeRow(row.id, { included: event.target.checked })} />
-      <strong>{row.id + 1}. {row.name}</strong>
-    </label>
+    <Checkbox className="poi-address-include" isChecked={row.included} disabled={isBusy} aria-label={`Include row ${row.id + 1}: ${row.name}`}
+      label={`${row.id + 1}. ${row.name}`} onCheckedChange={(included) => model.changeRow(row.id, { included })} />
     <p className="poi-address-query">Requested: {row.address}</p>
     <p className="poi-address-match">{rowStatus(row)}</p>
     {row.status === 'found' && !candidate && <p>First suggestion (not selected): {row.candidates[0]?.label}</p>}
     {candidate && <small>Longitude {candidate.center[0]}, latitude {candidate.center[1]}</small>}
     {!row.included && <p>Excluded — this row will not be added.</p>}
-    <details>
-      <summary>Review or correct row {row.id + 1}</summary>
+    <details className="poi-address-details">
+      <summary><ChevronRight className="poi-address-chevron" aria-hidden="true" size={16} strokeWidth={1.75} /><span>Review or correct row {row.id + 1}</span></summary>
       <div className="poi-address-fields">
         <label>POI name
           <input aria-label={`POI name for row ${row.id + 1}`} value={row.name} disabled={isBusy} aria-invalid={Boolean(nameError)} aria-describedby={nameError ? nameId : undefined} onChange={(event) => model.changeRow(row.id, { name: event.target.value })} />
@@ -54,7 +55,7 @@ function AddressRow({ row, model }: { row: PoiAddressReviewRow; model: Spreadshe
         </label>
         {queryError && <p id={addressId} className="poi-spreadsheet-error">{queryError}</p>}
         <MatchChoices row={row} model={model} />
-        <button type="button" disabled={isBusy || Boolean(queryError)} onClick={() => model.retry(row.id)}>Look up row {row.id + 1} again</button>
+        <Button variant="secondary" size="sm" className="poi-address-retry" disabled={isBusy || Boolean(queryError)} onClick={() => model.retry(row.id)}>Look up row {row.id + 1} again</Button>
       </div>
     </details>
   </li>;
@@ -66,17 +67,19 @@ export function PoiAddressReview({ model, onPageChange }: { model: Spreadsheet; 
   const start = page * POI_ADDRESS_REVIEW_PAGE_SIZE;
   const selected = rows.filter((row) => row.included).length;
   return <section className="poi-address-review" aria-label="Address match review">
-    <h3>Review matched locations</h3>
-    <p>Review the returned locality. Suggestions are unverified; up to 5 matches per address.</p>
-    <p>{selected} of {rows.length} rows included. Excluded rows will not be added or saved.</p>
+    <div className="poi-address-review-intro">
+      <h3>Review matched locations</h3>
+      <p>Review the returned locality. Suggestions are unverified; up to 5 matches per address.</p>
+      <p>{selected} of {rows.length} rows included. Excluded rows will not be added or saved.</p>
+    </div>
     <ol start={start + 1} aria-label="Reviewed address rows">
       {rows.slice(start, start + POI_ADDRESS_REVIEW_PAGE_SIZE).map((row) => <AddressRow key={row.id} row={row} model={model} />)}
     </ol>
     {pageCount > 1 && <nav className="poi-address-pagination" aria-label="Address review pages">
-      <button type="button" disabled={page === 0} onClick={() => onPageChange(page - 1)}>Previous addresses</button>
+      <Button variant="ghost" size="sm" disabled={page === 0} onClick={() => onPageChange(page - 1)}><ChevronLeft aria-hidden="true" strokeWidth={1.75} />Previous addresses</Button>
       <span>Rows {start + 1}–{Math.min(start + POI_ADDRESS_REVIEW_PAGE_SIZE, rows.length)} of {rows.length}</span>
-      <button type="button" disabled={page + 1 >= pageCount} onClick={() => onPageChange(page + 1)}>Next addresses</button>
+      <Button variant="ghost" size="sm" disabled={page + 1 >= pageCount} onClick={() => onPageChange(page + 1)}>Next addresses<ChevronRight aria-hidden="true" strokeWidth={1.75} /></Button>
     </nav>}
-    {!lookup && rows.some((row) => row.included && row.status !== 'found') && <button type="button" onClick={() => model.retry()}>Retry unfinished addresses</button>}
+    {!lookup && rows.some((row) => row.included && row.status !== 'found') && <Button variant="secondary" size="sm" className="poi-address-retry" onClick={() => model.retry()}><RotateCw aria-hidden="true" strokeWidth={1.75} />Retry unfinished addresses</Button>}
   </section>;
 }

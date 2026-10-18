@@ -118,13 +118,13 @@ export function ReliefExportPanel({ exporter, onClose, blockedReason, onBusyChan
         <div className="feature-help-row export-panel-heading"><h3 className="export-panel-title">Terrain relief · STL</h3><FeatureHelp label="Terrain STL help">
           <p>A watertight binary STL of the print area. Set Pitch to 0; bearing is preserved. Import as millimeters in your slicer.</p>
           <p>The lowest sample sits on the base. The four elevation-aware frame corners are interpolated across the model; scale uses average edge lengths at the frame center. Exaggeration multiplies relief height. Elevation tiles are approximate, not survey data.</p>
+          <p><strong>Elevation data & credits.</strong> {reliefAttributionNotice()}</p>
         </FeatureHelp></div>
         <fieldset disabled={isBusy || !!blockedReason} className="relief-fields">
           <ReliefSettingsControls {...controls} fitAction={<StudioDialogButton variant="secondary" size="sm" className="relief-fit-button" disabled={!canExport} onClick={fitDimensions}>
-            <Scan size={14} strokeWidth={1.8} aria-hidden="true" />Fit dimensions to print frame
+            <Scan aria-hidden="true" strokeWidth={1.75} />Fit dimensions to print frame
           </StudioDialogButton>} />
         </fieldset>
-        <div className="feature-help-row export-footnote"><span>Elevation data & credits</span><FeatureHelp label="Elevation data and credits">{reliefAttributionNotice()}</FeatureHelp></div>
       </StudioDialogBody>
       <StudioDialogActions>
         <StudioDialogButton ref={cancelRef} onClick={isBusy ? () => running.current?.abort() : onClose}>{dismissLabel(isBusy, progress.fraction === 1)}</StudioDialogButton>

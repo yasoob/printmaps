@@ -105,9 +105,9 @@
 .export-workspace .studio-wall-controls { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; }
 .studio-wall-shadow.studio-switch { min-height: 2.5rem; }
 
-.relief-fit-row { padding-bottom: 0.25rem; }
+.relief-fit-row.property-row { min-height: 0; padding-bottom: 0.25rem; }
+.relief-fit-row .relief-fit-button { justify-self: start; }
 
-.export-footnote { color: var(--studio-text-muted); font-size: var(--studio-font-label); }
 
 .export-notice-list { margin: 0; padding-left: 1.125rem; }
 
@@ -143,19 +143,4 @@
   .export-destinations { padding-left: 1rem; padding-right: 1rem; }
   .export-preview { margin-left: 1rem; margin-right: 1rem; }
   .export-workspace .export-destination-panel > :is(.studio-dialog-body, .studio-dialog-feedback, .studio-dialog-actions) { padding-left: 1rem; padding-right: 1rem; }
-}
-
-/* Relief Width/Height share one row: the first field aligns with the label column of the rows below. */
-.relief-fields > .paired-fields {
-  grid-template-columns: 6.5rem minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: center;
-  column-gap: 0.5rem;
-  min-height: 2.5rem;
-  margin: 0;
-}
-.relief-fields > .paired-fields > .property-row { display: contents; }
-.relief-fields > .paired-fields > .property-row + .property-row > span { padding-left: 0.25rem; }
-@media (max-width: 479px) {
-  .relief-fields > .paired-fields { grid-template-columns: 6.5rem minmax(0, 1fr); row-gap: 0.5rem; }
-  .relief-fields > .paired-fields > .property-row + .property-row > span { padding-left: 0; }
 }

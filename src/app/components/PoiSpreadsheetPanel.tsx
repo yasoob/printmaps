@@ -1,6 +1,8 @@
-import { ListPlus } from 'lucide-react';
+import { ArrowLeft, ListPlus } from 'lucide-react';
 import { useLayoutEffect, useMemo, useRef, useState, type FormEvent, type RefObject } from 'react';
+import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { SegmentedControl } from '@/components/ui/segmented-control';
 import { Notice } from '@/components/ui/notice';
 import { StudioDialog, StudioDialogActions, StudioDialogButton, StudioDialogFeedback, StudioDialogHeader } from '@/components/ui/studio-dialog';
 import { MAX_POI_ADDRESS_ROWS, MAX_POI_SPREADSHEET_CHARACTERS, MAX_POI_SPREADSHEET_ROWS, type PoiSpreadsheetEntry } from '../../domain/poiSpreadsheet';
@@ -123,6 +125,11 @@ function useSpreadsheetFocus(isReview: boolean, rows: Spreadsheet['draft']['rows
   return (target: 'review' | 'text') => { pendingRef.current = target; };
 }
 
+const SPREADSHEET_MODES = [
+  { value: 'coordinates', label: 'Coordinates' },
+  { value: 'addresses', label: 'Addresses' },
+] as const;
+
 function SpreadsheetSource({ model }: { model: Spreadsheet }) {
   const isAddressMode = model.draft.mode === 'addresses';
   return <>
@@ -131,11 +138,8 @@ function SpreadsheetSource({ model }: { model: Spreadsheet }) {
       <p>{isAddressMode ? `Look up up to ${MAX_POI_ADDRESS_ROWS} address rows, then review before adding.` : `Paste up to ${MAX_POI_SPREADSHEET_ROWS} tab-separated rows.`}</p>
       <p>Unadded lists stay only in this tab. They are not saved or downloaded and will be lost on reload.</p>
     </div>}
-    <fieldset className="poi-spreadsheet-mode">
-      <legend>Location columns</legend>
-      <label><input type="radio" name="poi-spreadsheet-mode" checked={!isAddressMode} onChange={() => model.changeMode('coordinates')} /> Coordinates</label>
-      <label><input type="radio" name="poi-spreadsheet-mode" checked={isAddressMode} onChange={() => model.changeMode('addresses')} /> Addresses</label>
-    </fieldset>
+    <SegmentedControl className="poi-spreadsheet-mode" label="Location columns" value={model.draft.mode}
+      options={SPREADSHEET_MODES} onValueChange={model.changeMode} />
   </>;
 }
 
@@ -152,7 +156,7 @@ function SpreadsheetContent({ model, textareaRef, bodyRef, requestFocus }: {
       model.setPage(page);
       focusReviewedRows(bodyRef.current);
     }} />
-    <button type="button" onClick={() => { requestFocus('text'); model.backToEdit(); }}>Back to pasted rows</button>
+    <Button variant="ghost" size="sm" className="poi-spreadsheet-back" onClick={() => { requestFocus('text'); model.backToEdit(); }}><ArrowLeft aria-hidden="true" strokeWidth={1.75} />Back to pasted rows</Button>
   </>;
   const error = draft.errors[draft.mode];
   return <>
@@ -160,9 +164,22 @@ function SpreadsheetContent({ model, textareaRef, bodyRef, requestFocus }: {
     <textarea ref={textareaRef} id="poi-spreadsheet-rows" aria-label="POI spreadsheet rows" aria-invalid={Boolean(error)} aria-describedby={error ? 'poi-spreadsheet-error' : undefined} maxLength={MAX_POI_SPREADSHEET_CHARACTERS} placeholder={isAddressMode ? 'Name\tAddress\nCafé Central\tHerrengasse 14, Vienna' : 'Name\tLongitude\tLatitude\nCafé Central\t16.3725\t48.2084'} value={draft.buffers[draft.mode]} onChange={(event) => model.changeText(event.target.value)} />
     {isAddressMode && draft.rows.length > 0 && <>
       <p>Your pasted text is unchanged. Row corrections and choices are kept in review. Editing this text starts a new review.</p>
-      <button type="button" onClick={() => { requestFocus('review'); model.returnToReview(); }}>Return to review</button>
+      <Button variant="secondary" size="sm" className="poi-spreadsheet-inline-action" onClick={() => { requestFocus('review'); model.returnToReview(); }}>Return to review</Button>
     </>}
   </>;
+}
+
+function SpreadsheetStatus({ lookup, announcement, hint }: {
+  lookup: Spreadsheet['draft']['lookup'];
+  announcement: string | null;
+  hint: string | null;
+}) {
+  if (!lookup && !announcement && !hint) return null;
+  return <Notice tone={hint ? 'warning' : 'info'} role="note">
+    {lookup && <p role="status">{lookup.completed} of {lookup.total} addresses checked. Nothing has been added.</p>}
+    {announcement && <p role="status">{announcement}</p>}
+    {hint && <p className="poi-spreadsheet-hint">{hint}</p>}
+  </Notice>;
 }
 
 function SpreadsheetFeedback({ model }: { model: Spreadsheet }) {
@@ -172,10 +189,8 @@ function SpreadsheetFeedback({ model }: { model: Spreadsheet }) {
   const announcement = visiblePoiSpreadsheetAnnouncement(draft);
   if (!error && !hint && !announcement && !draft.lookup) return null;
   return <div className="poi-spreadsheet-feedback" role="region" aria-label="POI list messages" tabIndex={0}>
-    {draft.lookup && <p role="status">{draft.lookup.completed} of {draft.lookup.total} addresses checked. Nothing has been added.</p>}
-    {announcement && <p role="status">{announcement}</p>}
-    {error && <p id="poi-spreadsheet-error" className="poi-spreadsheet-error" role="alert">{error}</p>}
-    {hint && <p className="poi-spreadsheet-hint">{hint}</p>}
+    {error && <Notice id="poi-spreadsheet-error" tone="error">{error}</Notice>}
+    <SpreadsheetStatus lookup={draft.lookup} announcement={announcement} hint={hint} />
   </div>;
 }
 

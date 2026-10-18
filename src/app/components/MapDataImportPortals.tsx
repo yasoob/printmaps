@@ -5,6 +5,7 @@ import { ColorField } from '@/components/ui/color-field';
 import { Dialog } from '@/components/ui/dialog';
 import { Notice } from '@/components/ui/notice';
 import { StudioDialog, StudioDialogActions, StudioDialogBody, StudioDialogButton, StudioDialogHeader } from '@/components/ui/studio-dialog';
+import { SegmentedControl } from '@/components/ui/segmented-control';
 import { PropertyRow } from './PropertyControls';
 import type { ContentLayer } from '../../domain/project';
 import {
@@ -181,11 +182,13 @@ export function MapDataImportPortals({
             {replacementTarget && <ReplacementNote target={replacementTarget} />}
             {!replacementTarget && <BatchAppearanceControls appearance={batchAppearance} batch={batch} validation={batchAppearanceValidation} onChange={setBatchAppearance} />}
             {batch && (
-              <fieldset className="map-data-view-choice">
-                <legend>{copy.legend}</legend>
-                <label><input type="radio" name="import-view" checked={shouldFitView} onChange={() => setShouldFitView(true)} /> {copy.fitLabel}</label>
-                <label><input type="radio" name="import-view" checked={!shouldFitView} onChange={() => setShouldFitView(false)} /> Keep current view</label>
-              </fieldset>
+<div className="map-data-view-row">
+                <PropertyRow label="Map view">
+                  <SegmentedControl label={copy.legend} value={shouldFitView ? 'fit' : 'keep'}
+                    options={[{ value: 'fit', label: copy.fitLabel }, { value: 'keep', label: 'Keep current view' }]}
+                    onValueChange={(view) => setShouldFitView(view === 'fit')} />
+                </PropertyRow>
+              </div>
             )}
           </StudioDialogBody>
           <StudioDialogActions className="map-data-import-actions"
