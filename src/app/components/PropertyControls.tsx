@@ -59,6 +59,32 @@ export function InspectorAccordion({ children, isDefaultExpanded, storageKey, su
   );
 }
 
-export function PropertyRow({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div className="property-row"><span aria-hidden="true">{label}</span><div className="property-control">{children}</div></div>;
+type PropertyRowProps = {
+  label: string;
+  children: React.ReactNode;
+  /**
+  `stacked` places the label above a full-width control, for multi-line text.
+  */
+  layout?: 'inline' | 'stacked';
+};
+
+export function PropertyRow({ label, children, layout = 'inline' }: PropertyRowProps) {
+  return (
+    <div className="property-row" data-layout={layout}>
+      <span aria-hidden="true" title={label}>{label}</span>
+      <div className="property-control">{children}</div>
+    </div>
+  );
+}
+
+/**
+Small group heading inside a property section, optionally with a trailing action.
+*/
+export function PropertySubheading({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) {
+  return (
+    <div className="property-subheading">
+      <h4>{children}</h4>
+      {action}
+    </div>
+  );
 }

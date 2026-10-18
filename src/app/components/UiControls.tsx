@@ -9,6 +9,13 @@ type SharedControlProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'checked' 
   onCheckedChange?: (isChecked: boolean) => void;
 }>;
 
+type SwitchProps = SharedControlProps & Readonly<{
+  /**
+  `start` puts the label first and the switch at the trailing edge of a full-width row.
+  */
+  labelPlacement?: 'end' | 'start';
+}>;
+
 function controlClassName(base: string, className?: string): string {
   return className ? `${base} ${className}` : base;
 }
@@ -29,9 +36,9 @@ export function Checkbox({ isChecked, className, label, labelHidden = false, onC
   );
 }
 
-export function Switch({ isChecked, className, label, labelHidden = false, onCheckedChange, ...inputProps }: SharedControlProps) {
+export function Switch({ isChecked, className, label, labelHidden = false, labelPlacement = 'end', onCheckedChange, ...inputProps }: SwitchProps) {
   return (
-    <label className={controlClassName('studio-switch', className)}>
+    <label className={controlClassName('studio-switch', className)} data-label-placement={labelPlacement}>
       <input
         {...inputProps}
         className="studio-switch-native"
