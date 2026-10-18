@@ -74,8 +74,8 @@ export const LayerIdentityProperties = memo(function LayerIdentityProperties({
         <PropertyRow label="Name"><input aria-label="Layer name" value={nameDraft} aria-invalid={Boolean(nameError)} aria-describedby={nameError ? nameErrorId : undefined} onChange={(event) => onNameChange(event.target.value)} onBlur={onNameCommit} /></PropertyRow>
         {nameError && <p id={nameErrorId} className="coordinate-validation" role="alert">{nameError}</p>}
         <PropertyRow label="Opacity"><InputGroup><InputNumber aria-label="Layer opacity" min={0} max={100} step={1} value={opacityDraft} onChange={(event) => onOpacityChange(event.target.value)} onBlur={onOpacityCommit} /><InputGroupAddon align="inline-end" enableScrubbing sensitivity={4}>%</InputGroupAddon></InputGroup></PropertyRow>
-        <PropertyRow label="Visible"><Switch aria-label="Toggle layer visibility" isChecked={layer.visible} label="Layer visibility" labelHidden onCheckedChange={onToggleVisibility} /></PropertyRow>
-        <PropertyRow label="Locked"><Switch aria-label="Toggle layer lock" aria-describedby={hasLockHint ? lockHintId : undefined} isChecked={layer.locked} label="Layer lock" labelHidden onCheckedChange={onToggleLock} /></PropertyRow>
+        <Switch aria-label="Toggle layer visibility" labelPlacement="start" isChecked={layer.visible} label="Visible" onCheckedChange={onToggleVisibility} />
+        <Switch aria-label="Toggle layer lock" labelPlacement="start" aria-describedby={hasLockHint ? lockHintId : undefined} isChecked={layer.locked} label="Locked" onCheckedChange={onToggleLock} />
         {hasLockHint && <p id={lockHintId} className="layer-lock-hint">Geometry and deletion are locked. Name and appearance remain editable.</p>}
       </PropertySection>
     </>

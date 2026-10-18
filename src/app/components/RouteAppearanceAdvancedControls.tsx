@@ -108,6 +108,7 @@ function RouteMarkerSettings({
       ) : null}
       <Switch
         aria-label="Orient route marker to path"
+        labelPlacement="start"
         disabled={disabled}
         isChecked={marker.orientToPath}
         label="Orient to path"
@@ -119,6 +120,7 @@ function RouteMarkerSettings({
       {marker.orientToPath ? (
         <Switch
           aria-label="Reverse route marker facing"
+          labelPlacement="start"
           disabled={disabled}
           isChecked={marker.reverseFacing}
           label="Reverse facing"
