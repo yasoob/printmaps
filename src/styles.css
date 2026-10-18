@@ -1387,7 +1387,7 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
   height: auto;
   border: var(--studio-border-width) solid var(--studio-line);
   border-radius: var(--studio-radius-sm);
-  background: #ffffff;
+  background: var(--studio-surface);
 }
 .elevation-profile-preview > small { display: block; margin-bottom: 6px; font-size: 12px; }
 .elevation-metrics { @apply grid grid-cols-2 gap-x-2 gap-y-1; font-variant-numeric: tabular-nums; }
