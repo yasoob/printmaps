@@ -640,18 +640,21 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .map-fit-control:hover { background: var(--studio-field); }
 .map-fit-control:disabled { cursor: default; opacity: .38; }
 .shape-editing-toolbar {
-  @apply flex items-center self-center overflow-hidden;
-  border: var(--studio-border-width) solid var(--studio-line-strong);
-  border-radius: var(--studio-radius-lg);
-  background: var(--studio-surface-raised);
+  @apply flex items-center gap-0.5 self-center p-1;
+  border: var(--studio-border-width) solid var(--studio-map-control-border);
+  border-radius: var(--studio-map-control-radius);
+  background: var(--studio-map-control-surface);
 }
 .shape-editing-toolbar > button {
-  @apply flex min-h-10 items-center gap-1.5 px-3 text-xs font-medium;
+  @apply flex items-center gap-1.5 px-3 font-medium;
+  height: var(--studio-control-height);
+  border: var(--studio-border-width) solid var(--studio-transparent);
+  border-radius: var(--studio-radius-md);
   color: var(--studio-text-secondary);
+  font-size: var(--studio-font-control);
 }
-.shape-editing-toolbar > button + button { border-left: var(--studio-border-width) solid var(--studio-line); }
-.shape-editing-toolbar > button:hover { background: var(--studio-field); }
-.shape-editing-toolbar > button[aria-pressed="true"] { background: var(--studio-accent); color: var(--studio-on-dark); }
+.shape-editing-toolbar > button:hover { color: var(--studio-text-strong); background: var(--studio-field); }
+.shape-editing-toolbar > button[aria-pressed="true"] { border-color: var(--studio-line-strong); color: var(--studio-text-strong); background: var(--studio-field); }
 .map-authoring-panel {
   @apply relative z-40 flex w-full flex-wrap items-center justify-center gap-2 px-2 py-1.5;
   max-width: 100%;
@@ -1177,6 +1180,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .property-control { @apply min-w-0; color: var(--studio-text); }
 @media (max-width: 899px), (pointer: coarse) {
   .right-sidebar .property-row { min-height: 3.25rem; }
+  .shape-editing-toolbar > button { height: var(--studio-touch-target); }
   .tool-authoring-card :is(.property-control select, .number-field, .tool-card-actions > button, .route-point-sources > summary, .route-draft-points > summary, .route-coordinate-entry > button, .route-poi-entry > button, .route-preview-button, .shape-coordinate-entry > button),
   .shadcn-combobox-input-group { min-height: var(--studio-touch-target); }
   :is(.shape-mode-tabs, .tool-segmented-control, .isochrone-profiles) > button { height: calc(var(--studio-touch-target) - 0.25rem); }
