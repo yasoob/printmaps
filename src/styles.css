@@ -615,7 +615,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .map-root[data-interaction-mode="select"] .maplibregl-canvas { cursor: default !important; }
 .map-root[data-interaction-mode="select"] .maplibregl-canvas:active { cursor: grabbing !important; }
 .map-root:is([data-interaction-mode="pin"], [data-interaction-mode="route"], [data-interaction-mode="shape"]) .maplibregl-canvas { cursor: crosshair !important; }
-.mobile-panel-actions > button, .mobile-panel-backdrop, .mobile-drawer-close { display: none; }
+.mobile-panel-actions > button, .mobile-panel-backdrop, .mobile-sheet-bar { display: none; }
 .tool-palette {
   @apply relative z-50 flex items-center gap-0.5 p-1;
   height: 2.75rem;
@@ -1894,20 +1894,12 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
     min-width: 2.75rem;
     min-height: 2.75rem;
   }
-  .right-sidebar.is-mobile-open .properties-title { padding-right: 6.5rem; }
-  .right-sidebar.is-mobile-open .properties-title > .icon-button {
-    @apply absolute top-2;
-    right: 3.5rem;
-    width: 2.75rem;
-    height: 2.75rem;
-  }
-  .right-sidebar.is-mobile-open .map-style-customizer-header {
-    min-height: 3.75rem;
-    padding-right: 3.5rem;
-  }
+  /* The sheet's own top bar holds Close, so panel titles and tabs never sit under it. */
+  .right-sidebar.is-mobile-open .properties-title { min-height: 2.75rem; padding-top: 0; padding-bottom: 0.25rem; }
+  .right-sidebar.is-mobile-open .properties-title > .icon-button { width: 2.75rem; height: 2.75rem; }
+  .right-sidebar.is-mobile-open .map-style-customizer-header { min-height: 3.25rem; }
   .right-sidebar.is-mobile-open .map-style-reset-wide { display: none; }
   .right-sidebar.is-mobile-open .map-style-reset-narrow { display: inline; }
-  .right-sidebar.is-mobile-open .mobile-drawer-close { z-index: 20; }
   .left-sidebar.is-mobile-open .layer-select,
   .left-sidebar.is-mobile-open .layer-visibility,
   .left-sidebar.is-mobile-open .layer-lock,
@@ -1917,9 +1909,20 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
     height: 2.75rem;
   }
   .left-sidebar.is-mobile-open .layer-select { width: auto; }
+  .mobile-sheet-bar {
+    @apply relative flex flex-none items-center justify-end;
+    min-height: 2.75rem;
+    padding: 0.25rem 0.5rem 0;
+  }
+  .mobile-sheet-grip {
+    @apply absolute left-1/2 top-2 -translate-x-1/2;
+    width: 2.25rem;
+    height: 0.25rem;
+    border-radius: 999px;
+    background: var(--studio-switch-off);
+  }
   .mobile-drawer-close {
-    @apply absolute top-2 z-10 grid place-items-center;
-    right: 0.5rem;
+    @apply grid place-items-center;
     width: 2.75rem;
     height: 2.75rem;
     border-radius: 999px;

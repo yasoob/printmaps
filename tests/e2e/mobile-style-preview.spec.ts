@@ -36,7 +36,8 @@ for (const viewport of [
     await expect(close).toBeVisible();
     const closeBox = await close.boundingBox();
     const resetBox = await page.getByRole('button', { name: 'Reset to Paper', exact: true }).boundingBox();
-    expect(resetBox!.x + resetBox!.width).toBeLessThanOrEqual(closeBox!.x);
+    // Close sits in the sheet's top bar, so Reset never collides with it.
+    expect(resetBox!.y).toBeGreaterThanOrEqual(closeBox!.y + closeBox!.height);
 
     const lastColor = page.getByLabel('Label halo color', { exact: true });
     await lastColor.focus();
