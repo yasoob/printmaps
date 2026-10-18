@@ -75,7 +75,7 @@ type PropertyRowProps = {
 export function PropertyRow({ label, children, layout = 'inline' }: PropertyRowProps) {
   return (
     <div className="property-row" data-layout={layout}>
-      <span aria-hidden="true" title={label}>{label}</span>
+      <span aria-hidden="true">{label}</span>
       <div className="property-control">{children}</div>
     </div>
   );

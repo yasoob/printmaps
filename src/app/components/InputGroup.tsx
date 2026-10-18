@@ -137,7 +137,6 @@ export function InputGroupAddon({
       role={undefined}
       align={align}
       className={cn('input-group-addon', `is-${align}`, enableScrubbing ? 'is-scrubbable' : undefined, className)}
-      title={enableScrubbing ? 'Drag horizontally to adjust' : undefined}
       onPointerDown={startScrubbing}
       {...props}
     />

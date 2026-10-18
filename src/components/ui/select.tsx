@@ -73,7 +73,7 @@ function SelectContent({
           data-align-trigger={alignItemWithTrigger}
           className={cn(
             floatingSurfaceClassName,
-            "relative isolate max-h-(--available-height) w-(--anchor-width) min-w-36 origin-(--transform-origin) overflow-x-hidden overflow-y-auto p-1 duration-100 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 motion-reduce:animate-none",
+            "relative isolate max-h-(--available-height) w-max max-w-(--available-width) min-w-[max(var(--anchor-width),9rem)] origin-(--transform-origin) overflow-x-hidden overflow-y-auto p-1 duration-100 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 motion-reduce:animate-none",
             className
           )}
           {...props}
@@ -111,7 +111,7 @@ function SelectItem({ className, children, ...props }: SelectPrimitive.Item.Prop
       )}
       {...props}
     >
-      <SelectPrimitive.ItemText className="flex min-w-0 flex-1 gap-2 truncate">{children}</SelectPrimitive.ItemText>
+      <SelectPrimitive.ItemText className="flex min-w-0 flex-1 gap-2 whitespace-normal break-words">{children}</SelectPrimitive.ItemText>
       <SelectPrimitive.ItemIndicator render={selectItemIndicator}>{selectItemCheck}</SelectPrimitive.ItemIndicator>
     </SelectPrimitive.Item>
   )

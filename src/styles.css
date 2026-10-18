@@ -1778,8 +1778,8 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
     grid-template-columns: 2.75rem minmax(0, 1fr) 2.75rem 2.75rem;
     min-height: 2.75rem;
   }
-  .left-sidebar.is-mobile-open button,
-  .right-sidebar.is-mobile-open button {
+  .left-sidebar.is-mobile-open button:not([role="checkbox"], [role="switch"]),
+  .right-sidebar.is-mobile-open button:not([role="checkbox"], [role="switch"]) {
     min-width: 2.75rem;
     min-height: 2.75rem;
   }
