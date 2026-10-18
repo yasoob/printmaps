@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./theme.css";
+@import "./components/ui/primitives.css";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
@@ -125,7 +126,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .primary-button:disabled,
 .tool-button:disabled {
   cursor: default;
-  opacity: 0.38;
+  opacity: var(--studio-disabled-opacity);
 }
 .icon-button:disabled:hover,
 .quiet-button:disabled:hover { background: transparent; }
@@ -201,22 +202,31 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   color: var(--studio-text-secondary);
 }
 .close-button {
-  @apply grid h-7 w-7 shrink-0 place-items-center;
+  @apply grid shrink-0 place-items-center;
+  width: var(--studio-control-height);
+  height: var(--studio-control-height);
 }
 .close-button,
 .left-sidebar.is-mobile-open .layer-header-secondary .icon-button {
-  @apply rounded-full;
+  border-radius: var(--studio-radius-md);
   color: var(--studio-text-muted);
 }
-.close-button:hover { background: var(--studio-field); }
+.close-button:hover:not(:disabled) { color: var(--studio-text-strong); background: var(--studio-field); }
+/* Legacy button classes mirror the shared Button: .primary-button = primary, .quiet-button = ghost. */
 .quiet-button, .primary-button {
-  @apply inline-flex items-center gap-1.5 px-2.5 font-medium;
-  height: 1.875rem;
+  @apply inline-flex items-center justify-center gap-1.5 px-2.5 font-medium;
+  min-height: var(--studio-control-height);
   border-radius: var(--studio-radius-md);
   font-size: var(--studio-font-control);
+  line-height: 1.25;
 }
+.quiet-button > svg, .primary-button > svg { flex-shrink: 0; }
+.quiet-button { color: var(--studio-text); }
+.quiet-button:hover:not(:disabled) { color: var(--studio-text-strong); }
 .primary-button { color: var(--studio-on-dark); background: var(--studio-accent); }
-.primary-button:hover { background: var(--studio-accent-strong); }
+.primary-button:hover:not(:disabled) { background: var(--studio-accent-strong); }
+.secondary-button { color: var(--studio-text); background: var(--studio-button-secondary); }
+.secondary-button:hover:not(:disabled) { background: var(--studio-button-secondary-hover); }
 
 .left-sidebar, .right-sidebar {
   @apply z-30 min-w-0;
@@ -1080,12 +1090,18 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .inspector-accordion + .inspector-accordion { margin-top: 0.125rem; }
 .inspector-accordion h3 { @apply m-0; }
 .inspector-accordion h3 > button {
-  @apply grid w-full cursor-pointer items-center gap-x-2 px-4 py-2 text-left;
+  @apply grid cursor-pointer items-center gap-x-2 px-2 py-2 text-left;
   grid-template-columns: 1rem minmax(0, 1fr);
+  width: calc(100% - 1rem);
   min-height: 3.75rem;
+  margin: 0 0.5rem;
+  border-radius: var(--studio-radius-md);
 }
 .inspector-accordion h3 > button[aria-expanded="true"] { min-height: 2.75rem; }
-.inspector-accordion h3 > button:hover { background: var(--studio-hover); }
+@media (hover: hover) {
+  .inspector-accordion h3 > button:hover { background: var(--studio-hover); }
+  .inspector-accordion h3 > button:hover .inspector-chevron { color: var(--studio-text-strong); }
+}
 .inspector-chevron {
   grid-column: 1;
   grid-row: 1;
@@ -1115,8 +1131,9 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .property-section { @apply px-4 pb-3 pt-3; border-top: 0; }
 .inspector-accordion-content > .property-section { padding-left: 0; padding-right: 0; }
 .property-section + .property-section { padding-top: 0.875rem; }
-/* Static layer sections use the same title type as project accordion headers. */
-.property-section h3 { @apply mb-1 mt-0 flex items-center font-semibold; min-height: 1.75rem; color: var(--studio-text-strong); font-size: var(--studio-font-control); line-height: 1.25; }
+.property-section h3 { @apply mb-2 mt-0 font-semibold; color: var(--studio-text-strong); font-size: var(--studio-font-control); line-height: 1.25; }
+/* Groups inside an accordion read as sub-headings, matching PropertySubheading and ToggleSection. */
+.inspector-accordion-content .property-section h3 { font-size: var(--studio-font-label); line-height: 1.35; }
 .layer-lock-hint { margin: 0.25rem 0 0; color: var(--studio-text-muted); font-size: var(--studio-font-label); line-height: 1.4; }
 .property-note {
   @apply m-0 pb-2;
@@ -1126,16 +1143,18 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 .property-row {
   @apply grid items-center;
-  grid-template-columns: 5.5rem minmax(0, 1fr);
+  grid-template-columns: 6.5rem minmax(0, 1fr);
   column-gap: 0.5rem;
   min-height: 2.5rem;
-  color: var(--studio-text-secondary);
+  color: var(--studio-text-muted);
   font-size: var(--studio-font-label);
 }
-.property-control { @apply min-w-0; color: var(--studio-text); }
+.property-row > span { @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap; }
+.property-row[data-layout="stacked"] { grid-template-columns: minmax(0, 1fr); row-gap: 0.375rem; padding: 0.375rem 0; }
+.property-control { @apply min-w-0; color: var(--studio-text); font-size: var(--studio-font-control); }
 @media (max-width: 899px), (pointer: coarse) {
   .right-sidebar .property-row { min-height: 3.25rem; }
-  .right-sidebar :is(.property-control > input, .property-control select, .input-group, .number-field, .color-field, .segmented) {
+  .right-sidebar :is(.property-control > input, .property-control select, .input-group, .number-field, .color-field, .studio-color-field, .segmented, .studio-segmented) {
     height: var(--studio-touch-target);
   }
   .right-sidebar :is(.studio-composition-field input, .studio-photo-list input) { min-height: var(--studio-touch-target); }
@@ -1298,7 +1317,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 .map-style-color-row button:hover:not(:disabled) { background: var(--studio-field); }
 .map-style-color-row button:disabled { visibility: hidden; }
-.property-control > input, .property-control select, .number-field, .color-field {
+.property-control > input, .property-control select, .number-field {
   @apply w-full;
   height: var(--studio-control-height);
   border: var(--studio-border-width) solid var(--studio-transparent);
@@ -1307,11 +1326,11 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 .property-control > input { @apply px-2; }
 .property-control select { padding: 0 1.4375rem 0 0.4375rem; border-right: 6px solid var(--studio-transparent); }
-.property-control > input:hover, .property-control select:hover, .number-field:hover, .color-field:hover { border-color: var(--studio-line-hover); }
-.number-field, .color-field { @apply flex min-w-0 items-center; }
-.number-field input, .color-field input {
+.property-control > input:hover, .property-control select:hover, .number-field:hover { border-color: var(--studio-line-hover); }
+.number-field { @apply flex min-w-0 items-center; }
+.number-field input {
   @apply min-w-0 w-full border-0 bg-transparent px-2 outline-none;
-  font-size: var(--studio-font-label);
+  font-size: var(--studio-font-control);
   font-variant-numeric: tabular-nums;
 }
 .number-field small { @apply pr-2; color: var(--studio-text-subtle); font-size: var(--studio-font-meta); }
@@ -1332,7 +1351,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   grid-row: 1;
   height: 100%;
   padding: 0 0.375rem;
-  font-size: var(--studio-font-label);
+  font-size: var(--studio-font-control);
   font-variant-numeric: tabular-nums;
   appearance: textfield;
 }
@@ -1359,19 +1378,11 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
   font-size: var(--studio-font-meta);
   line-height: 1.4;
 }
-.color-field span {
-  @apply ml-2 h-3.5 w-3.5;
-  border: var(--studio-border-width) solid var(--studio-marker-border);
-  border-radius: var(--studio-radius-xs);
-}
 .paired-fields { @apply my-1 grid grid-cols-2 gap-1.5; }
 .inspector-field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin: 4px 0; }
 .inspector-field-grid .input-group-addon.is-inline-start { min-width: 1.75rem; justify-content: center; padding: 0 0.25rem 0 0.5rem; }
 .paired-fields .input-group-addon.is-inline-start { padding-right: 0.75rem; }
 .paired-fields .input-group-addon.is-inline-end { font-size: 0.5625rem; }
-.segmented { @apply grid grid-cols-2 p-0.5; height: var(--studio-control-height); border-radius: var(--studio-radius-md); background: var(--studio-field); }
-.segmented button { border-radius: var(--studio-radius-xs); color: var(--studio-text-muted); font-size: var(--studio-font-meta); }
-.segmented button.is-active { border: var(--studio-border-width) solid var(--studio-line-hover); color: var(--studio-text); background: var(--studio-surface); }
 .studio-checkbox, .studio-switch {
   @apply relative flex cursor-pointer items-center gap-2;
   min-height: 2.25rem;
@@ -1386,12 +1397,13 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
 .studio-checkbox-box {
   @apply grid h-4 w-4 shrink-0 place-items-center;
   pointer-events: none;
-  border: var(--studio-border-width) solid var(--studio-line-strong);
+  border: var(--studio-border-width) solid var(--studio-control-border);
   border-radius: var(--studio-radius-sm);
   color: var(--studio-on-dark);
   background: var(--studio-surface);
 }
 .studio-checkbox-box svg { opacity: 0; }
+.studio-checkbox:hover .studio-checkbox-native:not(:disabled, :checked) + .studio-checkbox-box { border-color: var(--studio-text-muted); }
 .studio-checkbox-native:checked + .studio-checkbox-box {
   border-color: var(--studio-accent);
   background: var(--studio-accent);
@@ -1402,7 +1414,7 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
   outline: var(--studio-focus-width) solid var(--studio-focus);
   outline-offset: 2px;
 }
-.studio-checkbox-native:disabled ~ *, .studio-switch-native:disabled ~ * { opacity: .48; }
+.studio-checkbox-native:disabled ~ *, .studio-switch-native:disabled ~ * { opacity: var(--studio-disabled-opacity); }
 .studio-checkbox:has(input:disabled), .studio-switch:has(input:disabled) { @apply cursor-default; }
 .studio-switch-track {
   @apply block shrink-0 p-0.5;
@@ -1410,8 +1422,9 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
   width: 2rem;
   height: 1.125rem;
   border-radius: 999px;
-  background: var(--studio-line-strong);
+  background: var(--studio-switch-off);
 }
+.studio-switch:hover .studio-switch-native:not(:disabled, :checked) + .studio-switch-track { background: var(--studio-switch-off-hover); }
 .studio-switch-track > span {
   @apply block h-3.5 w-3.5 rounded-full transition-transform;
   background: var(--studio-surface);
@@ -1419,6 +1432,8 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
 .studio-switch-native:checked + .studio-switch-track { background: var(--studio-accent); }
 .studio-switch-native:checked + .studio-switch-track > span { transform: translateX(0.875rem); }
 .property-control > .studio-switch { min-height: var(--studio-control-height); }
+.studio-switch[data-label-placement="start"] { flex-direction: row-reverse; justify-content: space-between; width: 100%; }
+.studio-switch[data-label-placement="start"] > .studio-control-label { min-width: 0; margin-right: auto; }
 .map-location-control { @apply grid gap-1.5 py-1; }
 .map-location-control .quiet-button {
   @apply justify-center px-2;
@@ -2180,7 +2195,6 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
     width: 2.75rem;
     height: 2.75rem;
   }
-  .right-sidebar.is-mobile-open .segmented { height: calc(2.75rem + 2px); }
   .right-sidebar.is-mobile-open .map-style-customizer-header {
     min-height: 3.75rem;
     padding-right: 3.5rem;
