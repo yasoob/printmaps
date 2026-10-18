@@ -154,10 +154,9 @@ test('keyboard and mobile users can enter, leave, and reset the customization fl
     page.getByRole('button', { name: 'Reset to Paper' }).boundingBox(),
     page.getByRole('button', { name: 'Close properties', exact: true }).boundingBox(),
   ]);
-  // Reset sits immediately before the sheet's Close button, which owns the header's right edge.
-  const resetToCloseGap = closeBox!.x - (headerResetBox!.x + headerResetBox!.width);
-  expect(resetToCloseGap).toBeGreaterThanOrEqual(0);
-  expect(resetToCloseGap).toBeLessThanOrEqual(16);
+  // Close lives in the sheet's own top bar; Reset ends the customizer header row below it.
+  expect(headerBox!.x + headerBox!.width - (headerResetBox!.x + headerResetBox!.width)).toBeLessThanOrEqual(16);
+  expect(headerResetBox!.y).toBeGreaterThanOrEqual(closeBox!.y + closeBox!.height);
   expect(headerBox!.x + headerBox!.width - (closeBox!.x + closeBox!.width)).toBeLessThanOrEqual(16);
   await page.getByRole('radio', { name: 'Cool' }).click();
   await page.screenshot({ path: 'docs/screenshots/map-style-customization-mobile-20260830.png' });

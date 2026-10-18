@@ -432,8 +432,8 @@ test('mobile navigation buttons use full touch targets', async ({ page }) => {
     await expect(page.getByRole('button', { name: 'Close properties' })).toBeFocused();
     await expect(propertiesDialog.getByRole('heading', { name: 'Project' })).toBeVisible();
     await expectFullTouchTargets(propertiesDialog.getByRole('button'));
-    const orientation = propertiesDialog.locator('.segmented').first();
-    await expectContained(orientation, orientation.getByRole('button'));
+    const projectTabs = propertiesDialog.locator('.studio-segmented').first();
+    await expectContained(projectTabs, projectTabs.getByRole('tab'));
     await page.getByRole('button', { name: 'Close properties' }).click();
 
     await page.getByRole('button', { name: 'Open layers' }).click();
