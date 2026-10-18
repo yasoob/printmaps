@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test';
+import { chooseOption, expectSelectValue } from './select-support';
 
 async function checkHelp(page: Page, dialog: Locator, name: string, { isMobile, info }: { isMobile: boolean; info: TestInfo }) {
   const help = dialog.getByRole('button', { name, exact: true });
@@ -82,8 +83,8 @@ for (const isMobile of [false, true]) {
       await page.getByRole('button', { name: 'Export', exact: true }).click();
       let dialog = page.getByRole('dialog', { name: 'Export map', exact: true });
       await dialog.getByRole('radio', { name: /Layered SVG/ }).click();
-      await dialog.getByRole('combobox', { name: 'Basemap rendering' }).selectOption('vector');
-      await expect(dialog.getByRole('combobox', { name: 'Basemap rendering' })).toHaveValue('vector');
+      await chooseOption(dialog, 'Basemap rendering', 'True vector artwork (reflowed labels)');
+      await expectSelectValue(dialog, 'Basemap rendering', 'vector');
       await checkHelp(page, dialog, 'Basemap rendering help', { isMobile, info });
       await expect(dialog.getByRole('button', { name: 'Download layered SVG' })).toBeEnabled();
       await dialog.getByRole('tab', { name: 'Video', exact: true }).click();
@@ -94,10 +95,10 @@ for (const isMobile of [false, true]) {
         expect(await page.locator('.export-dialog-backdrop').evaluate((element) => Number(getComputedStyle(element).zIndex))).toBe(99);
       }
       await expect(page.getByRole('dialog')).toHaveCount(1);
-      await dialog.getByLabel('Duration', { exact: true }).selectOption('15');
+      await chooseOption(dialog, 'Duration', '15 seconds');
       await checkHelp(page, dialog, 'Video recording help', { isMobile, info });
       await checkHelp(page, dialog, 'Video aspect help', { isMobile, info });
-      await expect(dialog.getByLabel('Duration', { exact: true })).toHaveValue('15');
+      await expectSelectValue(dialog, 'Duration', '15');
       if (!isMobile) {
         const [fps, aspect] = await Promise.all([
           dialog.getByLabel('Target frame rate', { exact: true }).boundingBox(),

@@ -1,5 +1,9 @@
 import { ChevronLeft, ChevronRight, RotateCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useMemo } from 'react';
+import { Input } from '@/components/ui/input';
+import { SimpleSelect } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from './UiControls';
 import { POI_ADDRESS_REVIEW_PAGE_SIZE, poiAddressNameError, poiAddressQueryError, selectedPoiAddress, type PoiAddressReviewRow } from '../../domain/poiAddressReview';
 import type { usePoiSpreadsheet } from '../hooks/usePoiSpreadsheet';
@@ -19,13 +23,16 @@ function rowStatus(row: PoiAddressReviewRow) {
 }
 
 function MatchChoices({ row, model }: { row: PoiAddressReviewRow; model: Spreadsheet }) {
+  const options = useMemo(() => [
+    { value: '', label: 'Choose a match', disabled: true },
+    ...row.candidates.map((match, index) => ({ value: String(index), label: match.label })),
+  ], [row.candidates]);
   if (row.candidates.length < 2) return null;
-  return <label>Matched location
-    <select aria-label={`Matched location for row ${row.id + 1}`} value={row.selected ?? ''} disabled={model.draft.lookup !== null} onChange={(event) => model.changeRow(row.id, { selected: event.target.value === '' ? null : Number(event.target.value) })}>
-      <option value="">Choose a match</option>
-      {row.candidates.map((match, index) => <option key={`${index}-${match.providerFeatureId}`} value={index}>{match.label}</option>)}
-    </select>
-  </label>;
+  return <div className="poi-address-field">
+    <span aria-hidden="true">Matched location</span>
+    <SimpleSelect className="bg-surface" label={`Matched location for row ${row.id + 1}`} value={row.selected === null ? '' : String(row.selected)} options={options}
+      disabled={model.draft.lookup !== null} onValueChange={(selected) => model.changeRow(row.id, { selected: selected === '' ? null : Number(selected) })} />
+  </div>;
 }
 
 function AddressRow({ row, model }: { row: PoiAddressReviewRow; model: Spreadsheet }) {
@@ -46,12 +53,12 @@ function AddressRow({ row, model }: { row: PoiAddressReviewRow; model: Spreadshe
     <details className="poi-address-details">
       <summary><ChevronRight className="poi-address-chevron" aria-hidden="true" size={16} strokeWidth={1.75} /><span>Review or correct row {row.id + 1}</span></summary>
       <div className="poi-address-fields">
-        <label>POI name
-          <input aria-label={`POI name for row ${row.id + 1}`} value={row.name} disabled={isBusy} aria-invalid={Boolean(nameError)} aria-describedby={nameError ? nameId : undefined} onChange={(event) => model.changeRow(row.id, { name: event.target.value })} />
+        <label className="poi-address-field">POI name
+          <Input className="bg-surface" aria-label={`POI name for row ${row.id + 1}`} value={row.name} disabled={isBusy} aria-invalid={Boolean(nameError)} aria-describedby={nameError ? nameId : undefined} onChange={(event) => model.changeRow(row.id, { name: event.target.value })} />
         </label>
         {nameError && <p id={nameId} className="poi-spreadsheet-error">{nameError}</p>}
-        <label>Address to look up
-          <textarea aria-label={`Address for row ${row.id + 1}`} value={row.address} disabled={isBusy} aria-invalid={Boolean(queryError)} aria-describedby={queryError ? addressId : undefined} onChange={(event) => model.changeRow(row.id, { address: event.target.value })} />
+        <label className="poi-address-field">Address to look up
+          <Textarea className="min-h-16 bg-surface" aria-label={`Address for row ${row.id + 1}`} value={row.address} disabled={isBusy} aria-invalid={Boolean(queryError)} aria-describedby={queryError ? addressId : undefined} onChange={(event) => model.changeRow(row.id, { address: event.target.value })} />
         </label>
         {queryError && <p id={addressId} className="poi-spreadsheet-error">{queryError}</p>}
         <MatchChoices row={row} model={model} />

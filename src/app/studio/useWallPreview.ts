@@ -20,8 +20,9 @@ export function useWallPreview(readExporter: () => PreviewPngExporter | null, bl
   const request = useRef<AbortController | null>(null);
   const previewUrl = useRef<string | null>(null);
   const releasePreview = useCallback(() => {
-    if (previewUrl.current) URL.revokeObjectURL(previewUrl.current);
+    const url = previewUrl.current;
     previewUrl.current = null;
+    if (url) URL.revokeObjectURL(url);
   }, []);
   useEffect(() => () => {
     request.current?.abort();

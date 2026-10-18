@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { FeatureHelp } from '../../src/app/components/FeatureHelp';
 import { ExportBasemapMode } from '../../src/app/components/ExportBasemapMode';
 import { Dialog, DialogContent, DialogTitle } from '../../src/components/ui/dialog';
+import { selectedValue } from './select-support';
 
 function ModalHarness() {
   const [open, setOpen] = useState(true);
@@ -79,8 +80,8 @@ it('keeps the reflowed-vector choice explicit while disclosing static caveats wi
   const user = userEvent.setup();
   const onChange = vi.fn();
   render(<ExportBasemapMode format="svg" mode="vector" available busy={false} onChange={onChange} />);
-  expect(screen.getByRole('combobox', { name: 'Basemap rendering' })).toHaveValue('vector');
-  expect(screen.getByRole('option', { name: 'True vector artwork (reflowed labels)' })).toBeInTheDocument();
+  expect(selectedValue(screen.getByRole('combobox', { name: 'Basemap rendering' }))).toBe('vector');
+  expect(screen.getByRole('combobox', { name: 'Basemap rendering' })).toHaveTextContent('True vector artwork (reflowed labels)');
   expect(screen.queryByText(/unsupported glyphs/)).not.toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: 'Basemap rendering help' }));
   expect(screen.getByRole('tooltip')).toHaveTextContent('unsupported glyphs block vector export');

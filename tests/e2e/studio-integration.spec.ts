@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
-import { chooseOption } from './select-support';
+import { chooseOption, expectSelectValue } from './select-support';
 
 async function downloadedProject(page: Page) {
   const pending = page.waitForEvent('download');
@@ -103,8 +103,8 @@ test('real editor controls create a photo poster, keep wall preview ephemeral, a
   await page.getByRole('tab', { name: 'Video', exact: true }).click();
   const video = page.getByRole('dialog', { name: 'Export map', exact: true });
   await expect(video).toBeVisible();
-  await video.getByLabel('Duration').selectOption('15');
-  await expect(video.getByLabel('Duration')).toHaveValue('15');
+  await chooseOption(video, 'Duration', '15 seconds');
+  await expectSelectValue(video, 'Duration', '15');
   const panelZ = await page.locator('.right-sidebar').evaluate((element) => Number(getComputedStyle(element).zIndex));
   const dialogZ = await video.evaluate((element) => Number(getComputedStyle(element).zIndex));
   expect(dialogZ).toBeGreaterThan(panelZ);

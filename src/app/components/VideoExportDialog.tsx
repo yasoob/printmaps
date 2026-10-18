@@ -114,10 +114,9 @@ function VideoExportSession(props: VideoExportDialogProps & { embedded?: boolean
         setStatus('Video export failed. No file downloaded.');
       }
     } finally {
-      if (controllerRef.current === controller) {
-        controllerRef.current = null;
-        setBusy(false);
-      }
+      // A replaced or closed session never starts another job while busy, so clearing is always safe.
+      if (controllerRef.current === controller) controllerRef.current = null;
+      setBusy(false);
     }
   };
 

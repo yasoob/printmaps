@@ -1,5 +1,6 @@
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { attachInventory, expectOwners, finishProbe, openScanEditor, startProbe, waitForRenderQuiet } from './react-scan-helpers';
+import { chooseOption } from './select-support';
 
 test.skip(process.env.VITE_REACT_SCAN !== 'true', 'Run with npm run audit:renders.');
 test.afterEach(async ({ page }, info) => attachInventory(page, info));
@@ -93,7 +94,7 @@ test('real video recording progress leaves the live map camera and renderer unto
   const dialog = page.getByRole('dialog', { name: 'Export map', exact: true });
   await expect(dialog.getByRole('img', { name: 'Preview of your poster' })).toBeVisible({ timeout: 20_000 });
   await dialog.getByRole('tab', { name: 'Video', exact: true }).click();
-  await dialog.getByLabel('Duration', { exact: true }).selectOption('5');
+  await chooseOption(dialog, 'Duration', '5 seconds');
   const download = dialog.getByRole('button', { name: 'Download MP4', exact: true });
   if (await download.isDisabled()) {
     await expect(dialog.getByRole('alert')).toContainText(/MP4|canvas/);

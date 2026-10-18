@@ -1,5 +1,5 @@
 import { Scan } from 'lucide-react';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Dialog } from '@/components/ui/dialog';
 import { StudioDialog, StudioDialogActions, StudioDialogBody, StudioDialogButton, StudioDialogFeedback, StudioDialogHeader } from '@/components/ui/studio-dialog';
 import type { PreviewPngExporter } from '../../export/previewPng';
@@ -52,13 +52,13 @@ export function ReliefExportPanel({ exporter, onClose, blockedReason, onBusyChan
   const canExport = isExportAvailable(exporter, blockedReason);
   const [progress, setProgress] = useState({ fraction: 0, message: '' });
   const [error, setError] = useState<string | null>(null);
-  const [isBusy, setIsBusy] = useState(false);
+  const [isBusy, setBusyState] = useState(false);
+  const setIsBusy = (isNowBusy: boolean) => { setBusyState(isNowBusy); onBusyChange(isNowBusy); };
   const running = useRef<AbortController | null>(null);
   const isMounted = useRef(true);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const downloadRef = useRef<HTMLButtonElement>(null);
   const hasStarted = useRef(false);
-  useLayoutEffect(() => { onBusyChange(isBusy); }, [isBusy, onBusyChange]);
   useEffect(() => {
     if (isBusy) cancelRef.current?.focus();
     else if (hasStarted.current) (canExport ? downloadRef : cancelRef).current?.focus();

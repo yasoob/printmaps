@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
+import { chooseOption } from './select-support';
 
 test('reviewed map-data batches apply validated styling before one-step import', async ({ page }, testInfo) => {
   const consoleProblems: string[] = [];
@@ -24,7 +25,7 @@ test('reviewed map-data batches apply validated styling before one-step import',
   await dialog.getByRole('textbox', { name: 'Import route width' }).fill('17');
   await dialog.getByLabel('Import route color').fill('#112233');
   await dialog.getByRole('textbox', { name: 'Import POI marker size' }).fill('22');
-  await dialog.getByRole('combobox', { name: 'Import POI marker shape' }).selectOption('diamond');
+  await chooseOption(dialog, 'Import POI marker shape', 'Diamond');
   await dialog.getByLabel('Import POI color').fill('#445566');
   await dialog.getByRole('textbox', { name: 'Import shape outline width' }).fill('3');
   await dialog.getByLabel('Import shape fill color').fill('#778899');

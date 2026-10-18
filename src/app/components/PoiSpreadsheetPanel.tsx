@@ -3,6 +3,7 @@ import { useLayoutEffect, useMemo, useRef, useState, type FormEvent, type RefObj
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { SegmentedControl } from '@/components/ui/segmented-control';
+import { Textarea } from '@/components/ui/textarea';
 import { Notice } from '@/components/ui/notice';
 import { StudioDialog, StudioDialogActions, StudioDialogButton, StudioDialogFeedback, StudioDialogHeader } from '@/components/ui/studio-dialog';
 import { MAX_POI_ADDRESS_ROWS, MAX_POI_SPREADSHEET_CHARACTERS, MAX_POI_SPREADSHEET_ROWS, type PoiSpreadsheetEntry } from '../../domain/poiSpreadsheet';
@@ -161,7 +162,7 @@ function SpreadsheetContent({ model, textareaRef, bodyRef, requestFocus }: {
   const error = draft.errors[draft.mode];
   return <>
     <label htmlFor="poi-spreadsheet-rows">{isAddressMode ? 'Name · Address' : 'Name · Longitude · Latitude'}</label>
-    <textarea ref={textareaRef} id="poi-spreadsheet-rows" aria-label="POI spreadsheet rows" aria-invalid={Boolean(error)} aria-describedby={error ? 'poi-spreadsheet-error' : undefined} maxLength={MAX_POI_SPREADSHEET_CHARACTERS} placeholder={isAddressMode ? 'Name\tAddress\nCafé Central\tHerrengasse 14, Vienna' : 'Name\tLongitude\tLatitude\nCafé Central\t16.3725\t48.2084'} value={draft.buffers[draft.mode]} onChange={(event) => model.changeText(event.target.value)} />
+    <Textarea ref={textareaRef} className="min-h-28 max-h-56 touch:min-h-22 touch:max-h-[22dvh] px-3 py-2 font-mono text-[max(12px,var(--studio-font-meta))] tabular-nums" id="poi-spreadsheet-rows" aria-label="POI spreadsheet rows" aria-invalid={Boolean(error)} aria-describedby={error ? 'poi-spreadsheet-error' : undefined} maxLength={MAX_POI_SPREADSHEET_CHARACTERS} placeholder={isAddressMode ? 'Name\tAddress\nCafé Central\tHerrengasse 14, Vienna' : 'Name\tLongitude\tLatitude\nCafé Central\t16.3725\t48.2084'} value={draft.buffers[draft.mode]} onChange={(event) => model.changeText(event.target.value)} />
     {isAddressMode && draft.rows.length > 0 && <>
       <p>Your pasted text is unchanged. Row corrections and choices are kept in review. Editing this text starts a new review.</p>
       <Button variant="secondary" size="sm" className="poi-spreadsheet-inline-action" onClick={() => { requestFocus('review'); model.returnToReview(); }}>Return to review</Button>

@@ -163,7 +163,7 @@ test('video settings stay outside the live camera and composition', async ({ pag
   await expect(dialog).toBeVisible();
   const camera = await page.getByTestId('map-canvas').getAttribute('data-map-zoom');
   await startProbe(page, 'Video duration');
-  await dialog.getByLabel('Duration').selectOption('15');
+  await chooseOption(dialog, 'Duration', '15 seconds');
   const result = await finishProbe(page, info, 'video-settings');
   expectOwners(result, ['VideoExportSettings'], ['StudioCanvas', 'MapCanvas', 'StudioPosterPreview', 'StudioCompositionControls', 'StudioTerrainControls']);
   expect(result.mapMutations).toEqual([]);

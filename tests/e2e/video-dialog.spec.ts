@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { chooseOption, expectSelectValue } from './select-support';
 
 test('video dialog fits mobile, cancels without a download, and restores keyboard focus', async ({ page }, testInfo) => {
   test.setTimeout(30_000);
@@ -25,9 +26,9 @@ test('video dialog fits mobile, cancels without a download, and restores keyboar
   expect(dialogZ).toBeGreaterThan(inspectorZ);
   expect(backdropZ).toBeGreaterThan(inspectorZ);
   expect(dialogZ).toBeGreaterThan(backdropZ);
-  await expect(dialog.getByLabel('Duration')).toHaveValue('5');
-  await dialog.getByLabel('Video aspect').selectOption('4:5');
-  await expect(dialog.getByLabel('Video aspect')).toHaveValue('4:5');
+  await expectSelectValue(dialog, 'Duration', '5');
+  await chooseOption(dialog, 'Video aspect', '4:5 portrait');
+  await expectSelectValue(dialog, 'Video aspect', '4:5');
   const bounds = await dialog.boundingBox();
   expect(bounds?.x).toBeGreaterThanOrEqual(0);
   expect((bounds?.x ?? 0) + (bounds?.width ?? 0)).toBeLessThanOrEqual(360);

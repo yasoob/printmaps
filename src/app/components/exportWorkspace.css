@@ -98,7 +98,7 @@
   gap: 0.25rem;
   min-width: 0;
 }
-.export-field-with-help > select { flex: 1; min-width: 0; }
+.export-field-with-help > [data-slot="select-trigger"] { flex: 1; }
 
 .export-back-button.studio-button { justify-self: start; margin-left: -0.5rem; color: var(--studio-text-secondary); }
 
@@ -130,13 +130,6 @@
   .export-poster-stage { padding: 0.5rem; }
   .export-preview .studio-wall-scene { padding: 1rem; }
   .export-preview-wall { margin-bottom: 0.5rem; }
-}
-
-@media (pointer: coarse), (max-width: 899px) {
-  .export-preview-wall.studio-button,
-  .export-back-button.studio-button,
-  .export-workspace .studio-dialog-button,
-  .export-field-with-help > select { min-height: var(--studio-touch-target); }
 }
 
 @media (max-width: 479px) {

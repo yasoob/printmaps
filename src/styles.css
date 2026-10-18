@@ -220,16 +220,6 @@ body {
 .project-rename-dialog form > .studio-dialog-actions { padding: 0.75rem var(--studio-dialog-padding) var(--studio-dialog-padding); }
 .project-rename-body { gap: 0.375rem; }
 .project-rename-body label { color: var(--studio-text-secondary); font-size: var(--studio-font-label); }
-.project-rename-dialog .project-title-input {
-  width: 100%;
-  height: 2.5rem;
-  padding: 0 0.625rem;
-  border: var(--studio-border-width) solid var(--studio-transparent);
-  border-radius: var(--studio-radius-sm);
-  background: var(--studio-field);
-  color: var(--studio-text-strong);
-  font-size: 0.9375rem;
-}
 .project-rename-body p { color: var(--studio-text-muted); font-size: var(--studio-font-label); }
 .project-rename-body .is-error { color: var(--studio-danger); }
 .icon-button {
@@ -962,7 +952,6 @@ body {
 /* Editor dialogs (StudioDialog) open without the zoom animation so focus and layout settle immediately. */
 :is(.export-dialog, .recovery-dialog, .project-replacement-dialog, .project-rename-dialog, .route-discard-dialog,
   .map-data-import-dialog, .share-dialog, .template-project-dialog) { animation: none; transition: none; overflow-wrap: anywhere; }
-:is(.map-data-import-dialog, .share-dialog) .number-field small { flex-shrink: 0; }
 @media (max-width: 899px), (pointer: coarse) {
   /* StudioDialogButton's primary also carries .primary-button, whose legacy height would otherwise win. */
   .studio-dialog .studio-button.primary-button { min-height: var(--studio-touch-target); }
@@ -1005,9 +994,7 @@ body {
 .poi-address-query, .poi-address-row small { color: var(--studio-text-muted); font-size: 12px; overflow-wrap: anywhere; }
 .poi-address-match { color: var(--studio-text-strong); }
 .poi-address-fields { padding: 0.25rem 0 0.75rem 1.5rem; }
-.poi-address-fields label { display: grid; gap: 0.25rem; min-width: 0; font-size: 12px; color: var(--studio-text-muted); }
-.poi-address-fields input, .poi-address-fields select { width: 100%; min-width: 0; min-height: var(--studio-control-height); padding: 0 0.5rem; background: var(--studio-surface); border: var(--studio-border-width) solid var(--studio-transparent); border-radius: var(--studio-radius-sm); }
-.poi-spreadsheet-panel .poi-address-fields textarea { min-height: 4rem; background: var(--studio-surface); }
+.poi-address-field { display: grid; gap: 0.25rem; min-width: 0; font-size: 12px; color: var(--studio-text-muted); }
 /* Shared chevron disclosure, matching Technical details and inspector accordions. */
 .poi-address-details > summary {
   display: flex;
@@ -1031,21 +1018,6 @@ body {
 .poi-spreadsheet-intro { @apply grid gap-1; }
 .poi-spreadsheet-intro > p { @apply m-0 text-xs leading-relaxed; color: var(--studio-text-muted); }
 .poi-spreadsheet-body > label { @apply font-medium; color: var(--studio-text-muted); font-size: max(12px, var(--studio-font-meta)); }
-.poi-spreadsheet-panel textarea {
-  @apply w-full px-3 py-2 outline-none;
-  min-height: 7rem;
-  max-height: 14rem;
-  resize: none;
-  border: var(--studio-border-width) solid var(--studio-transparent);
-  border-radius: var(--studio-radius-sm);
-  background: var(--studio-field);
-  color: var(--studio-text);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: max(12px, var(--studio-font-meta));
-  font-variant-numeric: tabular-nums;
-}
-.poi-spreadsheet-panel textarea:focus { border-color: var(--studio-tool-card-accent); box-shadow: var(--studio-tool-card-focus-shadow); }
-.poi-spreadsheet-panel textarea[aria-invalid="true"] { border-color: var(--studio-danger); }
 .poi-spreadsheet-panel > p { @apply m-0; color: var(--studio-danger); font-size: var(--studio-font-meta); }
 .poi-spreadsheet-panel > p[role="status"] { color: var(--studio-text-subtle); }
 .canvas-scale-dock {
@@ -1968,7 +1940,6 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
     width: 100%;
     max-height: 100%;
   }
-  .poi-spreadsheet-panel textarea { min-height: 5.5rem; max-height: 22dvh; }
   .maplibregl-ctrl-bottom-left {
     top: auto;
     bottom: calc(max(14px, var(--studio-safe-bottom)) + 4rem);

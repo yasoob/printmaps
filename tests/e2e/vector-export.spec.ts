@@ -1,11 +1,12 @@
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
 import { PDFDocument, PDFName } from 'pdf-lib';
+import { chooseOption } from './select-support';
 
 async function vectorDownload(page: Page, format: 'svg' | 'pdf') {
   const dialog = page.getByRole('dialog', { name: 'Export map' });
   await dialog.getByRole('radio', { name: format === 'svg' ? /Layered SVG/ : /^PDF/ }).click();
-  await dialog.getByLabel('Basemap rendering').selectOption('vector');
+  await chooseOption(dialog, 'Basemap rendering', 'True vector artwork (reflowed labels)');
   const result = page.waitForEvent('download');
   await dialog.getByRole('button', { name: format === 'svg' ? 'Download layered SVG' : 'Download PDF' }).click();
   const error = async () => {

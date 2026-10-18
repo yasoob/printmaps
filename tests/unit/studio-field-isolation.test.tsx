@@ -7,6 +7,8 @@ import { createProjectStore } from '../../src/app/store';
 import { createInitialProjectDocument } from '../../src/domain/project';
 import type { ProjectMutationResult } from '../../src/domain/projectMutation';
 import { createDefaultStudioSettings } from '../../src/domain/studio';
+import { chooseOption, selectedValue } from './select-support';
+import userEvent from '@testing-library/user-event';
 
 const KEYS = ['name', 'size'] as const;
 type Settings = { name: string; size: number; enabled: boolean };
@@ -67,7 +69,7 @@ it('preserves canonical validation, sibling values and history across repeated p
   expect(store.getState().past).toHaveLength(past);
 });
 
-it('updates native busy availability without replacing video choices or using stale settings', () => {
+it('updates native busy availability without replacing video choices or using stale settings', async () => {
   const settings = createDefaultStudioSettings().video;
   const commit = vi.fn();
   const { rerender } = render(<VideoExportSettings settings={settings} busy={false} onChange={commit} />);
@@ -80,7 +82,7 @@ it('updates native busy availability without replacing video choices or using st
   const next = { ...settings, durationSeconds: 15 as const };
   rerender(<VideoExportSettings settings={next} busy={false} onChange={commit} />);
   expect(duration).toBeEnabled();
-  expect(duration).toHaveValue('15');
-  fireEvent.change(motion, { target: { value: 'sway' } });
+  expect(selectedValue(duration)).toBe('15');
+  await chooseOption(userEvent.setup(), 'Motion', 'Sway (gentle back and forth)');
   expect(commit).toHaveBeenLastCalledWith({ ...next, motion: 'sway' });
 });
