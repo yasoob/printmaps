@@ -4,6 +4,7 @@ import { App } from '../../../src/app/App';
 import { createProjectStore } from '../../../src/app/store';
 import { createInitialProjectDocument } from '../../../src/domain/project';
 import { AutosaveConflictError } from '../../../src/storage/autosave';
+import { chooseOption, selectedValue } from '../select-support';
 
 const { downloadProjectDocument } = vi.hoisted(() => ({ downloadProjectDocument: vi.fn() }));
 vi.mock('../../../src/app/components/projectDownload', async (original) => ({
@@ -24,7 +25,7 @@ async function openConflict() {
   };
   render(<App autosaveRepository={repository} initialDocument={createInitialProjectDocument()} />);
   await user.click(screen.getByRole('tab', { name: 'Layout' }));
-  await user.selectOptions(screen.getByRole('combobox', { name: 'Page preset' }), 'A5');
+  await chooseOption(user, 'Page preset', 'A5');
   await screen.findByRole('status', { name: 'Autosave conflict notice' });
   expect(screen.queryByRole('alert', { name: 'Autosave status' })).not.toBeInTheDocument();
   return { user, repository };
@@ -69,7 +70,7 @@ it('keeps failed backup decisions and losing-tab work intact with a safe default
   expect(screen.getByRole('alert', { name: 'Conflict download error' })).toHaveTextContent('Browser download blocked');
   expect(repository.load).not.toHaveBeenCalled();
   await user.click(screen.getByRole('button', { name: 'Keep editing' }));
-  expect(screen.getByRole('combobox', { name: 'Page preset' })).toHaveValue('A5');
+  expect(selectedValue(screen.getByRole('combobox', { name: 'Page preset' }))).toBe('A5');
   expect(screen.getByRole('button', { name: 'Undo' })).toBeEnabled();
   expect(repository.discard).not.toHaveBeenCalled();
 });
@@ -79,7 +80,7 @@ it('loads the saved version only on the explicit destructive action, without wri
   await user.click(screen.getByRole('button', { name: 'Review autosave conflict' }));
   await user.click(screen.getByRole('button', { name: 'Discard this tab and load saved version' }));
   await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-  expect(screen.getByRole('combobox', { name: 'Page preset' })).toHaveValue('A3');
+  expect(selectedValue(screen.getByRole('combobox', { name: 'Page preset' }))).toBe('A3');
   expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
   expect(screen.getByRole('status', { name: 'Autosave status' })).toHaveTextContent('Autosave ready');
   expect(repository.save).toHaveBeenCalledOnce();

@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { chooseOption } from './select-support';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import type {
   ContentLayer,
@@ -221,15 +222,17 @@ export async function openAdvanced(page: Page) {
   if (await advanced.getAttribute('aria-expanded') !== 'true') await advanced.click();
 }
 
+const ROUTE_KIND_OPTION_LABELS = { straight: 'Straight', arc: 'Arc', road: 'Road' } as const;
+const ROAD_MODE_OPTION_LABELS = { car: 'Car', walk: 'Walking', bike: 'Cycling' } as const;
+
 export async function convertRoute(
   page: Page,
   target: 'straight' | 'arc' | 'road',
   profile: 'car' | 'walk' | 'bike' = 'car',
 ) {
-  await page.getByRole('combobox', { name: 'Convert route to' }).selectOption(target);
+  await chooseOption(page, 'Convert route to', ROUTE_KIND_OPTION_LABELS[target]);
   if (target === 'road') {
-    await page.getByRole('combobox', { name: 'Road conversion travel mode' })
-      .selectOption(profile);
+    await chooseOption(page, 'Road conversion travel mode', ROAD_MODE_OPTION_LABELS[profile]);
   }
   await page.getByRole('button', { name: 'Convert', exact: true }).click();
   if (target === 'road') {

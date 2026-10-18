@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
 import { expandToolSettings } from './authoring-panel-support';
-import { chooseOption } from './select-support';
+import { chooseOption, expectSelectValue } from './select-support';
 
 const isExpectedWebGlDiagnostic = (message: string, browserName: string) => (
   message.includes('GPU stall due to ReadPixels')
@@ -167,7 +167,7 @@ test('expert arc route authoring is undoable and exports a travel-mode marker', 
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-order', /route-02/);
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-layer-appearance', /route-02:[^|]*:air/);
   await page.getByRole('button', { name: /Advanced/ }).click();
-  await expect(page.getByRole('combobox', { name: 'Route marker pictogram' })).toHaveValue('air');
+  await expectSelectValue(page, 'Route marker pictogram', 'air');
   await page.getByRole('button', { name: 'Undo' }).click();
   await expect(createdRoute).not.toBeVisible();
   await page.getByRole('button', { name: 'Redo' }).click();
@@ -216,7 +216,9 @@ test('a selected straight route drags a Terra Draw midpoint as one undoable edit
   await route.click();
   await page.getByRole('button', { name: /Advanced/ }).click();
   const vertexSelect = page.getByRole('combobox', { name: 'Route anchor' });
-  await expect(vertexSelect.locator('option')).toHaveCount(4);
+  await vertexSelect.click();
+  await expect(page.getByRole('listbox').getByRole('option')).toHaveCount(4);
+  await page.keyboard.press('Escape');
   const mapCanvas = page.getByTestId('map-canvas');
   const originalGeometry = await mapCanvas.evaluate((element) => (
     (element as HTMLElement).dataset.mapLayerGeometry
@@ -238,9 +240,13 @@ test('a selected straight route drags a Terra Draw midpoint as one undoable edit
   await page.mouse.up();
 
   await expect(route).toHaveAttribute('aria-current', 'true');
-  await expect(vertexSelect.locator('option')).toHaveCount(5);
+  await vertexSelect.click();
+  await expect(page.getByRole('listbox').getByRole('option')).toHaveCount(5);
+  await page.keyboard.press('Escape');
   await page.getByRole('button', { name: 'Undo' }).click();
-  await expect(vertexSelect.locator('option')).toHaveCount(4);
+  await vertexSelect.click();
+  await expect(page.getByRole('listbox').getByRole('option')).toHaveCount(4);
+  await page.keyboard.press('Escape');
   await expect(mapCanvas).toHaveAttribute('data-map-layer-geometry', originalGeometry!);
 });
 
@@ -299,7 +305,7 @@ test('a pitch-zero Arc visibly curves and supports accessible one-step edits', a
   const mapCanvas = page.getByTestId('map-canvas');
   const geometryWithMarker = await mapCanvas.getAttribute('data-map-layer-geometry');
   await page.getByRole('button', { name: /Advanced/ }).click();
-  await page.getByRole('combobox', { name: 'Route marker pictogram' }).selectOption('none');
+  await chooseOption(page, 'Route marker pictogram', 'None');
   await expect(mapCanvas).toHaveAttribute('data-map-layer-geometry', geometryWithMarker!);
   await page.getByRole('button', { name: 'Select Paper basemap' }).click();
   await expect(vertices).toHaveCount(0);
@@ -339,7 +345,7 @@ test('a pitch-zero Arc visibly curves and supports accessible one-step edits', a
 
   await page.getByRole('button', { name: 'Add route vertex between 1 and 2' }).click();
   await expect(vertices).toHaveCount(3);
-  await page.getByRole('combobox', { name: 'Route anchor' }).selectOption('1');
+  await chooseOption(page, 'Route anchor', /^Anchor 2:/);
   await page.getByRole('button', { name: 'Remove selected route anchor' }).click();
   await expect(vertices).toHaveCount(2);
   await page.getByRole('button', { name: 'Undo' }).click();

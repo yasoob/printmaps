@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { chooseOption, expectSelectValue } from './select-support';
 
 test('a locked place protects location and deletion but permits name and appearance edits', async ({ page }) => {
   await page.goto('./');
@@ -43,7 +44,7 @@ test('a locked place protects location and deletion but permits name and appeara
   await expect(marker).toBeEnabled();
   await expect(page.getByRole('combobox', { name: 'Route semantic leg' })).toBeEnabled();
   await expect(page.getByRole('textbox', { name: 'Route anchor longitude' })).toBeDisabled();
-  await marker.selectOption('air');
-  await expect(marker).toHaveValue('air');
+  await chooseOption(page, 'Route marker pictogram', 'Air');
+  await expectSelectValue(page, 'Route marker pictogram', 'air');
   await expect(map).toHaveAttribute('data-map-layer-geometry', routeGeometry!);
 });

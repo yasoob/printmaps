@@ -20,9 +20,13 @@ import { Button } from '../../components/ui/button';
 import { ColorField } from '../../components/ui/color-field';
 import { Notice } from '../../components/ui/notice';
 import { SegmentedControl } from '../../components/ui/segmented-control';
+import { SimpleSelect } from '../../components/ui/select';
 
 import { InputGroup, InputGroupAddon, InputNumber } from './InputGroup';
 
+const FONT_OPTIONS: readonly { value: ElevationProfileFontFamily; label: string }[] = [
+  { value: 'sans', label: 'Sans serif' }, { value: 'serif', label: 'Serif' }, { value: 'mono', label: 'Monospace' },
+];
 const UNIT_OPTIONS = [{ value: 'metric', label: 'Metric' }, { value: 'imperial', label: 'Imperial' }] as const;
 
 function ProfileChart({ profile, routeName, options }: {
@@ -82,7 +86,7 @@ function ElevationProfileReady({
         <PropertyRow label="Fill"><ColorField label="Profile fill color" value={fillColor} onChange={(value) => model.setSetting('fillColor', value)} /></PropertyRow>
         <PropertyRow label="Gradient"><ColorField label="Profile gradient color" value={gradientColor} disabled={!showGradient} onChange={(value) => model.setSetting('gradientColor', value)} /></PropertyRow>
         <PropertyRow label="Markers"><ColorField label="Elevation marker color" value={markerColor} onChange={(value) => model.setSetting('markerColor', value)} /></PropertyRow>
-        <PropertyRow label="Font"><select aria-label="Profile font" value={fontFamily} onChange={(event) => model.setSetting('fontFamily', event.currentTarget.value as ElevationProfileFontFamily)}><option value="sans">Sans serif</option><option value="serif">Serif</option><option value="mono">Monospace</option></select></PropertyRow>
+        <PropertyRow label="Font"><SimpleSelect label="Profile font" value={fontFamily} options={FONT_OPTIONS} onValueChange={(value: ElevationProfileFontFamily) => model.setSetting('fontFamily', value)} /></PropertyRow>
         <PropertyRow label="Font size"><InputGroup><InputNumber min="20" max="70" step="1" aria-label="Profile font size" aria-describedby="profile-font-size-range" aria-invalid={isFontSizeInvalid || undefined} value={fontSizeDraft} onChange={(event) => {
           model.setNumberDraft('fontSize', event.currentTarget.value);
         }} /><InputGroupAddon align="inline-end" enableScrubbing sensitivity={4}>px</InputGroupAddon></InputGroup></PropertyRow>

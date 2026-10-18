@@ -8,6 +8,7 @@ import { useProjectActions } from '../projectStoreContext';
 import type { MobilePanel } from '../hooks/useMobilePanels';
 import { useMutationFeedback } from '../hooks/useMutationFeedback';
 import { hasSameLayerRowView } from './layerNavigationModel';
+import { IconTooltip } from './IconTooltip';
 
 const layerIcons: Record<LayerType, typeof Route> = { route: Route, poi: MapPin, shape: Shapes, basemap: Layers3 };
 
@@ -72,6 +73,7 @@ export const LayerNavigationRow = memo(function LayerNavigationRow({ layer, inde
       <button className="layer-lock" tabIndex={tabIndex} type="button" aria-label={`${layer.locked ? 'Unlock' : 'Lock'} ${layer.name}`} onClick={() => feedback.report(toggleLayerLock(layer.id))}>
         {layer.locked ? <Lock size={16} strokeWidth={1.75} /> : <Unlock size={16} strokeWidth={1.75} />}
       </button>
+      <IconTooltip label={isBasemap ? 'Basemap is fixed at the bottom' : 'Drag to reorder'} shortcut={isBasemap ? undefined : 'Alt+↑↓'}>
       <button
         ref={handleRef}
         className="layer-drag"
@@ -80,8 +82,8 @@ export const LayerNavigationRow = memo(function LayerNavigationRow({ layer, inde
         disabled={isBasemap}
         aria-label={`Reorder ${layer.name}`}
         aria-keyshortcuts={isBasemap ? undefined : 'Alt+ArrowUp Alt+ArrowDown'}
-        title={isBasemap ? 'Basemap is fixed at the bottom' : 'Drag to reorder · Alt+Arrow keys'}
-      ><GripVertical size={16} strokeWidth={1.75} /></button>
+      ><GripVertical size={16} strokeWidth={1.75} aria-hidden="true" /></button>
+      </IconTooltip>
       {feedback.error && <p className="layer-mutation-error coordinate-validation" role="alert">{feedback.error}</p>}
     </li>
   );

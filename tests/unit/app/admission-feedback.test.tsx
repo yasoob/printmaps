@@ -1,19 +1,22 @@
 import { act, fireEvent, render, renderHook, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { createRef } from 'react';
 import { PoiSpreadsheetPanel } from '../../../src/app/components/PoiSpreadsheetPanel';
 import { RouteVertexControls } from '../../../src/app/components/RouteVertexControls';
 import { useCanvasShapeAuthoring } from '../../../src/app/hooks/useCanvasShapeAuthoring';
 import type { ProjectMutationResult } from '../../../src/domain/projectMutation';
+import { chooseOption, selectedValue } from '../select-support';
 
-it('keeps the selected route point when insertion or removal is rejected', () => {
+it('keeps the selected route point when insertion or removal is rejected', async () => {
+  const user = userEvent.setup();
   const reject = vi.fn(() => ({ ok: false as const, error: 'The original route was kept.' }));
   render(<RouteVertexControls coordinates={[[0, 0], [1, 1], [2, 0]]} disabled={false} onChange={reject} onInsert={reject} onRemove={reject} />);
   const selector = screen.getByRole('combobox', { name: 'Route vertex' });
   fireEvent.click(screen.getByRole('button', { name: 'Insert route vertex after selected' }));
-  expect(selector).toHaveValue('0');
-  fireEvent.change(selector, { target: { value: '1' } });
+  expect(selectedValue(selector)).toBe('0');
+  await chooseOption(user, 'Route vertex', /^Vertex 2:/);
   fireEvent.click(screen.getByRole('button', { name: 'Remove selected route vertex' }));
-  expect(selector).toHaveValue('1');
+  expect(selectedValue(selector)).toBe('1');
 });
 
 it('retains spreadsheet text and focus when a valid batch is rejected by admission', () => {

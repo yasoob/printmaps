@@ -8,6 +8,7 @@ import { createProjectStore } from "../../../src/app/store";
 import { ElevationProfileProvider } from "../../../src/app/elevation/ElevationProfileProvider";
 import type { ContentLayer } from "../../../src/domain/project";
 import type { DirectionsProvider } from "../../../src/services/mapbox/contracts";
+import { chooseOption, selectedValue } from '../select-support';
 
 function route(points = [[0, 0], [1, 1], [2, 0]] as [number, number][]): ContentLayer {
   return {
@@ -73,10 +74,7 @@ describe("Advanced route structure controls", () => {
     expect(screen.queryByRole("combobox", { name: "Road conversion travel mode" }))
       .not.toBeInTheDocument();
 
-    await user.selectOptions(
-      screen.getByRole("combobox", { name: "Convert route to" }),
-      "road",
-    );
+    await chooseOption(user, 'Convert route to', 'Road');
     expect(screen.getByRole("combobox", { name: "Road conversion travel mode" }))
       .toBeVisible();
   });
@@ -110,22 +108,15 @@ describe("Advanced route structure controls", () => {
     );
 
     await user.click(screen.getByRole("button", { name: /Advanced/ }));
-    await user.selectOptions(
-      screen.getByRole("combobox", { name: "Convert route to" }),
-      "road",
-    );
-    await user.selectOptions(
-      screen.getByRole("combobox", { name: "Road conversion travel mode" }),
-      "walk",
-    );
+    await chooseOption(user, 'Convert route to', 'Road');
+    await chooseOption(user, 'Road conversion travel mode', 'Walking');
     await user.click(screen.getByRole("button", { name: "Convert" }));
     expect(screen.getByRole("group", { name: "Confirm road routing" })).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Route and apply" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Road service unavailable.");
 
-    expect(screen.getByRole("combobox", { name: "Convert route to" })).toHaveValue("road");
-    expect(screen.getByRole("combobox", { name: "Road conversion travel mode" }))
-      .toHaveValue("walk");
+    expect(selectedValue(screen.getByRole("combobox", { name: "Convert route to" }))).toBe("road");
+    expect(selectedValue(screen.getByRole("combobox", { name: "Road conversion travel mode" }))).toBe("walk");
     await user.click(screen.getByRole("button", { name: "Retry" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("route changed");
     expect(onTransformRoute).toHaveBeenCalledWith(expect.objectContaining({
@@ -173,7 +164,7 @@ describe("Advanced route structure controls", () => {
     layer.route = { kind: "straight", closed: true };
     render(<RouteLayerProperties {...baseProps} layer={layer} />);
     await user.click(screen.getByRole("button", { name: /Advanced/ }));
-    await user.selectOptions(screen.getByRole("combobox", { name: "Route anchor" }), "1");
+    await chooseOption(user, 'Route anchor', /^Anchor 2:/);
     expect(screen.getByRole("button", { name: "Remove selected route anchor" }))
       .toHaveAccessibleDescription("Closed routes need at least three distinct points.");
     expect(screen.getByRole("button", { name: "Remove selected route anchor" })).toBeDisabled();

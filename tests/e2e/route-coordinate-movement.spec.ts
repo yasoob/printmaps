@@ -5,6 +5,7 @@ import type { TerraRouteDrawLike } from '../../src/map/TerraDrawRouteEditing';
 import type { ContentLayer, ProjectDocument, RouteSegmentStyleOverride } from '../../src/domain/project';
 import { basicRouteProject, convertRoute, downloadLayeredSvg, installDirectionsMock, openAdvanced, openProject, routeLayer } from './advanced-route-test-support';
 import { downloadProject, openInstrumentedMap } from './map-recovery-support';
+import { chooseOption } from './select-support';
 
 const styles: RouteSegmentStyleOverride[] = [
   { color: '#ff0000', width: 7, strokeStyle: 'dashed' },
@@ -173,7 +174,7 @@ test('closing and converting a route preserves the red override and 0.7 bend whe
   await page.getByRole('button', { name: 'Project', exact: true }).focus();
   const before: ProjectDocument = await downloadProject(page);
   const beforeParity = await expectExportParity(page, testInfo, 'original-before');
-  await page.getByRole('combobox', { name: 'Route anchor', exact: true }).selectOption('1');
+  await chooseOption(page, 'Route anchor', /^Anchor 2:/);
   await page.getByRole('textbox', { name: 'Route anchor longitude', exact: true }).fill('16.385');
   await page.getByRole('button', { name: 'Project', exact: true }).focus();
   const after: ProjectDocument = await downloadProject(page);

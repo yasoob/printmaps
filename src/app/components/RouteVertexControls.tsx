@@ -1,6 +1,7 @@
 import { Button } from '../../components/ui/button';
 import { Plus, Trash2 } from "lucide-react";
-import { useId, useState } from "react";
+import { useId, useMemo, useState } from "react";
+import { SimpleSelect } from "../../components/ui/select";
 import { MAX_MERCATOR_LATITUDE } from "../../domain/project";
 import { routePointRemovalError } from "../../domain/routePointConstraints";
 import { CoordinateField } from "./CoordinateField";
@@ -23,14 +24,12 @@ type RouteVertexControlsProps = {
 
 function routeVertexOptions(
   coordinates: readonly (readonly [number, number])[],
+  noun: string,
 ) {
-  const occurrences = new Map<string, number>();
-  return coordinates.map((coordinate, value) => {
-    const location = `${coordinate[0]},${coordinate[1]}`;
-    const occurrence = (occurrences.get(location) ?? 0) + 1;
-    occurrences.set(location, occurrence);
-    return { key: `${location}:${occurrence}`, value };
-  });
+  return coordinates.map((coordinate, index) => ({
+    value: String(index),
+    label: `${noun} ${index + 1}: ${coordinate[0]}, ${coordinate[1]}`,
+  }));
 }
 
 export function RouteVertexControls({
@@ -50,9 +49,9 @@ export function RouteVertexControls({
     selectedIndex,
     Math.max(0, coordinates.length - 1),
   );
+  const options = useMemo(() => routeVertexOptions(coordinates, noun), [coordinates, noun]);
   const selectedCoordinates = coordinates[vertexIndex];
   if (!selectedCoordinates) return null;
-  const options = routeVertexOptions(coordinates);
   const removalError = routePointRemovalError({
     pointCount: coordinates.length, pointIndex: vertexIndex, isClosed: isClosed === true, isMiddleOnly: middleOnlyRemove,
   });
@@ -60,19 +59,13 @@ export function RouteVertexControls({
   return (
     <>
       <PropertyRow label={noun}>
-        <select
-          aria-label={`Route ${noun.toLowerCase()}`}
+        <SimpleSelect
+          label={`Route ${noun.toLowerCase()}`}
           disabled={disabled}
-          value={vertexIndex}
-          onChange={(event) => setSelectedIndex(Number(event.target.value))}
-        >
-          {options.map((option) => (
-            <option key={option.key} value={option.value}>
-              {noun} {option.value + 1}: {coordinates[option.value]?.[0]},{" "}
-              {coordinates[option.value]?.[1]}
-            </option>
-          ))}
-        </select>
+          value={String(vertexIndex)}
+          options={options}
+          onValueChange={(index) => setSelectedIndex(Number(index))}
+        />
       </PropertyRow>
       <CoordinateField
         ariaLabel={`Route ${noun.toLowerCase()} longitude`}

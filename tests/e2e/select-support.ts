@@ -14,15 +14,16 @@ function selectControl(scope: Scope, label: string | RegExp) {
  * Chooses the option whose visible label is `option` in the select named `label`.
  * Handles the shared shadcn select (combobox trigger + portaled listbox) and native `<select>`.
  */
-export async function chooseOption(scope: Scope, label: string | RegExp, option: string) {
+export async function chooseOption(scope: Scope, label: string | RegExp, option: string | RegExp) {
   const control = selectControl(scope, label);
   if (await control.evaluate((element) => element instanceof HTMLSelectElement)) {
+    if (typeof option !== 'string') throw new Error('Native selects need an exact option label.');
     await control.selectOption({ label: option });
     return;
   }
   await control.click();
   const listbox = pageOf(scope).getByRole('listbox');
-  await listbox.getByRole('option', { name: option, exact: true }).click();
+  await listbox.getByRole('option', { name: option, exact: typeof option === 'string' }).click();
   await expect(control).toHaveAttribute('aria-expanded', 'false');
 }
 

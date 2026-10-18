@@ -7,8 +7,6 @@ import type {
 } from "../../domain/project";
 import { semanticRoutePositions } from "../../domain/routeGeometry";
 import {
-  ROUTE_TRAVEL_MARKERS,
-  ROUTE_TRAVEL_MARKER_LABELS,
   markerAppearanceFor,
   type RouteTravelMarker,
 } from "../../domain/routeProfiles";
@@ -25,6 +23,8 @@ import type { ProjectMutationResult } from "../../domain/projectMutation";
 import { useMutationFeedback } from "../hooks/useMutationFeedback";
 import { Button } from "../../components/ui/button";
 import { ColorField } from "../../components/ui/color-field";
+import { SimpleSelect } from "../../components/ui/select";
+import { LINE_STYLE_OPTIONS, TRAVEL_MARKER_OPTIONS } from "./routeSelectOptions";
 
 function markerForPictogram(
   appearance: RouteAppearance,
@@ -109,40 +109,24 @@ const RouteAppearanceControls = memo(function RouteAppearanceControls({
         </InputGroup>
       </PropertyRow>
       <PropertyRow label="Line">
-        <select
-          aria-label="Route line style"
+        <SimpleSelect
+          label="Route line style"
           value={appearance.strokeStyle}
-          onChange={(event) =>
-            onChange({
-              ...appearance,
-              strokeStyle: event.currentTarget.value as "solid" | "dashed",
-            })
-          }
-        >
-          <option value="solid">Solid</option>
-          <option value="dashed">Dashed</option>
-        </select>
+          options={LINE_STYLE_OPTIONS}
+          onValueChange={(strokeStyle) => onChange({ ...appearance, strokeStyle })}
+        />
       </PropertyRow>
       {feedback.error && <p className="coordinate-validation" role="alert">{feedback.error}</p>}
       <PropertyRow label="Travel marker">
-        <select
-          aria-label="Route travel marker"
+        <SimpleSelect
+          label="Route travel marker"
           value={appearance.marker?.pictogram ?? "none"}
-          onChange={(event) => {
-            const pictogram = event.currentTarget.value;
-            onChange({
-              ...appearance,
-              marker: markerForPictogram(appearance, pictogram),
-            });
-          }}
-        >
-          <option value="none">None</option>
-          {ROUTE_TRAVEL_MARKERS.map((marker) => (
-            <option key={marker} value={marker}>
-              {ROUTE_TRAVEL_MARKER_LABELS[marker]}
-            </option>
-          ))}
-        </select>
+          options={TRAVEL_MARKER_OPTIONS}
+          onValueChange={(pictogram) => onChange({
+            ...appearance,
+            marker: markerForPictogram(appearance, pictogram),
+          })}
+        />
       </PropertyRow>
     </>
   );

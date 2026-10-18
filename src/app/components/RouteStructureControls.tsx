@@ -10,6 +10,7 @@ import type { DirectionsProvider } from "../../services/mapbox/contracts";
 import { useRouteTransformOperations } from "../hooks/useRouteTransformOperations";
 import type { ProjectState } from "../store";
 import { memo } from "react";
+import { SimpleSelect } from "../../components/ui/select";
 import { useStableEvent } from "../hooks/useStableEvent";
 
 const ROUTE_KIND_LABELS: Record<RouteKind, string> = {
@@ -17,6 +18,8 @@ const ROUTE_KIND_LABELS: Record<RouteKind, string> = {
   arc: "Arc",
   road: "Road",
 };
+const ROUTE_KIND_OPTIONS = (Object.entries(ROUTE_KIND_LABELS) as [RouteKind, string][]).map(([value, label]) => ({ value, label }));
+const ROAD_TRAVEL_MODE_OPTIONS = ROAD_TRAVEL_MODES.map((mode) => ({ value: mode, label: ROAD_TRAVEL_MODE_LABELS[mode] }));
 
 type RouteStructureControlsProps = {
   directionsProvider?: DirectionsProvider;
@@ -46,35 +49,23 @@ function RouteConversionFields({
   return (
     <>
       <PropertyRow label="Convert to">
-        <select
-          aria-label="Convert route to"
+        <SimpleSelect
+          label="Convert route to"
           disabled={isDisabled}
           value={operation.targetKind}
-          onChange={(event) => operation.setTargetKind(event.target.value as RouteKind)}
-        >
-          {Object.entries(ROUTE_KIND_LABELS).map(([kind, label]) => (
-            <option key={kind} value={kind}>{label}</option>
-          ))}
-        </select>
+          options={ROUTE_KIND_OPTIONS}
+          onValueChange={operation.setTargetKind}
+        />
       </PropertyRow>
       {operation.targetKind === "road" ? (
         <PropertyRow label="Travel mode">
-          <select
-            aria-label="Road conversion travel mode"
+          <SimpleSelect
+            label="Road conversion travel mode"
             disabled={isDisabled}
             value={operation.roadTravelMode}
-            onChange={(event) =>
-              operation.setRoadTravelMode(
-                event.target.value as typeof operation.roadTravelMode,
-              )
-            }
-          >
-            {ROAD_TRAVEL_MODES.map((mode) => (
-              <option key={mode} value={mode}>
-                {ROAD_TRAVEL_MODE_LABELS[mode]}
-              </option>
-            ))}
-          </select>
+            options={ROAD_TRAVEL_MODE_OPTIONS}
+            onValueChange={operation.setRoadTravelMode}
+          />
         </PropertyRow>
       ) : null}
     </>

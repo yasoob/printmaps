@@ -4,6 +4,7 @@ import { admissionFixture, savedAdmissionRecord } from './project-admission-supp
 import { addCoordinate, normalizedViewport, openInstrumentedMap } from './map-recovery-support';
 import { reviewConflict, storedDraft, trackWrites } from './autosave-conflict-support';
 import { assertFreshPortable, assertUnobstructedSearch, downloadPortable, importSingleGeoJson, loseOversizedCameraMove, openPortable, portableBoundarySource, portableCameraSnapshot, portableDownload, portableFixture, stageGeoJson, stagePortable } from './portable-budget-support';
+import { chooseOption } from './select-support';
 
 test.beforeEach(() => test.setTimeout(180_000));
 
@@ -169,11 +170,11 @@ test('compact backups in replacement and real cross-tab conflict dialogs do not 
   const winner = await page.context().newPage();
   await winner.goto('./');
   await winner.getByRole('tab', { name: 'Layout' }).click();
-  await winner.getByRole('combobox', { name: 'Page preset' }).selectOption('A3');
+  await chooseOption(winner, 'Page preset', 'A3');
   await expect(winner.getByRole('status', { name: 'Autosave status' })).toHaveText('All changes saved locally', { timeout: 30_000 });
   const saved = await storedDraft(winner);
   await page.getByRole('tab', { name: 'Layout' }).click();
-  await page.getByRole('combobox', { name: 'Page preset' }).selectOption('A5');
+  await chooseOption(page, 'Page preset', 'A5');
   await expect(page.getByRole('status', { name: 'Autosave conflict notice' })).toBeVisible();
   const conflict = await reviewConflict(page);
   const backingUp = page.waitForEvent('download');

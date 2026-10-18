@@ -1,7 +1,8 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../../../src/app/App';
 import { exportMocks } from './exportMocks';
+import { chooseOption, selectedValue } from '../select-support';
 
 vi.mock('../../../src/map/MapCanvas', async () => import('./MapCanvasMock'));
 
@@ -72,16 +73,16 @@ describe('editor page settings and tools', () => {
     const preset = screen.getByRole('combobox', { name: 'Page preset' });
     const map = screen.getByTestId('map-canvas');
 
-    await user.selectOptions(preset, 'A3');
+    await chooseOption(user, 'Page preset', 'A3');
 
-    expect(preset).toHaveValue('A3');
+    expect(selectedValue(preset)).toBe('A3');
     expect(screen.getByRole('spinbutton', { name: 'Page width' })).toHaveValue(420);
     expect(screen.getByRole('spinbutton', { name: 'Page height' })).toHaveValue(297);
     expect(map).toHaveAttribute('data-page-preset', 'A3');
     expect(map).toHaveAttribute('data-page-size', '420x297');
 
     await user.click(screen.getByRole('button', { name: 'Undo' }));
-    expect(preset).toHaveValue('A4');
+    expect(selectedValue(preset)).toBe('A4');
     expect(screen.getByRole('spinbutton', { name: 'Page width' })).toHaveValue(297);
     expect(map).toHaveAttribute('data-page-preset', 'A4');
   });
@@ -92,9 +93,11 @@ describe('editor page settings and tools', () => {
     await user.click(screen.getByRole('tab', { name: 'Layout' }));
     const preset = screen.getByRole('combobox', { name: 'Page preset' });
 
-    expect([...preset.querySelectorAll('option')].map((option) => option.textContent)).toEqual([
+    await user.click(preset);
+    expect(within(await screen.findByRole('listbox')).getAllByRole('option').map((option) => option.textContent)).toEqual([
       'A2', 'A3', 'A4', 'A5', 'A6', 'US Letter', 'Custom',
     ]);
+    await user.keyboard('{Escape}');
     for (const [value, expectedWidth, expectedHeight] of [
       ['A2', 594, 420],
       ['A3', 420, 297],
@@ -103,13 +106,13 @@ describe('editor page settings and tools', () => {
       ['A6', 148, 105],
       ['US Letter', 279.4, 215.9],
     ] as const) {
-      await user.selectOptions(preset, value);
+      await chooseOption(user, 'Page preset', value);
       expect(screen.getByRole('spinbutton', { name: 'Page width' })).toHaveValue(expectedWidth);
       expect(screen.getByRole('spinbutton', { name: 'Page height' })).toHaveValue(expectedHeight);
     }
 
-    await user.selectOptions(preset, 'Custom');
-    expect(preset).toHaveValue('Custom');
+    await chooseOption(user, 'Page preset', 'Custom');
+    expect(selectedValue(preset)).toBe('Custom');
     expect(screen.getByRole('spinbutton', { name: 'Page width' })).toHaveValue(279.4);
     expect(screen.getByRole('spinbutton', { name: 'Page height' })).toHaveValue(215.9);
   });
@@ -129,7 +132,7 @@ describe('editor page settings and tools', () => {
     expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
     fireEvent.pointerUp(window, { clientX: 18, pointerId: 1 });
 
-    expect(screen.getByRole('combobox', { name: 'Page preset' })).toHaveValue('Custom');
+    expect(selectedValue(screen.getByRole('combobox', { name: 'Page preset' }))).toBe('Custom');
     expect(screen.getByRole('button', { name: 'Undo' })).toBeEnabled();
     expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-page-size', '299x210');
   });
@@ -178,13 +181,13 @@ describe('editor map style controls', () => {
     const language = screen.getByRole('combobox', { name: 'Map language' });
     const map = screen.getByTestId('map-canvas');
 
-    expect(language).toHaveValue('local');
-    await user.selectOptions(language, 'de');
+    expect(selectedValue(language)).toBe('local');
+    await chooseOption(user, 'Map language', 'German');
 
-    expect(language).toHaveValue('de');
+    expect(selectedValue(language)).toBe('de');
     expect(map).toHaveAttribute('data-map-language', 'de');
     await user.click(screen.getByRole('button', { name: 'Undo' }));
-    expect(language).toHaveValue('local');
+    expect(selectedValue(language)).toBe('local');
     expect(map).toHaveAttribute('data-map-language', 'local');
   });
 
@@ -384,7 +387,7 @@ describe('editor map detail and page commands', () => {
     await user.click(field);
     await user.tab();
 
-    expect(preset).toHaveValue('A4');
+    expect(selectedValue(preset)).toBe('A4');
     expect(undo).toBeDisabled();
   });
 
@@ -401,10 +404,10 @@ describe('editor map detail and page commands', () => {
     expect(undo).toBeDisabled();
     await user.tab();
 
-    expect(preset).toHaveValue('Custom');
+    expect(selectedValue(preset)).toBe('Custom');
     expect(undo).toBeEnabled();
     await user.click(undo);
-    expect(preset).toHaveValue('A4');
+    expect(selectedValue(preset)).toBe('A4');
     expect(undo).toBeDisabled();
   });
   it('fits the page without changing the persistent tool', async () => {

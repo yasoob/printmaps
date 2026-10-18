@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 import {
   addCoordinate, downloadProject, loseRenderer, mapSnapshot, openInstrumentedMap, revealRouteCoordinates, tilePattern,
 } from './map-recovery-support';
+import { chooseOption } from './select-support';
 
 test.afterEach(async ({ page }, testInfo) => {
   await writeFile(testInfo.outputPath('ux-fix-024-runtime.json'), JSON.stringify(await page.evaluate(() => ({
@@ -154,7 +155,7 @@ test('renderer restart does not replay an applied search and retains native styl
       geometry: { type: 'Point', coordinates: [16.37, 48.21] }, properties: { full_address: 'Recovery test location' } }] },
   }));
   await openInstrumentedMap(page);
-  await page.getByRole('combobox', { name: 'Map language' }).selectOption('de');
+  await chooseOption(page, 'Map language', 'German');
   await page.getByRole('spinbutton', { name: 'Text scale' }).fill('125');
   await page.getByRole('spinbutton', { name: 'Text scale' }).press('Tab');
   await page.getByRole('checkbox', { name: 'Show roads' }).uncheck();

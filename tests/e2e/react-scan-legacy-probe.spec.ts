@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { attachInventory, expectOwners, finishProbe, openScanEditor, startProbe, waitForRenderQuiet } from './react-scan-helpers';
 import { installDirectionsMock, openAdvanced } from './advanced-route-test-support';
+import { chooseOption } from './select-support';
 
 test.skip(process.env.VITE_REACT_SCAN !== 'true', 'Run with npm run audit:renders.');
 test.afterEach(async ({ page }, info) => attachInventory(page, info));
@@ -10,7 +11,7 @@ const chrome = ['LocationSearch', 'CanvasWorkspaceChrome', 'StudioHeader', 'Stud
 for (const setting of [
   { label: 'Bearing', value: '25', select: false },
   { label: 'Pitch', value: '15', select: false },
-  { label: 'Map language', value: 'de', select: true },
+  { label: 'Map language', value: 'German', select: true },
   { label: 'Text scale', value: '125', select: false },
   { label: 'Page width', value: '310', select: false },
 ]) {
@@ -19,7 +20,7 @@ for (const setting of [
     if (setting.label === 'Page width') await page.getByRole('tab', { name: 'Layout' }).click();
     const input = page.getByLabel(setting.label, { exact: true });
     await startProbe(page, setting.label);
-    if (setting.select) await input.selectOption(setting.value);
+    if (setting.select) await chooseOption(page, setting.label, setting.value);
     else { await input.fill(setting.value); await input.press('Enter'); }
     const result = await finishProbe(page, info, `project-${setting.label}`);
     expectOwners(result, ['MapCanvas', setting.label === 'Page width' ? 'PageDimensions' : 'ProjectProperties'], [
@@ -145,7 +146,7 @@ test('directions conversion failure retry and cancellation retain map and static
   await openScanEditor(page);
   await page.getByRole('button', { name: 'Select Route 01', exact: true }).click();
   await openAdvanced(page);
-  await page.getByRole('combobox', { name: 'Convert route to' }).selectOption('road');
+  await chooseOption(page, 'Convert route to', 'Road');
   await page.getByRole('button', { name: 'Convert', exact: true }).click();
   await startProbe(page, 'Directions failure');
   await page.getByRole('button', { name: 'Route and apply', exact: true }).click();

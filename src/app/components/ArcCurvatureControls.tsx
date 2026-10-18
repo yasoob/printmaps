@@ -1,5 +1,6 @@
 import { Button } from '../../components/ui/button';
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { SimpleSelect } from "../../components/ui/select";
 import { MAX_ARC_CURVATURE } from "../../domain/routeArcGeometry";
 import { InputGroup, InputNumber } from "./InputGroup";
 import { PropertyRow } from "./PropertyControls";
@@ -18,6 +19,8 @@ export function ArcCurvatureControls({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const segmentIndex = Math.min(selectedIndex, curvatures.length - 1);
   const curvature = curvatures[segmentIndex] ?? 0;
+  const segmentCount = curvatures.length;
+  const segmentOptions = useMemo(() => Array.from({ length: segmentCount }, (_value, index) => ({ value: String(index), label: `Segment ${index + 1}` })), [segmentCount]);
   const [amountEdit, setAmountEdit] = useState(() => ({
     segmentIndex,
     source: curvature,
@@ -48,20 +51,13 @@ export function ArcCurvatureControls({
   return (
     <>
       <PropertyRow label="Segment">
-        <select
-          aria-label="Arc segment"
+        <SimpleSelect
+          label="Arc segment"
           disabled={disabled}
-          value={segmentIndex}
-          onChange={(event) => {
-            setSelectedIndex(Number(event.target.value));
-          }}
-        >
-          {curvatures.map((_value, index) => (
-            <option key={index} value={index}>
-              Segment {index + 1}
-            </option>
-          ))}
-        </select>
+          value={String(segmentIndex)}
+          options={segmentOptions}
+          onValueChange={(index) => setSelectedIndex(Number(index))}
+        />
       </PropertyRow>
       <PropertyRow label="Bend (×)">
         <InputGroup>

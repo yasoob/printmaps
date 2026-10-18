@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { downloadPortable, openPortable } from './portable-budget-support';
+import { chooseOption, expectSelectValue } from './select-support';
 
 const localFile = (name = 'Local profile') => ({
   name: 'local-profile.geojson', mimeType: 'application/geo+json',
@@ -36,13 +37,13 @@ async function terrain(page: Page) {
 async function originalSettings(page: Page) {
   await page.getByRole('radio', { name: 'Imperial' }).check();
   await page.getByLabel('Profile print width', { exact: true }).fill('220');
-  await page.getByLabel('Profile font', { exact: true }).selectOption('serif');
+  await chooseOption(page, 'Profile font', 'Serif');
   await page.getByLabel('Profile font size', { exact: true }).fill('60');
 }
 async function expectOriginalSettings(page: Page) {
   await expect(page.getByRole('radio', { name: 'Imperial' })).toBeChecked();
   await expect(page.getByLabel('Profile print width', { exact: true })).toHaveValue('220');
-  await expect(page.getByLabel('Profile font', { exact: true })).toHaveValue('serif');
+  await expectSelectValue(page, 'Profile font', 'serif');
   await expect(page.getByLabel('Profile font size', { exact: true })).toHaveValue('60');
 }
 
@@ -94,7 +95,7 @@ test('UX039 cosmetic edits preserve heights; geometry, Undo and route-kind chang
   expect(requests).toHaveLength(1);
   await generate(page);
   await expectOriginalSettings(page);
-  await page.getByRole('combobox', { name: 'Convert route to' }).selectOption('arc');
+  await chooseOption(page, 'Convert route to', 'Arc');
   await page.getByRole('button', { name: 'Convert', exact: true }).click();
   await expect(page.locator('.elevation-profile-panel')).toHaveCount(0);
   await page.getByRole('button', { name: 'Undo', exact: true }).click();
@@ -234,11 +235,11 @@ test('UX039 separate routes keep independent profiles and settings', async ({ pa
   await generate(page);
   await expect(page.getByRole('radio', { name: 'Metric' })).toBeChecked();
   await expect(page.getByLabel('Profile print width', { exact: true })).toHaveValue('150');
-  await page.getByLabel('Profile font', { exact: true }).selectOption('mono');
+  await chooseOption(page, 'Profile font', 'Monospace');
   await openProfile(page);
   await expectOriginalSettings(page);
   await openProfile(page, copyName);
-  await expect(page.getByLabel('Profile font', { exact: true })).toHaveValue('mono');
+  await expectSelectValue(page, 'Profile font', 'mono');
   expect(requests).toHaveLength(2);
   await evidence(page, info, 'independent-route-profile');
 });

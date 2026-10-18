@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { attachInventory, expectOwners, finishProbe, openScanEditor, startProbe, waitForRenderQuiet } from './react-scan-helpers';
 import { convertRoute, installDirectionsMock, openAdvanced } from './advanced-route-test-support';
+import { chooseOption } from './select-support';
 
 test.skip(process.env.VITE_REACT_SCAN !== 'true', 'Run with npm run audit:renders.');
 test.afterEach(async ({ page }, info) => attachInventory(page, info));
@@ -71,7 +72,7 @@ test('route topology curvature and directions cancellation preserve unrelated so
   }
   await convertRoute(page, 'straight');
   directions.setMode('hold');
-  await page.getByRole('combobox', { name: 'Convert route to' }).selectOption('road');
+  await chooseOption(page, 'Convert route to', 'Road');
   await page.getByRole('button', { name: 'Convert', exact: true }).click();
   await page.getByRole('button', { name: 'Route and apply', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Cancel routing', exact: true })).toBeVisible();

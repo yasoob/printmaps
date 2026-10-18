@@ -15,18 +15,17 @@ import {
   svgMetrics,
   waitForMap,
 } from './advanced-route-test-support';
+import { chooseOption, expectSelectValue } from './select-support';
 
 async function setFirstTwoLegStyles(page: Parameters<typeof openAdvanced>[0]) {
-  const leg = page.getByRole('combobox', { name: 'Route semantic leg' });
-  await leg.selectOption('0');
+  await chooseOption(page, 'Route semantic leg', 'Leg 1');
   await page.getByRole('checkbox', { name: 'Inherit route segment color' }).uncheck();
   await page.getByRole('checkbox', { name: 'Inherit route segment width' }).uncheck();
   await page.getByRole('checkbox', { name: 'Inherit route segment line style' }).uncheck();
   await page.locator('input[aria-label="Route segment color"]').fill('#112233');
   await page.getByRole('spinbutton', { name: 'Route segment width' }).fill('7');
-  await page.getByRole('combobox', { name: 'Route segment line style' })
-    .selectOption('dashed');
-  await leg.selectOption('1');
+  await chooseOption(page, 'Route segment line style', 'Dashed');
+  await chooseOption(page, 'Route semantic leg', 'Leg 2');
   await page.getByRole('checkbox', { name: 'Inherit route segment color' }).uncheck();
   await page.locator('input[aria-label="Route segment color"]').fill('#abcdef');
 }
@@ -92,7 +91,7 @@ test('converts every route-kind pair and atomically remaps local structure', asy
     ? transformed.appearance.segmentStyles
     : []).toEqual(reversedCopy(originalStyles));
 
-  await page.getByRole('combobox', { name: 'Route line style' }).selectOption('dashed');
+  await chooseOption(page, 'Route line style', 'Dashed');
   const chooserPromise = page.waitForEvent('filechooser');
   await page.getByRole('button', { name: 'Project', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Open project' }).click();
@@ -102,8 +101,7 @@ test('converts every route-kind pair and atomically remaps local structure', asy
   await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
   await page.getByRole('button', { name: 'Select Route 01' }).click();
   await openAdvanced(page);
-  await expect(page.getByRole('combobox', { name: 'Route line style' }))
-    .toHaveValue('solid');
+  await expectSelectValue(page, 'Route line style', 'solid');
   await expect(page.getByText('Curvature', { exact: true })).toBeVisible();
 });
 
@@ -117,15 +115,13 @@ test('retains failed choices, rejects stale responses, and reroutes Road structu
   await openAdvanced(page);
   const map = page.getByTestId('map-canvas');
   const originalGeometry = await map.getAttribute('data-map-layer-geometry');
-  await page.getByRole('combobox', { name: 'Convert route to' }).selectOption('road');
-  await page.getByRole('combobox', { name: 'Road conversion travel mode' })
-    .selectOption('walk');
+  await chooseOption(page, 'Convert route to', 'Road');
+  await chooseOption(page, 'Road conversion travel mode', 'Walking');
   await page.getByRole('button', { name: 'Convert', exact: true }).click();
   await page.getByRole('button', { name: 'Route and apply' }).click();
   await expect(page.getByRole('alert')).toContainText('Mapbox is temporarily unavailable');
-  await expect(page.getByRole('combobox', { name: 'Convert route to' })).toHaveValue('road');
-  await expect(page.getByRole('combobox', { name: 'Road conversion travel mode' }))
-    .toHaveValue('walk');
+  await expectSelectValue(page, 'Convert route to', 'road');
+  await expectSelectValue(page, 'Road conversion travel mode', 'walk');
   await expect(map).toHaveAttribute('data-map-layer-geometry', originalGeometry!);
 
   directions.setMode('success');
@@ -166,7 +162,7 @@ test('retains failed choices, rejects stale responses, and reroutes Road structu
   await convertRoute(page, 'straight');
   const straightGeometry = await map.getAttribute('data-map-layer-geometry');
   directions.setMode('hold');
-  await page.getByRole('combobox', { name: 'Convert route to' }).selectOption('road');
+  await chooseOption(page, 'Convert route to', 'Road');
   await page.getByRole('button', { name: 'Convert', exact: true }).click();
   await page.getByRole('button', { name: 'Route and apply' }).click();
   await expect.poll(() => directions.requests.length).toBe(6);
@@ -366,7 +362,7 @@ test('keeps advanced routes accessible at 320 and 390px', async ({ page }) => {
     }
   }
 
-  await page.getByRole('combobox', { name: 'Convert route to' }).selectOption('road');
+  await chooseOption(page, 'Convert route to', 'Road');
   await page.getByRole('button', { name: 'Convert', exact: true }).click();
   await page.getByRole('button', { name: 'Route and apply' }).click();
   const alert = page.getByRole('alert');

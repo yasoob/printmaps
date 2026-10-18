@@ -8,6 +8,7 @@ import { useLayerNavigation } from '../hooks/useLayerNavigation';
 import { LayerNavigationHeader } from './LayerNavigationHeader';
 import { LayerDragOverlay, LayerNavigationRow } from './LayerNavigationRow';
 import './layerNavigation.css';
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '../../components/ui/input-group';
 
 type Props = {
   layers: readonly ContentLayer[];
@@ -60,27 +61,31 @@ export function LayerNavigation(props: Props) {
         }} onKeyDown={handleSearchEscape} />
       <div className="layer-navigation" onKeyDown={handleSearchEscape}>
         <div id={filterId} className="layer-filter" hidden={!searchOpen}>
-          <Search size={16} strokeWidth={1.75} aria-hidden="true" />
-          {searchOpen && <input
-            ref={inputRef}
-            type="search"
-            aria-label="Filter layers by name"
-            aria-controls="layers-list"
-            aria-describedby={`${countId} ${helpId}`}
-            placeholder="Filter layers…"
-            value={query}
-            onChange={(event) => changeQuery(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key !== 'ArrowDown' || event.altKey || event.ctrlKey || event.metaKey || event.nativeEvent.isComposing) return;
-              event.preventDefault();
-              focusRow(activeId);
-            }}
-          />}
-          {query && <button className="layer-filter-clear" type="button" aria-label="Clear layer filter" onClick={() => {
-            trackEditorAction('layerFilterCleared');
-            changeQuery('');
-            inputRef.current?.focus();
-          }}><X size={16} strokeWidth={1.75} aria-hidden="true" /></button>}
+          {searchOpen && <InputGroup>
+            <InputGroupAddon><Search size={16} strokeWidth={1.75} aria-hidden="true" /></InputGroupAddon>
+            <InputGroupInput
+              ref={inputRef}
+              type="search"
+              aria-label="Filter layers by name"
+              aria-controls="layers-list"
+              aria-describedby={`${countId} ${helpId}`}
+              placeholder="Filter layers…"
+              value={query}
+              onChange={(event) => changeQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key !== 'ArrowDown' || event.altKey || event.ctrlKey || event.metaKey || event.nativeEvent.isComposing) return;
+                event.preventDefault();
+                focusRow(activeId);
+              }}
+            />
+            {query && <InputGroupAddon align="inline-end">
+              <InputGroupButton className="layer-filter-clear" size="icon-xs" aria-label="Clear layer filter" onClick={() => {
+                trackEditorAction('layerFilterCleared');
+                changeQuery('');
+                inputRef.current?.focus();
+              }}><X size={16} strokeWidth={1.75} aria-hidden="true" /></InputGroupButton>
+            </InputGroupAddon>}
+          </InputGroup>}
         </div>
         <p id={countId} className={`layer-navigation-status${!isFiltering && !announcement ? ' sr-only' : ''}`} role="status" aria-label="Layer navigation" aria-atomic="true">
           {isFiltering && <span>{visible.length} of {layers.length} layers</span>}

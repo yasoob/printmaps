@@ -16,6 +16,7 @@ import { trackEditorAction } from '../../analytics/editorAnalytics';
 import { useStableEvent } from '../hooks/useStableEvent';
 import { StudioModeTabs } from './StudioModeTabs';
 import { Button } from '../../components/ui/button';
+import { SimpleSelect } from '../../components/ui/select';
 
 // Camera-rate center and zoom updates do not belong to the inspector.
 export type CameraInspectorView = Pick<CameraSettings, 'bearing' | 'locked' | 'pitch'>;
@@ -50,6 +51,7 @@ const MAP_LANGUAGE_LABELS: Record<MapLanguage, string> = {
   de: 'German', en: 'English', es: 'Spanish', fr: 'French',
   it: 'Italian', local: 'Local names', zh: 'Chinese',
 };
+const MAP_LANGUAGE_OPTIONS = (Object.entries(MAP_LANGUAGE_LABELS) as [MapLanguage, string][]).map(([value, label]) => ({ value, label }));
 const TABS = [{ value: 'Map', label: 'Map' }, { value: 'Layout', label: 'Layout' }] as const;
 
 export function ProjectProperties(props: ProjectPropertiesProps) {
@@ -157,11 +159,10 @@ const ProjectDetailsSection = memo(function ProjectDetailsSection({ visibility, 
   Pick<MapStyleSettings, 'visibility' | 'language' | 'textScalePercent'>) {
   const settings = useMemo(() => ({ visibility, language, textScalePercent }), [visibility, language, textScalePercent]);
   const feedback = useMutationFeedback(settings);
+  const changeLanguage = useStableEvent((next: MapLanguage) => feedback.report(onLanguageChange(next)));
   return <InspectorAccordion isDefaultExpanded={false} storageKey={`${PROJECT_DISCLOSURE_PREFIX}:map-details`}
     summary={`${MAP_LANGUAGE_LABELS[language]} · ${textScalePercent}% · ${Object.values(visibility).filter(Boolean).length} of 7 visible`} title="Labels & details">
-    <PropertyRow label="Language"><select aria-label="Map language" value={language} onChange={(event) => feedback.report(onLanguageChange(event.target.value as MapLanguage))}>
-      {Object.entries(MAP_LANGUAGE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-    </select></PropertyRow>
+    <PropertyRow label="Language"><SimpleSelect label="Map language" value={language} options={MAP_LANGUAGE_OPTIONS} onValueChange={changeLanguage} /></PropertyRow>
     <PropertyRow label="Text scale"><ValidatedNumberField label="Text scale" value={textScalePercent} minimum={50} maximum={200} step={5} unit="%" resetKey={documentEpoch} onCommit={onTextScaleChange} /></PropertyRow>
     {(['labels', 'roads', 'buildings', 'water', 'parks', 'landuse', 'transit'] as const).map((category) =>
       <Checkbox key={category} isChecked={visibility[category]} label={`Show ${category === 'landuse' ? 'land detail' : category}`}

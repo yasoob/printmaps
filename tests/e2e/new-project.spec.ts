@@ -4,6 +4,7 @@ import type { ProjectDocument } from '../../src/domain/project';
 import { downloadProject } from './map-recovery-support';
 import { openProject } from './advanced-route-test-support';
 import { savedAdmissionRecord } from './project-admission-support';
+import { chooseOption } from './select-support';
 
 declare global {
   interface Window { newProjectRead: { finished: boolean } }
@@ -33,10 +34,10 @@ test('New protects the outgoing project, resets all document defaults, and prese
   await page.goto('./');
   const blank = await blankDocument(page);
   await page.getByRole('tab', { name: 'Layout' }).click();
-  await page.getByRole('combobox', { name: 'Page preset', exact: true }).selectOption('A3');
+  await chooseOption(page, 'Page preset', 'A3');
   await page.getByRole('tab', { name: 'Map', exact: true }).click();
   await page.getByRole('radio', { name: /^Night Ink:/ }).click();
-  await page.getByRole('combobox', { name: 'Map language', exact: true }).selectOption('de');
+  await chooseOption(page, 'Map language', 'German');
   await page.getByRole('spinbutton', { name: 'Bearing', exact: true }).fill('15');
   await page.getByRole('spinbutton', { name: 'Bearing', exact: true }).press('Enter');
   await page.getByRole('switch', { name: 'Lock map area', exact: true }).check();

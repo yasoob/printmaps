@@ -3,6 +3,7 @@ import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import type { ProjectDocument } from '../../src/domain/project';
 import { downloadProject, openInstrumentedMap } from './map-recovery-support';
 import { openPortable } from './portable-budget-support';
+import { chooseOption, expectSelectValue } from './select-support';
 
 const smallCircleSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#2463eb"/></svg>';
 
@@ -182,8 +183,8 @@ test('UX047 disables only overridden controls, retains original style and makes 
   await openInstrumentedMap(page);
   await page.getByRole('button', { name: 'Select Coffee stop' }).click();
   await page.getByLabel('POI color', { exact: true }).fill('#123456');
-  await page.getByLabel('POI marker shape', { exact: true }).selectOption('diamond');
-  await page.getByLabel('POI marker symbol', { exact: true }).selectOption('coffee');
+  await chooseOption(page, 'POI marker shape', 'Diamond');
+  await chooseOption(page, 'POI marker symbol', 'Coffee');
   await uploadSvg(page);
   await expect(page.getByRole('status', { name: 'Custom marker status' })).toBeVisible();
   for (const label of ['POI color', 'POI marker shape', 'POI marker symbol']) {
@@ -203,19 +204,21 @@ test('UX047 disables only overridden controls, retains original style and makes 
   await page.screenshot({ path: info.outputPath('ux-fix-047-disabled-desktop.png') });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole('button', { name: 'Open properties' }).click();
-  await page.locator('.custom-marker-help').first().scrollIntoViewIfNeeded();
+  await page.locator('.custom-marker-notice').first().scrollIntoViewIfNeeded();
   await page.screenshot({ path: info.outputPath('ux-fix-047-mobile-explanation.png') });
   const remove = page.getByRole('button', { name: 'Remove custom marker' });
   await remove.scrollIntoViewIfNeeded();
   const target = await remove.boundingBox();
   expect(target!.height).toBeGreaterThanOrEqual(44);
-  const font = await page.locator('.custom-marker-help').first().evaluate((element) => Number(getComputedStyle(element).fontSize.replace('px', '')));
+  const font = await page.locator('.custom-marker-notice').first().evaluate((element) => Number(getComputedStyle(element).fontSize.replace('px', '')));
   expect(font).toBeGreaterThanOrEqual(12);
   await page.screenshot({ path: info.outputPath('ux-fix-047-disabled-mobile.png') });
   await remove.focus(); await remove.press('Enter');
-  for (const [label, value] of [['POI color', '#123456'], ['POI marker shape', 'diamond'], ['POI marker symbol', 'coffee']]) {
+  await expect(page.getByLabel('POI color', { exact: true })).toBeEnabled();
+  await expect(page.getByLabel('POI color', { exact: true })).toHaveValue('#123456');
+  for (const [label, value] of [['POI marker shape', 'diamond'], ['POI marker symbol', 'coffee']] as const) {
     await expect(page.getByLabel(label, { exact: true })).toBeEnabled();
-    await expect(page.getByLabel(label, { exact: true })).toHaveValue(value);
+    await expectSelectValue(page, label, value);
   }
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.getByRole('button', { name: 'Undo', exact: true }).click();

@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { App } from '../../../src/app/App';
 import { createInitialProjectDocument } from '../../../src/domain/project';
 import type { DirectionsProvider, SearchProvider } from '../../../src/services/mapbox/contracts';
-import { chooseOption } from '../select-support';
+import { chooseOption, selectedValue } from '../select-support';
 
 vi.mock('../../../src/map/MapCanvas', async () => import('./MapCanvasMock'));
 
@@ -189,7 +189,7 @@ describe('straight route authoring', () => {
 
     expect(screen.getByTestId('map-canvas').dataset.layerGeometry).toContain('route-02:[[16.31,48.19],[16.4,48.24],[16.46,48.2]]');
     await user.click(screen.getByText('Advanced'));
-    expect(screen.getByRole('combobox', { name: 'Route marker pictogram' })).toHaveValue('air');
+    expect(selectedValue(screen.getByRole('combobox', { name: 'Route marker pictogram' }))).toBe('air');
   });
 
   it('routes drawn waypoints through Mapbox and commits one canonical road route', async () => {

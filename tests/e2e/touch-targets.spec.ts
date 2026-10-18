@@ -50,7 +50,8 @@ for (const viewport of [
       expect(await colors.count()).toBe(11);
       const colorInputs = await colors.all();
       for (const color of colorInputs) await expectTouchTarget(color);
-      for (const name of ['Contrast', 'Detail']) await expectTouchTarget(page.getByRole('slider', { name, exact: true }));
+      // The slider control row is the touch target; the 16px thumb extends its hit area to it.
+      for (const name of ['Contrast', 'Detail']) await expectTouchTarget(page.locator('[data-slot="slider"]', { has: page.getByRole('slider', { name, exact: true }) }));
       await page.getByLabel('Water color', { exact: true }).fill('#00ff00');
       const reset = page.getByRole('button', { name: 'Reset Water color', exact: true });
       await expectTouchTarget(reset);
@@ -58,9 +59,10 @@ for (const viewport of [
       await expect(map).toHaveAttribute('data-map-style-customized', 'false');
 
       const contrast = page.getByRole('slider', { name: 'Contrast', exact: true });
-      const contrastBounds = await expectTouchTarget(contrast);
-      await contrast.tap({ position: { x: contrastBounds.width * 0.75, y: contrastBounds.height / 2 } });
-      await expect(contrast).not.toHaveValue('50');
+      const contrastControl = page.locator('[data-slot="slider"]', { has: contrast });
+      const contrastBounds = await expectTouchTarget(contrastControl);
+      await contrastControl.tap({ position: { x: contrastBounds.width * 0.75, y: contrastBounds.height / 2 } });
+      await expect(contrast).not.toHaveAttribute('aria-valuenow', '50');
       await expect(map).toHaveAttribute('data-map-style-customized', 'true');
     } finally {
       await context.close();

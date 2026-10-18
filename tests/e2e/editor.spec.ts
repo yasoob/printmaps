@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { chooseOption } from './select-support';
 
 const isExpectedWebGlDiagnostic = (message: string, browserName: string) => (
   message.includes('GPU stall due to ReadPixels')
@@ -365,7 +366,7 @@ test('applies Coastal, translated labels, and expanded map detail controls', asy
   await page.getByRole('radio', { name: /^Coastal:/ }).click();
   await expect(map).toHaveAttribute('data-style-preset', 'coastal');
   await expect(map).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
-  await page.getByRole('combobox', { name: 'Map language' }).selectOption('de');
+  await chooseOption(page, 'Map language', 'German');
   await page.getByRole('checkbox', { name: 'Show water' }).uncheck();
   await page.getByRole('checkbox', { name: 'Show parks' }).uncheck();
   await page.getByRole('checkbox', { name: 'Show land detail' }).uncheck();

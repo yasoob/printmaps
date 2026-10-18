@@ -19,7 +19,13 @@ import { Notice } from '../../components/ui/notice';
 import { InputGroup, InputGroupAddon, InputNumber } from './InputGroup';
 import type { ProjectMutationResult } from '../../domain/projectMutation';
 import { useMutationFeedback } from '../hooks/useMutationFeedback';
+import { SimpleSelect } from '../../components/ui/select';
 import './PoiAppearanceControls.css';
+import { Input } from '../../components/ui/input';
+
+const CUSTOM_MARKER_LIMITS = 'PNG/JPEG: 100–2048 px per side. SVG: scalable, including 24-unit icons. Maximum 1 MiB per file.';
+const MARKER_SHAPE_OPTIONS = POI_MARKER_SHAPES.map((shape) => ({ value: shape, label: POI_MARKER_SHAPE_LABELS[shape] }));
+const MARKER_SYMBOL_OPTIONS = POI_MARKER_SYMBOLS.map((symbol) => ({ value: symbol, label: POI_MARKER_SYMBOL_LABELS[symbol] }));
 
 type PoiAppearanceControlsProps = {
   appearance: PoiAppearance;
@@ -48,6 +54,7 @@ function CustomMarkerControl({
   const [state, setState] = useState<{ error: string | null; pending: boolean }>({ error: null, pending: false });
   const uploadSequence = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const limitsId = useId();
   useLayoutEffect(() => () => { uploadSequence.current += 1; }, []);
   const handleFile = async (file: File | undefined) => {
     if (!file) return;
@@ -77,9 +84,10 @@ function CustomMarkerControl({
   return (
     <div className="custom-marker-control">
       <div className="feature-help-row">
-        <Button variant="secondary" busy={state.pending} aria-label={`${customAsset ? 'Replace' : 'Upload'} custom marker`} onClick={() => fileInputRef.current?.click()}>{!state.pending && <ImagePlus aria-hidden="true" />}{customMarkerActionLabel(state.pending, customAsset)}</Button>
+        <Button variant="secondary" busy={state.pending} aria-label={`${customAsset ? 'Replace' : 'Upload'} custom marker`} aria-describedby={limitsId} onClick={() => fileInputRef.current?.click()}>{!state.pending && <ImagePlus aria-hidden="true" />}{customMarkerActionLabel(state.pending, customAsset)}</Button>
         {customAsset && <Button variant="secondary" aria-label="Remove custom marker" onClick={removeMarker}><Trash2 aria-hidden="true" /> Remove</Button>}
-        <FeatureHelp label="Custom marker help">PNG or JPEG between 100 and 2048 px per side, or a scalable SVG (24-unit icons work). Maximum 1 MiB per file.</FeatureHelp>
+        <FeatureHelp label="Custom marker help">{CUSTOM_MARKER_LIMITS}</FeatureHelp>
+        <span id={limitsId} className="sr-only">{CUSTOM_MARKER_LIMITS}</span>
       </div>
       <input ref={fileInputRef} aria-label="Custom marker file" accept=".png,.jpg,.jpeg,.svg,image/png,image/jpeg,image/svg+xml" disabled={state.pending} hidden type="file" onChange={(event) => {
         const file = event.currentTarget.files?.[0];
@@ -135,9 +143,9 @@ export const PoiAppearanceControls = memo(function PoiAppearanceControls({ appea
       {activeAsset && <Notice id={customStyleHelpId} tone="info" className="custom-marker-notice">The custom image supplies its own color, shape and symbol. Size, label and opacity still apply. Remove it to restore your standard marker style.</Notice>}
       <PropertyRow label="Color"><ColorField label="POI color" disabled={!!activeAsset} aria-describedby={customStyleDescription} value={appearance.color} onChange={(color) => onChange({ ...appearance, color })} /></PropertyRow>
       <PropertyRow label="Size"><InputGroup><InputNumber aria-label="POI marker size" aria-invalid={isSizeInvalid || undefined} min={8} max={48} step={1} value={sizeDraft} onChange={(event) => setSizeEdit({ source: appearance.size, value: event.target.value })} onBlur={(event) => commitSize(event.currentTarget.value)} /><InputGroupAddon align="inline-end" enableScrubbing sensitivity={4}>px</InputGroupAddon></InputGroup></PropertyRow>
-      <PropertyRow label="Shape"><select aria-label="POI marker shape" disabled={!!activeAsset} aria-describedby={customStyleDescription} value={appearance.markerShape} onChange={(event) => onChange({ ...appearance, markerShape: event.target.value as PoiMarkerShape })}>{POI_MARKER_SHAPES.map((shape) => <option key={shape} value={shape}>{POI_MARKER_SHAPE_LABELS[shape]}</option>)}</select></PropertyRow>
-      <PropertyRow label="Symbol"><select aria-label="POI marker symbol" disabled={!!activeAsset} aria-describedby={customStyleDescription} value={appearance.markerSymbol} onChange={(event) => onChange({ ...appearance, markerSymbol: event.target.value as PoiMarkerSymbol })}>{POI_MARKER_SYMBOLS.map((symbol) => <option key={symbol} value={symbol}>{POI_MARKER_SYMBOL_LABELS[symbol]}</option>)}</select></PropertyRow>
-      <PropertyRow label="Label"><input aria-label="POI label" aria-invalid={!isPoiLabelValid(labelDraft) || undefined} value={labelDraft} onChange={(event) => setLabelEdit({ source: appearance.label, value: event.target.value })} onBlur={(event) => commitLabel(event.currentTarget.value)} /></PropertyRow>
+      <PropertyRow label="Shape"><SimpleSelect label="POI marker shape" disabled={!!activeAsset} aria-describedby={customStyleDescription} value={appearance.markerShape} options={MARKER_SHAPE_OPTIONS} onValueChange={(markerShape: PoiMarkerShape) => onChange({ ...appearance, markerShape })} /></PropertyRow>
+      <PropertyRow label="Symbol"><SimpleSelect label="POI marker symbol" disabled={!!activeAsset} aria-describedby={customStyleDescription} value={appearance.markerSymbol} options={MARKER_SYMBOL_OPTIONS} onValueChange={(markerSymbol: PoiMarkerSymbol) => onChange({ ...appearance, markerSymbol })} /></PropertyRow>
+      <PropertyRow label="Label"><Input aria-label="POI label" aria-invalid={!isPoiLabelValid(labelDraft) || undefined} value={labelDraft} onChange={(event) => setLabelEdit({ source: appearance.label, value: event.target.value })} onBlur={(event) => commitLabel(event.currentTarget.value)} /></PropertyRow>
       {feedback.error && <p className="coordinate-validation" role="alert">{feedback.error}</p>}
       <CustomMarkerControl key={activeAsset?.id ?? 'standard'} customAsset={activeAsset} onChange={onCustomMarkerChange} />
     </>

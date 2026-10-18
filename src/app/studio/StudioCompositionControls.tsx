@@ -46,10 +46,13 @@ export const StudioCompositionControls = memo(function StudioCompositionControls
   const photos = useProject((state) => state.document.studio.photos);
   const decorations = useProject((state) => state.document.studio.decorations);
   const silhouette = useProject((state) => state.document.layers.find(({ id }) => id === state.document.studio.poster.silhouetteLayerId) ?? null);
-  const pointNames = useProject(useShallow((state) => Object.fromEntries(
-    state.document.layers.filter((layer) => layer.type === 'poi' && layer.geometry?.type === 'Point')
-      .map((layer) => [layer.id, layer.name]),
-  )));
+  const pointNames = useProject(useShallow((state) => {
+    const names: Record<string, string> = {};
+    for (const layer of state.document.layers) {
+      if (layer.type === 'poi' && layer.geometry?.type === 'Point') names[layer.id] = layer.name;
+    }
+    return names;
+  }));
   const documentEpoch = useProject((state) => state.documentEpoch);
   const cameraLocked = useProject((state) => state.document.camera.locked);
   const isFlat = useProject((state) => state.document.camera.pitch === 0 && !state.document.studio.terrain.enabled);

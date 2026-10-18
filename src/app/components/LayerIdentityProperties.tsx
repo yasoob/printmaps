@@ -4,6 +4,7 @@ import { LayerMenu } from './LayerMenu';
 import { PropertyRow, PropertySection } from './PropertyControls';
 import { Switch } from './UiControls';
 import { InputGroup, InputGroupAddon, InputNumber } from './InputGroup';
+import { Input } from '../../components/ui/input';
 
 type LayerIdentityPropertiesProps = {
   layer: ContentLayer;
@@ -71,7 +72,7 @@ export const LayerIdentityProperties = memo(function LayerIdentityProperties({
         {layer.type !== 'basemap' && <LayerMenu onReplace={onReplace} onDuplicate={onDuplicate} onDelete={onDelete} isLocked={layer.locked} />}
       </div>
       <PropertySection title="Layer">
-        <PropertyRow label="Name"><input aria-label="Layer name" value={nameDraft} aria-invalid={Boolean(nameError)} aria-describedby={nameError ? nameErrorId : undefined} onChange={(event) => onNameChange(event.target.value)} onBlur={onNameCommit} /></PropertyRow>
+        <PropertyRow label="Name"><Input aria-label="Layer name" value={nameDraft} aria-invalid={Boolean(nameError)} aria-describedby={nameError ? nameErrorId : undefined} onChange={(event) => onNameChange(event.target.value)} onBlur={onNameCommit} /></PropertyRow>
         {nameError && <p id={nameErrorId} className="coordinate-validation" role="alert">{nameError}</p>}
         <PropertyRow label="Opacity"><InputGroup><InputNumber aria-label="Layer opacity" min={0} max={100} step={1} value={opacityDraft} onChange={(event) => onOpacityChange(event.target.value)} onBlur={onOpacityCommit} /><InputGroupAddon align="inline-end" enableScrubbing sensitivity={4}>%</InputGroupAddon></InputGroup></PropertyRow>
         <Switch aria-label="Toggle layer visibility" labelPlacement="start" isChecked={layer.visible} label="Visible" onCheckedChange={onToggleVisibility} />

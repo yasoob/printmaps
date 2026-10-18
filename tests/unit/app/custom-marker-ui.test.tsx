@@ -5,6 +5,7 @@ import { exportMocks } from './exportMocks';
 import { markerCapacityProject, markerPng, smallCircleSvg } from '../../fixtures/customMarkerCapacity';
 import { createInitialProjectDocument } from '../../../src/domain/project';
 import { LayerProperties } from '../../../src/app/components/LayerProperties';
+import { chooseOption, selectedValue } from '../select-support';
 
 const { decodeCustomMarkerImage } = vi.hoisted(() => ({
   decodeCustomMarkerImage: vi.fn(async () => ({})),
@@ -65,8 +66,8 @@ describe('custom POI marker controls', () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(screen.getByRole('button', { name: 'Select Coffee stop' }));
-    await user.selectOptions(screen.getByLabelText('POI marker shape'), 'diamond');
-    await user.selectOptions(screen.getByLabelText('POI marker symbol'), 'coffee');
+    await chooseOption(user, 'POI marker shape', 'Diamond');
+    await chooseOption(user, 'POI marker symbol', 'Coffee');
     fireEvent.change(screen.getByLabelText('POI color'), { target: { value: '#123456' } });
     await user.upload(screen.getByLabelText('Custom marker file'), new File([smallCircleSvg], '24.svg', { type: 'image/svg+xml' }));
     expect(await screen.findByRole('status', { name: 'Custom marker status' })).toHaveTextContent('24 × 24 SVG units · Scalable');
@@ -81,8 +82,8 @@ describe('custom POI marker controls', () => {
     await user.click(screen.getByRole('button', { name: 'Remove custom marker' }));
     expect(screen.getByLabelText('POI color')).toBeEnabled();
     expect(screen.getByLabelText('POI color')).toHaveValue('#123456');
-    expect(screen.getByLabelText('POI marker shape')).toHaveValue('diamond');
-    expect(screen.getByLabelText('POI marker symbol')).toHaveValue('coffee');
+    expect(selectedValue(screen.getByLabelText('POI marker shape'))).toBe('diamond');
+    expect(selectedValue(screen.getByLabelText('POI marker symbol'))).toBe('coffee');
     await user.click(screen.getByRole('button', { name: 'Undo' }));
     expect(screen.getByLabelText('POI marker shape')).toBeDisabled();
   });

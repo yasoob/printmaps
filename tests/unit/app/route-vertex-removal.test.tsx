@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RouteVertexControls } from '../../../src/app/components/RouteVertexControls';
+import { chooseOption } from '../select-support';
 
 const points: [number, number][] = [[0, 0], [1, 1], [2, 0], [0, 0]];
 
@@ -12,7 +13,7 @@ it('explains the closed minimum before removal and updates eligibility after ins
     onChange: vi.fn(), onInsert: vi.fn(), onRemove,
   };
   const { rerender } = render(<RouteVertexControls {...props} coordinates={points} />);
-  await user.selectOptions(screen.getByRole('combobox', { name: 'Route anchor' }), '1');
+  await chooseOption(user, 'Route anchor', /^Anchor 2:/);
   const remove = screen.getByRole('button', { name: 'Remove selected route anchor' });
   expect(remove).toBeDisabled();
   expect(remove).toHaveAccessibleDescription('Closed routes need at least three distinct points.');
@@ -35,6 +36,6 @@ it('keeps open minimum and endpoint rules while allowing a removable middle poin
   rerender(<RouteVertexControls {...props} coordinates={points.slice(0, 3)} />);
   expect(remove).toBeDisabled();
   expect(remove).toHaveAccessibleDescription('Only a middle route point can be removed.');
-  await user.selectOptions(screen.getByRole('combobox', { name: 'Route vertex' }), '1');
+  await chooseOption(user, 'Route vertex', /^Vertex 2:/);
   expect(remove).toBeEnabled();
 });

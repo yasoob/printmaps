@@ -2,6 +2,7 @@ import { buffer } from 'node:stream/consumers';
 import { expect, type Download, type Page } from '@playwright/test';
 import type { AutosaveDraft } from '../../src/storage/autosave';
 import type { ProjectDocument } from '../../src/domain/project';
+import { chooseOption } from './select-support';
 
 declare global {
   interface Window {
@@ -55,12 +56,12 @@ export async function openConflict(loser: Page) {
   await winner.goto('./');
   await expect(winner.getByRole('status', { name: 'Autosave status' })).toHaveText('Autosave ready');
   await winner.getByRole('tab', { name: 'Layout' }).click();
-  await winner.getByRole('combobox', { name: 'Page preset' }).selectOption('A3');
+  await chooseOption(winner, 'Page preset', 'A3');
   await expect(winner.getByRole('status', { name: 'Autosave status' })).toHaveText('All changes saved locally');
   const saved = await storedDraft(winner);
   expect(saved.document.page.preset).toBe('A3');
   await trackWrites(loser);
-  await loser.getByRole('combobox', { name: 'Page preset' }).selectOption('A5');
+  await chooseOption(loser, 'Page preset', 'A5');
   await expect(loser.getByRole('status', { name: 'Autosave conflict notice' })).toBeVisible();
   await expect(loser.getByRole('status', { name: 'Autosave status' })).toHaveText('Autosave paused');
   return { winner, saved };

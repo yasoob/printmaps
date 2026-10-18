@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
+import { chooseOption, expectSelectValue } from './select-support';
 
 const isHeadlessWebGlDiagnostic = (message: string) => (
   message.includes('GPU stall due to ReadPixels')
@@ -80,14 +81,14 @@ test('content appearance edits update the live map, history, and layered SVG', a
   await page.getByLabel('Route color').fill('#112233');
   await page.getByRole('spinbutton', { name: 'Route width' }).fill('8');
   await page.getByRole('spinbutton', { name: 'Route width' }).press('Tab');
-  await page.getByRole('combobox', { name: 'Route travel marker' }).selectOption('car');
+  await chooseOption(page, 'Route travel marker', 'Car');
 
   await page.getByRole('button', { name: 'Select Coffee stop' }).click();
   await page.getByLabel('POI color').fill('#445566');
   await page.getByRole('spinbutton', { name: 'POI marker size' }).fill('21');
   await page.getByRole('spinbutton', { name: 'POI marker size' }).press('Tab');
-  await page.getByRole('combobox', { name: 'POI marker shape' }).selectOption('diamond');
-  await page.getByRole('combobox', { name: 'POI marker symbol' }).selectOption('coffee');
+  await chooseOption(page, 'POI marker shape', 'Diamond');
+  await chooseOption(page, 'POI marker symbol', 'Coffee');
   await page.getByRole('textbox', { name: 'POI label' }).fill('Café Central');
   await page.getByRole('textbox', { name: 'POI label' }).press('Tab');
   await page.screenshot({ path: testInfo.outputPath('poi-markers-desktop.png'), fullPage: true });
@@ -252,7 +253,7 @@ test('route vertex coordinates update the live map, history, portable project, a
   await page.getByRole('button', { name: 'Select Route 01' }).click();
   const initialPath = await downloadRouteSvgPath(page, testInfo.outputPath('route-before.layered.svg'));
   await page.getByRole('button', { name: /Advanced/ }).click();
-  await page.getByRole('combobox', { name: 'Route anchor' }).selectOption('1');
+  await chooseOption(page, 'Route anchor', /^Anchor 2:/);
   const longitude = page.getByRole('textbox', { name: 'Route anchor longitude' });
   const latitude = page.getByRole('textbox', { name: 'Route anchor latitude' });
   await longitude.fill('16.4');
@@ -305,7 +306,7 @@ test('route vertices insert, remove, and drag directly on the map as one history
   await expect(handles).toHaveCount(4);
   await page.getByRole('button', { name: 'Insert route anchor after selected' }).click();
   await expect(handles).toHaveCount(5);
-  await expect(page.getByRole('combobox', { name: 'Route anchor' })).toHaveValue('1');
+  await expectSelectValue(page, 'Route anchor', '1');
   const handleBeforeRemoval = await handles.nth(1).elementHandle();
   await page.getByRole('button', { name: 'Remove selected route anchor' }).click();
   await expect.poll(() => handleBeforeRemoval?.evaluate((element) => element.isConnected)).toBe(false);

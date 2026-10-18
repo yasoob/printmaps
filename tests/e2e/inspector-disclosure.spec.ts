@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { expectSelectValue } from './select-support';
 
 const disclosureKeys = [
   'page',
@@ -163,10 +164,10 @@ test('sidebar InputGroups scrub constrained numbers and preserve direct editing'
   await width.press('ArrowUp');
   await expect(width).toHaveValue('297.1');
   await width.press('Tab');
-  await expect(page.getByRole('combobox', { name: 'Page preset' })).toHaveValue('Custom');
+  await expectSelectValue(page, 'Page preset', 'Custom');
   await page.getByRole('button', { name: 'Undo' }).click();
   await expect(width).toHaveValue('297');
-  await expect(page.getByRole('combobox', { name: 'Page preset' })).toHaveValue('A4');
+  await expectSelectValue(page, 'Page preset', 'A4');
 
   const handleBox = await widthHandle.boundingBox();
   expect(handleBox).not.toBeNull();
@@ -176,7 +177,7 @@ test('sidebar InputGroups scrub constrained numbers and preserve direct editing'
   await page.mouse.up();
 
   await expect(width).toHaveValue('299');
-  await expect(page.getByRole('combobox', { name: 'Page preset' })).toHaveValue('Custom');
+  await expectSelectValue(page, 'Page preset', 'Custom');
   await width.fill('305');
   await width.press('Tab');
   await expect(width).toHaveValue('305');
