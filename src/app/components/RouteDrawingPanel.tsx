@@ -19,6 +19,7 @@ import { ROAD_TRAVEL_MODE_OPTIONS, TRAVEL_MARKER_OPTIONS } from "./routeSelectOp
 import { Notice } from "@/components/ui/notice";
 import { ToolSettingsButton } from "./ToolSettingsButton";
 import { useAuthoringPanelDisclosure } from "../hooks/useAuthoringPanelDisclosure";
+import { useStableEvent } from "../hooks/useStableEvent";
 import { RoutePointInputs } from "./RoutePointInputs";
 import { ToolCardActions, ToolCardHeader } from "./ToolAuthoringCard";
 import { RouteDraftPointList } from "./RouteDraftPointList";
@@ -171,6 +172,8 @@ function compactRouteSummary(pointCount: number) {
 export function RouteDrawingPanel(props: RouteDrawingPanelProps) {
   const finishExplanationId = "route-finish-explanation";
   const disclosure = useAuthoringPanelDisclosure(props.pointCount, props.isCompactViewport);
+  // The route model rebuilds its callbacks per render; the memoized header only needs the latest one.
+  const cancel = useStableEvent(props.onCancel);
   const compactSummary = compactRouteSummary(props.pointCount);
 
   return (
@@ -180,9 +183,10 @@ export function RouteDrawingPanel(props: RouteDrawingPanelProps) {
     >
       <ToolCardHeader
         closeLabel="Close Route menu"
-        collapse={{ label: "Hide route settings", onCollapse: disclosure.closeSettings }}
+        collapseLabel="Hide route settings"
+        onCollapse={disclosure.closeSettings}
         icon={Route}
-        onClose={props.onCancel}
+        onClose={cancel}
         title={props.title ?? "Route"}
       />
       {!disclosure.settingsOpen && (

@@ -4,10 +4,11 @@ import { Notice } from '@/components/ui/notice';
 import type { ReactNode } from 'react';
 import type { AdministrativeArea } from '../../domain/administrativeAreas';
 import { AdministrativeAreaPicker } from './AdministrativeAreaPicker';
-import { StudioModeTabs, type StudioModeTabChoice } from './StudioModeTabs';
+import { StudioModeTabs, type StudioModeTabActivation, type StudioModeTabChoice } from './StudioModeTabs';
 import { ToolCardActions, ToolCardHeader } from './ToolAuthoringCard';
 import { ToolSettingsButton } from './ToolSettingsButton';
 import { useAuthoringPanelDisclosure } from '../hooks/useAuthoringPanelDisclosure';
+import { useStableEvent } from '../hooks/useStableEvent';
 import { ShapePointInputs, type ShapePointInputsProps } from './ShapePointInputs';
 
 export type ShapeAuthoringMode = 'administrative' | 'draw' | 'isochrone';
@@ -39,15 +40,18 @@ const AREA_SOURCE_CHOICES = [
 
 export function ShapeDrawingPanel(props: ShapeDrawingPanelProps) {
   const disclosure = useAuthoringPanelDisclosure(props.pointCount, props.isCompactViewport, props.isCompactViewport && props.shouldAutoCollapse);
-  const header = <ToolCardHeader closeLabel="Close Area menu" collapse={props.mode === 'draw' ? { label: 'Hide area settings', onCollapse: disclosure.closeSettings } : undefined} icon={Shapes} onClose={props.onClose} title="Area" />;
+  // Stable so isochrone or point edits re-render the panel body, not the source tabs.
+  const changeMode = useStableEvent((mode: ShapeAuthoringMode, activation: StudioModeTabActivation) => {
+    props.onModeChange(mode);
+    if (mode === 'draw' && props.isCompactViewport) {
+      if (activation.source === 'pointer') disclosure.closeSettings();
+      else disclosure.openSettings();
+    }
+  });
+  const close = useStableEvent(props.onClose);
+  const header = <ToolCardHeader closeLabel="Close Area menu" collapseLabel={props.mode === 'draw' ? 'Hide area settings' : undefined} onCollapse={disclosure.closeSettings} icon={Shapes} onClose={close} title="Area" />;
   const modes = <StudioModeTabs className="shape-mode-tabs" label="Shape source" idPrefix="area-source" panelId={AREA_SOURCE_PANEL_ID}
-    choices={AREA_SOURCE_CHOICES} value={props.mode} onValueChange={(mode, activation) => {
-      props.onModeChange(mode);
-      if (mode === 'draw' && props.isCompactViewport) {
-        if (activation.source === 'pointer') disclosure.closeSettings();
-        else disclosure.openSettings();
-      }
-    }} />;
+    choices={AREA_SOURCE_CHOICES} value={props.mode} onValueChange={changeMode} />;
   if (props.mode === 'administrative') {
     return (
       <div className="map-authoring-panel tool-authoring-card shape-authoring-panel">

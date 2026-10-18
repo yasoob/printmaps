@@ -67,7 +67,7 @@ export function ProjectFileActions({ children, getDocument, menuHeader, openButt
   const [status, setStatus] = useState<ProjectFileStatus | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const menuLabelId = useId();
+  const menuLabelId = useId(); // Names the menu instead of Base UI's trigger reference ("Project").
   const fallbackTriggerRef = useRef<HTMLButtonElement>(null);
   const triggerRef = openButtonRef ?? fallbackTriggerRef;
   const readSequence = useRef(0);
@@ -144,9 +144,7 @@ export function ProjectFileActions({ children, getDocument, menuHeader, openButt
         type="file"
         accept=".printmap.json,.printmap.zip,application/json,application/zip"
         onChange={handleChange}
-      />
-      {/* Names the menu instead of Base UI's default trigger reference ("Project"). */}
-      <span id={menuLabelId} hidden>Project actions</span>
+      /><span id={menuLabelId} hidden>Project actions</span>
       <DropdownMenu
         open={isOpen}
         onOpenChange={(open) => {

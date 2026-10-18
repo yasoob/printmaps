@@ -1,5 +1,6 @@
 import type { ComponentProps } from "react";
 import { trackEditorAction } from "../../analytics/editorAnalytics";
+import type { ContentLayer } from "../../domain/project";
 import type { RouteLineShape } from "../../domain/routeProfiles";
 import { createArcGeometry } from "../../domain/routeArcGeometry";
 import { snapRouteCoordinate } from "../../map/RouteSnapping";
@@ -158,6 +159,7 @@ export function routePanelProps(
     removePoint: (index: number) => void;
     reorderPoint: (index: number, offset: -1 | 1) => void;
     };
+    pois: readonly ContentLayer[];
   },
 ): ComponentProps<typeof RouteDrawingPanel> {
   const { commit, input, point } = actions;
@@ -214,9 +216,7 @@ export function routePanelProps(
     closed: core.isClosed,
     pointCount: core.currentPoints.length,
     points: core.currentPoints,
-    pois: parameters.layers.filter(
-      (layer) => layer.type === "poi" && layer.geometry?.type === "Point",
-    ),
+    pois: actions.pois,
     roadTravelMode: core.roadTravelMode,
     snapEnabled: core.isSnapEnabled,
     title: core.extension

@@ -1,6 +1,120 @@
 # Re-render audit tracker
 
-Updated: 2026-09-20
+Updated: 2026-10-18
+
+## shadcn/Base UI rework audit, October 18
+
+Scope: the whole editor after the shared-primitive rework (Base UI select,
+checkbox, switch, toggle group/segmented control, tabs, collapsible/accordion,
+tooltips with one `TooltipProvider` at the `StudioAppView` shell, notices,
+inputs, slider, colour field, toggle sections, studio dialog), inspector
+presets, the Export preview pane, the pasteboard scrim, docked mobile scale and
+draft-aware Export/Share. Base `439d3b2`, merged with integration `8cdb89a`
+(row eye/lock tooltips, wider select popup, last native `title`s removed).
+Firefox only (Chromium/WebKit do not launch on this host); real MP4 recording
+honestly skips because Firefox lacks MP4 `MediaRecorder`.
+
+**Method.** React Doctor first, then every React Scan probe with unfiltered
+global capture, per-fiber commit attribution (stable instance ID, owner path,
+phase, changed props, `didCommit`), editor-marker DOM tracking and MapLibre
+method tracing. The baseline was captured in a clean detached worktree of
+`439d3b2` so that source edits could not hot-reload into it. Every first-party
+`didCommit: false` group and every cross-panel owner was classified, fixed at
+its source, re-measured and locked in with a negative assertion.
+
+| Gate | Before | After |
+|---|---|---|
+| `npm run doctor` (React Doctor 0.9.12) | 38 (2 errors) | 0 |
+| React Scan probes (Firefox) | 51 pass, 3 fail (legacy Place/Route/Area), 1 MP4 skip | **71 pass**, 0 fail, 1 MP4 skip |
+| Runtime inventory | 408 names; 285 targets / 889 sites; **10 uncovered** | 417 names; 290 targets / 896 sites; **0 uncovered**, 6 verified unreachable |
+
+### React Doctor triage
+
+Fixed: unused `@math.gl/web-mercator` dependency, unused `rovingSelection.ts`
+and five dead exports; the invalid empty `aria-labelledby` on the Project menu
+(now labelled by a hidden "Project actions" element, same accessible name);
+`useAuthoringPanelDisclosure` adjusts during render instead of in an effect
+(removes a stale expanded-panel commit); pointless autosave `useMemo`s; seven
+two-pass `filter().map()` chains; `Set` key lookups in two validators; two
+independent awaits now run together (font fetch + PDF create, PDF render +
+font module import).
+
+Justified inline (verified false positives, one-line reason above each
+`react-doctor-disable-next-line`): the tool epoch snapshot in
+`CanvasWorkspace`; independent boolean flags on `RouteDrawingPanel`; the layer
+reorder store subscription (released on drag end, cancel and unmount); two
+`every()` calls already guarded by a length comparison; the index key fallback
+for stateless paint-order SVG primitives (photos carry semantic keys); two
+object URLs that are revoked; five deliberately sequential awaits (canvas
+z-order, bounded PSD memory, the vector byte budget, a 4-way worker pool,
+marker decode cancellation); the focusable scrollable camera-error text; a
+post-await setter guarded by `isCancelled`; and a busy reset that is already in
+`finally`.
+
+### Measured render fixes
+
+Counts are update callbacks / distinct instances in the same probe window,
+baseline → final (`before-after.md`). "All updates" counts every component
+update callback in the window.
+
+| Interaction / cause | Before → after | Fix and permanent assertion |
+|---|---|---|
+| Tool activation on the Map tab woke `ProjectProperties` through fresh `terrainControls`/`studioControls` elements carrying `blockedReason`, plus all four tool buttons | `ProjectProperties` 1 → 0; tool `IconTooltip` 4 → 2, `Button` 8 → 4; all updates 58 → 41 | `blockedReason` reaches `StudioCompositionControls` through `StudioBlockedReasonContext`; stable control elements; memoized `ProjectProperties`; per-tool memoized `ToolButton`. Legacy probes assert inspector, sections and terrain silence and exactly two `ToolButton` instances. |
+| Legacy Place/Route/Area cases failed: `StudioCompositionControls` is not mounted on the default Map tab | 3 failing → passing | Probe opens Layout first (where the controls and the blocked notice live), requires the notice, and asserts the update arrives with no prop changes; a separate Map-tab case proves the whole inspector stays silent. Not a code regression. |
+| Layer visibility/lock/reorder/style reload re-rendered the layer header, its help tooltip and collapse button (fresh `collapseButton` element and callbacks) | `LayerNavigationHeader` 1–2 → 0; `FeatureHelp` 1–2 → 0; all updates 138 → 119 (visibility) | Memoized header and help, memoized collapse element, stable search callbacks. Asserted in the layer probe. |
+| Closed `FeatureHelp` portals re-rendered whenever their owner did, and every help rendered twice on mount (ref-callback container state) | Relief fit 2 → 0, accordion open 3 → 0 helps; accordion all updates 41 → 14, no-host 6 → 0 | `FeatureHelp` is memoized, JSX help is hoisted, and the portal host is resolved when opening (batched with the open state). Negative assertions in settings, layer, accordion and help probes. |
+| Closed `SimpleSelect` popups re-rendered on every value change; item indicators got fresh elements | Map language no-host 6 → 0, all updates 328 → 251; `SelectItemIndicator` 10 → 3 | Popup content memoized by `options`; static indicator elements. Settings probes assert no `SelectContent`/`SelectPortal` updates. |
+| Route draft points handed "Existing place" fresh options (`layers.filter` per render) | `SelectContent` 3 → 0; `SimpleSelect` 2 → 1 instance; no-host 7 → 1 | POI list memoized by `layers` in `useCanvasRouteAuthoring`. |
+| Pan/zoom re-rendered both mobile panel buttons and Redo | `IconTooltip` 5 → 2; all updates 68 → 45 | Memoized `MobilePanelButton`; Undo and Redo subscribe separately. Pan, wheel and mobile-pan probes assert silence. |
+| Area/route card edits re-rendered the card header and source tabs (unstable `onClose`/`onValueChange`, fresh `collapse` object) | Travel-time profile: tabs 1 → 0, header 1 → 0, all updates 88 → 56; second draft point header 3 → 0 | Memoized `ToolCardHeader` with flat props; stable close and mode callbacks at the panel boundary. Segmented and pending-draft probes assert it. |
+| Unchecked `ToggleSection`s re-rendered for fresh, unrendered children | Compass: 4 → 1 section; contours: 3 → 1 | Memoized `ToggleSection` that ignores `children` only while unchecked before and after (children are not rendered then); terrain section bodies memoized. |
+| Selecting a non-shape layer re-rendered `CanvasWorkspaceChrome` | 2 → 0 | Comparator ignores shape-edit inputs when no shape toolbar is shown before or after. |
+
+Harness correction: `memo(Component, compare)` creates wrapper and inner fibers
+of one component; the inner fiber now reuses the wrapper's stable instance ID,
+so instance counts are no longer inflated.
+
+### Accepted, with reasons
+
+- Shell delivery: `StudioLayers`/`StudioProperties`/`StudioCanvas` still run
+  with no host output when the central model changes (top-down state, as
+  previously accepted); their memoized children bail out.
+- `ProjectPropertiesPanel` renders with no host output on tool activation: it
+  owns the blocked-reason provider.
+- Tool activation hands `MapCanvas` a fresh `layers` array, but it must render
+  for `interactionMode`/`onMapClick` anyway and performs zero map mutations.
+- Map tone/contrast/detail re-derive every token colour, so all colour rows
+  legitimately update; the sibling adjustment shares the mutation-feedback
+  source that clears errors on any customization change.
+- A closed lock tooltip re-renders when its label flips Lock/Unlock.
+- Base UI tooltips do not fan out through the shared provider: hover and
+  keyboard focus update at most the hovered/previous `TooltipRoot`.
+
+### New probes and identities
+
+`react-scan-primitives-probe.spec.ts` (16 cases) adds: select open/dismiss,
+icon tooltip hover and keyboard focus, delegated `ControlTooltips`, accordion
+open, toggle section, slider step, segmented control, colour field commit,
+file feedback notice, inspector tab switches, Export open/format/close with
+`ExportPreviewPane`, the pending-draft header hint (first point shows it, the
+second must not touch the header), docked mobile scale on pan, wheel zoom,
+basemap `BasemapDesignSection` and `ShapeVertexControls`, and
+`NewProjectTemplateDialog`/`TemplateGallery`. New first-party identities:
+`ToolButton`, `MobilePanelButton`, `UndoButton`, `RedoButton`,
+`HistoryMenuItems`, `StudioBlockedReasonContext`.
+
+Unreachable (listed in `scripts/react_scan_inventory.mjs`, re-verified each
+run): `VideoDialogSurface`, `VideoExportDialog` and the dialog `View` are only
+created by `StudioVideoControls`, which has had no creation site since video
+moved into the Export workspace (candidate for deletion; unit tests still use
+it); `SelectGroup`/`SelectLabel`/`SelectSeparator` belong to `SimpleSelect`'s
+grouped branch, which no caller uses.
+
+Evidence: `/Users/yasoob/.copilot/session-state/50ba7a47-ae28-4706-9463-ddc4be4a2477/files/render-audit/`
+(`doctor-before.*`, `doctor-after.*`, `baseline.log` + `baseline-results/` +
+`baseline-inventory.json` from the clean worktree, `final.log` +
+`final-results/` + `final-inventory.json`, intermediate `prim*-results/`,
+`before-after.md`, `unit.log`, `lint.log`, `e2e-firefox.log`).
 
 ## Inspector information-architecture integration
 

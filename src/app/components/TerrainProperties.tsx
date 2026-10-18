@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import type { TerrainSettings } from '../../domain/studio';
 import type { ProjectMutationResult } from '../../domain/projectMutation';
 import { InspectorAccordion, PropertyRow } from './PropertyControls';
@@ -41,16 +41,23 @@ export function TerrainProperties(props: TerrainPropertiesProps) {
   const toggleContours = useStableEvent((isEnabled: boolean) => feedback.report(contours.enabled(isEnabled)));
   const toggleBuildings = useStableEvent((isEnabled: boolean) => feedback.report(buildings.enabled(isEnabled)));
   const contourColor = useStableEvent((color: string) => feedback.report(contours.color(color)));
-  const numericProps = { resetKey: documentEpoch, step: 0.1 };
+  // Section bodies are memoized so toggling one section leaves the other checked sections silent.
+  const terrainFields = useMemo(() => (
+    <TerrainNumber rowLabel="Exaggeration (×)" resetKey={documentEpoch} step={0.1} label="Terrain exaggeration" value={terrain.exaggeration} minimum={0} maximum={10} onCommit={change.exaggeration} />
+  ), [change.exaggeration, documentEpoch, terrain.exaggeration]);
+  const { intervalMeters, width, color } = terrain.contours;
+  const contourFields = useMemo(() => <>
+    <TerrainNumber rowLabel="Interval" resetKey={documentEpoch} label="Contour interval" value={intervalMeters} minimum={10} maximum={10_000} step={10} unit="m" onCommit={contours.intervalMeters} />
+    <TerrainNumber rowLabel="Line width" resetKey={documentEpoch} step={0.1} label="Contour line width" value={width} minimum={0.1} maximum={10} unit="px" onCommit={contours.width} />
+    <TerrainColor value={color} onChange={contourColor} />
+  </>, [color, contourColor, contours.intervalMeters, contours.width, documentEpoch, intervalMeters, width]);
   return (
     <InspectorAccordion isDefaultExpanded={false} storageKey="print-map-studio:inspector:terrain" title="Terrain" summary={`${terrain.enabled ? '3D terrain' : 'Flat map'}${terrain.contours.enabled ? ' · Contours' : ''}`}>
       <ToggleSection title="3D terrain" switchLabel="Show 3D terrain" help={TERRAIN_HELP} checked={terrain.enabled} onCheckedChange={toggleTerrain}>
-        <TerrainNumber rowLabel="Exaggeration (×)" {...numericProps} label="Terrain exaggeration" value={terrain.exaggeration} minimum={0} maximum={10} onCommit={change.exaggeration} />
+        {terrainFields}
       </ToggleSection>
       <ToggleSection title="Elevation contours" switchLabel="Show elevation contours" help={CONTOUR_HELP} checked={terrain.contours.enabled} onCheckedChange={toggleContours}>
-        <TerrainNumber rowLabel="Interval" {...numericProps} label="Contour interval" value={terrain.contours.intervalMeters} minimum={10} maximum={10_000} step={10} unit="m" onCommit={contours.intervalMeters} />
-        <TerrainNumber rowLabel="Line width" {...numericProps} label="Contour line width" value={terrain.contours.width} minimum={0.1} maximum={10} unit="px" onCommit={contours.width} />
-        <TerrainColor value={terrain.contours.color} onChange={contourColor} />
+        {contourFields}
       </ToggleSection>
       <ToggleSection title="3D buildings" switchLabel="Show 3D buildings" help={BUILDING_HELP} checked={terrain.buildings.enabled} onCheckedChange={toggleBuildings} />
       {feedback.error && <p role="alert" className="coordinate-validation">{feedback.error}</p>}

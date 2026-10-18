@@ -91,6 +91,10 @@ const chromeControlKeys = [
   'activeTool', 'onActivateTool', 'selectToolRef',
 ] as const;
 
+function showsShapeToolbar(shape: SelectedShapeControls) {
+  return shape.canEditPoints && Boolean(shape.selectedId);
+}
+
 function isSameCanvasWorkspaceChromeProps(
   previous: CanvasWorkspaceChromeProps,
   next: CanvasWorkspaceChromeProps,
@@ -107,6 +111,8 @@ function isSameCanvasWorkspaceChromeProps(
   if (next.activeTool === 'shape') {
     return haveSameObjectProps(previous.shapePanelProps, next.shapePanelProps);
   }
+  // Selecting a non-editable layer (basemap, route, POI) shows no shape toolbar before or after.
+  if (!showsShapeToolbar(previous.selectedShape) && !showsShapeToolbar(next.selectedShape)) return true;
   return previous.selectedShape.canEditPoints === next.selectedShape.canEditPoints
     && previous.selectedShape.mode === next.selectedShape.mode
     && previous.selectedShape.onChange === next.selectedShape.onChange

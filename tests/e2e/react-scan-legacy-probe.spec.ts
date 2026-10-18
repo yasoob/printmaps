@@ -32,6 +32,9 @@ for (const setting of [
     if (setting.label === 'Pitch') expect(result.components.DecorationControls).toBeUndefined();
     expect(result.domMutations).toEqual([]);
     expect(result.mapMutations.filter(({ operation }) => ['setData', 'addLayer', 'removeLayer', 'removeSource'].includes(operation))).toEqual([]);
+    // Closed select popups and help tooltips must not re-render with their owners.
+    if (!setting.select) expect(result.events.filter(({ component, phase }) => ['SelectContent', 'SelectPortal'].includes(component) && phase === 'update')).toEqual([]);
+    expect(result.components.FeatureHelp).toBeUndefined();
   });
 }
 
@@ -46,7 +49,8 @@ test('layer visibility lock and reorder keep unselected inspector and search iso
     await startProbe(page, `Layer ${label}`);
     await action();
     const result = await finishProbe(page, info, `layer-${label}`);
-    expectOwners(result, ['LayerNavigationRow'], [...chrome, 'ProjectProperties', 'StudioCompositionControls', 'StudioTerrainControls']);
+    expectOwners(result, ['LayerNavigationRow'], [...chrome, 'ProjectProperties', 'StudioCompositionControls', 'StudioTerrainControls',
+      'LayerNavigationHeader', 'LayerNavigationHelp', 'FeatureHelp', 'MobilePanelButton', 'ToolButton']);
     if (label === 'lock') expect(result.mapMutations.filter(({ operation }) => ['setData', 'addLayer', 'removeLayer'].includes(operation))).toEqual([]);
   }
 });
@@ -114,8 +118,10 @@ for (const tool of ['Place (P)', 'Route (R)', 'Area (S)']) {
     let result = await finishProbe(page, info, 'tool-activate');
     expectOwners(result, ['CanvasWorkspace', 'CanvasWorkspaceChrome', 'StudioCompositionControls'], [
       'ProjectProperties', 'PageDimensions', 'PageAppearance', 'PosterControls', 'PhotoStoryControls', 'DecorationControls',
-      'StudioModeTabs', 'LayerNavigation', 'LayerNavigationHeader', 'LocationSearch', 'UndoButton', 'RedoButton', 'MobilePanelButton',
+      'LayerNavigation', 'LayerNavigationHeader', 'LocationSearch', 'UndoButton', 'RedoButton', 'MobilePanelButton',
     ]);
+    // The Area card mounts its own source tabs; the inspector's Map/Layout tabs must not update.
+    expect(result.events.filter(({ component, ownerPath }) => component === 'StudioModeTabs' && ownerPath.includes('ProjectProperties'))).toEqual([]);
     expect(result.components.StudioCompositionControls.changes.filter((change) => change.startsWith('props:'))).toEqual([]);
     expect(toolButtonLabels(result).size, 'only the previous and next tool buttons update').toBe(2);
     await startProbe(page, `Cancel ${tool}`);

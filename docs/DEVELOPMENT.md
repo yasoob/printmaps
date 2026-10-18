@@ -144,7 +144,9 @@ node scripts/react_scan_inventory.mjs /absolute/path/audit-results /absolute/pat
 
 The inventory command resolves first-party JSX targets with TypeScript symbols
 and reconciles them against every test's global runtime inventory. It fails if
-a source target was never observed. The report records creation sites, owning
+a source target was never observed, except for a short, explicitly justified
+`UNREACHABLE` list in the script whose preconditions are re-checked on every
+run (it also fails if such a target becomes observed). The report records creation sites, owning
 interactions, source aliases, passive icon/provider deliveries and runtime
 owner paths. A green reconciliation proves source-target coverage, not that
 every render is necessary; the browser probes separately assert semantic owners
@@ -153,7 +155,12 @@ and stable siblings.
 The suite includes layer navigation, project/camera/style settings, search and
 authoring, import/replacement, advanced routes and async providers, autosave and
 renderer recovery, composition/photos/decorations, terrain, real MP4 recording,
-wall preferences, sharing and desktop/touch modal help. Route, POI, shape-point
+wall preferences, sharing and desktop/touch modal help. The primitives probe
+covers the shared UI layer: select open/dismiss, icon and delegated map-control
+tooltips, accordion, toggle section, slider, segmented control, colour field,
+file feedback, inspector tabs, the Export dialog and preview, the pending-draft
+header hint, docked mobile scale, wheel zoom, basemap/shape inspector sections
+and the template gallery. Route, POI, shape-point
 and shape-transform drags have separate live, commit and settle windows. Live
 previews must cause zero React renders, and acknowledged commits retain marker
 nodes without replaying native source writes.

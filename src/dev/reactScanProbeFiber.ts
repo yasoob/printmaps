@@ -74,7 +74,17 @@ function resolvedComponentName(
   return name;
 }
 
-function instanceId(fiber: ReactScanFiber): number {
+// memo(Component, compare) creates a wrapper fiber plus an inner fiber of the same
+// component; both are one semantic instance, so the inner one reuses the wrapper's ID.
+function memoWrapper(fiber: ReactScanFiber): ReactScanFiber | null {
+  const parent = fiber.return;
+  const parentType: unknown = parent?.type;
+  return parent && typeof parentType === "object" && parentType !== null
+    && Reflect.get(parentType, "type") === fiber.type ? parent : null;
+}
+
+function instanceId(innerFiber: ReactScanFiber): number {
+  const fiber = memoWrapper(innerFiber) ?? innerFiber;
   const existing = fiberInstances.get(fiber)
     ?? (fiber.alternate ? fiberInstances.get(fiber.alternate) : undefined);
   if (existing) {

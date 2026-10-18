@@ -22,7 +22,8 @@ test('pan fit and geolocation change only native camera and semantic consumers',
   await expect(map).not.toHaveAttribute('data-map-center', center!);
   await waitForRenderQuiet(page);
   let result = await finishProbe(page, info, 'editor-pan');
-  expectOwners(result, ['MapCanvas', 'MapScale'], ['ProjectProperties', 'CanvasWorkspaceChrome', 'LayerNavigation', 'StudioCompositionControls', 'LocationSearchResults']);
+  expectOwners(result, ['MapCanvas', 'MapScale'], ['ProjectProperties', 'CanvasWorkspaceChrome', 'LayerNavigation', 'StudioCompositionControls', 'LocationSearchResults',
+    'MobilePanelButton', 'RedoButton', 'ToolButton', 'LayerNavigationHeader']);
   expect(result.domMutations).toEqual([]);
   await startProbe(page, 'Fit page');
   await page.getByRole('button', { name: 'Fit page', exact: true }).click();

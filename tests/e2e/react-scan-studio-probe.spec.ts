@@ -117,6 +117,8 @@ test('decoration toggle leaves poster, photo, terrain and native map owners stab
   expect(result.mapMutations).toEqual([]);
   // The compass ToggleSection mounts its dependent fields; no other decoration field renders.
   expectOnlyControls(result, STUDIO_FIELDS, ['Compass corner', 'Compass style', 'Compass size', 'Compass color']);
+  // Unchecked scale, grid and QR sections ignore their unrendered children.
+  expect(new Set(result.events.filter(({ component }) => component === 'ToggleSection').map(({ instanceId }) => instanceId)).size).toBe(1);
 });
 
 test('moving a photo POI preserves the other photo and unrelated route sources', async ({ page }, info) => {

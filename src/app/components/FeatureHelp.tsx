@@ -1,6 +1,6 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { CircleHelp } from 'lucide-react';
-import { memo, useCallback, useEffect, useId, useState, type ReactNode } from 'react';
+import { memo, useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import './featureHelp.css';
 
 // Memoized: callers pass string or hoisted content, so an owner's unrelated update
@@ -12,8 +12,8 @@ export const FeatureHelp = memo(function FeatureHelp({ label, children, classNam
 }>) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [pinned, setPinned] = useState(false);
-  const [container, setContainer] = useState<HTMLElement | null>(null);
-  const [boundary, setBoundary] = useState<HTMLElement | undefined>();
+  const [host, setHost] = useState<{ container: HTMLElement | null; boundary?: HTMLElement }>({ container: null });
+  const rootRef = useRef<HTMLSpanElement>(null);
   const popupId = useId();
   const open = previewOpen || pinned;
   useEffect(() => {
@@ -29,18 +29,22 @@ export const FeatureHelp = memo(function FeatureHelp({ label, children, classNam
     window.addEventListener('keydown', dismiss, {capture: true});
     return () => window.removeEventListener('keydown', dismiss, true);
   }, [open]);
-  const attach = useCallback((node: HTMLSpanElement | null) => {
+  // Resolved when opening (batched with the open state) instead of after mount, so
+  // mounting a help button costs one render and closed helps never re-render.
+  const resolveHost = useCallback(() => {
+    const node = rootRef.current;
     if (!node) return;
     // Stay in the modal's focus scope, but outside its scrolling body.
     const dialog = node.closest<HTMLElement>('[data-slot="dialog-content"]');
-    setContainer(dialog ?? node);
-    setBoundary(dialog ?? undefined);
+    const container = dialog ?? node;
+    setHost((current) => current.container === container ? current : { container, boundary: dialog ?? undefined });
   }, []);
 
-  return <span ref={attach} className={`feature-help ${className}`}>
+  return <span ref={rootRef} className={`feature-help ${className}`}>
     <Tooltip
       open={open}
       onOpenChange={(nextOpen, details) => {
+        if (nextOpen) resolveHost();
         setPreviewOpen(nextOpen);
         if (details.reason === 'escape-key' || details.reason === 'outside-press' || (!nextOpen && details.reason === 'trigger-focus')) {
           setPinned(false);
@@ -57,6 +61,7 @@ export const FeatureHelp = memo(function FeatureHelp({ label, children, classNam
         closeDelay={150}
         closeOnClick={false}
         onClick={() => {
+          resolveHost();
           setPinned((value) => !value);
           setPreviewOpen(false);
         }}
@@ -64,13 +69,13 @@ export const FeatureHelp = memo(function FeatureHelp({ label, children, classNam
         <CircleHelp size={16} strokeWidth={1.75} aria-hidden="true" />
       </TooltipTrigger>
       <TooltipContent
-        container={container}
+        container={host.container}
         positionerClassName="feature-help-positioner"
         side="bottom"
         align="start"
         sideOffset={6}
         positionMethod="fixed"
-        collisionBoundary={boundary}
+        collisionBoundary={host.boundary}
         collisionPadding={12}
         showArrow={false}
         id={popupId}

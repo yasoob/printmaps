@@ -203,6 +203,12 @@ export function useCanvasRouteAuthoring(parameters: RouteAuthoringParameters) {
   const draftEditing = useMemo(() => ({
     active: isDraftActive, focusRequest, onMoveBegin, onMoveCommit, onMovePreview, points: currentPoints,
   }), [isDraftActive, focusRequest, onMoveBegin, onMoveCommit, onMovePreview, currentPoints]);
+  // Memoized so draft edits do not hand the "Existing place" select fresh options.
+  const { layers } = parameters;
+  const pois = useMemo(
+    () => layers.filter((layer) => layer.type === "poi" && layer.geometry?.type === "Point"),
+    [layers],
+  );
   const terraAuthoring = useMemo(() => ({
     active: isTerraActive, lineShape: lineShape === "road" ? "straight" as const : lineShape,
     onFinish: deliverTerraDraft, onPreview: deliverTerraDraft, points: currentPoints,
@@ -226,6 +232,7 @@ export function useCanvasRouteAuthoring(parameters: RouteAuthoringParameters) {
         commit: commitActions,
         input: inputActions,
         point: { focusPoint, removePoint, reorderPoint },
+        pois,
       },
     ),
     points: core.currentPoints,
