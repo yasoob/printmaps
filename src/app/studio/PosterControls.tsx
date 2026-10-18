@@ -19,7 +19,7 @@ const TextControl = memo(function TextControl({ label, epoch, onChange, ...value
 }) {
   const change = useSettingActions(value, onChange, TEXT_KEYS);
   return <ToggleSection title={label} switchLabel={`Show ${label.toLowerCase()}`} checked={value.enabled} onCheckedChange={change.enabled}>
-    <PropertyRow label="Text"><input aria-label={`${label} text`} value={value.text} maxLength={label === 'Title' ? 200 : 400} onChange={(event) => change.text(event.target.value)} /></PropertyRow>
+    <PropertyRow label="Text"><input aria-label={`${label} text`} placeholder={`Add a ${label.toLowerCase()}`} value={value.text} maxLength={label === 'Title' ? 200 : 400} onChange={(event) => change.text(event.target.value)} /></PropertyRow>
     <StudioSelect label={`${label} font`} rowLabel="Font" value={value.font} options={FONTS} onChange={change.font} />
     <StudioNumber label={`${label} size`} rowLabel="Size" value={value.fontSizePt} min={6} max={120} unit="pt" epoch={epoch} onChange={change.fontSizePt} />
     <StudioColor label={`${label} color`} rowLabel="Color" value={value.color} onChange={change.color} />

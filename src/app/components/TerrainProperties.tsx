@@ -45,7 +45,7 @@ export function TerrainProperties(props: TerrainPropertiesProps) {
   return (
     <InspectorAccordion isDefaultExpanded={false} storageKey="print-map-studio:inspector:terrain" title="Terrain" summary={`${terrain.enabled ? '3D terrain' : 'Flat map'}${terrain.contours.enabled ? ' · Contours' : ''}`}>
       <ToggleSection title="3D terrain" switchLabel="Show 3D terrain" help={TERRAIN_HELP} checked={terrain.enabled} onCheckedChange={toggleTerrain}>
-        <TerrainNumber rowLabel="Exaggeration" {...numericProps} label="Terrain exaggeration" value={terrain.exaggeration} minimum={0} maximum={10} unit="×" onCommit={change.exaggeration} />
+        <TerrainNumber rowLabel="Exaggeration (×)" {...numericProps} label="Terrain exaggeration" value={terrain.exaggeration} minimum={0} maximum={10} onCommit={change.exaggeration} />
       </ToggleSection>
       <ToggleSection title="Elevation contours" switchLabel="Show elevation contours" help={CONTOUR_HELP} checked={terrain.contours.enabled} onCheckedChange={toggleContours}>
         <TerrainNumber rowLabel="Interval" {...numericProps} label="Contour interval" value={terrain.contours.intervalMeters} minimum={10} maximum={10_000} step={10} unit="m" onCommit={contours.intervalMeters} />

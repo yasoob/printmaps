@@ -1053,9 +1053,11 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .inspector-accordion h3 > button {
   @apply grid cursor-pointer items-center gap-x-2 px-2 py-2 text-left;
   grid-template-columns: 1rem minmax(0, 1fr);
-  width: calc(100% - 1rem);
+  /* Inset to the 16px field column so the hover band never overruns the controls below it. */
+  width: calc(100% - 2rem);
   min-height: 3.75rem;
-  margin: 0 0.5rem;
+  margin: 0 1rem;
+  padding-inline: 0;
   border-radius: var(--studio-radius-md);
 }
 .inspector-accordion h3 > button[aria-expanded="true"] { min-height: 2.75rem; }
@@ -1099,7 +1101,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .property-note {
   @apply m-0 pb-2;
   color: var(--studio-text-muted);
-  font-size: var(--studio-font-meta);
+  font-size: var(--studio-font-label);
   line-height: 1.4;
 }
 .property-row {
@@ -1167,7 +1169,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 .map-style-customize-trigger:hover { background: color-mix(in srgb, var(--studio-field), var(--studio-text-strong) 4%); }
 .map-style-customize-trigger > span:nth-child(2) { @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap; }
-.map-style-customize-trigger strong { color: var(--studio-text-strong); font-size: var(--studio-font-label); }
+.map-style-customize-trigger strong { color: var(--studio-text-strong); font-size: var(--studio-font-label); font-weight: 600; }
 .map-style-customize-trigger > em {
   padding: 0.125rem 0.375rem;
   border-radius: var(--studio-radius-xs);
@@ -1181,16 +1183,14 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 .map-style-customize-trigger > svg { color: var(--studio-text-subtle); }
 .map-style-default-reset-row { display: flex; justify-content: flex-end; margin: -0.25rem 0 0.25rem; }
-.map-style-customize-swatches { @apply flex items-center; }
+.map-style-customize-swatches { @apply flex items-center; gap: 2px; }
 .map-style-customize-swatches i {
   display: block;
-  width: 1rem;
-  height: 1rem;
-  margin-right: -0.25rem;
-  border: 2px solid var(--studio-surface);
+  width: 0.875rem;
+  height: 0.875rem;
+  border: var(--studio-border-width) solid var(--studio-swatch-border);
   border-radius: 999px;
 }
-.map-style-customize-swatches { width: 2.75rem; }
 .map-style-customizer { min-height: 100%; background: var(--studio-surface); }
 .map-style-customizer-header {
   @apply sticky top-0 z-10 grid items-center gap-2 px-3;
@@ -1223,7 +1223,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .map-style-adjustment input::-webkit-slider-thumb { width: 1rem; height: 1rem; margin-top: -0.375rem; border: 2px solid var(--studio-surface); border-radius: 999px; background: var(--studio-accent); box-shadow: 0 0 0 1px var(--studio-accent); appearance: none; }
 .map-style-adjustment input::-moz-range-thumb { width: 0.75rem; height: 0.75rem; border: 2px solid var(--studio-surface); border-radius: 999px; background: var(--studio-accent); box-shadow: 0 0 0 1px var(--studio-accent); }
 .map-style-adjustment > small { color: var(--studio-text-subtle); font-size: var(--studio-font-meta); }
-.map-style-clear-tuning { width: 100%; margin-top: 0.625rem; }
+.map-style-clear-tuning { display: flex; justify-content: flex-end; margin-top: 0.5rem; }
 /* Palette rows follow the PropertyRow grid; the reset action only takes space when a colour is custom. */
 .map-style-color-list { display: grid; }
 .map-style-color-row {
@@ -1309,7 +1309,6 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
 .inspector-field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin: 4px 0; }
 .inspector-field-grid .input-group-addon.is-inline-start { min-width: 1.75rem; justify-content: center; padding: 0 0.25rem 0 0.5rem; }
 .paired-fields .input-group-addon.is-inline-start { padding-right: 0.75rem; }
-.paired-fields .input-group-addon.is-inline-end { font-size: 0.5625rem; }
 .studio-checkbox, .studio-switch {
   @apply relative flex cursor-pointer items-center gap-2;
   min-height: 2.25rem;
@@ -1365,7 +1364,7 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
 .map-location-status { @apply m-0; color: var(--studio-text-muted); font-size: var(--studio-font-meta); line-height: 1.35; }
 .map-location-status.is-error { color: var(--studio-danger); }
 .map-location-status.is-success { color: var(--studio-success); }
-.elevation-profile-panel { @apply grid gap-2; color: var(--studio-text-secondary); font-size: var(--studio-font-meta); }
+.elevation-profile-panel { @apply grid gap-2; color: var(--studio-text-secondary); font-size: var(--studio-font-label); }
 .elevation-profile-panel > small { font-size: var(--studio-font-label); line-height: 1.4; }
 .elevation-profile-panel > [role="status"] { line-height: 1.35; }
 .elevation-profile-panel > [role="alert"] { @apply m-0; color: var(--studio-danger); line-height: 1.35; }
@@ -1406,15 +1405,14 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
 .elevation-travel-times > small { color: var(--studio-text-muted); line-height: 1.35; }
 .elevation-downloads { @apply grid grid-cols-3 gap-1; }
 .route-map-matching { @apply grid gap-2; }
-.route-map-matching > small { color: var(--studio-text-muted); font-size: var(--studio-font-meta); line-height: 1.4; }
-.route-map-matching .provider-provenance-summary { @apply p-2; border-radius: var(--studio-radius-sm); background: var(--studio-field); color: var(--studio-text-secondary); font-size: var(--studio-font-meta); line-height: 1.4; }
-.route-map-matching [role="status"] { color: var(--studio-success); font-size: var(--studio-font-meta); line-height: 1.4; }
-.route-map-matching [role="alert"] { color: var(--studio-danger); font-size: var(--studio-font-meta); line-height: 1.4; }
+.route-map-matching > small { color: var(--studio-text-muted); font-size: var(--studio-font-label); line-height: 1.4; }
+.route-map-matching .provider-provenance-summary { @apply p-2; border-radius: var(--studio-radius-sm); background: var(--studio-field); color: var(--studio-text-secondary); font-size: var(--studio-font-label); line-height: 1.4; }
+.route-map-matching [role="status"] { color: var(--studio-success); font-size: var(--studio-font-label); line-height: 1.4; }
+.route-map-matching [role="alert"] { color: var(--studio-danger); font-size: var(--studio-font-label); line-height: 1.4; }
 
 .custom-marker-control input[type="file"] { display: none; }
 .route-vertex-actions { @apply mt-1 grid grid-cols-2 gap-1.5; }
-.route-vertex-hint { @apply mt-1 block; color: var(--studio-text-muted); font-size: var(--studio-font-meta); line-height: 1.35; }
-.route-removal-hint { font-size: 12px; }
+.route-vertex-hint { @apply mt-1 block; color: var(--studio-text-muted); font-size: var(--studio-font-label); line-height: 1.35; }
 .route-vertex-marker,
 .draft-route-point-marker,
 .route-midpoint-marker,

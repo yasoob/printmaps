@@ -31,19 +31,21 @@ export type StudioCompositionPanelProps = Readonly<{
   onPhotoRemove: (id: string) => ProjectMutationResult;
 }>;
 
+// One wording for every "nothing is on" state so summaries never list features that are off.
+const NOTHING_SHOWN = 'None shown';
+
 function decorationSummary(decorations: DecorationSettings) {
   const shown = [
     decorations.compass.enabled && 'Compass', decorations.scale.enabled && 'Scale',
     decorations.grid.enabled && 'Grid', decorations.qr.enabled && 'QR code',
   ].filter(Boolean);
-  return shown.length > 0 ? shown.join(' · ') : 'Compass, scale, grid & QR';
+  return shown.length > 0 ? shown.join(' · ') : NOTHING_SHOWN;
 }
 
 function textSummary(poster: PosterSettings) {
-  if (!poster.enabled) return 'Title, subtitle, caption & coordinates';
-  const shown = (['title', 'subtitle', 'caption'] as const).filter((key) => poster[key].enabled);
+  const shown = poster.enabled ? (['title', 'subtitle', 'caption'] as const).filter((key) => poster[key].enabled) : [];
+  if (shown.length === 0 && !(poster.enabled && poster.coordinates.enabled)) return NOTHING_SHOWN;
   if (poster.title.enabled && poster.title.text) return poster.title.text;
-  if (shown.length === 0 && !poster.coordinates.enabled) return 'No text shown';
   return [...shown.map((key) => key.charAt(0).toUpperCase() + key.slice(1)), ...(poster.coordinates.enabled ? ['Coordinates'] : [])].join(' · ');
 }
 

@@ -29,7 +29,8 @@ const TOKEN_LABELS: Record<MapStyleTokenRole, string> = {
   labelHalo: 'Label halo',
 };
 
-const PREVIEW_ROLES = ['land', 'water', 'park', 'majorRoad', 'label'] as const;
+// Roles that differ visibly across presets; near-white land/road tones vanish on the trigger fill.
+const PREVIEW_ROLES = ['water', 'park', 'boundary', 'label'] as const;
 const TONES = [{ value: 'cool', label: 'Cool' }, { value: 'balanced', label: 'Balanced' }, { value: 'warm', label: 'Warm' }] as const;
 
 type CustomizationActions = {
@@ -209,7 +210,9 @@ export function MapStyleCustomizer({
           <SegmentedControl label="Map tone" value={customization.tone} options={TONES} onValueChange={(tone) => feedback.report(onToneChange(tone))} />
           <AdjustmentRange customization={customization} label="Contrast" value={customization.contrast} low="Soft" high="Crisp" onChange={(value, mode) => onAdjustmentChange('contrast', value, mode)} />
           <AdjustmentRange customization={customization} label="Detail" value={customization.detail} low="Quiet" high="Rich" onChange={(value, mode) => onAdjustmentChange('detail', value, mode)} />
-          <Button variant="secondary" className="map-style-clear-tuning" disabled={!customized} onClick={() => feedback.report(onReset())}>Clear tuning and overrides</Button>
+          {customized && <div className="map-style-clear-tuning">
+            <Button variant="link" size="sm" onClick={() => feedback.report(onReset())}>Clear tuning and overrides</Button>
+          </div>}
           {feedback.error && <p className="coordinate-validation" role="alert">{feedback.error}</p>}
         </section>
         <section>

@@ -169,6 +169,11 @@ const SelectedLayerProperties = memo(function SelectedLayerProperties({
 export const PropertiesSidebar = memo(function PropertiesSidebar(props: PropertiesSidebarProps) {
   const { activePanel, closePanel, onKeyDown, onLocate, panelRef, selectedLayerId } = props;
   const [mapRequest, setMapRequest] = useState(0);
+  const scrollRegionRef = useRef<HTMLDivElement>(null);
+  // A different inspector view starts at its top; reopening the same view keeps its scroll position.
+  useLayoutEffect(() => {
+    if (scrollRegionRef.current) scrollRegionRef.current.scrollTop = 0;
+  }, [selectedLayerId]);
   const { selectLayer } = useProjectActions();
   const openMapDesign = useCallback(() => {
     setMapRequest((value) => value + 1);
@@ -181,7 +186,7 @@ export const PropertiesSidebar = memo(function PropertiesSidebar(props: Properti
         <span className="mobile-sheet-grip" aria-hidden="true" />
         <button className="mobile-drawer-close close-button" type="button" aria-label="Close properties" onClick={() => closePanel('properties')}><X size={16} /></button>
       </div>
-      <div className="properties-scroll-region">
+      <div ref={scrollRegionRef} className="properties-scroll-region">
         {selectedLayerId ? (
           <SelectedLayerProperties
             props={props}

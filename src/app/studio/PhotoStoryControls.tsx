@@ -33,7 +33,7 @@ export const PhotoStoryControls = memo(function PhotoStoryControls({ value, poin
   const change = useSettingActions(value, onChange, PHOTO_KEYS);
   const map = useSettingActions(value.map, change.map, MAP_KEYS);
   const strip = useSettingActions(value.strip, change.strip, STRIP_KEYS);
-  const pointOptions = useMemo(() => [{ value: '', label: 'New point at map center' }, ...pointLayers.map((layer) => ({ value: layer.id, label: layer.name }))], [pointLayers]);
+  const pointOptions = useMemo(() => [{ value: '', label: 'New pin at center' }, ...pointLayers.map((layer) => ({ value: layer.id, label: layer.name }))], [pointLayers]);
   async function upload(file: File) {
     setError('');
     setUploading(true);
