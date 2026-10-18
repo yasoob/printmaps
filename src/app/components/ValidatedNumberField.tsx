@@ -8,7 +8,7 @@ type ValidatedNumberFieldProps = {
   minimum: number;
   maximum?: number;
   step: number;
-  unit: string;
+  unit?: string;
   prefix?: string;
   resetKey: string | number;
   onCommit: (value: number) => ProjectMutationResult;
@@ -43,9 +43,10 @@ export function ValidatedNumberField({
   }
   const parsed = Number(edit.draft);
   const isInvalid = isInvalidNumber(edit.draft, minimum, maximum);
+  const suffix = unit ? ` ${unit}` : '';
   const constraint = maximum === undefined
-    ? `${label} must be at least ${minimum} ${unit}.`
-    : `${label} must be between ${minimum} and ${maximum} ${unit}.`;
+    ? `${label} must be at least ${minimum}${suffix}.`
+    : `${label} must be between ${minimum} and ${maximum}${suffix}.`;
   const error = isInvalid ? constraint : edit.error;
   const commit = () => {
     if (!edit.dirty) return;
@@ -89,7 +90,7 @@ export function ValidatedNumberField({
             }
           }}
         />
-        <InputGroupAddon align="inline-end" enableScrubbing={!prefix} sensitivity={4}>{unit}</InputGroupAddon>
+        {unit && <InputGroupAddon align="inline-end" enableScrubbing={!prefix} sensitivity={4}>{unit}</InputGroupAddon>}
       </InputGroup>
       {error && <small id={errorId} className="coordinate-validation" role="alert">{error}</small>}
     </div>
