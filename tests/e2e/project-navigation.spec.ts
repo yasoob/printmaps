@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 test('Project menu actions round-trip the portable project', async ({ page }, testInfo) => {
   await page.goto('./');
   await page.getByRole('tab', { name: 'Layout' }).click();
-  await page.getByRole('button', { name: 'Portrait' }).click();
+  await page.getByRole('radio', { name: 'Portrait' }).click();
 
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
@@ -12,13 +12,13 @@ test('Project menu actions round-trip the portable project', async ({ page }, te
   await download.saveAs(projectPath);
   expect(download.suggestedFilename()).toBe('vienna-field-guide.printmap.json');
 
-  await page.getByRole('button', { name: 'Landscape' }).click();
+  await page.getByRole('radio', { name: 'Landscape' }).click();
   const chooserPromise = page.waitForEvent('filechooser');
   await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Open project' }).click();
   const chooser = await chooserPromise;
   await chooser.setFiles(projectPath);
   await page.getByRole('button', { name: 'Replace project', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Portrait' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('radio', { name: 'Portrait' })).toHaveAttribute('aria-checked', 'true');
   await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Redo' })).toBeDisabled();
 });

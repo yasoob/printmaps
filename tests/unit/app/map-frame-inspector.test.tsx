@@ -29,15 +29,15 @@ it.each([false, true])('Rectangle hides the real mask, retaining geometry, refer
   const before = store.getState().document;
   render(<ProjectStoreContext value={store}><StudioCompositionControls /></ProjectStoreContext>);
   await user.click(screen.getByRole('button', { name: 'Map frame' }));
-  await user.click(screen.getByRole('button', { name: 'Rectangle' }));
+  await user.click(screen.getByRole('radio', { name: 'Rectangle' }));
   const changed = store.getState().document;
   expect(changed.layers.find(({ id }) => id === originalMask.id)).toEqual({ ...originalMask, visible: false });
   expect(changed.studio.poster).toBe(before.studio.poster);
   expect(store.getState().past).toHaveLength(1);
-  expect(screen.getByRole('button', { name: 'Rectangle' })).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.getByRole('radio', { name: 'Rectangle' })).toHaveAttribute('aria-checked', 'true');
   act(() => store.getState().undo());
   expect(store.getState().document).toEqual(before);
-  expect(screen.getByRole('button', { name: 'Country / region' })).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.getByRole('radio', { name: 'Country / region' })).toHaveAttribute('aria-checked', 'true');
 });
 
 it('country fitting changes only the frame/reference/camera and stays in the Layout inspector', async () => {
@@ -56,7 +56,7 @@ it('country fitting changes only the frame/reference/camera and stays in the Lay
   })) });
   render(<ProjectStoreContext value={store}><StudioCompositionControls exporter={exporter} /></ProjectStoreContext>);
   await user.click(screen.getByRole('button', { name: 'Map frame' }));
-  await user.click(screen.getByRole('button', { name: 'Country / region' }));
+  await user.click(screen.getByRole('radio', { name: 'Country / region' }));
   await user.click(screen.getByRole('button', { name: 'Apply test country' }));
   const applied = store.getState().document;
   expect(applied.studio.poster).toEqual({ ...document.studio.poster, silhouetteLayerId: expect.any(String) });
@@ -68,7 +68,7 @@ it('country fitting changes only the frame/reference/camera and stays in the Lay
   });
   expect(store.getState().selectedId).toBeNull();
   expect(store.getState().past).toHaveLength(1);
-  expect(screen.getByRole('button', { name: 'Country / region' })).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.getByRole('radio', { name: 'Country / region' })).toHaveAttribute('aria-checked', 'true');
 });
 
 it('preserving a plain layout does not enable hidden text, margins or a different design', () => {

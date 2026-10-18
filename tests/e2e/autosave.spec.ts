@@ -15,7 +15,7 @@ test('autosaves to IndexedDB and restores the local project automatically', asyn
   await page.getByRole('checkbox', { name: 'Show land detail' }).uncheck();
   await page.getByRole('combobox', { name: 'Map language' }).selectOption('de');
   await page.getByRole('tab', { name: 'Layout' }).click();
-  await page.getByRole('button', { name: 'Portrait' }).click();
+  await page.getByRole('radio', { name: 'Portrait' }).click();
   const mapCanvas = page.getByTestId('map-canvas');
   await expect(mapCanvas).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
   const centerBeforePan = await mapCanvas.getAttribute('data-map-center');
@@ -34,7 +34,7 @@ test('autosaves to IndexedDB and restores the local project automatically', asyn
 
   await expect(page.getByRole('dialog', { name: 'Recover local draft' })).toHaveCount(0);
   await page.getByRole('tab', { name: 'Layout' }).click();
-  await expect(page.getByRole('button', { name: 'Portrait' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('radio', { name: 'Portrait' })).toHaveAttribute('aria-checked', 'true');
   await page.getByRole('tab', { name: 'Map', exact: true }).click();
   await expect(page.getByRole('spinbutton', { name: 'Bearing' })).toHaveValue('-20');
   await expect(page.getByRole('spinbutton', { name: 'Pitch' })).toHaveValue('35');
@@ -52,7 +52,7 @@ test('autosaves to IndexedDB and restores the local project automatically', asyn
   await verificationPage.goto('./');
   await expect(verificationPage.getByRole('status', { name: 'Autosave status' })).toHaveText('Autosave ready');
   await verificationPage.getByRole('tab', { name: 'Layout' }).click();
-  await expect(verificationPage.getByRole('button', { name: 'Portrait' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(verificationPage.getByRole('radio', { name: 'Portrait' })).toHaveAttribute('aria-checked', 'true');
   await expect(verificationPage.getByRole('dialog', { name: 'Recover local draft' })).toHaveCount(0);
 });
 
@@ -93,7 +93,7 @@ test('does not render fallback project state while the local project is loading'
   const autosaveStatus = page.getByRole('status', { name: 'Autosave status' });
   await expect(autosaveStatus).toHaveText('Autosave ready');
   await page.getByRole('tab', { name: 'Layout' }).click();
-  await page.getByRole('button', { name: 'Portrait' }).click();
+  await page.getByRole('radio', { name: 'Portrait' }).click();
   await expect(autosaveStatus).toHaveText('All changes saved locally');
 
   const context = page.context();
@@ -141,6 +141,6 @@ test('does not render fallback project state while the local project is loading'
   });
 
   await delayedPage.getByRole('tab', { name: 'Layout' }).click();
-  await expect(delayedPage.getByRole('button', { name: 'Portrait' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(delayedPage.getByRole('radio', { name: 'Portrait' })).toHaveAttribute('aria-checked', 'true');
   await expect(delayedPage.getByRole('dialog', { name: 'Recover local draft' })).toHaveCount(0);
 });

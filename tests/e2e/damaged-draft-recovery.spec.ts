@@ -97,7 +97,7 @@ test('downloads the captured data and continues without overwriting it; new work
   await search.click();
   await expect(search).toBeFocused();
   await page.getByRole('tab', { name: 'Layout' }).click();
-  await page.getByRole('button', { name: 'Portrait', exact: true }).click();
+  await page.getByRole('radio', { name: 'Portrait', exact: true }).click();
   const downloading = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Project', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Download project', exact: true }).click();
@@ -112,7 +112,7 @@ test('downloads the captured data and continues without overwriting it; new work
   expect(warning.type()).toBe('beforeunload');
   await warning.dismiss();
   await reloading;
-  await expect(page.getByRole('button', { name: 'Portrait', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('radio', { name: 'Portrait', exact: true })).toHaveAttribute('aria-checked', 'true');
   await page.screenshot({ path: testInfo.outputPath('ux-fix-027-offline-work.png'), animations: 'disabled' });
   const acceptedPrompt = page.waitForEvent('dialog');
   const acceptedReload = page.reload();
@@ -136,7 +136,7 @@ test('failed discard offers reachable recovery actions and a subsequent retry re
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByRole('status', { name: 'Autosave status' })).toHaveText('Autosave ready');
   await page.getByRole('tab', { name: 'Layout' }).click();
-  await page.getByRole('button', { name: 'Portrait', exact: true }).click();
+  await page.getByRole('radio', { name: 'Portrait', exact: true }).click();
   await expect(page.getByRole('status', { name: 'Autosave status' })).toHaveText('All changes saved locally');
   expect(await draftRecord(page)).toMatchObject({ recordVersion: 1, document: { page: { orientation: 'portrait' } } });
 });
@@ -160,7 +160,7 @@ test('a recovery download failure still permits continuation after a failed disc
   await expect(page.getByRole('alert', { name: 'Recovery download status' })).toHaveText('Controlled recovery download failure');
   await page.getByRole('button', { name: 'Continue without autosave' }).click();
   await page.getByRole('tab', { name: 'Layout' }).click();
-  await page.getByRole('button', { name: 'Portrait', exact: true }).click();
+  await page.getByRole('radio', { name: 'Portrait', exact: true }).click();
   await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pagehide')));
   expect(await draftRecord(page)).toEqual(damagedRecord);
   expect(await page.evaluate(() => window.recoveryInstrumentation.puts)).toBe(1);

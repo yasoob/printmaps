@@ -12,6 +12,7 @@ import { PhotoStoryControls, type PhotoUpload } from './PhotoStoryControls';
 import { PosterControls } from './PosterControls';
 import { TemplateGallery } from './TemplateGallery';
 import { MapFrameControls } from './MapFrameControls';
+import { Notice } from '../../components/ui/notice';
 import './studioComposition.css';
 
 export type StudioCompositionPanelProps = Readonly<{
@@ -85,7 +86,7 @@ export const StudioCompositionPanel = memo(function StudioCompositionPanel(props
     window.setTimeout(() => galleryTrigger.current?.focus(), 0);
   }
   return <section className="studio-composition-panel" aria-label="Layout settings">
-    {error && <p role="alert" className="studio-composition-error inspector-notice">{error}</p>}
+    {error && <Notice tone="error" className="inspector-notice">{error}</Notice>}
     <Activity mode={galleryOpen ? 'hidden' : 'visible'}>
       <LayoutPresetEntry templateId={props.poster.templateId} isEnabled={props.poster.enabled} isDisabled={props.isDisabled}
         buttonRef={galleryTrigger} onOpen={openGallery} />

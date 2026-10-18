@@ -86,6 +86,14 @@ describe('ColorField', () => {
     expect(onChange).toHaveBeenCalledWith('#00ff00');
   });
 
+  it('forwards native input props such as an accessible description', () => {
+    render(<><p id="color-help">Custom image supplies its own color.</p>
+      <ColorField label="POI color" value="#123456" disabled aria-describedby="color-help" onChange={vi.fn()} /></>);
+    const input = screen.getByLabelText('POI color');
+    expect(input).toHaveAccessibleDescription('Custom image supplies its own color.');
+    expect(input).toBeDisabled();
+  });
+
   it('is reachable through StudioColor with a short visible row label', () => {
     render(<StudioColor label="Compass color" rowLabel="Color" value="#1f1f1f" onChange={vi.fn()} />);
     expect(screen.getByLabelText('Compass color')).toHaveAttribute('type', 'color');

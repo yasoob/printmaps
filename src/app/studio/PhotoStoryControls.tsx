@@ -3,7 +3,11 @@ import { ImagePlus, Trash2 } from 'lucide-react';
 import type { ContentLayer } from '../../domain/project';
 import type { ProjectMutationResult } from '../../domain/projectMutation';
 import type { PhotoSettings } from '../../domain/studio';
-import { StudioColor, StudioNumber, StudioSelect, StudioToggle } from './StudioFields';
+import { StudioColor, StudioNumber, StudioSelect } from './StudioFields';
+import { Button } from '../../components/ui/button';
+import { Notice } from '../../components/ui/notice';
+import { ToggleSection } from '../../components/ui/toggle-section';
+import { Switch } from '../components/UiControls';
 import { FeatureHelp } from '../components/FeatureHelp';
 import { useSettingActions } from '../hooks/useSettingActions';
 
@@ -43,42 +47,36 @@ export const PhotoStoryControls = memo(function PhotoStoryControls({ value, poin
     }
   }
   return <div className="studio-composition-controls">
-    <StudioSelect label="Attach photo to" value={selectedLayer} options={pointOptions} onChange={setSelectedLayer} />
+    <StudioSelect label="Attach photo to" rowLabel="Attach to" value={selectedLayer} options={pointOptions} onChange={setSelectedLayer} />
     <input ref={input} className="sr-only" type="file" accept="image/png,image/jpeg" aria-label="Upload story photo" disabled={isUploading} onChange={(event) => {
       const file = event.currentTarget.files?.[0];
       event.currentTarget.value = '';
       if (file) void upload(file);
     }} />
     <div className="feature-help-row studio-photo-add">
-      <button className="inspector-secondary-button" type="button" disabled={isUploading} onClick={() => input.current?.click()}>
-        <ImagePlus aria-hidden="true" size={16} />{isUploading ? 'Adding photo...' : 'Add local photo'}
-      </button>
+      <Button variant="secondary" busy={isUploading} onClick={() => input.current?.click()}>
+        {!isUploading && <ImagePlus aria-hidden="true" />}{isUploading ? 'Adding photo...' : 'Add local photo'}
+      </Button>
       {photoHelp}
     </div>
-    {error && <p role="alert" className="studio-composition-error">{error}</p>}
+    {error && <Notice tone="error" className="studio-composition-notice">{error}</Notice>}
     {value.stops.length > 0 && <ol className="studio-photo-list">{value.stops.map((stop, index) => <li key={stop.id}>
       <img src={value.assets[stop.assetId]?.dataUri} alt="" />
       <input aria-label={`Stop ${index + 1} caption`} placeholder={`Caption for photo ${index + 1}`} maxLength={200} value={stop.caption} onChange={(event) => onChange({ ...value, stops: value.stops.map((candidate) => candidate.id === stop.id ? { ...candidate, caption: event.target.value } : candidate) })} />
-      <button className="icon-button" type="button" aria-label={`Remove photo ${index + 1}`} title="Remove photo" onClick={() => {
+      <Button variant="ghost" size="icon" aria-label={`Remove photo ${index + 1}`} title="Remove photo" onClick={() => {
         const result = onRemove(stop.id);
         setError(result.ok ? '' : result.error);
-      }}><Trash2 aria-hidden="true" size={16} /></button>
+      }}><Trash2 aria-hidden="true" /></Button>
     </li>)}</ol>}
-    <fieldset><legend>Photos on the map</legend>
-      <StudioToggle label="Show anchored photos" checked={value.map.enabled} onChange={map.enabled} />
-      {value.map.enabled && <>
-        <StudioSelect label="Photo shape" value={value.map.shape} options={SHAPES} onChange={map.shape} />
-        <StudioNumber label="Photo size" value={value.map.sizeMm} min={5} max={100} epoch={epoch} onChange={map.sizeMm} />
-        <StudioColor label="Photo border" value={value.map.borderColor} onChange={map.borderColor} />
-      </>}
-    </fieldset>
-    <fieldset><legend>Photo strip</legend>
-      <StudioToggle label="Show numbered photo strip" checked={value.strip.enabled} onChange={strip.enabled} />
-      {value.strip.enabled && <>
-        <StudioSelect label="Strip position" value={value.strip.position} options={POSITIONS} onChange={strip.position} />
-        <StudioNumber label="Strip height" value={value.strip.heightMm} min={12} max={100} epoch={epoch} onChange={strip.heightMm} />
-        <StudioToggle label="Show photo captions" checked={value.strip.showCaptions} onChange={strip.showCaptions} />
-      </>}
-    </fieldset>
+    <ToggleSection title="Photos on the map" switchLabel="Show anchored photos" checked={value.map.enabled} onCheckedChange={map.enabled}>
+      <StudioSelect label="Photo shape" rowLabel="Shape" value={value.map.shape} options={SHAPES} onChange={map.shape} />
+      <StudioNumber label="Photo size" rowLabel="Size" value={value.map.sizeMm} min={5} max={100} epoch={epoch} onChange={map.sizeMm} />
+      <StudioColor label="Photo border" rowLabel="Border" value={value.map.borderColor} onChange={map.borderColor} />
+    </ToggleSection>
+    <ToggleSection title="Numbered photo strip" switchLabel="Show numbered photo strip" checked={value.strip.enabled} onCheckedChange={strip.enabled}>
+      <StudioSelect label="Strip position" rowLabel="Position" value={value.strip.position} options={POSITIONS} onChange={strip.position} />
+      <StudioNumber label="Strip height" rowLabel="Height" value={value.strip.heightMm} min={12} max={100} epoch={epoch} onChange={strip.heightMm} />
+      <Switch label="Show photo captions" labelPlacement="start" isChecked={value.strip.showCaptions} onCheckedChange={strip.showCaptions} />
+    </ToggleSection>
   </div>;
 });

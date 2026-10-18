@@ -28,7 +28,7 @@ for (const viewport of [
     await expect(page.locator('.mobile-panel-backdrop')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
 
     await page.getByRole('button', { name: 'Customize colors', exact: true }).click();
-    await page.getByRole('button', { name: 'Warm', exact: true }).click();
+    await page.getByRole('radio', { name: 'Warm', exact: true }).click();
     await expect(map).toHaveAttribute('data-map-style-customized', 'true');
     await expect(map).toHaveAttribute('data-map-center', originalCenter!);
     await expect(map).toHaveAttribute('data-map-zoom', originalZoom!);
@@ -50,7 +50,7 @@ for (const viewport of [
     await expect(sheet).toBeHidden();
     await page.getByRole('button', { name: 'Open properties' }).click();
     await expect(page.getByRole('heading', { name: 'Customize map' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Warm', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByRole('radio', { name: 'Warm', exact: true })).toHaveAttribute('aria-checked', 'true');
     await close.click();
     expect(await map.boundingBox()).toEqual(originalCanvas);
   });

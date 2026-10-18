@@ -52,11 +52,11 @@ test('uses a consistent typography hierarchy in route details', async ({ page })
     .evaluate((element) => getComputedStyle(element).fontSize);
 
   await expect(page.getByRole('button', { name: 'Clear leg override' })).toHaveCSS('font-size', '12px');
-  await expect(page.getByRole('combobox', { name: 'Road matching travel mode' })).toHaveCSS('font-size', '12px');
+  await expect(page.getByRole('combobox', { name: 'Road matching travel mode' })).toHaveCSS('font-size', '13px');
   await expect(page.getByText('Continue this route from either endpoint without creating another layer.'))
     .toHaveCSS('font-size', '11px');
-  await expect(page.getByRole('button', { name: 'Extend start' })).toHaveCSS('font-size', '12px');
-  await expect(page.getByRole('button', { name: 'Extend end' })).toHaveCSS('font-size', '12px');
+  await expect(page.getByRole('button', { name: 'Extend start' })).toHaveCSS('font-size', '13px');
+  await expect(page.getByRole('button', { name: 'Extend end' })).toHaveCSS('font-size', '13px');
   expect(await fontSize('.route-map-matching > small')).toBe('11px');
   expect(await fontSize('.route-vertex-hint')).toBe('11px');
   expect(await fontSize('.elevation-profile-source')).toBe('11px');

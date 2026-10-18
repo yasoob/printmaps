@@ -50,7 +50,7 @@ test('nominal design, author, import, persist, reopen, and export workflow', asy
   await width.press('Tab');
   await height.fill('60');
   await height.press('Tab');
-  await expect(page.getByRole('button', { name: 'Portrait' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('radio', { name: 'Portrait' })).toHaveAttribute('aria-checked', 'true');
 
   await page.getByRole('button', { name: 'Route (R)' }).click();
   const canvas = page.locator('.maplibregl-canvas');
@@ -98,13 +98,13 @@ test('nominal design, author, import, persist, reopen, and export workflow', asy
   });
   expect(savedProject.layers.map((layer: { id: string }) => layer.id)).toContain('route-02');
 
-  await page.getByRole('button', { name: 'Landscape' }).click();
+  await page.getByRole('radio', { name: 'Landscape' }).click();
   const openChooserPromise = page.waitForEvent('filechooser');
   await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Open project' }).click();
   const openChooser = await openChooserPromise;
   await openChooser.setFiles(projectPath);
   await page.getByRole('button', { name: 'Replace project', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Portrait' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('radio', { name: 'Portrait' })).toHaveAttribute('aria-checked', 'true');
   await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Select Route 02' })).toBeVisible();
   await expect(mapCanvas).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });

@@ -147,7 +147,7 @@ describe('GeoJSON import document isolation', () => {
     const { container } = render(<App autosaveRepository={null} />);
     const { importInput } = fileInputs(container);
     fireEvent.click(screen.getByRole('tab', { name: 'Layout' }));
-    const portrait = screen.getByRole('button', { name: 'Portrait' });
+    const portrait = screen.getByRole('radio', { name: 'Portrait' });
     fireEvent.change(importInput, {
       target: { files: [fileWithText('slow.geojson', slowText, 'application/geo+json')] },
     });
@@ -156,7 +156,7 @@ describe('GeoJSON import document isolation', () => {
     await act(async () => { finishImport?.(pointGeoJson); });
 
     expect(screen.queryByRole('button', { name: 'Select Slow café' })).not.toBeInTheDocument();
-    expect(portrait).toHaveAttribute('aria-pressed', 'true');
+    expect(portrait).toHaveAttribute('aria-checked', 'true');
     expect(screen.getByRole('alert')).toHaveTextContent('The project changed while checking these files');
     expect(document.querySelector<HTMLButtonElement>('button[aria-label="Undo"]')).toBeEnabled();
   });

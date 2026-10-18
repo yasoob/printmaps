@@ -42,26 +42,26 @@ describe('editor page settings and tools', () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(screen.getByRole('tab', { name: 'Layout' }));
-    const landscape = screen.getByRole('button', { name: 'Landscape' });
-    const portrait = screen.getByRole('button', { name: 'Portrait' });
+    const landscape = screen.getByRole('radio', { name: 'Landscape' });
+    const portrait = screen.getByRole('radio', { name: 'Portrait' });
 
-    expect(landscape).toHaveAttribute('aria-pressed', 'true');
-    expect(portrait).toHaveAttribute('aria-pressed', 'false');
+    expect(landscape).toHaveAttribute('aria-checked', 'true');
+    expect(portrait).toHaveAttribute('aria-checked', 'false');
     expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-orientation', 'landscape');
     await user.click(portrait);
-    expect(landscape).toHaveAttribute('aria-pressed', 'false');
-    expect(portrait).toHaveAttribute('aria-pressed', 'true');
+    expect(landscape).toHaveAttribute('aria-checked', 'false');
+    expect(portrait).toHaveAttribute('aria-checked', 'true');
     expect(screen.getByRole('spinbutton', { name: 'Page width' })).toHaveValue(210);
     expect(screen.getByRole('spinbutton', { name: 'Page height' })).toHaveValue(297);
     expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-orientation', 'portrait');
 
     await user.click(screen.getByRole('button', { name: 'Undo' }));
-    expect(landscape).toHaveAttribute('aria-pressed', 'true');
+    expect(landscape).toHaveAttribute('aria-checked', 'true');
     expect(screen.getByRole('spinbutton', { name: 'Page width' })).toHaveValue(297);
     expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-orientation', 'landscape');
 
     await user.click(screen.getByRole('button', { name: 'Redo' }));
-    expect(portrait).toHaveAttribute('aria-pressed', 'true');
+    expect(portrait).toHaveAttribute('aria-checked', 'true');
     expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-orientation', 'portrait');
   });
 

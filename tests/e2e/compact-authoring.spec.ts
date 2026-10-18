@@ -20,7 +20,7 @@ for (const viewport of [
     await expect(map).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
     await page.getByRole('button', { name: 'Open properties' }).click();
     await page.getByRole('tab', { name: 'Layout' }).click();
-    await page.getByRole('button', { name: 'Portrait', exact: true }).click();
+    await page.getByRole('radio', { name: 'Portrait', exact: true }).click();
     await page.getByRole('button', { name: 'Close properties' }).click();
     const originalMap = await map.boundingBox();
     const originalFrame = await page.locator('.print-frame').boundingBox();

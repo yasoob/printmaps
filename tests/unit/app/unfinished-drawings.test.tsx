@@ -159,7 +159,7 @@ describe('completed layers and draft navigation', () => {
       .mockRejectedValueOnce(new Error('Storage unavailable'));
     render(<App autosaveRepository={repository(save)} />);
     await user.click(screen.getByRole('tab', { name: 'Layout' }));
-    await user.click(screen.getByRole('button', { name: 'Portrait' }));
+    await user.click(screen.getByRole('radio', { name: 'Portrait' }));
     await user.click(screen.getByRole('button', { name: 'Route (R)' }));
     await user.click(screen.getByRole('button', { name: 'Map route point 1' }));
     expect(status()).toHaveTextContent('Saving local draft… · Unfinished work not saved');
@@ -171,7 +171,7 @@ describe('completed layers and draft navigation', () => {
     expect(save).toHaveBeenCalledTimes(1);
     expect(save.mock.calls[0][0].layers).toHaveLength(4);
     expect(save.mock.calls[0][0]).not.toHaveProperty('hasUnfinishedDrawing');
-    await user.click(screen.getByRole('button', { name: 'Landscape' }));
+    await user.click(screen.getByRole('radio', { name: 'Landscape' }));
     await waitFor(() => expect(status()).toHaveTextContent('Autosave paused · Unfinished work not saved'));
     expect(screen.getByRole('alert', { name: 'Autosave status' })).toHaveTextContent('Save a project file');
     expect(isUnloadPrevented()).toBe(true);

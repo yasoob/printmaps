@@ -65,9 +65,9 @@ it('activates only the intentionally edited page/text settings using effective z
   fireEvent.keyDown(top, { key: 'Enter' });
   expect(screen.getByRole('spinbutton', { name: 'Right margin' })).toHaveValue(0);
   await user.click(screen.getByRole('button', { name: 'Text' }));
-  await user.click(screen.getByRole('checkbox', { name: 'Show title' }));
+  await user.click(screen.getByRole('switch', { name: 'Show title' }));
   await user.type(screen.getByRole('textbox', { name: 'Title text' }), 'Only my title');
-  expect(screen.getByRole('checkbox', { name: 'Show subtitle' })).not.toBeChecked();
+  expect(screen.getByRole('switch', { name: 'Show subtitle' })).not.toBeChecked();
   await user.click(screen.getByRole('button', { name: 'Project' }));
   await user.click(screen.getByRole('menuitem', { name: 'Download project' }));
   const saved = downloadProjectDocument.mock.calls.at(-1)?.[0];

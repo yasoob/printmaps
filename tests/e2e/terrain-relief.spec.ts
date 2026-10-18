@@ -46,9 +46,9 @@ test('terrain and real contour worker render, persist through style change, and 
   const errors: string[] = [];
   page.on('pageerror', (error) => { errors.push(error.message); });
   await openTerrain(page);
-  await page.getByRole('checkbox', { name: 'Show 3D terrain', exact: true }).click();
+  await page.getByRole('switch', { name: 'Show 3D terrain', exact: true }).click();
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
-  await page.getByRole('checkbox', { name: 'Show elevation contours' }).click();
+  await page.getByRole('switch', { name: 'Show elevation contours' }).click();
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
   await expect.poll(() => page.evaluate(() => window.recoveryAudit.map!.querySourceFeatures('pms-terrain-contours', { sourceLayer: 'contours' }).length)).toBeGreaterThan(0);
   expect(await page.evaluate(() => window.recoveryAudit.map!.getTerrain()?.source)).toBe('pms-terrain-dem');

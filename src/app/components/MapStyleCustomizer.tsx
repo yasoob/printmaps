@@ -9,6 +9,9 @@ import {
 import { MAP_STYLE_TOKEN_ROLES, type MapStylePreset, type MapStyleTokenRole } from '../../domain/mapStylePresets';
 import type { ProjectMutationResult } from '../../domain/projectMutation';
 import { useMutationFeedback } from '../hooks/useMutationFeedback';
+import { Button } from '../../components/ui/button';
+import { ColorField } from '../../components/ui/color-field';
+import { SegmentedControl } from '../../components/ui/segmented-control';
 
 type EditMode = 'history' | 'amend';
 
@@ -27,6 +30,7 @@ const TOKEN_LABELS: Record<MapStyleTokenRole, string> = {
 };
 
 const PREVIEW_ROLES = ['land', 'water', 'park', 'majorRoad', 'label'] as const;
+const TONES = [{ value: 'cool', label: 'Cool' }, { value: 'balanced', label: 'Balanced' }, { value: 'warm', label: 'Warm' }] as const;
 
 type CustomizationActions = {
   onAdjustmentChange: (adjustment: 'contrast' | 'detail', value: number, mode?: EditMode) => ProjectMutationResult;
@@ -104,30 +108,29 @@ function SemanticColorRow({
   return (
     <div className="map-style-color-row">
       <span>{label}{customColor ? <small className="is-custom">Custom</small> : null}</span>
-      <input
-        aria-label={`${label} color`}
-        type="color"
+      <ColorField
+        label={`${label} color`}
         value={color}
         onBlur={finish}
+        onPointerDown={finish}
         onKeyDown={(event) => {
           if (event.key === 'Enter' || event.key === ' ') finish();
         }}
-        onPointerDown={finish}
-        onInput={(event) => {
-          const result = feedback.report(onChange(role, event.currentTarget.value, isEditing.current ? 'amend' : 'history'));
+        onChange={(value) => {
+          const result = feedback.report(onChange(role, value, isEditing.current ? 'amend' : 'history'));
           if (result.ok && result.changed !== false) isEditing.current = true;
         }}
       />
-      <code>{color.toUpperCase()}</code>
-      <button
+      <Button
+        variant="ghost"
+        size="icon-sm"
         aria-label={`Reset ${label} color`}
         disabled={!customColor}
         title={customColor ? `Reset ${label} to Quick Tune` : `${label} follows Quick Tune`}
-        type="button"
         onClick={() => feedback.report(onChange(role, null))}
       >
-        <RotateCcw aria-hidden="true" size={12} />
-      </button>
+        <RotateCcw aria-hidden="true" />
+      </Button>
       {feedback.error && <small className="coordinate-validation" role="alert">{feedback.error}</small>}
     </div>
   );
@@ -184,31 +187,26 @@ export function MapStyleCustomizer({
       onBack();
     }}>
       <header className="map-style-customizer-header">
-        <button className="icon-button" aria-label="Back to project properties" type="button" onClick={onBack}><ArrowLeft size={17} /></button>
+        <Button variant="ghost" size="icon" aria-label="Back to project properties" onClick={onBack}><ArrowLeft aria-hidden="true" /></Button>
         <h2 ref={headingRef} tabIndex={-1}>Customize map</h2>
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
           className="map-style-reset"
           aria-label="Reset to Paper"
           disabled={preset === 'paper' && !customized}
-          type="button"
           onClick={() => feedback.report(onResetMapStyle())}
         >
           <span className="map-style-reset-wide">Reset to Paper</span>
           <span className="map-style-reset-narrow">Reset map</span>
-        </button>
+        </Button>
       </header>
       <div className="map-style-customizer-content">
         <section>
-          <div className="map-style-tone" role="group" aria-label="Map tone">
-            {(['cool', 'balanced', 'warm'] as const).map((tone) => (
-              <button key={tone} aria-pressed={customization.tone === tone} type="button" onClick={() => feedback.report(onToneChange(tone))}>
-                {tone[0]!.toUpperCase()}{tone.slice(1)}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl label="Map tone" value={customization.tone} options={TONES} onValueChange={(tone) => feedback.report(onToneChange(tone))} />
           <AdjustmentRange customization={customization} label="Contrast" value={customization.contrast} low="Soft" high="Crisp" onChange={(value, mode) => onAdjustmentChange('contrast', value, mode)} />
           <AdjustmentRange customization={customization} label="Detail" value={customization.detail} low="Quiet" high="Rich" onChange={(value, mode) => onAdjustmentChange('detail', value, mode)} />
-          <button className="map-style-clear-tuning" disabled={!customized} type="button" onClick={() => feedback.report(onReset())}>Clear tuning and overrides</button>
+          <Button variant="secondary" className="map-style-clear-tuning" disabled={!customized} onClick={() => feedback.report(onReset())}>Clear tuning and overrides</Button>
           {feedback.error && <p className="coordinate-validation" role="alert">{feedback.error}</p>}
         </section>
         <section>

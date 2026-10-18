@@ -20,7 +20,7 @@ it('protects completed work, keeps backup separate, and starts a blank history r
   const user = userEvent.setup();
   render(<App autosaveRepository={null} />);
   await user.click(screen.getByRole('tab', { name: 'Layout' }));
-  await user.click(screen.getByRole('button', { name: 'Portrait' }));
+  await user.click(screen.getByRole('radio', { name: 'Portrait' }));
   await user.click(screen.getByRole('button', { name: 'Select Route 01' }));
   await requestNew(user);
   const dialog = screen.getByRole('dialog', { name: 'Start a new project?' });
@@ -65,12 +65,12 @@ it('does not interrupt a new project from pristine defaults or discard work when
   await requestNew(user);
   expect(screen.queryByRole('dialog')).toBeNull();
   await user.click(screen.getByRole('tab', { name: 'Layout' }));
-  await user.click(screen.getByRole('button', { name: 'Portrait' }));
+  await user.click(screen.getByRole('radio', { name: 'Portrait' }));
   await requestNew(user);
   downloadProjectDocument.mockImplementationOnce(() => { throw new Error('Download unavailable'); });
   await user.click(screen.getByRole('button', { name: 'Download current project' }));
   expect(screen.getByRole('alert')).toHaveTextContent('Download unavailable');
   expect(screen.getByRole('dialog', { name: 'Start a new project?' })).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: 'Keep editing' }));
-  expect(screen.getByRole('button', { name: 'Portrait' })).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.getByRole('radio', { name: 'Portrait' })).toHaveAttribute('aria-checked', 'true');
 });

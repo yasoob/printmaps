@@ -38,8 +38,8 @@ it('preserves canonical validation, sibling values and history across repeated p
   render(<ProjectStoreContext value={store}><StudioCompositionControls exporter={null} /></ProjectStoreContext>);
   const before = store.getState().document.studio.poster;
   fireEvent.click(screen.getByRole('button', { name: 'Text' }));
-  fireEvent.click(screen.getByRole('checkbox', { name: 'Show title' }));
-  fireEvent.click(screen.getByRole('checkbox', { name: 'Show subtitle' }));
+  fireEvent.click(screen.getByRole('switch', { name: 'Show title' }));
+  fireEvent.click(screen.getByRole('switch', { name: 'Show subtitle' }));
   const title = screen.getByLabelText('Title text');
   fireEvent.change(title, { target: { value: 'A first title' } });
   const margin = screen.getByLabelText('Top margin');

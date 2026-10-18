@@ -7,6 +7,7 @@ import { useProject, useProjectActions } from '../projectStoreContext';
 import { MAP_STYLE_PRESET_LABELS } from '../../domain/mapStylePresets';
 import { isMapStyleCustomized } from '../../domain/mapStyleCustomization';
 import { PropertyRow, PropertySection } from './PropertyControls';
+import { Button } from '../../components/ui/button';
 import { LayerProperties } from './LayerProperties';
 import { ProjectProperties, type CameraInspectorView } from './ProjectProperties';
 import type { RouteExtensionEndpoint } from './routeAuthoringActions';
@@ -50,9 +51,9 @@ const BasemapDesignSection = memo(function BasemapDesignSection({ onOpen }: { on
   const isCustomized = useProject((state) => isMapStyleCustomized(state.document.style.customization));
   return <PropertySection title="Map design">
     <PropertyRow label="Style"><span className="property-value">{MAP_STYLE_PRESET_LABELS[preset]}{isCustomized ? ' · Custom colors' : ''}</span></PropertyRow>
-    <button className="inspector-secondary-button inspector-full-width" type="button" onClick={onOpen}>
-      <MapIcon aria-hidden="true" size={16} /> Map design settings
-    </button>
+    <Button variant="secondary" className="inspector-full-width" onClick={onOpen}>
+      <MapIcon aria-hidden="true" /> Map design settings
+    </Button>
   </PropertySection>;
 });
 

@@ -5,6 +5,7 @@ import { useMutationFeedback } from '../hooks/useMutationFeedback';
 import { InputGroup, InputGroupAddon, InputNumber } from './InputGroup';
 import { PropertyRow } from './PropertyControls';
 import { Switch } from './UiControls';
+import { ColorField } from '../../components/ui/color-field';
 
 export const ShapeAppearanceControls = memo(function ShapeAppearanceControls({
   appearance,
@@ -39,10 +40,10 @@ export const ShapeAppearanceControls = memo(function ShapeAppearanceControls({
 
   return (
     <>
-      <PropertyRow label="Fill"><label className="color-field"><input aria-label="Shape fill color" type="color" value={appearance.fillColor} onChange={(event) => onChange({ ...appearance, fillColor: event.target.value })} /></label></PropertyRow>
-      <PropertyRow label="Outline"><label className="color-field"><input aria-label="Shape outline color" type="color" value={appearance.strokeColor} onChange={(event) => onChange({ ...appearance, strokeColor: event.target.value })} /></label></PropertyRow>
+      <PropertyRow label="Fill"><ColorField label="Shape fill color" value={appearance.fillColor} onChange={(fillColor) => onChange({ ...appearance, fillColor })} /></PropertyRow>
+      <PropertyRow label="Outline"><ColorField label="Shape outline color" value={appearance.strokeColor} onChange={(strokeColor) => onChange({ ...appearance, strokeColor })} /></PropertyRow>
       <PropertyRow label="Width"><InputGroup><InputNumber aria-label="Shape outline width" aria-invalid={isWidthInvalid || undefined} min={0.5} max={12} step={0.5} value={widthDraft} onChange={(event) => setWidthEdit({ source: appearance.strokeWidth, value: event.target.value })} onBlur={(event) => commitWidth(event.currentTarget.value)} /><InputGroupAddon align="inline-end" enableScrubbing sensitivity={4}>px</InputGroupAddon></InputGroup></PropertyRow>
-      <Switch aria-label="Invert shape fill" isChecked={appearance.invert} label="Invert outside area" onCheckedChange={(isChecked) => onChange({ ...appearance, invert: isChecked })} />
+      <Switch aria-label="Invert shape fill" labelPlacement="start" isChecked={appearance.invert} label="Invert outside area" onCheckedChange={(isChecked) => onChange({ ...appearance, invert: isChecked })} />
       {feedback.error && <p className="coordinate-validation" role="alert">{feedback.error}</p>}
     </>
   );

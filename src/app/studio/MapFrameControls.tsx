@@ -4,6 +4,8 @@ import type { ProjectMutationResult } from '../../domain/projectMutation';
 import { AdministrativeAreaPicker } from '../components/AdministrativeAreaPicker';
 import { InspectorAccordion } from '../components/PropertyControls';
 import { FeatureHelp } from '../components/FeatureHelp';
+import { SegmentedControl } from '../../components/ui/segmented-control';
+import { Notice } from '../../components/ui/notice';
 
 export const MapFrameControls = memo(function MapFrameControls({ silhouetteName, cameraLocked, onRectangle, onCreateSilhouette }: {
   silhouetteName: string | null;
@@ -15,6 +17,15 @@ export const MapFrameControls = memo(function MapFrameControls({ silhouetteName,
   const [isFitting, setFitting] = useState(false);
   const [error, setError] = useState('');
   const hasOutline = pickerOpen || Boolean(silhouetteName);
+  function selectShape(shape: 'rectangle' | 'outline') {
+    if (shape === 'outline') {
+      setPickerOpen(true);
+      return;
+    }
+    const result = onRectangle();
+    setError(result.ok ? '' : result.error);
+    if (result.ok) setPickerOpen(false);
+  }
   async function createSilhouette(area: AdministrativeArea) {
     setFitting(true);
     try {
@@ -28,21 +39,15 @@ export const MapFrameControls = memo(function MapFrameControls({ silhouetteName,
     }
   }
   return <InspectorAccordion title="Map frame" summary={silhouetteName ?? 'Rectangle'} storageKey="print-map-studio:inspector:layout:frame" isDefaultExpanded={false}>
-    <div className="segmented inspector-frame-options">
-      <button type="button" aria-pressed={!hasOutline} className={hasOutline ? undefined : 'is-active'} onClick={() => {
-        const result = onRectangle();
-        setError(result.ok ? '' : result.error);
-        if (result.ok) setPickerOpen(false);
-      }}>Rectangle</button>
-      <button type="button" aria-pressed={hasOutline} className={hasOutline ? 'is-active' : undefined}
-        disabled={cameraLocked || isFitting} onClick={() => setPickerOpen(true)}>Country / region</button>
-    </div>
+    <SegmentedControl className="inspector-frame-options" label="Map frame shape" value={hasOutline ? 'outline' : 'rectangle'}
+      options={[{ value: 'rectangle', label: 'Rectangle' }, { value: 'outline', label: 'Country / region', disabled: cameraLocked || isFitting }]}
+      onValueChange={selectShape} />
     {silhouetteName && <div className="feature-help-row inspector-frame-current"><span>{silhouetteName}</span>
       <FeatureHelp label="Map frame help">Rectangle hides the current outline without deleting it. Undo restores the previous frame.</FeatureHelp>
     </div>}
-    {cameraLocked && <p className="property-note" role="status">Unlock the map area to fit a boundary.</p>}
-    {isFitting && <p role="status" className="property-note">Fitting boundary...</p>}
-    {error && <p role="alert" className="coordinate-validation">{error}</p>}
+    {cameraLocked && <Notice tone="info" className="studio-composition-notice">Unlock the map area in Map › View to fit a boundary.</Notice>}
+    {isFitting && <p role="status" className="property-note">Fitting boundary…</p>}
+    {error && <Notice tone="error" className="studio-composition-notice">{error}</Notice>}
     {pickerOpen && !isFitting && <AdministrativeAreaPicker onAdd={(area) => void createSilhouette(area)} onCancel={() => setPickerOpen(false)} />}
   </InspectorAccordion>;
 });

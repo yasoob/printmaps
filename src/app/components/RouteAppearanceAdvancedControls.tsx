@@ -15,6 +15,8 @@ import { PropertyRow } from './PropertyControls';
 import { Checkbox, Switch } from './UiControls';
 import { mutationRejected, type ProjectMutationResult } from '../../domain/projectMutation';
 import { useMutationFeedback } from '../hooks/useMutationFeedback';
+import { Button } from '../../components/ui/button';
+import { ColorField } from '../../components/ui/color-field';
 
 function percent(value: number) {
   return Number((value * 100).toFixed(4));
@@ -224,15 +226,12 @@ export const RouteSegmentControls = memo(function RouteSegmentControls({
       />
       {override.color === undefined ? null : (
         <PropertyRow label="Color">
-          <label className="color-field">
-            <input
-              aria-label="Route segment color"
-              disabled={disabled}
-              type="color"
-              value={override.color}
-              onChange={(event) => updateField('color', event.currentTarget.value)}
-            />
-          </label>
+          <ColorField
+            label="Route segment color"
+            disabled={disabled}
+            value={override.color}
+            onChange={(color) => updateField('color', color)}
+          />
         </PropertyRow>
       )}
       <Checkbox
@@ -285,9 +284,9 @@ export const RouteSegmentControls = memo(function RouteSegmentControls({
           </select>
         </PropertyRow>
       )}
-      <button className="route-segment-clear" type="button" disabled={disabled || appearance.segmentStyles[legIndex] === null} onClick={() => updateOverride(null)}>
+      <Button variant="link" size="sm" className="route-segment-clear" disabled={disabled || appearance.segmentStyles[legIndex] === null} onClick={() => updateOverride(null)}>
         Clear leg override
-      </button>
+      </Button>
       {feedback.error && <p className="coordinate-validation" role="alert">{feedback.error}</p>}
     </>
   );

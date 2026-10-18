@@ -21,7 +21,7 @@
 .studio-template-art strong { font-size: 9px; font-family: Georgia, serif; text-align: center; }
 .studio-template-art small { font-size: 5px; color: inherit; }
 .studio-photo-add { margin: 4px 0; }
-.studio-photo-add > .inspector-secondary-button { flex: 1; }
+.studio-photo-add > .studio-button { flex: 1; }
 .studio-photo-list { list-style: none; display: grid; gap: 6px; margin: 4px 0 0; padding: 0; }
 .studio-photo-list li { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; align-items: center; gap: 8px; }
 .studio-photo-list img { width: 32px; height: 32px; border-radius: var(--studio-radius-xs); object-fit: cover; }

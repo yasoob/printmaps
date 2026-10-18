@@ -132,8 +132,8 @@ test('desktop commands, orientation, reorder, and overflow menu work in a real b
   expect(landscapeBounds!.width).toBeGreaterThan(landscapeBounds!.height);
 
   await page.getByRole('tab', { name: 'Layout' }).click();
-  await page.getByRole('button', { name: 'Portrait' }).click();
-  await expect(page.getByRole('button', { name: 'Portrait' })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('radio', { name: 'Portrait' }).click();
+  await expect(page.getByRole('radio', { name: 'Portrait' })).toHaveAttribute('aria-checked', 'true');
   await expect(page.getByRole('spinbutton', { name: 'Page width' })).toHaveValue('210');
   await expect(page.getByRole('spinbutton', { name: 'Page height' })).toHaveValue('297');
   const portraitBounds = await frame.boundingBox();

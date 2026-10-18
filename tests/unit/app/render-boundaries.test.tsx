@@ -293,6 +293,7 @@ describe('editor render boundaries', () => {
       onToggleLock: vi.fn(),
       onToggleVisibility: vi.fn(),
     };
+    localStorage.setItem('print-map-studio:inspector:layer:shape-vertices', 'open');
     const { rerender } = render(<LayerProperties {...props} />);
     const movedShape = { ...shape, geometry: structuredClone(shape.geometry) };
     movedShape.geometry.coordinates = movedShape.geometry.coordinates

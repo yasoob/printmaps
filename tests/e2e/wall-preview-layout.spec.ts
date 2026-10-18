@@ -16,7 +16,7 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
       await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-ready', 'true', { timeout: 30_000 });
       if (viewport.width < 900) await page.getByRole('button', { name: 'Open properties' }).click();
       await page.getByRole('tab', { name: 'Layout', exact: true }).click();
-      await page.getByRole('button', { name: orientation, exact: true }).click();
+      await page.getByRole('radio', { name: orientation, exact: true }).click();
       if (viewport.width < 900) await page.keyboard.press('Escape');
       await page.getByRole('button', { name: 'Export', exact: true }).click();
       await page.getByRole('button', { name: 'Preview framed', exact: true }).click();

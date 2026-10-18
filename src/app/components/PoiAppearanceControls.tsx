@@ -13,6 +13,9 @@ import {
 } from '../../domain/poiMarkers';
 import { PropertyRow } from './PropertyControls';
 import { FeatureHelp } from './FeatureHelp';
+import { Button } from '../../components/ui/button';
+import { ColorField } from '../../components/ui/color-field';
+import { Notice } from '../../components/ui/notice';
 import { InputGroup, InputGroupAddon, InputNumber } from './InputGroup';
 import type { ProjectMutationResult } from '../../domain/projectMutation';
 import { useMutationFeedback } from '../hooks/useMutationFeedback';
@@ -74,8 +77,8 @@ function CustomMarkerControl({
   return (
     <div className="custom-marker-control">
       <div className="feature-help-row">
-        <button className="inspector-secondary-button" type="button" disabled={state.pending} aria-label={`${customAsset ? 'Replace' : 'Upload'} custom marker`} onClick={() => fileInputRef.current?.click()}><ImagePlus aria-hidden="true" size={16} /> {customMarkerActionLabel(state.pending, customAsset)}</button>
-        {customAsset && <button className="inspector-secondary-button" type="button" aria-label="Remove custom marker" onClick={removeMarker}><Trash2 aria-hidden="true" size={16} /> Remove</button>}
+        <Button variant="secondary" busy={state.pending} aria-label={`${customAsset ? 'Replace' : 'Upload'} custom marker`} onClick={() => fileInputRef.current?.click()}>{!state.pending && <ImagePlus aria-hidden="true" />}{customMarkerActionLabel(state.pending, customAsset)}</Button>
+        {customAsset && <Button variant="secondary" aria-label="Remove custom marker" onClick={removeMarker}><Trash2 aria-hidden="true" /> Remove</Button>}
         <FeatureHelp label="Custom marker help">PNG or JPEG between 100 and 2048 px per side, or a scalable SVG (24-unit icons work). Maximum 1 MiB per file.</FeatureHelp>
       </div>
       <input ref={fileInputRef} aria-label="Custom marker file" accept=".png,.jpg,.jpeg,.svg,image/png,image/jpeg,image/svg+xml" disabled={state.pending} hidden type="file" onChange={(event) => {
@@ -84,7 +87,7 @@ function CustomMarkerControl({
         void handleFile(file);
       }} />
       {customAsset && <div role="status" aria-label="Custom marker status" className="custom-marker-status">Custom marker · {customAsset.width} × {customAsset.height} {customAsset.mimeType === 'image/svg+xml' ? 'SVG units · Scalable' : 'px'}</div>}
-      {state.error && <div role="alert" aria-label="Custom marker error" className="coordinate-validation">{state.error}</div>}
+      {state.error && <Notice tone="error" aria-label="Custom marker error">{state.error}</Notice>}
     </div>
   );
 }
@@ -129,8 +132,8 @@ export const PoiAppearanceControls = memo(function PoiAppearanceControls({ appea
 
   return (
     <>
-      {activeAsset && <p id={customStyleHelpId} className="custom-marker-help">The custom image supplies its own color, shape and symbol. Size, label and opacity still apply. Remove it to restore your standard marker style.</p>}
-      <PropertyRow label="Color"><label className="color-field"><input aria-label="POI color" disabled={!!activeAsset} aria-describedby={customStyleDescription} type="color" value={appearance.color} onChange={(event) => onChange({ ...appearance, color: event.target.value })} /></label></PropertyRow>
+      {activeAsset && <Notice id={customStyleHelpId} tone="info" className="custom-marker-notice">The custom image supplies its own color, shape and symbol. Size, label and opacity still apply. Remove it to restore your standard marker style.</Notice>}
+      <PropertyRow label="Color"><ColorField label="POI color" disabled={!!activeAsset} aria-describedby={customStyleDescription} value={appearance.color} onChange={(color) => onChange({ ...appearance, color })} /></PropertyRow>
       <PropertyRow label="Size"><InputGroup><InputNumber aria-label="POI marker size" aria-invalid={isSizeInvalid || undefined} min={8} max={48} step={1} value={sizeDraft} onChange={(event) => setSizeEdit({ source: appearance.size, value: event.target.value })} onBlur={(event) => commitSize(event.currentTarget.value)} /><InputGroupAddon align="inline-end" enableScrubbing sensitivity={4}>px</InputGroupAddon></InputGroup></PropertyRow>
       <PropertyRow label="Shape"><select aria-label="POI marker shape" disabled={!!activeAsset} aria-describedby={customStyleDescription} value={appearance.markerShape} onChange={(event) => onChange({ ...appearance, markerShape: event.target.value as PoiMarkerShape })}>{POI_MARKER_SHAPES.map((shape) => <option key={shape} value={shape}>{POI_MARKER_SHAPE_LABELS[shape]}</option>)}</select></PropertyRow>
       <PropertyRow label="Symbol"><select aria-label="POI marker symbol" disabled={!!activeAsset} aria-describedby={customStyleDescription} value={appearance.markerSymbol} onChange={(event) => onChange({ ...appearance, markerSymbol: event.target.value as PoiMarkerSymbol })}>{POI_MARKER_SYMBOLS.map((symbol) => <option key={symbol} value={symbol}>{POI_MARKER_SYMBOL_LABELS[symbol]}</option>)}</select></PropertyRow>

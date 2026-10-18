@@ -49,7 +49,7 @@ export async function trackWrites(page: Page) {
 export async function openConflict(loser: Page) {
   await loser.goto('./');
   await loser.getByRole('tab', { name: 'Layout' }).click();
-  await loser.getByRole('button', { name: 'Portrait', exact: true }).click();
+  await loser.getByRole('radio', { name: 'Portrait', exact: true }).click();
   await expect(loser.getByRole('status', { name: 'Autosave status' })).toHaveText('All changes saved locally');
   const winner = await loser.context().newPage();
   await winner.goto('./');

@@ -62,7 +62,7 @@ describe('editor autosave startup', () => {
     await renderLoadedApp(repository);
 
     await user.click(screen.getByRole('tab', { name: 'Layout' }));
-    await user.click(screen.getByRole('button', { name: 'Portrait' }));
+    await user.click(screen.getByRole('radio', { name: 'Portrait' }));
 
     await waitFor(() => expect(repository.save).toHaveBeenCalledTimes(1));
     expect(repository.save).toHaveBeenCalledWith(expect.objectContaining({
@@ -79,7 +79,7 @@ describe('editor autosave startup', () => {
     await renderLoadedApp(repository);
 
     await user.click(screen.getByRole('tab', { name: 'Layout' }));
-    await user.click(screen.getByRole('button', { name: 'Portrait' }));
+    await user.click(screen.getByRole('radio', { name: 'Portrait' }));
 
     const alert = await screen.findByRole('alert', { name: 'Autosave status' });
     expect(alert).toHaveTextContent('browser storage is full');

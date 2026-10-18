@@ -1,8 +1,8 @@
-import { memo } from "react"
+import { memo, type InputHTMLAttributes } from "react"
 
 import { cn } from "@/lib/utils"
 
-export type ColorFieldProps = Readonly<{
+export type ColorFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | "type" | "className"> & Readonly<{
   value: string
   onChange: (value: string) => void
   /**
@@ -21,10 +21,11 @@ function displayHex(value: string) {
 /**
 Compact field-fill color control: swatch plus hex value, opening the platform color picker.
 */
-export const ColorField = memo(function ColorField({ value, onChange, label, disabled = false, id, className }: ColorFieldProps) {
+export const ColorField = memo(function ColorField({ value, onChange, label, disabled = false, id, className, ...inputProps }: ColorFieldProps) {
   return (
     <label className={cn("studio-color-field", className)} data-disabled={disabled || undefined}>
       <input
+        {...inputProps}
         id={id}
         className="studio-color-field-native"
         aria-label={label}

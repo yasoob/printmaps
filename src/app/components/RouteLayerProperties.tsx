@@ -23,6 +23,8 @@ import { RouteAdvancedProperties } from "./RouteAdvancedProperties";
 import type { RouteExtensionEndpoint } from "./routeAuthoringActions";
 import type { ProjectMutationResult } from "../../domain/projectMutation";
 import { useMutationFeedback } from "../hooks/useMutationFeedback";
+import { Button } from "../../components/ui/button";
+import { ColorField } from "../../components/ui/color-field";
 
 function markerForPictogram(
   appearance: RouteAppearance,
@@ -79,16 +81,11 @@ const RouteAppearanceControls = memo(function RouteAppearanceControls({
   return (
     <>
       <PropertyRow label="Color">
-        <label className="color-field">
-          <input
-            aria-label="Route color"
-            type="color"
-            value={appearance.color}
-            onChange={(event) =>
-              onChange({ ...appearance, color: event.target.value })
-            }
-          />
-        </label>
+        <ColorField
+          label="Route color"
+          value={appearance.color}
+          onChange={(color) => onChange({ ...appearance, color })}
+        />
       </PropertyRow>
       <PropertyRow label="Width">
         <InputGroup>
@@ -194,20 +191,20 @@ const RouteExtensionControls = memo(function RouteExtensionControls({
         Continue this route from either endpoint without creating another layer.
       </p>
       <div className="route-extend-actions">
-        <button
-          type="button"
+        <Button
+          variant="secondary"
           disabled={isDisabled}
-          onClick={(event) => onBeginExtend("start", event.currentTarget)}
+          onClick={(event) => onBeginExtend("start", event.currentTarget as HTMLButtonElement)}
         >
           Extend start
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          variant="secondary"
           disabled={isDisabled}
-          onClick={(event) => onBeginExtend("end", event.currentTarget)}
+          onClick={(event) => onBeginExtend("end", event.currentTarget as HTMLButtonElement)}
         >
           Extend end
-        </button>
+        </Button>
       </div>
     </PropertySection>
   );

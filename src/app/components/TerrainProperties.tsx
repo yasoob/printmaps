@@ -3,9 +3,10 @@ import type { TerrainSettings } from '../../domain/studio';
 import type { ProjectMutationResult } from '../../domain/projectMutation';
 import { InspectorAccordion, PropertyRow } from './PropertyControls';
 import { ValidatedNumberField } from './ValidatedNumberField';
-import { Checkbox } from './UiControls';
 import { useMutationFeedback } from '../hooks/useMutationFeedback';
 import { FeatureHelp } from './FeatureHelp';
+import { ColorField } from '../../components/ui/color-field';
+import { ToggleSection } from '../../components/ui/toggle-section';
 import './terrainControls.css';
 import type { ComponentProps } from 'react';
 import { useSettingActions } from '../hooks/useSettingActions';
@@ -15,14 +16,14 @@ const TERRAIN_KEYS = ['enabled', 'exaggeration', 'contours', 'buildings'] as con
 const CONTOUR_KEYS = ['enabled', 'intervalMeters', 'width', 'color'] as const;
 const BUILDING_KEYS = ['enabled'] as const;
 
-const TerrainToggle = memo(function TerrainToggle({ help, helpLabel, ...props }: ComponentProps<typeof Checkbox> & { help: string; helpLabel: string }) {
-  return <div className="feature-help-row"><Checkbox {...props} /><FeatureHelp label={helpLabel}>{help}</FeatureHelp></div>;
-});
+const TERRAIN_HELP = <FeatureHelp label="3D terrain help">Increase camera Pitch to see terrain in perspective. Terrain is included in raster exports.</FeatureHelp>;
+const CONTOUR_HELP = <FeatureHelp label="Elevation contours help">Real elevation isolines. Intervals adapt from at least 10 m up to 500 m when zoomed out; contours appear from zoom 5.</FeatureHelp>;
+const BUILDING_HELP = <FeatureHelp label="3D buildings help">Only buildings with mapped height data are extruded.</FeatureHelp>;
 const TerrainNumber = memo(function TerrainNumber({ rowLabel, ...props }: ComponentProps<typeof ValidatedNumberField> & { rowLabel: string }) {
   return <PropertyRow label={rowLabel}><ValidatedNumberField {...props} /></PropertyRow>;
 });
 const TerrainColor = memo(function TerrainColor({ value, onChange }: { value: string; onChange: (color: string) => void }) {
-  return <PropertyRow label="Line color"><label className="color-field"><input type="color" aria-label="Contour line color" value={value} onChange={(event) => onChange(event.target.value)} /></label></PropertyRow>;
+  return <PropertyRow label="Line color"><ColorField label="Contour line color" value={value} onChange={onChange} /></PropertyRow>;
 });
 export type TerrainPropertiesProps = {
   documentEpoch: number;
@@ -43,17 +44,15 @@ export function TerrainProperties(props: TerrainPropertiesProps) {
   const numericProps = { resetKey: documentEpoch, step: 0.1 };
   return (
     <InspectorAccordion isDefaultExpanded={false} storageKey="print-map-studio:inspector:terrain" title="Terrain" summary={`${terrain.enabled ? '3D terrain' : 'Flat map'}${terrain.contours.enabled ? ' · Contours' : ''}`}>
-      <TerrainToggle isChecked={terrain.enabled} label="Show 3D terrain" onCheckedChange={toggleTerrain} helpLabel="3D terrain help" help="Increase camera Pitch to see terrain in perspective. Terrain is included in raster exports." />
-      {terrain.enabled && <>
+      <ToggleSection title="3D terrain" switchLabel="Show 3D terrain" help={TERRAIN_HELP} checked={terrain.enabled} onCheckedChange={toggleTerrain}>
         <TerrainNumber rowLabel="Exaggeration" {...numericProps} label="Terrain exaggeration" value={terrain.exaggeration} minimum={0} maximum={10} unit="×" onCommit={change.exaggeration} />
-      </>}
-      <TerrainToggle isChecked={terrain.contours.enabled} label="Show elevation contours" onCheckedChange={toggleContours} helpLabel="Elevation contours help" help="Real elevation isolines. Intervals adapt from at least 10 m up to 500 m when zoomed out; contours appear from zoom 5." />
-      {terrain.contours.enabled && <>
+      </ToggleSection>
+      <ToggleSection title="Elevation contours" switchLabel="Show elevation contours" help={CONTOUR_HELP} checked={terrain.contours.enabled} onCheckedChange={toggleContours}>
         <TerrainNumber rowLabel="Interval" {...numericProps} label="Contour interval" value={terrain.contours.intervalMeters} minimum={10} maximum={10_000} step={10} unit="m" onCommit={contours.intervalMeters} />
         <TerrainNumber rowLabel="Line width" {...numericProps} label="Contour line width" value={terrain.contours.width} minimum={0.1} maximum={10} unit="px" onCommit={contours.width} />
         <TerrainColor value={terrain.contours.color} onChange={contourColor} />
-      </>}
-      <TerrainToggle isChecked={terrain.buildings.enabled} label="Show 3D buildings" onCheckedChange={toggleBuildings} helpLabel="3D buildings help" help="Only buildings with mapped height data are extruded." />
+      </ToggleSection>
+      <ToggleSection title="3D buildings" switchLabel="Show 3D buildings" help={BUILDING_HELP} checked={terrain.buildings.enabled} onCheckedChange={toggleBuildings} />
       {feedback.error && <p role="alert" className="coordinate-validation">{feedback.error}</p>}
     </InspectorAccordion>
   );

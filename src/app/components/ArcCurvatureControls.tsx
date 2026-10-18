@@ -1,3 +1,4 @@
+import { Button } from '../../components/ui/button';
 import { useState } from "react";
 import { MAX_ARC_CURVATURE } from "../../domain/routeArcGeometry";
 import { InputGroup, InputGroupAddon, InputNumber } from "./InputGroup";
@@ -84,14 +85,13 @@ export function ArcCurvatureControls({
           <InputGroupAddon align="inline-end">×</InputGroupAddon>
         </InputGroup>
       </PropertyRow>
-      <button
-        type="button"
+      <Button variant="secondary"
         aria-label="Flip arc direction"
         disabled={disabled || curvature === 0}
         onClick={() => onChange(segmentIndex, -curvature)}
       >
         Flip direction
-      </button>
+      </Button>
     </>
   );
 }

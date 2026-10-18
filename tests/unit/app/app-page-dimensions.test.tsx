@@ -58,8 +58,8 @@ describe('editor page dimensions', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('tab', { name: 'Layout' }));
     const field = screen.getByRole('spinbutton', { name: 'Page width' });
-    const portrait = screen.getByRole('button', { name: 'Portrait' });
-    const landscape = screen.getByRole('button', { name: 'Landscape' });
+    const portrait = screen.getByRole('radio', { name: 'Portrait' });
+    const landscape = screen.getByRole('radio', { name: 'Landscape' });
     const undo = screen.getByRole('button', { name: 'Undo' });
 
     fireEvent.change(field, { target: { value: '240' } });
@@ -90,6 +90,6 @@ describe('editor page dimensions', () => {
 
     expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-page-size', '100x300');
     expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-orientation', 'portrait');
-    expect(screen.getByRole('button', { name: 'Portrait' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('radio', { name: 'Portrait' })).toHaveAttribute('aria-checked', 'true');
   });
 });

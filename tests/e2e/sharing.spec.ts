@@ -23,7 +23,7 @@ async function saveLocalChange(page: Page) {
   await page.goto('./');
   await expect(page.getByRole('status', { name: 'Autosave status' })).toHaveText('Autosave ready');
   await page.getByRole('tab', { name: 'Layout' }).click();
-  await page.getByRole('button', { name: 'Portrait' }).click();
+  await page.getByRole('radio', { name: 'Portrait' }).click();
   await expect(page.getByRole('status', { name: 'Autosave status' })).toHaveText('All changes saved locally');
 }
 
@@ -33,7 +33,7 @@ test('share snapshot is read-only, refresh/download/navigation preserve local au
   const link = await page.getByLabel('Read-only link').inputValue();
   await expect(page.getByLabel('Embed HTML')).toHaveValue(/<iframe .*width="100%"/);
   await page.getByRole('button', { name: 'Done', exact: true }).click();
-  await page.getByRole('button', { name: 'Landscape' }).click();
+  await page.getByRole('radio', { name: 'Landscape' }).click();
   await expect(page.getByRole('status', { name: 'Autosave status' })).toHaveText('All changes saved locally');
   const saved = await localDraft(page);
   const requests: string[] = [];
@@ -78,19 +78,19 @@ test('share snapshot is read-only, refresh/download/navigation preserve local au
   expect(JSON.parse(backupText).page.orientation).toBe('landscape');
   await page.getByRole('button', { name: 'Keep editing', exact: true }).click();
   await page.getByRole('tab', { name: 'Layout' }).click();
-  await expect(page.getByRole('button', { name: 'Landscape' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('radio', { name: 'Landscape' })).toHaveAttribute('aria-checked', 'true');
   expect(await localDraft(page)).toBe(saved);
 
   await page.goto(link);
   await page.getByRole('button', { name: 'Remix this map' }).click();
   await page.getByRole('button', { name: 'Replace project', exact: true }).click();
   await page.getByRole('tab', { name: 'Layout' }).click();
-  await expect(page.getByRole('button', { name: 'Portrait' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('radio', { name: 'Portrait' })).toHaveAttribute('aria-checked', 'true');
   await expect(page.getByRole('status', { name: 'Autosave status' })).toHaveText('All changes saved locally');
   expect(new URL(page.url()).hash).toBe('');
   await page.reload();
   await page.getByRole('tab', { name: 'Layout' }).click();
-  await expect(page.getByRole('button', { name: 'Portrait' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('radio', { name: 'Portrait' })).toHaveAttribute('aria-checked', 'true');
 });
 
 test('malformed and oversized fragments never modify a local project', async ({ page }) => {
@@ -105,7 +105,7 @@ test('malformed and oversized fragments never modify a local project', async ({ 
   }
   await page.getByRole('link', { name: 'Open my local project' }).click();
   await page.getByRole('tab', { name: 'Layout' }).click();
-  await expect(page.getByRole('button', { name: 'Portrait' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('radio', { name: 'Portrait' })).toHaveAttribute('aria-checked', 'true');
 });
 
 test('embed renders at narrow iframe size with fixed navigation and attribution without autosave access', async ({ page }) => {

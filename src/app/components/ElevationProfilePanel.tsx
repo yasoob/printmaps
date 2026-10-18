@@ -15,7 +15,15 @@ import type { ElevationProfileSession } from '../elevation/ElevationProfileSessi
 import { isProfileInteger, profileChartOptions, type ProfileChartOptions, type ProfileSessionState } from '../elevation/profileSessionTypes';
 import { useRouteElevationSession } from '../elevation/profileSessionContext';
 import { Checkbox } from './UiControls';
+import { PropertyRow } from './PropertyControls';
+import { Button } from '../../components/ui/button';
+import { ColorField } from '../../components/ui/color-field';
+import { Notice } from '../../components/ui/notice';
+import { SegmentedControl } from '../../components/ui/segmented-control';
+
 import { InputGroup, InputGroupAddon, InputNumber } from './InputGroup';
+
+const UNIT_OPTIONS = [{ value: 'metric', label: 'Metric' }, { value: 'imperial', label: 'Imperial' }] as const;
 
 function ProfileChart({ profile, routeName, options }: {
   profile: ElevationProfile;
@@ -65,18 +73,20 @@ function ElevationProfileReady({
     <div className="elevation-profile-ready" aria-busy={exporting}>
       <fieldset className="elevation-settings">
         <legend>Profile settings</legend>
-        <label className="elevation-number-row"><span>Print width</span><InputGroup><InputNumber min="50" max="300" step="1" aria-label="Profile print width" aria-describedby="profile-print-width-range" aria-invalid={isPrintWidthInvalid || undefined} value={printWidthDraft} onChange={(event) => {
+        <PropertyRow label="Print width"><InputGroup><InputNumber min="50" max="300" step="1" aria-label="Profile print width" aria-describedby="profile-print-width-range" aria-invalid={isPrintWidthInvalid || undefined} value={printWidthDraft} onChange={(event) => {
           model.setNumberDraft('printWidthMm', event.currentTarget.value);
-        }} /><InputGroupAddon align="inline-end" enableScrubbing sensitivity={4}>mm</InputGroupAddon></InputGroup><small id="profile-print-width-range">50–300 mm</small></label>
-        <div className="elevation-setting-row"><span>Units</span><label><input type="radio" name="elevation-units" checked={units === 'metric'} onChange={() => model.setSetting('units', 'metric')} /> Metric</label><label><input type="radio" name="elevation-units" checked={units === 'imperial'} onChange={() => model.setSetting('units', 'imperial')} /> Imperial</label></div>
-        <label className="elevation-color-row"><span>Curve</span><input type="color" aria-label="Profile curve color" value={curveColor} disabled={!showCurve} onInput={(event) => model.setSetting('customCurveColor', event.currentTarget.value)} /></label>
-        <label className="elevation-color-row"><span>Fill</span><input type="color" aria-label="Profile fill color" value={fillColor} onInput={(event) => model.setSetting('fillColor', event.currentTarget.value)} /></label>
-        <label className="elevation-color-row"><span>Gradient</span><input type="color" aria-label="Profile gradient color" value={gradientColor} disabled={!showGradient} onInput={(event) => model.setSetting('gradientColor', event.currentTarget.value)} /></label>
-        <label className="elevation-color-row"><span>Markers</span><input type="color" aria-label="Elevation marker color" value={markerColor} onInput={(event) => model.setSetting('markerColor', event.currentTarget.value)} /></label>
-        <label className="elevation-select-row"><span>Font</span><select aria-label="Profile font" value={fontFamily} onChange={(event) => model.setSetting('fontFamily', event.currentTarget.value as ElevationProfileFontFamily)}><option value="sans">Sans serif</option><option value="serif">Serif</option><option value="mono">Monospace</option></select></label>
-        <label className="elevation-number-row"><span>Font size</span><InputGroup><InputNumber min="20" max="70" step="1" aria-label="Profile font size" aria-describedby="profile-font-size-range" aria-invalid={isFontSizeInvalid || undefined} value={fontSizeDraft} onChange={(event) => {
+        }} /><InputGroupAddon align="inline-end" enableScrubbing sensitivity={4}>mm</InputGroupAddon></InputGroup></PropertyRow>
+        <small id="profile-print-width-range" className={isPrintWidthInvalid ? 'coordinate-validation' : 'sr-only'}>Use 50–300 mm.</small>
+        <PropertyRow label="Units"><SegmentedControl label="Elevation units" value={units} options={UNIT_OPTIONS} onValueChange={(value) => model.setSetting('units', value)} /></PropertyRow>
+        <PropertyRow label="Curve"><ColorField label="Profile curve color" value={curveColor} disabled={!showCurve} onChange={(value) => model.setSetting('customCurveColor', value)} /></PropertyRow>
+        <PropertyRow label="Fill"><ColorField label="Profile fill color" value={fillColor} onChange={(value) => model.setSetting('fillColor', value)} /></PropertyRow>
+        <PropertyRow label="Gradient"><ColorField label="Profile gradient color" value={gradientColor} disabled={!showGradient} onChange={(value) => model.setSetting('gradientColor', value)} /></PropertyRow>
+        <PropertyRow label="Markers"><ColorField label="Elevation marker color" value={markerColor} onChange={(value) => model.setSetting('markerColor', value)} /></PropertyRow>
+        <PropertyRow label="Font"><select aria-label="Profile font" value={fontFamily} onChange={(event) => model.setSetting('fontFamily', event.currentTarget.value as ElevationProfileFontFamily)}><option value="sans">Sans serif</option><option value="serif">Serif</option><option value="mono">Monospace</option></select></PropertyRow>
+        <PropertyRow label="Font size"><InputGroup><InputNumber min="20" max="70" step="1" aria-label="Profile font size" aria-describedby="profile-font-size-range" aria-invalid={isFontSizeInvalid || undefined} value={fontSizeDraft} onChange={(event) => {
           model.setNumberDraft('fontSize', event.currentTarget.value);
-        }} /><InputGroupAddon align="inline-end" enableScrubbing sensitivity={4}>px</InputGroupAddon></InputGroup><small id="profile-font-size-range">20–70</small></label>
+        }} /><InputGroupAddon align="inline-end" enableScrubbing sensitivity={4}>px</InputGroupAddon></InputGroup></PropertyRow>
+        <small id="profile-font-size-range" className={isFontSizeInvalid ? 'coordinate-validation' : 'sr-only'}>Use 20–70 px.</small>
         <div className="elevation-option-grid">
           <Checkbox isChecked={showCurve} label="Curve stroke" onCheckedChange={(value) => model.setSetting('showCurve', value)} />
           <Checkbox isChecked={showFill} label="Fill below curve" onCheckedChange={(value) => model.setSetting('showFill', value)} />
@@ -100,11 +110,11 @@ function ElevationProfileReady({
         <small>Distance-only estimates; terrain, stops, and conditions are not included.</small>
       </div>
       <div className="elevation-downloads">
-        <button type="button" disabled={cannotExport} aria-label="Download elevation SVG" onClick={() => void model.export('svg')}>SVG</button>
-        <button type="button" disabled={cannotExport} aria-label="Download elevation PNG" onClick={() => void model.export('png')}>PNG</button>
-        <button type="button" disabled={cannotExport} aria-label="Download elevation PDF" onClick={() => void model.export('pdf')}>PDF</button>
+        <Button variant="secondary" disabled={cannotExport} aria-label="Download elevation SVG" onClick={() => void model.export('svg')}>SVG</Button>
+        <Button variant="secondary" disabled={cannotExport} aria-label="Download elevation PNG" onClick={() => void model.export('png')}>PNG</Button>
+        <Button variant="secondary" disabled={cannotExport} aria-label="Download elevation PDF" onClick={() => void model.export('pdf')}>PDF</Button>
       </div>
-      {exportError && <p role="alert">{exportError}</p>}
+      {exportError && <Notice tone="error">{exportError}</Notice>}
     </div>
   );
 }

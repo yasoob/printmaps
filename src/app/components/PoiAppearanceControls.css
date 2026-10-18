@@ -1,9 +1,5 @@
-.custom-marker-help {
-  grid-column: 1 / -1;
-  margin: 4px 0;
-  color: var(--studio-text-muted);
-  font-size: max(12px, var(--studio-font-meta));
-  line-height: 1.4;
+.custom-marker-notice {
+  margin: 4px 0 8px;
 }
 
 .custom-marker-control {

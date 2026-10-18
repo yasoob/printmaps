@@ -34,13 +34,13 @@ it('renders default-off controls and sends complete canonical terrain values wit
   const props = { documentEpoch: 1, terrain: studio.terrain, relief: studio.relief, layers: [], exporter: null, onTerrainChange, onReliefChange: vi.fn(() => ({ ok: true as const })) };
   const view = render(<TerrainProperties {...props} />);
   fireEvent.click(screen.getByRole('button', { name: 'Terrain' }));
-  const terrainToggle = screen.getByRole('checkbox', { name: 'Show 3D terrain' });
+  const terrainToggle = screen.getByRole('switch', { name: 'Show 3D terrain' });
   expect(terrainToggle).not.toBeChecked();
   fireEvent.click(terrainToggle);
   expect(onTerrainChange).toHaveBeenLastCalledWith({ ...studio.terrain, enabled: true });
   expect(terrainToggle).not.toBeChecked();
   view.rerender(<TerrainProperties {...props} terrain={{ ...studio.terrain, enabled: true }} />);
-  expect(screen.getByRole('checkbox', { name: 'Show 3D terrain' })).toBeChecked();
+  expect(screen.getByRole('switch', { name: 'Show 3D terrain' })).toBeChecked();
   const exaggeration = screen.getByLabelText('Terrain exaggeration');
   fireEvent.change(exaggeration, { target: { value: '3' } });
   fireEvent.blur(exaggeration);

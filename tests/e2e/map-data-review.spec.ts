@@ -175,7 +175,7 @@ for (const width of [1440, 390]) {
 test('UX030 review protects background tool/history/delete shortcuts and preserves cancel state', async ({ page }) => {
   await page.goto('./');
   await page.getByRole('tab', { name: 'Layout' }).click();
-  await page.getByRole('button', { name: 'Portrait', exact: true }).click();
+  await page.getByRole('radio', { name: 'Portrait', exact: true }).click();
   await page.getByRole('button', { name: 'Select Route 01', exact: true }).click();
   const before = await downloadProject(page);
   await choose(page);
@@ -194,7 +194,7 @@ test('UX030 a content edit during checking is visibly rejected without applying 
   const before = await downloadProject(page);
   await page.getByRole('tab', { name: 'Layout' }).click();
   await choose(page, 'hold-stale.geojson');
-  await page.getByRole('button', { name: 'Portrait', exact: true, includeHidden: true })
+  await page.getByRole('radio', { name: 'Portrait', exact: true, includeHidden: true })
     .evaluate((button: HTMLButtonElement) => button.click());
   await releaseRead(page, 'hold-stale.geojson');
   await expect(review(page).getByRole('alert')).toHaveText('The project changed while checking these files. Nothing was imported. Choose the files again.');

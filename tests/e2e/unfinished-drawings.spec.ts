@@ -46,7 +46,7 @@ async function dismissReload(page: Page) {
 test('real reload confirmation retains route work on cancel; accepted reload restores completed layers only', async ({ page }, testInfo) => {
   await page.goto('./');
   await page.getByRole('tab', { name: 'Layout' }).click();
-  await page.getByRole('button', { name: 'Portrait', exact: true }).click();
+  await page.getByRole('radio', { name: 'Portrait', exact: true }).click();
   const status = page.getByRole('status', { name: 'Autosave status' });
   await expect(status).toHaveText('All changes saved locally');
   await page.getByRole('button', { name: 'Route (R)' }).click();
@@ -68,7 +68,7 @@ test('real reload confirmation retains route work on cancel; accepted reload res
   await expect(page.getByRole('status', { name: 'Unfinished drawing' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Select (V)' })).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('tab', { name: 'Layout' }).click();
-  await expect(page.getByRole('button', { name: 'Portrait', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('radio', { name: 'Portrait', exact: true })).toHaveAttribute('aria-checked', 'true');
   const restored = await downloadProject(page);
   expect(restored.layers).toEqual(downloaded.layers);
 });

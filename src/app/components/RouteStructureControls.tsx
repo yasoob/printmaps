@@ -1,3 +1,5 @@
+import { PropertyRow } from './PropertyControls';
+import { Button } from '../../components/ui/button';
 import type { ContentLayer, RouteKind } from "../../domain/project";
 import { semanticRoutePoints } from "../../domain/routeModel";
 import {
@@ -43,8 +45,7 @@ function RouteConversionFields({
 }) {
   return (
     <>
-      <label>
-        <span>Convert to</span>
+      <PropertyRow label="Convert to">
         <select
           aria-label="Convert route to"
           disabled={isDisabled}
@@ -55,10 +56,9 @@ function RouteConversionFields({
             <option key={kind} value={kind}>{label}</option>
           ))}
         </select>
-      </label>
+      </PropertyRow>
       {operation.targetKind === "road" ? (
-        <label>
-          <span>Road travel mode</span>
+        <PropertyRow label="Travel mode">
           <select
             aria-label="Road conversion travel mode"
             disabled={isDisabled}
@@ -75,7 +75,7 @@ function RouteConversionFields({
               </option>
             ))}
           </select>
-        </label>
+        </PropertyRow>
       ) : null}
     </>
   );
@@ -94,17 +94,16 @@ function RouteStructureActions({
 }) {
   return (
     <>
-      <button
-        type="button"
+      <Button variant="secondary"
         disabled={isDisabled || operation.targetKind === layer.route?.kind}
         onClick={operation.beginConvert}
       >
         Convert
-      </button>
+      </Button>
       <div className="route-structure-actions">
-        <button type="button" disabled={isDisabled} onClick={operation.beginReverse}>
+        <Button variant="secondary" disabled={isDisabled} onClick={operation.beginReverse}>
           Reverse
-        </button>
+        </Button>
         <RouteLoopAction
           isDisabled={isDisabled}
           layer={layer}
@@ -130,23 +129,22 @@ function RouteLoopAction({
 }) {
   if (layer.route?.closed) {
     return (
-      <button type="button" disabled={isDisabled} onClick={operation.beginOpen}>
+      <Button variant="secondary" disabled={isDisabled} onClick={operation.beginOpen}>
         Open loop
-      </button>
+      </Button>
     );
   }
   const closeReasonId = `${layer.id}-close-loop-reason`;
   const isTooShort = pointCount < 3;
   const isOverClosedRoadLimit = layer.route?.kind === "road" && pointCount > 24;
   return (
-    <button
-      type="button"
+    <Button variant="secondary"
       aria-describedby={isTooShort || isOverClosedRoadLimit ? closeReasonId : undefined}
       disabled={isDisabled || isTooShort || isOverClosedRoadLimit}
       onClick={operation.beginClose}
     >
       Close loop
-    </button>
+    </Button>
   );
 }
 
@@ -184,10 +182,10 @@ const RouteOperationStatus = memo(function RouteOperationStatus({ isRoad, state,
           routing succeeds.
         </p>
         <div>
-          <button type="button" onClick={cancel}>Cancel</button>
-          <button className="primary-button" type="button" onClick={confirm}>
+          <Button variant="ghost" onClick={cancel}>Cancel</Button>
+          <Button variant="primary" onClick={confirm}>
             Route and apply
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -196,7 +194,7 @@ const RouteOperationStatus = memo(function RouteOperationStatus({ isRoad, state,
     return (
       <div className="route-structure-progress">
         <p role="status">Finding roads to {label}…</p>
-        <button type="button" onClick={cancel}>Cancel routing</button>
+        <Button variant="ghost" onClick={cancel}>Cancel routing</Button>
       </div>
     );
   }
@@ -204,8 +202,8 @@ const RouteOperationStatus = memo(function RouteOperationStatus({ isRoad, state,
     <div className="route-structure-error" role="alert">
       <p>{state.error}</p>
       <div>
-        <button type="button" onClick={retry}>Retry</button>
-        <button type="button" onClick={cancel}>Cancel</button>
+        <Button variant="secondary" onClick={retry}>Retry</Button>
+        <Button variant="ghost" onClick={cancel}>Cancel</Button>
       </div>
     </div>
   );

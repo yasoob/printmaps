@@ -54,7 +54,7 @@ describe('editor autosave lifecycle', () => {
     };
     const { unmount } = await renderLoadedApp(repository);
     await user.click(screen.getByRole('tab', { name: 'Layout' }));
-    await user.click(screen.getByRole('button', { name: 'Portrait' }));
+    await user.click(screen.getByRole('radio', { name: 'Portrait' }));
     await waitFor(() => expect(repository.save).toHaveBeenCalledTimes(1));
     await user.selectOptions(screen.getByRole('combobox', { name: 'Page preset' }), 'A3');
     await new Promise((resolve) => window.setTimeout(resolve, 350));

@@ -30,7 +30,7 @@ it('updates only the canonical section and exposes rendering constraints on a pi
   const user = userEvent.setup(), store = createProjectStore(createInitialProjectDocument());
   render(<ProjectStoreContext value={store}><StudioCompositionControls exporter={null} /></ProjectStoreContext>);
   await user.click(screen.getByRole('button', { name: 'Text' }));
-  await user.click(screen.getByRole('checkbox', { name: 'Show title' }));
+  await user.click(screen.getByRole('switch', { name: 'Show title' }));
   expect(store.getState().document.studio.poster.enabled).toBe(true);
   const photos = store.getState().document.studio.photos;
   await user.type(screen.getByRole('textbox', { name: 'Title text' }), 'My city');
@@ -38,8 +38,8 @@ it('updates only the canonical section and exposes rendering constraints on a pi
   expect(store.getState().document.studio.photos).toBe(photos);
   act(() => store.getState().setCameraPitch(30));
   await user.click(screen.getByRole('button', { name: 'Map elements' }));
-  expect(screen.getByRole('checkbox', { name: 'Show scale bar' })).toBeDisabled();
-  expect(screen.getByText(/Scale requires pitch 0/)).toBeVisible();
+  expect(screen.getByRole('switch', { name: 'Show scale bar' })).toBeDisabled();
+  expect(screen.getByText(/need pitch 0 and terrain off/)).toBeVisible();
 });
 
 it('keeps output actions out of the layout inspector', () => {

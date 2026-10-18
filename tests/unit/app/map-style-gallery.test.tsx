@@ -61,7 +61,7 @@ describe('map style preset gallery', () => {
     expect(screen.queryByText('Paper base')).not.toBeInTheDocument();
     expect(screen.queryByText('Linked')).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Warm' }));
+    await user.click(screen.getByRole('radio', { name: 'Warm' }));
     fireEvent.change(screen.getByRole('slider', { name: 'Contrast' }), { target: { value: '72' } });
     fireEvent.input(screen.getByLabelText('Water color'), { target: { value: '#123456' } });
     expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-style-customized', 'true');
@@ -84,12 +84,12 @@ describe('map style preset gallery', () => {
     render(<App />);
     await user.click(screen.getByRole('radio', { name: /Night Ink/ }));
     await user.click(screen.getByRole('button', { name: /Customize colors/ }));
-    await user.click(screen.getByRole('button', { name: 'Warm' }));
+    await user.click(screen.getByRole('radio', { name: 'Warm' }));
 
     await user.click(screen.getByRole('button', { name: 'Reset to Paper' }));
 
     expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-style-preset', 'paper');
     expect(screen.getByTestId('map-canvas')).toHaveAttribute('data-style-customized', 'false');
-    expect(screen.getByRole('button', { name: 'Balanced' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('radio', { name: 'Balanced' })).toHaveAttribute('aria-checked', 'true');
   });
 });

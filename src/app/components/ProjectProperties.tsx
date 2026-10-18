@@ -15,6 +15,7 @@ import { useMutationFeedback } from '../hooks/useMutationFeedback';
 import { trackEditorAction } from '../../analytics/editorAnalytics';
 import { useStableEvent } from '../hooks/useStableEvent';
 import { StudioModeTabs } from './StudioModeTabs';
+import { Button } from '../../components/ui/button';
 
 // Camera-rate center and zoom updates do not belong to the inspector.
 export type CameraInspectorView = Pick<CameraSettings, 'bearing' | 'locked' | 'pitch'>;
@@ -129,11 +130,11 @@ const ProjectStyleSection = memo(function ProjectStyleSection({ preset, customiz
     <MapStyleGallery selectedPreset={preset} onSelect={selectStyle} />
     <MapStyleCustomizeTrigger buttonRef={customizeTriggerRef} customization={customization} preset={preset} onOpen={onOpenCustomizer} />
     {!isDefaultStyle && <div className="map-style-default-reset-row">
-      <button className="map-style-default-reset" type="button" onClick={() => {
+      <Button variant="link" size="sm" onClick={() => {
         if (feedback.report(onStyleReset()).ok) window.setTimeout(() => customizeTriggerRef.current?.focus(), 0);
       }}>
-        <RotateCcw aria-hidden="true" size={14} /> Reset to Paper
-      </button>
+        <RotateCcw aria-hidden="true" /> Reset to Paper
+      </Button>
     </div>}
     {feedback.error && <p className="coordinate-validation" role="alert">{feedback.error}</p>}
   </InspectorAccordion>;
@@ -144,8 +145,8 @@ const ProjectCameraSection = memo(function ProjectCameraSection({ camera, docume
   return <InspectorAccordion isDefaultExpanded={false} storageKey={`${PROJECT_DISCLOSURE_PREFIX}:camera-location`} summary={`${camera.bearing}° bearing · ${camera.pitch}° pitch · ${camera.locked ? 'Locked' : 'Unlocked'}`} title="View">
     <PropertyRow label="Bearing"><ValidatedNumberField label="Bearing" value={camera.bearing} minimum={-180} maximum={180} step={1} unit="°" resetKey={documentEpoch} onCommit={onBearingChange} /></PropertyRow>
     <PropertyRow label="Pitch"><ValidatedNumberField label="Pitch" value={camera.pitch} minimum={0} maximum={60} step={1} unit="°" resetKey={documentEpoch} onCommit={onPitchChange} /></PropertyRow>
-    <Switch isChecked={camera.locked} label="Lock map area" onCheckedChange={(locked) => feedback.report(onMapAreaLockChange(locked))} />
-    <Switch isChecked={pageBoundaryVisible} label="Show page boundary" onCheckedChange={onPageBoundaryVisibilityChange} />
+    <Switch labelPlacement="start" isChecked={camera.locked} label="Lock map area" onCheckedChange={(locked) => feedback.report(onMapAreaLockChange(locked))} />
+    <Switch labelPlacement="start" isChecked={pageBoundaryVisible} label="Show page boundary" onCheckedChange={onPageBoundaryVisibilityChange} />
     {feedback.error && <p className="coordinate-validation" role="alert">{feedback.error}</p>}
     <GeolocationControl key={`${documentEpoch}-${String(camera.locked)}`} locked={camera.locked} requestScope={documentEpoch} onLocate={onLocate} />
   </InspectorAccordion>;

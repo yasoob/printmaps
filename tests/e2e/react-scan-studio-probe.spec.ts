@@ -114,8 +114,8 @@ test('decoration toggle leaves poster, photo, terrain and native map owners stab
     ...NATIVE_MAP_OWNERS, 'PosterControls', 'PhotoStoryControls', 'TemplateGallery', 'WallPreviewDialog',
   ]);
   expect(result.mapMutations).toEqual([]);
-  // Enabling the compass mounts its dependent fields; no other decoration field renders.
-  expectOnlyControls(result, STUDIO_FIELDS, ['Show compass', 'Compass corner', 'Compass style', 'Compass size', 'Compass color']);
+  // The compass ToggleSection mounts its dependent fields; no other decoration field renders.
+  expectOnlyControls(result, STUDIO_FIELDS, ['Compass corner', 'Compass style', 'Compass size', 'Compass color']);
 });
 
 test('moving a photo POI preserves the other photo and unrelated route sources', async ({ page }, info) => {
@@ -150,7 +150,7 @@ test('terrain exaggeration updates native terrain without composition or sibling
   expectOwners(result, ['TerrainProperties', 'MapCanvas'], ['StudioCompositionControls', 'StudioPosterPreview', 'PhotoStoryControls', 'PosterControls', 'StudioVideoControls']);
   expect(result.mapMutations.some(({ operation, surface }) => operation === 'setTerrain' && surface === 'editor')).toBe(true);
   expect(result.mapMutations.filter(({ operation }) => ['setData', 'addLayer', 'removeLayer', 'removeSource'].includes(operation))).toEqual([]);
-  expectOnlyControls(result, ['Checkbox', 'ValidatedNumberField'], ['Terrain exaggeration']);
+  expectOnlyControls(result, ['ValidatedNumberField'], ['Terrain exaggeration']);
 });
 
 test('video settings stay outside the live camera and composition', async ({ page }, info) => {
@@ -204,7 +204,7 @@ test('terrain contour width leaves exaggeration, interval, color and toggles sil
   await page.getByLabel('Contour line width', { exact: true }).fill('2');
   await page.getByLabel('Contour line width', { exact: true }).press('Enter');
   const result = await finishProbe(page, info, 'contour-width');
-  expectOnlyControls(result, ['Checkbox', 'ValidatedNumberField'], ['Contour line width']);
+  expectOnlyControls(result, ['ValidatedNumberField'], ['Contour line width']);
   expect(result.components.TerrainColor).toBeUndefined();
   expect(result.components.StudioCompositionControls).toBeUndefined();
   expect(result.mapMutations.filter(({ operation }) => ['addLayer', 'removeLayer', 'setData'].includes(operation))).toEqual([]);

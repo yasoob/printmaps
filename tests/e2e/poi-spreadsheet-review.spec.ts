@@ -233,7 +233,7 @@ test('UX035 replacement and native unload protect lists while downloads and relo
   await controlledProvider(page);
   await page.goto('./');
   await page.getByRole('tab', { name: 'Layout' }).click();
-  await page.getByRole('button', { name: 'Portrait', exact: true }).click();
+  await page.getByRole('radio', { name: 'Portrait', exact: true }).click();
   await expect(page.getByRole('status', { name: 'Autosave status' })).toHaveText('All changes saved locally');
   const original = await savedAdmissionRecord(page);
   await openList(page);

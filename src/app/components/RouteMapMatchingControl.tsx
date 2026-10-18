@@ -1,3 +1,4 @@
+import { Button } from '../../components/ui/button';
 import { useEffect, useRef, useState } from "react";
 import type {
   MapMatchingInput,
@@ -201,14 +202,12 @@ export function RouteMapMatchingControl({
           ))}
         </select>
       </PropertyRow>
-      <button
-        className="secondary-action"
-        type="button"
+      <Button variant="secondary"
         disabled={isActionDisabled}
         onClick={() => void matchRoute()}
       >
         {isMatching ? "Matching route…" : "Snap route to roads"}
-      </button>
+      </Button>
       <small>{matchingGuidance(providerProfile, coordinates.length)}</small>
       {provenance && (
         <div className="provider-provenance-summary">

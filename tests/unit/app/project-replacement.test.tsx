@@ -110,7 +110,7 @@ it('protects redo history even when the current document matches blank defaults'
   const user = userEvent.setup();
   const { container } = render(<App initialDocument={createNewProjectDocument()} autosaveRepository={null} />);
   await user.click(screen.getByRole('tab', { name: 'Layout' }));
-  await user.click(screen.getByRole('button', { name: 'Portrait' }));
+  await user.click(screen.getByRole('radio', { name: 'Portrait' }));
   await user.click(screen.getByRole('button', { name: 'Undo' }));
   requestOpen(container, createInitialProjectDocument());
   await screen.findByRole('dialog', { name: 'Replace current project?' });

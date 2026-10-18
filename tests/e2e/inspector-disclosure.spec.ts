@@ -125,7 +125,7 @@ test('project inspector progressively discloses advanced controls on desktop and
   expect(presetRowBounds).not.toBeNull();
   expect(presetRowBounds!.height).toBeGreaterThanOrEqual(40);
   const propertiesBounds = await properties.boundingBox();
-  const portraitBounds = await properties.getByRole('button', { name: 'Portrait' }).boundingBox();
+  const portraitBounds = await properties.getByRole('radio', { name: 'Portrait' }).boundingBox();
   expect(propertiesBounds).not.toBeNull();
   expect(portraitBounds).not.toBeNull();
   expect(propertiesBounds!.width).toBeGreaterThanOrEqual(300);

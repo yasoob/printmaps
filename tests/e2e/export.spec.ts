@@ -404,7 +404,7 @@ test('export downloads the current print frame as PNG on desktop and mobile', as
   const heightField = page.getByRole('spinbutton', { name: 'Page height' });
   await heightField.fill('60');
   await heightField.press('Tab');
-  await expect(page.getByRole('button', { name: 'Portrait' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('radio', { name: 'Portrait' })).toHaveAttribute('aria-checked', 'true');
   const customFrame = await page.locator('.print-frame').boundingBox();
   expect(customFrame).not.toBeNull();
   expect(Math.abs(customFrame!.width / customFrame!.height - 1 / 3)).toBeLessThan(0.01);

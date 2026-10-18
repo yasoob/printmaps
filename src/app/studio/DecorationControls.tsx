@@ -2,7 +2,10 @@ import { memo, useMemo } from 'react';
 import type { ContentLayer } from '../../domain/project';
 import type { ProjectMutationResult } from '../../domain/projectMutation';
 import type { DecorationSettings } from '../../domain/studio';
-import { StudioColor, StudioNumber, StudioSelect, StudioToggle } from './StudioFields';
+import { StudioColor, StudioNumber, StudioSelect } from './StudioFields';
+import { ToggleSection } from '../../components/ui/toggle-section';
+import { Notice } from '../../components/ui/notice';
+import { Switch } from '../components/UiControls';
 import { FeatureHelp } from '../components/FeatureHelp';
 import { useSettingActions } from '../hooks/useSettingActions';
 import { useStableEvent } from '../hooks/useStableEvent';
@@ -32,39 +35,27 @@ export const DecorationControls = memo(function DecorationControls({ value, epoc
   const pointOptions = useMemo(() => [{ value: '', label: 'Current map center' }, ...pointLayers.map((layer) => ({ value: layer.id, label: layer.name }))], [pointLayers]);
   const destination = useStableEvent((layerId: string) => change.qr({ ...value.qr, target: layerId ? 'layer' : 'map-center', layerId: layerId || null }));
   return <div className="studio-composition-controls">
-    <fieldset><legend>North compass</legend>
-      <StudioToggle label="Show compass" checked={value.compass.enabled} onChange={compass.enabled} />
-      {value.compass.enabled && <>
-        <StudioSelect label="Compass corner" value={value.compass.position} options={POSITIONS} onChange={compass.position} />
-        <StudioSelect label="Compass style" value={value.compass.style} options={STYLES} onChange={compass.style} />
-        <StudioNumber label="Compass size" value={value.compass.sizeMm} min={8} max={40} epoch={epoch} onChange={compass.sizeMm} />
-        <StudioColor label="Compass color" value={value.compass.color} onChange={compass.color} />
-      </>}
-    </fieldset>
-    <fieldset><legend>Ground scale</legend>
-      {!isFlat && <p role="status" className="property-note">Scale requires pitch 0 and terrain off. Existing scale bars must be disabled before exporting a pitched map.</p>}
-      <StudioToggle label="Show scale bar" checked={value.scale.enabled} disabled={!isFlat && !value.scale.enabled} onChange={scale.enabled} />
-      {value.scale.enabled && <>
-        <StudioSelect label="Scale units" value={value.scale.units} options={UNITS} onChange={scale.units} />
-        <StudioSelect label="Scale corner" value={value.scale.position} options={POSITIONS} onChange={scale.position} />
-        <StudioNumber label="Scale width" value={value.scale.widthMm} min={10} max={100} epoch={epoch} onChange={scale.widthMm} />
-      </>}
-    </fieldset>
-    <fieldset><legend>Coordinate grid</legend>
-      <StudioToggle label="Show coordinate grid" checked={value.grid.enabled} disabled={!isFlat && !value.grid.enabled} onChange={grid.enabled} />
-      {value.grid.enabled && <>
-        <StudioNumber label="Grid interval" value={value.grid.intervalDegrees} min={0.01} max={90} unit="°" epoch={epoch} onChange={grid.intervalDegrees} />
-        <StudioToggle label="Label grid lines" checked={value.grid.showLabels} onChange={grid.showLabels} />
-        <StudioColor label="Grid color" value={value.grid.color} onChange={grid.color} />
-      </>}
-    </fieldset>
-    <fieldset><legend className="feature-help-row">Location QR code{qrHelp}</legend>
-      <StudioToggle label="Show location QR" checked={value.qr.enabled} onChange={qr.enabled} />
-      {value.qr.enabled && <>
-        <StudioSelect label="QR destination" value={value.qr.target === 'map-center' ? '' : value.qr.layerId ?? ''} options={pointOptions} onChange={destination} />
-        <StudioSelect label="QR corner" value={value.qr.position} options={POSITIONS} onChange={qr.position} />
-        <StudioNumber label="QR size" value={value.qr.sizeMm} min={16} max={60} epoch={epoch} onChange={qr.sizeMm} />
-      </>}
-    </fieldset>
+    <ToggleSection title="North compass" switchLabel="Show compass" checked={value.compass.enabled} onCheckedChange={compass.enabled}>
+      <StudioSelect label="Compass corner" rowLabel="Corner" value={value.compass.position} options={POSITIONS} onChange={compass.position} />
+      <StudioSelect label="Compass style" rowLabel="Style" value={value.compass.style} options={STYLES} onChange={compass.style} />
+      <StudioNumber label="Compass size" rowLabel="Size" value={value.compass.sizeMm} min={8} max={40} epoch={epoch} onChange={compass.sizeMm} />
+      <StudioColor label="Compass color" rowLabel="Color" value={value.compass.color} onChange={compass.color} />
+    </ToggleSection>
+    {!isFlat && <Notice tone="warning" className="studio-composition-notice">Scale bars and grids need pitch 0 and terrain off. Turn existing ones off before exporting a pitched map.</Notice>}
+    <ToggleSection title="Ground scale" switchLabel="Show scale bar" checked={value.scale.enabled} disabled={!isFlat && !value.scale.enabled} onCheckedChange={scale.enabled}>
+      <StudioSelect label="Scale units" rowLabel="Units" value={value.scale.units} options={UNITS} onChange={scale.units} />
+      <StudioSelect label="Scale corner" rowLabel="Corner" value={value.scale.position} options={POSITIONS} onChange={scale.position} />
+      <StudioNumber label="Scale width" rowLabel="Width" value={value.scale.widthMm} min={10} max={100} epoch={epoch} onChange={scale.widthMm} />
+    </ToggleSection>
+    <ToggleSection title="Coordinate grid" switchLabel="Show coordinate grid" checked={value.grid.enabled} disabled={!isFlat && !value.grid.enabled} onCheckedChange={grid.enabled}>
+      <StudioNumber label="Grid interval" rowLabel="Interval" value={value.grid.intervalDegrees} min={0.01} max={90} unit="°" epoch={epoch} onChange={grid.intervalDegrees} />
+      <StudioColor label="Grid color" rowLabel="Color" value={value.grid.color} onChange={grid.color} />
+      <Switch label="Label grid lines" labelPlacement="start" isChecked={value.grid.showLabels} onCheckedChange={grid.showLabels} />
+    </ToggleSection>
+    <ToggleSection title="Location QR code" switchLabel="Show location QR" help={qrHelp} checked={value.qr.enabled} onCheckedChange={qr.enabled}>
+      <StudioSelect label="QR destination" rowLabel="Opens" value={value.qr.target === 'map-center' ? '' : value.qr.layerId ?? ''} options={pointOptions} onChange={destination} />
+      <StudioSelect label="QR corner" rowLabel="Corner" value={value.qr.position} options={POSITIONS} onChange={qr.position} />
+      <StudioNumber label="QR size" rowLabel="Size" value={value.qr.sizeMm} min={16} max={60} epoch={epoch} onChange={qr.sizeMm} />
+    </ToggleSection>
   </div>;
 });

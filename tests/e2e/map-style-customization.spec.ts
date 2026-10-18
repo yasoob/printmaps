@@ -14,7 +14,7 @@ async function setRange(slider: Locator, value: number) {
 
 async function customizePaper(page: Page) {
   await openCustomizer(page);
-  await page.getByRole('button', { name: 'Warm' }).click();
+  await page.getByRole('radio', { name: 'Warm' }).click();
   await setRange(page.getByRole('slider', { name: 'Contrast' }), 72);
   await setRange(page.getByRole('slider', { name: 'Detail' }), 35);
   await page.getByLabel('Water color', { exact: true }).fill('#123456');
@@ -28,7 +28,7 @@ test('a maker quick-tunes, overrides one semantic color, and returns to the main
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-ready', 'true', { timeout: 20_000 });
 
   await customizePaper(page);
-  const waterRow = page.getByLabel('Water color', { exact: true }).locator('..');
+  const waterRow = page.locator('.map-style-color-row', { has: page.getByLabel('Water color', { exact: true }) });
   await expect(waterRow).toContainText('Custom');
   await expect(page.getByLabel('Reset Water color')).toBeVisible();
   await page.screenshot({ path: 'docs/screenshots/map-style-customization-desktop-20260830.png' });
@@ -99,7 +99,7 @@ test('custom styling survives autosave reload and remains exportable', async ({ 
   await page.reload();
   await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-style-customized', 'true', { timeout: 20_000 });
   await openCustomizer(page);
-  await expect(page.getByRole('button', { name: 'Warm' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('radio', { name: 'Warm' })).toHaveAttribute('aria-checked', 'true');
   await expect(page.getByRole('slider', { name: 'Contrast' })).toHaveValue('72');
   await expect(page.getByLabel('Water color', { exact: true })).toHaveValue('#123456');
 
@@ -154,7 +154,7 @@ test('keyboard and mobile users can enter, leave, and reset the customization fl
     page.getByRole('button', { name: 'Reset to Paper' }).boundingBox(),
   ]);
   expect(headerBox!.x + headerBox!.width - (headerResetBox!.x + headerResetBox!.width)).toBeLessThanOrEqual(16);
-  await page.getByRole('button', { name: 'Cool' }).click();
+  await page.getByRole('radio', { name: 'Cool' }).click();
   await page.screenshot({ path: 'docs/screenshots/map-style-customization-mobile-20260830.png' });
 
   await page.getByRole('heading', { name: 'Customize map' }).press('Escape');

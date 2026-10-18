@@ -3,7 +3,8 @@ import { useShallow } from 'zustand/react/shallow';
 import type { PagePreset, PageSettings } from '../../domain/project';
 import { PAGE_PRESET_DEFINITIONS } from '../../domain/pagePresets';
 import { useProject, useProjectActions, useProjectStoreApi } from '../projectStoreContext';
-import { InspectorAccordion, PropertyRow } from '../components/PropertyControls';
+import { InspectorAccordion, PropertyRow, PropertySubheading } from '../components/PropertyControls';
+import { SegmentedControl } from '../../components/ui/segmented-control';
 import { ValidatedNumberField } from '../components/ValidatedNumberField';
 import { useMutationFeedback } from '../hooks/useMutationFeedback';
 import { useSettingActions } from '../hooks/useSettingActions';
@@ -15,6 +16,7 @@ import { useStableEvent } from '../hooks/useStableEvent';
 const SIDES = ['top', 'right', 'bottom', 'left'] as const;
 const PAGE_KEYS = ['backgroundColor', ...SIDES] as const;
 const MARGIN_ORDER = ['top', 'bottom', 'left', 'right'] as const;
+const ORIENTATIONS = [{ value: 'landscape', label: 'Landscape' }, { value: 'portrait', label: 'Portrait' }] as const;
 const SIDE_LABELS = { top: 'Top', right: 'Right', bottom: 'Bottom', left: 'Left' } as const;
 const SIDE_PREFIXES = { top: 'T', right: 'R', bottom: 'B', left: 'L' } as const;
 
@@ -28,6 +30,7 @@ const MarginField = memo(function MarginField({ label, prefix, value, epoch, onC
 const PageDimensions = memo(function PageDimensions({ page, epoch }: { page: PageSettings; epoch: number }) {
   const actions = useProjectActions();
   const feedback = useMutationFeedback(page);
+  const changeOrientation = useStableEvent((orientation: PageSettings['orientation']) => feedback.report(actions.setPageOrientation(orientation)));
   return <>
     <PropertyRow label="Size"><select aria-label="Page preset" value={page.preset} onChange={(event) => feedback.report(actions.setPagePreset(event.target.value as PagePreset))}>
       {PAGE_PRESET_DEFINITIONS.map(({ id, label }) => <option key={id} value={id}>{label}</option>)}<option value="Custom">Custom</option>
@@ -36,12 +39,8 @@ const PageDimensions = memo(function PageDimensions({ page, epoch }: { page: Pag
       <ValidatedNumberField label="Page width" prefix="W" value={page.widthMm} minimum={0.1} step={0.1} unit="mm" resetKey={`${epoch}:${page.preset}`} onCommit={(value) => actions.setPageDimension('widthMm', value)} />
       <ValidatedNumberField label="Page height" prefix="H" value={page.heightMm} minimum={0.1} step={0.1} unit="mm" resetKey={`${epoch}:${page.preset}`} onCommit={(value) => actions.setPageDimension('heightMm', value)} />
     </div>
-    <PropertyRow label="Orientation"><div className="segmented">
-      {(['landscape', 'portrait'] as const).map((orientation) => <button key={orientation} className={page.orientation === orientation ? 'is-active' : undefined}
-        type="button" aria-pressed={page.orientation === orientation} onClick={() => feedback.report(actions.setPageOrientation(orientation))}>
-        {orientation === 'landscape' ? 'Landscape' : 'Portrait'}
-      </button>)}
-    </div></PropertyRow>
+    <PropertyRow label="Orientation"><SegmentedControl label="Page orientation" value={page.orientation} options={ORIENTATIONS}
+      onValueChange={changeOrientation} /></PropertyRow>
     {feedback.error && <p role="alert" className="coordinate-validation">{feedback.error}</p>}
   </>;
 });
@@ -70,12 +69,11 @@ const PageAppearance = memo(function PageAppearance({ epoch }: { epoch: number }
   const change = useSettingActions(values, commit, PAGE_KEYS);
   return <>
     <StudioColor label="Paper color" value={values.backgroundColor} onChange={change.backgroundColor} />
-    <fieldset className="inspector-field-group"><legend>Margins</legend>
-      <div className="inspector-field-grid">
-        {MARGIN_ORDER.map((side) => <MarginField key={side} label={`${SIDE_LABELS[side]} margin`} prefix={SIDE_PREFIXES[side]}
-          value={values[side]} epoch={epoch} onChange={change[side]} />)}
-      </div>
-    </fieldset>
+    <PropertySubheading>Margins</PropertySubheading>
+    <div className="inspector-field-grid" role="group" aria-label="Margins">
+      {MARGIN_ORDER.map((side) => <MarginField key={side} label={`${SIDE_LABELS[side]} margin`} prefix={SIDE_PREFIXES[side]}
+        value={values[side]} epoch={epoch} onChange={change[side]} />)}
+    </div>
     {feedback.error && <p role="alert" className="coordinate-validation">{feedback.error}</p>}
   </>;
 });

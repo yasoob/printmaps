@@ -12,12 +12,12 @@ it('routes terrain controls through the canonical undoable project document', as
   const originalStudio = store.getState().document.studio;
   render(<ProjectStoreContext value={store}><StudioTerrainControls /></ProjectStoreContext>);
   await user.click(screen.getByRole('button', { name: 'Terrain' }));
-  await user.click(screen.getByRole('checkbox', { name: 'Show 3D terrain' }));
+  await user.click(screen.getByRole('switch', { name: 'Show 3D terrain' }));
   expect(store.getState().document.studio.terrain.enabled).toBe(true);
   expect(store.getState().document.studio.photos).toBe(originalStudio.photos);
   expect(originalStudio.terrain.enabled).toBe(false);
   act(() => store.getState().undo());
-  expect(screen.getByRole('checkbox', { name: 'Show 3D terrain' })).not.toBeChecked();
+  expect(screen.getByRole('switch', { name: 'Show 3D terrain' })).not.toBeChecked();
   expect(store.getState().document.studio.terrain.enabled).toBe(false);
 });
 

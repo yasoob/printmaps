@@ -12,6 +12,7 @@ import { useReadMapExporter } from '../mapExporterContext';
 import { currentLayoutApplication } from './templateProjects';
 import { PageProperties } from './PageProperties';
 import { editablePoster } from './posterEditing';
+import { Notice } from '../../components/ui/notice';
 
 function usePhotoUpload(): PhotoUpload {
   const store = useProjectStoreApi();
@@ -82,7 +83,7 @@ export const StudioCompositionControls = memo(function StudioCompositionControls
     return mask?.visible ? toggleLayerVisibility(mask.id) : { ok: true as const };
   }, [blockedReason, store, toggleLayerVisibility]);
   return <>
-    {blockedReason && <p className="inspector-notice" role="status">{blockedReason}</p>}
+    {blockedReason && <Notice tone="info" className="inspector-notice">{blockedReason}</Notice>}
       <StudioCompositionPanel key={documentEpoch} poster={effectivePoster} photos={photos} decorations={decorations} pointLayers={pointLayers}
         documentEpoch={documentEpoch} cameraLocked={cameraLocked} isFlat={isFlat}
         silhouetteName={silhouette?.visible ? silhouette.name : null} isDisabled={Boolean(blockedReason)}

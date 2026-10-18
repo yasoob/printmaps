@@ -76,12 +76,12 @@ test('New protects the outgoing project, resets all document defaults, and prese
   await page.getByRole('textbox', { name: 'Project title' }).fill('Second map');
   await page.getByRole('textbox', { name: 'Project title' }).press('Enter');
   await page.getByRole('tab', { name: 'Layout' }).click();
-  await page.getByRole('button', { name: 'Portrait', exact: true }).click();
+  await page.getByRole('radio', { name: 'Portrait', exact: true }).click();
   await expect(page.getByRole('status', { name: 'Autosave status' })).toHaveText('All changes saved locally');
   await page.reload();
   await expect(page.getByRole('button', { name: 'Second map', exact: true })).toBeVisible();
   await page.getByRole('tab', { name: 'Layout' }).click();
-  await expect(page.getByRole('button', { name: 'Portrait', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('radio', { name: 'Portrait', exact: true })).toHaveAttribute('aria-checked', 'true');
   await expect(page.locator('.layer-row')).toHaveCount(1);
 });
 

@@ -1,3 +1,4 @@
+import { Button } from '../../components/ui/button';
 import { LocateFixed } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { trackEditorAction } from '../../analytics/editorAnalytics';
@@ -93,9 +94,9 @@ export function GeolocationControl({ locked, onLocate, requestScope = 0 }: Geolo
 
   return (
     <div className="map-location-control">
-      <button className="quiet-button" type="button" disabled={locked || isPending} onClick={locate}>
-        <LocateFixed aria-hidden="true" size={14} /> Use my location
-      </button>
+      <Button variant="secondary" disabled={locked || isPending} onClick={locate}>
+        <LocateFixed aria-hidden="true" /> Use my location
+      </Button>
       {displayedStatus && (
         <p className={`map-location-status is-${displayedStatus.kind}`} role={displayedStatus.kind === 'error' ? 'alert' : 'status'}>
           {displayedStatus.message}

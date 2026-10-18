@@ -1,3 +1,4 @@
+import { Button } from '../../components/ui/button';
 import { Plus, Trash2 } from "lucide-react";
 import { useId, useState } from "react";
 import { MAX_MERCATOR_LATITUDE } from "../../domain/project";
@@ -97,8 +98,7 @@ export function RouteVertexControls({
       />
       <div className="route-vertex-actions">
         {allowInsert && (
-          <button
-            type="button"
+          <Button variant="secondary"
             aria-label={`Insert route ${noun.toLowerCase()} after selected`}
             disabled={disabled || vertexIndex >= coordinates.length - 1}
             onClick={() => {
@@ -106,11 +106,10 @@ export function RouteVertexControls({
               if (result.ok) setSelectedIndex(vertexIndex + 1);
             }}
           >
-            <Plus size={13} /> Insert after
-          </button>
+            <Plus aria-hidden="true" /> Insert after
+          </Button>
         )}
-        <button
-          type="button"
+        <Button variant="secondary"
           aria-label={`Remove selected route ${noun.toLowerCase()}`}
           disabled={disabled || removalError !== null}
           aria-describedby={removalError ? removalHintId : undefined}
@@ -119,8 +118,8 @@ export function RouteVertexControls({
             if ('pending' in result || result.ok) setSelectedIndex(Math.min(vertexIndex, coordinates.length - 2));
           }}
         >
-          <Trash2 size={13} /> Remove
-        </button>
+          <Trash2 aria-hidden="true" /> Remove
+        </Button>
       </div>
       {removalError && <small id={removalHintId} className="route-vertex-hint route-removal-hint">{removalError}</small>}
       {!disabled && (
