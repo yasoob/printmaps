@@ -1,4 +1,4 @@
-import { Download, FileUp, Redo2, Undo2 } from 'lucide-react';
+import { Download, FileUp, Info, Redo2, Undo2 } from 'lucide-react';
 import { memo, useCallback, useRef, type RefObject } from 'react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
@@ -16,6 +16,7 @@ import type { ProjectOpeningIntent } from '../hooks/useProjectOpening';
 import { ShareControl } from '../../sharing/ShareControl';
 
 const LOGO_URL = publicAssetUrl('logo.png');
+const OUTPUT_BLOCKED_HINT_ID = 'header-output-blocked-hint';
 const HOME_URL = publicAssetUrl('');
 
 type StudioHeaderProps = {
@@ -27,7 +28,8 @@ type StudioHeaderProps = {
   finishImportWork: (workId: number) => void;
   isImportWorkActive: boolean;
   startImportWork: () => number | null;
-  exportDisabled: boolean;
+  // Visible, described reason why Share and Export are unavailable; undefined when they can run.
+  outputBlockedReason?: string;
   importDisabled: boolean;
   importOpen: boolean;
   replacementRequest: LayerReplacementRequest | null;
@@ -116,7 +118,7 @@ export const StudioHeader = memo(function StudioHeader({
   finishImportWork,
   isImportWorkActive,
   startImportWork,
-  exportDisabled,
+  outputBlockedReason,
   importDisabled,
   importOpen,
   replacementRequest,
@@ -139,6 +141,13 @@ export const StudioHeader = memo(function StudioHeader({
     <header className="topbar" inert={inert}>
       <StudioProjectIdentity projectTitleRef={projectTitleRef} />
       <div className="document-actions">
+        {outputBlockedReason && (
+          <span id={OUTPUT_BLOCKED_HINT_ID} className="header-blocked-hint">
+            <Info aria-hidden="true" size={14} strokeWidth={1.8} />
+            <span className="header-blocked-hint-full">{outputBlockedReason}</span>
+            <span className="header-blocked-hint-short" aria-hidden="true">Finish drawing to export</span>
+          </span>
+        )}
         <FileFeedbackGroup>
         <ProjectFileActions
           getDocument={getDocument}
@@ -172,8 +181,8 @@ export const StudioHeader = memo(function StudioHeader({
           presentation="headless"
         />
         </FileFeedbackGroup>
-        <ShareControl disabled={exportDisabled || importDisabled || isImportWorkActive} />
-        <button ref={exportButtonRef} className="primary-button" type="button" disabled={exportDisabled} title={exportDisabled ? 'Finish or cancel map authoring before export' : undefined} onClick={onExport}><Download size={14} strokeWidth={1.8} aria-hidden="true" /><span>Export</span></button>
+        <ShareControl disabled={Boolean(outputBlockedReason) || importDisabled || isImportWorkActive} describedBy={outputBlockedReason ? OUTPUT_BLOCKED_HINT_ID : undefined} />
+        <button ref={exportButtonRef} className="primary-button" type="button" disabled={Boolean(outputBlockedReason)} aria-describedby={outputBlockedReason ? OUTPUT_BLOCKED_HINT_ID : undefined} onClick={onExport}><Download size={14} strokeWidth={1.8} aria-hidden="true" /><span>Export</span></button>
       </div>
     </header>
   );

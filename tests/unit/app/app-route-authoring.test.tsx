@@ -277,7 +277,7 @@ describe('straight route draft lifecycle', () => {
     render(<App autosaveRepository={null} />);
 
     await user.click(screen.getByRole('button', { name: 'Route (R)' }));
-    expect(screen.getByRole('button', { name: 'Export' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Export' })).toBeEnabled();
     const finish = screen.getByRole('button', { name: 'Finish route' });
     expect(screen.getByRole('status', { name: 'Route drawing status' })).toHaveTextContent('Click the map to add route points');
     expect(finish).toBeDisabled();

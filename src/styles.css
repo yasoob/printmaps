@@ -77,6 +77,23 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .document-actions { @apply justify-end gap-2; }
 .document-actions :is(.quiet-button, .primary-button) { height: var(--studio-control-height); }
 .document-actions :is(.quiet-button, .primary-button) > svg { flex-shrink: 0; }
+.header-blocked-hint {
+  @apply inline-flex min-w-0 items-center gap-1.5;
+  margin-right: 0.25rem;
+  color: var(--studio-text-muted);
+  font-size: var(--studio-font-label);
+}
+.header-blocked-hint > svg { @apply shrink-0; }
+.header-blocked-hint > span { @apply min-w-0 truncate; }
+.header-blocked-hint-short { display: none; }
+@media (max-width: 1279px) {
+  .header-blocked-hint-full { @apply sr-only; }
+  .header-blocked-hint-short { display: inline; }
+}
+@media (max-width: 899px) {
+  .header-blocked-hint > svg, .header-blocked-hint-short { display: none; }
+  .header-blocked-hint { margin: 0; }
+}
 /* File notifications float over the canvas (bottom-right, above the map controls), never over the inspector. */
 .file-feedback-stack {
   @apply fixed z-[90] grid gap-2 overflow-y-auto;
@@ -372,7 +389,8 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   grid-area: canvas;
   container-type: inline-size;
   background: var(--studio-canvas);
-  --studio-pasteboard-scrim: color-mix(in srgb, var(--studio-canvas) 52%, transparent);
+  /* ~40% neutral mid-grey: the non-printing pasteboard reads clearly darker than the print area. */
+  --studio-pasteboard-scrim: color-mix(in srgb, color-mix(in srgb, var(--studio-text-strong) 45%, var(--studio-canvas)) 40%, transparent);
   --studio-map-control-surface: var(--studio-surface-raised);
   --studio-map-control-border: var(--studio-line-strong);
   --studio-map-control-radius: var(--studio-radius-lg);
@@ -756,8 +774,6 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .shadcn-combobox-empty { @apply px-3 py-8 text-center text-xs; color: var(--studio-text-muted); }
 .shadcn-combobox-empty:empty { display: none; }
 .administrative-boundary-picker { @apply grid min-h-0; gap: var(--studio-tool-card-gap); width: 100%; }
-.administrative-combobox-field { @apply grid gap-1.5; }
-.administrative-combobox-field > label { @apply font-medium; color: var(--studio-text-muted); font-size: var(--studio-font-label); }
 .is-spinning { animation: studio-spin 900ms linear infinite; }
 @keyframes studio-spin { to { rotate: 360deg; } }
 .administrative-catalogue-status { @apply flex items-center justify-center gap-1.5 text-center; color: var(--studio-text-muted); font-size: var(--studio-font-label); }
@@ -851,7 +867,19 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 :is(.route-authoring-panel, .shape-authoring-panel)[data-settings-expanded="false"] > .tool-card-actions > [data-variant="primary"] {
   min-height: 2.75rem;
 }
+@container (max-width: 480px) {
+  /* Phones stack tool-card rows and draft point actions so values keep a usable width. */
+  .tool-authoring-card .property-row { grid-template-columns: minmax(0, 1fr); row-gap: 0.25rem; padding: 0.25rem 0; }
+  .route-draft-points .route-point-row { grid-template-columns: minmax(0, 1fr); padding: 0.25rem 0; }
+  .route-draft-points .route-point-actions { justify-content: end; }
+}
 @container (max-width: 360px) {
+  .tool-authoring-card .studio-segmented > button { padding: 0 0.125rem; font-size: var(--studio-font-label); }
+  .tool-authoring-card .studio-segmented-label-full { @apply sr-only; }
+  .tool-authoring-card .studio-segmented-label[data-short-label]::after { content: attr(data-short-label); }
+  /* Travel mode icons stay recognisable; the visible words move to the accessible name. */
+  .tool-authoring-card .isochrone-panel .studio-segmented > button > svg { display: inline-block; }
+  .isochrone-panel .studio-segmented > button > .studio-segmented-label { @apply sr-only; }
   .tool-settings-toggle { width: var(--studio-touch-target); padding: 0; }
   .tool-settings-toggle > span, .tool-card-heading > strong > svg { display: none; }
 }
@@ -879,24 +907,19 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .route-poi-entry { @apply grid gap-1; }
 .route-snap-control { @apply whitespace-normal leading-snug; font-size: var(--studio-font-label); }
 .route-point-list {
-  @apply m-0 grid max-h-48 min-w-0 list-none gap-1 overflow-y-auto p-1 text-[10px] tabular-nums;
-  color: var(--studio-text-muted);
+  @apply m-0 grid max-h-48 min-w-0 list-none gap-0.5 overflow-y-auto p-0.5 tabular-nums;
+  color: var(--studio-text-secondary);
+  font-size: var(--studio-font-label);
 }
 .route-point-row { @apply grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-1 rounded; }
-.route-point-coordinate { @apply flex min-w-0 items-center gap-2 px-2; }
+.route-point-coordinate { @apply flex min-w-0 items-center gap-2 px-1.5; }
 .route-point-coordinate > span { @apply min-w-0 truncate; }
-.route-point-actions { @apply grid grid-cols-4; }
-.route-point-actions > button {
-  @apply grid h-11 w-11 place-items-center rounded;
-  color: var(--studio-text-muted);
-}
-.route-point-actions > button:hover:not(:disabled) { background: var(--studio-field); color: var(--studio-text); }
-.route-point-actions > button:disabled { @apply cursor-default; color: var(--studio-text-subtle); }
+.route-point-actions { @apply grid grid-cols-4 gap-0.5; }
 .route-point-actions > button:focus-visible,
 .route-preview-button:focus-visible { outline: 2px solid var(--studio-focus); outline-offset: -2px; }
-.route-loop-note { @apply block px-3 pb-3 leading-snug; color: var(--studio-text-muted); font-size: var(--studio-font-meta); }
+.route-loop-note { @apply block px-1.5 pb-2 leading-snug; color: var(--studio-text-muted); font-size: var(--studio-font-label); }
 .route-preview-button { width: 100%; }
-.route-finish-explanation { @apply leading-snug; color: var(--studio-text-muted); font-size: var(--studio-font-meta); }
+.route-finish-explanation { @apply leading-snug; color: var(--studio-text-muted); font-size: var(--studio-font-label); }
 .route-extend-actions { @apply grid grid-cols-2 gap-2; }
 .route-structure-controls { @apply grid gap-2; }
 .route-structure-controls > label { @apply grid gap-1; color: var(--studio-text-muted); font-size: var(--studio-font-meta); }
@@ -1378,7 +1401,7 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
 .studio-switch[data-label-placement="start"] { flex-direction: row-reverse; justify-content: space-between; width: 100%; }
 .studio-switch[data-label-placement="start"] > .studio-control-label { min-width: 0; margin-right: auto; }
 .map-location-control { @apply grid gap-1.5 py-1; }
-.map-location-status { @apply m-0; color: var(--studio-text-muted); font-size: var(--studio-font-meta); line-height: 1.35; }
+.map-location-status { @apply m-0; color: var(--studio-text-muted); font-size: var(--studio-font-label); line-height: 1.4; }
 .map-location-status.is-error { color: var(--studio-danger); }
 .map-location-status.is-success { color: var(--studio-success); }
 .elevation-profile-panel { @apply grid gap-2; color: var(--studio-text-secondary); font-size: var(--studio-font-label); }
@@ -1957,11 +1980,15 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
   .canvas-authoring-dock {
     width: min(var(--studio-tool-card-width), calc(100% - 7.5rem));
   }
+  /* Docked as a tile directly above the fit/zoom stack, sharing its surface and width. */
   .canvas-scale-dock {
-    grid-column: 1;
-    grid-row: 2;
-    align-self: start;
-    justify-self: start;
+    position: absolute;
+    right: calc(8px + var(--studio-safe-right));
+    bottom: calc(max(14px, var(--studio-safe-bottom)) + 4rem + 3 * var(--studio-touch-target) + 2px + 0.5rem);
+    justify-content: center;
+    width: var(--studio-touch-target);
+    height: 2.25rem;
+    padding: 0 0 0.5rem;
   }
   .tool-palette {
     height: 3.25rem;
@@ -1981,7 +2008,7 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
     max-height: 100%;
   }
   .shape-authoring-panel { overflow-x: hidden; }
-  .tool-authoring-card .studio-segmented > button { gap: 0.25rem; padding: 0 0.25rem; }
+  .tool-authoring-card .studio-segmented > button { gap: 0.25rem; padding: 0 0.125rem; font-size: var(--studio-font-label); }
   .tool-authoring-card .studio-segmented > button > svg { display: none; }
   .tool-authoring-card .tool-card-actions {
     position: sticky;
@@ -2028,9 +2055,6 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
     padding-left: 2.875rem !important;
     transform: none;
     font-size: var(--studio-font-meta);
-  }
-  .canvas-region:has(.maplibregl-ctrl-attrib[open]) .canvas-scale-dock {
-    visibility: hidden;
   }
 
   .print-frame {

@@ -5,7 +5,7 @@ import { encodeSharedProject } from './codec';
 import { ShareDialog } from './ShareDialog';
 import './sharing.css';
 
-export function ShareControl({ disabled }: { disabled: boolean }) {
+export function ShareControl({ disabled, describedBy }: { disabled: boolean; describedBy?: string }) {
   const store = useProjectStoreApi();
   const button = useRef<HTMLButtonElement>(null);
   const [result, setResult] = useState<{ payload: string; title: string } | { error: string } | null>(null);
@@ -20,7 +20,7 @@ export function ShareControl({ disabled }: { disabled: boolean }) {
   };
   return <>
     <button ref={button} className="quiet-button share-button" type="button" disabled={disabled}
-      title={disabled ? 'Finish or cancel map authoring before sharing' : undefined} onClick={share}>
+      aria-describedby={describedBy} onClick={share}>
       <Share2 size={14} strokeWidth={1.8} aria-hidden="true" /><span>Share</span>
     </button>
     {result && <ShareDialog result={result} onClose={() => setResult(null)} returnFocusRef={button} />}

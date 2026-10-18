@@ -1,6 +1,6 @@
 import { LocateFixed } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { trackEditorAction } from '../../analytics/editorAnalytics';
 import { MAX_MERCATOR_LATITUDE } from '../../domain/project';
 
@@ -88,20 +88,20 @@ export function GeolocationControl({ locked, onLocate, requestScope = 0 }: Geolo
   };
 
   const isPending = status?.kind === 'pending';
-  const displayedStatus = locked
-    ? { kind: 'error' as const, message: 'Unlock the map area to use your location.' }
-    : status;
+  const lockedHintId = useId();
 
   return (
     <div className="map-location-control">
-      <Button variant="secondary" busy={isPending} disabled={locked} onClick={locate}>
+      <Button variant="secondary" busy={isPending} disabled={locked} aria-describedby={locked ? lockedHintId : undefined} onClick={locate}>
         {!isPending && <LocateFixed aria-hidden="true" size={16} strokeWidth={1.75} />} Use my location
       </Button>
-      {displayedStatus && (
-        <p className={`map-location-status is-${displayedStatus.kind}`} role={displayedStatus.kind === 'error' ? 'alert' : 'status'}>
-          {displayedStatus.message}
-        </p>
-      )}
+      {locked
+        ? <p id={lockedHintId} className="map-location-status">Unlock the map area to use your location.</p>
+        : status && (
+          <p className={`map-location-status is-${status.kind}`} role={status.kind === 'error' ? 'alert' : 'status'}>
+            {status.message}
+          </p>
+        )}
     </div>
   );
 }

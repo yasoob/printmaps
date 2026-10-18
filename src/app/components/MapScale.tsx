@@ -4,10 +4,11 @@ import { memo } from 'react';
 type MapScaleProps = {
   latitude: number;
   zoom: number;
+  maxWidthPx?: number;
 };
 
-export const MapScale = memo(function MapScale({ latitude, zoom }: MapScaleProps) {
-  const scale = calculateMapScale(latitude, zoom);
+export const MapScale = memo(function MapScale({ latitude, zoom, maxWidthPx }: MapScaleProps) {
+  const scale = calculateMapScale(latitude, zoom, maxWidthPx);
   return (
     <div
       className="map-scale"

@@ -85,6 +85,7 @@ function StudioCanvas({ m }: { m: StudioAppModel }) {
       onCreateShape={m.project.createShape}
       onAuthoringChange={m.handleAuthoringChange}
       onUnfinishedDrawingChange={m.project.setHasUnfinishedDrawing}
+      onPendingDraftChange={m.handlePendingDraftChange}
       onBackgroundClick={m.clearSelection}
       onExporterChange={m.onExporterChange}
       openPanel={m.mobile.openPanel}
@@ -164,9 +165,16 @@ function getStudioBlockedReason(m: Pick<StudioAppModel, 'isAuthoring' | 'isAutos
   if (m.isAutosaveCorrupted) return 'Resolve the damaged draft before continuing.';
 }
 
+// Output only needs blocking while a tool holds geometry that differs from committed content.
+function getOutputBlockedReason(m: Pick<StudioAppModel, 'hasPendingDraft' | 'isAutosaveCorrupted'>) {
+  if (m.hasPendingDraft) return 'Finish or cancel the current drawing to export or share.';
+  if (m.isAutosaveCorrupted) return 'Resolve the damaged draft before continuing.';
+}
+
 export function StudioAppView({ model: m }: { model: StudioAppModel }) {
   const [layersCollapsed, setLayersCollapsed] = useState(false);
   const blockedReason = getStudioBlockedReason(m);
+  const outputBlockedReason = getOutputBlockedReason(m);
   const toggleLayersCollapsed = useCallback(() => {
     setLayersCollapsed((collapsed) => !collapsed);
   }, []);
@@ -182,7 +190,7 @@ export function StudioAppView({ model: m }: { model: StudioAppModel }) {
           finishImportWork={m.mapDataImport.finishImportWork}
           isImportWorkActive={m.mapDataImport.isImportWorkActive}
           startImportWork={m.mapDataImport.startImportWork}
-          exportDisabled={m.isAuthoring}
+          outputBlockedReason={m.hasPendingDraft ? outputBlockedReason : undefined}
           importDisabled={m.isAutosaveCorrupted || (m.modal.surface !== null && m.modal.surface !== "import")}
           importOpen={m.modal.surface === "import"}
           replacementRequest={m.mapDataImport.replacementRequest}
@@ -200,7 +208,7 @@ export function StudioAppView({ model: m }: { model: StudioAppModel }) {
         {m.modal.mobilePanel && <button className="mobile-panel-backdrop" data-panel={m.modal.mobilePanel} type="button" aria-label="Close open panel" onClick={() => m.mobile.closePanel()} />}
         <StudioProperties m={m} blockedReason={blockedReason} />
       </main>
-      {m.modal.surface === "export" && <ExportDialogSurface onClose={m.modal.closeExport} blockedReason={blockedReason} />}
+      {m.modal.surface === "export" && <ExportDialogSurface onClose={m.modal.closeExport} blockedReason={outputBlockedReason} />}
       {m.modal.surface === "rename" && <ProjectRenameDialog onClose={m.modal.closeRename} returnFocusRef={m.openButtonRef} />}
       {m.modal.surface === "templates" && <NewProjectTemplateDialog onClose={m.closeTemplateGallery} onSelect={m.createFromTemplate} returnFocusRef={m.openButtonRef} />}
       {m.modal.surface === "project-open" && m.projectOpening.pendingDocument && (
