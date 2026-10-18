@@ -1,4 +1,10 @@
 import {
+  InputGroup as InputGroupPrimitive,
+  InputGroupAddon as InputGroupAddonPrimitive,
+  InputGroupInput,
+} from '@/components/ui/input-group';
+import { cn } from '@/lib/utils';
+import {
   createContext,
   forwardRef,
   useContext,
@@ -12,26 +18,23 @@ import {
 
 const InputGroupContext = createContext<RefObject<HTMLDivElement | null> | null>(null);
 
-function classNames(...values: Array<string | undefined>) {
-  return values.filter(Boolean).join(' ');
-}
-
+/** Numeric field on shadcn InputGroup: one field surface with optional unit/prefix addons. */
 export function InputGroup({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   const rootRef = useRef<HTMLDivElement>(null);
   return (
     <InputGroupContext value={rootRef}>
-      <div ref={rootRef} className={classNames('input-group', className)} {...props} />
+      <InputGroupPrimitive ref={rootRef} className={cn('input-group', className)} {...props} />
     </InputGroupContext>
   );
 }
 
 export const InputNumber = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
   function InputNumber({ className, ...props }, ref) {
-    return <input ref={ref} className={classNames('input-number', className)} type="number" {...props} />;
+    return <InputGroupInput ref={ref} className={cn('input-number', className)} type="number" {...props} />;
   },
 );
 
-type InputGroupAddonProps = HTMLAttributes<HTMLSpanElement> & {
+type InputGroupAddonProps = HTMLAttributes<HTMLDivElement> & {
   acceleration?: boolean;
   align?: 'inline-start' | 'inline-end';
   enableScrubbing?: boolean;
@@ -60,7 +63,7 @@ function setNativeInputValue(input: HTMLInputElement, value: number, precision: 
   return next;
 }
 
-function canStartScrubbing(isScrubbingEnabled: boolean, event: ReactPointerEvent<HTMLSpanElement>) {
+function canStartScrubbing(isScrubbingEnabled: boolean, event: ReactPointerEvent<HTMLDivElement>) {
   return isScrubbingEnabled && !event.defaultPrevented && event.button === 0;
 }
 
@@ -77,7 +80,7 @@ export function InputGroupAddon({
   const cleanupRef = useRef<(() => void) | null>(null);
   useEffect(() => () => cleanupRef.current?.(), []);
 
-  const startScrubbing = (event: ReactPointerEvent<HTMLSpanElement>) => {
+  const startScrubbing = (event: ReactPointerEvent<HTMLDivElement>) => {
     onPointerDown?.(event);
     if (!canStartScrubbing(enableScrubbing, event)) return;
     cleanupRef.current?.();
@@ -127,9 +130,11 @@ export function InputGroupAddon({
   };
 
   return (
-    <span
+    <InputGroupAddonPrimitive
       aria-hidden="true"
-      className={classNames('input-group-addon', `is-${align}`, enableScrubbing ? 'is-scrubbable' : undefined, className)}
+      role={undefined}
+      align={align}
+      className={cn('input-group-addon', `is-${align}`, enableScrubbing ? 'is-scrubbable' : undefined, className)}
       title={enableScrubbing ? 'Drag horizontally to adjust' : undefined}
       onPointerDown={startScrubbing}
       {...props}

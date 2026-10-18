@@ -1,4 +1,5 @@
-import { memo, useRef } from 'react';
+import { memo } from 'react';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 type StudioModeTabsProps<Value extends string> = {
   choices: readonly Readonly<{ value: Value; label: string }>[];
@@ -10,24 +11,26 @@ type StudioModeTabsProps<Value extends string> = {
   disabled?: boolean;
 };
 
+/**
+ * Panel switcher on shadcn Tabs (tab semantics, activation follows focus). The caller renders the
+ * panels; tabs point at `panelId` or `${idPrefix}-${value}-panel` and have ids `${idPrefix}-${value}-tab`.
+ */
 export const StudioModeTabs = memo(function StudioModeTabs<Value extends string>({ choices, value, onValueChange, label, idPrefix, panelId, disabled }: StudioModeTabsProps<Value>) {
-  const listRef = useRef<HTMLDivElement>(null);
-  return <div ref={listRef} className="studio-mode-tabs studio-segmented" role="tablist" aria-label={label} onKeyDown={(event) => {
-    if (disabled || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
-    event.preventDefault();
-    const current = choices.findIndex((choice) => choice.value === value);
-    const adjacent = (current + (event.key === 'ArrowLeft' ? -1 : 1) + choices.length) % choices.length;
-    const boundary = event.key === 'Home' ? 0 : choices.length - 1;
-    const index = event.key === 'Home' || event.key === 'End' ? boundary : adjacent;
-    const next = choices[index];
-    if (!next) return;
-    onValueChange(next.value);
-    listRef.current?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[index]?.focus();
-  }}>
-    {choices.map((choice) => <button key={choice.value} id={`${idPrefix}-${choice.value}-tab`} type="button" role="tab"
-      aria-selected={value === choice.value} aria-controls={panelId ?? `${idPrefix}-${choice.value}-panel`}
-      tabIndex={value === choice.value ? 0 : -1} disabled={disabled} onClick={() => onValueChange(choice.value)}>
-      <span className="studio-segmented-label">{choice.label}</span>
-    </button>)}
-  </div>;
+  return (
+    <Tabs value={value} onValueChange={(next) => { if (next !== value) onValueChange(next as Value); }} className="contents">
+      <TabsList className="studio-mode-tabs" aria-label={label} activateOnFocus loopFocus>
+        {choices.map((choice) => (
+          <TabsTrigger
+            key={choice.value}
+            value={choice.value}
+            id={`${idPrefix}-${choice.value}-tab`}
+            aria-controls={panelId ?? `${idPrefix}-${choice.value}-panel`}
+            disabled={disabled}
+          >
+            <span className="studio-segmented-label">{choice.label}</span>
+          </TabsTrigger>
+        ))}
+      </TabsList>
+    </Tabs>
+  );
 }) as <Value extends string>(props: StudioModeTabsProps<Value>) => React.JSX.Element;

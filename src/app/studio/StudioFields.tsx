@@ -1,6 +1,7 @@
-import { memo, useId } from 'react';
+import { memo } from 'react';
 import type { ProjectMutationResult } from '../../domain/projectMutation';
 import { ColorField } from '../../components/ui/color-field';
+import { SimpleSelect } from '../../components/ui/select';
 import { ValidatedNumberField } from '../components/ValidatedNumberField';
 import { PropertyRow } from '../components/PropertyControls';
 import { Checkbox } from '../components/UiControls';
@@ -27,11 +28,7 @@ type StudioSelectProps<T extends string> = StudioFieldLabels & {
   value: T; options: readonly Readonly<{ value: T; label: string }>[]; onChange: (value: T) => void; disabled?: boolean;
 };
 export const StudioSelect = memo(function StudioSelect<T extends string>({ label, rowLabel, value, options, onChange, disabled }: StudioSelectProps<T>) {
-  const id = useId();
-  return <PropertyRow label={rowLabel ?? label}><select id={id} aria-label={label} value={value} disabled={disabled} onChange={(event) => {
-    const selected = options.find((option) => option.value === event.target.value);
-    if (selected) onChange(selected.value);
-  }}>{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></PropertyRow>;
+  return <PropertyRow label={rowLabel ?? label}><SimpleSelect label={label} value={value} options={options} disabled={disabled} onValueChange={onChange} /></PropertyRow>;
 }) as <T extends string>(props: StudioSelectProps<T>) => React.JSX.Element;
 
 export const StudioNumber = memo(function StudioNumber({ label, rowLabel, value, min = 0, max = 100, unit = 'mm', epoch, onChange }: StudioFieldLabels & {
