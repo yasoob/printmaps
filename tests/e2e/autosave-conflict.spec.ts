@@ -175,6 +175,8 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 844, height: 390 }
     await expect(search).toBeFocused();
     const dialog = await reviewConflict(page);
     await page.keyboard.press('Shift+Tab');
+    await expect(page.getByRole('button', { name: 'Discard this tab and load saved version' })).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
     await expect(page.getByRole('button', { name: 'Download this tab’s version' })).toBeFocused();
     await page.keyboard.press('Shift+Tab');
     const details = page.getByRole('region', { name: 'Autosave conflict details' });
@@ -182,7 +184,7 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 844, height: 390 }
     await details.press('End');
     await expect.poll(() => details.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
     await page.keyboard.press('Shift+Tab');
-    await expect(page.getByRole('button', { name: 'Discard this tab and load saved version' })).toBeFocused();
+    await expect(page.getByRole('button', { name: 'Keep editing' })).toBeFocused();
     await page.keyboard.press('Tab');
     await expect(details).toBeFocused();
     const buttons = await dialog.getByRole('button').all();

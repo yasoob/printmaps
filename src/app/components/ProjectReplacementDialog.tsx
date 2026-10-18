@@ -1,8 +1,9 @@
-import { Download, TriangleAlert } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { trackEditorAction } from '../../analytics/editorAnalytics';
 import { useEffect, useId, useRef, useState, type RefObject } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
-import { StudioDialogActions, StudioDialogBody, StudioDialogButton, StudioDialogHeader, StudioDialogSection } from '@/components/ui/studio-dialog';
+import { Dialog, DialogDescription } from '@/components/ui/dialog';
+import { Notice } from '@/components/ui/notice';
+import { StudioDialog, StudioDialogActions, StudioDialogBody, StudioDialogButton, StudioDialogHeader, StudioDialogSection } from '@/components/ui/studio-dialog';
 import { useProject, useProjectStoreApi } from '../projectStoreContext';
 import { downloadProjectDocument } from './projectDownload';
 import type { ProjectOpeningIntent } from '../hooks/useProjectOpening';
@@ -42,31 +43,22 @@ export function ProjectReplacementDialog({ title, intent = 'open', onKeepEditing
   };
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onKeepEditing(); }}>
-      <DialogContent
+      <StudioDialog
         className="project-replacement-dialog"
         overlayClassName="project-rename-backdrop"
         initialFocus={keepEditingRef}
         finalFocus={returnFocusRef}
-        showCloseButton={false}
         aria-describedby={hasUnfinishedDrawing ? `${descriptionId} ${unfinishedId}` : descriptionId}
       >
+        <StudioDialogHeader title={titleText} />
         <StudioDialogBody className="project-replacement-content">
-          <StudioDialogHeader>
-            <div>
-              <DialogTitle>{titleText}</DialogTitle>
-              <DialogDescription id={descriptionId}>
-                {intent === 'new' ? 'Starting a new project' : <>Opening “<strong>{title}</strong>”</>} replaces “<strong>{currentTitle}</strong>” in this browser and clears its Undo history.
-              </DialogDescription>
-            </div>
-          </StudioDialogHeader>
+          <DialogDescription id={descriptionId} className="project-replacement-description">
+            {intent === 'new' ? 'Starting a new project' : <>Opening “<strong>{title}</strong>”</>} replaces “<strong>{currentTitle}</strong>” in this browser and clears its Undo history.
+          </DialogDescription>
           {hasUnfinishedDrawing && (
-            <div className="project-replacement-warning">
-              <TriangleAlert size={18} aria-hidden="true" />
-              <div>
-                <h3>Unfinished work will be lost</h3>
-                <p id={unfinishedId}>Unfinished drawings, unadded point inputs and POI lists (including lookup suggestions) will be discarded. They are not saved or included in project downloads.</p>
-              </div>
-            </div>
+            <Notice tone="warning" role="note" title="Unfinished work will be lost">
+              <p id={unfinishedId}>Unfinished drawings, unadded point inputs and POI lists (including lookup suggestions) will be discarded. They are not saved or included in project downloads.</p>
+            </Notice>
           )}
           <StudioDialogSection className="project-replacement-backup" aria-labelledby={backupTitleId}>
             <div>
@@ -74,7 +66,7 @@ export function ProjectReplacementDialog({ title, intent = 'open', onKeepEditing
               <p>Download the current completed project before continuing. This dialog stays open while you save your copy.</p>
             </div>
             <StudioDialogButton variant="secondary" onClick={downloadCurrent}>
-              <Download size={16} aria-hidden="true" />
+              <Download aria-hidden="true" strokeWidth={1.75} />
               Download current project
             </StudioDialogButton>
             {downloadError && <p ref={downloadErrorRef} className="project-replacement-error" role="alert">{downloadError}</p>}
@@ -84,7 +76,7 @@ export function ProjectReplacementDialog({ title, intent = 'open', onKeepEditing
           <StudioDialogButton ref={keepEditingRef} onClick={onKeepEditing}>Keep editing</StudioDialogButton>
           <StudioDialogButton variant="primary" onClick={onDiscardAndOpen}>{actionText}</StudioDialogButton>
         </StudioDialogActions>
-      </DialogContent>
+      </StudioDialog>
     </Dialog>
   );
 }

@@ -1,8 +1,42 @@
-.share-dialog { width: min(38rem, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); overflow-y: auto; }
-.share-dialog .studio-dialog-section { display: grid; gap: 0.65rem; }
-.share-dialog textarea { width: 100%; resize: vertical; font: inherit; overflow-wrap: anywhere; }
-.share-dialog input[type="number"] { width: 8rem; }
-.share-dialog p { line-height: 1.5; }
+/* Share dialog content; the shell is StudioDialog. */
+.share-dialog { z-index: 100; }
+.share-dialog-body { gap: 1.25rem; }
+.share-section { display: grid; gap: 0.5rem; min-width: 0; }
+.share-section :is(h3, .share-section-title) { margin: 0; color: var(--studio-text-strong); font-size: var(--studio-font-control); font-weight: 600; }
+.share-copy-row { display: flex; gap: 0.5rem; min-width: 0; }
+.share-copy-row > input {
+  flex: 1;
+  min-width: 0;
+  height: var(--studio-control-height);
+  padding: 0 0.5rem;
+  border: var(--studio-border-width) solid var(--studio-transparent);
+  border-radius: var(--studio-radius-sm);
+  background: var(--studio-field);
+  color: var(--studio-text-secondary);
+  font-size: var(--studio-font-label);
+  text-overflow: ellipsis;
+}
+.share-copy-row > button { flex-shrink: 0; }
+.share-switch { min-height: var(--studio-control-height); }
+.share-code {
+  width: 100%;
+  min-height: 0;
+  padding: 0.5rem;
+  border: 0;
+  border-radius: var(--studio-radius-sm);
+  background: var(--studio-field);
+  color: var(--studio-text-secondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--studio-font-meta);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  resize: none;
+}
+.share-copy-embed { justify-self: start; }
+.share-feedback { color: var(--studio-text-secondary); }
+@media (pointer: coarse), (max-width: 899px) {
+  .share-copy-row > input, .share-switch, .share-dialog .number-field { min-height: var(--studio-touch-target); }
+}
 .shared-project { display: flex; flex-direction: column; width: 100%; height: 100dvh; min-height: 240px; background: var(--studio-background); color: var(--studio-text); }
 .shared-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.65rem; padding: 0.7rem 1rem; background: var(--studio-surface); border-bottom: 1px solid var(--studio-line-strong); }
 .shared-header h1 { margin: 0; font-size: 1.05rem; overflow-wrap: anywhere; }

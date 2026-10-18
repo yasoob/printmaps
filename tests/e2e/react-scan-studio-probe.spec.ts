@@ -215,7 +215,7 @@ test('wall preferences do not rebuild composition controls or live map', async (
   await enablePoster(page);
   await page.getByRole('button', { name: 'Export', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Export map', exact: true });
-  await dialog.getByRole('button', { name: 'Preview framed', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Preview on wall', exact: true }).click();
   await expect(dialog.locator('.studio-wall-scene img')).toBeVisible();
   await startProbe(page, 'Wall frame preference');
   await dialog.getByLabel('Frame finish').selectOption('walnut');

@@ -211,7 +211,7 @@ it('keeps Print navigation locked until an aborted capture settles without a lat
   expect(URL.createObjectURL).not.toHaveBeenCalled();
 });
 
-it('discards late wall capture after Back and surfaces a fresh capture failure without changing history', async () => {
+it('discards a late poster capture on close and keeps capture failures quiet until the framed view', async () => {
   const { user, exporter, store } = setup();
   const original = store.getState();
   let complete!: (capture: PreviewPng) => void;
@@ -221,9 +221,10 @@ it('discards late wall capture after Back and surfaces a fresh capture failure w
     return new Promise((resolve) => { complete = resolve; });
   });
   await user.click(screen.getByRole('button', { name: 'Export' }));
-  await user.click(screen.getByRole('button', { name: 'Preview framed' }));
-  await screen.findByText('Preparing poster preview...');
-  await user.click(screen.getByRole('button', { name: 'Back to export' }));
+  await screen.findByText('Preparing poster preview…');
+  expect(signal).toBeInstanceOf(AbortSignal);
+  await user.keyboard('{Escape}');
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   expect(signal?.aborted).toBe(true);
   const surface = document.createElement('canvas');
   await act(async () => complete({ surface, blob: new Blob(), width: 200, height: 100 }));
@@ -231,20 +232,26 @@ it('discards late wall capture after Back and surfaces a fresh capture failure w
   expect(surface.width).toBe(0);
   expect(surface.height).toBe(0);
   vi.mocked(exporter).mockRejectedValue(new Error('The map is recovering. Retry the preview.'));
-  await user.click(screen.getByRole('button', { name: 'Preview framed' }));
+  await user.click(screen.getByRole('button', { name: 'Export' }));
+  expect(await screen.findByText(/map is recovering/)).toBeVisible();
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: 'Preview on wall' }));
   expect(await screen.findByRole('alert')).toHaveTextContent('map is recovering');
   expect(screen.queryByRole('img')).not.toBeInTheDocument();
   expect(store.getState()).toBe(original);
 });
 
-it('previews inside the same shell, preserves print choice, cleans resources, and only saves frame preferences', async () => {
+it('shows one poster capture for print and the framed view, preserves print choice, and only saves frame preferences', async () => {
   const { user, store, exporter, captures } = setup();
   const original = store.getState();
   await user.click(screen.getByRole('button', { name: 'Export' }));
   const dialog = screen.getByRole('dialog');
+  expect(await screen.findByRole('img', { name: 'Preview of your poster' })).toHaveAttribute('src', 'blob:poster');
   await user.click(screen.getByRole('radio', { name: /Layered SVG/ }));
-  await user.click(screen.getByRole('button', { name: 'Preview framed' }));
-  expect(await screen.findByRole('img', { name: /finished map poster/ })).toHaveAttribute('src', 'blob:poster');
+  await user.click(screen.getByRole('button', { name: 'Preview on wall' }));
+  expect(screen.getByRole('img', { name: /finished map poster/ })).toHaveAttribute('src', 'blob:poster');
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Back to export' })).toHaveFocus());
+  expect(screen.getByRole('button', { name: 'Download layered SVG' })).toBeEnabled();
   expect(screen.getAllByRole('dialog')).toEqual([dialog]);
   expect(store.getState()).toBe(original);
   expect(captures[0].width).toBe(0);
@@ -252,13 +259,13 @@ it('previews inside the same shell, preserves print choice, cleans resources, an
   await user.selectOptions(screen.getByLabelText('Frame finish'), 'oak');
   expect(store.getState().document.studio.wall.frame).toBe('oak');
   expect(store.getState().past).toHaveLength(1);
-  expect(exporter).toHaveBeenCalledOnce();
   await user.click(screen.getByRole('button', { name: 'Back to export' }));
   expect(screen.getByRole('radio', { name: /Layered SVG/ })).toHaveAttribute('aria-checked', 'true');
-  expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:poster');
-  await user.click(screen.getByRole('button', { name: 'Preview framed' }));
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Download layered SVG' })).toHaveFocus());
+  await user.click(screen.getByRole('button', { name: 'Preview on wall' }));
   await screen.findByRole('img', { name: /finished map poster/ });
-  expect(exporter).toHaveBeenCalledTimes(2);
+  expect(exporter).toHaveBeenCalledOnce();
+  expect(URL.revokeObjectURL).not.toHaveBeenCalled();
   expect(store.getState().past).toHaveLength(1);
   await user.click(screen.getByRole('button', { name: 'Wall preview help' }));
   await user.keyboard('{Escape}');
@@ -266,4 +273,5 @@ it('previews inside the same shell, preserves print choice, cleans resources, an
   expect(screen.getByRole('dialog')).toBe(dialog);
   await user.keyboard('{Escape}');
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:poster');
 });

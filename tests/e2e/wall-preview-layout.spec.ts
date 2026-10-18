@@ -19,7 +19,7 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
       await page.getByRole('radio', { name: orientation, exact: true }).click();
       if (viewport.width < 900) await page.keyboard.press('Escape');
       await page.getByRole('button', { name: 'Export', exact: true }).click();
-      await page.getByRole('button', { name: 'Preview framed', exact: true }).click();
+      await page.getByRole('button', { name: 'Preview on wall', exact: true }).click();
       const dialog = page.getByRole('dialog', { name: 'Export map' });
       await expect(dialog.getByRole('img', { name: /finished map poster/ })).toBeVisible();
       await dialog.getByLabel('Frame finish').selectOption('oak');
@@ -54,7 +54,7 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
 
       const headerTop = await dialog.locator('.export-dialog-header').evaluate((element) => element.getBoundingClientRect().top);
       await dialog.locator('.studio-wall-body').evaluate((element) => { element.scrollTop = element.scrollHeight; });
-      await expect(dialog.getByRole('checkbox', { name: 'Cast frame shadow' })).toBeVisible();
+      await expect(dialog.getByRole('switch', { name: 'Cast frame shadow' })).toBeVisible();
       const afterScroll = await dialog.locator('.export-dialog-header').evaluate((element) => element.getBoundingClientRect().top);
       expect(afterScroll).toBeCloseTo(headerTop, 1);
       expect(await dialog.evaluate((element) => {

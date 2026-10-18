@@ -33,13 +33,25 @@
 .inspector-template-subview .inspector-back { margin-left: -8px; }
 .inspector-frame-options { margin: 4px 0 12px; }
 .inspector-frame-current { margin: 8px 0; color: var(--studio-text-secondary); }
-.template-project-dialog { z-index: 100; width: min(720px, calc(100vw - 32px)); max-width: 720px; max-height: calc(100dvh - 32px); grid-template-rows: auto minmax(0, 1fr); padding: 0; gap: 0; overflow: hidden; color: var(--studio-text); background: var(--studio-surface); animation: none; transition: none; }
-.template-project-heading { padding: 20px 48px 20px 20px; border-bottom: var(--studio-border-width) solid var(--studio-line); }
-.template-project-body { padding: 20px; overflow-y: auto; min-height: 0; overscroll-behavior: contain; }
-.template-project-body .studio-template-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.template-project-body .studio-template-art { max-height: 180px; }
+.template-project-dialog { z-index: 100; }
+.template-project-body { gap: 0.75rem; padding-top: 0.25rem; }
+.template-project-body .studio-template-heading { margin: 0 0 0.5rem; color: var(--studio-text-strong); font-size: var(--studio-font-control); font-weight: 600; }
+.template-project-body .studio-template-starters h3 { margin: 0.75rem 0 0.5rem; }
+.template-project-body .studio-template-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem; }
+.template-project-body .studio-starter-grid { gap: 0.75rem; }
+.template-project-body .studio-template-card { gap: 0.125rem; padding: 0 0 0.75rem; overflow: hidden; }
+.template-project-body .studio-template-art { width: 100%; aspect-ratio: 4 / 3; padding: 0.625rem 0.625rem 0.375rem; margin-bottom: 0.5rem; }
+.template-project-body .studio-template-art strong { font-size: 12px; }
+.template-project-body .studio-template-art small { font-size: 7px; letter-spacing: 0.04em; }
+.template-project-body .studio-template-card > strong, .template-project-body .studio-template-card > small { padding: 0 0.75rem; }
+.template-project-body .studio-template-card > strong { font-size: var(--studio-font-control); }
+.template-project-body .studio-starter-grid button { display: flex; align-items: center; gap: 0.75rem; padding: 0.625rem 0.75rem; }
+.template-project-body .studio-starter-icon { display: grid; flex-shrink: 0; place-items: center; width: 2.25rem; height: 2.25rem; border-radius: var(--studio-radius-sm); background: var(--studio-field); color: var(--studio-text-secondary); }
+.template-project-body .studio-starter-text { display: grid; gap: 0.125rem; min-width: 0; }
+.template-project-body .studio-starter-text strong { font-size: var(--studio-font-control); }
 @media (max-width: 600px) {
   .template-project-body .studio-template-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .template-project-body .studio-starter-grid { grid-template-columns: minmax(0, 1fr); }
   .studio-composition-field input, .studio-photo-list input { min-height: 44px; }
   .studio-photo-list .icon-button { width: 44px; height: 44px; }
 }

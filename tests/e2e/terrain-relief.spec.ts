@@ -60,7 +60,7 @@ test('terrain and real contour worker render, persist through style change, and 
   await page.getByRole('button', { name: 'Fit dimensions to print frame' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Dimensions match' })).toBeVisible();
   await page.getByLabel('Relief detail', { exact: true }).selectOption('low');
-  await page.getByRole('checkbox', { name: 'Raise a route ridge' }).click();
+  await page.getByRole('switch', { name: 'Raise a route ridge' }).click();
   await page.getByLabel('Route ridge width', { exact: true }).fill('8');
   await page.getByLabel('Route ridge width', { exact: true }).press('Enter');
   const downloading = page.waitForEvent('download');
@@ -91,7 +91,7 @@ test('terrain and real contour worker render, persist through style change, and 
   expect(maximumHeight).toBeGreaterThan(2);
   for (const count of edges.values()) expect(count).toBe(2);
   await page.screenshot({ path: testInfo.outputPath('terrain-stl-dialog.png') });
-  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await page.getByRole('button', { name: 'Done', exact: true }).click();
   await page.getByRole('button', { name: 'Export', exact: true }).click();
   const pngDownload = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download PNG', exact: true }).click();
@@ -109,7 +109,7 @@ test('STL explicitly rejects perspective footprint, then accepts a bearing-rotat
   await openRelief(page);
   await page.getByRole('button', { name: 'Fit dimensions to print frame' }).click();
   await expect(page.getByRole('alert')).toContainText('Pitch');
-  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
   await pitch.fill('0');
   await pitch.press('Enter');
   const bearing = page.getByLabel('Bearing', { exact: true });
@@ -134,6 +134,6 @@ test('relief controls remain accessible and scrollable on a narrow mobile viewpo
   expect(bounds!.width).toBeLessThanOrEqual(390);
   expect(bounds!.height).toBeLessThanOrEqual(844);
   await page.screenshot({ path: testInfo.outputPath('terrain-relief-mobile.png') });
-  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
   await expect(dialog).toHaveCount(0);
 });

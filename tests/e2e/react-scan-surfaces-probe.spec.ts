@@ -30,6 +30,7 @@ for (const touch of [false, true]) {
       await openScanEditor(page);
       await page.getByRole('button', { name: 'Export', exact: true }).click();
       const dialog = page.getByRole('dialog', { name: 'Export map', exact: true });
+      await expect(dialog.getByRole('img', { name: 'Preview of your poster' })).toBeVisible({ timeout: 20_000 });
       await dialog.getByRole('radio', { name: /Layered SVG/ }).click();
       await helpProbe(page, info, 'Basemap rendering help', { owner: 'ExportDialog', isTouch: touch });
       await dialog.getByRole('tab', { name: 'Video', exact: true }).click();
@@ -45,7 +46,7 @@ for (const touch of [false, true]) {
       expectOwners(fit, ['ReliefExportPanel', 'ReliefSettingsControls'], ['MapCanvas', 'StudioCompositionControls', 'StudioPosterPreview', 'StudioVideoControls']);
       expect(fit.mapMutations).toEqual([]);
       await dialog.getByRole('tab', { name: 'Print', exact: true }).click();
-      await dialog.getByRole('button', { name: 'Preview framed', exact: true }).click();
+      await dialog.getByRole('button', { name: 'Preview on wall', exact: true }).click();
       await expect(dialog.locator('.studio-wall-scene img')).toBeVisible();
       await helpProbe(page, info, 'Wall preview help', { owner: 'WallPreviewPanel', isTouch: touch });
       await page.keyboard.press('Escape');
@@ -91,6 +92,7 @@ test('real video recording progress leaves the live map camera and renderer unto
   await openScanEditor(page);
   await page.getByRole('button', { name: 'Export', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Export map', exact: true });
+  await expect(dialog.getByRole('img', { name: 'Preview of your poster' })).toBeVisible({ timeout: 20_000 });
   await dialog.getByRole('tab', { name: 'Video', exact: true }).click();
   await dialog.getByLabel('Duration', { exact: true }).selectOption('5');
   const download = dialog.getByRole('button', { name: 'Download MP4', exact: true });
@@ -138,6 +140,7 @@ test('simulated video controller progress preserves settings and help render bou
   await openScanEditor(page);
   await page.getByRole('button', { name: 'Export', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Export map', exact: true });
+  await expect(dialog.getByRole('img', { name: 'Preview of your poster' })).toBeVisible({ timeout: 20_000 });
   await dialog.getByRole('tab', { name: 'Video', exact: true }).click();
   const originalCamera = await page.evaluate(() => globalThis.window.__PRINT_MAP_REACT_SCAN__?.cameras.find(({ surface }) => surface === 'editor'));
   const history = await page.locator('button[aria-label="Undo"]').isEnabled();

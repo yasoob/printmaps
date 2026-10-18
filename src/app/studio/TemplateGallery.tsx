@@ -1,3 +1,4 @@
+import { MapPin } from 'lucide-react';
 import { memo } from 'react';
 import { Check } from 'lucide-react';
 import { POSTER_STARTERS, POSTER_TEMPLATES, type PosterStarter, type PosterTemplate } from '../../domain/studioTemplates';
@@ -12,7 +13,7 @@ export type TemplateGalleryProps = {
 
 export const TemplateGallery = memo(function TemplateGallery({ mode, selectedId, onSelect }: TemplateGalleryProps) {
   return <div className="studio-template-gallery">
-    <p className="property-note">{mode === 'layout' ? 'Keep your map, text, and photos. Change the design.' : 'Choose a design or start with a place.'}</p>
+    {mode === 'layout' ? <p className="property-note">Keep your map, text, and photos. Change the design.</p> : <h3 className="studio-template-heading">Designs</h3>}
     <div className="studio-template-grid">
       {POSTER_TEMPLATES.map((template) => <button type="button" className="studio-template-card" key={template.id}
         aria-pressed={mode === 'layout' ? selectedId === template.id : undefined} onClick={() => onSelect(template.id)}>
@@ -25,10 +26,11 @@ export const TemplateGallery = memo(function TemplateGallery({ mode, selectedId,
       </button>)}
     </div>
     {mode === 'new-project' && <section className="studio-template-starters" aria-label="Starter locations">
-      <h3>Start with a place</h3>
+      <h3 className="studio-template-heading">Start with a place</h3>
       <div className="studio-starter-grid">{POSTER_STARTERS.map((starter) =>
         <button type="button" key={starter.id} onClick={() => onSelect(starter.templateId, starter)}>
-          <strong>{starter.name}</strong><small>{starter.subtitle}</small>
+          <span className="studio-starter-icon" aria-hidden="true"><MapPin size={16} strokeWidth={1.8} /></span>
+          <span className="studio-starter-text"><strong>{starter.name}</strong><small>{starter.subtitle}</small></span>
         </button>)}</div>
     </section>}
   </div>;

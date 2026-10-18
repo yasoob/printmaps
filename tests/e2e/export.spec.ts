@@ -111,7 +111,7 @@ test('export offers one keyboard-accessible format choice with responsive techni
       technicalBorderWidths: read('.export-technical-details').borderWidths,
       footerBorderWidths: read('.export-dialog-actions').borderWidths,
       cancelBackground: read('.export-dialog-actions > button:not(.primary-button)').backgroundColor,
-      cancelBorderWidths: read('.export-dialog-actions > button:not(.primary-button)').borderWidths,
+      cancelBorderColor: getComputedStyle(element.querySelector<HTMLElement>(':scope .export-dialog-actions > button:not(.primary-button)')!).borderTopColor,
     };
   });
   expect(chrome.formatGroupBackground).not.toBe('rgba(0, 0, 0, 0)');
@@ -124,7 +124,7 @@ test('export offers one keyboard-accessible format choice with responsive techni
   expect(chrome.technicalBorderWidths.every((width) => width === '0px')).toBe(true);
   expect(chrome.footerBorderWidths.every((width) => width === '0px')).toBe(true);
   expect(chrome.cancelBackground).toBe('rgba(0, 0, 0, 0)');
-  expect(chrome.cancelBorderWidths.every((width) => width === '0px')).toBe(true);
+  expect(chrome.cancelBorderColor).toBe('rgba(0, 0, 0, 0)');
 
   await svg.click();
   await expect(svg).toHaveAttribute('aria-checked', 'true');

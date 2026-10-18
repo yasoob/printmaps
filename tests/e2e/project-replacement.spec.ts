@@ -93,9 +93,14 @@ test('backs up completed work without replacing it and requires deliberate conse
   const backup = dialog.getByRole('region', { name: 'Save a copy first' });
   await expect(backup.getByRole('button')).toHaveCount(1);
   await expect(dialog.locator('footer').getByRole('button')).toHaveCount(2);
-  for (const region of [backup, backup.getByRole('button'), dialog.locator('footer'), dialog.getByRole('button', { name: 'Keep editing' })]) {
+  for (const region of [backup, dialog.locator('footer')]) {
     await expect(region).toHaveCSS('border-top-width', '0px');
     await expect(region).toHaveCSS('border-bottom-width', '0px');
+  }
+  // Shared buttons reserve a transparent 1px border so variants share one box size; none is visible.
+  for (const button of [backup.getByRole('button'), dialog.getByRole('button', { name: 'Keep editing' })]) {
+    await expect(button).toHaveCSS('border-top-color', 'rgba(0, 0, 0, 0)');
+    await expect(button).toHaveCSS('border-bottom-color', 'rgba(0, 0, 0, 0)');
   }
   await expect(dialog.getByRole('button', { name: 'Keep editing' })).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   await expect(dialog.getByRole('button', { name: 'Replace project', exact: true })).toHaveCSS('background-color', primaryBackground);
@@ -198,9 +203,11 @@ test('replacement choices and safe keyboard focus fit a narrow viewport', async 
   await page.keyboard.press('Shift+Tab');
   await expect(dialog.getByRole('button', { name: 'Download current project' })).toBeFocused();
   await page.keyboard.press('Shift+Tab');
+  await expect(dialog.getByRole('button', { name: 'Close', exact: true })).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
   await expect(dialog.getByRole('button', { name: 'Replace project', exact: true })).toBeFocused();
   await page.keyboard.press('Tab');
-  await expect(dialog.getByRole('button', { name: 'Download current project' })).toBeFocused();
+  await expect(dialog.getByRole('button', { name: 'Close', exact: true })).toBeFocused();
   const bounds = await dialog.boundingBox();
   expect(bounds!.x).toBeGreaterThanOrEqual(0);
   expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(320);

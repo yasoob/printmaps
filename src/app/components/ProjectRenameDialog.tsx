@@ -1,6 +1,7 @@
 import { Pencil } from 'lucide-react';
 import { useId, useRef, useState, type RefObject } from 'react';
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { Dialog } from '@/components/ui/dialog';
+import { StudioDialog, StudioDialogActions, StudioDialogBody, StudioDialogButton, StudioDialogHeader } from '@/components/ui/studio-dialog';
 import { DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
 import { useProject, useProjectActions } from '../projectStoreContext';
 
@@ -34,14 +35,14 @@ export function ProjectRenameDialog({ onClose, returnFocusRef }: {
 
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent
+      <StudioDialog
+        size="sm"
         className="project-rename-dialog"
         overlayClassName="project-rename-backdrop"
-        showCloseButton={false}
         initialFocus={inputRef}
         finalFocus={returnFocusRef}
       >
-        <DialogTitle>Rename project</DialogTitle>
+        <StudioDialogHeader title="Rename project" />
         <form onSubmit={(event) => {
           event.preventDefault();
           if (!canSave) return;
@@ -49,27 +50,29 @@ export function ProjectRenameDialog({ onClose, returnFocusRef }: {
           if (result.ok) onClose();
           else setError(result.error);
         }}>
-          <label htmlFor={inputId}>Project name</label>
-          <input
-            ref={inputRef}
-            id={inputId}
-            className="project-title-input"
-            aria-describedby={hintId}
-            aria-invalid={!canSave || !!error}
-            maxLength={120}
-            value={draft}
-            onFocus={(event) => event.currentTarget.select()}
-            onChange={(event) => { setDraft(event.currentTarget.value); setError(null); }}
-          />
-          <p id={hintId} role={canSave && !error ? undefined : 'alert'} className={canSave && !error ? undefined : 'is-error'}>
-            {error ?? (canSave ? 'Up to 120 characters.' : 'Enter a project name.')}
-          </p>
-          <div className="project-rename-actions">
-            <button type="button" onClick={onClose}>Cancel</button>
-            <button className="primary-button" type="submit" disabled={!canSave}>Rename</button>
-          </div>
+          <StudioDialogBody className="project-rename-body">
+            <label htmlFor={inputId}>Project name</label>
+            <input
+              ref={inputRef}
+              id={inputId}
+              className="project-title-input"
+              aria-describedby={hintId}
+              aria-invalid={!canSave || !!error}
+              maxLength={120}
+              value={draft}
+              onFocus={(event) => event.currentTarget.select()}
+              onChange={(event) => { setDraft(event.currentTarget.value); setError(null); }}
+            />
+            <p id={hintId} role={canSave && !error ? undefined : 'alert'} className={canSave && !error ? undefined : 'is-error'}>
+              {error ?? (canSave ? 'Up to 120 characters.' : 'Enter a project name.')}
+            </p>
+          </StudioDialogBody>
+          <StudioDialogActions>
+            <StudioDialogButton onClick={onClose}>Cancel</StudioDialogButton>
+            <StudioDialogButton variant="primary" type="submit" disabled={!canSave}>Rename</StudioDialogButton>
+          </StudioDialogActions>
         </form>
-      </DialogContent>
+      </StudioDialog>
     </Dialog>
   );
 }
