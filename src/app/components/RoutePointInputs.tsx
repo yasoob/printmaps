@@ -1,4 +1,5 @@
 import { useId } from "react";
+import { Button } from "@/components/ui/button";
 import type { ContentLayer } from "../../domain/project";
 import type { RoutePointInput } from "../hooks/useRoutePointInput";
 import { PropertyRow } from "./PropertyControls";
@@ -57,12 +58,13 @@ export function RoutePointInputs({
             </PropertyRow>
           );
         })}
-        <button
+        <Button
           type="submit"
+          variant="secondary"
           disabled={disabled || pointInput.errors.some(Boolean)}
         >
           Add coordinates
-        </button>
+        </Button>
       </form>
       <div className="route-poi-entry">
         <PropertyRow label="Existing place">
@@ -86,8 +88,8 @@ export function RoutePointInputs({
             })}
           </select>
         </PropertyRow>
-        <button
-          type="button"
+        <Button
+          variant="secondary"
           disabled={disabled || selectedPoi?.geometry?.type !== "Point"}
           onClick={() => {
             if (selectedPoi?.geometry?.type === "Point"
@@ -97,7 +99,7 @@ export function RoutePointInputs({
           }}
         >
           Add place
-        </button>
+        </Button>
       </div>
       <Switch
         className="route-snap-control"

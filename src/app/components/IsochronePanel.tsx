@@ -1,18 +1,18 @@
 import { Bike, Car, Footprints, MapPin } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Notice } from '@/components/ui/notice';
+import { SegmentedControl, type SegmentedControlOption } from '@/components/ui/segmented-control';
 import type { ProviderTravelProfile } from '../../services/mapbox/contracts';
 import type { IsochroneCenter } from '../hooks/useIsochroneAuthoring';
-import { didHandleRovingSelection } from './rovingSelection';
+import { PropertySubheading } from './PropertyControls';
 import { ToolCardActions } from './ToolAuthoringCard';
+import { didHandleEdgeSelection } from './rovingSelection';
 
-const profiles = [
-  { id: 'walking' as const, label: 'Walking', icon: Footprints },
-  { id: 'cycling' as const, label: 'Cycling', icon: Bike },
-  { id: 'driving' as const, label: 'Driving', icon: Car },
-];
-
-function handleProfileKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
-  didHandleRovingSelection(event, '[role="radio"]');
-}
+const PROFILE_OPTIONS = [
+  { value: 'walking', label: 'Walking', icon: Footprints },
+  { value: 'cycling', label: 'Cycling', icon: Bike },
+  { value: 'driving', label: 'Driving', icon: Car },
+] as const satisfies readonly SegmentedControlOption<ProviderTravelProfile>[];
 
 type IsochronePanelProps = {
   center: IsochroneCenter | null;
@@ -31,41 +31,34 @@ export function IsochronePanel(props: IsochronePanelProps) {
   return (
     <div className="isochrone-panel">
       <div className="isochrone-field">
-        <span className="shape-control-label">Starting point</span>
+        <PropertySubheading>Starting point</PropertySubheading>
         <div className="isochrone-center" aria-live="polite">
-          <MapPin aria-hidden="true" size={16} />
+          <MapPin aria-hidden="true" size={16} strokeWidth={1.75} />
           <span>
             <strong>{props.center?.label ?? 'Choose a point on the map'}</strong>
             <small>{props.center ? props.center.coordinate.map((value) => value.toFixed(5)).join(', ') : 'Click the map or choose a search result'}</small>
           </span>
         </div>
       </div>
-      <fieldset className="isochrone-travel-mode">
-        <legend className="shape-control-label">Travel mode</legend>
-        <div className="isochrone-profiles" role="radiogroup" aria-label="Travel mode" onKeyDown={handleProfileKeyDown}>
-          {profiles.map(({ id, label, icon: Icon }) => (
-            <button key={id} type="button" role="radio" aria-checked={props.profile === id} tabIndex={props.profile === id ? 0 : -1} onClick={() => props.onProfileChange(id)}>
-              <Icon aria-hidden="true" size={15} /><span>{label}</span>
-            </button>
-          ))}
+      <div className="isochrone-field">
+        <PropertySubheading>Travel mode</PropertySubheading>
+        <div className="segmented-edge-keys" onKeyDown={(event) => didHandleEdgeSelection(event)}>
+          <SegmentedControl label="Travel mode" value={props.profile} options={PROFILE_OPTIONS} onValueChange={props.onProfileChange} />
         </div>
-      </fieldset>
+      </div>
       <div className="isochrone-duration-row">
-        <div className="isochrone-duration-heading">
-          <span className="shape-control-label">Duration</span>
-          <strong>{props.minutes} min</strong>
-        </div>
+        <PropertySubheading action={<strong className="isochrone-duration-value">{props.minutes} min</strong>}>Duration</PropertySubheading>
         <input type="range" aria-label="Travel time in minutes" aria-describedby={isInvalidMinutes ? 'isochrone-duration-limit isochrone-duration-error' : 'isochrone-duration-limit'} aria-invalid={isInvalidMinutes} aria-valuetext={`${props.minutes} minutes`} min={5} max={60} step={1} value={props.minutes} onChange={(event) => props.onMinutesChange(event.currentTarget.valueAsNumber)} />
         <div className="isochrone-duration-limits" aria-hidden="true"><span>5 min</span><span>60 min</span></div>
       </div>
       <span id="isochrone-duration-limit" className="sr-only">Use a whole number from 5 to 60 minutes.</span>
-      {isInvalidMinutes && <div id="isochrone-duration-error" className="isochrone-error" role="alert">Use a whole number from 5 to 60 minutes.</div>}
-      {props.error && <div className="isochrone-error" role="alert">{props.error}</div>}
+      {isInvalidMinutes && <Notice id="isochrone-duration-error" tone="error">Use a whole number from 5 to 60 minutes.</Notice>}
+      {props.error && <Notice tone="error">{props.error}</Notice>}
       <ToolCardActions>
-        <button type="button" aria-label="Cancel area" onClick={props.onCancel}>Cancel</button>
-        <button className="primary-button" type="button" disabled={!props.center || props.isGenerating || isInvalidMinutes} onClick={props.onGenerate}>
+        <Button variant="ghost" aria-label="Cancel area" onClick={props.onCancel}>Cancel</Button>
+        <Button variant="primary" disabled={!props.center || props.isGenerating || isInvalidMinutes} onClick={props.onGenerate}>
           {props.isGenerating ? 'Generating…' : 'Generate area'}
-        </button>
+        </Button>
       </ToolCardActions>
     </div>
   );

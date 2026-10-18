@@ -265,7 +265,7 @@ test('edits draft points and reuses an explicit Road Preview on Finish', async (
   await page.getByRole('button', { name: 'Undo last route point' }).click();
 
   await expandToolSettings(page, 'route');
-  await page.getByRole('button', { name: 'Road Preview' }).click();
+  await page.getByRole('button', { name: 'Preview road' }).click();
   await expect(page.getByText('Road preview updated.')).toBeVisible();
   expect(directions.requests).toHaveLength(1);
   await page.getByRole('button', { name: 'Finish route' }).click();

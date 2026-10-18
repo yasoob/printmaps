@@ -1,4 +1,5 @@
 import { useId, useRef } from "react";
+import { Button } from "@/components/ui/button";
 import { PropertyRow } from "./PropertyControls";
 
 export type ShapePointInputsProps = {
@@ -54,7 +55,7 @@ export function ShapePointInputs({
           </PropertyRow>
         );
       })}
-      <button type="submit">Add area point</button>
+      <Button type="submit" variant="secondary">Add area point</Button>
     </form>
   );
 }

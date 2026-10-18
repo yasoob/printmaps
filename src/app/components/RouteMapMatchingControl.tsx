@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/ui/notice";
 import type {
   MapMatchingInput,
   MapMatchingProvenance,
@@ -201,14 +203,15 @@ export function RouteMapMatchingControl({
           ))}
         </select>
       </PropertyRow>
-      <button
+      <Button
         className="secondary-action"
-        type="button"
+        variant="secondary"
+        busy={isMatching}
         disabled={isActionDisabled}
         onClick={() => void matchRoute()}
       >
         {isMatching ? "Matching route…" : "Snap route to roads"}
-      </button>
+      </Button>
       <small>{matchingGuidance(providerProfile, coordinates.length)}</small>
       {provenance && (
         <div className="provider-provenance-summary">
@@ -216,11 +219,11 @@ export function RouteMapMatchingControl({
         </div>
       )}
       {state.kind === "success" && (
-        <div role="status" aria-label="Map matching status">
+        <Notice tone="success" aria-label="Map matching status">
           {state.message}
-        </div>
+        </Notice>
       )}
-      {state.kind === "error" && <div role="alert">{state.message}</div>}
+      {state.kind === "error" && <Notice tone="error">{state.message}</Notice>}
     </div>
   );
 }

@@ -121,7 +121,7 @@ it('records deliberate route option changes and preview requests, not unchanged 
   await user.click(screen.getByRole('switch', { name: 'Snap map clicks to nearby places and route anchors' }));
   await user.click(screen.getByRole('button', { name: 'Map route point 1' }));
   await user.click(screen.getByRole('button', { name: 'Map route point 2' }));
-  await user.click(screen.getByRole('button', { name: 'Road Preview' }));
+  await user.click(screen.getByRole('button', { name: 'Preview road' }));
   await screen.findByText('Road preview updated.');
   expect(events('routeArcModeSelected')).toHaveLength(1);
   expect(events('routeStraightModeSelected')).toHaveLength(1);

@@ -1,5 +1,6 @@
 import { Download, FileUp, Redo2, Undo2 } from 'lucide-react';
 import { memo, useCallback, useRef, type RefObject } from 'react';
+import { Button } from '@/components/ui/button';
 import { DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import type { ProjectDocument } from '../../domain/project';
 import type { ProjectMutationResult } from '../../domain/projectMutation';
@@ -63,8 +64,8 @@ function HistoryActions({ presentation = 'toolbar' }: { presentation?: 'toolbar'
   }
   return (
     <div className="history-actions" aria-label="History">
-      <button className="icon-button" type="button" aria-label="Undo" title={UNDO_HINT} disabled={!canUndo} onClick={undo}><Undo2 aria-hidden="true" size={16} strokeWidth={1.8} /></button>
-      <button className="icon-button" type="button" aria-label="Redo" title={REDO_HINT} disabled={!canRedo} onClick={redo}><Redo2 aria-hidden="true" size={16} strokeWidth={1.8} /></button>
+      <Button variant="ghost" size="icon" aria-label="Undo" title={UNDO_HINT} disabled={!canUndo} onClick={undo}><Undo2 aria-hidden="true" size={16} strokeWidth={1.75} /></Button>
+      <Button variant="ghost" size="icon" aria-label="Redo" title={REDO_HINT} disabled={!canRedo} onClick={redo}><Redo2 aria-hidden="true" size={16} strokeWidth={1.75} /></Button>
     </div>
   );
 }
