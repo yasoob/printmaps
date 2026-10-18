@@ -17,3 +17,15 @@ it('offers a clear path from basemap metadata to the canonical map design contro
   expect(screen.getByRole('combobox', { name: 'Map language' })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Labels & details' })).toBeInTheDocument();
 });
+
+it('opens Project > Map from the basemap map-design action even after visiting Layout', async () => {
+  const user = userEvent.setup();
+  render(<App autosaveRepository={null} />);
+  await user.click(screen.getByRole('tab', { name: 'Layout' }));
+  await user.click(screen.getByRole('button', { name: 'Select Paper basemap' }));
+  await user.click(screen.getByRole('button', { name: 'Map design settings' }));
+  expect(screen.getByRole('heading', { name: 'Project' })).toHaveFocus();
+  expect(screen.getByRole('tab', { name: 'Map' })).toHaveAttribute('aria-selected', 'true');
+  expect(screen.getByRole('radiogroup', { name: 'Map style presets' })).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
+});

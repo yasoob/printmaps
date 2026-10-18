@@ -1,5 +1,5 @@
-import { memo, useState } from 'react';
-import { MAX_MERCATOR_LATITUDE, type ContentLayer, type LayerAppearance, type MapMatchingInput, type ShapeAppearance } from '../../domain/project';
+import { useState, type ReactNode } from 'react';
+import { MAX_MERCATOR_LATITUDE, type ContentLayer, type LayerAppearance, type MapMatchingInput } from '../../domain/project';
 import type { CustomMarkerAsset } from '../../domain/customMarkerAssets';
 import type { DirectionsProvider, MapMatchingProvider } from '../../services/mapbox/contracts';
 import type { ProjectState } from '../store';
@@ -8,15 +8,13 @@ import { CoordinateField } from './CoordinateField';
 import { LayerIdentityProperties } from './LayerIdentityProperties';
 import { MultiPartGeometryStatus } from './MultiPartGeometryStatus';
 import { PoiAppearanceControls } from './PoiAppearanceControls';
-import { PropertyRow, PropertySection } from './PropertyControls';
+import { InspectorAccordion, PropertySection } from './PropertyControls';
 import { RouteLayerProperties } from './RouteLayerProperties';
 import { ShapeVertexControls } from './ShapeVertexControls';
-import { Switch } from './UiControls';
-import { InputGroup, InputGroupAddon, InputNumber } from './InputGroup';
+import { ShapeAppearanceControls } from './ShapeAppearanceControls';
 import type { RouteExtensionEndpoint } from './routeAuthoringActions';
 import type { GeometryEditResult, ProjectMutationResult } from '../../domain/projectMutation';
 import { useLayerNameDraft } from '../hooks/useLayerNameDraft';
-import { useMutationFeedback } from '../hooks/useMutationFeedback';
 
 type LayerPropertiesProps = {
   layer: ContentLayer;
@@ -42,8 +40,13 @@ type LayerPropertiesProps = {
   onRouteVertexChange: (vertexIndex: number, coordinates: readonly [number, number]) => GeometryEditResult;
   onShapeVertexChange: (ringIndex: number, vertexIndex: number, coordinates: readonly [number, number]) => ProjectMutationResult;
   onToggleVisibility: () => ProjectMutationResult; onToggleLock: () => ProjectMutationResult;
-  onReplace: (trigger: HTMLElement | null) => void; onDuplicate: () => ProjectMutationResult; onDelete: () => void;
+  onReplace: (trigger: HTMLElement | null) => void; onDuplicate: () => ProjectMutationResult; onDelete: () => void; extraSections?: ReactNode;
 };
+
+function shapeVertexSummary(rings: readonly (readonly unknown[])[]) {
+  const holes = rings.length - 1;
+  return `${Math.max(0, (rings[0]?.length ?? 1) - 1)} points${holes > 0 ? ` · ${holes} ${holes === 1 ? 'hole' : 'holes'}` : ''}`;
+}
 
 function PoiCoordinateControls({
   coordinates,
@@ -64,47 +67,6 @@ function PoiCoordinateControls({
   );
 }
 
-const ShapeAppearanceControls = memo(function ShapeAppearanceControls({
-  appearance,
-  onChange: commit,
-}: {
-  appearance: ShapeAppearance;
-  onChange: (appearance: ShapeAppearance) => ProjectMutationResult;
-}) {
-  const feedback = useMutationFeedback(appearance);
-  const onChange = (next: ShapeAppearance) => feedback.report(commit(next));
-  const [widthEdit, setWidthEdit] = useState(() => ({
-    source: appearance.strokeWidth,
-    value: String(appearance.strokeWidth),
-  }));
-  const widthDraft = widthEdit.source === appearance.strokeWidth
-    ? widthEdit.value
-    : String(appearance.strokeWidth);
-  const widthValue = Number(widthDraft);
-  const isWidthInvalid = widthDraft.trim() === ''
-    || !Number.isFinite(widthValue)
-    || widthValue < 0.5
-    || widthValue > 12;
-  const commitWidth = (value: string) => {
-    const strokeWidth = Number(value);
-    if (value.trim() === '' || !Number.isFinite(strokeWidth) || strokeWidth < 0.5 || strokeWidth > 12) {
-      setWidthEdit({ source: appearance.strokeWidth, value: String(appearance.strokeWidth) });
-      return;
-    }
-    const result = onChange({ ...appearance, strokeWidth });
-    if (result.ok) setWidthEdit({ source: strokeWidth, value: String(strokeWidth) });
-  };
-
-  return (
-    <>
-      <PropertyRow label="Fill"><label className="color-field"><input aria-label="Shape fill color" type="color" value={appearance.fillColor} onChange={(event) => onChange({ ...appearance, fillColor: event.target.value })} /></label></PropertyRow>
-      <PropertyRow label="Outline"><label className="color-field"><input aria-label="Shape outline color" type="color" value={appearance.strokeColor} onChange={(event) => onChange({ ...appearance, strokeColor: event.target.value })} /></label></PropertyRow>
-      <PropertyRow label="Width"><InputGroup><InputNumber aria-label="Shape outline width" aria-invalid={isWidthInvalid || undefined} min={0.5} max={12} step={0.5} value={widthDraft} onChange={(event) => setWidthEdit({ source: appearance.strokeWidth, value: event.target.value })} onBlur={(event) => commitWidth(event.currentTarget.value)} /><InputGroupAddon align="inline-end" enableScrubbing sensitivity={4}>px</InputGroupAddon></InputGroup></PropertyRow>
-      <Switch aria-label="Invert shape fill" isChecked={appearance.invert} label="Invert outside area" onCheckedChange={(isChecked) => onChange({ ...appearance, invert: isChecked })} />
-      {feedback.error && <p className="coordinate-validation" role="alert">{feedback.error}</p>}
-    </>
-  );
-}, (previous, next) => previous.appearance === next.appearance);
 
 function PoiLayerProperties({
   layer,
@@ -194,9 +156,10 @@ function LayerTypeProperties({
             <ShapeAppearanceControls key={`${layer.id}-${layer.appearance.strokeWidth}`} appearance={layer.appearance} onChange={onAppearanceChange} />
           </PropertySection>
           {layer.geometry?.type === 'Polygon' && (
-            <PropertySection title="Vertices">
-              <ShapeVertexControls key={layer.id} coordinates={layer.geometry.coordinates} disabled={layer.locked || !layer.visible} onChange={onShapeVertexChange} />
-            </PropertySection>
+            <InspectorAccordion title="Vertices" isDefaultExpanded={false} storageKey="print-map-studio:inspector:layer:shape-vertices"
+                summary={shapeVertexSummary(layer.geometry.coordinates)}>
+                <ShapeVertexControls key={layer.id} coordinates={layer.geometry.coordinates} disabled={layer.locked || !layer.visible} onChange={onShapeVertexChange} />
+            </InspectorAccordion>
           )}
           {layer.geometry?.type === 'MultiPolygon' && (
             <MultiPartGeometryStatus partCount={layer.geometry.coordinates.length} />
@@ -238,7 +201,7 @@ export function LayerProperties({
   onReplace,
   onDuplicate,
   onDelete,
-  onTransformRoute,
+  onTransformRoute, extraSections,
 }: LayerPropertiesProps) {
   const [operationError, setOperationError] = useState<{ layer: ContentLayer; message: string } | null>(null);
   const reportMutation = <T extends GeometryEditResult,>(result: T) => {
@@ -304,6 +267,7 @@ export function LayerProperties({
       />
       {operationError?.layer === layer && <p className="coordinate-validation" role="alert">{operationError.message}</p>}
       <LayerTypeProperties documentEpoch={documentEpoch} layer={layer} assets={assets} directionsProvider={directionsProvider} mapMatchingProvider={mapMatchingProvider} onApplyMapMatching={applyMapMatching} onAppearanceChange={changeAppearance} onBeginRouteExtend={beginRouteExtend} onArcCurvatureChange={changeArcCurvature} onPoiCoordinatesChange={changePoiCoordinates} onPoiCustomMarkerChange={changePoiCustomMarker} onRouteVertexInsert={insertRouteVertex} onRouteVertexRemove={removeRouteVertex} onRouteVertexChange={changeRouteVertex} onShapeVertexChange={changeShapeVertex} directionsRouteEditError={directionsRouteEditError} directionsRouteEditIsRouting={directionsRouteEditIsRouting} directionsRouteEditWaypoints={directionsRouteEditWaypoints} onRetryDirectionsRouteEdit={retryDirectionsRouteEdit} onCancelDirectionsRouteEdit={cancelDirectionsRouteEdit} onTransformRoute={transformRoute} />
+      {extraSections}
     </div>
   );
 }

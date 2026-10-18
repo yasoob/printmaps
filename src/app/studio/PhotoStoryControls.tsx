@@ -1,4 +1,5 @@
 import { memo, useMemo, useRef, useState } from 'react';
+import { ImagePlus, Trash2 } from 'lucide-react';
 import type { ContentLayer } from '../../domain/project';
 import type { ProjectMutationResult } from '../../domain/projectMutation';
 import type { PhotoSettings } from '../../domain/studio';
@@ -48,26 +49,36 @@ export const PhotoStoryControls = memo(function PhotoStoryControls({ value, poin
       event.currentTarget.value = '';
       if (file) void upload(file);
     }} />
-    <div className="feature-help-row">
-      <button type="button" disabled={isUploading} onClick={() => input.current?.click()}>{isUploading ? 'Adding photo...' : 'Add local photo'}</button>
+    <div className="feature-help-row studio-photo-add">
+      <button className="inspector-secondary-button" type="button" disabled={isUploading} onClick={() => input.current?.click()}>
+        <ImagePlus aria-hidden="true" size={16} />{isUploading ? 'Adding photo...' : 'Add local photo'}
+      </button>
       {photoHelp}
     </div>
     {error && <p role="alert" className="studio-composition-error">{error}</p>}
-    <StudioToggle label="Show anchored photos" checked={value.map.enabled} onChange={map.enabled} />
-    <StudioSelect label="Photo shape" value={value.map.shape} options={SHAPES} onChange={map.shape} />
-    <StudioNumber label="Photo size" value={value.map.sizeMm} min={5} max={100} epoch={epoch} onChange={map.sizeMm} />
-    <StudioColor label="Photo border" value={value.map.borderColor} onChange={map.borderColor} />
-    <StudioToggle label="Show numbered photo strip" checked={value.strip.enabled} onChange={strip.enabled} />
-    <StudioSelect label="Strip position" value={value.strip.position} options={POSITIONS} onChange={strip.position} />
-    <StudioNumber label="Strip height" value={value.strip.heightMm} min={12} max={100} epoch={epoch} onChange={strip.heightMm} />
-    <StudioToggle label="Show photo captions" checked={value.strip.showCaptions} onChange={strip.showCaptions} />
-    <ol className="studio-photo-list">{value.stops.map((stop, index) => <li key={stop.id}>
+    {value.stops.length > 0 && <ol className="studio-photo-list">{value.stops.map((stop, index) => <li key={stop.id}>
       <img src={value.assets[stop.assetId]?.dataUri} alt="" />
-      <label><span>Stop {index + 1} caption</span><input aria-label={`Stop ${index + 1} caption`} maxLength={200} value={stop.caption} onChange={(event) => onChange({ ...value, stops: value.stops.map((candidate) => candidate.id === stop.id ? { ...candidate, caption: event.target.value } : candidate) })} /></label>
-      <button type="button" aria-label={`Remove photo ${index + 1}`} onClick={() => {
+      <input aria-label={`Stop ${index + 1} caption`} placeholder={`Caption for photo ${index + 1}`} maxLength={200} value={stop.caption} onChange={(event) => onChange({ ...value, stops: value.stops.map((candidate) => candidate.id === stop.id ? { ...candidate, caption: event.target.value } : candidate) })} />
+      <button className="icon-button" type="button" aria-label={`Remove photo ${index + 1}`} title="Remove photo" onClick={() => {
         const result = onRemove(stop.id);
         setError(result.ok ? '' : result.error);
-      }}>Remove</button>
-    </li>)}</ol>
+      }}><Trash2 aria-hidden="true" size={16} /></button>
+    </li>)}</ol>}
+    <fieldset><legend>Photos on the map</legend>
+      <StudioToggle label="Show anchored photos" checked={value.map.enabled} onChange={map.enabled} />
+      {value.map.enabled && <>
+        <StudioSelect label="Photo shape" value={value.map.shape} options={SHAPES} onChange={map.shape} />
+        <StudioNumber label="Photo size" value={value.map.sizeMm} min={5} max={100} epoch={epoch} onChange={map.sizeMm} />
+        <StudioColor label="Photo border" value={value.map.borderColor} onChange={map.borderColor} />
+      </>}
+    </fieldset>
+    <fieldset><legend>Photo strip</legend>
+      <StudioToggle label="Show numbered photo strip" checked={value.strip.enabled} onChange={strip.enabled} />
+      {value.strip.enabled && <>
+        <StudioSelect label="Strip position" value={value.strip.position} options={POSITIONS} onChange={strip.position} />
+        <StudioNumber label="Strip height" value={value.strip.heightMm} min={12} max={100} epoch={epoch} onChange={strip.heightMm} />
+        <StudioToggle label="Show photo captions" checked={value.strip.showCaptions} onChange={strip.showCaptions} />
+      </>}
+    </fieldset>
   </div>;
 });

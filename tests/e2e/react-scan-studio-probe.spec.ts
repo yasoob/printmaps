@@ -81,7 +81,7 @@ for (const field of ['Title text', 'Top margin']) {
     ]);
     expect(result.mapMutations).toEqual([]);
     expectOnlyControls(result, ['TextControl'], field === 'Title text' ? ['Title'] : []);
-    expectOnlyControls(result, STUDIO_FIELDS, field === 'Top margin' ? ['Top margin'] : []);
+    expectOnlyControls(result, [...STUDIO_FIELDS, 'MarginField'], field === 'Top margin' ? ['Top margin'] : []);
   });
 }
 
@@ -114,7 +114,8 @@ test('decoration toggle leaves poster, photo, terrain and native map owners stab
     ...NATIVE_MAP_OWNERS, 'PosterControls', 'PhotoStoryControls', 'TemplateGallery', 'WallPreviewDialog',
   ]);
   expect(result.mapMutations).toEqual([]);
-  expectOnlyControls(result, STUDIO_FIELDS, ['Show compass']);
+  // Enabling the compass mounts its dependent fields; no other decoration field renders.
+  expectOnlyControls(result, STUDIO_FIELDS, ['Show compass', 'Compass corner', 'Compass style', 'Compass size', 'Compass color']);
 });
 
 test('moving a photo POI preserves the other photo and unrelated route sources', async ({ page }, info) => {

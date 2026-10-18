@@ -189,6 +189,7 @@ describe('layer appearance draft boundaries', () => {
   it('selects and edits a polygon hole vertex independently', async () => {
     const user = userEvent.setup();
     render(<LayerProperties layer={shapeWithHole()} {...actions} />);
+    await openVertices(user);
 
     await user.selectOptions(screen.getByRole('combobox', { name: 'Shape ring' }), '1');
     const longitude = screen.getByRole('textbox', { name: 'Shape vertex longitude' });
@@ -200,12 +201,13 @@ describe('layer appearance draft boundaries', () => {
     expect(actions.onShapeVertexChange).toHaveBeenCalledWith(1, 0, [1.5, 1]);
   });
 
-  it('does not offer vertex fields for an unclosed polygon ring', () => {
+  it('does not offer vertex fields for an unclosed polygon ring', async () => {
     const layer = shapeWithHole();
     if (layer.geometry?.type !== 'Polygon') throw new Error('Expected polygon geometry.');
     layer.geometry.coordinates = [[[0, 0], [4, 0], [0, 4]]];
 
     render(<LayerProperties layer={layer} {...actions} />);
+    await openVertices(userEvent.setup());
 
     expect(screen.getByRole('combobox', { name: 'Shape ring' })).toBeInTheDocument();
     expect(screen.queryByRole('combobox', { name: 'Shape vertex' })).not.toBeInTheDocument();
@@ -241,3 +243,8 @@ describe('layer appearance draft boundaries', () => {
     expect(screen.getByRole('combobox', { name: 'Route waypoint' })).toBeInTheDocument();
   });
 });
+
+async function openVertices(user: { click: (element: Element) => Promise<void> }) {
+  const toggle = screen.getByRole('button', { name: 'Vertices' });
+  if (toggle.getAttribute('aria-expanded') !== 'true') await user.click(toggle);
+}

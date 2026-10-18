@@ -21,7 +21,7 @@ describe('editor page settings and tools', () => {
     expect(screen.getByRole('checkbox', { name: 'Show roads' })).toBeChecked();
     expect(screen.getByRole('checkbox', { name: 'Show buildings' })).toBeChecked();
     expect(screen.getByRole('checkbox', { name: 'Show labels' })).toBeChecked();
-    expect(screen.getByRole('checkbox', { name: 'Show page boundary' })).toBeChecked();
+    expect(screen.getByRole('switch', { name: 'Show page boundary' })).toBeChecked();
     expect(screen.queryByRole('button', { name: /Output settings/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('combobox', { name: 'Export resolution' })).not.toBeInTheDocument();
     expect(screen.queryByRole('checkbox', { name: 'Include map attribution' })).not.toBeInTheDocument();
@@ -233,7 +233,7 @@ describe('editor map detail and page commands', () => {
   it('hides the page boundary guide without changing project history', async () => {
     const user = userEvent.setup();
     render(<App />);
-    const boundary = screen.getByRole('checkbox', { name: 'Show page boundary' });
+    const boundary = screen.getByRole('switch', { name: 'Show page boundary' });
     const map = screen.getByTestId('map-canvas');
 
     expect(map).toHaveAttribute('data-page-boundary-visible', 'true');

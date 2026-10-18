@@ -12,6 +12,7 @@ import {
   type PoiMarkerSymbol,
 } from '../../domain/poiMarkers';
 import { PropertyRow } from './PropertyControls';
+import { FeatureHelp } from './FeatureHelp';
 import { InputGroup, InputGroupAddon, InputNumber } from './InputGroup';
 import type { ProjectMutationResult } from '../../domain/projectMutation';
 import { useMutationFeedback } from '../hooks/useMutationFeedback';
@@ -44,7 +45,6 @@ function CustomMarkerControl({
   const [state, setState] = useState<{ error: string | null; pending: boolean }>({ error: null, pending: false });
   const uploadSequence = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const helpId = useId();
   useLayoutEffect(() => () => { uploadSequence.current += 1; }, []);
   const handleFile = async (file: File | undefined) => {
     if (!file) return;
@@ -73,16 +73,18 @@ function CustomMarkerControl({
   };
   return (
     <div className="custom-marker-control">
-      <p id={helpId} className="custom-marker-help">PNG/JPEG: 100–2048 px per side. SVG: scalable, including 24-unit icons. Maximum 1 MiB per file.</p>
-      <button className="secondary-action" type="button" disabled={state.pending} aria-describedby={helpId} aria-label={`${customAsset ? 'Replace' : 'Upload'} custom marker`} onClick={() => fileInputRef.current?.click()}><ImagePlus size={14} /> {customMarkerActionLabel(state.pending, customAsset)}</button>
+      <div className="feature-help-row">
+        <button className="inspector-secondary-button" type="button" disabled={state.pending} aria-label={`${customAsset ? 'Replace' : 'Upload'} custom marker`} onClick={() => fileInputRef.current?.click()}><ImagePlus aria-hidden="true" size={16} /> {customMarkerActionLabel(state.pending, customAsset)}</button>
+        {customAsset && <button className="inspector-secondary-button" type="button" aria-label="Remove custom marker" onClick={removeMarker}><Trash2 aria-hidden="true" size={16} /> Remove</button>}
+        <FeatureHelp label="Custom marker help">PNG or JPEG between 100 and 2048 px per side, or a scalable SVG (24-unit icons work). Maximum 1 MiB per file.</FeatureHelp>
+      </div>
       <input ref={fileInputRef} aria-label="Custom marker file" accept=".png,.jpg,.jpeg,.svg,image/png,image/jpeg,image/svg+xml" disabled={state.pending} hidden type="file" onChange={(event) => {
         const file = event.currentTarget.files?.[0];
         event.currentTarget.value = '';
         void handleFile(file);
       }} />
-      {customAsset && <button className="secondary-action" type="button" aria-label="Remove custom marker" onClick={removeMarker}><Trash2 size={14} /> Remove</button>}
-      {customAsset && <div role="status" aria-label="Custom marker status">Custom marker · {customAsset.width} × {customAsset.height} {customAsset.mimeType === 'image/svg+xml' ? 'SVG units · Scalable' : 'px'}</div>}
-      {state.error && <div role="alert" aria-label="Custom marker error">{state.error}</div>}
+      {customAsset && <div role="status" aria-label="Custom marker status" className="custom-marker-status">Custom marker · {customAsset.width} × {customAsset.height} {customAsset.mimeType === 'image/svg+xml' ? 'SVG units · Scalable' : 'px'}</div>}
+      {state.error && <div role="alert" aria-label="Custom marker error" className="coordinate-validation">{state.error}</div>}
     </div>
   );
 }

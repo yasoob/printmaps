@@ -21,6 +21,7 @@ export type CameraInspectorView = Pick<CameraSettings, 'bearing' | 'locked' | 'p
 
 type ProjectPropertiesProps = {
   layoutRequest?: number;
+  mapRequest?: number;
   terrainControls?: ReactNode;
   studioControls?: ReactNode;
   documentEpoch: number;
@@ -54,6 +55,7 @@ export function ProjectProperties(props: ProjectPropertiesProps) {
   const { camera, documentEpoch, style } = props;
   const [tab, setTab] = useState<'Map' | 'Layout'>('Map');
   const [lastLayoutRequest, setLastLayoutRequest] = useState(0);
+  const [lastMapRequest, setLastMapRequest] = useState(0);
   const [hasOpenedLayout, setHasOpenedLayout] = useState(false);
   const [isStyleCustomizerOpen, setIsStyleCustomizerOpen] = useState(false);
   const customizeTriggerRef = useRef<HTMLButtonElement>(null);
@@ -62,6 +64,11 @@ export function ProjectProperties(props: ProjectPropertiesProps) {
     setLastLayoutRequest(props.layoutRequest);
     setHasOpenedLayout(true);
     setTab('Layout');
+  }
+  if (props.mapRequest && props.mapRequest !== lastMapRequest) {
+    setLastMapRequest(props.mapRequest);
+    setIsStyleCustomizerOpen(false);
+    setTab('Map');
   }
   const openStyleCustomizer = useCallback(() => {
     trackEditorAction('mapStyleCustomizerOpened');
@@ -116,13 +123,18 @@ const ProjectStyleSection = memo(function ProjectStyleSection({ preset, customiz
   const style = useMemo(() => ({ preset, customization }), [preset, customization]);
   const feedback = useMutationFeedback(style);
   const selectStyle = useStableEvent((preset: MapStylePreset) => feedback.report(onStyleChange(preset)));
+  const isDefaultStyle = preset === 'paper' && !isMapStyleCustomized(customization);
   return <InspectorAccordion isDefaultExpanded storageKey={`${PROJECT_DISCLOSURE_PREFIX}:map-style`}
     summary={`${MAP_STYLE_PRESET_LABELS[preset]}${isMapStyleCustomized(customization) ? ' · Custom' : ''}`} title="Style">
     <MapStyleGallery selectedPreset={preset} onSelect={selectStyle} />
     <MapStyleCustomizeTrigger buttonRef={customizeTriggerRef} customization={customization} preset={preset} onOpen={onOpenCustomizer} />
-    <button className="map-style-default-reset" disabled={preset === 'paper' && !isMapStyleCustomized(customization)} type="button" onClick={() => feedback.report(onStyleReset())}>
-      <RotateCcw aria-hidden="true" size={13} /> Reset to Paper
-    </button>
+    {!isDefaultStyle && <div className="map-style-default-reset-row">
+      <button className="map-style-default-reset" type="button" onClick={() => {
+        if (feedback.report(onStyleReset()).ok) window.setTimeout(() => customizeTriggerRef.current?.focus(), 0);
+      }}>
+        <RotateCcw aria-hidden="true" size={14} /> Reset to Paper
+      </button>
+    </div>}
     {feedback.error && <p className="coordinate-validation" role="alert">{feedback.error}</p>}
   </InspectorAccordion>;
 });
@@ -133,7 +145,7 @@ const ProjectCameraSection = memo(function ProjectCameraSection({ camera, docume
     <PropertyRow label="Bearing"><ValidatedNumberField label="Bearing" value={camera.bearing} minimum={-180} maximum={180} step={1} unit="°" resetKey={documentEpoch} onCommit={onBearingChange} /></PropertyRow>
     <PropertyRow label="Pitch"><ValidatedNumberField label="Pitch" value={camera.pitch} minimum={0} maximum={60} step={1} unit="°" resetKey={documentEpoch} onCommit={onPitchChange} /></PropertyRow>
     <Switch isChecked={camera.locked} label="Lock map area" onCheckedChange={(locked) => feedback.report(onMapAreaLockChange(locked))} />
-    <Checkbox isChecked={pageBoundaryVisible} label="Show page boundary" onCheckedChange={onPageBoundaryVisibilityChange} />
+    <Switch isChecked={pageBoundaryVisible} label="Show page boundary" onCheckedChange={onPageBoundaryVisibilityChange} />
     {feedback.error && <p className="coordinate-validation" role="alert">{feedback.error}</p>}
     <GeolocationControl key={`${documentEpoch}-${String(camera.locked)}`} locked={camera.locked} requestScope={documentEpoch} onLocate={onLocate} />
   </InspectorAccordion>;

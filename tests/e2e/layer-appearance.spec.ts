@@ -166,7 +166,7 @@ test('a validated custom POI marker survives the live map, portable project, and
   await page.screenshot({ path: testInfo.outputPath('custom-marker-desktop.png'), fullPage: true });
 
   const savePromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
+  await page.getByRole('button', { name: 'Project', exact: true }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
   const projectDownload = await savePromise;
   const projectPath = testInfo.outputPath('custom-marker.printmap.json');
   await projectDownload.saveAs(projectPath);
@@ -225,7 +225,7 @@ test('POI coordinates update the live map, history, portable project, and layere
   const movedPoint = await downloadPoiSvgPoint(page, testInfo.outputPath('poi-after.layered.svg'));
   expect(movedPoint).not.toEqual(initialPoint);
   const savePromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
+  await page.getByRole('button', { name: 'Project', exact: true }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
   const projectDownload = await savePromise;
   const projectPath = testInfo.outputPath('poi-edited.printmap.json');
   await projectDownload.saveAs(projectPath);
@@ -271,7 +271,7 @@ test('route vertex coordinates update the live map, history, portable project, a
   expect(movedPath).toBeTruthy();
   expect(movedPath).not.toEqual(initialPath);
   const savePromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
+  await page.getByRole('button', { name: 'Project', exact: true }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
   const projectDownload = await savePromise;
   const projectPath = testInfo.outputPath('route-edited.printmap.json');
   await projectDownload.saveAs(projectPath);
@@ -354,6 +354,8 @@ test('shape vertex coordinates preserve ring closure across the live map, histor
   test.skip(await mapFallback.isVisible(), 'This browser fixture has no WebGL 2 renderer, so live geometry/export cannot be exercised.');
 
   await page.getByRole('button', { name: 'Select City center' }).click();
+  const vertices = page.getByRole('button', { name: 'Vertices', exact: true });
+  if (await vertices.getAttribute('aria-expanded') !== 'true') await vertices.click();
   const initialPath = await downloadShapeSvgPath(page, testInfo.outputPath('shape-before.layered.svg'));
   const longitude = page.getByRole('textbox', { name: 'Shape vertex longitude' });
   const latitude = page.getByRole('textbox', { name: 'Shape vertex latitude' });
@@ -377,7 +379,7 @@ test('shape vertex coordinates preserve ring closure across the live map, histor
   expect(movedPath).toBeTruthy();
   expect(movedPath).not.toEqual(initialPath);
   const savePromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Project' }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
+  await page.getByRole('button', { name: 'Project', exact: true }).click(); await page.getByRole('menuitem', { name: 'Download project' }).click();
   const projectDownload = await savePromise;
   const projectPath = testInfo.outputPath('shape-edited.printmap.json');
   await projectDownload.saveAs(projectPath);

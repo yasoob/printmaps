@@ -63,5 +63,5 @@ test('uses a consistent typography hierarchy in route details', async ({ page })
 
   const sectionHeadingSizes = await page.locator('.property-section > h3')
     .evaluateAll((headings) => headings.map((heading) => getComputedStyle(heading).fontSize));
-  expect(new Set(sectionHeadingSizes)).toEqual(new Set(['12px']));
+  expect(new Set(sectionHeadingSizes)).toEqual(new Set(['13px']));
 });

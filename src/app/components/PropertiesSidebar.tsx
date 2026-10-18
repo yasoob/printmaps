@@ -1,9 +1,12 @@
-import { ArrowLeft, X } from 'lucide-react';
-import { Activity, memo, useCallback, useLayoutEffect, useMemo, useRef, type Dispatch, type RefObject, type SetStateAction } from 'react';
+import { ArrowLeft, Map as MapIcon, X } from 'lucide-react';
+import { Activity, memo, useCallback, useLayoutEffect, useMemo, useRef, useState, type Dispatch, type RefObject, type SetStateAction } from 'react';
 import type { ContentLayer } from '../../domain/project';
 import type { DirectionsProvider, MapMatchingProvider } from '../../services/mapbox/contracts';
 import type { MobilePanel } from '../hooks/useMobilePanels';
 import { useProject, useProjectActions } from '../projectStoreContext';
+import { MAP_STYLE_PRESET_LABELS } from '../../domain/mapStylePresets';
+import { isMapStyleCustomized } from '../../domain/mapStyleCustomization';
+import { PropertyRow, PropertySection } from './PropertyControls';
 import { LayerProperties } from './LayerProperties';
 import { ProjectProperties, type CameraInspectorView } from './ProjectProperties';
 import type { RouteExtensionEndpoint } from './routeAuthoringActions';
@@ -41,12 +44,26 @@ function selectedLayerButton() {
   return document.querySelector<HTMLElement>('[data-layer-select][aria-current="true"]');
 }
 
+// Basemap style lives in Project > Map; this only summarizes it and links there.
+const BasemapDesignSection = memo(function BasemapDesignSection({ onOpen }: { onOpen: () => void }) {
+  const preset = useProject((state) => state.document.style.preset);
+  const isCustomized = useProject((state) => isMapStyleCustomized(state.document.style.customization));
+  return <PropertySection title="Map design">
+    <PropertyRow label="Style"><span className="property-value">{MAP_STYLE_PRESET_LABELS[preset]}{isCustomized ? ' · Custom colors' : ''}</span></PropertyRow>
+    <button className="inspector-secondary-button inspector-full-width" type="button" onClick={onOpen}>
+      <MapIcon aria-hidden="true" size={16} /> Map design settings
+    </button>
+  </PropertySection>;
+});
+
 const SelectedLayerProperties = memo(function SelectedLayerProperties({
   props,
   selectedLayerId,
+  onOpenMapDesign,
 }: {
   props: PropertiesSidebarProps;
   selectedLayerId: string;
+  onOpenMapDesign: () => void;
 }) {
   const { activePanel, closePanel, directionsProvider, directionsRouteEditError, directionsRouteEditIsRouting, directionsRouteEditWaypoints, mapMatchingProvider, onBeginRouteExtend, onCancelDirectionsRouteEdit, onDeleteSelected, onReplaceLayerData, onRetryDirectionsRouteEdit, onRouteVertexChange, onRouteVertexRemove, panelRef, setPreviewedLayerId } = props;
   const selectedLayer = useProject((state) =>
@@ -142,6 +159,7 @@ const SelectedLayerProperties = memo(function SelectedLayerProperties({
       onReplace={(trigger) => onReplaceLayerData(selectedLayer, trigger)}
       onDuplicate={duplicateSelected}
       onDelete={onDeleteSelected}
+      extraSections={selectedLayer.type === 'basemap' ? <BasemapDesignSection onOpen={onOpenMapDesign} /> : undefined}
     />
     </>
   );
@@ -149,6 +167,13 @@ const SelectedLayerProperties = memo(function SelectedLayerProperties({
 
 export const PropertiesSidebar = memo(function PropertiesSidebar(props: PropertiesSidebarProps) {
   const { activePanel, closePanel, onKeyDown, onLocate, panelRef, selectedLayerId } = props;
+  const [mapRequest, setMapRequest] = useState(0);
+  const { selectLayer } = useProjectActions();
+  const openMapDesign = useCallback(() => {
+    setMapRequest((value) => value + 1);
+    selectLayer(null);
+    window.setTimeout(() => panelRef.current?.querySelector<HTMLElement>('[data-project-heading]')?.focus(), 0);
+  }, [panelRef, selectLayer]);
   return (
     <aside ref={panelRef} id="properties-panel" className={`right-sidebar${activePanel === 'properties' ? ' is-mobile-open' : ''}`} aria-label="Properties sidebar" role={activePanel === 'properties' ? 'dialog' : undefined} aria-modal={activePanel === 'properties' ? true : undefined} inert={activePanel === 'layers'} onKeyDown={(event) => onKeyDown(event, 'properties')}>
       <button className="mobile-drawer-close close-button" type="button" aria-label="Close properties" onClick={() => closePanel('properties')}><X size={16} /></button>
@@ -157,10 +182,11 @@ export const PropertiesSidebar = memo(function PropertiesSidebar(props: Properti
           <SelectedLayerProperties
             props={props}
             selectedLayerId={selectedLayerId}
+            onOpenMapDesign={openMapDesign}
           />
         ) : null}
         <Activity mode={selectedLayerId ? 'hidden' : 'visible'}>
-          <ProjectPropertiesPanel onLocate={onLocate} exporter={props.exporter} blockedReason={props.studioBlockedReason} layoutRequest={props.layoutRequest} />
+          <ProjectPropertiesPanel onLocate={onLocate} exporter={props.exporter} blockedReason={props.studioBlockedReason} layoutRequest={props.layoutRequest} mapRequest={mapRequest} />
         </Activity>
       </div>
     </aside>
@@ -172,11 +198,12 @@ export const PropertiesSidebar = memo(function PropertiesSidebar(props: Properti
  * are rendered here, but panning writes centre and zoom at pointer rate; keeping
  * this subscription narrow stops those writes from re-rendering the inspector.
  */
-const ProjectPropertiesPanel = memo(function ProjectPropertiesPanel({ onLocate, exporter, blockedReason, layoutRequest }: {
+const ProjectPropertiesPanel = memo(function ProjectPropertiesPanel({ onLocate, exporter, blockedReason, layoutRequest, mapRequest }: {
   onLocate: (coordinate: [number, number], onApplied: () => void) => void;
   exporter?: PreviewPngExporter | null;
   blockedReason?: string;
   layoutRequest?: number;
+  mapRequest?: number;
 }) {
   const project = useProjectActions();
   const documentEpoch = useProject((state) => state.documentEpoch);
@@ -193,6 +220,7 @@ const ProjectPropertiesPanel = memo(function ProjectPropertiesPanel({ onLocate, 
   return (
     <ProjectProperties
       layoutRequest={layoutRequest}
+      mapRequest={mapRequest}
       terrainControls={<StudioTerrainControls />}
       studioControls={<StudioCompositionControls exporter={exporter} blockedReason={blockedReason} />}
       camera={camera}

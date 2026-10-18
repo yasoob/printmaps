@@ -7,12 +7,23 @@ import { InspectorAccordion, PropertyRow } from '../components/PropertyControls'
 import { ValidatedNumberField } from '../components/ValidatedNumberField';
 import { useMutationFeedback } from '../hooks/useMutationFeedback';
 import { useSettingActions } from '../hooks/useSettingActions';
-import { StudioColor, StudioNumber } from './StudioFields';
+import { StudioColor } from './StudioFields';
+import type { ProjectMutationResult } from '../../domain/projectMutation';
 import { editablePoster } from './posterEditing';
 import { useStableEvent } from '../hooks/useStableEvent';
 
 const SIDES = ['top', 'right', 'bottom', 'left'] as const;
 const PAGE_KEYS = ['backgroundColor', ...SIDES] as const;
+const MARGIN_ORDER = ['top', 'bottom', 'left', 'right'] as const;
+const SIDE_LABELS = { top: 'Top', right: 'Right', bottom: 'Bottom', left: 'Left' } as const;
+const SIDE_PREFIXES = { top: 'T', right: 'R', bottom: 'B', left: 'L' } as const;
+
+// Margins share the W/H prefix grammar so the page section reads as one compact grid.
+const MarginField = memo(function MarginField({ label, prefix, value, epoch, onChange }: {
+  label: string; prefix: string; value: number; epoch: number; onChange: (value: number) => ProjectMutationResult;
+}) {
+  return <ValidatedNumberField label={label} prefix={prefix} value={value} minimum={0} maximum={100} step={0.5} unit="mm" resetKey={epoch} onCommit={onChange} />;
+});
 
 const PageDimensions = memo(function PageDimensions({ page, epoch }: { page: PageSettings; epoch: number }) {
   const actions = useProjectActions();
@@ -21,7 +32,7 @@ const PageDimensions = memo(function PageDimensions({ page, epoch }: { page: Pag
     <PropertyRow label="Size"><select aria-label="Page preset" value={page.preset} onChange={(event) => feedback.report(actions.setPagePreset(event.target.value as PagePreset))}>
       {PAGE_PRESET_DEFINITIONS.map(({ id, label }) => <option key={id} value={id}>{label}</option>)}<option value="Custom">Custom</option>
     </select></PropertyRow>
-    <div className="paired-fields">
+    <div className="inspector-field-grid" role="group" aria-label="Page dimensions">
       <ValidatedNumberField label="Page width" prefix="W" value={page.widthMm} minimum={0.1} step={0.1} unit="mm" resetKey={`${epoch}:${page.preset}`} onCommit={(value) => actions.setPageDimension('widthMm', value)} />
       <ValidatedNumberField label="Page height" prefix="H" value={page.heightMm} minimum={0.1} step={0.1} unit="mm" resetKey={`${epoch}:${page.preset}`} onCommit={(value) => actions.setPageDimension('heightMm', value)} />
     </div>
@@ -60,8 +71,10 @@ const PageAppearance = memo(function PageAppearance({ epoch }: { epoch: number }
   return <>
     <StudioColor label="Paper color" value={values.backgroundColor} onChange={change.backgroundColor} />
     <fieldset className="inspector-field-group"><legend>Margins</legend>
-      {SIDES.map((side) => <StudioNumber key={side} label={`${side.charAt(0).toUpperCase() + side.slice(1)} margin`}
-        value={values[side]} epoch={epoch} onChange={change[side]} />)}
+      <div className="inspector-field-grid">
+        {MARGIN_ORDER.map((side) => <MarginField key={side} label={`${SIDE_LABELS[side]} margin`} prefix={SIDE_PREFIXES[side]}
+          value={values[side]} epoch={epoch} onChange={change[side]} />)}
+      </div>
     </fieldset>
     {feedback.error && <p role="alert" className="coordinate-validation">{feedback.error}</p>}
   </>;

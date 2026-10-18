@@ -210,6 +210,7 @@ describe('editor content appearance and POI geometry fields', () => {
     render(<App />);
 
     await user.click(screen.getByRole('button', { name: 'Select City center' }));
+    await openVertices(user);
     const ring = screen.getByRole('combobox', { name: 'Shape ring' });
     const vertex = screen.getByRole('combobox', { name: 'Shape vertex' });
     const longitude = screen.getByRole('textbox', { name: 'Shape vertex longitude' });
@@ -235,6 +236,7 @@ describe('editor content appearance and POI geometry fields', () => {
     render(<App />);
 
     await user.click(screen.getByRole('button', { name: 'Select City center' }));
+    await openVertices(user);
     const vertex = screen.getByRole('combobox', { name: 'Shape vertex' });
     await user.selectOptions(vertex, '1');
     const secondLongitude = screen.getByRole('textbox', { name: 'Shape vertex longitude' });
@@ -527,3 +529,8 @@ describe('editor layer appearance validation and actions', () => {
     expect(screen.getByRole('button', { name: 'Select Coffee stop' })).toBeInTheDocument();
   });
 });
+
+async function openVertices(user: { click: (element: Element) => Promise<void> }) {
+  const toggle = screen.getByRole('button', { name: 'Vertices' });
+  if (toggle.getAttribute('aria-expanded') !== 'true') await user.click(toggle);
+}

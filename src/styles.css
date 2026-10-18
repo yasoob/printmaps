@@ -1056,8 +1056,22 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .inspector-tabs { padding: 0 16px 12px; }
 .inspector-back { display: flex; align-items: center; gap: 8px; min-height: var(--studio-control-height); padding: 8px; margin: 8px; border-radius: var(--studio-radius-md); color: var(--studio-text-secondary); font-size: var(--studio-font-label); }
 .inspector-back:hover { color: var(--studio-text); background: var(--studio-hover); }
-.inspector-layout-entry { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: calc(100% - 32px); min-height: var(--studio-control-height); margin: 0 16px 8px; padding: 8px; border-radius: var(--studio-radius-md); font-size: var(--studio-font-label); color: var(--studio-text-secondary); }
-.inspector-layout-entry:hover { color: var(--studio-text); background: var(--studio-hover); }
+.inspector-layout-entry { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; width: calc(100% - 32px); min-height: 3.25rem; margin: 0 16px 8px; padding: 6px 8px 6px 6px; border-radius: var(--studio-radius-md); background: var(--studio-field); text-align: left; cursor: pointer; }
+.inspector-layout-entry:hover:not(:disabled) { background: color-mix(in srgb, var(--studio-field), var(--studio-text-strong) 4%); }
+.inspector-layout-entry:disabled { cursor: default; opacity: .45; }
+.inspector-layout-thumb { display: grid; place-items: center; width: 2rem; height: 2.5rem; padding: 3px; border-radius: var(--studio-radius-xs); background: var(--studio-surface); color: var(--studio-text-muted); box-shadow: inset 0 0 0 var(--studio-border-width) var(--studio-line); overflow: hidden; }
+.inspector-layout-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.inspector-layout-text { display: grid; min-width: 0; line-height: 1.3; }
+.inspector-layout-text small { color: var(--studio-text-muted); font-size: var(--studio-font-meta); }
+.inspector-layout-text strong { overflow: hidden; color: var(--studio-text-strong); font-size: var(--studio-font-label); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.inspector-layout-action { display: inline-flex; align-items: center; gap: 2px; color: var(--studio-text-secondary); font-size: var(--studio-font-label); }
+.inspector-layout-entry:hover:not(:disabled) .inspector-layout-action { color: var(--studio-text-strong); }
+.inspector-secondary-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: var(--studio-control-height); padding: 0 10px; border-radius: var(--studio-radius-sm); background: var(--studio-field); color: var(--studio-text); font-size: var(--studio-font-label); font-weight: 500; cursor: pointer; }
+.inspector-secondary-button:hover:not(:disabled) { background: color-mix(in srgb, var(--studio-field), var(--studio-text-strong) 6%); color: var(--studio-text-strong); }
+.inspector-secondary-button:disabled { cursor: default; opacity: .45; }
+.inspector-secondary-button > svg { flex-shrink: 0; }
+.inspector-full-width { width: 100%; margin-top: 4px; }
+.property-value { display: block; overflow: hidden; color: var(--studio-text); text-overflow: ellipsis; white-space: nowrap; }
 .inspector-notice { margin: 8px 16px; font-size: var(--studio-font-label); line-height: 1.5; }
 @media (max-width: 899px), (pointer: coarse) {
   .inspector-back, .inspector-layout-entry { min-height: 44px; }
@@ -1101,7 +1115,8 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .property-section { @apply px-4 pb-3 pt-3; border-top: 0; }
 .inspector-accordion-content > .property-section { padding-left: 0; padding-right: 0; }
 .property-section + .property-section { padding-top: 0.875rem; }
-.property-section h3 { @apply mb-2 mt-0 font-semibold; font-size: var(--studio-font-label); }
+/* Static layer sections use the same title type as project accordion headers. */
+.property-section h3 { @apply mb-1 mt-0 flex items-center font-semibold; min-height: 1.75rem; color: var(--studio-text-strong); font-size: var(--studio-font-control); line-height: 1.25; }
 .layer-lock-hint { margin: 0.25rem 0 0; color: var(--studio-text-muted); font-size: var(--studio-font-label); line-height: 1.4; }
 .property-note {
   @apply m-0 pb-2;
@@ -1124,7 +1139,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
     height: var(--studio-touch-target);
   }
   .right-sidebar :is(.studio-composition-field input, .studio-photo-list input) { min-height: var(--studio-touch-target); }
-  .right-sidebar .studio-composition-controls .feature-help-row > button:not(.feature-help-trigger) { min-height: var(--studio-touch-target); }
+  .right-sidebar .inspector-secondary-button { min-height: var(--studio-touch-target); }
 }
 .map-style-picker { @apply pb-2; }
 .map-style-gallery { @apply grid grid-cols-3 gap-2; }
@@ -1162,13 +1177,13 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .map-style-customize-trigger {
   @apply grid w-full items-center gap-2 p-2 text-left;
   grid-template-columns: auto minmax(0, 1fr) auto auto;
-  min-height: 3.25rem;
-  margin: 0.25rem 0 0.5rem;
-  border: var(--studio-border-width) solid var(--studio-line);
+  min-height: 2.75rem;
+  margin: 0.5rem 0;
   border-radius: var(--studio-radius-md);
-  background: var(--studio-surface);
+  background: var(--studio-field);
+  cursor: pointer;
 }
-.map-style-customize-trigger:hover { border-color: var(--studio-line-hover); background: var(--studio-hover); }
+.map-style-customize-trigger:hover { background: color-mix(in srgb, var(--studio-field), var(--studio-text-strong) 4%); }
 .map-style-customize-trigger > span:nth-child(2) { @apply min-w-0; }
 .map-style-customize-trigger strong { color: var(--studio-text-strong); font-size: var(--studio-font-label); }
 .map-style-customize-trigger > em {
@@ -1176,10 +1191,9 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   border-radius: 999px;
   color: var(--studio-accent-strong);
   background: var(--studio-accent-soft);
-  font-size: 0.5rem;
+  font-size: var(--studio-font-meta);
   font-style: normal;
-  font-weight: 700;
-  text-transform: uppercase;
+  font-weight: 600;
 }
 .map-style-customize-trigger > svg { color: var(--studio-text-subtle); }
 .map-style-default-reset, .map-style-clear-tuning {
@@ -1189,7 +1203,8 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   color: var(--studio-text-muted);
   font-size: var(--studio-font-meta);
 }
-.map-style-default-reset { width: 100%; margin: -0.125rem 0 0.5rem; }
+.map-style-default-reset-row { display: flex; justify-content: flex-end; margin: -0.25rem 0 0.25rem; }
+.map-style-default-reset { padding: 0 0.5rem; color: var(--studio-text-secondary); font-size: var(--studio-font-label); }
 .map-style-default-reset:hover:not(:disabled), .map-style-clear-tuning:hover:not(:disabled) { background: var(--studio-field); color: var(--studio-text-strong); }
 .map-style-default-reset:disabled, .map-style-clear-tuning:disabled { opacity: 0.35; cursor: default; }
 .map-style-customize-swatches { @apply flex items-center; }
@@ -1252,7 +1267,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .map-style-adjustment > span strong { font-weight: 550; }
 .map-style-adjustment output { color: var(--studio-text-muted); font-variant-numeric: tabular-nums; }
 .map-style-adjustment input { width: 100%; height: 1rem; accent-color: var(--studio-text-strong); }
-.map-style-adjustment > small { color: var(--studio-text-subtle); font-size: 0.5625rem; }
+.map-style-adjustment > small { color: var(--studio-text-subtle); font-size: var(--studio-font-meta); }
 .map-style-clear-tuning { width: 100%; margin-top: 0.625rem; }
 .map-style-color-row {
   @apply grid items-center gap-1.5;
@@ -1265,7 +1280,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   border-radius: 999px;
   color: var(--studio-text-muted);
   background: var(--studio-field);
-  font-size: 0.5rem;
+  font-size: var(--studio-font-meta);
 }
 .map-style-color-row > span small.is-custom { color: var(--studio-accent-strong); background: var(--studio-accent-soft); }
 .map-style-color-row input[type="color"] {
@@ -1350,6 +1365,8 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
   border-radius: var(--studio-radius-xs);
 }
 .paired-fields { @apply my-1 grid grid-cols-2 gap-1.5; }
+.inspector-field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin: 4px 0; }
+.inspector-field-grid .input-group-addon.is-inline-start { min-width: 1.75rem; justify-content: center; padding: 0 0.25rem 0 0.5rem; }
 .paired-fields .input-group-addon.is-inline-start { padding-right: 0.75rem; }
 .paired-fields .input-group-addon.is-inline-end { font-size: 0.5625rem; }
 .segmented { @apply grid grid-cols-2 p-0.5; height: var(--studio-control-height); border-radius: var(--studio-radius-md); background: var(--studio-field); }
@@ -1538,26 +1555,7 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
 .route-segment-clear:hover:not(:disabled) { color: var(--studio-text); }
 .route-segment-clear:disabled { @apply cursor-default; color: var(--studio-text-subtle); }
 
-.custom-marker-control { @apply mt-2 grid grid-cols-2 gap-1.5; }
-.custom-marker-control .secondary-action {
-  @apply flex cursor-pointer items-center justify-center gap-1.5 px-2;
-  min-height: var(--studio-control-height);
-  border: var(--studio-border-width) solid var(--studio-line-strong);
-  border-radius: var(--studio-radius-sm);
-  color: var(--studio-text-secondary);
-  background: var(--studio-surface);
-  font-size: var(--studio-font-label);
-}
-.custom-marker-control .secondary-action:hover { background: var(--studio-field); }
-.custom-marker-control .secondary-action.is-disabled { @apply cursor-default; color: var(--studio-text-subtle); }
 .custom-marker-control input[type="file"] { display: none; }
-.custom-marker-control [role="status"], .custom-marker-control [role="alert"] {
-  @apply col-span-2;
-  font-size: var(--studio-font-meta);
-  line-height: 1.35;
-}
-.custom-marker-control [role="status"] { color: var(--studio-text-muted); }
-.custom-marker-control [role="alert"] { color: var(--studio-danger); }
 .route-vertex-actions { @apply mt-1 grid grid-cols-2 gap-1.5; }
 .route-vertex-actions button {
   @apply flex cursor-pointer items-center justify-center gap-1 px-1.5;
@@ -1570,6 +1568,34 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
 }
 .route-vertex-actions button:hover:not(:disabled) { background: var(--studio-field); }
 .route-vertex-actions button:disabled { @apply cursor-default; color: var(--studio-text-subtle); }
+/* Inspector secondary actions share one neutral filled treatment instead of ad-hoc outlines. */
+:is(.route-extend-actions > button, .route-structure-controls > button, .route-structure-actions > button,
+  .route-structure-confirmation button:not(.primary-button), .route-structure-progress button, .route-structure-error button,
+  .route-vertex-actions button, .route-map-matching .secondary-action, .elevation-downloads button,
+  .elevation-profile-panel > .quiet-button, .elevation-profile-source .quiet-button, .map-location-control .quiet-button) {
+  border-color: var(--studio-transparent);
+  border-radius: var(--studio-radius-sm);
+  background: var(--studio-field);
+  color: var(--studio-text);
+  font-size: var(--studio-font-label);
+  font-weight: 500;
+}
+:is(.route-extend-actions > button, .route-structure-controls > button, .route-structure-actions > button,
+  .route-structure-confirmation button:not(.primary-button), .route-structure-progress button, .route-structure-error button,
+  .route-vertex-actions button, .route-map-matching .secondary-action, .elevation-downloads button,
+  .elevation-profile-panel > .quiet-button, .elevation-profile-source .quiet-button, .map-location-control .quiet-button):hover:not(:disabled) {
+  background: color-mix(in srgb, var(--studio-field), var(--studio-text-strong) 6%);
+  color: var(--studio-text-strong);
+}
+:is(.route-extend-actions > button, .route-structure-controls > button, .route-structure-actions > button,
+  .route-vertex-actions button, .route-map-matching .secondary-action, .elevation-downloads button,
+  .elevation-profile-panel > .quiet-button, .elevation-profile-source .quiet-button, .map-location-control .quiet-button):disabled {
+  color: var(--studio-text);
+  opacity: .45;
+}
+.elevation-profile-source .quiet-button.quiet-button:not(:hover) { background: var(--studio-surface); }
+.route-structure-controls select { border-color: var(--studio-transparent); border-radius: var(--studio-radius-sm); background: var(--studio-field); font-size: var(--studio-font-label); }
+.route-structure-controls select:hover { border-color: var(--studio-line-hover); }
 .route-vertex-hint { @apply mt-1 block; color: var(--studio-text-muted); font-size: var(--studio-font-meta); line-height: 1.35; }
 .route-removal-hint { font-size: 12px; }
 .route-vertex-marker,

@@ -6,13 +6,13 @@
   line-height: 1.4;
 }
 
-.custom-marker-control [role="status"],
-.custom-marker-control [role="alert"] {
-  font-size: max(12px, var(--studio-font-meta));
+.custom-marker-control {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
 }
 
-@media (max-width: 767px) {
-  .custom-marker-control .secondary-action {
-    min-height: 44px;
-  }
+.custom-marker-status {
+  color: var(--studio-text-secondary);
+  font-size: var(--studio-font-label);
 }

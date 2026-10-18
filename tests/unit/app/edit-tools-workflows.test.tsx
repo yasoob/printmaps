@@ -71,6 +71,7 @@ describe('truthful edit-tool workflows', () => {
     const user = userEvent.setup();
     render(<App autosaveRepository={null} />);
     await user.click(screen.getByRole('button', { name: 'Select City center' }));
+    await openVertices(user);
     const lock = screen.getByRole('switch', { name: 'Toggle layer lock' });
     const visibility = screen.getByRole('switch', { name: 'Toggle layer visibility' });
 
@@ -86,3 +87,8 @@ describe('truthful edit-tool workflows', () => {
     expect(screen.getByRole('textbox', { name: 'Shape vertex longitude' })).toBeDisabled();
   });
 });
+
+async function openVertices(user: { click: (element: Element) => Promise<void> }) {
+  const toggle = screen.getByRole('button', { name: 'Vertices' });
+  if (toggle.getAttribute('aria-expanded') !== 'true') await user.click(toggle);
+}
