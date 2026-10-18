@@ -1,4 +1,6 @@
 import { memo } from "react";
+import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/ui/notice";
 
 export const DirectionsEditStatus = memo(function DirectionsEditStatus({
   error,
@@ -13,15 +15,15 @@ export const DirectionsEditStatus = memo(function DirectionsEditStatus({
 }) {
   return (
     <>
-      {isRouting ? <p role="status">Finding an updated road route…</p> : null}
+      {isRouting ? <Notice tone="info">Finding an updated road route…</Notice> : null}
       {error ? (
-        <div className="isochrone-error" role="alert">
+        <Notice tone="error">
           <p>{error}</p>
           <div className="route-vertex-actions">
-            <button type="button" onClick={onRetry}>Retry</button>
-            <button type="button" onClick={onCancel}>Cancel edit</button>
+            <Button variant="secondary" size="sm" onClick={onRetry}>Retry</Button>
+            <Button variant="ghost" size="sm" onClick={onCancel}>Cancel edit</Button>
           </div>
-        </div>
+        </Notice>
       ) : null}
     </>
   );

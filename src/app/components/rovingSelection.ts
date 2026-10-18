@@ -18,3 +18,15 @@ export function didHandleRovingSelection(event: KeyboardEvent<HTMLElement>, sele
   items[nextIndex]?.click();
   return true;
 }
+
+// Home/End selection for radio groups whose arrow-key roving is owned by the primitive.
+export function didHandleEdgeSelection(event: KeyboardEvent<HTMLElement>, selector = '[role="radio"]'): boolean {
+  if (event.key !== 'Home' && event.key !== 'End') return false;
+  const items = [...event.currentTarget.querySelectorAll<HTMLButtonElement>(selector)].filter((item) => !item.disabled);
+  const target = event.key === 'Home' ? items[0] : items.at(-1);
+  if (!target) return false;
+  event.preventDefault();
+  target.focus();
+  target.click();
+  return true;
+}

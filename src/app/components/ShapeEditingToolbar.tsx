@@ -17,7 +17,7 @@ export function ShapeEditingToolbar({ mode, onChange }: ShapeEditingToolbarProps
     onChange(nextMode);
   };
   return (
-    <div className="shape-editing-toolbar" role="group" aria-label="Area editing">
+    <div className="studio-segmented shape-editing-toolbar" role="group" aria-label="Area editing">
       <button
         type="button"
         aria-label="Edit area points"
@@ -25,7 +25,7 @@ export function ShapeEditingToolbar({ mode, onChange }: ShapeEditingToolbarProps
         className={mode === 'points' ? 'is-active' : undefined}
         onClick={() => changeMode('points')}
       >
-        <PenLine aria-hidden="true" size={14} /> Points
+        <PenLine aria-hidden="true" size={16} strokeWidth={1.75} /> Points
       </button>
       <button
         type="button"
@@ -34,7 +34,7 @@ export function ShapeEditingToolbar({ mode, onChange }: ShapeEditingToolbarProps
         className={mode === 'transform' ? 'is-active' : undefined}
         onClick={() => changeMode('transform')}
       >
-        <MoveDiagonal2 aria-hidden="true" size={14} /> Transform
+        <MoveDiagonal2 aria-hidden="true" size={16} strokeWidth={1.75} /> Transform
       </button>
     </div>
   );

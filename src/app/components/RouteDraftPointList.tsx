@@ -27,7 +27,10 @@ function focusAfterRemoval(index: number, remainingCount: number) {
 export function RouteDraftPointList(props: DraftPointListProps) {
   return (
     <details className="route-draft-points">
-      <summary>Draft points ({props.points.length})</summary>
+      <summary>
+        <span>Draft points ({props.points.length})</span>
+        <ChevronDown className="route-disclosure-chevron" aria-hidden="true" size={14} strokeWidth={1.8} />
+      </summary>
       <ol className="route-point-list" aria-label="Draft route points">
         {props.points.map(([longitude, latitude], index) => (
           <li key={`${longitude},${latitude}`} className="route-point-row">

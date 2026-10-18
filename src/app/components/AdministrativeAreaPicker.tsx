@@ -1,10 +1,13 @@
 import { Globe2, LoaderCircle, MapPinned } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Notice } from '@/components/ui/notice';
 import { useState } from 'react';
 import type { AdministrativeArea } from '../../domain/administrativeAreas';
 import type { GeneratedAdministrativeCountry, GeneratedAdministrativeShard } from '../../domain/generatedAdministrativeCatalogue';
 import { useCountryBoundaryCatalogue } from '../hooks/useCountryBoundaryCatalogue';
 import { ShadcnSingleCombobox } from './ShadcnCombobox';
 import { trackEditorAction } from '../../analytics/editorAnalytics';
+import { ToolCardActions } from './ToolAuthoringCard';
 
 type AdministrativeAreaPickerProps = Readonly<{
   onAdd: (area: AdministrativeArea) => void;
@@ -43,14 +46,14 @@ function BoundaryChooser({ onAdd, onCancel, shard }: Readonly<{
           }}
         />
       </div>
-      <div className="administrative-picker-footer">
-        <button type="button" aria-label="Cancel area" onClick={onCancel}>Cancel</button>
-        <button className="primary-button" type="button" disabled={!selectedArea} onClick={() => {
+      <ToolCardActions>
+        <Button variant="ghost" aria-label="Cancel area" onClick={onCancel}>Cancel</Button>
+        <Button variant="primary" disabled={!selectedArea} onClick={() => {
           if (!selectedArea) return;
           trackEditorAction('boundaryAddRequested');
           onAdd(selectedArea);
-        }}>Add area</button>
-      </div>
+        }}>Add area</Button>
+      </ToolCardActions>
     </>
   );
 }
@@ -85,6 +88,14 @@ export function AdministrativeAreaPicker({ onAdd, onCancel }: AdministrativeArea
           onValueChange={chooseCountry}
         />
       </div>
+      {catalogue.state.error
+        ? <Notice tone="error" role="status" aria-label="Administrative catalogue status">{catalogue.state.error}</Notice>
+        : (
+          <span className="administrative-catalogue-status" role="status" aria-label="Administrative catalogue status">
+            {catalogue.state.isLoading ? <LoaderCircle className="is-spinning" aria-hidden="true" size={14} /> : null}
+            {status}
+          </span>
+        )}
       {catalogue.state.shard
         ? <BoundaryChooser key={catalogue.state.shard.country.id} onAdd={onAdd} onCancel={cancel} shard={catalogue.state.shard} />
         : (
@@ -106,16 +117,12 @@ export function AdministrativeAreaPicker({ onAdd, onCancel }: AdministrativeArea
                 onValueChange={() => {}}
               />
             </div>
-            <div className="administrative-picker-footer">
-              <button type="button" aria-label="Cancel area" onClick={cancel}>Cancel</button>
-              <button className="primary-button" type="button" disabled>Add area</button>
-            </div>
+            <ToolCardActions>
+              <Button variant="ghost" aria-label="Cancel area" onClick={cancel}>Cancel</Button>
+              <Button variant="primary" disabled>Add area</Button>
+            </ToolCardActions>
           </>
         )}
-      <span role="status" aria-label="Administrative catalogue status">
-        {catalogue.state.isLoading ? <LoaderCircle className="is-spinning" aria-hidden="true" size={12} /> : null}
-        {status}
-      </span>
     </div>
   );
 }

@@ -110,7 +110,7 @@ describe("Road draft previews", () => {
     await user.click(screen.getByRole("radio", { name: "Road" }));
     await user.click(screen.getByRole("button", { name: "Map route point 1" }));
     await user.click(screen.getByRole("button", { name: "Map route point 2" }));
-    await user.click(screen.getByRole("button", { name: "Road Preview" }));
+    await user.click(screen.getByRole("button", { name: "Preview road" }));
     expect(await screen.findByText("Road preview updated.")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Finish route" }));
 
@@ -128,7 +128,7 @@ describe("Road draft previews", () => {
     await user.click(screen.getByRole("radio", { name: "Road" }));
     await user.click(screen.getByRole("button", { name: "Map route point 1" }));
     await user.click(screen.getByRole("button", { name: "Map route point 2" }));
-    await user.click(screen.getByRole("button", { name: "Road Preview" }));
+    await user.click(screen.getByRole("button", { name: "Preview road" }));
     await screen.findByText("Road preview updated.");
     await user.click(screen.getByRole("button", { name: "Map route point 3" }));
     await user.click(screen.getByRole("button", { name: "Finish route" }));
@@ -190,7 +190,7 @@ describe("Road draft previews", () => {
     expect(map.dataset.layerGeometry).not.toContain("route-01:");
     expect(map.dataset.layerGeometry).toContain("route-draft:");
     await user.click(screen.getByRole("button", { name: "Map route point 3" }));
-    expect(screen.queryByRole("button", { name: "Road Preview" }))
+    expect(screen.queryByRole("button", { name: "Preview road" }))
       .not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Finish route" }));
 
@@ -212,7 +212,7 @@ describe("Road draft previews", () => {
     await user.click(screen.getByRole("radio", { name: "Road" }));
     await user.click(screen.getByRole("button", { name: "Map route point 1" }));
     await user.click(screen.getByRole("button", { name: "Map route point 2" }));
-    await user.click(screen.getByRole("button", { name: "Road Preview" }));
+    await user.click(screen.getByRole("button", { name: "Preview road" }));
     await user.click(screen.getByRole("button", { name: "Map route point 3" }));
     resolve(roadResponse());
     await pending;
@@ -220,7 +220,7 @@ describe("Road draft previews", () => {
     expect(screen.queryByRole("button", { name: "Select Route 02" }))
       .not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Road Preview" }));
+    await user.click(screen.getByRole("button", { name: "Preview road" }));
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Road service unavailable.",
     );

@@ -1,4 +1,6 @@
 import { useId, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { PropertyRow } from "./PropertyControls";
 
 export type ShapePointInputsProps = {
   coordinates: readonly [string, string];
@@ -34,25 +36,26 @@ export function ShapePointInputs({
         const error = errors[axis];
         const errorId = `${id}-${axis}-error`;
         return (
-          <label className="coordinate-field" key={label}>
-            <span>{label}</span>
-            <span className="number-field">
-              <input
-                ref={axis === 0 ? longitudeRef : latitudeRef}
-                aria-label={`New area point ${label.toLowerCase()}`}
-                aria-invalid={Boolean(error) || undefined}
-                aria-describedby={error ? errorId : undefined}
-                inputMode="decimal"
-                value={coordinates[axis]}
-                onChange={(event) => onChange(axis, event.currentTarget.value)}
-              />
-              <small>°</small>
-            </span>
-            {error && <small className="coordinate-validation" id={errorId}>{error}</small>}
-          </label>
+          <PropertyRow key={label} label={label}>
+            <div className="coordinate-field">
+              <label className="number-field">
+                <input
+                  ref={axis === 0 ? longitudeRef : latitudeRef}
+                  aria-label={`New area point ${label.toLowerCase()}`}
+                  aria-invalid={Boolean(error) || undefined}
+                  aria-describedby={error ? errorId : undefined}
+                  inputMode="decimal"
+                  value={coordinates[axis]}
+                  onChange={(event) => onChange(axis, event.currentTarget.value)}
+                />
+                <small>°</small>
+              </label>
+              {error && <small className="coordinate-validation" id={errorId}>{error}</small>}
+            </div>
+          </PropertyRow>
         );
       })}
-      <button type="submit">Add area point</button>
+      <Button type="submit" variant="secondary">Add area point</Button>
     </form>
   );
 }

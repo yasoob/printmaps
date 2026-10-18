@@ -143,7 +143,7 @@ test('road route edits semantic waypoints by rerouting and exports offline', asy
   await page.getByRole('option', { name: 'Vienna North, Austria' }).click();
   await expect.poll(layerOrder).toContain('route-draft');
   expect(await layerOrder()).not.toContain('route-02');
-  await expect(page.getByRole('button', { name: 'Road Preview' })).not.toBeVisible();
+  await expect(page.getByRole('button', { name: 'Preview road' })).not.toBeVisible();
   expect(directionRequests).toBe(2);
 
   await page.getByRole('button', { name: 'Finish route' }).click();

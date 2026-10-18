@@ -384,7 +384,7 @@ describe('straight route draft lifecycle', () => {
     const user = userEvent.setup();
     render(<App autosaveRepository={null} />);
     await user.click(screen.getByRole('button', { name: 'Route (R)' }));
-    await user.click(screen.getByText('Add by coordinates or existing place'));
+    await user.click(screen.getByText('Add by coordinates or place'));
 
     const longitude = screen.getByRole('textbox', {
       name: 'New route point longitude',
@@ -404,7 +404,7 @@ describe('straight route draft lifecycle', () => {
     expect(screen.getByText(/Point 2:/)).toBeInTheDocument();
 
     await user.click(
-      screen.getByRole('checkbox', {
+      screen.getByRole('switch', {
         name: 'Snap map clicks to nearby places and route anchors',
       }),
     );

@@ -1,4 +1,5 @@
 import { Settings2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import type { RefObject } from "react";
 
 export function ToolSettingsButton({
@@ -11,15 +12,15 @@ export function ToolSettingsButton({
   onOpen: () => void;
 }>) {
   return (
-    <button
+    <Button
       ref={buttonRef}
       className="tool-settings-toggle"
-      type="button"
+      variant="ghost"
       aria-label={label}
       onClick={onOpen}
     >
-      <Settings2 aria-hidden="true" size={16} />
+      <Settings2 aria-hidden="true" size={16} strokeWidth={1.75} />
       <span>Settings</span>
-    </button>
+    </Button>
   );
 }

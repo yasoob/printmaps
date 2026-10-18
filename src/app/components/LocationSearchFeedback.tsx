@@ -1,4 +1,5 @@
 import { X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useId } from 'react';
 
 export type SearchSelectionFeedback = {
@@ -21,16 +22,16 @@ export function LocationSearchFeedback({ feedback }: {
       <span>{feedback.message}</span>
       <div className="location-search-feedback-actions">
         {action && (
-          <button
-            type="button"
+          <Button
+            variant="secondary"
             disabled={Boolean(action.disabledReason)}
             aria-describedby={action.disabledReason ? reasonId : undefined}
             onClick={action.onInvoke}
-          >{action.label}</button>
+          >{action.label}</Button>
         )}
-        <button type="button" aria-label="Dismiss place confirmation" onClick={feedback.onDismiss}>
-          <X aria-hidden="true" size={16} />
-        </button>
+        <Button variant="ghost" size="icon" aria-label="Dismiss place confirmation" onClick={feedback.onDismiss}>
+          <X aria-hidden="true" size={16} strokeWidth={1.75} />
+        </Button>
       </div>
       {action?.disabledReason && <small id={reasonId}>{action.disabledReason}</small>}
     </div>

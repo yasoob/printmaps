@@ -75,7 +75,7 @@ describe('POI authoring', () => {
     await user.click(screen.getByRole('button', { name: 'Search locations' }));
     await user.click(await screen.findByRole('option', { name: 'Rejected place' }));
 
-    expect(screen.getByText('This search result has invalid location or label data.')).toHaveAttribute('role', 'alert');
+    expect(screen.getByRole('alert')).toHaveTextContent('This search result has invalid location or label data.');
     expect(screen.getByRole('status', { name: 'POI placement status' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Place (P)' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.queryByRole('button', { name: 'Select Rejected place' })).not.toBeInTheDocument();

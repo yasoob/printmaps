@@ -74,7 +74,7 @@ describe('unfinished drawing persistence contract', () => {
     const user = userEvent.setup();
     render(<App autosaveRepository={null} />);
     await user.click(screen.getByRole('button', { name: 'Route (R)' }));
-    await user.click(screen.getByText('Add by coordinates or existing place'));
+    await user.click(screen.getByText('Add by coordinates or place'));
     const longitude = screen.getByRole('textbox', { name: 'New route point longitude' });
     const original = (longitude as HTMLInputElement).value;
     await user.clear(longitude);
@@ -98,7 +98,7 @@ describe('unfinished drawing persistence contract', () => {
     expect(isUnloadPrevented()).toBe(false);
     expect(notice()).toBeNull();
     await user.click(screen.getByRole('button', { name: 'Route (R)' }));
-    await user.click(screen.getByText('Add by coordinates or existing place'));
+    await user.click(screen.getByText('Add by coordinates or place'));
     expect(screen.getByRole('textbox', { name: 'New route point longitude' })).toHaveValue(original);
   });
 
@@ -106,7 +106,7 @@ describe('unfinished drawing persistence contract', () => {
     const user = userEvent.setup();
     render(<App autosaveRepository={null} />);
     await user.click(screen.getByRole('button', { name: 'Route (R)' }));
-    await user.click(screen.getByText('Add by coordinates or existing place'));
+    await user.click(screen.getByText('Add by coordinates or place'));
     const longitude = screen.getByRole('textbox', { name: 'New route point longitude' });
     await user.clear(longitude);
     await user.type(longitude, '16.4');

@@ -1,5 +1,7 @@
 import {
+  ChevronDown,
   Minus,
+  Plus,
   Route,
   Spline,
   Undo2,
@@ -14,12 +16,16 @@ import {
   type RouteTravelMarker,
 } from "../../domain/routeProfiles";
 import type { ContentLayer } from "../../domain/project";
-import { didHandleRovingSelection } from "./rovingSelection";
+import { SegmentedControl, type SegmentedControlOption } from "@/components/ui/segmented-control";
+import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/ui/notice";
 import { ToolSettingsButton } from "./ToolSettingsButton";
+import { didHandleEdgeSelection } from "./rovingSelection";
 import { useAuthoringPanelDisclosure } from "../hooks/useAuthoringPanelDisclosure";
 import { RoutePointInputs } from "./RoutePointInputs";
 import { ToolCardActions, ToolCardHeader } from "./ToolAuthoringCard";
 import { RouteDraftPointList } from "./RouteDraftPointList";
+import { PropertyRow } from "./PropertyControls";
 import type { RoutePointInput } from "../hooks/useRoutePointInput";
 
 export type RouteDrawingPanelProps = Readonly<{
@@ -59,58 +65,23 @@ export type RouteDrawingPanelProps = Readonly<{
   minimumPointCount: number;
 }>;
 
+const ROUTE_PATH_OPTIONS = [
+  { value: "straight", label: "Straight", icon: Minus },
+  { value: "arc", label: "Arc", icon: Spline },
+  { value: "road", label: "Road", icon: Route },
+] as const satisfies readonly SegmentedControlOption<RouteLineShape>[];
+
 function RoutePathControl(props: RouteDrawingPanelProps) {
-  const isDisabled = props.isRouting || props.pathLocked;
   return (
-    <fieldset className="route-path-field">
-      <legend className="tool-control-label">Path</legend>
-      <div
-        className="tool-segmented-control route-path-options"
-        role="radiogroup"
-        aria-label="Route path"
-        onKeyDown={(event) => didHandleRovingSelection(event, '[role="radio"]')}
-      >
-        <button
-          disabled={isDisabled}
-          type="button"
-          role="radio"
-          aria-checked={props.lineShape === "straight"}
-          tabIndex={props.lineShape === "straight" ? 0 : -1}
-          aria-label="Straight"
-          title="Straight segments"
-          onClick={() => props.onLineShapeChange("straight")}
-        >
-          <Minus size={15} />
-          <span>Straight</span>
-        </button>
-        <button
-          disabled={isDisabled}
-          type="button"
-          role="radio"
-          aria-checked={props.lineShape === "arc"}
-          tabIndex={props.lineShape === "arc" ? 0 : -1}
-          aria-label="Arc"
-          title="Curved arcs"
-          onClick={() => props.onLineShapeChange("arc")}
-        >
-          <Spline size={15} />
-          <span>Arc</span>
-        </button>
-        <button
-          disabled={isDisabled}
-          type="button"
-          role="radio"
-          aria-checked={props.lineShape === "road"}
-          tabIndex={props.lineShape === "road" ? 0 : -1}
-          aria-label="Road"
-          title="Route along roads with Mapbox"
-          onClick={() => props.onLineShapeChange("road")}
-        >
-          <Route size={15} />
-          <span>Road</span>
-        </button>
-      </div>
-    </fieldset>
+    <div className="segmented-edge-keys" onKeyDown={(event) => didHandleEdgeSelection(event)}>
+      <SegmentedControl
+        label="Route path"
+        value={props.lineShape}
+        options={ROUTE_PATH_OPTIONS}
+        disabled={props.isRouting || props.pathLocked}
+        onValueChange={props.onLineShapeChange}
+      />
+    </div>
   );
 }
 
@@ -118,8 +89,7 @@ function RouteTravelControls(props: RouteDrawingPanelProps) {
   return (
     <>
       {props.lineShape === "road" && (
-        <label className="route-marker-field">
-          <span className="tool-control-label">Road travel mode</span>
+        <PropertyRow label="Travel mode">
           <select
             aria-label="Road travel mode"
             disabled={props.isRouting}
@@ -134,10 +104,9 @@ function RouteTravelControls(props: RouteDrawingPanelProps) {
               </option>
             ))}
           </select>
-        </label>
+        </PropertyRow>
       )}
-      <label className="route-marker-field">
-        <span className="tool-control-label">Travel marker</span>
+      <PropertyRow label="Travel marker">
         <select
           aria-label="Travel marker"
           disabled={props.isRouting}
@@ -157,7 +126,7 @@ function RouteTravelControls(props: RouteDrawingPanelProps) {
             </option>
           ))}
         </select>
-      </label>
+      </PropertyRow>
     </>
   );
 }
@@ -170,15 +139,16 @@ function RouteDraftStatus(props: RouteDrawingPanelProps) {
   return (
     <div className="route-progress">
       <span role="status" aria-label="Route drawing status">{status}</span>
-      <button
-        type="button"
+      <Button
+        variant="ghost"
+        size="sm"
         aria-label="Undo last route point"
         disabled={!props.canUndo || props.isRouting}
         onClick={props.onUndo}
       >
-        <Undo2 aria-hidden="true" size={14} />
+        <Undo2 aria-hidden="true" size={16} strokeWidth={1.75} />
         <span>Undo point</span>
-      </button>
+      </Button>
     </div>
   );
 }
@@ -194,12 +164,11 @@ function RouteDrawingActions({
   const compactFinishLabel = props.isRouting ? "Routing…" : "Finish";
   return (
     <ToolCardActions>
-      <button type="button" aria-label="Cancel route" onClick={props.onCancel}>
+      <Button variant="ghost" aria-label="Cancel route" onClick={props.onCancel}>
         Cancel
-      </button>
-      <button
-        className="primary-button"
-        type="button"
+      </Button>
+      <Button
+        variant="primary"
         aria-label="Finish route"
         aria-describedby={finishExplanationId}
         disabled={!props.canFinish || props.isRouting}
@@ -211,7 +180,7 @@ function RouteDrawingActions({
         <span className="route-finish-compact" aria-hidden="true">
           {compactFinishLabel}
         </span>
-      </button>
+      </Button>
     </ToolCardActions>
   );
 }
@@ -248,7 +217,11 @@ export function RouteDrawingPanel(props: RouteDrawingPanelProps) {
         <RoutePathControl {...props} />
         <RouteTravelControls {...props} />
         <details className="route-point-sources">
-          <summary>Add by coordinates or existing place</summary>
+          <summary>
+            <Plus aria-hidden="true" size={14} strokeWidth={1.8} />
+            <span>Add by coordinates or place</span>
+            <ChevronDown className="route-disclosure-chevron" aria-hidden="true" size={14} strokeWidth={1.8} />
+          </summary>
           <RoutePointInputs
             disabled={props.isRouting}
             pointInput={props.pointInput}
@@ -260,16 +233,16 @@ export function RouteDrawingPanel(props: RouteDrawingPanelProps) {
         </details>
         {props.points.length > 0 && <RouteDraftPointList {...props} />}
         {props.showRoadPreview && props.lineShape === "road" && props.points.length >= 2 && (
-          <button
+          <Button
             className="route-preview-button"
-            type="button"
-            disabled={props.isRouting}
+            variant="secondary"
+            busy={props.isRouting}
             onClick={props.onPreviewRoad}
           >
             {props.isRouting
               ? "Previewing…"
-              : (props.hasRoadPreview ? "Refresh Road Preview" : "Road Preview")}
-          </button>
+              : (props.hasRoadPreview ? "Refresh road preview" : "Preview road")}
+          </Button>
         )}
       </div>
       <RouteDraftStatus {...props} />
@@ -278,11 +251,7 @@ export function RouteDrawingPanel(props: RouteDrawingPanelProps) {
           {props.announcement}
         </div>
       )}
-      {props.error && (
-        <div className="isochrone-error" role="alert">
-          {props.error}
-        </div>
-      )}
+      {props.error && <Notice tone="error">{props.error}</Notice>}
       <small id={finishExplanationId} className="route-finish-explanation">
         {props.finishExplanation}
       </small>

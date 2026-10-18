@@ -1,4 +1,6 @@
 import { Clock3, MapPinned, PencilRuler, Shapes, Undo2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Notice } from '@/components/ui/notice';
 import type { ReactNode } from 'react';
 import type { AdministrativeArea } from '../../domain/administrativeAreas';
 import { AdministrativeAreaPicker } from './AdministrativeAreaPicker';
@@ -38,7 +40,7 @@ function ShapeModeTabs({ mode, onChange }: Readonly<{
   onChange: (mode: ShapeAuthoringMode, isPointerActivation: boolean) => void;
 }>) {
   return (
-    <div className="shape-mode-tabs" role="tablist" aria-label="Shape source" onKeyDown={handleShapeModeKeyDown}>
+    <div className="studio-segmented shape-mode-tabs" role="tablist" aria-label="Shape source" onKeyDown={handleShapeModeKeyDown}>
       <button type="button" role="tab" aria-label="Find administrative area" aria-selected={mode === 'administrative'} tabIndex={mode === 'administrative' ? 0 : -1} onClick={(event) => onChange('administrative', event.detail !== 0)}>
         <MapPinned aria-hidden="true" size={15} /> Boundaries
       </button>
@@ -68,7 +70,7 @@ export function ShapeDrawingPanel(props: ShapeDrawingPanelProps) {
         {header}
         {modes}
         <AdministrativeAreaPicker onAdd={props.onAddAdministrativeArea} onCancel={props.onCancel} />
-        {props.admissionError && <p className="coordinate-validation" role="alert">{props.admissionError}</p>}
+        {props.admissionError && <Notice tone="error">{props.admissionError}</Notice>}
       </div>
     );
   }
@@ -86,21 +88,20 @@ export function ShapeDrawingPanel(props: ShapeDrawingPanelProps) {
         <ToolSettingsButton buttonRef={disclosure.settingsButtonRef} label="Show area settings" onOpen={disclosure.openSettings} />
       </>}
       <div className="shape-drawing-content">
-        <span className="shape-control-label">Outline</span>
         <p id="area-drawing-instructions">Click the map or enter coordinates. Use at least 3 distinct points.</p>
         <ShapePointInputs {...props.pointInput} />
         <p>With the map focused: Enter finishes; Backspace/Delete undoes a point; Escape closes and keeps the outline.</p>
         <div className="shape-drawing-progress">
           <span role="status" aria-label="Area drawing status">{props.pointCount} {vertexLabel}</span>
-          <button type="button" aria-label="Undo last area point" disabled={props.pointCount === 0} onClick={props.onUndo}>
-            <Undo2 aria-hidden="true" size={14} /><span>Undo point</span>
-          </button>
+          <Button variant="ghost" size="sm" aria-label="Undo last area point" disabled={props.pointCount === 0} onClick={props.onUndo}>
+            <Undo2 aria-hidden="true" size={16} strokeWidth={1.75} /><span>Undo point</span>
+          </Button>
         </div>
       </div>
-      {props.pointError && <p className="coordinate-validation" role="alert">{props.pointError}</p>}
+      {props.pointError && <Notice tone="error">{props.pointError}</Notice>}
       <ToolCardActions>
-        <button type="button" aria-label="Cancel area" onClick={props.onCancel}>Cancel</button>
-        <button className="primary-button" type="button" aria-label="Finish area" aria-describedby="area-drawing-instructions" disabled={!props.canFinish} onClick={props.onFinish}><span className="shape-finish-full" aria-hidden="true">Finish area</span><span className="shape-finish-compact" aria-hidden="true">Finish</span></button>
+        <Button variant="ghost" aria-label="Cancel area" onClick={props.onCancel}>Cancel</Button>
+        <Button variant="primary" aria-label="Finish area" aria-describedby="area-drawing-instructions" disabled={!props.canFinish} onClick={props.onFinish}><span className="shape-finish-full" aria-hidden="true">Finish area</span><span className="shape-finish-compact" aria-hidden="true">Finish</span></Button>
       </ToolCardActions>
     </div>
   );
