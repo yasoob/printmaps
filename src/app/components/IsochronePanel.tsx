@@ -6,7 +6,6 @@ import type { ProviderTravelProfile } from '../../services/mapbox/contracts';
 import type { IsochroneCenter } from '../hooks/useIsochroneAuthoring';
 import { PropertySubheading } from './PropertyControls';
 import { ToolCardActions } from './ToolAuthoringCard';
-import { didHandleEdgeSelection } from './rovingSelection';
 
 const PROFILE_OPTIONS = [
   { value: 'walking', label: 'Walking', icon: Footprints },
@@ -42,9 +41,7 @@ export function IsochronePanel(props: IsochronePanelProps) {
       </div>
       <div className="isochrone-field">
         <PropertySubheading>Travel mode</PropertySubheading>
-        <div className="segmented-edge-keys" onKeyDown={(event) => didHandleEdgeSelection(event)}>
-          <SegmentedControl label="Travel mode" value={props.profile} options={PROFILE_OPTIONS} onValueChange={props.onProfileChange} />
-        </div>
+        <SegmentedControl label="Travel mode" value={props.profile} options={PROFILE_OPTIONS} onValueChange={props.onProfileChange} />
       </div>
       <div className="isochrone-duration-row">
         <PropertySubheading action={<strong className="isochrone-duration-value">{props.minutes} min</strong>}>Duration</PropertySubheading>

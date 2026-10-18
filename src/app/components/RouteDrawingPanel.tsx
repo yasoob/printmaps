@@ -20,7 +20,6 @@ import { SegmentedControl, type SegmentedControlOption } from "@/components/ui/s
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
 import { ToolSettingsButton } from "./ToolSettingsButton";
-import { didHandleEdgeSelection } from "./rovingSelection";
 import { useAuthoringPanelDisclosure } from "../hooks/useAuthoringPanelDisclosure";
 import { RoutePointInputs } from "./RoutePointInputs";
 import { ToolCardActions, ToolCardHeader } from "./ToolAuthoringCard";
@@ -73,15 +72,13 @@ const ROUTE_PATH_OPTIONS = [
 
 function RoutePathControl(props: RouteDrawingPanelProps) {
   return (
-    <div className="segmented-edge-keys" onKeyDown={(event) => didHandleEdgeSelection(event)}>
-      <SegmentedControl
-        label="Route path"
-        value={props.lineShape}
-        options={ROUTE_PATH_OPTIONS}
-        disabled={props.isRouting || props.pathLocked}
-        onValueChange={props.onLineShapeChange}
-      />
-    </div>
+    <SegmentedControl
+      label="Route path"
+      value={props.lineShape}
+      options={ROUTE_PATH_OPTIONS}
+      disabled={props.isRouting || props.pathLocked}
+      onValueChange={props.onLineShapeChange}
+    />
   );
 }
 
