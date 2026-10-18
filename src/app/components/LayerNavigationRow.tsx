@@ -32,6 +32,9 @@ function isSameLayerRowProps(previous: LayerRowProps, next: LayerRowProps) {
     && previous.openPanel === next.openPanel;
 }
 
+const VISIBILITY_HINT: Readonly<Record<string, string>> = { true: 'Hide layer', false: 'Show layer' };
+const LOCK_HINT: Readonly<Record<string, string>> = { true: 'Unlock layer', false: 'Lock layer' };
+
 export const LayerNavigationRow = memo(function LayerNavigationRow({ layer, index, isSelected, isActive, activePanel, setPreviewedLayerId, openPanel }: LayerRowProps) {
   const { selectLayer, toggleLayerLock, toggleLayerVisibility } = useProjectActions();
   const feedback = useMutationFeedback(layer);
@@ -61,18 +64,22 @@ export const LayerNavigationRow = memo(function LayerNavigationRow({ layer, inde
       }}
       onMouseLeave={clearPreview}
     >
+      <IconTooltip label={VISIBILITY_HINT[String(layer.visible)]}>
       <button className="layer-visibility" tabIndex={tabIndex} type="button" aria-label={`${layer.visible ? 'Hide' : 'Show'} ${layer.name}`} onClick={() => {
         const result = feedback.report(toggleLayerVisibility(layer.id));
         if (result.ok) clearPreview();
       }}>
         {layer.visible ? <Eye size={16} strokeWidth={1.75} /> : <EyeOff size={16} strokeWidth={1.75} />}
       </button>
+      </IconTooltip>
       <button className="layer-select" tabIndex={tabIndex} type="button" data-layer-select={layer.id} aria-current={isSelected ? 'true' : undefined} aria-haspopup={activePanel === 'layers' ? 'dialog' : undefined} onClick={select} aria-label={`Select ${layer.name}`}>
         <Icon size={16} strokeWidth={1.75} /><span>{layer.name}</span>
       </button>
+      <IconTooltip label={LOCK_HINT[String(layer.locked)]}>
       <button className="layer-lock" tabIndex={tabIndex} type="button" aria-label={`${layer.locked ? 'Unlock' : 'Lock'} ${layer.name}`} onClick={() => feedback.report(toggleLayerLock(layer.id))}>
         {layer.locked ? <Lock size={16} strokeWidth={1.75} /> : <Unlock size={16} strokeWidth={1.75} />}
       </button>
+      </IconTooltip>
       <IconTooltip label={isBasemap ? 'Basemap is fixed at the bottom' : 'Drag to reorder'} shortcut={isBasemap ? undefined : 'Alt+↑↓'}>
       <button
         ref={handleRef}
