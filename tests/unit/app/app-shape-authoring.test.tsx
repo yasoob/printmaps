@@ -122,7 +122,7 @@ describe('polygon authoring', () => {
 
     await user.click(screen.getByRole('button', { name: 'Area (S)' }));
     await user.click(screen.getByRole('tab', { name: 'Draw custom area' }));
-    expect(screen.getByRole('button', { name: 'Export' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Export' })).toBeEnabled();
     const finish = screen.getByRole('button', { name: 'Finish area' });
     expect(screen.getByRole('status', { name: 'Area drawing status' })).toHaveTextContent('0 vertices');
     expect(finish).toBeDisabled();
@@ -185,6 +185,9 @@ describe('polygon authoring', () => {
     expect(screen.getByRole('button', { name: 'Finish area' })).toBeDisabled();
     expect(screen.getByTestId('map-canvas')).not.toHaveAttribute('data-layer-state', expect.stringContaining('shape-draft:true'));
     expect(screen.getByRole('button', { name: 'Export' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Export' })).toHaveAccessibleDescription('Finish or cancel the current drawing to export or share.');
+    expect(screen.getByRole('button', { name: 'Share' })).toHaveAccessibleDescription('Finish or cancel the current drawing to export or share.');
+    expect(screen.getByText('Finish or cancel the current drawing to export or share.')).toBeVisible();
   });
 
   it('does not restore an abandoned shape draft after another project opens', async () => {

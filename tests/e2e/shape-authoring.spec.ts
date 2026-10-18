@@ -87,7 +87,7 @@ test('polygon authoring can be cancelled, undone, redone, and exported as vector
   await page.getByRole('button', { name: 'Area (S)' }).click();
   await page.getByRole('tab', { name: 'Draw custom area' }).click();
   await expect(page.getByRole('status', { name: 'Area drawing status' })).toContainText('0 vertices');
-  await expect(page.getByRole('button', { name: 'Export' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Export' })).toBeEnabled();
   await page.getByRole('button', { name: 'Cancel area' }).click();
   await expect(page.getByRole('button', { name: 'Select (V)' })).toBeFocused();
   await expect(page.getByRole('button', { name: 'Select Area 01' })).toHaveCount(0);

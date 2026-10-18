@@ -197,7 +197,7 @@ test('compact Route stays centered and docked after every drawing transition', a
   }
 });
 
-test('compact attribution disclosure does not collide with the scale', async ({ page }) => {
+test('compact scale docks above the zoom stack and never collides with attribution', async ({ page }) => {
   for (const viewport of [
     { width: 390, height: 844 },
     { width: 844, height: 390 },
@@ -207,9 +207,16 @@ test('compact attribution disclosure does not collide with the scale', async ({ 
     await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
     const attribution = page.locator('.maplibregl-ctrl-attrib');
     const scale = page.locator('.canvas-scale-dock');
+    const zoom = page.locator('.maplibregl-ctrl-bottom-right');
     await page.locator('.maplibregl-ctrl-attrib-button').click();
     await expect(attribution).toHaveAttribute('open');
-    await expect(scale).toBeHidden();
+    await expect(scale).toBeVisible();
+    await expectNoOverlap(attribution, scale);
+    const [scaleBox, zoomBox] = await Promise.all([scale.boundingBox(), zoom.boundingBox()]);
+    // The phone scale is a tile docked directly above the fit/zoom stack.
+    expect(scaleBox!.x + scaleBox!.width).toBeCloseTo(zoomBox!.x + zoomBox!.width, 0);
+    expect(zoomBox!.y - (scaleBox!.y + scaleBox!.height)).toBeGreaterThanOrEqual(4);
+    expect(zoomBox!.y - (scaleBox!.y + scaleBox!.height)).toBeLessThanOrEqual(12);
     await page.locator('.maplibregl-ctrl-attrib-button').click();
     await expect(scale).toBeVisible();
   }

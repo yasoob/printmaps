@@ -22,7 +22,7 @@ test('POI placement can be cancelled, undone, redone, and exported as vector con
 
   await page.getByRole('button', { name: 'Place (P)' }).click();
   await expect(page.getByRole('status', { name: 'POI placement status' })).toContainText('Click the map or choose a search result');
-  await expect(page.getByRole('button', { name: 'Export' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Export' })).toBeEnabled();
   await page.getByRole('button', { name: 'Cancel POI' }).click();
   await expect(page.getByRole('button', { name: 'Select (V)' })).toBeFocused();
   await expect(page.getByRole('button', { name: 'Select POI 01' })).toHaveCount(0);

@@ -28,7 +28,7 @@ type IsochronePanelProps = {
 export function IsochronePanel(props: IsochronePanelProps) {
   const isInvalidMinutes = !Number.isSafeInteger(props.minutes) || props.minutes < 5 || props.minutes > 60;
   return (
-    <div className="isochrone-panel">
+    <div id="area-source-panel" className="isochrone-panel">
       <div className="isochrone-field">
         <PropertySubheading>Starting point</PropertySubheading>
         <div className="isochrone-center" aria-live="polite">

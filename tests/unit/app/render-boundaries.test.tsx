@@ -79,7 +79,6 @@ function headerProps() {
     finishImportWork: vi.fn(),
     isImportWorkActive: false,
     startImportWork: vi.fn(() => 1),
-    exportDisabled: false,
     importDisabled: false,
     importOpen: false,
     replacementRequest: null,

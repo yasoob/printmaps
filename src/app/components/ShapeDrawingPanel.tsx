@@ -4,18 +4,13 @@ import { Notice } from '@/components/ui/notice';
 import type { ReactNode } from 'react';
 import type { AdministrativeArea } from '../../domain/administrativeAreas';
 import { AdministrativeAreaPicker } from './AdministrativeAreaPicker';
-import { didHandleRovingSelection } from './rovingSelection';
+import { StudioModeTabs, type StudioModeTabChoice } from './StudioModeTabs';
 import { ToolCardActions, ToolCardHeader } from './ToolAuthoringCard';
 import { ToolSettingsButton } from './ToolSettingsButton';
 import { useAuthoringPanelDisclosure } from '../hooks/useAuthoringPanelDisclosure';
 import { ShapePointInputs, type ShapePointInputsProps } from './ShapePointInputs';
 
 export type ShapeAuthoringMode = 'administrative' | 'draw' | 'isochrone';
-
-function handleShapeModeKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
-  if (!didHandleRovingSelection(event, '[role="tab"]')) return;
-  queueMicrotask(() => document.querySelector<HTMLButtonElement>('.shape-mode-tabs [role="tab"][tabindex="0"]')?.focus());
-}
 
 type ShapeDrawingPanelProps = Readonly<{
   isCompactViewport: boolean;
@@ -35,41 +30,30 @@ type ShapeDrawingPanelProps = Readonly<{
   isochronePanel: ReactNode;
 }>;
 
-function ShapeModeTabs({ mode, onChange }: Readonly<{
-  mode: ShapeAuthoringMode;
-  onChange: (mode: ShapeAuthoringMode, isPointerActivation: boolean) => void;
-}>) {
-  return (
-    <div className="studio-segmented shape-mode-tabs" role="tablist" aria-label="Shape source" onKeyDown={handleShapeModeKeyDown}>
-      <button type="button" role="tab" aria-label="Find administrative area" aria-selected={mode === 'administrative'} tabIndex={mode === 'administrative' ? 0 : -1} onClick={(event) => onChange('administrative', event.detail !== 0)}>
-        <MapPinned aria-hidden="true" size={15} /> Boundaries
-      </button>
-      <button type="button" role="tab" aria-label="Draw custom area" aria-selected={mode === 'draw'} tabIndex={mode === 'draw' ? 0 : -1} onClick={(event) => onChange('draw', event.detail !== 0)}>
-        <PencilRuler aria-hidden="true" size={15} /> Draw
-      </button>
-      <button type="button" role="tab" aria-selected={mode === 'isochrone'} tabIndex={mode === 'isochrone' ? 0 : -1} onClick={(event) => onChange('isochrone', event.detail !== 0)}>
-        <Clock3 aria-hidden="true" size={15} /> Travel time
-      </button>
-    </div>
-  );
-}
+const AREA_SOURCE_PANEL_ID = 'area-source-panel';
+const AREA_SOURCE_CHOICES = [
+  { value: 'administrative', label: 'Boundaries', shortLabel: 'Region', ariaLabel: 'Find administrative area', icon: MapPinned },
+  { value: 'draw', label: 'Draw', ariaLabel: 'Draw custom area', icon: PencilRuler },
+  { value: 'isochrone', label: 'Travel time', shortLabel: 'Time', ariaLabel: 'Travel time', icon: Clock3 },
+] as const satisfies readonly StudioModeTabChoice<ShapeAuthoringMode>[];
 
 export function ShapeDrawingPanel(props: ShapeDrawingPanelProps) {
   const disclosure = useAuthoringPanelDisclosure(props.pointCount, props.isCompactViewport, props.isCompactViewport && props.shouldAutoCollapse);
   const header = <ToolCardHeader closeLabel="Close Area menu" collapse={props.mode === 'draw' ? { label: 'Hide area settings', onCollapse: disclosure.closeSettings } : undefined} icon={Shapes} onClose={props.onClose} title="Area" />;
-  const modes = <ShapeModeTabs mode={props.mode} onChange={(mode, isPointerActivation) => {
-    props.onModeChange(mode);
-    if (mode === 'draw' && props.isCompactViewport) {
-      if (isPointerActivation) disclosure.closeSettings();
-      else disclosure.openSettings();
-    }
-  }} />;
+  const modes = <StudioModeTabs className="shape-mode-tabs" label="Shape source" idPrefix="area-source" panelId={AREA_SOURCE_PANEL_ID}
+    choices={AREA_SOURCE_CHOICES} value={props.mode} onValueChange={(mode, activation) => {
+      props.onModeChange(mode);
+      if (mode === 'draw' && props.isCompactViewport) {
+        if (activation.source === 'pointer') disclosure.closeSettings();
+        else disclosure.openSettings();
+      }
+    }} />;
   if (props.mode === 'administrative') {
     return (
       <div className="map-authoring-panel tool-authoring-card shape-authoring-panel">
         {header}
         {modes}
-        <AdministrativeAreaPicker onAdd={props.onAddAdministrativeArea} onCancel={props.onCancel} />
+        <AdministrativeAreaPicker id={AREA_SOURCE_PANEL_ID} onAdd={props.onAddAdministrativeArea} onCancel={props.onCancel} />
         {props.admissionError && <Notice tone="error">{props.admissionError}</Notice>}
       </div>
     );
@@ -87,7 +71,7 @@ export function ShapeDrawingPanel(props: ShapeDrawingPanelProps) {
         <p className="tool-compact-summary" aria-hidden="true">{compactSummary}</p>
         <ToolSettingsButton buttonRef={disclosure.settingsButtonRef} label="Show area settings" onOpen={disclosure.openSettings} />
       </>}
-      <div className="shape-drawing-content">
+      <div id={AREA_SOURCE_PANEL_ID} className="shape-drawing-content">
         <p id="area-drawing-instructions">Click the map or enter coordinates. Use at least 3 distinct points.</p>
         <ShapePointInputs {...props.pointInput} />
         <p>With the map focused: Enter finishes; Backspace/Delete undoes a point; Escape closes and keeps the outline.</p>

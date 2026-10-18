@@ -30,6 +30,7 @@ export type CanvasWorkspaceViewProps = {
   onOpenPanel: (panel: MobilePanel) => void;
   propertiesTriggerRef: RefObject<HTMLButtonElement | null>;
   selectToolRef: RefObject<HTMLButtonElement | null>;
+  scaleMaxWidthPx: number;
   searchKey: number;
   searchProps: ComponentProps<typeof LocationSearch>;
 };
@@ -56,6 +57,7 @@ export function CanvasWorkspaceView({
   onKeepEditingRoute,
   onOpenPanel,
   propertiesTriggerRef,
+  scaleMaxWidthPx,
   selectToolRef,
   searchKey,
   searchProps,
@@ -118,6 +120,7 @@ export function CanvasWorkspaceView({
             <MapScale
               latitude={mapProps.camera.center[1]}
               zoom={mapProps.camera.zoom}
+              maxWidthPx={scaleMaxWidthPx}
             />
           </div>
         )}
