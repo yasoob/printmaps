@@ -1,6 +1,7 @@
 import { useId, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { PropertyRow } from "./PropertyControls";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 
 export type ShapePointInputsProps = {
   coordinates: readonly [string, string];
@@ -38,8 +39,8 @@ export function ShapePointInputs({
         return (
           <PropertyRow key={label} label={label}>
             <div className="coordinate-field">
-              <label className="number-field">
-                <input
+              <InputGroup>
+                <InputGroupInput
                   ref={axis === 0 ? longitudeRef : latitudeRef}
                   aria-label={`New area point ${label.toLowerCase()}`}
                   aria-invalid={Boolean(error) || undefined}
@@ -48,8 +49,8 @@ export function ShapePointInputs({
                   value={coordinates[axis]}
                   onChange={(event) => onChange(axis, event.currentTarget.value)}
                 />
-                <small>°</small>
-              </label>
+                <InputGroupAddon align="inline-end">°</InputGroupAddon>
+              </InputGroup>
               {error && <small className="coordinate-validation" id={errorId}>{error}</small>}
             </div>
           </PropertyRow>

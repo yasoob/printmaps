@@ -62,8 +62,9 @@ describe('design token discipline', () => {
 
   it('keeps search results and map scale flat without decorative shadows', () => {
     const styles = read('src/styles.css');
+    // The search field itself is the shared InputGroup; its surface utilities live in LocationSearch.
+    expect(read('src/app/components/LocationSearch.tsx')).not.toMatch(/shadow-/);
     const flatSelectors = [
-      '.location-search-form',
       '.location-search-results',
       '.map-scale',
       '.map-scale span',

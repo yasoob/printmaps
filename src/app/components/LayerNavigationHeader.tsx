@@ -1,6 +1,7 @@
 import { Search } from 'lucide-react';
 import type { KeyboardEvent, ReactNode, RefObject } from 'react';
 import { FeatureHelp } from './FeatureHelp';
+import { IconTooltip } from './IconTooltip';
 
 function LayerNavigationHelp() {
   return (
@@ -37,18 +38,19 @@ export function LayerNavigationHeader({
       <div className="layer-header-actions">
         <div className="layer-header-secondary">
           <LayerNavigationHelp key={helpKey} />
-          <button
-            ref={searchButtonRef}
-            className="icon-button layer-search-toggle"
-            type="button"
-            aria-label="Search layers"
-            aria-controls={filterId}
-            aria-expanded={searchOpen}
-            title={searchOpen ? 'Close layer search' : 'Search layers'}
-            onClick={onToggleSearch}
-          >
-            <Search size={16} strokeWidth={1.75} aria-hidden="true" />
-          </button>
+          <IconTooltip label={searchOpen ? 'Close layer search' : 'Search layers'}>
+            <button
+              ref={searchButtonRef}
+              className="icon-button layer-search-toggle"
+              type="button"
+              aria-label="Search layers"
+              aria-controls={filterId}
+              aria-expanded={searchOpen}
+              onClick={onToggleSearch}
+            >
+              <Search size={16} strokeWidth={1.75} aria-hidden="true" />
+            </button>
+          </IconTooltip>
         </div>
         {collapseButton}
       </div>

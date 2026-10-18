@@ -32,7 +32,7 @@ describe('IsochronePanel', () => {
   it('marks a fractional duration invalid and gates generation with corrective guidance', () => {
     render(<IsochronePanel {...sharedProps} minutes={12.5} />);
 
-    expect(screen.getByRole('slider', { name: 'Travel time in minutes' })).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByRole('slider', { name: 'Travel time in minutes' })).toHaveAccessibleDescription(/whole number from 5 to 60 minutes/);
     expect(screen.getByRole('alert')).toHaveTextContent('whole number from 5 to 60 minutes');
     expect(screen.getByRole('button', { name: 'Generate area' })).toBeDisabled();
   });

@@ -4,6 +4,7 @@ import { App } from '../../../src/app/App';
 import { createProjectStore } from '../../../src/app/store';
 import { createInitialProjectDocument } from '../../../src/domain/project';
 import type { AutosaveRepository } from '../../../src/storage/autosave';
+import { chooseOption } from '../select-support';
 
 vi.mock('../../../src/map/MapCanvas', async () => import('./MapCanvasMock'));
 
@@ -115,7 +116,7 @@ describe('unfinished drawing persistence contract', () => {
     await user.click(screen.getByRole('button', { name: 'Undo last route point' }));
     expect(isUnloadPrevented()).toBe(false);
     expect(notice()).toBeNull();
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Existing place for route point' }), 'poi-cafe');
+    await chooseOption(user, 'Existing place for route point', /^Coffee stop/);
     expect(isUnloadPrevented()).toBe(true);
     await user.click(screen.getByRole('button', { name: 'Add place' }));
     await user.click(screen.getByRole('button', { name: 'Undo last route point' }));

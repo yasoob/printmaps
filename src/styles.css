@@ -85,6 +85,14 @@ body {
 .document-actions { @apply justify-end gap-2; }
 .document-actions :is(.quiet-button, .primary-button) { height: var(--studio-control-height); }
 .document-actions :is(.quiet-button, .primary-button) > svg { flex-shrink: 0; }
+/* Shortcut hint inside the shared tooltip (light text on the dark tooltip surface). */
+.studio-tooltip-shortcut {
+  @apply rounded px-1 font-sans font-medium tabular-nums;
+  color: color-mix(in srgb, var(--studio-on-dark) 72%, transparent);
+  background: color-mix(in srgb, var(--studio-on-dark) 14%, transparent);
+  font-size: var(--studio-font-meta);
+  line-height: 1.25rem;
+}
 .header-blocked-hint {
   @apply inline-flex min-w-0 items-center gap-1.5;
   margin-right: 0.25rem;
@@ -471,20 +479,6 @@ body {
 .location-search {
   width: 100%;
 }
-.location-search-form {
-  @apply flex items-center gap-2 px-3;
-  height: 2.375rem;
-  border: var(--studio-border-width) solid var(--studio-line-strong);
-  border-radius: var(--studio-radius-lg);
-  background: var(--studio-surface);
-}
-.location-search-form > svg { @apply shrink-0; color: var(--studio-text-muted); }
-.location-search-form input {
-  @apply min-w-0 flex-1 bg-transparent text-xs outline-none;
-  color: var(--studio-text-strong);
-}
-.location-search-form button { @apply inline-grid h-7 w-7 shrink-0 place-items-center rounded; }
-.location-search-form button:hover:not(:disabled) { background: var(--studio-field); }
 .location-search-results {
   @apply mt-1 grid overflow-hidden py-1;
   border: var(--studio-border-width) solid var(--studio-line-strong);
@@ -709,7 +703,7 @@ body {
 .tool-authoring-card .property-row { min-height: var(--studio-control-height); }
 .tool-card-actions { @apply flex items-center justify-end gap-2 pt-1; }
 
-.shape-authoring-panel > .shape-mode-tabs { width: 100%; }
+.shape-authoring-panel .shape-mode-tabs { width: 100%; }
 .shape-drawing-content { @apply grid gap-2 py-1; }
 .shape-authoring-panel[data-settings-expanded="true"] > .shape-drawing-content {
   min-height: 0;
@@ -731,12 +725,7 @@ body {
 .isochrone-center small { @apply truncate tabular-nums; color: var(--studio-text-muted); font-size: var(--studio-font-meta); }
 .isochrone-duration-row { @apply grid gap-1; }
 .isochrone-duration-value { @apply font-semibold tabular-nums; color: var(--studio-text-strong); font-size: var(--studio-font-control); }
-.isochrone-duration-row > input[type="range"] {
-  @apply m-0 h-5 w-full cursor-pointer;
-  accent-color: var(--studio-tool-card-accent);
-}
-.isochrone-duration-row > input[type="range"]:focus-visible { outline: var(--studio-focus-width) solid var(--studio-focus); outline-offset: 2px; }
-.isochrone-duration-limits { @apply flex items-center justify-between; color: var(--studio-text-muted); font-size: var(--studio-font-meta); }
+.isochrone-duration-limits { @apply flex items-center justify-between px-2; color: var(--studio-text-muted); font-size: var(--studio-font-meta); }
 .shadcn-combobox-input-group {
   @apply flex min-w-0 items-center gap-2 px-2.5;
   height: var(--studio-control-height);
@@ -814,7 +803,7 @@ body {
 .route-authoring-panel[data-settings-expanded="false"] > .route-authoring-settings,
 .route-authoring-panel[data-settings-expanded="false"] > .route-finish-explanation,
 .shape-authoring-panel[data-settings-expanded="false"] > .tool-card-heading,
-.shape-authoring-panel[data-settings-expanded="false"] > .shape-mode-tabs,
+.shape-authoring-panel[data-settings-expanded="false"] .shape-mode-tabs,
 .shape-authoring-panel[data-settings-expanded="false"] .shape-coordinate-entry,
 .shape-authoring-panel[data-settings-expanded="false"] .shape-drawing-content > p {
   display: none;
@@ -1138,7 +1127,7 @@ body {
 @media (max-width: 899px), (pointer: coarse) {
   .right-sidebar .property-row { min-height: 3.25rem; }
   .shape-editing-toolbar.studio-segmented { height: calc(var(--studio-touch-target) + 0.5rem); padding: 0.25rem; }
-  .tool-authoring-card :is(.property-control select, .number-field, .route-point-sources > summary, .route-draft-points > summary),
+  .tool-authoring-card :is(.route-point-sources > summary, .route-draft-points > summary),
   .shadcn-combobox-input-group { min-height: var(--studio-touch-target); }
   .right-sidebar :is(.property-control > input, .property-control select, .input-group, .number-field, .color-field, .studio-color-field, .segmented, .studio-segmented) {
     height: var(--studio-touch-target);
@@ -1631,8 +1620,6 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
   .map-style-color-list { row-gap: 0.5rem; }
   .map-style-color-row { min-height: var(--studio-touch-target); }
   .map-style-adjustment input { height: var(--studio-touch-target); }
-  .route-point-inputs button,
-  .route-point-inputs select,
   .route-snap-control,
   .route-extend-actions > button,
   .route-structure-controls button,
@@ -1830,15 +1817,6 @@ body.is-number-scrubbing { cursor: ew-resize !important; user-select: none !impo
     min-width: 0;
     width: 100%;
     translate: none;
-  }
-  .mobile-panel-actions .location-search-form {
-    height: calc(var(--studio-touch-target) + 2px);
-    padding-right: 0.25rem;
-  }
-  .mobile-panel-actions .location-search-form input { height: var(--studio-touch-target); }
-  .mobile-panel-actions .location-search-form button {
-    width: var(--studio-touch-target);
-    height: var(--studio-touch-target);
   }
   .left-sidebar.is-mobile-open .panel-header { min-height: 2.75rem; }
   .left-sidebar.is-mobile-open .layer-row {

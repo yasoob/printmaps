@@ -1,15 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
+import { SimpleSelect } from "@/components/ui/select";
+import { ROAD_TRAVEL_MODE_OPTIONS } from "./routeSelectOptions";
 import type {
   MapMatchingInput,
   MapMatchingProvenance,
 } from "../../domain/project";
-import {
-  ROAD_TRAVEL_MODES,
-  ROAD_TRAVEL_MODE_LABELS,
-  type RoadTravelMode,
-} from "../../domain/routeProfiles";
+import type { RoadTravelMode } from "../../domain/routeProfiles";
 import type {
   MapMatchingProvider,
   ProviderTravelProfile,
@@ -187,21 +185,16 @@ export function RouteMapMatchingControl({
   return (
     <div className="route-map-matching">
       <PropertyRow label="Travel mode">
-        <select
-          aria-label="Road matching travel mode"
+        <SimpleSelect
+          label="Road matching travel mode"
           disabled={disabled || isMatching}
           value={mode}
-          onChange={(event) => {
+          options={ROAD_TRAVEL_MODE_OPTIONS}
+          onValueChange={(nextMode) => {
             trackEditorAction('mapMatchingModeSelected');
-            setMode(event.target.value as RoadTravelMode);
+            setMode(nextMode);
           }}
-        >
-          {ROAD_TRAVEL_MODES.map((candidate) => (
-            <option key={candidate} value={candidate}>
-              {ROAD_TRAVEL_MODE_LABELS[candidate]}
-            </option>
-          ))}
-        </select>
+        />
       </PropertyRow>
       <Button
         className="secondary-action"

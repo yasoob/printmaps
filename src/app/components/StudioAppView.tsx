@@ -22,6 +22,7 @@ import { StudioHeader } from "./StudioHeader";
 import { ProjectRenameDialog } from "./ProjectRenameDialog";
 import { ProjectReplacementDialog } from "./ProjectReplacementDialog";
 import { NewProjectTemplateDialog } from "../studio/NewProjectTemplateDialog";
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 const defaultSearchProvider = createMapboxSearchProvider({
   token: import.meta.env.VITE_MAPBOX_PUBLIC_ACCESS,
@@ -160,6 +161,9 @@ const ProjectAutosaveSurfaces = memo(function ProjectAutosaveSurfaces({ fallback
   );
 });
 
+// Shared hover delay; once one hint is open, neighbouring hints open instantly.
+const TOOLTIP_DELAY_MS = 500;
+
 function getStudioBlockedReason(m: Pick<StudioAppModel, 'isAuthoring' | 'isAutosaveCorrupted'>) {
   if (m.isAuthoring) return 'Finish or cancel the current drawing first.';
   if (m.isAutosaveCorrupted) return 'Resolve the damaged draft before continuing.';
@@ -179,7 +183,7 @@ export function StudioAppView({ model: m }: { model: StudioAppModel }) {
     setLayersCollapsed((collapsed) => !collapsed);
   }, []);
   return (
-    <>
+    <TooltipProvider delay={TOOLTIP_DELAY_MS}>
       <main className={`studio-shell${layersCollapsed ? " is-layers-collapsed" : ""}`} onKeyDown={m.handleDeleteKeyDown}>
         <StudioHeader
           projectTitleRef={m.mobile.projectTitleRef}
@@ -223,7 +227,7 @@ export function StudioAppView({ model: m }: { model: StudioAppModel }) {
       )}
       {m.modal.surface === "autosave-conflict" && <AutosaveConflictDialog returnFocusRef={m.openButtonRef} />}
       <ProjectAutosaveSurfaces fallbackFocusRef={m.openButtonRef} />
-    </>
+    </TooltipProvider>
   );
 }
 

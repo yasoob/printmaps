@@ -8,6 +8,7 @@ import { armLifecycleDeadline, clearLifecycleDeadline, MAP_READY_TIMEOUT_MS, MAP
 import { publishCameraViewport, readMapCameraViewport, writeCameraViewportAttributes, type CameraViewportPublication } from './MapCameraViewport';
 import { createLifecycleExportPreview, type LifecycleExportReferences } from './MapLifecycleExport';
 import { createPageNavigationControl } from './MapPageNavigationControl';
+import { adoptControlTooltips } from './mapControlTooltips';
 import { setMapInteractionLock } from './MapInteractionLock';
 import { createAttributionController } from './MapAttributionController';
 import { createMapResourceRecovery, mapFailureMessage, type MapFailureEvent } from './MapResourceRecovery';
@@ -244,6 +245,8 @@ function installMapLifecycle(map: MapLibreMap, options: MapLifecycleOptions) {
     'bottom-right',
   );
   map.addControl(new AttributionControl({ compact: true }), 'bottom-left');
+  const attributionControl = container.querySelector('.maplibregl-ctrl-attrib');
+  if (attributionControl) adoptControlTooltips(attributionControl);
   setMapInteractionLock(map, options.initialCamera.locked);
   attribution.listen();
   armLifecycleDeadline(state, handlers.handleLoadTimeout, MAP_STYLE_TIMEOUT_MS);

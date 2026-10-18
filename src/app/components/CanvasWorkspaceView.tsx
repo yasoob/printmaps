@@ -1,4 +1,5 @@
-import { memo, useMemo, useState, type ComponentProps, type ReactNode, type RefObject } from "react";
+import { memo, useMemo, useRef, useState, type ComponentProps, type ReactNode, type RefObject } from "react";
+import { ControlTooltips } from "./ControlTooltips";
 import type { MobilePanel } from "../hooks/useMobilePanels";
 import { StudioMapCanvas } from "../studio/StudioMapCanvas";
 import { EditorStudioMapCanvas } from "../studio/EditorStudioMapCanvas";
@@ -63,6 +64,7 @@ export function CanvasWorkspaceView({
   searchProps,
 }: CanvasWorkspaceViewProps) {
   const [cameraNoticeContainer, setCameraNoticeContainer] = useState<HTMLDivElement | null>(null);
+  const regionRef = useRef<HTMLElement>(null);
   const { statusNotice, hasUnfinishedDrawing, hasUnfinishedPoiList, ...authoringChromeProps } = chromeProps;
   const {
     onSelect: onSearchSelect,
@@ -104,6 +106,7 @@ export function CanvasWorkspaceView({
   );
   return (
     <section
+      ref={regionRef}
       className="canvas-region"
       data-active-tool={activeTool}
       inert={activePanel !== null}
@@ -125,6 +128,7 @@ export function CanvasWorkspaceView({
           </div>
         )}
       </div>
+      <ControlTooltips rootRef={regionRef} />
       {isRouteDiscardOpen && (
         <RouteDiscardDialog
           onDiscard={onDiscardRoute}

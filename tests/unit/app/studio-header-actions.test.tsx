@@ -81,7 +81,7 @@ describe('studio header project actions', () => {
     render(<App />);
 
     const title = screen.getByRole('button', { name: 'Vienna field guide' });
-    expect(title).toHaveAttribute('title', 'Rename project');
+    expect(title).not.toHaveAttribute('title');
     await user.click(title);
 
     const input = screen.getByRole('textbox', { name: 'Project title' }) as HTMLInputElement;

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { chooseOption, expectSelectValue } from './select-support';
 
 async function frameCenterIsDrawable(page: Page) {
   const frame = await page.locator('.print-frame').boundingBox();
@@ -31,11 +32,11 @@ for (const viewport of [
     await page.mouse.click(center.x, center.y);
     await expect(page.getByRole('status', { name: 'Route drawing status' })).toContainText('1 point');
     await page.getByRole('button', { name: 'Show route settings' }).click();
-    await page.getByRole('combobox', { name: 'Travel marker' }).selectOption('air');
+    await chooseOption(page, 'Travel marker', 'Air');
     await page.getByRole('button', { name: 'Hide route settings' }).click();
     await expect(page.getByRole('button', { name: 'Show route settings' })).toBeFocused();
     await page.getByRole('button', { name: 'Show route settings' }).click();
-    await expect(page.getByRole('combobox', { name: 'Travel marker' })).toHaveValue('air');
+    await expectSelectValue(page, 'Travel marker', 'air');
     await page.getByRole('button', { name: 'Cancel route' }).click();
     await page.getByRole('button', { name: 'Discard changes' }).click();
 

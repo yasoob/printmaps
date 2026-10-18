@@ -7,6 +7,10 @@ type SliderProps = SliderPrimitive.Root.Props & {
   Accessible names for the thumbs, in order. A single string names a single-value slider.
   */
   thumbLabels?: string | readonly string[]
+  /**
+  Extra accessible wiring for every thumb's range input (descriptions and spoken values).
+  */
+  thumbProps?: Pick<SliderPrimitive.Thumb.Props, "aria-describedby" | "aria-valuetext">
 }
 
 const THUMB_KEYS = ["first", "second", "third", "fourth"] as const
@@ -20,7 +24,7 @@ function thumbCount(value: SliderPrimitive.Root.Props["value"], defaultValue: Sl
 /**
 Studio slider: 4px track, 16px thumb with a 44px touch hit area, blue range. Accepts a number or number[].
 */
-function Slider({ className, defaultValue, value, min = 0, max = 100, thumbLabels, ...props }: SliderProps) {
+function Slider({ className, defaultValue, value, min = 0, max = 100, thumbLabels, thumbProps, ...props }: SliderProps) {
   const labels = typeof thumbLabels === "string" ? [thumbLabels] : thumbLabels
   return (
     <SliderPrimitive.Root
@@ -45,6 +49,7 @@ function Slider({ className, defaultValue, value, min = 0, max = 100, thumbLabel
             data-slot="slider-thumb"
             key={thumbKey}
             aria-label={labels?.[index]}
+            {...thumbProps}
             className="relative block size-4 shrink-0 rounded-full border border-studio-accent bg-surface transition-[outline-color] select-none after:absolute after:-inset-3.5 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-[color:var(--studio-focus)] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-solid has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[color:var(--studio-focus)] forced-colors:forced-color-adjust-none forced-colors:border-[CanvasText] forced-colors:bg-[Canvas]"
           />
         ))}
