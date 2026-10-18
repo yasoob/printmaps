@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { ContentLayer } from '../../domain/project';
 import type { ReliefSettings } from '../../domain/studio';
 import type { ProjectMutationResult } from '../../domain/projectMutation';
@@ -14,7 +15,9 @@ export type ReliefControlsProps = {
   onChange: (settings: ReliefSettings) => ProjectMutationResult;
 };
 
-export function ReliefSettingsControls({ settings, layers, documentEpoch, onChange }: ReliefControlsProps) {
+type ReliefSettingsControlsProps = ReliefControlsProps & { fitAction?: ReactNode };
+
+export function ReliefSettingsControls({ settings, layers, documentEpoch, onChange, fitAction }: ReliefSettingsControlsProps) {
   const feedback = useMutationFeedback(settings);
   const commit = (value: ReliefSettings) => feedback.report(onChange(value));
   const numberProps = { resetKey: documentEpoch, step: 0.1 };
@@ -25,6 +28,7 @@ export function ReliefSettingsControls({ settings, layers, documentEpoch, onChan
       <PropertyRow label="Width"><ValidatedNumberField {...numberProps} label="Relief width" value={settings.widthMm} minimum={10} maximum={1000} unit="mm" onCommit={(widthMm) => onChange({ ...settings, widthMm, heightMm: settings.heightMm * widthMm / settings.widthMm })} /></PropertyRow>
       <PropertyRow label="Height"><ValidatedNumberField {...numberProps} label="Relief height" value={settings.heightMm} minimum={10} maximum={1000} unit="mm" onCommit={(heightMm) => onChange({ ...settings, heightMm, widthMm: settings.widthMm * heightMm / settings.heightMm })} /></PropertyRow>
     </div>
+    {fitAction && <div className="property-row relief-fit-row"><span aria-hidden="true" /><div className="property-control">{fitAction}</div></div>}
     <PropertyRow label="Base thickness"><ValidatedNumberField {...numberProps} label="Relief base thickness" value={settings.baseMm} minimum={0.2} maximum={100} unit="mm" onCommit={(baseMm) => onChange({ ...settings, baseMm })} /></PropertyRow>
     <PropertyRow label="Exaggeration"><ValidatedNumberField {...numberProps} label="Relief exaggeration" value={settings.exaggeration} minimum={0.1} maximum={50} unit="×" onCommit={(exaggeration) => onChange({ ...settings, exaggeration })} /></PropertyRow>
     <PropertyRow label="Detail"><select aria-label="Relief detail" value={settings.detail} onChange={(event) => commit({ ...settings, detail: event.target.value as ReliefSettings['detail'] })}><option value="low">Low · 64 samples</option><option value="medium">Medium · 128 samples</option><option value="high">High · 256 samples</option></select></PropertyRow>

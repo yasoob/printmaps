@@ -101,16 +101,16 @@ async function verifyPdfDownload() {
     })),
   } as unknown as CanvasRenderingContext2D);
   const captureExport = vi.fn();
-  captureExport.mockResolvedValue({
+  captureExport.mockImplementation(async (options?: { content?: string }) => ({
     blob: new Blob([Uint8Array.from([0xFF, 0xD8, 0xFF, 0xD9])], { type: 'image/jpeg' }),
     width: 2,
     height: 1,
-    surface: source,
+    surface: options?.content === 'composite' ? document.createElement('canvas') : source,
     projectToFrame: ([longitude, latitude]: readonly [number, number]) => ({
       x: (longitude - 16.28) / 0.2,
       y: (48.26 - latitude) / 0.12,
     }),
-  });
+  }));
   const exporter = Object.assign(captureExport, {
     createPrintTileRenderer: vi.fn(() => renderPrintTile),
   });
@@ -179,13 +179,13 @@ async function verifyPdfCancellation() {
     receivedSignal = signal;
     signal?.addEventListener('abort', () => reject(new DOMException('Cancelled', 'AbortError')), { once: true });
   }));
-  exportMocks.exporter = Object.assign(vi.fn().mockResolvedValue({
+  exportMocks.exporter = Object.assign(vi.fn(async (options?: { content?: string }) => ({
     blob: new Blob(['png'], { type: 'image/png' }),
     width: 2,
     height: 1,
-    surface: source,
+    surface: options?.content === 'composite' ? document.createElement('canvas') : source,
     projectToFrame: () => ({ x: 0.5, y: 0.5 }),
-  }), {
+  })), {
     createPrintTileRenderer: vi.fn(() => renderPrintTile),
   });
   const downloadClick = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
@@ -253,7 +253,8 @@ async function verifyNativeTileProgressCancellation() {
 
   expect(screen.getByRole('status', { name: 'Export status' })).toHaveTextContent('Export cancelled');
   expect(renderPrintTile).toHaveBeenCalledOnce();
-  expect(exporter).not.toHaveBeenCalled();
+  // Only the dialog's poster preview may capture; the PNG export itself never does.
+  expect(exporter.mock.calls.filter(([options]) => options?.content !== 'composite')).toEqual([]);
   expect(drawImage).toHaveBeenCalledOnce();
   expect(encode).not.toHaveBeenCalled();
   expect(downloadClick).not.toHaveBeenCalled();

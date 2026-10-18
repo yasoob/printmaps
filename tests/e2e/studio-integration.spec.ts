@@ -89,7 +89,7 @@ test('real editor controls create a photo poster, keep wall preview ephemeral, a
   await expect(page.getByLabel('Poster artwork').locator('image')).toHaveCount(1);
   const beforeWall = await downloadedProject(page);
   await page.getByRole('button', { name: 'Export', exact: true }).click();
-  await page.getByRole('button', { name: 'Preview framed' }).click();
+  await page.getByRole('button', { name: 'Preview on wall' }).click();
   const wall = page.getByRole('dialog', { name: 'Export map', exact: true });
   await expect(wall.locator('.studio-wall-scene img')).toBeVisible();
   await expect.poll(() => wall.locator('.studio-wall-scene img').evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);

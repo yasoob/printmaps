@@ -198,9 +198,11 @@ test('replacement choices and safe keyboard focus fit a narrow viewport', async 
   await page.keyboard.press('Shift+Tab');
   await expect(dialog.getByRole('button', { name: 'Download current project' })).toBeFocused();
   await page.keyboard.press('Shift+Tab');
+  await expect(dialog.getByRole('button', { name: 'Close', exact: true })).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
   await expect(dialog.getByRole('button', { name: 'Replace project', exact: true })).toBeFocused();
   await page.keyboard.press('Tab');
-  await expect(dialog.getByRole('button', { name: 'Download current project' })).toBeFocused();
+  await expect(dialog.getByRole('button', { name: 'Close', exact: true })).toBeFocused();
   const bounds = await dialog.boundingBox();
   expect(bounds!.x).toBeGreaterThanOrEqual(0);
   expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(320);

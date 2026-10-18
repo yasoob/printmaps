@@ -1,6 +1,7 @@
 import { ListPlus } from 'lucide-react';
 import { useLayoutEffect, useMemo, useRef, useState, type FormEvent, type RefObject } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { StudioDialogActions, StudioDialogButton, StudioDialogFeedback, StudioDialogHeader } from '@/components/ui/studio-dialog';
 import { MAX_POI_ADDRESS_ROWS, MAX_POI_SPREADSHEET_CHARACTERS, MAX_POI_SPREADSHEET_ROWS, type PoiSpreadsheetEntry } from '../../domain/poiSpreadsheet';
 import type { SearchProvider } from '../../services/mapbox/contracts';
 import type { ProjectMutationResult } from '../../domain/projectMutation';
@@ -87,13 +88,17 @@ function SpreadsheetDiscardDialog({ exit }: { exit: ReturnType<typeof useSpreads
   const keepRef = useRef<HTMLButtonElement>(null);
   return <Dialog open onOpenChange={(open) => { if (!open) exit.keepEditing(); }}>
     <DialogContent className="poi-spreadsheet-discard-dialog route-discard-dialog" overlayClassName="route-discard-backdrop" showCloseButton={false} initialFocus={keepRef} finalFocus={exit.finalFocus}>
-      <DialogTitle>Discard unadded POI lists?</DialogTitle>
-      <DialogDescription>Both pasted lists and their lookup suggestions will be lost. They are not saved or included in project downloads. Completed layers stay unchanged.</DialogDescription>
-      {exit.error && <p role="alert">{exit.error}</p>}
-      <div className="route-discard-actions">
-        <button ref={keepRef} type="button" onClick={exit.keepEditing}>Keep editing lists</button>
-        <button type="button" className="primary-button" onClick={exit.discard}>Discard lists</button>
-      </div>
+      <StudioDialogHeader>
+        <div>
+          <DialogTitle>Discard unadded POI lists?</DialogTitle>
+          <DialogDescription>Both pasted lists and their lookup suggestions will be lost. They are not saved or included in project downloads. Completed layers stay unchanged.</DialogDescription>
+        </div>
+      </StudioDialogHeader>
+      {exit.error && <StudioDialogFeedback><p role="alert" className="export-error">{exit.error}</p></StudioDialogFeedback>}
+      <StudioDialogActions stackOnMobile>
+        <StudioDialogButton ref={keepRef} onClick={exit.keepEditing}>Keep editing lists</StudioDialogButton>
+        <StudioDialogButton variant="primary" onClick={exit.discard}>Discard lists</StudioDialogButton>
+      </StudioDialogActions>
     </DialogContent>
   </Dialog>;
 }

@@ -1,3 +1,4 @@
+import { Scan } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { StudioDialogActions, StudioDialogBody, StudioDialogButton, StudioDialogFeedback, StudioDialogHeader } from '@/components/ui/studio-dialog';
@@ -30,9 +31,26 @@ export function ReliefExportDialog(props: ReliefExportDialogProps) {
   </Dialog>;
 }
 
+function dismissLabel(isBusy: boolean, isComplete: boolean) {
+  if (isBusy) return 'Cancel export';
+  return isComplete ? 'Done' : 'Cancel';
+}
+
+function ReliefFeedback({ isBusy, progress, blockedReason, canExport, error }: {
+  isBusy: boolean; progress: { fraction: number; message: string }; blockedReason?: string; canExport: boolean; error: string | null;
+}) {
+  return <StudioDialogFeedback data-empty={!progress.message && !blockedReason && canExport && !error}>
+    {(isBusy || progress.fraction === 1) && <progress max={1} value={progress.fraction} aria-label="Terrain export progress" />}
+    <p role="status" className="video-export-status">{progress.message}</p>
+    {blockedReason && <p role="status">{blockedReason}</p>}
+    {!canExport && !blockedReason && <p role="status">Waiting for the map preview to finish loading.</p>}
+    {error && <p role="alert" className="export-error">{error}</p>}
+  </StudioDialogFeedback>;
+}
+
 export function ReliefExportPanel({ exporter, onClose, blockedReason, onBusyChange, ...controls }: ReliefExportDialogProps & { onBusyChange: (isBusy: boolean) => void }) {
   const canExport = isExportAvailable(exporter, blockedReason);
-  const [progress, setProgress] = useState({ fraction: 0, message: 'Fit model dimensions to the current print frame, then download.' });
+  const [progress, setProgress] = useState({ fraction: 0, message: '' });
   const [error, setError] = useState<string | null>(null);
   const [isBusy, setIsBusy] = useState(false);
   const running = useRef<AbortController | null>(null);
@@ -95,26 +113,21 @@ export function ReliefExportPanel({ exporter, onClose, blockedReason, onBusyChan
     }
   };
   return <>
-      <StudioDialogFeedback>
-        {(isBusy || progress.fraction === 1) && <progress max={1} value={progress.fraction} aria-label="Terrain export progress" />}
-        <p role="status">{progress.message}</p>
-        {blockedReason && <p role="status">{blockedReason}</p>}
-        {!canExport && !blockedReason && <p role="status">Waiting for the map preview to finish loading.</p>}
-        {error && <p role="alert" className="export-error">{error}</p>}
-      </StudioDialogFeedback>
+      <ReliefFeedback isBusy={isBusy} progress={progress} blockedReason={blockedReason} canExport={canExport} error={error} />
       <StudioDialogBody className="export-dialog-body">
-        <div className="feature-help-row"><h3 className="export-panel-title">Terrain relief · STL</h3><FeatureHelp label="Terrain STL help">
+        <div className="feature-help-row export-panel-heading"><h3 className="export-panel-title">Terrain relief · STL</h3><FeatureHelp label="Terrain STL help">
           <p>A watertight binary STL of the print area. Set Pitch to 0; bearing is preserved. Import as millimeters in your slicer.</p>
           <p>The lowest sample sits on the base. The four elevation-aware frame corners are interpolated across the model; scale uses average edge lengths at the frame center. Exaggeration multiplies relief height. Elevation tiles are approximate, not survey data.</p>
         </FeatureHelp></div>
         <fieldset disabled={isBusy || !!blockedReason} className="relief-fields">
-          <ReliefSettingsControls {...controls} />
-          <button type="button" className="secondary-button" disabled={!canExport} onClick={fitDimensions}>Fit dimensions to print frame</button>
+          <ReliefSettingsControls {...controls} fitAction={<StudioDialogButton variant="secondary" className="relief-fit-button" disabled={!canExport} onClick={fitDimensions}>
+            <Scan size={14} strokeWidth={1.8} aria-hidden="true" />Fit dimensions to print frame
+          </StudioDialogButton>} />
         </fieldset>
-        <div className="feature-help-row"><span>Elevation data & credits</span><FeatureHelp label="Elevation data and credits">{reliefAttributionNotice()}</FeatureHelp></div>
+        <div className="feature-help-row export-footnote"><span>Elevation data & credits</span><FeatureHelp label="Elevation data and credits">{reliefAttributionNotice()}</FeatureHelp></div>
       </StudioDialogBody>
       <StudioDialogActions>
-        <StudioDialogButton ref={cancelRef} onClick={isBusy ? () => running.current?.abort() : onClose}>{isBusy ? 'Cancel export' : 'Close'}</StudioDialogButton>
+        <StudioDialogButton ref={cancelRef} onClick={isBusy ? () => running.current?.abort() : onClose}>{dismissLabel(isBusy, progress.fraction === 1)}</StudioDialogButton>
         <StudioDialogButton ref={downloadRef} variant="primary" disabled={isBusy || !canExport} onClick={() => { void start(); }}>{isBusy ? 'Generating terrain…' : 'Download STL'}</StudioDialogButton>
       </StudioDialogActions>
   </>;

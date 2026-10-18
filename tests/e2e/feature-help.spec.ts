@@ -103,7 +103,8 @@ for (const isMobile of [false, true]) {
           dialog.getByLabel('Target frame rate', { exact: true }).boundingBox(),
           dialog.getByLabel('Video aspect', { exact: true }).boundingBox(),
         ]);
-        expect(Math.abs(fps!.y - aspect!.y)).toBeLessThan(1);
+        expect(Math.abs(fps!.x - aspect!.x)).toBeLessThan(1);
+        expect(aspect!.y).toBeGreaterThan(fps!.y);
       }
       await dialog.getByRole('tab', { name: '3D model', exact: true }).click();
       await checkHelp(page, dialog, 'Terrain STL help', { isMobile, info });
@@ -112,7 +113,7 @@ for (const isMobile of [false, true]) {
       await checkHelp(page, dialog, 'Elevation data and credits', { isMobile, info });
       await expect(dialog.getByRole('button', { name: 'Download STL' })).toBeEnabled();
       await dialog.getByRole('tab', { name: 'Print', exact: true }).click();
-      await dialog.getByRole('button', { name: 'Preview framed', exact: true }).click();
+      await dialog.getByRole('button', { name: 'Preview on wall', exact: true }).click();
       await expect(dialog.locator('.studio-wall-scene img')).toBeVisible({ timeout: 30_000 });
       await checkHelp(page, dialog, 'Wall preview help', { isMobile, info });
       await page.keyboard.press('Escape');

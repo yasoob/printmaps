@@ -1,6 +1,4 @@
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
-import { StudioDialogBody, StudioDialogHeader } from '@/components/ui/studio-dialog';
-import { memo, useRef, type CSSProperties } from 'react';
+import { memo, type CSSProperties } from 'react';
 import type { PageSettings } from '../../domain/project';
 import type { ProjectMutationResult } from '../../domain/projectMutation';
 import type { WallSettings } from '../../domain/studio';
@@ -8,26 +6,14 @@ import { StudioColor, StudioNumber, StudioSelect, StudioToggle } from './StudioF
 import { FeatureHelp } from '../components/FeatureHelp';
 import './studioComposition.css';
 
-type WallPreviewProps = {
-  wall: WallSettings; page: PageSettings;
-  previewUrl: string | null; error?: string; epoch?: number; onChange?: (value: WallSettings) => ProjectMutationResult;
-};
+const FRAME_FINISHES = [
+  { value: 'none', label: 'Unframed' }, { value: 'black', label: 'Black' }, { value: 'white', label: 'White' },
+  { value: 'oak', label: 'Oak' }, { value: 'walnut', label: 'Walnut' },
+] as const;
 
-export const WallPreviewDialog = memo(function WallPreviewDialog({ open, onOpenChange, ...props }: WallPreviewProps & {
-  open: boolean; onOpenChange: (isOpen: boolean) => void;
+export const WallPreviewPanel = memo(function WallPreviewPanel({ wall, page, previewUrl, error }: {
+  wall: WallSettings; page: PageSettings; previewUrl: string | null; error?: string;
 }) {
-  const dialogRef = useRef<HTMLDivElement>(null);
-  return <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent ref={dialogRef} initialFocus={dialogRef} className="export-dialog studio-wall-dialog" overlayClassName="export-dialog-backdrop">
-      <StudioDialogHeader className="studio-wall-header">
-        <div><DialogTitle>On your wall</DialogTitle><DialogDescription>Preview your finished poster.</DialogDescription></div>
-      </StudioDialogHeader>
-      <WallPreviewPanel {...props} />
-    </DialogContent>
-  </Dialog>;
-});
-
-export const WallPreviewPanel = memo(function WallPreviewPanel({ wall, page, previewUrl, error, epoch = 0, onChange }: WallPreviewProps) {
   const style = {
     '--wall-color': wall.wallColor, '--mat-color': wall.matColor,
     '--frame-ratio': (page.widthMm + wall.matWidthMm * 2) / (page.heightMm + wall.matWidthMm * 2),
@@ -35,21 +21,27 @@ export const WallPreviewPanel = memo(function WallPreviewPanel({ wall, page, pre
     gridTemplateRows: `${wall.matWidthMm}fr ${page.heightMm}fr ${wall.matWidthMm}fr`,
     aspectRatio: (page.widthMm + wall.matWidthMm * 2) / (page.heightMm + wall.matWidthMm * 2),
   } as CSSProperties;
-  return <StudioDialogBody className="studio-wall-body">
-        <div className="feature-help-row"><h3 className="export-panel-title">On your wall</h3><FeatureHelp label="Wall preview help">Frames, mats, and walls are for presentation only. They are not added to print exports.</FeatureHelp></div>
-        <div className="studio-wall-scene" style={{ backgroundColor: wall.wallColor }}>
-          <div className={`studio-wall-frame studio-wall-frame-${wall.frame}${wall.shadow ? ' has-shadow' : ''}`} style={style}>
-            {previewUrl ? <img src={previewUrl} alt="Your finished map poster in a frame" style={{ aspectRatio: page.widthMm / page.heightMm }} /> : <p role={error ? 'alert' : 'status'}>{error || 'Preparing poster preview...'}</p>}
-          </div>
-          <div className="studio-wall-console" aria-hidden="true" />
-        </div>
-        {error && previewUrl && <p role="alert" className="studio-composition-error">{error}</p>}
-        {onChange && <div className="studio-wall-controls">
-          <StudioColor label="Wall color" value={wall.wallColor} onChange={(wallColor) => onChange({ ...wall, wallColor })} />
-          <StudioSelect label="Frame finish" value={wall.frame} options={[{ value: 'none', label: 'Unframed' }, { value: 'black', label: 'Black' }, { value: 'white', label: 'White' }, { value: 'oak', label: 'Oak' }, { value: 'walnut', label: 'Walnut' }]} onChange={(frame) => onChange({ ...wall, frame })} />
-          <StudioNumber label="Mat width" value={wall.matWidthMm} max={50} epoch={epoch} onChange={(matWidthMm) => onChange({ ...wall, matWidthMm })} />
-          <StudioColor label="Mat color" value={wall.matColor} onChange={(matColor) => onChange({ ...wall, matColor })} />
-          <StudioToggle label="Cast frame shadow" checked={wall.shadow} onChange={(shadow) => onChange({ ...wall, shadow })} />
-        </div>}
-      </StudioDialogBody>
+  return <div className="studio-wall-scene" style={{ backgroundColor: wall.wallColor }}>
+    <div className={`studio-wall-frame studio-wall-frame-${wall.frame}${wall.shadow ? ' has-shadow' : ''}`} style={style}>
+      {previewUrl
+        ? <img src={previewUrl} alt="Your finished map poster in a frame" style={{ aspectRatio: page.widthMm / page.heightMm }} />
+        : <p className="export-preview-message" role={error ? 'alert' : undefined}>{error || 'Preparing poster preview…'}</p>}
+    </div>
+  </div>;
+});
+
+export const WallSettingsControls = memo(function WallSettingsControls({ wall, epoch, error, onChange }: {
+  wall: WallSettings; epoch: number; error?: string | null; onChange: (value: WallSettings) => ProjectMutationResult;
+}) {
+  return <>
+    <div className="feature-help-row export-panel-heading"><h3 className="export-panel-title">On your wall</h3><FeatureHelp label="Wall preview help">Frames, mats, and walls are for presentation only. They are not added to print exports.</FeatureHelp></div>
+    <div className="studio-wall-controls">
+      <StudioSelect label="Frame finish" value={wall.frame} options={FRAME_FINISHES} onChange={(frame) => onChange({ ...wall, frame })} />
+      <StudioNumber label="Mat width" value={wall.matWidthMm} max={50} epoch={epoch} onChange={(matWidthMm) => onChange({ ...wall, matWidthMm })} />
+      <StudioColor label="Mat color" value={wall.matColor} onChange={(matColor) => onChange({ ...wall, matColor })} />
+      <StudioColor label="Wall color" value={wall.wallColor} onChange={(wallColor) => onChange({ ...wall, wallColor })} />
+      <StudioToggle label="Cast frame shadow" checked={wall.shadow} onChange={(shadow) => onChange({ ...wall, shadow })} />
+    </div>
+    {error && <p role="alert" className="export-error">{error}</p>}
+  </>;
 });

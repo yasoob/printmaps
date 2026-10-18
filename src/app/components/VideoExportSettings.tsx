@@ -2,27 +2,31 @@ import { memo, useId, type ReactNode } from 'react';
 import type { VideoOptions } from '../../video/types';
 import { FeatureHelp } from './FeatureHelp';
 import { useSettingActions } from '../hooks/useSettingActions';
+import { PropertyRow } from './PropertyControls';
 
 type Choice<T extends string | number> = Readonly<{ value: T; label: string }>;
 
 type VideoChoiceProps<T extends string | number> = Readonly<{
   label: string;
+  rowLabel?: string;
   value: T;
   choices: readonly Choice<T>[];
   onChange: (value: T) => void;
   help?: ReactNode;
 }>;
-const VideoChoice = memo(function VideoChoice<T extends string | number>({ label, value, choices, onChange, help }: VideoChoiceProps<T>) {
+const VideoChoice = memo(function VideoChoice<T extends string | number>({ label, rowLabel = label, value, choices, onChange, help }: VideoChoiceProps<T>) {
   const id = useId();
-  return <div className="video-export-choice">
-    <div className="feature-help-row"><label htmlFor={id}>{label}</label>{help ? <FeatureHelp label={`${label} help`}>{help}</FeatureHelp> : null}</div>
-    <select id={id} value={value} onChange={(event) => {
-      const choice = choices.find((item) => String(item.value) === event.target.value);
-      if (choice) onChange(choice.value);
-    }}>
-      {choices.map((choice) => <option key={choice.value} value={choice.value}>{choice.label}</option>)}
-    </select>
-  </div>;
+  return <PropertyRow label={rowLabel}>
+    <div className="export-field-with-help">
+      <select id={id} aria-label={label} value={value} onChange={(event) => {
+        const choice = choices.find((item) => String(item.value) === event.target.value);
+        if (choice) onChange(choice.value);
+      }}>
+        {choices.map((choice) => <option key={choice.value} value={choice.value}>{choice.label}</option>)}
+      </select>
+      {help ? <FeatureHelp label={`${label} help`}>{help}</FeatureHelp> : null}
+    </div>
+  </PropertyRow>;
 }) as <T extends string | number>(props: VideoChoiceProps<T>) => React.JSX.Element;
 
 const MOTIONS: readonly Choice<VideoOptions['motion']>[] = [{ value: 'orbit', label: 'Orbit (one full turn)' }, { value: 'sway', label: 'Sway (gentle back and forth)' }];
@@ -45,8 +49,8 @@ export const VideoExportSettings = memo(function VideoExportSettings({ settings,
     <legend className="sr-only">Video settings</legend>
     <VideoChoice label="Motion" value={settings.motion} choices={MOTIONS} onChange={change.motion} />
     <VideoChoice label="Duration" value={settings.durationSeconds} choices={DURATIONS} onChange={change.durationSeconds} />
-    <VideoChoice label="Target frame rate" value={settings.fps} choices={FRAME_RATES} onChange={change.fps} />
-    <VideoChoice label="Video aspect" value={settings.aspect} choices={ASPECTS} help="The complete poster, photos, decorations, and attribution fit inside the video. Other aspect ratios may have white borders." onChange={change.aspect} />
-    <VideoChoice label="Video quality" value={settings.quality} choices={QUALITIES} onChange={change.quality} />
+    <VideoChoice label="Target frame rate" rowLabel="Frame rate" value={settings.fps} choices={FRAME_RATES} onChange={change.fps} />
+    <VideoChoice label="Video aspect" rowLabel="Aspect ratio" value={settings.aspect} choices={ASPECTS} help="The complete poster, photos, decorations, and attribution fit inside the video. Other aspect ratios may have white borders." onChange={change.aspect} />
+    <VideoChoice label="Video quality" rowLabel="Quality" value={settings.quality} choices={QUALITIES} onChange={change.quality} />
   </fieldset>;
 });

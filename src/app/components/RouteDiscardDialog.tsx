@@ -1,7 +1,5 @@
-import {
-  Dialog,
-  DialogContent,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { StudioDialogActions, StudioDialogButton, StudioDialogHeader } from "@/components/ui/studio-dialog";
 
 export function RouteDiscardDialog({
   onDiscard,
@@ -16,21 +14,20 @@ export function RouteDiscardDialog({
         className="route-discard-dialog"
         overlayClassName="route-discard-backdrop"
         showCloseButton={false}
-        aria-labelledby="route-discard-title"
       >
-        <h2 id="route-discard-title">Discard route changes?</h2>
-        <p>
-          Completed layers will stay unchanged, but unfinished route changes
-          and unadded point inputs will be lost.
-        </p>
-        <div className="route-discard-actions">
-          <button type="button" onClick={onKeepEditing}>
-            Keep editing
-          </button>
-          <button className="primary-button" type="button" onClick={onDiscard}>
-            Discard changes
-          </button>
-        </div>
+        <StudioDialogHeader>
+          <div>
+            <DialogTitle>Discard route changes?</DialogTitle>
+            <DialogDescription>
+              Completed layers will stay unchanged, but unfinished route changes
+              and unadded point inputs will be lost.
+            </DialogDescription>
+          </div>
+        </StudioDialogHeader>
+        <StudioDialogActions stackOnMobile>
+          <StudioDialogButton onClick={onKeepEditing}>Keep editing</StudioDialogButton>
+          <StudioDialogButton variant="primary" onClick={onDiscard}>Discard changes</StudioDialogButton>
+        </StudioDialogActions>
       </DialogContent>
     </Dialog>
   );

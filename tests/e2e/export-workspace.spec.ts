@@ -65,7 +65,7 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
     await expect(dialog.getByLabel('Duration')).toHaveValue('15');
     await dialog.getByRole('tab', { name: 'Print', exact: true }).click();
     await expect(dialog.getByLabel('Basemap rendering', { exact: true })).toHaveValue('vector');
-    await dialog.getByRole('button', { name: 'Preview framed' }).click();
+    await dialog.getByRole('button', { name: 'Preview on wall' }).click();
     await expect(dialog.getByRole('img', { name: /finished map poster/ })).toBeVisible({ timeout: 20_000 });
     await expect(dialog.getByRole('button', { name: 'Back to export' })).toBeFocused();
     await expectSingleFittingDialog(page, dialog);

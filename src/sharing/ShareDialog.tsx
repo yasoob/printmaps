@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '../components/ui/dialog';
-import { StudioDialogActions, StudioDialogBody, StudioDialogButton, StudioDialogHeader, StudioDialogSection } from '../components/ui/studio-dialog';
+import { Copy, Lock, X } from 'lucide-react';
+import { StudioDialogActions, StudioDialogBody, StudioDialogButton, StudioDialogHeader } from '../components/ui/studio-dialog';
+import { PropertyRow } from '../app/components/PropertyControls';
+import { Switch } from '../app/components/UiControls';
 import { createEmbedHtml, createShareUrl } from './urls';
 import { FeatureHelp } from '../app/components/FeatureHelp';
 
@@ -50,33 +53,46 @@ export function ShareDialog({ result, onClose, returnFocusRef }: {
       if (request.current === id) setFeedback({ error: true, text: error instanceof Error ? error.message : 'Copy failed. Select and copy the text manually.' });
     }
   };
+  const changeEmbed = (update: () => void) => { request.current += 1; setFeedback(null); update(); };
   return <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
-    <DialogContent ref={dialogRef} initialFocus={dialogRef} className="share-dialog" finalFocus={returnFocusRef}>
-      <StudioDialogBody>
-        <StudioDialogHeader><div>
+    <DialogContent ref={dialogRef} initialFocus={dialogRef} className="share-dialog" finalFocus={returnFocusRef} showCloseButton={false}>
+      <StudioDialogHeader>
+        <div>
           <div className="feature-help-row"><DialogTitle>Share this map</DialogTitle><FeatureHelp label="Share snapshot help">A read-only snapshot, with no account or upload. Later edits do not change this link.</FeatureHelp></div>
           <DialogDescription>Anyone with the link can view, download and remix.</DialogDescription>
-        </div></StudioDialogHeader>
-        <div className="feature-help-row"><span>Not private. Links cannot be revoked.</span><FeatureHelp label="Share privacy help">Anyone with the link can access all included data and images. Links are not encrypted. Do not share private information.</FeatureHelp></div>
-        {'error' in output ? <p role="alert">{output.error}</p> : <>
-          <StudioDialogSection>
-            <label htmlFor="share-link">Read-only link</label>
-            <textarea id="share-link" readOnly value={output.link} rows={3} onFocus={(event) => event.currentTarget.select()} />
-            <StudioDialogButton variant="secondary" onClick={() => void copy(output.link)}>Copy link</StudioDialogButton>
-          </StudioDialogSection>
-          <StudioDialogSection>
-            <div className="feature-help-row"><h3>Embed this map</h3><FeatureHelp label="Embed preview help">Responsive width, map attribution retained. Preview pan and zoom never changes the shared design.</FeatureHelp></div>
-            <label><input type="checkbox" checked={navigation} onChange={(event) => { request.current += 1; setFeedback(null); setNavigation(event.target.checked); }} /> Allow preview pan and zoom</label>
-            <label htmlFor="embed-height">Embed height (pixels)</label>
-            <input id="embed-height" type="number" min={240} max={2000} value={height} onChange={(event) => { request.current += 1; setFeedback(null); setHeight(event.currentTarget.value); }} />
-            <label htmlFor="embed-code">Embed HTML</label>
-            {'error' in embed ? <p role="alert">{embed.error}</p> : <>
-              <textarea id="embed-code" readOnly value={embed.html} rows={4} onFocus={(event) => event.currentTarget.select()} />
-              <StudioDialogButton variant="secondary" onClick={() => void copy(embed.html)}>Copy embed code</StudioDialogButton>
+        </div>
+        <button className="icon-button close-button" type="button" aria-label="Close share" onClick={onClose}><X size={16} /></button>
+      </StudioDialogHeader>
+      <StudioDialogBody className="share-dialog-body">
+        <div className="share-privacy-note">
+          <Lock size={14} strokeWidth={1.8} aria-hidden="true" />
+          <span>Not private. Links cannot be revoked.</span>
+          <FeatureHelp label="Share privacy help">Anyone with the link can access all included data and images. Links are not encrypted. Do not share private information.</FeatureHelp>
+        </div>
+        {'error' in output ? <p role="alert" className="export-error">{output.error}</p> : <>
+          <section className="share-section">
+            <label className="share-section-title" htmlFor="share-link">Read-only link</label>
+            <div className="share-copy-row">
+              <input id="share-link" readOnly value={output.link} onFocus={(event) => event.currentTarget.select()} />
+              <StudioDialogButton variant="secondary" aria-label="Copy link" onClick={() => void copy(output.link)}><Copy size={14} strokeWidth={1.8} aria-hidden="true" />Copy</StudioDialogButton>
+            </div>
+          </section>
+          <section className="share-section" aria-labelledby="share-embed-title">
+            <div className="feature-help-row"><h3 id="share-embed-title">Embed this map</h3><FeatureHelp label="Embed preview help">Responsive width, map attribution retained. Preview pan and zoom never changes the shared design.</FeatureHelp></div>
+            <Switch className="share-switch" label="Allow preview pan and zoom" isChecked={navigation} onCheckedChange={(checked) => changeEmbed(() => setNavigation(checked))} />
+            <PropertyRow label="Height">
+              <span className="number-field">
+                <input id="embed-height" aria-label="Embed height (pixels)" inputMode="numeric" value={height} onChange={(event) => { const next = event.currentTarget.value; changeEmbed(() => setHeight(next)); }} />
+                <small>px</small>
+              </span>
+            </PropertyRow>
+            {'error' in embed ? <p role="alert" className="export-error">{embed.error}</p> : <>
+              <textarea id="embed-code" aria-label="Embed HTML" className="share-code" readOnly value={embed.html} rows={4} onFocus={(event) => event.currentTarget.select()} />
+              <StudioDialogButton variant="secondary" className="share-copy-embed" onClick={() => void copy(embed.html)}><Copy size={14} strokeWidth={1.8} aria-hidden="true" />Copy embed code</StudioDialogButton>
             </>}
-          </StudioDialogSection>
+          </section>
         </>}
-        {feedback && <p role={feedback.error ? 'alert' : 'status'}>{feedback.text}</p>}
+        {feedback && <p className={feedback.error ? 'export-error' : 'share-feedback'} role={feedback.error ? 'alert' : 'status'}>{feedback.text}</p>}
       </StudioDialogBody>
       <StudioDialogActions><StudioDialogButton onClick={onClose}>Done</StudioDialogButton></StudioDialogActions>
     </DialogContent>

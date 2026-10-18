@@ -1,4 +1,4 @@
-import { Download, TriangleAlert } from 'lucide-react';
+import { Download, TriangleAlert, X } from 'lucide-react';
 import { trackEditorAction } from '../../analytics/editorAnalytics';
 import { useEffect, useId, useRef, useState, type RefObject } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
@@ -50,18 +50,17 @@ export function ProjectReplacementDialog({ title, intent = 'open', onKeepEditing
         showCloseButton={false}
         aria-describedby={hasUnfinishedDrawing ? `${descriptionId} ${unfinishedId}` : descriptionId}
       >
+        <StudioDialogHeader>
+          <div><DialogTitle>{titleText}</DialogTitle></div>
+          <button className="icon-button close-button" type="button" aria-label="Close" onClick={onKeepEditing}><X size={16} /></button>
+        </StudioDialogHeader>
         <StudioDialogBody className="project-replacement-content">
-          <StudioDialogHeader>
-            <div>
-              <DialogTitle>{titleText}</DialogTitle>
-              <DialogDescription id={descriptionId}>
-                {intent === 'new' ? 'Starting a new project' : <>Opening “<strong>{title}</strong>”</>} replaces “<strong>{currentTitle}</strong>” in this browser and clears its Undo history.
-              </DialogDescription>
-            </div>
-          </StudioDialogHeader>
+          <DialogDescription id={descriptionId} className="project-replacement-description">
+            {intent === 'new' ? 'Starting a new project' : <>Opening “<strong>{title}</strong>”</>} replaces “<strong>{currentTitle}</strong>” in this browser and clears its Undo history.
+          </DialogDescription>
           {hasUnfinishedDrawing && (
             <div className="project-replacement-warning">
-              <TriangleAlert size={18} aria-hidden="true" />
+              <TriangleAlert size={16} aria-hidden="true" />
               <div>
                 <h3>Unfinished work will be lost</h3>
                 <p id={unfinishedId}>Unfinished drawings, unadded point inputs and POI lists (including lookup suggestions) will be discarded. They are not saved or included in project downloads.</p>
@@ -74,7 +73,7 @@ export function ProjectReplacementDialog({ title, intent = 'open', onKeepEditing
               <p>Download the current completed project before continuing. This dialog stays open while you save your copy.</p>
             </div>
             <StudioDialogButton variant="secondary" onClick={downloadCurrent}>
-              <Download size={16} aria-hidden="true" />
+              <Download size={14} strokeWidth={1.8} aria-hidden="true" />
               Download current project
             </StudioDialogButton>
             {downloadError && <p ref={downloadErrorRef} className="project-replacement-error" role="alert">{downloadError}</p>}

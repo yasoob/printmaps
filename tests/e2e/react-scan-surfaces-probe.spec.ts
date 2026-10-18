@@ -45,7 +45,7 @@ for (const touch of [false, true]) {
       expectOwners(fit, ['ReliefExportPanel', 'ReliefSettingsControls'], ['MapCanvas', 'StudioCompositionControls', 'StudioPosterPreview', 'StudioVideoControls']);
       expect(fit.mapMutations).toEqual([]);
       await dialog.getByRole('tab', { name: 'Print', exact: true }).click();
-      await dialog.getByRole('button', { name: 'Preview framed', exact: true }).click();
+      await dialog.getByRole('button', { name: 'Preview on wall', exact: true }).click();
       await expect(dialog.locator('.studio-wall-scene img')).toBeVisible();
       await helpProbe(page, info, 'Wall preview help', { owner: 'WallPreviewPanel', isTouch: touch });
       await page.keyboard.press('Escape');

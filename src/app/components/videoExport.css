@@ -1,63 +1,24 @@
 .video-export-dialog {
   display: flex;
   flex-direction: column;
-  width: min(560px, calc(100vw - 24px));
-  max-width: min(560px, calc(100vw - 24px));
-  max-height: calc(100dvh - 24px);
+  width: min(32rem, calc(100vw - 2rem));
+  max-width: none;
+  max-height: calc(100dvh - 2rem);
   overflow: hidden;
   padding: 0;
   gap: 0;
 }
 
-.video-export-dialog .studio-dialog-body {
-  display: grid;
-  gap: 12px;
-}
-
 .video-export-settings {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  border: 0;
-  padding: 0;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
   margin: 0;
-  min-width: 0;
-}
-
-.video-export-choice {
-  display: grid;
-  grid-template-rows: 1fr auto;
-  gap: 6px;
-  min-width: 0;
-}
-
-.video-export-choice select {
-  width: 100%;
-  min-width: 0;
-  min-height: var(--studio-control-height);
-  padding: 0 0.4375rem;
+  padding: 0;
   border: 0;
-  border-right: 6px solid var(--studio-transparent);
-  border-radius: var(--studio-radius-sm);
-  background: var(--studio-field);
-  color: var(--studio-text-strong);
 }
 
+.video-export-output { margin: 0; color: var(--studio-text-secondary); }
 .video-export-status,
-.video-export-output {
-  overflow-wrap: anywhere;
-}
-
-.video-export-dialog progress {
-  width: 100%;
-}
-
-@media (max-width: 420px) {
-  .video-export-settings {
-    grid-template-columns: 1fr;
-  }
-
-  @media (pointer: coarse), (max-width: 899px) {
-    .video-export-choice select { min-height: var(--studio-touch-target); }
-  }
-}
+.video-export-output { overflow-wrap: anywhere; }
+.video-export-dialog progress { width: 100%; }

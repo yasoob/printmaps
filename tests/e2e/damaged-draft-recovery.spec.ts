@@ -184,12 +184,14 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 844, height: 390 }
     await openRecovery(page);
     const dialog = page.getByRole('dialog', { name: 'Local draft unavailable' });
     await page.keyboard.press('Shift+Tab');
+    await expect(page.getByRole('button', { name: 'Discard damaged draft' })).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
     await expect(page.getByRole('button', { name: 'Download recovery data' })).toBeFocused();
     await page.keyboard.press('Shift+Tab');
     const details = page.getByRole('region', { name: 'Local draft recovery details' });
     await expect(details).toBeFocused();
     await page.keyboard.press('Shift+Tab');
-    await expect(page.getByRole('button', { name: 'Discard damaged draft' })).toBeFocused();
+    await expect(page.getByRole('button', { name: 'Continue without autosave' })).toBeFocused();
     await page.keyboard.press('Tab');
     await expect(details).toBeFocused();
     await page.keyboard.press('Tab');
@@ -206,6 +208,7 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 844, height: 390 }
     await trackWrites(page, true);
     await page.getByRole('button', { name: 'Discard damaged draft' }).click();
     await expect(page.getByRole('button', { name: 'Continue without autosave' })).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
     await page.keyboard.press('Shift+Tab');
     await page.keyboard.press('Shift+Tab');
     await expect(details).toBeFocused();
