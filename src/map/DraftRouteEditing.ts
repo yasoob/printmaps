@@ -1,5 +1,6 @@
 import { Marker, type Map as MapLibreMap } from "maplibre-gl";
 import { isValidPosition } from "../domain/routeGeometry";
+import { setControlTooltip } from './mapControlTooltips';
 
 type Position = [number, number];
 
@@ -61,7 +62,7 @@ export function installDraftRouteEditing(
     element.className = "draft-route-point-marker";
     element.dataset.draftPointIndex = String(index);
     element.setAttribute("aria-label", `Move draft route point ${index + 1}`);
-    element.title = `Move draft route point ${index + 1} · Arrow keys nudge`;
+    setControlTooltip(element, `Move draft route point ${index + 1}`, 'Arrow keys');
     const marker = createMarker(element).setLngLat(coordinate).addTo(map);
     const preview = (next: Position) => {
       if (!editing.onMovePreview(index, next)) {

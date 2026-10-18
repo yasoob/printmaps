@@ -2,6 +2,7 @@ import { Marker, type Map as MapLibreMap } from 'maplibre-gl';
 import type { ContentLayer, ShapeGeometry } from '../domain/project';
 import { isValidPosition } from '../domain/routeGeometry';
 import { didPreviewMapGeometry } from './MapGeometryPreview';
+import { setControlTooltip } from './mapControlTooltips';
 
 export type ShapeTransformMarker = {
   addTo: (map: ShapeTransformMap) => ShapeTransformMarker;
@@ -204,7 +205,7 @@ export function installShapeTransformEditing(
     element.className = `shape-transform-marker is-${role}`;
     element.dataset.shapeTransformHandle = role;
     element.setAttribute('aria-label', HANDLE_LABELS[role]);
-    element.title = `${HANDLE_LABELS[role]} · Arrow keys nudge`;
+    setControlTooltip(element, HANDLE_LABELS[role], 'Arrow keys');
     const marker = createMarker(element).setLngLat(originalCoordinate).addTo(map);
     markersByRole.set(role, marker);
     const preview = () => {

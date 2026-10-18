@@ -2,6 +2,7 @@ import { Marker, type Map as MapLibreMap } from 'maplibre-gl';
 import type { ContentLayer, ShapeGeometry } from '../domain/project';
 import { isValidPosition, midpointPosition } from '../domain/routeGeometry';
 import { didPreviewMapGeometry } from './MapGeometryPreview';
+import { setControlTooltip } from './mapControlTooltips';
 
 export type ShapeEditMode = 'points' | 'transform';
 
@@ -149,7 +150,7 @@ function createVertexButton(ringIndex: number, vertexIndex: number) {
   element.dataset.shapeRingIndex = String(ringIndex);
   element.dataset.shapeVertexIndex = String(vertexIndex);
   element.setAttribute('aria-label', `Drag area point ${vertexIndex + 1}`);
-  element.title = `Drag area point ${vertexIndex + 1} · Arrow keys nudge · Delete removes`;
+  setControlTooltip(element, `Drag area point ${vertexIndex + 1}`, 'Arrow keys · Delete');
   return element;
 }
 
@@ -158,7 +159,7 @@ function createMidpointButton(vertexIndex: number, pointCount: number) {
   element.type = 'button';
   element.className = 'shape-midpoint-marker';
   element.setAttribute('aria-label', `Add area point between ${vertexIndex + 1} and ${(vertexIndex + 1) % pointCount + 1}`);
-  element.title = 'Drag or click to add an area point';
+  setControlTooltip(element, 'Drag or click to add an area point');
   return element;
 }
 

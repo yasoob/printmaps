@@ -3,6 +3,7 @@ import type { ContentLayer, LayerGeometry } from '../domain/project';
 import { isValidPosition } from '../domain/routeGeometry';
 import { didPreviewMapGeometry } from './MapGeometryPreview';
 import type { ProjectMutationResult } from '../domain/projectMutation';
+import { setControlTooltip } from './mapControlTooltips';
 
 type PointGeometry = Extract<LayerGeometry, { type: 'Point' }>;
 type PointEditingMap = Pick<MapLibreMap, 'getSource' | 'project' | 'unproject'>;
@@ -61,7 +62,7 @@ export function installPointEditing(
   element.className = 'poi-move-marker';
   element.dataset.poiMoveHandle = layer.id;
   element.setAttribute('aria-label', `Move ${layer.name}`);
-  element.title = `Move ${layer.name} · Arrow keys nudge`;
+  setControlTooltip(element, `Move ${layer.name}`, 'Arrow keys');
   const size = layer.appearance?.kind === 'poi' ? layer.appearance.size : 16;
   element.style.setProperty('--studio-poi-move-size', `${Math.max(28, size + 12)}px`);
   const marker = createMarker(element).setLngLat(original).addTo(map);
@@ -126,7 +127,7 @@ export function installPointEditing(
     original = [...next.geometry.coordinates];
     marker.setLngLat(original);
     element.setAttribute('aria-label', `Move ${next.name}`);
-    element.title = `Move ${next.name} · Arrow keys nudge`;
+    setControlTooltip(element, `Move ${next.name}`, 'Arrow keys');
     const size = next.appearance?.kind === 'poi' ? next.appearance.size : 16;
     element.style.setProperty('--studio-poi-move-size', `${Math.max(28, size + 12)}px`);
     hasPreview = false;

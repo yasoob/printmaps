@@ -27,16 +27,23 @@ export const ControlTooltips = memo(function ControlTooltips({ rootRef }: Readon
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
+    // While a pointer is pressed (dragging a handle or panning), hints never open mid-gesture.
+    let isPointerPressed = false;
     const clear = () => {
       window.clearTimeout(timer.current);
       setActive(null);
     };
+    const handlePointerDown = () => {
+      isPointerPressed = true;
+      clear();
+    };
+    const handlePointerRelease = () => { isPointerPressed = false; };
     const showLater = (element: HTMLElement) => {
       window.clearTimeout(timer.current);
       timer.current = window.setTimeout(() => setActive(describe(element)), OPEN_DELAY_MS);
     };
     const handlePointerOver = (event: PointerEvent) => {
-      if (event.pointerType !== 'mouse') return;
+      if (isPointerPressed || event.pointerType !== 'mouse') return;
       const element = tooltipTarget(event.target, root);
       if (element) showLater(element);
     };
@@ -46,14 +53,16 @@ export const ControlTooltips = memo(function ControlTooltips({ rootRef }: Readon
     };
     const handleFocusIn = (event: FocusEvent) => {
       const element = tooltipTarget(event.target, root);
-      if (element?.matches(':focus-visible')) setActive(describe(element));
+      if (!isPointerPressed && element?.matches(':focus-visible')) setActive(describe(element));
     };
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') clear();
     };
     root.addEventListener('pointerover', handlePointerOver);
     root.addEventListener('pointerout', handlePointerOut);
-    root.addEventListener('pointerdown', clear);
+    root.addEventListener('pointerdown', handlePointerDown);
+    window.addEventListener('pointerup', handlePointerRelease);
+    window.addEventListener('pointercancel', handlePointerRelease);
     root.addEventListener('focusin', handleFocusIn);
     root.addEventListener('focusout', clear);
     root.addEventListener('keydown', handleKeyDown);
@@ -61,7 +70,9 @@ export const ControlTooltips = memo(function ControlTooltips({ rootRef }: Readon
       window.clearTimeout(timer.current);
       root.removeEventListener('pointerover', handlePointerOver);
       root.removeEventListener('pointerout', handlePointerOut);
-      root.removeEventListener('pointerdown', clear);
+      root.removeEventListener('pointerdown', handlePointerDown);
+      window.removeEventListener('pointerup', handlePointerRelease);
+      window.removeEventListener('pointercancel', handlePointerRelease);
       root.removeEventListener('focusin', handleFocusIn);
       root.removeEventListener('focusout', clear);
       root.removeEventListener('keydown', handleKeyDown);

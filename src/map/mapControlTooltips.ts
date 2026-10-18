@@ -13,3 +13,10 @@ export function adoptControlTooltips(root: ParentNode, shortcuts: Readonly<Recor
     if (shortcut) element.dataset.tooltipShortcut = shortcut;
   }
 }
+
+export function setControlTooltip(element: HTMLElement, label: string, shortcut?: string) {
+  element.removeAttribute('title');
+  element.dataset.tooltip = label;
+  if (shortcut) element.dataset.tooltipShortcut = shortcut;
+  else delete element.dataset.tooltipShortcut;
+}

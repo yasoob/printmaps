@@ -17,6 +17,7 @@ import {
   recordRouteVertexPreview,
   type RouteVertexPreviewState,
 } from './RouteVertexPreviewState';
+import { setControlTooltip } from './mapControlTooltips';
 
 export type RouteVertexMarker = {
   addTo: (map: RouteVertexMap) => RouteVertexMarker;
@@ -122,7 +123,7 @@ function addVertexMarkers(options: VertexMarkerOptions) {
     element.dataset.routeVertexIndex = String(vertexIndex);
     const pointLabel = semanticRoutePointLabel(options.layer, vertexIndex);
     element.setAttribute('aria-label', `Drag route ${pointLabel.toLowerCase()}`);
-    element.title = `Drag route ${pointLabel.toLowerCase()} · Arrow keys nudge`;
+    setControlTooltip(element, `Drag route ${pointLabel.toLowerCase()}`, 'Arrow keys');
     const marker = options.createMarker(element).setLngLat(coordinate).addTo(options.map);
     marker.on('drag', () => {
       const { lng, lat } = marker.getLngLat();
@@ -194,7 +195,7 @@ function addArcInsertionMarkers(
     element.className = 'route-midpoint-marker';
     element.dataset.routeSegmentIndex = String(segmentIndex);
     element.setAttribute('aria-label', `Add route vertex between ${segmentIndex + 1} and ${segmentIndex + 2}`);
-    element.title = `Add route vertex between ${segmentIndex + 1} and ${segmentIndex + 2}`;
+    setControlTooltip(element, `Add route vertex between ${segmentIndex + 1} and ${segmentIndex + 2}`);
     element.addEventListener('click', (event) => {
       event.stopPropagation();
       options.onInsert(segmentIndex);
