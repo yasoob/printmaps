@@ -162,7 +162,7 @@ export function MapStyleCustomizeTrigger({
         <strong>{customized ? 'Edit custom palette' : 'Customize colors'}</strong>
       </span>
       {customized ? <em>Custom</em> : null}
-      <ChevronRight aria-hidden="true" size={15} />
+      <ChevronRight aria-hidden="true" size={16} strokeWidth={1.75} />
     </button>
   );
 }

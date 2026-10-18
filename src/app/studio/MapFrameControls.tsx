@@ -1,4 +1,5 @@
 import { memo, useState } from 'react';
+import { ChevronRight } from 'lucide-react';
 import type { AdministrativeArea } from '../../domain/administrativeAreas';
 import type { ProjectMutationResult } from '../../domain/projectMutation';
 import { AdministrativeAreaPicker } from '../components/AdministrativeAreaPicker';
@@ -45,7 +46,7 @@ export const MapFrameControls = memo(function MapFrameControls({ silhouetteName,
     {silhouetteName && <div className="feature-help-row inspector-frame-current"><span>{silhouetteName}</span>
       <FeatureHelp label="Map frame help">Rectangle hides the current outline without deleting it. Undo restores the previous frame.</FeatureHelp>
     </div>}
-    {cameraLocked && <Notice tone="info" className="studio-composition-notice">Unlock the map area in Map › View to fit a boundary.</Notice>}
+    {cameraLocked && <Notice tone="info" className="studio-composition-notice">Unlock the map area in <span className="inline-breadcrumb">Map<ChevronRight aria-hidden="true" size={16} strokeWidth={1.75} /><span className="sr-only">, </span>View</span> to fit a boundary.</Notice>}
     {isFitting && <p role="status" className="property-note">Fitting boundary…</p>}
     {error && <Notice tone="error" className="studio-composition-notice">{error}</Notice>}
     {pickerOpen && !isFitting && <AdministrativeAreaPicker onAdd={(area) => void createSilhouette(area)} onCancel={() => setPickerOpen(false)} />}
