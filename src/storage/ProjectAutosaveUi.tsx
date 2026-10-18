@@ -1,3 +1,5 @@
+import { ChevronDown, CloudOff, TriangleAlert } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { memo, type RefObject } from 'react';
 import { AutosaveCorruptionDialog } from './AutosaveCorruptionDialog';
 import type { ProjectAutosaveState } from './useProjectAutosave';
@@ -54,16 +56,24 @@ export function ProjectAutosaveOfflineNotice() {
   if (autosave?.statusKind === 'conflict') {
     return (
       <details className="offline-autosave-notice conflict-autosave-notice" open>
-        <summary><span role="status" aria-label="Autosave conflict notice">Autosave paused: another tab saved changes</span></summary>
+        <summary>
+          <TriangleAlert className="offline-autosave-notice-icon" aria-hidden="true" size={16} strokeWidth={1.75} />
+          <span role="status" aria-label="Autosave conflict notice">Autosave paused: another tab saved changes</span>
+          <ChevronDown className="offline-autosave-notice-chevron" aria-hidden="true" size={16} strokeWidth={1.75} />
+        </summary>
         <p>This tab’s version is not saved locally. Download it before replacing or closing this tab.</p>
-        <button type="button" onClick={autosave.reviewConflict}>Review autosave conflict</button>
+        <Button variant="secondary" size="sm" className="conflict-autosave-review" onClick={autosave.reviewConflict}>Review autosave conflict</Button>
       </details>
     );
   }
   if (autosave?.statusKind !== 'disabled') return null;
   return (
     <details className="offline-autosave-notice">
-      <summary><span role="status" aria-label="Offline autosave notice">Autosave off: download to keep new work</span></summary>
+      <summary>
+        <CloudOff className="offline-autosave-notice-icon" aria-hidden="true" size={16} strokeWidth={1.75} />
+        <span role="status" aria-label="Offline autosave notice">Autosave off: download to keep new work</span>
+        <ChevronDown className="offline-autosave-notice-chevron" aria-hidden="true" size={16} strokeWidth={1.75} />
+      </summary>
       <p>{autosave.status}</p>
     </details>
   );

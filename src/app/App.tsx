@@ -37,6 +37,7 @@ import { trackEditorAction } from "../analytics/editorAnalytics";
 import { useRemixRequest } from "../sharing/useRemixRequest";
 import { createTemplateProject } from "./studio/templateProjects";
 import type { TemplateGalleryProps } from "./studio/TemplateGallery";
+import { usePendingDraftState } from './hooks/usePendingDraftState';
 
 type AppProps = {
   autosaveRepository?: AutosaveRepository | null;
@@ -205,6 +206,7 @@ function useStudioAppModel(props: StudioAppProps) {
     documentEpoch: 0,
     active: false,
   });
+  const pendingDraft = usePendingDraftState(documentEpoch);
   const routeExtension = useRouteExtensionRequest();
   const onExporterChange = usePublishMapExporter();
   const mapLocation = useMapLocationCommand(documentEpoch);
@@ -285,7 +287,8 @@ function useStudioAppModel(props: StudioAppProps) {
   return {
     assets, isAutosaveCorrupted, beginRouteExtend: routeExtension.begin, clearSelection, deleteSelectedLayer, directionsProvider,
     directionsRouteEditing: directions.editing, documentEpoch,
-    exportButtonRef, handleAuthoringChange, handleDeleteKeyDown, handleOpenedDocument: projectOpening.open,
+    exportButtonRef, handleAuthoringChange, handleDeleteKeyDown,
+    handlePendingDraftChange: pendingDraft.handlePendingDraftChange, hasPendingDraft: isAuthoring && pendingDraft.hasPendingDraft, handleOpenedDocument: projectOpening.open,
     importButtonRef, isAuthoring, layers, mapDataImport, onExporterChange,
     mapLayers: directions.mapLayers, mapLocation, mapMatchingProvider,
     mobile, modal, openButtonRef, openExport, page, pageBoundaryVisible, project, projectOpening,

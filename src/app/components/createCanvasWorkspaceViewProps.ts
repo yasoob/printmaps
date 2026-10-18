@@ -125,6 +125,8 @@ export function createCanvasWorkspaceViewProps(
     activeTool: inputs.activeTool,
     chromeProps: createChromeProps(inputs),
     isRouteDiscardOpen: inputs.route.isDiscardOpen,
+    // Phones dock the scale as a compact tile above the zoom stack.
+    scaleMaxWidthPx: inputs.props.isMobileViewport ? 32 : 96,
     layersTriggerRef: inputs.props.layersTriggerRef,
     mapProps: createMapProps(inputs),
     onDiscardRoute: () => {

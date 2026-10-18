@@ -121,7 +121,7 @@ test('expert arc route authoring is undoable and exports a travel-mode marker', 
   test.skip(await mapFallback.isVisible(), 'This browser fixture has no WebGL 2 renderer, so map authoring cannot be exercised.');
 
   await page.getByRole('button', { name: 'Route (R)' }).click();
-  await expect(page.getByRole('button', { name: 'Export' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Export' })).toBeEnabled();
   await page.getByRole('radio', { name: 'Arc', exact: true }).click();
   await page.getByRole('combobox', { name: 'Travel marker' }).selectOption('air');
   await expect(page.getByRole('status', { name: 'Route drawing status' })).toContainText('Click the map to add route points');

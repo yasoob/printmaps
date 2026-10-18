@@ -115,6 +115,8 @@ export type CanvasWorkspaceProps = {
   onCreateShape: (coordinates: readonly (readonly [number, number])[]) => ProjectMutationResult;
   onAuthoringChange: (documentEpoch: number, isActive: boolean) => void;
   onUnfinishedDrawingChange?: ProjectState["setHasUnfinishedDrawing"];
+  // Reports whether the active tool holds work that would differ from committed export content.
+  onPendingDraftChange?: (documentEpoch: number, hasPendingDraft: boolean) => void;
   onBackgroundClick: () => void;
   onExporterChange: (exporter: PreviewPngExporter | null) => void;
   openPanel: (panel: MobilePanel) => void;

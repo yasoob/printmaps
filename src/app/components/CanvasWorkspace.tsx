@@ -150,6 +150,22 @@ function useCanvasGeometryLayers(
   );
 }
 
+function hasDraftOverlay(geometryLayers: readonly ContentLayer[], layers: readonly ContentLayer[]) {
+  const committed = new Set(layers.filter((layer) => layer.geometry));
+  return geometryLayers.length !== committed.size
+    || geometryLayers.some((layer) => !committed.has(layer));
+}
+
+function usePendingDraftReport(
+  documentEpoch: number,
+  hasPendingDraft: boolean,
+  onPendingDraftChange: CanvasWorkspaceProps["onPendingDraftChange"],
+) {
+  useEffect(() => {
+    onPendingDraftChange?.(documentEpoch, hasPendingDraft);
+  }, [documentEpoch, hasPendingDraft, onPendingDraftChange]);
+}
+
 export function CanvasWorkspace(props: CanvasWorkspaceProps) {
   const [storedActiveTool, setStoredActiveTool] = useState("select");
   const [toolDocumentEpoch, setToolDocumentEpoch] = useState(props.documentEpoch);
@@ -183,6 +199,10 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
     route,
     shape,
   );
+  usePendingDraftReport(documentEpoch, activeTool !== "select" && (
+    [route, shape, poiAuthoring].some((model) => model.hasUnfinishedWork)
+    || hasDraftOverlay(geometryLayers, layers)
+  ), props.onPendingDraftChange);
   const activateTool = useCanvasToolActivation({
     activeTool,
     documentEpoch,

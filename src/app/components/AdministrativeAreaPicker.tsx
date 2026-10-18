@@ -7,9 +7,11 @@ import type { GeneratedAdministrativeCountry, GeneratedAdministrativeShard } fro
 import { useCountryBoundaryCatalogue } from '../hooks/useCountryBoundaryCatalogue';
 import { ShadcnSingleCombobox } from './ShadcnCombobox';
 import { trackEditorAction } from '../../analytics/editorAnalytics';
+import { PropertyRow } from './PropertyControls';
 import { ToolCardActions } from './ToolAuthoringCard';
 
 type AdministrativeAreaPickerProps = Readonly<{
+  id?: string;
   onAdd: (area: AdministrativeArea) => void;
   onCancel: () => void;
 }>;
@@ -27,8 +29,7 @@ function BoundaryChooser({ onAdd, onCancel, shard }: Readonly<{
   const boundaries = [shard.country, ...shard.regions];
   return (
     <>
-      <div className="administrative-combobox-field">
-        <label htmlFor="administrative-boundary">Boundary</label>
+      <PropertyRow label="Boundary">
         <ShadcnSingleCombobox
           description={boundaryDescription}
           emptyLabel="No matching regions."
@@ -45,7 +46,7 @@ function BoundaryChooser({ onAdd, onCancel, shard }: Readonly<{
             setSelectedArea(area);
           }}
         />
-      </div>
+      </PropertyRow>
       <ToolCardActions>
         <Button variant="ghost" aria-label="Cancel area" onClick={onCancel}>Cancel</Button>
         <Button variant="primary" disabled={!selectedArea} onClick={() => {
@@ -58,7 +59,7 @@ function BoundaryChooser({ onAdd, onCancel, shard }: Readonly<{
   );
 }
 
-export function AdministrativeAreaPicker({ onAdd, onCancel }: AdministrativeAreaPickerProps) {
+export function AdministrativeAreaPicker({ id, onAdd, onCancel }: AdministrativeAreaPickerProps) {
   const catalogue = useCountryBoundaryCatalogue();
   const countries = catalogue.state.catalogue?.countries ?? [];
   const chooseCountry = (country: GeneratedAdministrativeCountry | null) => {
@@ -70,9 +71,8 @@ export function AdministrativeAreaPicker({ onAdd, onCancel }: AdministrativeArea
     || (catalogue.state.isLoading ? `Loading ${catalogue.state.country?.name ?? 'countries'}…` : '');
 
   return (
-    <div className="administrative-boundary-picker">
-      <div className="administrative-combobox-field">
-        <label htmlFor="administrative-country">Country</label>
+    <div id={id} className="administrative-boundary-picker">
+      <PropertyRow label="Country">
         <ShadcnSingleCombobox
           description={() => 'Country'}
           disabled={!catalogue.state.catalogue}
@@ -87,7 +87,7 @@ export function AdministrativeAreaPicker({ onAdd, onCancel }: AdministrativeArea
           value={catalogue.state.country}
           onValueChange={chooseCountry}
         />
-      </div>
+      </PropertyRow>
       {catalogue.state.error
         ? <Notice tone="error" role="status" aria-label="Administrative catalogue status">{catalogue.state.error}</Notice>
         : (
@@ -100,8 +100,7 @@ export function AdministrativeAreaPicker({ onAdd, onCancel }: AdministrativeArea
         ? <BoundaryChooser key={catalogue.state.shard.country.id} onAdd={onAdd} onCancel={cancel} shard={catalogue.state.shard} />
         : (
           <>
-            <div className="administrative-combobox-field">
-              <label htmlFor="administrative-boundary">Boundary</label>
+            <PropertyRow label="Boundary">
               <ShadcnSingleCombobox
                 description={() => ''}
                 disabled
@@ -116,7 +115,7 @@ export function AdministrativeAreaPicker({ onAdd, onCancel }: AdministrativeArea
                 value={null}
                 onValueChange={() => {}}
               />
-            </div>
+            </PropertyRow>
             <ToolCardActions>
               <Button variant="ghost" aria-label="Cancel area" onClick={cancel}>Cancel</Button>
               <Button variant="primary" disabled>Add area</Button>

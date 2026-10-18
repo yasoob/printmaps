@@ -126,7 +126,8 @@ describe('browser geolocation control', () => {
     act(() => geolocation.succeed(16.3725, 48.2084));
 
     expect(onLocate).not.toHaveBeenCalled();
-    expect(screen.getByRole('alert')).toHaveTextContent('Unlock the map area');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Use my location' })).toHaveAccessibleDescription('Unlock the map area to use your location.');
   });
 
   it('ignores a pending location after the project document changes', async () => {
