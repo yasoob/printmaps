@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
 import { expandToolSettings } from './authoring-panel-support';
+import { chooseOption } from './select-support';
 
 const isExpectedWebGlDiagnostic = (message: string, browserName: string) => (
   message.includes('GPU stall due to ReadPixels')
@@ -123,7 +124,7 @@ test('expert arc route authoring is undoable and exports a travel-mode marker', 
   await page.getByRole('button', { name: 'Route (R)' }).click();
   await expect(page.getByRole('button', { name: 'Export' })).toBeEnabled();
   await page.getByRole('radio', { name: 'Arc', exact: true }).click();
-  await page.getByRole('combobox', { name: 'Travel marker' }).selectOption('air');
+  await chooseOption(page, 'Travel marker', 'Air');
   await expect(page.getByRole('status', { name: 'Route drawing status' })).toContainText('Click the map to add route points');
   const canvas = page.locator('.maplibregl-canvas');
   const canvasBox = await canvas.boundingBox();
@@ -266,7 +267,7 @@ test('a pitch-zero Arc visibly curves and supports accessible one-step edits', a
 
   await page.getByRole('button', { name: 'Route (R)' }).click();
   await page.getByRole('radio', { name: 'Arc', exact: true }).click();
-  await page.getByRole('combobox', { name: 'Travel marker' }).selectOption('air');
+  await chooseOption(page, 'Travel marker', 'Air');
   const canvas = page.locator('.maplibregl-canvas');
   const canvasBox = await canvas.boundingBox();
   const frameBox = await page.locator('.print-frame').boundingBox();

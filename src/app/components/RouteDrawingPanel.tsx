@@ -7,10 +7,6 @@ import {
   Undo2,
 } from "lucide-react";
 import {
-  ROAD_TRAVEL_MODES,
-  ROAD_TRAVEL_MODE_LABELS,
-  ROUTE_TRAVEL_MARKERS,
-  ROUTE_TRAVEL_MARKER_LABELS,
   type RoadTravelMode,
   type RouteLineShape,
   type RouteTravelMarker,
@@ -18,6 +14,8 @@ import {
 import type { ContentLayer } from "../../domain/project";
 import { SegmentedControl, type SegmentedControlOption } from "@/components/ui/segmented-control";
 import { Button } from "@/components/ui/button";
+import { SimpleSelect } from "@/components/ui/select";
+import { ROAD_TRAVEL_MODE_OPTIONS, TRAVEL_MARKER_OPTIONS } from "./routeSelectOptions";
 import { Notice } from "@/components/ui/notice";
 import { ToolSettingsButton } from "./ToolSettingsButton";
 import { useAuthoringPanelDisclosure } from "../hooks/useAuthoringPanelDisclosure";
@@ -87,42 +85,23 @@ function RouteTravelControls(props: RouteDrawingPanelProps) {
     <>
       {props.lineShape === "road" && (
         <PropertyRow label="Travel mode">
-          <select
-            aria-label="Road travel mode"
+          <SimpleSelect
+            label="Road travel mode"
             disabled={props.isRouting}
             value={props.roadTravelMode}
-            onChange={(event) =>
-              props.onRoadTravelModeChange(event.target.value as RoadTravelMode)
-            }
-          >
-            {ROAD_TRAVEL_MODES.map((mode) => (
-              <option key={mode} value={mode}>
-                {ROAD_TRAVEL_MODE_LABELS[mode]}
-              </option>
-            ))}
-          </select>
+            options={ROAD_TRAVEL_MODE_OPTIONS}
+            onValueChange={props.onRoadTravelModeChange}
+          />
         </PropertyRow>
       )}
       <PropertyRow label="Travel marker">
-        <select
-          aria-label="Travel marker"
+        <SimpleSelect
+          label="Travel marker"
           disabled={props.isRouting}
           value={props.travelMarker ?? "none"}
-          onChange={(event) =>
-            props.onTravelMarkerChange(
-              event.target.value === "none"
-                ? null
-                : (event.target.value as RouteTravelMarker),
-            )
-          }
-        >
-          <option value="none">None</option>
-          {ROUTE_TRAVEL_MARKERS.map((marker) => (
-            <option key={marker} value={marker}>
-              {ROUTE_TRAVEL_MARKER_LABELS[marker]}
-            </option>
-          ))}
-        </select>
+          options={TRAVEL_MARKER_OPTIONS}
+          onValueChange={(marker) => props.onTravelMarkerChange(marker === "none" ? null : marker)}
+        />
       </PropertyRow>
     </>
   );

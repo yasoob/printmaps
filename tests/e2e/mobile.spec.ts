@@ -1,5 +1,6 @@
 import { expect, type Locator, type Page, test } from '@playwright/test';
 import { expandToolSettings } from './authoring-panel-support';
+import { expectSelectValue } from './select-support';
 
 const setSafeAreaInsets = async (page: Page) => {
   await page.evaluate(() => {
@@ -311,7 +312,7 @@ test('mobile map palette keeps one navigation mode and exposes Fit page directly
   await expect(routePath.getByRole('radio', { name: 'Straight' })).toContainText('Straight');
   await expect(routePath.getByRole('radio', { name: 'Arc' })).toContainText('Arc');
   await expect(routePath.getByRole('radio', { name: 'Road' })).toContainText('Road');
-  await expect(page.getByRole('combobox', { name: 'Travel marker' })).toHaveValue('none');
+  await expectSelectValue(page, 'Travel marker', 'none');
   await expect(page.getByRole('status', { name: 'Route drawing status' })).toHaveText('Click the map to add route points');
   const panelBox = await panel.boundingBox();
   expect(panelBox).not.toBeNull();

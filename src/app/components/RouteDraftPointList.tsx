@@ -1,6 +1,7 @@
 import { ChevronDown, ChevronUp, Crosshair, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { RouteDrawingPanelProps } from "./RouteDrawingPanel";
+import { IconTooltip } from "./IconTooltip";
 
 type DraftPointListProps = Pick<
   RouteDrawingPanelProps,
@@ -39,48 +40,56 @@ export function RouteDraftPointList(props: DraftPointListProps) {
               <span>Point {index + 1}: {longitude}, {latitude}</span>
             </span>
             <span className="route-point-actions">
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label={`Focus draft point ${index + 1} on map`}
-                data-draft-focus-index={index}
-                onClick={() => props.onFocusPoint(index)}
-              >
-                <Crosshair aria-hidden="true" size={16} strokeWidth={1.75} />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label={`Move draft point ${index + 1} up`}
-                disabled={index === 0 || props.isRouting}
-                onClick={() => props.onMovePointUp(index)}
-              >
-                <ChevronUp aria-hidden="true" size={16} strokeWidth={1.75} />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label={`Move draft point ${index + 1} down`}
-                disabled={index === props.points.length - 1 || props.isRouting}
-                onClick={() => props.onMovePointDown(index)}
-              >
-                <ChevronDown aria-hidden="true" size={16} strokeWidth={1.75} />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label={`Remove draft point ${index + 1}`}
-                disabled={
-                  props.points.length <= props.minimumPointCount
-                  || props.isRouting
-                }
-                onClick={() => {
-                  props.onRemovePoint(index);
-                  focusAfterRemoval(index, props.points.length - 1);
-                }}
-              >
-                <Trash2 aria-hidden="true" size={16} strokeWidth={1.75} />
-              </Button>
+              <IconTooltip label="Show on map">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={`Focus draft point ${index + 1} on map`}
+                  data-draft-focus-index={index}
+                  onClick={() => props.onFocusPoint(index)}
+                >
+                  <Crosshair aria-hidden="true" size={16} strokeWidth={1.75} />
+                </Button>
+              </IconTooltip>
+              <IconTooltip label="Move up">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={`Move draft point ${index + 1} up`}
+                  disabled={index === 0 || props.isRouting}
+                  onClick={() => props.onMovePointUp(index)}
+                >
+                  <ChevronUp aria-hidden="true" size={16} strokeWidth={1.75} />
+                </Button>
+              </IconTooltip>
+              <IconTooltip label="Move down">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={`Move draft point ${index + 1} down`}
+                  disabled={index === props.points.length - 1 || props.isRouting}
+                  onClick={() => props.onMovePointDown(index)}
+                >
+                  <ChevronDown aria-hidden="true" size={16} strokeWidth={1.75} />
+                </Button>
+              </IconTooltip>
+              <IconTooltip label="Remove point">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={`Remove draft point ${index + 1}`}
+                  disabled={
+                    props.points.length <= props.minimumPointCount
+                    || props.isRouting
+                  }
+                  onClick={() => {
+                    props.onRemovePoint(index);
+                    focusAfterRemoval(index, props.points.length - 1);
+                  }}
+                >
+                  <Trash2 aria-hidden="true" size={16} strokeWidth={1.75} />
+                </Button>
+              </IconTooltip>
             </span>
           </li>
         ))}

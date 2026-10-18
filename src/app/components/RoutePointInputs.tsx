@@ -1,9 +1,11 @@
-import { useId } from "react";
+import { useId, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import type { ContentLayer } from "../../domain/project";
 import type { RoutePointInput } from "../hooks/useRoutePointInput";
 import { PropertyRow } from "./PropertyControls";
 import { Switch } from "./UiControls";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
+import { SimpleSelect, type SimpleSelectOption } from "@/components/ui/select";
 
 type RoutePointInputsProps = Readonly<{
   disabled: boolean;
@@ -13,6 +15,13 @@ type RoutePointInputsProps = Readonly<{
   pois: readonly ContentLayer[];
   snapEnabled: boolean;
 }>;
+
+function existingPlaceOptions(pois: readonly ContentLayer[]): SimpleSelectOption<string>[] {
+  const places = pois.flatMap((poi) => poi.geometry?.type === "Point"
+    ? [{ value: poi.id, label: `${poi.name} (${poi.geometry.coordinates[0]}, ${poi.geometry.coordinates[1]})` }]
+    : []);
+  return [{ value: "", label: places.length === 0 ? "No places available" : "Choose a place", disabled: true }, ...places];
+}
 
 export function RoutePointInputs({
   disabled,
@@ -24,6 +33,7 @@ export function RoutePointInputs({
 }: RoutePointInputsProps) {
   const id = useId();
   const selectedPoi = pois.find((layer) => layer.id === pointInput.poiId);
+  const placeOptions = useMemo(() => existingPlaceOptions(pois), [pois]);
 
   return (
     <div className="route-point-inputs">
@@ -40,8 +50,8 @@ export function RoutePointInputs({
           return (
             <PropertyRow key={label} label={label}>
               <div className="coordinate-field">
-                <label className="number-field">
-                  <input
+                <InputGroup>
+                  <InputGroupInput
                     aria-label={`New route point ${label.toLowerCase()}`}
                     aria-invalid={Boolean(error) || undefined}
                     aria-describedby={error ? errorId : undefined}
@@ -51,8 +61,8 @@ export function RoutePointInputs({
                     onChange={(event) => pointInput.onChange(axis, event.currentTarget.value)}
                     onKeyDown={(event) => { if (event.key === "Enter") event.preventDefault(); }}
                   />
-                  <small>°</small>
-                </label>
+                  <InputGroupAddon align="inline-end">°</InputGroupAddon>
+                </InputGroup>
                 {error && <small id={errorId} className="coordinate-validation">{error}</small>}
               </div>
             </PropertyRow>
@@ -68,25 +78,13 @@ export function RoutePointInputs({
       </form>
       <div className="route-poi-entry">
         <PropertyRow label="Existing place">
-          <select
-            aria-label="Existing place for route point"
+          <SimpleSelect
+            label="Existing place for route point"
             disabled={disabled || pois.length === 0}
             value={pointInput.poiId}
-            onChange={(event) => pointInput.onPoiChange(event.target.value)}
-          >
-            <option value="">
-              {pois.length === 0 ? "No places available" : "Choose a place"}
-            </option>
-            {pois.map((poi) => {
-              if (poi.geometry?.type !== "Point") return null;
-              return (
-                <option key={poi.id} value={poi.id}>
-                  {poi.name} ({poi.geometry.coordinates[0]},{" "}
-                  {poi.geometry.coordinates[1]})
-                </option>
-              );
-            })}
-          </select>
+            options={placeOptions}
+            onValueChange={pointInput.onPoiChange}
+          />
         </PropertyRow>
         <Button
           variant="secondary"

@@ -1,6 +1,8 @@
 import { Pencil } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import type { ProjectMutationResult } from '../../domain/projectMutation';
+import { IconTooltip } from './IconTooltip';
 
 type ProjectTitleEditorProps = {
   buttonRef?: RefObject<HTMLButtonElement | null>;
@@ -36,9 +38,9 @@ export function ProjectTitleEditor({ buttonRef, onChange, title }: ProjectTitleE
   if (editing) {
     return (
       <span className="project-title-edit">
-      <input
+      <Input
         ref={inputRef}
-        className="project-title-input"
+        className="w-[min(14rem,28vw)] max-w-full border-studio-accent px-2 font-semibold text-ink-strong hover:border-studio-accent"
         aria-label="Project title"
         aria-invalid={!!error}
         maxLength={120}
@@ -56,8 +58,10 @@ export function ProjectTitleEditor({ buttonRef, onChange, title }: ProjectTitleE
   }
 
   return (
-    <button ref={buttonRef} className="project-title" type="button" title="Rename project" onClick={() => { setDraft(title); setEditing(true); }}>
-      <span>{title}</span><Pencil className="project-title-pencil" aria-hidden="true" size={13} strokeWidth={1.8} />
-    </button>
+    <IconTooltip label="Rename project">
+      <button ref={buttonRef} className="project-title" type="button" onClick={() => { setDraft(title); setEditing(true); }}>
+        <span>{title}</span><Pencil className="project-title-pencil" aria-hidden="true" size={13} strokeWidth={1.8} />
+      </button>
+    </IconTooltip>
   );
 }

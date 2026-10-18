@@ -16,7 +16,7 @@ function TooltipTrigger({ ...props }: TooltipPrimitive.Trigger.Props) {
 
 type TooltipPositionerProps = Pick<
   TooltipPrimitive.Positioner.Props,
-  "align" | "alignOffset" | "side" | "sideOffset" | "collisionBoundary" | "collisionPadding" | "positionMethod"
+  "align" | "alignOffset" | "side" | "sideOffset" | "collisionBoundary" | "collisionPadding" | "positionMethod" | "anchor"
 >
 
 function TooltipContent({
@@ -28,6 +28,7 @@ function TooltipContent({
   collisionBoundary,
   collisionPadding,
   positionMethod,
+  anchor,
   container,
   positionerClassName,
   showArrow = true,
@@ -52,6 +53,7 @@ function TooltipContent({
         collisionBoundary={collisionBoundary}
         collisionPadding={collisionPadding}
         positionMethod={positionMethod}
+        anchor={anchor}
         className={cn("isolate z-50", positionerClassName)}
       >
         <TooltipPrimitive.Popup
