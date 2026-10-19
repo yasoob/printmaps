@@ -22,16 +22,12 @@ const sections: readonly PageSection[] = [
     caption: 'Every layout also turns on the coordinates line and uses 10 mm margins on all four sides.',
   },
   {
-    kind: 'gallery',
+    kind: 'prose',
     title: 'Pick a design, or start with a place',
     paragraphs: [
       'There are two ways in. New from template in the project menu starts a fresh project from a design, optionally placed in one of four starter cities. Change layout in the Layout tab restyles the project you already have.',
     ],
-    images: [
-      { ...media['templates.gallery'], title: 'New from template', caption: 'Five designs, plus four starter cities that each open with a matching layout.' },
-      { ...media['templates.examples'], title: 'The same map in different layouts', caption: 'Switching layout changes paper, type and map style and leaves the map where it is.' },
-    ],
-    columns: 2,
+    image: { ...media['templates.gallery'], title: 'New from template', caption: 'Five designs, plus four starter cities that each open with a matching layout.' },
   },
   {
     kind: 'definitions',
@@ -121,7 +117,7 @@ const faq = [
   eyebrow="Map poster templates"
   heading="Map poster templates that set the type, paper and colours for you."
   lead="Five layouts, each with paper colour, title type and map style chosen to work together, plus four starter cities to learn from. Start a new poster from one, or switch the poster you already have and keep your map exactly where it is."
-  heroImage={media['templates.gallery']}
+  heroImage={media['templates.examples']}
   primaryCta="Try a template"
   facts={['5 layout presets', '4 starter cities', 'Switch without losing your map', 'Free, no account']}
   sections={sections}

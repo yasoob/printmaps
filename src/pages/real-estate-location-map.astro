@@ -13,8 +13,8 @@ const sections: readonly PageSection[] = [
     ],
     image: {
       ...media['realestate.places'],
-      title: 'Nearby places styled as one group.',
-      caption: 'Marker shape, symbol, colour, size and label are set per place or for a whole pasted list.',
+      title: 'Add nearby places from a list.',
+      caption: 'Paste a list of addresses. Check each match, then add them to the map in one go.',
     },
     imagePosition: 'beside',
   },
@@ -64,9 +64,9 @@ const sections: readonly PageSection[] = [
         title: 'Directions and export',
         body: 'A location QR code in the bottom-right corner that opens the property in Google Maps. PDF goes to the printer and a PNG of the same page goes on the website.',
         image: {
-          ...media['realestate.flyer'],
-          title: 'The finished A4 listing map.',
-          caption: 'Property, nearby places, a 15 minute walking area, compass, scale bar and QR code, with the map credit in the margin.',
+          ...media['qr.poster-detail'],
+          title: 'The QR code in the corner of the flyer.',
+          caption: 'It opens the property in Google Maps, next to the scale bar and the map credit.',
         },
       },
     ],
