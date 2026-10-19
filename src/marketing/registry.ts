@@ -39,16 +39,20 @@ function slugFromPath(path: string): string {
   return path.replace(/^.*\//, '').replace(/\.ts$/, '');
 }
 
-export const marketingPages: readonly MarketingPageEntry[] = Object.entries(modules)
-  .map(([path, module]) => {
+function loadPages(): MarketingPageEntry[] {
+  const entries = Object.entries(modules).map(([path, module]) => {
     const entry = module.page;
     if (!entry) throw new Error(`${path} must export a \`page\` MarketingPageEntry.`);
     if (entry.slug !== slugFromPath(path)) {
       throw new Error(`${path} declares slug "${entry.slug}"; the slug must match the file name.`);
     }
     return entry;
-  })
-  .toSorted((a, b) => groupIndex(a.group) - groupIndex(b.group) || a.order - b.order || a.slug.localeCompare(b.slug));
+  });
+  entries.sort((a, b) => groupIndex(a.group) - groupIndex(b.group) || a.order - b.order || a.slug.localeCompare(b.slug));
+  return entries;
+}
+
+export const marketingPages: readonly MarketingPageEntry[] = loadPages();
 
 function groupIndex(group: MarketingPageGroup): number {
   return GROUPS.findIndex((candidate) => candidate.id === group);

@@ -31,10 +31,11 @@ describe('marketing page registry', () => {
   it('loads every metadata file in src/marketing/pages', () => {
     const files = readdirSync(path.join(root, 'src/marketing/pages'))
       .filter((file) => file.endsWith('.ts') && file !== 'types.ts')
-      .map((file) => file.replace(/\.ts$/, ''))
-      .toSorted(byText);
+      .map((file) => file.replace(/\.ts$/, ''));
+    files.sort(byText);
     const slugs = marketingPages.map((entry) => entry.slug);
-    expect(slugs.toSorted(byText)).toEqual(files);
+    slugs.sort(byText);
+    expect(slugs).toEqual(files);
   });
 
   it('has an Astro route for every entry', () => {
