@@ -10,22 +10,35 @@ type Props = {
 };
 
 const { id, section } = Astro.props;
+const numbered = section.numbered ?? true;
 ---
 
 <div class="mx-auto max-w-4xl">
   <SectionIntro id={id} title={section.title} paragraphs={section.paragraphs} />
-  <ol class="mt-10 list-none space-y-10 p-0" aria-labelledby={`${id}-title`}>
-    {section.steps.map((step, index) => (
-      <li class="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-4 sm:grid-cols-[3rem_minmax(0,1fr)] sm:gap-x-6">
-        <span class="grid size-10 place-items-center rounded-full bg-[#0071e3] text-base font-semibold text-white sm:size-12 sm:text-lg" aria-hidden="true">{index + 1}</span>
-        <div class="min-w-0 pt-1.5 sm:pt-2.5">
-          <h3 class="text-lg font-semibold tracking-[-0.02em] sm:text-xl">
-            <span class="sr-only">Step {index + 1}: </span>{step.title}
-          </h3>
-          <p class="mt-2 text-base leading-7 text-[#515154]"><InlineText text={step.body} /></p>
-          {step.image && <SectionFigure class="mt-5" image={step.image} />}
-        </div>
-      </li>
-    ))}
-  </ol>
+  {numbered ? (
+    <ol class="mt-10 list-none space-y-10 p-0" aria-labelledby={`${id}-title`}>
+      {section.steps.map((step, index) => (
+        <li class="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-4 sm:grid-cols-[3rem_minmax(0,1fr)] sm:gap-x-6">
+          <span class="grid size-10 place-items-center rounded-full bg-[#0071e3] text-base font-semibold text-white sm:size-12 sm:text-lg" aria-hidden="true">{index + 1}</span>
+          <div class="min-w-0 pt-1.5 sm:pt-2.5">
+            <h3 class="text-lg font-semibold tracking-[-0.02em] sm:text-xl">{step.title}</h3>
+            <p class="mt-2 text-base leading-7 text-[#515154]"><InlineText text={step.body} /></p>
+            {step.image && <SectionFigure class="mt-5" image={step.image} />}
+          </div>
+        </li>
+      ))}
+    </ol>
+  ) : (
+    <ul class="mt-8 list-none divide-y divide-[#e8e8ed] border-y border-[#e8e8ed] p-0" aria-labelledby={`${id}-title`}>
+      {section.steps.map((step) => (
+        <li class="grid gap-x-10 gap-y-1.5 py-5 sm:grid-cols-[minmax(10rem,15rem)_minmax(0,1fr)]">
+          <h3 class="text-base font-semibold tracking-[-0.01em] text-[#1d1d1f] sm:text-lg">{step.title}</h3>
+          <div class="min-w-0">
+            <p class="text-base leading-7 text-[#515154]"><InlineText text={step.body} /></p>
+            {step.image && <SectionFigure class="mt-5" image={step.image} />}
+          </div>
+        </li>
+      ))}
+    </ul>
+  )}
 </div>
