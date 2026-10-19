@@ -1,3 +1,11 @@
+---
+import { media } from './media';
+
+const design = media['editor.map-tab'];
+const content = media['editor.layer-route'];
+const exportShot = media['editor.export-print'];
+---
+
 <section id="features" class="scroll-mt-8 bg-white py-20 font-inter text-[#1d1d1f] sm:py-28" aria-labelledby="home-features-title">
   <div class="mx-auto w-[calc(100%_-_2rem)] max-w-[86rem]">
     <div data-feature-tour data-autoplay-paused="false" class="grid overflow-hidden lg:min-h-[42rem] lg:grid-cols-2">
@@ -79,26 +87,20 @@
         <div class="relative z-10 w-full overflow-hidden rounded-l-xs bg-white shadow-[0_1.5rem_4rem_rgba(0,0,0,0.2)]">
           <div id="feature-panel-design" role="tabpanel" aria-labelledby="feature-tab-design">
             <picture class="block">
-              <source media="(max-width: 640px)" srcset="/feature-shots/design-mobile.webp" type="image/webp" />
-              <source srcset="/feature-shots/design-desktop.webp" type="image/webp" />
-              <source media="(max-width: 640px)" srcset="/feature-shots/design-mobile.png" type="image/png" />
-              <img class="h-auto w-full" src="/feature-shots/design-desktop.png" alt="Print Map Studio page sizing and map style controls" width="1440" height="900" loading="lazy" decoding="async" />
+              <source media="(max-width: 640px)" srcset={design.mobileSrc} width={design.mobileWidth} height={design.mobileHeight} />
+              <img class="h-auto w-full" src={design.src} alt={design.alt} width={design.width} height={design.height} loading="lazy" decoding="async" />
             </picture>
           </div>
           <div id="feature-panel-content" role="tabpanel" aria-labelledby="feature-tab-content" hidden>
             <picture class="block">
-              <source media="(max-width: 640px)" srcset="/feature-shots/content-mobile.webp" type="image/webp" />
-              <source srcset="/feature-shots/content-desktop.webp" type="image/webp" />
-              <source media="(max-width: 640px)" srcset="/feature-shots/content-mobile.png" type="image/png" />
-              <img class="h-auto w-full" src="/feature-shots/content-desktop.png" alt="Print Map Studio editing a route as a selected map layer" width="1440" height="900" loading="lazy" decoding="async" />
+              <source media="(max-width: 640px)" srcset={content.mobileSrc} width={content.mobileWidth} height={content.mobileHeight} />
+              <img class="h-auto w-full" src={content.src} alt={content.alt} width={content.width} height={content.height} loading="lazy" decoding="async" />
             </picture>
           </div>
           <div id="feature-panel-export" role="tabpanel" aria-labelledby="feature-tab-export" hidden>
             <picture class="block">
-              <source media="(max-width: 640px)" srcset="/feature-shots/export-mobile.webp" type="image/webp" />
-              <source srcset="/feature-shots/export-desktop.webp" type="image/webp" />
-              <source media="(max-width: 640px)" srcset="/feature-shots/export-mobile.png" type="image/png" />
-              <img class="h-auto w-full" src="/feature-shots/export-desktop.png" alt="Print Map Studio export choices for PNG, layered SVG, layered PSD and PDF" width="1440" height="900" loading="lazy" decoding="async" />
+              <source media="(max-width: 640px)" srcset={exportShot.mobileSrc} width={exportShot.mobileWidth} height={exportShot.mobileHeight} />
+              <img class="h-auto w-full" src={exportShot.src} alt={exportShot.alt} width={exportShot.width} height={exportShot.height} loading="lazy" decoding="async" />
             </picture>
           </div>
         </div>
