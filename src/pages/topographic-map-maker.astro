@@ -1,0 +1,135 @@
+---
+import SeoLandingPage, { type PageSection } from '../marketing/SeoLandingPage.astro';
+import { media } from '../marketing/media';
+import { page } from '../marketing/pages/topographic-map-maker';
+
+const sections: readonly PageSection[] = [
+  {
+    kind: 'prose',
+    title: 'Contours drawn from real elevation data',
+    paragraphs: [
+      'Turn on Elevation contours in the Terrain section of the Map tab and the editor draws isolines from global elevation tiles. Every fifth line is an index contour, drawn 1.6 times thicker so you can count height bands at a glance.',
+      'You choose the interval, the line colour and the line width. The default is a warm grey at 100 m, which sits well on most light map styles. Contours appear from zoom 5, so they work for a whole mountain range as well as a single summit.',
+      'The elevation data comes from AWS Terrain Tiles (Mapzen), built from USGS, SRTM and other sources. When contours or terrain are on, that credit is added to the printed map credit in the page margin for you.',
+    ],
+    image: {
+      ...media['topo.contours'],
+      title: 'Terrain settings live on the Map tab.',
+      caption: 'Switch on contours, then set the interval, colour and line width.',
+    },
+    imagePosition: 'beside',
+  },
+  {
+    kind: 'table',
+    title: 'How the contour interval behaves',
+    paragraphs: [
+      'The interval field takes any value from 10 to 10,000 m in steps of 10. As you zoom out, the editor widens the spacing so the lines stay legible instead of merging into a solid block. It uses whichever is larger: your interval or the minimum for the current zoom.',
+    ],
+    headers: ['Map zoom', 'Minimum spacing', 'Typical view'],
+    rows: [
+      ['5 to 7', '500 m', 'A country or a whole mountain range'],
+      ['8 to 9', '200 m', 'A national park or a long-distance trail'],
+      ['10 to 11', '50 m', 'A valley, an island or a city and its hills'],
+      ['12 and closer', '10 m', 'A single peak, a day hike or a ski area'],
+    ],
+    caption: 'Spacing the editor uses at each zoom level.',
+    footnotes: [
+      'A quick check for print: look at the steepest slope on the page. If the thick index lines are closer than about 2 mm, double the interval. On rolling hills, 10 or 20 m keeps enough lines to show the shape of the ground.',
+      'Working in feet? 30 m is about 100 ft, and 150 m is about 500 ft.',
+    ],
+  },
+  {
+    kind: 'comparison',
+    title: 'Flat contours or tilted 3D terrain',
+    paragraphs: [
+      '3D terrain shows up once you raise the camera Pitch, up to 60°. It turns the map into a picture of the landscape. That suits some prints more than others, so decide early.',
+    ],
+    columns: ['Flat contours', 'Tilted 3D terrain'],
+    rowHeader: 'For this print',
+    rows: [
+      { label: 'Reads as', cells: ['A working map with lines you can count', 'A view of the landscape'] },
+      { label: 'Camera', cells: ['Pitch 0°, any bearing', 'Pitch up to 60°, any bearing'] },
+      { label: 'Routes and places', cells: ['Visible across the whole page', 'Strongest on the slopes facing the viewer'] },
+      { label: 'Map elements', cells: ['Scale bar, coordinate grid and compass', 'Compass and a title block'] },
+      { label: 'Good subjects', cells: ['Hiking maps, trail planning, wall maps with lots of text', 'One peak, a valley, a ski area or a coastline'] },
+      { label: 'Goes on to', cells: ['An STL relief model for 3D printing', 'An MP4 orbit video of the poster'] },
+    ],
+    caption: 'You can also use both: contours stay on when you tilt the camera.',
+  },
+  {
+    kind: 'callout',
+    tone: 'tip',
+    title: 'Go easy on exaggeration',
+    paragraphs: [
+      'Exaggeration multiplies terrain height from 0 to 10 times, in steps of 0.1. Real mountains look convincing at 1×. Gentle country, like the Cotswolds or the Ozarks, can look flat at that setting, so try 1.5× and stop at about 2×. Past 3× peaks start to look like spikes and the map loses its sense of scale.',
+    ],
+  },
+  {
+    kind: 'steps',
+    title: 'Set up a contour map for print',
+    steps: [
+      {
+        title: 'Frame the area at the right zoom',
+        body: 'Set the page size, then move the map until the area fills the frame. Check the zoom against the table above so the interval you want is available.',
+      },
+      {
+        title: 'Pick a quiet base map',
+        body: 'Light styles with lower detail let the contours carry the design. Turn off building and transit detail if the area includes towns.',
+      },
+      {
+        title: 'Turn on contours and set the interval',
+        body: 'Start at the default 100 m, then adjust. Choose a colour a few shades darker than the paper and a width between 0.5 and 1.',
+      },
+      {
+        title: 'Decide on 3D terrain',
+        body: 'For a flat working map, leave Pitch at 0. For a landscape view, turn on 3D terrain, raise Pitch to 40 to 60°, and rotate the bearing until the main ridge faces you.',
+      },
+      {
+        title: 'Add routes, places and text',
+        body: 'A hiking route in a strong colour reads well over grey contours. Add a title, the coordinates of the summit, and a scale bar on a flat map.',
+      },
+      {
+        title: 'Export',
+        body: 'Contours and terrain print as part of the 300 DPI basemap in PNG, PDF, layered SVG and layered PSD. Routes, places and shapes stay as separate vector layers in the PDF, SVG and PSD files.',
+      },
+    ],
+  },
+];
+
+const faq = [
+  {
+    question: 'How accurate are the contour lines?',
+    answer: 'They are computed from global elevation tiles that blend USGS, SRTM and other sources, which is the right level of detail for posters, overview maps and trip planning.',
+  },
+  {
+    question: 'Which interval should I use for a hiking map?',
+    answer: 'At zoom 12 and closer, 20 m suits most hill country and 50 m suits steep alpine terrain. Check the steepest slope on the page and widen the interval if the lines crowd together.',
+  },
+  {
+    question: 'Can I change the contour colour to match my style?',
+    answer: 'Yes. Pick any colour and a line width from 0.1 to 10. Contours are drawn at 75% opacity so they blend with the base map.',
+  },
+  {
+    question: 'Can I 3D print the terrain?',
+    answer: 'Yes. Set Pitch to 0 and use the 3D model export to download a watertight STL of the print area for your slicer.',
+  },
+  {
+    question: 'Will the terrain show in the exported file?',
+    answer: 'Yes. Terrain and contours are drawn into the 300 DPI basemap of the PNG, PDF, layered SVG and layered PSD exports, the same way they appear on the map.',
+  },
+] as const;
+---
+
+<SeoLandingPage
+  page={page}
+  eyebrow="Topographic map maker"
+  heading="Make a topographic map with real contour lines."
+  lead="Contours come from global elevation data, so the lines follow the ground you are mapping. Set the interval and line weight, decide whether 3D terrain helps the print, and export at the exact page size."
+  primaryCta="Make a contour map"
+  facts={['Contours from 10 m to 10 km', '3D terrain up to 60° tilt', 'Exact page sizes', 'Free, no account']}
+  heroImage={media['topo.terrain-3d']}
+  heroLayout="split"
+  sections={sections}
+  faq={faq}
+  faqDescription="Intervals, accuracy and exports for contour maps."
+/>
