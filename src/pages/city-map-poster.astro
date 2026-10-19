@@ -34,11 +34,11 @@ const sections: readonly PageSection[] = [
     steps: [
       {
         title: 'Start from the Lisbon template',
-        body: 'Open the editor, choose New from template in the project menu and pick Lisbon. It sets up the City edition layout: cream paper, a serif title, the subtitle "Hills, trams & the Atlantic" and the Paper map style.',
+        body: 'Open the editor, choose New from template in the project menu and pick Lisbon, one of the four [starter cities](/map-poster-templates/). It sets up the City edition layout: cream paper, a serif title, the subtitle "Hills, trams & the Atlantic" and the Paper map style.',
       },
       {
         title: 'Set the page',
-        body: 'In Layout › Page, choose A3 and portrait. Templates open on an A4 landscape page, so this is the step people forget.',
+        body: 'In Layout › Page, choose A3 and portrait. Templates open on an A4 landscape page, so change it before you frame the map.',
       },
       {
         title: 'Frame the ground',
@@ -94,7 +94,7 @@ const sections: readonly PageSection[] = [
     title: 'Make the palette yours',
     paragraphs: [
       'Customize colors opens the palette for whichever style you picked. Shift the tone warmer or cooler, set contrast from Soft to Crisp, and give any of the 11 map roles its own colour: canvas, land, water, parks, buildings, major and minor roads, boundaries, transit, labels and the halo behind labels.',
-      'Then open the wall preview in the Export dialog. It shows the poster in a black, white, oak or walnut frame with an optional mat, on a wall colour you choose, before you spend anything on printing.',
+      'Then open the wall preview in the Export dialog, the same place you choose between [PNG, PDF, layered SVG and layered PSD](/layered-map-export/). The preview shows the poster in a black, white, oak or walnut frame with an optional mat, on a wall colour you choose, before you spend anything on printing.',
     ],
     images: [
       { ...media['styles.grid'], title: 'Twelve starting points', caption: 'Each style is a full palette you can adjust role by role.' },
@@ -136,7 +136,7 @@ const faq = [
   },
   {
     question: 'How do I get it printed?',
-    answer: 'Download the file and take it to any print shop or online printer. The editor makes the file; the printing and framing are up to you and whichever printer you like.',
+    answer: 'Download the file and take it to any print shop or online printer. Most ask for a PDF at the exact page size. The [map print size guide](/map-print-size-guide/) lists the pixel dimensions for every page size.',
   },
 ] as const;
 ---
@@ -148,7 +148,9 @@ const faq = [
   lead="Frame a neighbourhood or a whole city, set the page to A3 or any size in millimetres, and decide how many streets and names make it onto the paper. It runs in your browser, free and with no account."
   heroImage={media['city.poster']}
   primaryCta="Make a city poster"
-  facts={['A2 to A6, US Letter or custom mm', '12 map styles', 'Local names or 6 label languages', '300 DPI PNG and PDF']}
+  facts={['A2 to A6, US Letter or custom mm', '12 map styles', 'Local names plus 6 languages', '300 DPI PNG and PDF']}
   sections={sections}
+  ctaHeading="Frame your city on an A3 page."
+  faqDescription="Places, sizes, labels and getting it printed."
   faq={faq}
 />

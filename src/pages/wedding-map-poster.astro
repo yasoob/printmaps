@@ -38,7 +38,7 @@ const sections: readonly PageSection[] = [
     ],
     items: [
       { term: 'White (#ffffff)', definition: 'The default. Choose it when you print on cream, ivory or textured stock, so the real paper colour shows through around the map.' },
-      { term: 'Cream (#faf7f0)', definition: 'The City edition layout. On bright white stock it prints as a soft warm tint across the whole sheet.' },
+      { term: 'Cream (#faf7f0)', definition: 'The [City edition layout](/map-poster-templates/). On bright white stock it prints as a soft warm tint across the whole sheet.' },
       { term: 'Warm parchment (#f5efe3)', definition: 'The Field notes layout. A slightly darker, older-looking tone that suits a mono typeface and a dated caption.' },
       { term: 'Deep navy (#15212b)', definition: 'The After dark layout with the Night Ink map. Bold on a wall, and the whole sheet is covered in ink, so pick a matte stock to keep reflections down.' },
     ],
@@ -48,7 +48,7 @@ const sections: readonly PageSection[] = [
     tone: 'tip',
     title: 'For invitations and welcome signs',
     paragraphs: [
-      'The same project can make the map for an A6 invitation insert and an A2 welcome sign: change the page size and the margins and title block follow. Add a QR code from Layout › Map elements and point it at the venue\'s place marker. Guests who scan it get the venue in Google Maps, with directions one tap away.',
+      'The same project can make the map for an A6 invitation insert and an A2 welcome sign: change the page size and the margins and title block follow. Add a [QR code](/share-and-embed-maps/) from Layout › Map elements and point it at the venue\'s place marker. Guests who scan it get the venue in Google Maps, with directions one tap away.',
     ],
   },
   {
@@ -60,7 +60,7 @@ const sections: readonly PageSection[] = [
     steps: [
       {
         title: 'Ask for their size and bleed',
-        body: 'Get the exact finished size, and ask whether they want bleed. Many shops ask for 3 mm on each edge.',
+        body: 'Get the exact finished size, and ask whether they want bleed. Many shops ask for 3 mm on each edge. The [map print size guide](/map-print-size-guide/) covers bleed and pixel sizes in more detail.',
       },
       {
         title: 'Set the page to match',
@@ -116,8 +116,8 @@ const faq = [
     answer: 'Yes. Switch the page to A6 (105 × 148 mm) or A5 and export again. Raise the text scale in Map › Labels & details if the street names look small at that size.',
   },
   {
-    question: 'Is it free?',
-    answer: 'Yes. The editor is free and runs in your browser with no account. Your files download straight to your computer, so you can send them to any printer.',
+    question: 'Can we add a third place, such as where we got engaged?',
+    answer: 'Yes. Add as many place markers as you like, each with its own label of up to 40 characters. Three places read well joined by one Arc route, clicked in the order they happened.',
   },
 ] as const;
 ---
@@ -131,5 +131,7 @@ const faq = [
   primaryCta="Design your wedding map"
   facts={['Two places, an arc or a route', 'Names, date and coordinates', 'Print-ready PDF', 'Free, no account']}
   sections={sections}
+  ctaHeading="Start the map for your wedding or anniversary."
+  faqDescription="Markers, dates, sizes and gift printing."
   faq={faq}
 />
