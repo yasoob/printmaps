@@ -29,7 +29,8 @@ const verifyMapAttribution = async (
 ) => {
   const attribution = page.locator('.maplibregl-ctrl-attrib');
   const attributionButton = page.locator('.maplibregl-ctrl-attrib-button');
-  await expect(attribution).not.toHaveAttribute('open');
+  // Credit shows at startup, then collapses to the (i) control after five seconds (OSMF guideline).
+  await expect(attribution).not.toHaveAttribute('open', { timeout: 8000 });
   await expect(attribution).not.toHaveClass(/maplibregl-compact-show/);
   const buttonBox = await attributionButton.boundingBox();
   expect(buttonBox).not.toBeNull();

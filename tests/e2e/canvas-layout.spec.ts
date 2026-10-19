@@ -1,5 +1,11 @@
-import { expect, type Locator, test } from '@playwright/test';
+import { expect, type Locator, type Page, test } from '@playwright/test';
 import { expandToolSettings } from './authoring-panel-support';
+
+// The map credit shows at startup and collapses on the first editor interaction (OSMF guideline).
+const collapseStartupAttribution = async (page: Page) => {
+  await page.keyboard.press('Shift');
+  await expect(page.locator('.maplibregl-ctrl-attrib')).not.toHaveAttribute('open');
+};
 
 const expectNoOverlap = async (first: Locator, second: Locator) => {
   const firstBox = await first.boundingBox();
@@ -53,6 +59,7 @@ test('compact canvas controls stay anchored through every authoring flow', async
     await page.setViewportSize(viewport);
     await page.goto('./');
     await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
+    await collapseStartupAttribution(page);
     const controls = {
       attribution: page.locator('.maplibregl-ctrl-bottom-left'),
       fit: page.getByRole('button', { name: 'Fit page' }),
@@ -205,6 +212,7 @@ test('compact scale docks above the zoom stack and never collides with attributi
     await page.setViewportSize(viewport);
     await page.goto('./');
     await expect(page.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 20_000 });
+    await collapseStartupAttribution(page);
     const attribution = page.locator('.maplibregl-ctrl-attrib');
     const scale = page.locator('.canvas-scale-dock');
     const zoom = page.locator('.maplibregl-ctrl-bottom-right');

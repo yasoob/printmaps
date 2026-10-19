@@ -11,6 +11,8 @@ import { createPageNavigationControl } from './MapPageNavigationControl';
 import { adoptControlTooltips } from './mapControlTooltips';
 import { setMapInteractionLock } from './MapInteractionLock';
 import { createAttributionController } from './MapAttributionController';
+
+const ATTRIBUTION_INTERACTIONS = ['dragstart', 'zoomstart', 'rotatestart', 'pitchstart'] as const;
 import { createMapResourceRecovery, mapFailureMessage, type MapFailureEvent } from './MapResourceRecovery';
 
 export type MapError = {
@@ -217,7 +219,7 @@ function cleanupMap(
   retryCleanup(() => map.off('load', handlers.handleLoad));
   retryCleanup(() => map.off('style.load', handlers.handleStyleLoad));
   retryCleanup(() => map.off('idle', handlers.handleIdle));
-  retryCleanup(() => map.off('drag', attribution.handleDrag));
+  for (const type of ATTRIBUTION_INTERACTIONS) retryCleanup(() => map.off(type, attribution.handleInteraction));
   retryCleanup(() => map.off('error', handlers.handleError));
   retryCleanup(() => map.off('webglcontextlost', handlers.handleContextLost));
   retryCleanup(() => map.off('dataloading', handlers.handleDataLoading));
@@ -248,14 +250,13 @@ function installMapLifecycle(map: MapLibreMap, options: MapLifecycleOptions) {
   const attributionControl = container.querySelector('.maplibregl-ctrl-attrib');
   if (attributionControl) adoptControlTooltips(attributionControl);
   setMapInteractionLock(map, options.initialCamera.locked);
-  attribution.listen();
   armLifecycleDeadline(state, handlers.handleLoadTimeout, MAP_STYLE_TIMEOUT_MS);
   map.once('style.load', handlers.handleStyleLoad);
   map.once('load', handlers.handleLoad);
   if (typeof map.isStyleLoaded === 'function' && map.isStyleLoaded()) queueMicrotask(handlers.handleStyleLoad);
   if (map.loaded()) queueMicrotask(handlers.handleLoad);
   map.on('idle', handlers.handleIdle);
-  map.on('drag', attribution.handleDrag);
+  for (const type of ATTRIBUTION_INTERACTIONS) map.on(type, attribution.handleInteraction);
   map.on('error', handlers.handleError);
   map.on('webglcontextlost', handlers.handleContextLost);
   map.on('dataloading', handlers.handleDataLoading);
