@@ -1,0 +1,154 @@
+---
+import SeoLandingPage from '../marketing/SeoLandingPage.astro';
+import { media } from '../marketing/media';
+import { page } from '../marketing/pages/city-map-poster';
+import type { PageSection } from '../marketing/sections/types';
+
+const sections: readonly PageSection[] = [
+  {
+    kind: 'table',
+    title: 'How much city fits on an A3 sheet',
+    paragraphs: [
+      'The first decision on a city poster is how wide a stretch of ground to show. Everything else follows from it. On an A3 portrait page with 10 mm margins the map is 277 mm wide, so the distance you frame sets the scale of the print.',
+      'A city block is a handy yardstick. Once a typical 100 m block shrinks below about 2 mm on paper, the minor streets merge into a fine grey texture and the main roads, rivers and parks start carrying the picture.',
+    ],
+    headers: ['Ground across the map', 'Scale', '100 m block on paper', 'Works well for'],
+    rows: [
+      ['3 km', 'about 1:11,000', '9 mm', 'One neighbourhood or an old town, with room for street names'],
+      ['6 km', 'about 1:22,000', '4.6 mm', 'A compact city centre with its river or harbour'],
+      ['12 km', 'about 1:43,000', '2.3 mm', 'Paris inside the Périphérique, where districts and boulevards carry the poster'],
+      ['25 km', 'about 1:90,000', '1.1 mm', 'A whole mid-sized city and the edge where it meets the country'],
+      ['60 km', 'about 1:217,000', '0.5 mm', 'London inside the M25, where motorways and the Thames do the work'],
+    ],
+    caption: 'Map width 277 mm (A3 portrait, 10 mm margins). In landscape the map is 400 mm wide, so the same scale shows about 44% more ground from side to side.',
+    footnotes: [
+      'To print the scale on the poster itself, turn on the scale bar in Layout › Map elements and choose metric or imperial units.',
+    ],
+  },
+  {
+    kind: 'steps',
+    title: 'A Lisbon poster, start to finish',
+    paragraphs: [
+      'Here is the whole process for one city, using the settings we would pick for an A3 print. Swap in your own town as you go.',
+    ],
+    steps: [
+      {
+        title: 'Start from the Lisbon template',
+        body: 'Open the editor, choose New from template in the project menu and pick Lisbon. It sets up the City edition layout: cream paper, a serif title, the subtitle "Hills, trams & the Atlantic" and the Paper map style.',
+      },
+      {
+        title: 'Set the page',
+        body: 'In Layout › Page, choose A3 and portrait. Templates open on an A4 landscape page, so this is the step people forget.',
+      },
+      {
+        title: 'Frame the ground',
+        body: 'Drag and zoom until the Tagus runs along the bottom of the frame and Belém sits just inside the left edge. That is roughly 8 km across, close to the 6 km row in the table above.',
+      },
+      {
+        title: 'Thin out the labels',
+        body: 'In Map › Labels & details, raise the text scale to about 120% so district names hold up from across a room, and untick transit if the rail lines feel busy.',
+      },
+      {
+        title: 'Write the title',
+        body: 'Edit the title and subtitle in Layout › Text. The coordinates line underneath fills itself in from the centre of the map, so it updates as you move.',
+      },
+      {
+        title: 'Lock and export',
+        body: 'Lock the map area in Map › View so a stray scroll leaves your framing alone. Then open Export and download a 300 DPI PNG (3508 × 4961 px at A3) or a PDF at the exact page size.',
+      },
+    ],
+  },
+  {
+    title: 'Fewer names, bigger names',
+    paragraphs: [
+      'A map on a screen is made for zooming. A poster is read from a metre or two away, so each label has to earn its place. Small grey street names at screen size turn into specks on paper.',
+      'Map › Labels & details has the controls. Text scale runs from 50% to 200% and resizes every basemap label at once. Seven checkboxes show or hide whole categories: labels, roads, buildings, water, parks, land detail and transit. In the colour customiser, the Detail slider runs from Quiet to Rich and fades or strengthens parks, buildings, minor roads, boundaries and transit while keeping them on the map.',
+      'For a line-art poster, hide labels and let the title name the city. For a map people will stand and study, keep labels on, raise the text scale and frame less ground.',
+      'Labels can use local names or English, German, French, Italian, Spanish or Chinese. A Tokyo poster for a London flat probably wants English. A gift for someone who grew up in Tokyo probably wants the local names.',
+    ],
+    image: {
+      ...media['city.detail'],
+      title: 'Label density at print size',
+      caption: 'Text scale and category toggles decide how much type reaches the paper.',
+    },
+    imagePosition: 'beside',
+  },
+  {
+    kind: 'definitions',
+    title: 'Pick the style for the wall',
+    paragraphs: [
+      'There are 12 map styles. Choose for the room the poster will hang in, because a dark map on a dark wall disappears and a very pale one can look washed out in strong daylight.',
+    ],
+    items: [
+      { term: 'Paper and Porcelain', definition: 'Light and quiet. Good on white or pale walls, and in rooms that already have a lot going on.' },
+      { term: 'Graphite', definition: 'Monochrome with crisp contrast. Pairs well with a thin black frame.' },
+      { term: 'Night Ink and Blueprint', definition: 'Dark grounds with light lines. Strong above a pale sofa or in a bright hallway. They put a lot of ink on paper, so ask your print shop for a stock that handles heavy coverage.' },
+      { term: 'Sandstone and Terracotta', definition: 'Warm clay tones that sit well with wood, linen and warm lamps.' },
+      { term: 'Sea Glass, Coastal and Alpine', definition: 'Greens and blues for cities where the water and parks are the story, such as harbour towns and lake cities.' },
+      { term: 'Rosewater', definition: 'Blush neutrals with plum-grey labels.' },
+      { term: 'Signal', definition: 'A clean neutral map with one coral accent on transit lines.' },
+    ],
+  },
+  {
+    kind: 'gallery',
+    title: 'Make the palette yours',
+    paragraphs: [
+      'Customize colors opens the palette for whichever style you picked. Shift the tone warmer or cooler, set contrast from Soft to Crisp, and give any of the 11 map roles its own colour: canvas, land, water, parks, buildings, major and minor roads, boundaries, transit, labels and the halo behind labels.',
+      'Then open the wall preview in the Export dialog. It shows the poster in a black, white, oak or walnut frame with an optional mat, on a wall colour you choose, before you spend anything on printing.',
+    ],
+    images: [
+      { ...media['styles.grid'], title: 'Twelve starting points', caption: 'Each style is a full palette you can adjust role by role.' },
+      { ...media['editor.wall-preview'], title: 'Wall preview', caption: 'Frame finish, mat width and wall colour are for checking the look and stay out of the export.' },
+    ],
+    columns: 2,
+  },
+  {
+    kind: 'callout',
+    tone: 'tip',
+    title: 'Before you press export',
+    paragraphs: [
+      'A mat usually overlaps the print by a few millimetres on every side. Leave at least 10 mm of margin all round, and a little more at the bottom, around 15 mm, because that is where the small map data credit sits. The OpenStreetMap licence asks for that credit, and a wider bottom margin keeps it clear of the mat.',
+    ],
+    link: { href: '/map-print-size-guide/', label: 'Read the print size guide' },
+  },
+];
+
+const faq = [
+  {
+    question: 'Which cities can I make a poster of?',
+    answer: 'Any town or city in the world. The base map is drawn from OpenStreetMap data through OpenMapTiles and OpenFreeMap, so small towns and villages are covered as well as capitals.',
+  },
+  {
+    question: 'What size should I print a city map poster?',
+    answer: 'A3 (297 × 420 mm) suits a desk wall or a hallway. A2 (420 × 594 mm) is a good size above a sofa or bed. For a frame you already own, choose Custom and enter its size in millimetres.',
+  },
+  {
+    question: 'Is the PNG sharp enough for a large print?',
+    answer: 'PNG export renders at 300 DPI for the page size you chose. That is 3508 × 4961 pixels at A3 and 4961 × 7016 pixels at A2. For the cleanest type and lines, send a PDF.',
+  },
+  {
+    question: 'Can I mark my street or my flat?',
+    answer: 'Yes. Add a place with the Place tool, give it a label and pick a marker colour, shape and size. You can also upload your own PNG, JPEG or SVG marker, such as a small heart or house icon, and export it in PNG, layered SVG or layered PSD.',
+  },
+  {
+    question: 'Can I change the language of street names?',
+    answer: 'Yes. Map › Labels & details switches labels between local names, English, German, French, Italian, Spanish and Chinese.',
+  },
+  {
+    question: 'How do I get it printed?',
+    answer: 'Download the file and take it to any print shop or online printer. The editor makes the file; the printing and framing are up to you and whichever printer you like.',
+  },
+] as const;
+---
+
+<SeoLandingPage
+  page={page}
+  eyebrow="City map posters"
+  heading="A city map poster you can read from across the room."
+  lead="Frame a neighbourhood or a whole city, set the page to A3 or any size in millimetres, and decide how many streets and names make it onto the paper. It runs in your browser, free and with no account."
+  heroImage={media['city.poster']}
+  primaryCta="Make a city poster"
+  facts={['A2 to A6, US Letter or custom mm', '12 map styles', 'Local names or 6 label languages', '300 DPI PNG and PDF']}
+  sections={sections}
+  faq={faq}
+/>

@@ -1,0 +1,152 @@
+---
+import SeoLandingPage from '../marketing/SeoLandingPage.astro';
+import { media } from '../marketing/media';
+import { page } from '../marketing/pages/travel-map-with-photos';
+import type { PageSection } from '../marketing/sections/types';
+
+const sections: readonly PageSection[] = [
+  {
+    kind: 'steps',
+    title: 'Pin each photo to the place you took it',
+    paragraphs: [
+      'Every photo belongs to a place marker on the map. The place holds the location and the photo holds the picture, so you can move a stop and its photo follows.',
+    ],
+    steps: [
+      {
+        title: 'Add the stops',
+        body: 'Click the map with the Place tool (P) for each stop, or paste a list into the place spreadsheet as Name, Longitude, Latitude, with up to 300 rows at once. Give each place a short label.',
+      },
+      {
+        title: 'Attach a photo',
+        body: 'Open Layout › Photos, choose the place under Attach to and click Add local photo. Leave it on New pin at center to drop a fresh place in the middle of the map, then drag it into position with the Select tool.',
+      },
+      {
+        title: 'Write the captions',
+        body: 'Each stop gets a caption of up to 200 characters. Three or four words read best under a small photo: "Glencoe, day 3" says enough.',
+      },
+      {
+        title: 'Choose where photos appear',
+        body: 'Turn on Photos on the map for round or square pictures sitting on their places, the Numbered photo strip for a row of squares above or below the map, or both. The first photo you add switches on Photos on the map for you.',
+      },
+      {
+        title: 'Draw the way between',
+        body: 'Use the Route tool to join the stops. Road follows real roads by car, on foot or by bike, Arc draws a curve for flights and ferries, and Straight joins the points directly. If you recorded the trip, import the GPX file instead.',
+      },
+    ],
+  },
+  {
+    kind: 'example',
+    title: 'The Photos panel',
+    paragraphs: [
+      'All photo settings live in Layout › Photos. The photo on the map and the tile in the strip share one number, so readers can match the two at a glance.',
+    ],
+    image: {
+      ...media['photos.controls'],
+      title: 'Layout › Photos',
+      caption: 'Attach photos to places, write captions, then style the map photos and the strip.',
+    },
+    notes: [
+      { title: 'Attach to', body: 'Pick an existing place from the list, or New pin at center to create one. Removing a photo keeps its place, and deleting a place removes its photo.' },
+      { title: 'The photo list', body: 'Stops are numbered in the order you add them, so add photos in trip order and stop 1 is the first morning. Each one has its own caption field.' },
+      { title: 'Photos on the map', body: 'Circle or square, 5 to 100 mm across, with a border colour of your choice and the stop number in the corner. Pictures are centre-cropped, so keep faces and horizons near the middle of the frame.' },
+      { title: 'Numbered photo strip', body: 'Square tiles in a row above or below the map, 12 to 100 mm tall, with captions underneath. With the strip on, captions move off the map and into the strip.' },
+    ],
+  },
+  {
+    kind: 'table',
+    title: 'How big each photo prints in the strip',
+    paragraphs: [
+      'The strip divides the width of the map between your photos, with a 3 mm gap between each tile, and every tile is square. The more photos you add, the smaller each one gets, so it helps to know the numbers before you choose a page size.',
+      'Tile size is also capped by the strip height. With captions on, a tile can be 12 mm shorter than the strip, so set the strip height to the tile width plus 12 mm to use the full width.',
+    ],
+    headers: ['Photos in the strip', 'A4 portrait tile', 'Strip height for A4', 'A3 portrait tile', 'Strip height for A3'],
+    rows: [
+      ['4', '43 mm', '56 mm', '65 mm', '78 mm'],
+      ['6', '28 mm', '40 mm', '42 mm', '55 mm'],
+      ['8', '20 mm', '33 mm', '31 mm', '43 mm'],
+      ['12', '12 mm', '25 mm', '19 mm', '32 mm'],
+      ['16', '8 mm', '21 mm', '14 mm', '26 mm'],
+      ['24', '4.8 mm', '17 mm', '8 mm', '20 mm'],
+    ],
+    caption: 'Assumes 10 mm page margins. A4 landscape gives the strip the same 277 mm width as A3 portrait.',
+    footnotes: [
+      'For more than about ten photos, move up a page size or turn the page to landscape for a wider strip.',
+    ],
+  },
+  {
+    kind: 'definitions',
+    title: 'Photo sizes the editor accepts',
+    paragraphs: [
+      'Photos are embedded in the project, so the project file carries them wherever it goes. They stay on your device and inside that file.',
+    ],
+    items: [
+      { term: 'Formats', definition: 'PNG and JPEG.' },
+      { term: 'Each photo', definition: 'Up to 1 MiB and up to 2048 pixels on each side.' },
+      { term: 'Per project', definition: 'Up to 24 photo stops, about 4.5 MB of image files and 16.7 million pixels across all photos together.' },
+      { term: 'Captions', definition: 'Up to 200 characters per stop.' },
+    ],
+  },
+  {
+    kind: 'callout',
+    tone: 'tip',
+    title: 'Resize photos before you add them',
+    paragraphs: [
+      'Phone photos are usually 3 to 5 MB, so export smaller copies first. Pick the long edge from the number of stops: about 1600 px for 8 photos, 1300 px for 12, and 900 px for a full 24. Save as JPEG at around 80% quality and each file lands well under 1 MiB. Those sizes are plenty for print: a 31 mm tile at 300 DPI needs only about 370 pixels.',
+    ],
+  },
+  {
+    title: 'Pick a layout that leaves room for pictures',
+    paragraphs: [
+      'The Field notes layout was made for this kind of map: warm parchment paper, a monospace title above the map and the Paper style underneath. The Copenhagen starter in New from template uses it with the subtitle "A weekend by the water", which is a quick way to see the look before adding your own trip.',
+      'Put the strip on the opposite side to the title. With the title above the map, the strip reads well along the bottom, and the map keeps a clear block of space in the middle.',
+      'Hiding a place on the map hides its photo too, which is handy for trying a shorter version of the trip before you print.',
+    ],
+highlights: [
+      { icon: 'template', label: 'Field notes layout' },
+      { icon: 'photos', label: 'Map photos and strip' },
+      { icon: 'route', label: 'Route between stops' },
+      { icon: 'visibility', label: 'Hide a stop to try a shorter trip' },
+    ],
+  },
+];
+
+const faq = [
+  {
+    question: 'How many photos can I add to one map?',
+    answer: 'Up to 24 photo stops per project. Each photo can be a PNG or JPEG of up to 1 MiB and 2048 pixels per side.',
+  },
+  {
+    question: 'Are my photos uploaded anywhere?',
+    answer: 'Photos stay on your device. They are stored in the browser autosave and inside the project file you download, and exports are made in your browser.',
+  },
+  {
+    question: 'Can I change the numbering order?',
+    answer: 'Stops are numbered in the order you add them. To move a photo to the end of the sequence, remove it and add it again. Adding photos in trip order from the start saves the reshuffle.',
+  },
+  {
+    question: 'Can I show photos without the strip?',
+    answer: 'Yes. Turn on Photos on the map and leave the strip off. Captions then appear in a small label under each photo on the map.',
+  },
+  {
+    question: 'Which export formats include the photos?',
+    answer: 'PNG, PDF, layered SVG and layered PSD all include the photos, the numbered badges and the strip, at the page size you set.',
+  },
+  {
+    question: 'Can I add the route I drove?',
+    answer: 'Yes. Draw it with the Route tool using Road, Arc or Straight segments, or import a GPX, KML or GeoJSON track from your phone, car or bike computer.',
+  },
+] as const;
+---
+
+<SeoLandingPage
+  page={page}
+  eyebrow="Travel maps with photos"
+  heading="A travel map with your photos pinned where you took them."
+  lead="Mark the stops of a trip, attach a photo to each one, and print the map with numbered pictures on the places and a matching strip of photos along the edge. Your photos stay on your device the whole time."
+  heroImage={media['photos.poster']}
+  heroLayout="split"
+  primaryCta="Start a photo map"
+  facts={['Up to 24 photo stops', 'Numbered strip with captions', 'Road, arc or straight routes', 'Photos stay on your device']}
+  sections={sections}
+  faq={faq}
+/>

@@ -1,0 +1,141 @@
+---
+import SeoLandingPage from '../marketing/SeoLandingPage.astro';
+import { media } from '../marketing/media';
+import { page } from '../marketing/pages/map-poster-templates';
+import type { PageSection } from '../marketing/sections/types';
+
+const sections: readonly PageSection[] = [
+  {
+    kind: 'table',
+    title: 'The five layouts and what each is for',
+    paragraphs: [
+      'A layout preset sets the parts of a poster that have to agree with each other: paper colour, type, ink colour, title position and a map style that suits them. Picking one is faster than matching five settings by hand, and everything stays editable afterwards.',
+    ],
+    headers: ['Layout', 'Look', 'Use it for'],
+    rows: [
+      ['City edition', 'Cream paper, Classic serif title below the map, Paper style', 'Hometown and city posters with a traditional title block'],
+      ['Quiet lines', 'White paper, Modern sans title above the map, Paper style', 'Minimal rooms, lots of open space and exact coordinates'],
+      ['After dark', 'Deep navy paper, Modern sans title below the map, Night Ink style', 'A statement piece. Dense street grids glow against the dark ground'],
+      ['Land & outline', 'Cream paper, Classic serif title below the map, Paper style', 'Country and region posters with a shaped map frame'],
+      ['Field notes', 'Warm parchment, Field notes mono title above the map, Paper style', 'Trips, routes and photo stories with a logbook feel'],
+    ],
+    caption: 'Every layout also turns on the coordinates line and uses 10 mm margins on all four sides.',
+  },
+  {
+    kind: 'gallery',
+    title: 'Pick a design, or start with a place',
+    paragraphs: [
+      'There are two ways in. New from template in the project menu starts a fresh project from a design, optionally placed in one of four starter cities. Change layout in the Layout tab restyles the project you already have.',
+    ],
+    images: [
+      { ...media['templates.gallery'], title: 'New from template', caption: 'Five designs, plus four starter cities that each open with a matching layout.' },
+      { ...media['templates.examples'], title: 'The same map in different layouts', caption: 'Switching layout changes paper, type and map style and leaves the map where it is.' },
+    ],
+    columns: 2,
+  },
+  {
+    kind: 'definitions',
+    title: 'The four starter cities',
+    paragraphs: [
+      'Each starter opens a ready-made poster you can learn from or adapt. They are good for seeing how a layout behaves on a real street pattern before you bring in your own place.',
+    ],
+    items: [
+      { term: 'Lisbon · City edition', definition: '"Hills, trams & the Atlantic". A hilly city on a river mouth, with the serif title block underneath.' },
+      { term: 'Kyoto · Quiet lines', definition: '"Paths through the old capital". The regular grid of the old city reads well with a clean sans title and a lot of white.' },
+      { term: 'New York · After dark', definition: '"An island of possibilities". Midtown and the rivers on deep navy paper with the Night Ink map.' },
+      { term: 'Copenhagen · Field notes', definition: '"A weekend by the water". Parchment paper and mono type, ready for photo stops and a route.' },
+    ],
+  },
+  {
+    kind: 'comparison',
+    title: 'What changes when you switch layout',
+    paragraphs: [
+      'Switching layout in Layout › Change layout restyles the poster around your existing work. The map stays exactly where you framed it, and everything you added stays on it.',
+    ],
+    columns: ['After you switch'],
+    rowHeader: 'Setting',
+    rows: [
+      { label: 'Map position, zoom and rotation', cells: ['Kept'] },
+      { label: 'Routes, places, areas and imported data', cells: ['Kept'] },
+      { label: 'Photos and the photo strip', cells: ['Kept'] },
+      { label: 'Title, subtitle and caption text', cells: ['Kept'] },
+      { label: 'Compass, scale bar, grid and QR code', cells: ['Kept'] },
+      { label: 'Page size and orientation', cells: ['Kept'] },
+      { label: 'Label language, text scale and palette adjustments', cells: ['Kept'] },
+      { label: 'Paper colour', cells: ['From the layout'] },
+      { label: 'Title font, type sizes and ink colour', cells: ['From the layout'] },
+      { label: 'Map style', cells: ['From the layout'] },
+      { label: 'Margins', cells: ['10 mm on every side'] },
+      { label: 'Coordinates line', cells: ['Switched on'] },
+    ],
+    footnotes: [
+      'A country or region outline stays in place with the colour it was fitted with. After moving to a layout with a different paper colour, fit the outline again from Layout › Map frame so the mask matches.',
+    ],
+  },
+  {
+    kind: 'steps',
+    title: 'When to switch, and when to stay',
+    steps: [
+      {
+        title: 'Switch early',
+        body: 'Try layouts while the map is still rough. Each switch resets margins and type sizes, so finish those details after you have settled on a look.',
+      },
+      {
+        title: 'Switch for the room',
+        body: 'A poster for a dark hallway might suit After dark, while the same map for a bright kitchen might suit Quiet lines. The map framing carries over, so comparing takes seconds.',
+      },
+      {
+        title: 'Switch for the subject',
+        body: 'For a trip with photos and a route, Field notes puts the title on top and leaves the bottom free for a photo strip. For a country shape, Land & outline is tuned for the cut-out.',
+      },
+      {
+        title: 'Stay and customise',
+        body: 'Once the layout is close, adjust the paper colour, margins and type in Layout › Page and Layout › Text, and the map colours in Map › Style › Customize colors. Those changes are yours to keep.',
+      },
+    ],
+  },
+  {
+    kind: 'callout',
+    tone: 'note',
+    title: 'Undo is always there',
+    paragraphs: [
+      'Changing layout is one step in the history, so Undo takes you straight back to the poster you had. Download the project file from the project menu before a big change if you want a saved copy as well.',
+    ],
+  },
+];
+
+const faq = [
+  {
+    question: 'Are the map poster templates free?',
+    answer: 'Yes. All five layouts and the four starter cities are part of the free editor. Make as many posters from them as you like, with no account and no watermark.',
+  },
+  {
+    question: 'What page size does a template start on?',
+    answer: 'New projects start on an A4 landscape page. Change the size and orientation in Layout › Page; the template\'s margins and title block adjust to the new page.',
+  },
+  {
+    question: 'Can I start a template somewhere other than the four starter cities?',
+    answer: 'Yes. Choose one of the five designs without a starter, then search for or pan to your own place. Or pick a starter and move the map: the layout stays the same.',
+  },
+  {
+    question: 'Will switching layout move my map?',
+    answer: 'The map stays exactly where you framed it. The layout changes the paper, type, margins and map style around it.',
+  },
+  {
+    question: 'Can I make my own template?',
+    answer: 'Yes. Adjust a layout until you like it, then download the project file. Open it whenever you want to start a new poster with the same look, and change the place and title.',
+  },
+] as const;
+---
+
+<SeoLandingPage
+  page={page}
+  eyebrow="Map poster templates"
+  heading="Map poster templates that set the type, paper and colours for you."
+  lead="Five layouts, each with paper colour, title type and map style chosen to work together, plus four starter cities to learn from. Start a new poster from one, or switch the poster you already have and keep your map exactly where it is."
+  heroImage={media['templates.gallery']}
+  primaryCta="Try a template"
+  facts={['5 layout presets', '4 starter cities', 'Switch without losing your map', 'Free, no account']}
+  sections={sections}
+  faq={faq}
+/>

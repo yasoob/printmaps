@@ -79,12 +79,17 @@ export function pageUrl(entry: Pick<MarketingPageEntry, 'slug'>): string {
 /**
 First registered slug wins, so links can point at a page that may not exist yet.
 */
-export function firstPagePath(...slugs: readonly string[]): string | undefined {
+export function firstPage(...slugs: readonly string[]): MarketingPageEntry | undefined {
   for (const slug of slugs) {
     const entry = getPage(slug);
-    if (entry) return pagePath(entry);
+    if (entry) return entry;
   }
   return undefined;
+}
+
+export function firstPagePath(...slugs: readonly string[]): string | undefined {
+  const entry = firstPage(...slugs);
+  return entry ? pagePath(entry) : undefined;
 }
 
 export function fullTitle(title: string): string {

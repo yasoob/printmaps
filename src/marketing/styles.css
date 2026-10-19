@@ -65,10 +65,12 @@
   box-sizing: border-box;
 }
 
-.marketing-body img,
-.marketing-body svg {
-  display: block;
-  max-width: 100%;
+@layer base {
+  .marketing-body img,
+  .marketing-body svg {
+    display: block;
+    max-width: 100%;
+  }
 }
 
 @layer base {

@@ -1,0 +1,101 @@
+---
+import {
+  ArrowRight,
+  Box,
+  CodeXml,
+  Compass,
+  Earth,
+  Film,
+  Frame,
+  Images,
+  LayoutTemplate,
+  Mountain,
+} from '@lucide/astro';
+import { firstPage, pagePath } from './registry';
+
+const capabilities = [
+  {
+    icon: LayoutTemplate,
+    title: 'Poster layouts',
+    body: 'Start from a layout such as City edition, Quiet lines or After dark, then set the title, subtitle, coordinates, margins and paper colour yourself.',
+    page: firstPage('map-poster-templates'),
+  },
+  {
+    icon: Earth,
+    title: 'Country and region shapes',
+    body: 'Use the outline of a country or region as the edge of the map, so the streets and coastline of Portugal or Bavaria fill the shape.',
+    page: firstPage('country-map-poster'),
+  },
+  {
+    icon: Images,
+    title: 'Photos pinned to places',
+    body: 'Attach photos to places and show them as badges on the map or as a numbered strip with captions under it. A poster holds up to 24 photo stops.',
+    page: firstPage('travel-map-with-photos'),
+  },
+  {
+    icon: Compass,
+    title: 'Compass, scale bar and QR code',
+    body: 'Add a north arrow or compass rose, a metric or imperial scale bar, a labelled coordinate grid, and a QR code that opens the spot in Google Maps.',
+    page: firstPage('city-map-poster', 'printable-map-maker'),
+  },
+  {
+    icon: Mountain,
+    title: 'Terrain and contour lines',
+    body: 'Switch on 3D terrain for mountain areas and draw contour lines at the interval and colour you choose.',
+    page: firstPage('topographic-map-maker'),
+  },
+  {
+    icon: Film,
+    title: 'Map videos',
+    body: 'Record a 5, 10 or 15 second orbit or sway around the map as an MP4, in the page shape or in 16:9, 9:16, 1:1 or 4:5 for social posts.',
+    page: firstPage('map-video-maker'),
+  },
+  {
+    icon: Box,
+    title: 'STL relief for 3D printing',
+    body: 'Export the terrain inside your print frame as an STL model sized in millimetres, with an optional raised ridge along a route.',
+    page: firstPage('3d-terrain-map-stl'),
+  },
+  {
+    icon: Frame,
+    title: 'Wall preview',
+    body: 'See the poster on a wall in a black, white, oak or walnut frame, with or without a mat, before you send it to the printer.',
+    page: firstPage('map-print-size-guide'),
+  },
+  {
+    icon: CodeXml,
+    title: 'Share links and embeds',
+    body: 'Send a read-only link to the finished design, or paste an iframe embed into a blog post or website.',
+    page: firstPage('share-and-embed-maps'),
+  },
+];
+---
+
+<section id="beyond-the-map" class="scroll-mt-8 bg-[#f5f5f7] py-20 font-inter text-[#1d1d1f] sm:py-28" aria-labelledby="home-capabilities-title">
+  <div class="mx-auto w-[calc(100%_-_2rem)] max-w-[76rem]">
+    <div class="max-w-3xl">
+      <h2 id="home-capabilities-title" class="text-2xl font-semibold tracking-[-0.03em] sm:text-3xl lg:text-4xl">
+        Finish the poster without leaving the editor.
+      </h2>
+      <p class="mt-4 max-w-2xl text-sm leading-6 text-[#6e6e73] sm:text-base">
+        Titles, photos, map furniture and terrain sit on the same page as the map, so what you see on screen is what comes out of the printer.
+      </p>
+    </div>
+
+    <ul class="mt-12 grid list-none gap-3 p-0 sm:grid-cols-2 lg:mt-16 lg:grid-cols-3">
+      {capabilities.map((item) => (
+        <li class="flex flex-col rounded-2xl bg-white p-6 sm:p-7">
+          <item.icon class="size-7 text-[#0071e3]" stroke-width={1.6} aria-hidden="true" />
+          <h3 class="mt-4 text-lg font-semibold tracking-[-0.02em]">{item.title}</h3>
+          <p class="mt-2 text-sm leading-6 text-[#6e6e73]">{item.body}</p>
+          {item.page && (
+            <a class="mt-auto inline-flex items-center gap-1.5 pt-4 text-sm font-semibold text-[#0071e3] no-underline hover:underline focus-visible:rounded focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#8bb9ff]" href={pagePath(item.page)}>
+              {item.page.navLabel}
+              <ArrowRight class="size-4" stroke-width={2} aria-hidden="true" />
+            </a>
+          )}
+        </li>
+      ))}
+    </ul>
+  </div>
+</section>
