@@ -13,6 +13,7 @@ import { createTemplateProject } from '../../src/app/studio/templateProjects';
 import routes from './data/routes.json';
 import isochrones from './data/isochrones.json';
 import places from './data/places.json';
+import viennaHandoff from './data/vienna-psd-handoff.json';
 
 type Position = [number, number];
 type PoiStyle = { color: string; size?: number; symbol?: 'none' | 'information' | 'coffee' | 'food' | 'lodging' | 'parking'; label?: string; shape?: 'circle' | 'square' | 'diamond' };
@@ -312,6 +313,16 @@ function videoNewYork(): ProjectDocument {
   return document;
 }
 
+/**
+ * The project behind explore-shots/psd-workflow-photoshop.webp, so both halves of the
+ * Photoshop handoff show the same map. Saved by an older editor version; parsing migrates it.
+ */
+function viennaPsd(): ProjectDocument {
+  const document = parseProjectDocument(structuredClone(viennaHandoff));
+  document.title = 'Liesing walking map';
+  return document;
+}
+
 function styleSample(): ProjectDocument {
   return scene({ id: 'style-sample', title: 'Copenhagen', page: { preset: 'A4', widthMm: 297, heightMm: 210, orientation: 'landscape' }, center: [12.5795, 55.6805], zoom: 13.1, preset: 'paper' });
 }
@@ -377,6 +388,7 @@ const builders: Record<string, () => ProjectDocument | Promise<ProjectDocument>>
   'lisbon-details': lisbonQuietDetails,
   italy,
   'style-sample': styleSample,
+  'vienna-psd': viennaPsd,
   kyoto: () => starterProject('kyoto', 12.45),
   'new-york': () => starterProject('new-york', 12.45),
   'video-new-york': videoNewYork,

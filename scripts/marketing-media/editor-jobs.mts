@@ -15,6 +15,19 @@ export async function rawShot(context: Context, page: Page, name: string, clip?:
   return file;
 }
 
+/** Phone crop centred on a floating panel, with a little map on each side. */
+async function panelCrop(context: Context, page: Page, panel: Box, raw: string, publicPath: string) {
+  const height = 856;
+  const width = Math.round(height * 0.62);
+  const x = Math.min(1440 - width, Math.max(0, panel.x + panel.width / 2 - width / 2));
+  await encode(raw, context.out(publicPath), { crop: { x: x * 2, y: 44 * 2, width: width * 2, height: height * 2 }, width: 800 });
+}
+
+/** The tab-only reminder about unadded work is not part of the feature being shown. */
+async function hideUnfinishedNotice(page: Page) {
+  await page.addStyleTag({ content: '.unfinished-drawing-notice { display: none !important; }' });
+}
+
 export async function dialogBox(page: Page, padding = 0) {
   return pad(await box(page.getByRole('dialog').first()), padding);
 }
@@ -114,8 +127,11 @@ export const editorJobs: Job[] = [
         await duration.waitFor();
         await settle(current, 1500);
       });
+      await hideUnfinishedNotice(page);
       const raw = await rawShot(context, page, 'isochrone-controls', INSPECTOR_VIEW);
       await encode(raw, context.out('marketing/travel-time/travel-time-area-controls.webp'), { width: 1600 });
+      const full = await rawShot(context, page, 'isochrone-controls-full');
+      await panelCrop(context, page, await box(page.locator('.tool-authoring-card').first()), full, 'marketing/travel-time/travel-time-area-controls-mobile.webp');
     },
   },
   {
@@ -136,8 +152,11 @@ export const editorJobs: Job[] = [
         await current.getByRole('button', { name: 'Stop lookup' }).waitFor({ state: 'detached', timeout: 30_000 });
         await settle(current, 1500);
       });
+      await hideUnfinishedNotice(page);
       const raw = await rawShot(context, page, 'realestate-places', INSPECTOR_VIEW);
       await encode(raw, context.out('marketing/real-estate/bulk-places-address-lookup.webp'), { width: 1600 });
+      const full = await rawShot(context, page, 'realestate-places-full');
+      await panelCrop(context, page, await box(page.getByRole('form', { name: 'Place multiple points' })), full, 'marketing/real-estate/bulk-places-address-lookup-mobile.webp');
     },
   },
   {
@@ -148,7 +167,9 @@ export const editorJobs: Job[] = [
         await current.waitForTimeout(1500);
         await useProductionOrigin(current);
       });
-      const raw = await rawShot(context, page, 'share-dialog', await dialogBox(page));
+      const dialog = await dialogBox(page);
+      const top = (await box(page.getByText('Read-only link', { exact: true }))).y - 12;
+      const raw = await rawShot(context, page, 'share-dialog', { ...dialog, y: top, height: dialog.y + dialog.height - top });
       await encode(raw, context.out('marketing/share/share-link-and-embed-dialog.webp'), { width: 1200 });
       const full = await rawShot(context, page, 'share-dialog-editor');
       await encode(full, context.out('marketing/editor/share-dialog-over-editor.webp'), { width: 1600 });

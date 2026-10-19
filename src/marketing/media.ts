@@ -171,7 +171,7 @@ export const media = {
   'isochrone.controls': {
     src: '/marketing/travel-time/travel-time-area-controls.webp', width: 1600, height: 1141,
     alt: 'Travel time panel with Dam Square as the start, walking mode and a 15 minute duration',
-    mobileSrc: '/marketing/travel-time/travel-time-area-controls-mobile.webp', mobileWidth: 800, mobileHeight: 1291,
+    mobileSrc: '/marketing/travel-time/travel-time-area-controls-mobile.webp', mobileWidth: 800, mobileHeight: 1290,
   },
   'realestate.flyer': {
     src: '/marketing/real-estate/clifton-location-map-flyer.webp', width: 1600, height: 1200,
@@ -179,8 +179,8 @@ export const media = {
   },
   'realestate.places': {
     src: '/marketing/real-estate/bulk-places-address-lookup.webp', width: 1600, height: 1141,
-    alt: 'Place multiple points panel matching a pasted list of Bristol addresses before adding them',
-    mobileSrc: '/marketing/real-estate/bulk-places-address-lookup-mobile.webp', mobileWidth: 800, mobileHeight: 1291,
+    alt: 'Place multiple panel matching a pasted list of Bristol addresses to their locations before adding them',
+    mobileSrc: '/marketing/real-estate/bulk-places-address-lookup-mobile.webp', mobileWidth: 800, mobileHeight: 1290,
   },
   'compare.export-dialog': {
     src: '/marketing/compare/export-dialog-pdf-option.webp', width: 1600, height: 1333,
@@ -192,8 +192,8 @@ export const media = {
     mobileSrc: '/marketing/sizes/page-size-presets-mobile.webp', mobileWidth: 800, mobileHeight: 1291,
   },
   'share.dialog': {
-    src: '/marketing/share/share-link-and-embed-dialog.webp', width: 1200, height: 1283,
-    alt: 'Share dialog with a read-only link, an embed toggle for pan and zoom, and the iframe code',
+    src: '/marketing/share/share-link-and-embed-dialog.webp', width: 1200, height: 942,
+    alt: 'Share dialog with a read-only link, a pan and zoom toggle for the embed, and the iframe code',
   },
   'share.embed-example': {
     src: '/marketing/share/embedded-map-in-a-blog-post.webp', width: 1600, height: 1147,
@@ -285,7 +285,7 @@ export const media = {
   },
   'og.share-and-embed-maps': {
     src: '/marketing/og/share-and-embed-maps.jpg', width: 1200, height: 630,
-    alt: 'Share and embed maps with read-only links and iframes',
+    alt: 'Share and embed maps: a read-only Lisbon map embedded in a blog post',
   },
 } as const satisfies Record<string, MarketingImage>;
 
