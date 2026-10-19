@@ -20,8 +20,8 @@ export function createAttributionController(container: HTMLDivElement) {
   const clearTimer = () => {
     if (collapseTimer !== null) clearTimeout(collapseTimer);
     collapseTimer = null;
-    document.removeEventListener('pointerdown', handleEditorInteraction, true);
-    document.removeEventListener('keydown', handleEditorInteraction, true);
+    document.removeEventListener('pointerdown', handleEditorInteraction, { capture: true });
+    document.removeEventListener('keydown', handleEditorInteraction, { capture: true });
   };
   const collapse = () => {
     clearTimer();
@@ -40,8 +40,8 @@ export function createAttributionController(container: HTMLDivElement) {
       isInitialized = true;
       setOpen(true);
       collapseTimer = setTimeout(collapse, ATTRIBUTION_COLLAPSE_DELAY_MS);
-      document.addEventListener('pointerdown', handleEditorInteraction, true);
-      document.addEventListener('keydown', handleEditorInteraction, true);
+      document.addEventListener('pointerdown', handleEditorInteraction, { capture: true });
+      document.addEventListener('keydown', handleEditorInteraction, { capture: true });
     },
   };
 }

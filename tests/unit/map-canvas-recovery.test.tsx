@@ -251,6 +251,13 @@ function resetHarness() {
   baseProps.onLayerSelect.mockReset(); baseProps.onBackgroundClick.mockReset();
 }
 
+// Attribution collapse listens to four interaction starts; every mount must remove all of them.
+function expectAttributionListenersRemoved(times: number) {
+  for (const event of ['dragstart', 'zoomstart', 'rotatestart', 'pitchstart']) {
+    expect(mocks.mapOff.mock.calls.filter(([type]) => type === event)).toHaveLength(times);
+  }
+}
+
 describe('MapCanvas camera synchronization', () => {
   beforeEach(() => { resetHarness(); vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({} as RenderingContext); });
 
@@ -497,8 +504,8 @@ describe('MapCanvas content recovery', () => {
     expect([...mocks.activeMapIds]).toEqual([1]);
     expect([...mocks.activeAdapterIds]).toEqual([1]);
     expect(Object.values(mocks.mapHandlers[0]).every((handlers) => handlers.length === 0)).toBe(true);
-    expect(mocks.mapOff).toHaveBeenCalledTimes(18);
-    expect(mocks.mapOff.mock.calls.filter(([event]) => event === 'drag')).toHaveLength(2);
+    expect(mocks.mapOff).toHaveBeenCalledTimes(24);
+    expectAttributionListenersRemoved(2);
     expect(mocks.mapOff.mock.calls.filter(([event]) => event === 'moveend')).toHaveLength(2);
     expect(mocks.adapterDestroy).toHaveBeenCalledTimes(2);
     expect(mocks.mapRemove).toHaveBeenCalledTimes(2);
@@ -509,8 +516,8 @@ describe('MapCanvas content recovery', () => {
     expect(mocks.mapHandlers.every((handlersByEvent) => (
       Object.values(handlersByEvent).every((handlers) => handlers.length === 0)
     ))).toBe(true);
-    expect(mocks.mapOff).toHaveBeenCalledTimes(27);
-    expect(mocks.mapOff.mock.calls.filter(([event]) => event === 'drag')).toHaveLength(3);
+    expect(mocks.mapOff).toHaveBeenCalledTimes(36);
+    expectAttributionListenersRemoved(3);
     expect(mocks.mapOff.mock.calls.filter(([event]) => event === 'moveend')).toHaveLength(3);
     expect(mocks.adapterDestroy).toHaveBeenCalledTimes(3);
     expect(mocks.mapRemove).toHaveBeenCalledTimes(3);
