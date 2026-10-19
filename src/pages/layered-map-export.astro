@@ -1,7 +1,7 @@
 ---
+import { page } from '../marketing/pages/layered-map-export';
 import SeoLandingPage from '../marketing/SeoLandingPage.astro';
 
-const description = 'Download your map as a high-resolution PNG, print-ready PDF, editable SVG, or layered PSD. No account, no watermark, and no upload queue.';
 const sections = [
   {
     title: 'PNG for a finished image',
@@ -108,8 +108,7 @@ const relatedLinks = [
 ---
 
 <SeoLandingPage
-  title="Layered Map Export"
-  description={description}
+  page={page}
   eyebrow="PNG, PDF, SVG, and PSD"
   heading="Download the map in the format you need."
   heroImage={{

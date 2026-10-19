@@ -1,17 +1,16 @@
 ---
 import InfoPage from '../marketing/InfoPage.astro';
+import { page } from '../marketing/pages/about';
 import {
   CREATOR_NAME,
   CREATOR_URL,
   GITHUB_URL,
 } from '../marketing/product';
 
-const description = 'Learn why Print Map Studio was created, how project files stay local, and where to find the source code or ask for help.';
 ---
 
 <InfoPage
-  title="About"
-  description={description}
+  page={page}
   eyebrow="About the project"
   heading="A map editor built for print."
 >

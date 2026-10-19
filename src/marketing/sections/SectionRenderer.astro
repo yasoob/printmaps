@@ -1,0 +1,29 @@
+---
+import CalloutSection from './CalloutSection.astro';
+import ComparisonSection from './ComparisonSection.astro';
+import DefinitionsSection from './DefinitionsSection.astro';
+import ExampleSection from './ExampleSection.astro';
+import GallerySection from './GallerySection.astro';
+import ProseSection from './ProseSection.astro';
+import StepsSection from './StepsSection.astro';
+import TableSection from './TableSection.astro';
+import VideoSection from './VideoSection.astro';
+import type { PageSection } from './types';
+
+type Props = {
+  id: string;
+  section: PageSection;
+};
+
+const { id, section } = Astro.props;
+---
+
+{section.kind === 'steps' ? <StepsSection id={id} section={section} />
+  : section.kind === 'comparison' ? <ComparisonSection id={id} section={section} />
+  : section.kind === 'table' ? <TableSection id={id} section={section} />
+  : section.kind === 'definitions' ? <DefinitionsSection id={id} section={section} />
+  : section.kind === 'gallery' ? <GallerySection id={id} section={section} />
+  : section.kind === 'callout' ? <CalloutSection id={id} section={section} />
+  : section.kind === 'video' ? <VideoSection id={id} section={section} />
+  : section.kind === 'example' ? <ExampleSection id={id} section={section} />
+  : <ProseSection id={id} section={section} />}

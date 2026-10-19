@@ -1,39 +1,52 @@
 ---
-type FeatureIcon =
-  | 'a-series'
-  | 'browser'
-  | 'color-edit'
-  | 'dimensions'
-  | 'download'
-  | 'fit'
-  | 'geojson'
-  | 'gpx'
-  | 'import'
-  | 'kml'
-  | 'language'
-  | 'layer-labels'
-  | 'layers'
-  | 'layout'
-  | 'marker'
-  | 'no-account'
-  | 'orientation'
-  | 'palette'
-  | 'pdf-reader'
-  | 'pixels'
-  | 'print'
-  | 'psd-file'
-  | 'region'
-  | 'route'
-  | 'separate-elements'
-  | 'share'
-  | 'smart-object'
-  | 'svg-editor'
-  | 'text-scale'
-  | 'tiles'
-  | 'transform'
-  | 'us-letter'
-  | 'validation'
-  | 'visibility';
+import {
+  Box,
+  CalendarCheck,
+  ChartArea,
+  CodeXml,
+  Compass,
+  Earth,
+  Frame,
+  Grid3x3,
+  House,
+  Heart,
+  Images,
+  LayoutTemplate,
+  Link2,
+  Mountain,
+  QrCode,
+  Ruler,
+  Sheet,
+  Film,
+  Timer,
+  Type,
+  WavesHorizontal,
+} from '@lucide/astro';
+import type { FeatureIcon } from './featureIcons';
+
+const LUCIDE_FEATURE_ICONS = {
+  calendar: CalendarCheck,
+  compass: Compass,
+  contours: WavesHorizontal,
+  'country-shape': Earth,
+  elevation: ChartArea,
+  embed: CodeXml,
+  grid: Grid3x3,
+  heart: Heart,
+  home: House,
+  isochrone: Timer,
+  link: Link2,
+  photos: Images,
+  'qr-code': QrCode,
+  'relief-3d': Box,
+  'scale-bar': Ruler,
+  spreadsheet: Sheet,
+  template: LayoutTemplate,
+  terrain: Mountain,
+  title: Type,
+  video: Film,
+  'wall-frame': Frame,
+} as const;
 
 type Props = {
   items: readonly {
@@ -50,6 +63,10 @@ const { items, label } = Astro.props;
   {items.map((item) => (
     <li class="text-center">
       <span class="mx-auto grid size-10 place-items-center text-[#0071e3]" aria-hidden="true">
+        {item.icon in LUCIDE_FEATURE_ICONS && (() => {
+          const Icon = LUCIDE_FEATURE_ICONS[item.icon as keyof typeof LUCIDE_FEATURE_ICONS];
+          return <Icon class="size-9" stroke-width={1.5} />;
+        })()}
         {item.icon === 'palette' && (
           <svg class="size-9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 3a9 9 0 0 0 0 18h1.5a2 2 0 0 0 0-4H12a2 2 0 0 1 0-4h3a6 6 0 0 0 0-12Z"></path>

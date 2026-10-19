@@ -1,7 +1,7 @@
 ---
+import { page } from '../marketing/pages/printable-map-maker';
 import SeoLandingPage from '../marketing/SeoLandingPage.astro';
 
-const description = 'Design a custom printable map in your browser. Set any page size, pick a style, add routes and places, then export PNG, PDF, layered SVG, or PSD.';
 const sections = [
   {
     title: 'Set the page size before you design',
@@ -99,8 +99,7 @@ const relatedLinks = [
 ---
 
 <SeoLandingPage
-  title="Printable Map Maker"
-  description={description}
+  page={page}
   eyebrow="Free browser-based map editor"
   heading="Build a printable map at the exact page size."
   heroImage={{

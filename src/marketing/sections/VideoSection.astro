@@ -1,0 +1,69 @@
+---
+import SectionIntro from './SectionIntro.astro';
+import type { VideoSection } from './types';
+
+type Props = {
+  id: string;
+  section: VideoSection;
+};
+
+const { id, section } = Astro.props;
+const { media } = section;
+---
+
+<div class="mx-auto max-w-4xl">
+  <SectionIntro id={id} title={section.title} paragraphs={section.paragraphs} />
+  <figure class="mt-10">
+    <div class="overflow-hidden rounded-xl border border-[#d2d2d7] bg-[#f5f5f7]">
+      {media.video ? (
+        <video
+          data-marketing-video
+          class="block h-auto w-full"
+          width={media.width}
+          height={media.height}
+          poster={media.src}
+          aria-label={media.alt}
+          muted
+          loop
+          playsinline
+          controls
+          preload="none"
+        >
+          <source src={media.video.src} type={media.video.type} />
+          {section.tracks?.map((track) => <track src={track.src} srclang={track.srclang} label={track.label} kind={track.kind ?? 'captions'} />)}
+        </video>
+      ) : (
+        <img class="block h-auto w-full" src={media.src} alt={media.alt} width={media.width} height={media.height} loading="lazy" decoding="async" />
+      )}
+    </div>
+    {section.caption && <figcaption class="mt-3 text-left text-xs leading-5 text-[#6e6e73]">{section.caption}</figcaption>}
+  </figure>
+</div>
+
+<script>
+  const videos = document.querySelectorAll<HTMLVideoElement>('[data-marketing-video]');
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const userPaused = new WeakSet<HTMLVideoElement>();
+
+  for (const video of videos) {
+    video.addEventListener('pause', () => {
+      if (video.dataset.autoPausing !== 'true') userPaused.add(video);
+      delete video.dataset.autoPausing;
+    });
+    video.addEventListener('play', () => userPaused.delete(video));
+  }
+
+  const observer = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      const video = entry.target as HTMLVideoElement;
+      if (entry.isIntersecting) {
+        if (!reducedMotion.matches && !userPaused.has(video)) void video.play().catch(() => undefined);
+      } else if (!video.paused) {
+        video.dataset.autoPausing = 'true';
+        video.pause();
+      }
+    }
+  }, { threshold: 0.4 });
+
+  for (const video of videos) observer.observe(video);
+</script>

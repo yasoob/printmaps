@@ -1,0 +1,23 @@
+---
+import { ChevronRight } from '@lucide/astro';
+
+type Props = {
+  items: readonly { name: string; href?: string }[];
+  class?: string;
+};
+
+const { items, class: className } = Astro.props;
+---
+
+<nav aria-label="Breadcrumb" class:list={['font-inter', className]}>
+  <ol class="flex list-none flex-wrap items-center gap-1.5 p-0 text-xs font-medium text-[#6e6e73]">
+    {items.map((item, index) => (
+      <li class="inline-flex items-center gap-1.5">
+        {index > 0 && <ChevronRight class="size-3.5 text-[#86868b]" stroke-width={2} aria-hidden="true" />}
+        {item.href && index < items.length - 1
+          ? <a class="text-[#6e6e73] no-underline hover:text-[#0071e3] focus-visible:rounded focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#8bb9ff]" href={item.href}>{item.name}</a>
+          : <span aria-current="page" class="text-[#1d1d1f]">{item.name}</span>}
+      </li>
+    ))}
+  </ol>
+</nav>

@@ -1,13 +1,12 @@
 ---
 import InfoPage from '../marketing/InfoPage.astro';
+import { page } from '../marketing/pages/privacy';
 import { GITHUB_URL } from '../marketing/product';
 
-const description = 'How Print Map Studio handles local project data, imported files, analytics, map service requests, browser storage, and client-side exports.';
 ---
 
 <InfoPage
-  title="Privacy"
-  description={description}
+  page={page}
   eyebrow="Privacy"
   heading="What stays on your device and what leaves it."
   updated="September 13, 2026"

@@ -1,0 +1,23 @@
+---
+import SectionIntro from './SectionIntro.astro';
+import type { DefinitionsSection } from './types';
+
+type Props = {
+  id: string;
+  section: DefinitionsSection;
+};
+
+const { id, section } = Astro.props;
+---
+
+<div class="mx-auto max-w-4xl">
+  <SectionIntro id={id} title={section.title} paragraphs={section.paragraphs} />
+  <dl class="mt-8 grid gap-x-10 gap-y-6 sm:grid-cols-[minmax(10rem,14rem)_minmax(0,1fr)]">
+    {section.items.map((item) => (
+      <>
+        <dt class="text-base font-semibold text-[#1d1d1f] max-sm:mt-2">{item.term}</dt>
+        <dd class="m-0 text-base leading-7 text-[#515154]">{item.definition}</dd>
+      </>
+    ))}
+  </dl>
+</div>

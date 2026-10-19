@@ -1,0 +1,40 @@
+---
+import SectionIntro from './SectionIntro.astro';
+import type { TableSection } from './types';
+
+type Props = {
+  id: string;
+  section: TableSection;
+};
+
+const { id, section } = Astro.props;
+const firstColumnIsHeader = section.firstColumnIsHeader ?? true;
+---
+
+<div class="mx-auto max-w-4xl">
+  <SectionIntro id={id} title={section.title} paragraphs={section.paragraphs} />
+  <div class="mt-8 overflow-x-auto rounded-xl border border-[#d2d2d7]" role="region" aria-labelledby={`${id}-title`} tabindex="0">
+    <table class="w-full border-collapse text-left text-sm tabular-nums">
+      {section.caption && <caption class="px-5 pt-4 text-left text-xs text-[#6e6e73]">{section.caption}</caption>}
+      <thead class="bg-[#f5f5f7]">
+        <tr>
+          {section.headers.map((header) => <th scope="col" class="px-4 py-3 font-semibold whitespace-nowrap text-[#1d1d1f]">{header}</th>)}
+        </tr>
+      </thead>
+      <tbody>
+        {section.rows.map((row) => (
+          <tr class="border-t border-[#e8e8ed]">
+            {row.map((cell, index) => (index === 0 && firstColumnIsHeader
+              ? <th scope="row" class="px-4 py-3 font-semibold whitespace-nowrap text-[#1d1d1f]">{cell}</th>
+              : <td class="px-4 py-3 text-[#515154]">{cell}</td>))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+  {section.footnotes && (
+    <ul class="mt-4 list-none space-y-1 p-0 text-xs leading-5 text-[#6e6e73]">
+      {section.footnotes.map((note) => <li>{note}</li>)}
+    </ul>
+  )}
+</div>

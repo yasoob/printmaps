@@ -1,0 +1,30 @@
+---
+import SectionFigure from './SectionFigure.astro';
+import SectionIntro from './SectionIntro.astro';
+import type { StepsSection } from './types';
+
+type Props = {
+  id: string;
+  section: StepsSection;
+};
+
+const { id, section } = Astro.props;
+---
+
+<div class="mx-auto max-w-4xl">
+  <SectionIntro id={id} title={section.title} paragraphs={section.paragraphs} />
+  <ol class="mt-10 list-none space-y-10 p-0" aria-labelledby={`${id}-title`}>
+    {section.steps.map((step, index) => (
+      <li class="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-4 sm:grid-cols-[3rem_minmax(0,1fr)] sm:gap-x-6">
+        <span class="grid size-10 place-items-center rounded-full bg-[#0071e3] text-base font-semibold text-white sm:size-12 sm:text-lg" aria-hidden="true">{index + 1}</span>
+        <div class="min-w-0 pt-1.5 sm:pt-2.5">
+          <h3 class="text-lg font-semibold tracking-[-0.02em] sm:text-xl">
+            <span class="sr-only">Step {index + 1}: </span>{step.title}
+          </h3>
+          <p class="mt-2 text-base leading-7 text-[#515154]">{step.body}</p>
+          {step.image && <SectionFigure class="mt-5" image={step.image} />}
+        </div>
+      </li>
+    ))}
+  </ol>
+</div>

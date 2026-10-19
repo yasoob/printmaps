@@ -1,0 +1,26 @@
+---
+import SectionFigure from './SectionFigure.astro';
+import SectionIntro from './SectionIntro.astro';
+import type { GallerySection } from './types';
+
+type Props = {
+  id: string;
+  section: GallerySection;
+};
+
+const { id, section } = Astro.props;
+const columns = section.columns ?? 3;
+---
+
+<div class="mx-auto max-w-[68rem]">
+  <div class="max-w-4xl">
+    <SectionIntro id={id} title={section.title} paragraphs={section.paragraphs} />
+  </div>
+  <div class:list={[
+    'mt-10 grid gap-x-5 gap-y-8 sm:grid-cols-2',
+    columns === 3 && 'lg:grid-cols-3',
+    columns === 4 && 'lg:grid-cols-4',
+  ]}>
+    {section.images.map((image) => <SectionFigure image={image} />)}
+  </div>
+</div>

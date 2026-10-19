@@ -1,0 +1,37 @@
+---
+import ExportFormatRow from '../ExportFormatRow.astro';
+import FeatureIconGrid from '../FeatureIconGrid.astro';
+import PhotoshopHandoff from '../PhotoshopHandoff.astro';
+import SectionFigure from './SectionFigure.astro';
+import SectionIntro from './SectionIntro.astro';
+import type { ProseSection } from './types';
+
+type Props = {
+  id: string;
+  section: ProseSection;
+};
+
+const { id, section } = Astro.props;
+const beside = section.image && section.imagePosition === 'beside';
+---
+
+<div class:list={['mx-auto', beside ? 'grid max-w-[68rem] items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-14' : 'max-w-4xl']}>
+  <div>
+    <SectionIntro id={id} title={section.title} paragraphs={section.paragraphs} />
+    {section.highlights && <FeatureIconGrid label={`${section.title} features`} items={section.highlights} />}
+    {section.points && (
+      <ul class="mt-6 grid list-none gap-3 p-0 sm:grid-cols-2">
+        {section.points.map((point) => <li class="rounded-xl bg-[#f5f5f7] px-4 py-3 text-sm font-medium text-[#3a3a3c]">{point}</li>)}
+      </ul>
+    )}
+    {section.showExportFormats && <ExportFormatRow class="mt-8" />}
+    {section.showPhotoshopHandoff && <PhotoshopHandoff />}
+    {section.image && !beside && <SectionFigure class="mt-10" image={section.image} />}
+    {section.imageRow && (
+      <div class="-mx-4 mt-10 grid snap-x snap-mandatory auto-cols-[78%] grid-flow-col gap-3 overflow-x-auto overscroll-x-contain px-4 pb-2 sm:mx-0 sm:grid-flow-row sm:grid-cols-3 sm:overflow-visible sm:px-0 sm:pb-0">
+        {section.imageRow.map((image) => <SectionFigure class="snap-start" image={image} />)}
+      </div>
+    )}
+  </div>
+  {section.image && beside && <SectionFigure image={section.image} />}
+</div>

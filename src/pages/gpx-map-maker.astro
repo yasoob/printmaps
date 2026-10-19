@@ -1,7 +1,7 @@
 ---
+import { page } from '../marketing/pages/gpx-map-maker';
 import SeoLandingPage from '../marketing/SeoLandingPage.astro';
 
-const description = 'Upload GPX, KML, or GeoJSON and turn a recorded track into a print-ready map. Style routes and waypoints, set the page size, and export PNG, PDF, SVG, or PSD.';
 const sections = [
   {
     title: 'Import a recorded track',
@@ -109,8 +109,7 @@ const relatedLinks = [
 ---
 
 <SeoLandingPage
-  title="GPX Map Maker"
-  description={description}
+  page={page}
   eyebrow="Import your recorded tracks"
   heading="Turn a GPX file into a print-ready map."
   heroImage={{

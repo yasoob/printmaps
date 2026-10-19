@@ -1,0 +1,12 @@
+---
+type Props = {
+  id: string;
+  title: string;
+  paragraphs?: readonly string[];
+};
+
+const { id, title, paragraphs = [] } = Astro.props;
+---
+
+<h2 id={`${id}-title`} class="text-2xl font-semibold tracking-[-0.03em] sm:text-3xl lg:text-4xl">{title}</h2>
+{paragraphs.map((paragraph) => <p class="mt-5 text-base leading-7 text-[#515154] sm:text-lg sm:leading-8">{paragraph}</p>)}

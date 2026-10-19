@@ -4,13 +4,20 @@ import MarketingFooter from './MarketingFooter.astro';
 import MarketingHeader from './MarketingHeader.astro';
 import { interFontUrl } from './interFont';
 import { marketingFontUrl } from './font';
+import type { MarketingImage } from './media';
 import { SITE_NAME } from './product';
+import { fullTitle as titleWithSuffix, ogImageFor } from './registry';
 import './styles.css';
 
 type Props = {
   title: string;
   description: string;
   includeSiteNameSuffix?: boolean;
+  /** Social image; defaults to `og.<slug>` from media, then the generic social preview. */
+  ogImage?: MarketingImage;
+  ogType?: 'website' | 'article';
+  /** e.g. `noindex` for the 404 page. Omitted means indexable. */
+  robots?: string;
   showHeader?: boolean;
   structuredData?: object | readonly object[];
 };
@@ -19,12 +26,17 @@ const {
   title,
   description,
   includeSiteNameSuffix = true,
+  ogImage,
+  ogType = 'website',
+  robots,
   showHeader = true,
   structuredData,
 } = Astro.props;
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
-const socialImageUrl = new URL('/social-preview.png', Astro.site);
-const fullTitle = includeSiteNameSuffix ? `${title} | ${SITE_NAME}` : title;
+const slug = Astro.url.pathname.replace(/^\/|\/$/g, '');
+const socialImage = ogImage ?? ogImageFor(slug);
+const socialImageUrl = new URL(socialImage.src, Astro.site);
+const fullTitle = includeSiteNameSuffix ? titleWithSuffix(title) : title;
 ---
 
 <!doctype html>
@@ -35,23 +47,28 @@ const fullTitle = includeSiteNameSuffix ? `${title} | ${SITE_NAME}` : title;
     <meta name="generator" content={Astro.generator} />
     <meta name="theme-color" content="#f4f2ec" />
     <meta name="description" content={description} />
+    {robots && <meta name="robots" content={robots} />}
     <link rel="preload" href={interFontUrl} as="font" type="font/woff2" crossorigin />
     <link rel="preload" href={marketingFontUrl} as="font" type="font/woff2" crossorigin />
     <link rel="canonical" href={canonicalUrl} />
     <link rel="icon" type="image/png" href="/favicon.png" />
-    <meta property="og:type" content="website" />
+    <link rel="apple-touch-icon" href="/logo.png" />
+    <link rel="sitemap" type="application/xml" href="/sitemap-index.xml" />
+    <meta property="og:type" content={ogType} />
+    <meta property="og:locale" content="en_US" />
     <meta property="og:site_name" content={SITE_NAME} />
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:image" content={socialImageUrl} />
-    <meta property="og:image:alt" content="Print Map Studio marketing artwork with a colorful layered map" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={socialImage.alt} />
+    <meta property="og:image:width" content={String(socialImage.width)} />
+    <meta property="og:image:height" content={String(socialImage.height)} />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={fullTitle} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={socialImageUrl} />
+    <meta name="twitter:image:alt" content={socialImage.alt} />
     <title>{fullTitle}</title>
     <GoogleAnalytics />
     {

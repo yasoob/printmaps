@@ -1,0 +1,68 @@
+---
+import { Check, X } from '@lucide/astro';
+import SectionIntro from './SectionIntro.astro';
+import type { ComparisonCell, ComparisonSection } from './types';
+
+type Props = {
+  id: string;
+  section: ComparisonSection;
+};
+
+const { id, section } = Astro.props;
+
+function cellValue(cell: ComparisonCell): { value: boolean | string; note?: string } {
+  return typeof cell === 'object' ? cell : { value: cell };
+}
+---
+
+<div class="mx-auto max-w-[68rem]">
+  <div class="max-w-4xl">
+    <SectionIntro id={id} title={section.title} paragraphs={section.paragraphs} />
+  </div>
+  <div class="mt-10 overflow-x-auto rounded-xl border border-[#d2d2d7]" role="region" aria-labelledby={`${id}-title`} tabindex="0">
+    <table class="w-full min-w-[36rem] border-collapse text-left text-sm">
+      {section.caption && <caption class="px-5 pt-4 text-left text-xs text-[#6e6e73]">{section.caption}</caption>}
+      <thead>
+        <tr class="border-b border-[#d2d2d7]">
+          <th scope="col" class="px-5 py-4 font-semibold text-[#6e6e73]">{section.rowHeader ?? 'Feature'}</th>
+          {section.columns.map((column, index) => (
+            <th scope="col" class:list={['px-5 py-4 font-semibold', index === section.highlightColumn && 'bg-[#f0f6ff] text-[#0071e3]']}>{column}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {section.rows.map((row) => (
+          <tr class="border-b border-[#e8e8ed] last:border-b-0">
+            <th scope="row" class="px-5 py-4 align-top font-medium text-[#1d1d1f]">{row.label}</th>
+            {row.cells.map((rawCell, index) => {
+              const cell = cellValue(rawCell);
+              return (
+                <td class:list={['px-5 py-4 align-top text-[#515154]', index === section.highlightColumn && 'bg-[#f0f6ff]']}>
+                  {cell.value === true && (
+                    <span class="inline-flex items-center gap-1.5 text-[#1d7f3c]">
+                      <Check class="size-5 shrink-0" stroke-width={2} aria-hidden="true" />
+                      <span class="sr-only">Yes</span>
+                    </span>
+                  )}
+                  {cell.value === false && (
+                    <span class="inline-flex items-center gap-1.5 text-[#86868b]">
+                      <X class="size-5 shrink-0" stroke-width={2} aria-hidden="true" />
+                      <span class="sr-only">No</span>
+                    </span>
+                  )}
+                  {typeof cell.value === 'string' && <span>{cell.value}</span>}
+                  {cell.note && <span class="mt-1 block text-xs leading-5 text-[#6e6e73]">{cell.note}</span>}
+                </td>
+              );
+            })}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+  {section.footnotes && (
+    <ol class="mt-4 list-none space-y-1 p-0 text-xs leading-5 text-[#6e6e73]">
+      {section.footnotes.map((note) => <li>{note}</li>)}
+    </ol>
+  )}
+</div>
