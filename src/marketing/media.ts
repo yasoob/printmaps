@@ -24,12 +24,12 @@ export type MarketingImage = {
 export const media = {
   'hero.desktop': {
     src: '/marketing/hero/editor-lisbon-poster-layout.webp', width: 1600, height: 924,
-    alt: 'Print Map Studio editor with an A3 Lisbon poster and the Layout tab open',
-    mobileSrc: '/marketing/hero/editor-lisbon-mobile.webp', mobileWidth: 780, mobileHeight: 1688,
+    alt: 'Print Map Studio editor with an A3 Lisbon poster, a walking route and four named places',
+    mobileSrc: '/marketing/hero/editor-lisbon-mobile.webp', mobileWidth: 780, mobileHeight: 1200,
   },
   'hero.mobile': {
-    src: '/marketing/hero/editor-lisbon-mobile.webp', width: 780, height: 1688,
-    alt: 'The editor on a phone with the Lisbon poster on the page',
+    src: '/marketing/hero/editor-lisbon-mobile.webp', width: 780, height: 1200,
+    alt: 'The editor on a phone with a Lisbon walking route poster on the page',
   },
   'editor.map-tab': {
     src: '/marketing/editor/map-tab-style-gallery.webp', width: 1600, height: 1000,
@@ -84,7 +84,7 @@ export const media = {
   },
   'country.poster-filled': {
     src: '/marketing/country/italy-country-shaped-map-poster.webp', width: 1600, height: 1200,
-    alt: 'Italy poster where the map is cut to the outline of the country, islands included',
+    alt: 'Italy poster where the map is cut to the outline of the country, with Sicily and Sardinia included',
   },
   'country.frame-controls': {
     src: '/marketing/country/country-outline-map-frame-controls.webp', width: 1600, height: 1263,
@@ -139,9 +139,9 @@ export const media = {
     alt: 'Topographic poster of Zermatt and the Matterhorn with contour lines every 50 metres',
   },
   'topo.terrain-3d': {
-    src: '/marketing/topo/matterhorn-3d-terrain-with-contours.webp', width: 1600, height: 1263,
+    src: '/marketing/topo/matterhorn-3d-terrain-with-contours.webp', width: 1600, height: 1141,
     alt: 'Tilted 3D terrain around the Matterhorn with contour lines and the Terrain settings open',
-    mobileSrc: '/marketing/topo/matterhorn-3d-terrain-with-contours-mobile.webp', mobileWidth: 800, mobileHeight: 1290,
+    mobileSrc: '/marketing/topo/matterhorn-3d-terrain-with-contours-mobile.webp', mobileWidth: 800, mobileHeight: 1291,
   },
   'stl.relief-preview': {
     src: '/marketing/stl/matterhorn-stl-relief-preview.webp', width: 1600, height: 1100,

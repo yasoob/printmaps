@@ -83,6 +83,9 @@ const thames = await osrmRoute('https://routing.openstreetmap.de/routed-foot', [
   [-0.0754, 51.5055], [-0.1243, 51.5085], [-0.17, 51.484], [-0.2133, 51.4669], [-0.225, 51.49], [-0.231, 51.487],
   [-0.229, 51.47], [-0.157, 51.4791], [-0.115, 51.507], [-0.0754, 51.504], [-0.03, 51.5], [-0.0098, 51.4828],
 ], 0.00011);
+const lisbonWalk = await osrmRoute('https://routing.openstreetmap.de/routed-foot', [
+  [-9.15, 38.7253], [-9.1393, 38.7139], [-9.1365, 38.7077], [-9.1334, 38.7098], [-9.1334, 38.7139], [-9.1316, 38.7163],
+], 0.00003);
 const amsterdam: Position = [4.8932, 52.3731];
 const amsterdamIsochrones = [];
 for (const minutes of [10, 20, 30]) amsterdamIsochrones.push(await valhallaIsochrone(amsterdam, 'pedestrian', minutes));
@@ -99,7 +102,7 @@ const clifton: Record<string, Position> = {};
 for (const [key, query] of Object.entries(cliftonQueries)) clifton[key] = await nominatim(query);
 const cliftonWalk = await valhallaIsochrone(clifton.home, 'pedestrian', 15);
 
-await writeFile(new URL('routes.json', dataDirectory), `${JSON.stringify({ utah, ventoux, thames }, null, 1)}\n`);
+await writeFile(new URL('routes.json', dataDirectory), `${JSON.stringify({ utah, ventoux, thames, lisbonWalk }, null, 1)}\n`);
 await writeFile(new URL('isochrones.json', dataDirectory), `${JSON.stringify({ amsterdam: amsterdamIsochrones, cliftonWalk }, null, 1)}\n`);
 await writeFile(new URL('places.json', dataDirectory), `${JSON.stringify({ clifton }, null, 1)}\n`);
 console.log('utah', utah.geometry.length, 'ventoux', ventoux.geometry.length, 'thames', thames.geometry.length, thames.distanceMeters);

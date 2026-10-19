@@ -19,16 +19,6 @@ export async function dialogBox(page: Page, padding = 0) {
   return pad(await box(page.getByRole('dialog').first()), padding);
 }
 
-async function addCountryOutline(page: Page, country: string) {
-  await openTab(page, 'Layout');
-  await accordion(page, 'Map frame');
-  await page.getByRole('radio', { name: 'Country / region' }).click();
-  await page.getByRole('combobox', { name: 'Country' }).click();
-  await page.getByRole('option', { name: `${country} Country`, exact: true }).click();
-  await page.getByRole('button', { name: 'Add area' }).click();
-  await settle(page, 4000);
-}
-
 async function sceneShot(context: Context, scene: string, prepare: (page: Page) => Promise<void>) {
   const page = await context.page();
   await loadScene(page, scene);
@@ -42,8 +32,8 @@ export const editorJobs: Job[] = [
     async run(context) {
       const controls = context.raw('country-controls.png');
       const poster = await context.poster('italy', async (page) => {
-        await addCountryOutline(page, 'Italy');
-        await collapseAll(page, ['Page']);
+        await openTab(page, 'Layout');
+        await collapseAll(page, PANEL_TITLES);
         await accordion(page, 'Map frame');
         await capture(page, controls, INSPECTOR_VIEW);
       });
@@ -83,7 +73,7 @@ export const editorJobs: Job[] = [
         await accordion(current, 'Terrain');
         await settle(current, 6000);
       });
-      const raw = await rawShot(context, page, 'topo-3d', INSPECTOR_VIEW);
+      const raw = await rawShot(context, page, 'topo-3d', { x: 240, y: 44, width: 1200, height: 856 });
       await encode(raw, context.out('marketing/topo/matterhorn-3d-terrain-with-contours.webp'), { width: 1600 });
     },
   },

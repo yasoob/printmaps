@@ -275,11 +275,22 @@ function clifton(isBase = false): ProjectDocument {
 }
 
 /**
-Starting point for the country-outline poster; the outline itself is added through the Layout tab.
-*/
-function italy(): ProjectDocument {
-  const document = scene({ id: 'italy', title: 'Italy', page: A3_PORTRAIT, center: [12.6, 41.9], zoom: 5.2, preset: 'terracotta', template: 'silhouette', subtitle: 'From the Alps to Sicily' });
-  document.style.visibility = { ...document.style.visibility, transit: false };
+ * The country-outline poster, built the way Layout › Map frame › Country / region builds it,
+ * but with a hand-tuned camera so the country fills the page and labels off for a shape-first look.
+ */
+async function italy(): Promise<ProjectDocument> {
+  const response = await fetch('/data/administrative/countries/ITA.json');
+  const shard = await response.json() as { country: { geometry: ContentLayer['geometry'] } };
+  const document = scene({ id: 'italy', title: 'Italy', page: A3_PORTRAIT, center: [12.55, 41.8], zoom: 4.98, preset: 'terracotta', template: 'silhouette', subtitle: 'From the Alps to Sicily' });
+  const paper = document.studio.poster.backgroundColor;
+  const outline: ContentLayer = {
+    id: 'silhouette-italy', name: 'Italy silhouette', type: 'shape', visible: true, locked: false, opacity: 100,
+    appearance: { kind: 'shape', fillColor: paper, strokeColor: paper, strokeWidth: 0.5, invert: true },
+    geometry: shard.country.geometry,
+  };
+  document.layers = [outline, ...document.layers];
+  document.studio.poster.silhouetteLayerId = outline.id;
+  document.style.visibility = { ...document.style.visibility, labels: false, transit: false };
   return document;
 }
 
@@ -303,6 +314,26 @@ function videoNewYork(): ProjectDocument {
 
 function styleSample(): ProjectDocument {
   return scene({ id: 'style-sample', title: 'Copenhagen', page: { preset: 'A4', widthMm: 297, heightMm: 210, orientation: 'landscape' }, center: [12.5795, 55.6805], zoom: 13.1, preset: 'paper' });
+}
+
+/**
+ * The hero project: the Lisbon starter with a walking day across the centre.
+ */
+function lisbonWalk(): ProjectDocument {
+  const document = lisbon();
+  document.title = 'A day in Lisbon';
+  document.camera = { ...document.camera, center: [-9.1405, 38.7165], zoom: 13.45 };
+  document.studio.poster.subtitle = { ...document.studio.poster.subtitle, text: 'From Marquês de Pombal to the Graça viewpoint' };
+  const ink = '#24303a';
+  document.layers = [
+    poi('graca', 'Miradouro da Graça', [-9.1316, 38.7163], { color: ink, size: 14, label: 'Miradouro da Graça' }),
+    poi('castelo', 'Castelo de São Jorge', [-9.1334, 38.7139], { color: ink, size: 14, label: 'Castelo de São Jorge' }),
+    poi('comercio', 'Praça do Comércio', [-9.1365, 38.7077], { color: ink, size: 14, label: 'Praça do Comércio' }),
+    poi('pombal', 'Marquês de Pombal', [-9.15, 38.7253], { color: ink, size: 14, label: 'Marquês de Pombal' }),
+    trackRoute('lisbon-walk', 'Walking route', routes.lisbonWalk.geometry as Position[], { color: '#c8553d', width: 5 }),
+    ...document.layers,
+  ];
+  return document;
 }
 
 function lisbonGerman(): ProjectDocument {
@@ -337,6 +368,12 @@ const builders: Record<string, () => ProjectDocument | Promise<ProjectDocument>>
   'lisbon-quiet': () => lisbon('minimal'),
   'lisbon-dark': () => lisbon('gallery'),
   'lisbon-german': lisbonGerman,
+  'lisbon-walk': lisbonWalk,
+  'lisbon-walk-phone': () => {
+    const document = lisbonWalk();
+    document.camera = { ...document.camera, center: [-9.1415, 38.7165], zoom: 12.45 };
+    return document;
+  },
   'lisbon-details': lisbonQuietDetails,
   italy,
   'style-sample': styleSample,

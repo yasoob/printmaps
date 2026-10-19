@@ -207,3 +207,14 @@ the Playwright probe, run `npm run audit:renders`, then fix one unexpected
 dependency and rerun the same probe before moving to the next interaction. Add
 an entry to `REACT_SCAN_TARGETS` only when a discovered component needs a more
 descriptive area in the inventory.
+
+## Marketing images
+
+Every screenshot, finished-poster image, video clip and OG card on the marketing site is captured from the real editor. Pages reference them only through `media['<key>']` in `src/marketing/media.ts`.
+
+1. Start the editor with a placeholder Mapbox token so the travel-time and address-lookup panels render (their responses are served from `tests/marketing-media/data`):
+   `VITE_REACT_SCAN=false VITE_MAPBOX_PUBLIC_ACCESS=pk.marketing-media.capture npx astro dev --host 127.0.0.1 --port 4480`
+2. Run `npm run media:capture` for everything, or pass job ids (`npm run media:capture -- city route og`). Raw captures are cached in `$MEDIA_WORK_DIR` (defaults to the OS temp folder). Add `--fresh` to re-export cached posters.
+3. Run `npx vitest run tests/unit/marketing-media.test.ts` to check that every entry's file exists and its width and height match.
+
+Demo projects are built with the editor's own domain code in `tests/marketing-media/scenes.ts`. Routes, walking areas and addresses come from OpenStreetMap services (OSRM, Valhalla, Nominatim) through `scripts/marketing-media/fetch-data.mts`, which you only need to rerun when you change a demo route. The road-trip photos are public-domain NPS images listed in `tests/marketing-media/photos/LICENSES.md`. Firefox has no MP4 MediaRecorder, so the video job samples frames from the editor's own recording canvas and encodes the clip with ffmpeg. ImageMagick (`magick`) and ffmpeg must be installed.

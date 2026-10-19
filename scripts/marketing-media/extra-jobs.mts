@@ -76,17 +76,17 @@ async function styleGrid(context: Context) {
 
 async function heroShots(context: Context) {
   const desktop = await context.page({ width: 1440, height: 832 });
-  await loadScene(desktop, 'lisbon');
+  await loadScene(desktop, 'lisbon-walk');
   await desktop.getByRole('tab', { name: 'Layout', exact: true }).click();
   await desktop.waitForTimeout(800);
   const desktopRaw = await rawShot(context, desktop, 'hero-desktop');
   await encode(desktopRaw, context.out('hero-assets/editor-new-york.webp'), { width: 1600, height: 924 });
   await encode(desktopRaw, context.out('marketing/hero/editor-lisbon-poster-layout.webp'), { width: 1600 });
   const tablet = await context.page({ width: 1024, height: 775 });
-  await loadScene(tablet, 'lisbon');
+  await loadScene(tablet, 'lisbon-walk');
   await encode(await rawShot(context, tablet, 'hero-tablet'), context.out('hero-assets/editor-tablet.webp'), { width: 1400, height: 1059 });
-  const mobile = await context.page({ width: 390, height: 844 });
-  await loadScene(mobile, 'lisbon');
+  const mobile = await context.page({ width: 390, height: 600 });
+  await loadScene(mobile, 'lisbon-walk-phone');
   const mobileRaw = await rawShot(context, mobile, 'hero-mobile');
   await encode(mobileRaw, context.out('hero-assets/editor-mobile.webp'), { width: 780, height: 535 });
   await encode(mobileRaw, context.out('marketing/hero/editor-lisbon-mobile.webp'), { width: 780 });
