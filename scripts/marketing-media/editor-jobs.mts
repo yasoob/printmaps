@@ -7,7 +7,7 @@ import { accordion, box, capture, collapseAll, openExport, openTab, pad, selectL
 export const PANEL_TITLES = ['Style', 'Labels & details', 'Terrain', 'View', 'Page', 'Map frame', 'Text', 'Photos', 'Map elements'];
 
 /** Map canvas plus the inspector: the standard framing for feature shots. */
-export const INSPECTOR_VIEW: Box = { x: 300, y: 0, width: 1140, height: 900 };
+export const INSPECTOR_VIEW: Box = { x: 240, y: 44, width: 1200, height: 856 };
 
 export async function rawShot(context: Context, page: Page, name: string, clip?: Box) {
   const file = context.raw(`${name}.png`);

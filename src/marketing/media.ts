@@ -87,9 +87,9 @@ export const media = {
     alt: 'Italy poster where the map is cut to the outline of the country, with Sicily and Sardinia included',
   },
   'country.frame-controls': {
-    src: '/marketing/country/country-outline-map-frame-controls.webp', width: 1600, height: 1263,
+    src: '/marketing/country/country-outline-map-frame-controls.webp', width: 1600, height: 1141,
     alt: 'Map frame set to Country / region with the Italy outline applied',
-    mobileSrc: '/marketing/country/country-outline-map-frame-controls-mobile.webp', mobileWidth: 800, mobileHeight: 1290,
+    mobileSrc: '/marketing/country/country-outline-map-frame-controls-mobile.webp', mobileWidth: 800, mobileHeight: 1291,
   },
   'wedding.poster': {
     src: '/marketing/wedding/edinburgh-wedding-map-poster.webp', width: 1600, height: 1200,
@@ -104,9 +104,9 @@ export const media = {
     alt: 'Southern Utah road trip poster with photos pinned to four parks and a numbered photo strip',
   },
   'photos.controls': {
-    src: '/marketing/photos/photo-story-controls.webp', width: 1600, height: 1263,
+    src: '/marketing/photos/photo-story-controls.webp', width: 1600, height: 1141,
     alt: 'Photos settings with four trip photos, captions and the photo strip switched on',
-    mobileSrc: '/marketing/photos/photo-story-controls-mobile.webp', mobileWidth: 800, mobileHeight: 1290,
+    mobileSrc: '/marketing/photos/photo-story-controls-mobile.webp', mobileWidth: 800, mobileHeight: 1291,
   },
   'templates.gallery': {
     src: '/marketing/templates/new-from-template-gallery.webp', width: 1600, height: 1747,
@@ -123,16 +123,16 @@ export const media = {
   'route.elevation': {
     src: '/marketing/route/mont-ventoux-elevation-profile.webp', width: 1600, height: 900,
     alt: 'Elevation profile of the Mont Ventoux climb from Bédoin, 312 m to 1,880 m over 19 km',
-    mobileSrc: '/marketing/route/mont-ventoux-elevation-panel-mobile.webp', mobileWidth: 800, mobileHeight: 1290,
+    mobileSrc: '/marketing/route/mont-ventoux-elevation-panel-mobile.webp', mobileWidth: 800, mobileHeight: 1291,
   },
   'route.cycling-poster': {
     src: '/marketing/route/mont-ventoux-cycling-route-poster.webp', width: 1600, height: 1200,
     alt: 'A3 poster of the Mont Ventoux climb from Bédoin on a contour map, with the summit marked',
   },
   'route.elevation-panel': {
-    src: '/marketing/route/mont-ventoux-elevation-panel.webp', width: 1600, height: 1263,
+    src: '/marketing/route/mont-ventoux-elevation-panel.webp', width: 1600, height: 1141,
     alt: 'Elevation section of a selected route with the profile chart, ascent and SVG, PNG and PDF downloads',
-    mobileSrc: '/marketing/route/mont-ventoux-elevation-panel-mobile.webp', mobileWidth: 800, mobileHeight: 1290,
+    mobileSrc: '/marketing/route/mont-ventoux-elevation-panel-mobile.webp', mobileWidth: 800, mobileHeight: 1291,
   },
   'topo.contours': {
     src: '/marketing/topo/matterhorn-contour-map.webp', width: 1600, height: 1200,
@@ -169,27 +169,27 @@ export const media = {
     alt: 'Amsterdam map with nested 10, 20 and 30 minute walking areas around Dam Square',
   },
   'isochrone.controls': {
-    src: '/marketing/travel-time/travel-time-area-controls.webp', width: 1600, height: 1263,
+    src: '/marketing/travel-time/travel-time-area-controls.webp', width: 1600, height: 1141,
     alt: 'Travel time panel with Dam Square as the start, walking mode and a 15 minute duration',
-    mobileSrc: '/marketing/travel-time/travel-time-area-controls-mobile.webp', mobileWidth: 800, mobileHeight: 1290,
+    mobileSrc: '/marketing/travel-time/travel-time-area-controls-mobile.webp', mobileWidth: 800, mobileHeight: 1291,
   },
   'realestate.flyer': {
     src: '/marketing/real-estate/clifton-location-map-flyer.webp', width: 1600, height: 1200,
     alt: 'A4 location map flyer for a Bristol street with nearby places, a 15-minute walking area and a QR code',
   },
   'realestate.places': {
-    src: '/marketing/real-estate/bulk-places-address-lookup.webp', width: 1600, height: 1263,
+    src: '/marketing/real-estate/bulk-places-address-lookup.webp', width: 1600, height: 1141,
     alt: 'Place multiple points panel matching a pasted list of Bristol addresses before adding them',
-    mobileSrc: '/marketing/real-estate/bulk-places-address-lookup-mobile.webp', mobileWidth: 800, mobileHeight: 1290,
+    mobileSrc: '/marketing/real-estate/bulk-places-address-lookup-mobile.webp', mobileWidth: 800, mobileHeight: 1291,
   },
   'compare.export-dialog': {
     src: '/marketing/compare/export-dialog-pdf-option.webp', width: 1600, height: 1333,
     alt: 'Export dialog with PDF selected, showing the exact A3 page size and how the file is built',
   },
   'sizes.page-presets': {
-    src: '/marketing/sizes/page-size-presets.webp', width: 1600, height: 1263,
+    src: '/marketing/sizes/page-size-presets.webp', width: 1600, height: 1141,
     alt: 'Page size list with A2 to A6, US Letter and Custom next to an A3 portrait poster',
-    mobileSrc: '/marketing/sizes/page-size-presets-mobile.webp', mobileWidth: 800, mobileHeight: 1290,
+    mobileSrc: '/marketing/sizes/page-size-presets-mobile.webp', mobileWidth: 800, mobileHeight: 1291,
   },
   'share.dialog': {
     src: '/marketing/share/share-link-and-embed-dialog.webp', width: 1200, height: 1283,
