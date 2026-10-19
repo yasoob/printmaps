@@ -8,7 +8,7 @@ export const page: MarketingPageEntry = {
   group: 'project',
   order: 0,
   primaryKeyword: 'print map studio',
-  summaryForLlms: 'Why the project exists, who maintains it, how projects stay in the browser, and where to report bugs.',
-  updated: '2026-08-31',
+  summaryForLlms: 'Print Map Studio is a free, print-first map editor maintained by Yasoob Khalid, with source code on GitHub. Projects autosave in the browser and exports are built locally; the page also lists what the editor makes and where to report bugs.',
+  updated: '2026-10-19',
   kind: 'info',
 };

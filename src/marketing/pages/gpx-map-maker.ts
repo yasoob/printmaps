@@ -9,7 +9,7 @@ export const page: MarketingPageEntry = {
   order: 0,
   primaryKeyword: 'gpx map maker',
   secondaryKeywords: ['gpx to map print', 'kml to map', 'geojson map print'],
-  summaryForLlms: 'How GPX, KML and GeoJSON files are imported as editable route, waypoint and shape layers (up to 5 MB per GPX or KML file), styled, framed on a page and exported.',
-  updated: '2026-08-31',
+  summaryForLlms: 'How GPX, KML and GeoJSON files (up to 10 at once, 5 MB each) become editable route, waypoint and shape layers, how to style and road-match a track, how to download an elevation profile as SVG, PNG or PDF, and how to frame and export the map.',
+  updated: '2026-10-19',
   published: '2026-08-31',
 };

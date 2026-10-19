@@ -1,13 +1,14 @@
 ---
+import { media } from '../marketing/media';
 import { page } from '../marketing/pages/gpx-map-maker';
-import SeoLandingPage from '../marketing/SeoLandingPage.astro';
+import SeoLandingPage, { type PageSection } from '../marketing/SeoLandingPage.astro';
 
-const sections = [
+const sections: readonly PageSection[] = [
   {
     title: 'Import a recorded track',
     paragraphs: [
-      'Upload a GPX file from a hike, ride, run, or road trip. KML and GeoJSON imports work the same way, whether the data came from a GPS device, another map tool, or a geographic dataset.',
-      'The importer validates the file before adding its tracks, routes, waypoints, and shapes to the project. GPX and KML files can be up to 5 MB and contain up to 1,000 features and 200,000 coordinate points.',
+      'Upload a GPX file from a hike, ride, run or road trip. Most GPS watches and route-planning apps can export one from the activity page. KML and GeoJSON work the same way, whether the data came from Google Earth, another map tool or an open data portal.',
+      'Drop up to 10 files at once. The importer checks each file, then adds its tracks, routes, waypoints and shapes to the project as separate layers. A single GPX, KML or GeoJSON file can be up to 5 MB with 1,000 features and 200,000 coordinate points, which covers a multi-day hike recorded every second.',
     ],
     highlights: [
       { icon: 'gpx', label: 'GPX 1.0 and 1.1' },
@@ -28,8 +29,8 @@ const sections = [
     title: 'Style the route and its context',
     paragraphs: [
       'Tracks and waypoints become separate editable layers. Change the route line, style waypoint markers, reorder layers, or hide anything you do not need.',
-      'Pick a map style with enough contrast for the route. Then reduce labels, roads, buildings, or transit detail if the base map is too busy.',
-      'Route controls cover line color, width, outline, opacity, and structure. Use them to separate several tracks on one page or keep one route visible over a detailed street map.',
+      'Contrast matters more than colour. A red track blends into the warm brick tones of Terracotta and stands out clearly on the cool greys of Graphite, so pick the style with the route in view. Then thin out labels, buildings or transit if the base map is still too busy.',
+      'Route controls cover colour, width, line pattern, outline and opacity, plus a travel marker for air, train, car, walking, cycling or ship. Give each day of a trip its own colour, or keep one route bold over a detailed street map.',
     ],
     highlights: [
       { icon: 'route', label: 'Editable route lines' },
@@ -44,7 +45,7 @@ const sections = [
         width: 1130,
         height: 1716,
         title: 'Style the route line',
-        caption: 'Set the color, width, line pattern, travel marker, visibility, and opacity.',
+        caption: 'Set the colour, width, line pattern, travel marker, visibility and opacity.',
       },
       {
         src: '/explore-shots/route-advanced.webp',
@@ -60,8 +61,35 @@ const sections = [
         width: 1130,
         height: 1716,
         title: 'Style each waypoint',
-        caption: 'Change the marker color, size, shape, symbol, label, or coordinates.',
+        caption: 'Change the marker colour, size, shape, symbol, label or coordinates.',
       },
+    ],
+  },
+  {
+    title: 'Snap a wobbly track to the roads',
+    paragraphs: [
+      'GPS recordings drift, especially between tall buildings. Road matching in the advanced route tools fits a recorded trace to the road network, so a city bike ride follows the streets instead of cutting across blocks.',
+      'The same panel can reverse a route, close a loop, convert between line types and edit individual points when one stray reading spoils the shape.',
+    ],
+    highlights: [
+      { icon: 'route', label: 'Road matching' },
+      { icon: 'transform', label: 'Reverse or close' },
+      { icon: 'fit', label: 'Edit single points' },
+      { icon: 'layers', label: 'Convert line types' },
+    ],
+  },
+  {
+    kind: 'steps',
+    id: 'elevation-profile',
+    title: 'Make an elevation profile for the route',
+    paragraphs: [
+      'An elevation profile shows the climbs at a glance, which is what most hikers and riders look for first. Print Map Studio builds one from Copernicus elevation data via Open-Meteo.',
+    ],
+    steps: [
+      { title: 'Generate the profile', body: 'Select the route, open the advanced route tools and generate an elevation profile.' },
+      { title: 'Size it for the page', body: 'Set a print width from 50 to 300 mm, choose metric or imperial units, and pick colours, a fill or gradient, grid lines and a font.' },
+      { title: 'Read the numbers', body: 'The panel shows total ascent and descent, plus distance-based walking and cycling time estimates.' },
+      { title: 'Download and place it', body: 'Save the profile as SVG, PNG or PDF and place it under the map in your layout, guidebook page or race flyer.' },
     ],
   },
   {
@@ -88,23 +116,19 @@ const sections = [
   {
     title: 'Export the route as raster or vector content',
     paragraphs: [
-      'Use PNG for a flat high-resolution image or PDF for an exact physical page with supported routes and waypoints retained as vector content. Layered SVG keeps content as named vector groups over an embedded raster basemap.',
-      'Layered PSD creates separately named SVG Smart Objects for the content layers in Photoshop. The browser generates and downloads every format directly.',
+      'Use PNG for a flat 300 DPI image, or PDF for an exact physical page where routes and waypoints stay sharp as vector lines. Layered SVG keeps content as named vector groups for Illustrator or Inkscape.',
+      'Layered PSD puts each route, waypoint and shape in its own Smart Object in Photoshop. The browser generates and downloads every format directly.',
     ],
     showExportFormats: true,
   },
-] as const;
+];
 const faq = [
-  { question: 'Which GPS file formats are supported?', answer: 'You can import GPX, KML, and GeoJSON files. GPX versions 1.0 and 1.1 are supported.' },
-  { question: 'How large can a GPX or KML file be?', answer: 'The importer accepts files up to 5 MB, with up to 1,000 features and 200,000 coordinates.' },
+  { question: 'Which GPS file formats can I import?', answer: 'GPX (versions 1.0 and 1.1), KML and GeoJSON. You can drop up to 10 files at once.' },
+  { question: 'How large can a GPX or KML file be?', answer: 'Each file can be up to 5 MB, with up to 1,000 features and 200,000 coordinates.' },
   { question: 'What happens to waypoints?', answer: 'Waypoints are imported as place content that can be styled and managed separately from route layers.' },
   { question: 'Can I change the map after importing?', answer: 'Yes. Imported routes, places, and shapes become editable layers that can be styled, reordered, hidden, duplicated, or deleted.' },
-  { question: 'Does the export keep my route as a vector?', answer: 'PDF, layered SVG, and layered PSD preserve supported route overlays as vector content. The basemap remains raster.' },
-  { question: 'Can I add an elevation profile?', answer: 'Yes. An elevation profile can be requested for a route when the external elevation service is available. Sampled route coordinates are sent to Open-Meteo for this optional feature.' },
-] as const;
-const relatedLinks = [
-  { href: '/printable-map-maker/', label: 'Design a printable map', description: 'Explore page sizes, map styles, labels, places, and shapes.' },
-  { href: '/layered-map-export/', label: 'Choose an export format', description: 'Compare PNG, PDF, layered SVG, and layered PSD.' },
+  { question: 'Does the export keep my route as a vector?', answer: 'Yes. PDF, layered SVG and layered PSD keep routes and waypoints as vector content, so lines stay sharp at any print size.' },
+  { question: 'Can I add an elevation profile?', answer: 'Yes. Generate one from the advanced route tools and download it as SVG, PNG or PDF, from 50 to 300 mm wide. Sampled route coordinates are sent to Open-Meteo to look up the elevations.' },
 ] as const;
 ---
 
@@ -112,15 +136,10 @@ const relatedLinks = [
   page={page}
   eyebrow="Import your recorded tracks"
   heading="Turn a GPX file into a print-ready map."
-  heroImage={{
-    desktopSrc: '/feature-shots/content-desktop.webp',
-    mobileSrc: '/feature-shots/content-mobile.webp',
-    alt: 'Print Map Studio showing an Alpine route as an editable map layer',
-  }}
-  lead="Upload a recorded route, style the track and waypoints, set the page size, and export the finished map. You do not need GIS software or an account."
+  heroImage={media['editor.layer-route']}
+  lead="Upload a recorded route, style the track and waypoints, set the page size, and export the finished map. It all happens in your browser, with no GIS software or account to set up."
   primaryCta="Import your track"
   facts={['GPX, KML, and GeoJSON', 'Editable route layers', 'No account', 'Browser-based export']}
   sections={sections}
-  relatedLinks={relatedLinks}
   faq={faq}
 />

@@ -16,24 +16,40 @@ import {
 >
   <h2>Why Print Map Studio exists</h2>
   <p>
-    Print Map Studio creates static maps for brochures, reports, guidebooks, posters, presentations, event handouts, and personal prints. Set the page size, style the map, add routes, places, or shapes, and export the result without leaving the browser.
+    Most online maps are made for screens. Print Map Studio starts from the page instead: you choose A4, A2, US Letter or an exact size in millimetres, and everything you design is measured against that sheet. Titles are set in points, margins in millimetres, and a scale bar or QR code prints at the size you asked for.
   </p>
   <p>
-    The editor is free to use and does not require an account. Projects autosave in your browser, and you can download a portable project file when you want a backup or need to continue later.
-  </p>
-
-  <h2>Projects and exports stay on your device</h2>
-  <p>
-    The browser parses imported GPX, KML, and GeoJSON files and generates PNG, PDF, layered SVG, and layered PSD exports. Optional search, routing, map matching, travel-time, and elevation features contact the relevant map or elevation provider when you use them.
+    It is designed for city posters, wedding and travel keepsakes, hiking and race maps, guidebook pages, property flyers, event handouts and reports. The editor is free, runs in the browser and needs no account.
   </p>
 
-  <h2>Open source</h2>
+  <h2>What you can make with it</h2>
+  <ul>
+    <li>A <a href="/printable-map-maker/">printable map or poster</a> in one of 12 styles, with layout presets, a title block, a compass, a scale bar and a location QR code.</li>
+    <li>A <a href="/gpx-map-maker/">route map from a GPX, KML or GeoJSON file</a>, with an elevation profile to place beside it.</li>
+    <li>Print files as PNG, PDF, layered SVG or layered PSD, explained on the <a href="/layered-map-export/">export formats page</a>, plus MP4 map videos and STL terrain models.</li>
+    <li><a href="/share-and-embed-maps/">Read-only share links and website embeds</a> for maps that live online as well as on paper.</li>
+  </ul>
   <p>
-    The project is created and maintained by <a href={CREATOR_URL}>{CREATOR_NAME}</a>. The source code, issue tracker, and implementation history are available in the <a href={GITHUB_URL}>Print Map Studio GitHub repository</a>.
+    The <a href="/map-print-size-guide/">map print size guide</a> covers paper sizes, DPI and bleed, and the <a href="/printmaps-net-alternative/">Printmaps.net comparison</a> sets out how the two editors differ.
+  </p>
+
+  <h2>Your projects stay on your device</h2>
+  <p>
+    Projects autosave to your browser's storage, and you can download a portable .printmap.json or .printmap.zip file whenever you want a backup or need to move to another computer. The browser reads imported GPX, KML and GeoJSON files itself and builds every export locally. Place search, road routing, travel-time areas and elevation profiles contact the relevant map or elevation provider when you use them. The <a href="/privacy/">privacy page</a> lists each one.
+  </p>
+
+  <h2>Map data and credits</h2>
+  <p>
+    The map styles are built on OpenFreeMap and OpenMapTiles, which come from OpenStreetMap, the map of the world that volunteers edit. Every export prints a short credit for those sources in the bottom margin, including the OpenStreetMap licence address, as OpenStreetMap asks for printed maps.
+  </p>
+
+  <h2>Source code on GitHub</h2>
+  <p>
+    Print Map Studio is created and maintained by <a href={CREATOR_URL}>{CREATOR_NAME}</a>. The source code, issue tracker and full change history are public in the <a href={GITHUB_URL}>Print Map Studio GitHub repository</a>.
   </p>
 
   <h2>Questions and support</h2>
   <p>
-    For a bug report, feature request, or support question, <a href={`${GITHUB_URL}/issues`}>open an issue on GitHub</a>. Include the browser you are using and the steps that led to the problem. To speed up the process, also share a save file from when the problem occurred.
+    For a bug report, feature request or support question, <a href={`${GITHUB_URL}/issues`}>open an issue on GitHub</a>. Mention your browser and the steps that led to the problem. A project file saved at the time helps a lot, as long as it contains nothing private.
   </p>
 </InfoPage>

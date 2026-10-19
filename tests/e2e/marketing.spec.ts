@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { media } from '../../src/marketing/media';
 
 const marketingRoutes = [
   {
@@ -30,6 +31,24 @@ const marketingRoutes = [
     title: 'About | Print Map Studio',
     heading: 'A map editor built for print.',
     canonical: 'https://printmaps.yasoob.me/about/',
+  },
+  {
+    path: '../printmaps-net-alternative/',
+    title: 'Printmaps.net Alternative: Free Print Map Editor Compared',
+    heading: 'A free Printmaps.net alternative for print-ready maps',
+    canonical: 'https://printmaps.yasoob.me/printmaps-net-alternative/',
+  },
+  {
+    path: '../map-print-size-guide/',
+    title: 'Map Print Size Guide: Paper Sizes, DPI and Pixels',
+    heading: 'Map print sizes, DPI and pixel dimensions',
+    canonical: 'https://printmaps.yasoob.me/map-print-size-guide/',
+  },
+  {
+    path: '../share-and-embed-maps/',
+    title: 'Share and Embed Maps: Read-Only Links and Iframes',
+    heading: 'Share a map with a link, or embed it on your site',
+    canonical: 'https://printmaps.yasoob.me/share-and-embed-maps/',
   },
   {
     path: '../privacy/',
@@ -99,17 +118,19 @@ test('explore pages use contextual product screenshots', async ({ page }) => {
   const pages = [
     {
       path: '../printable-map-maker/',
-      hero: /design-desktop\.webp$/,
+      hero: media['editor.map-tab'].src,
       details: [
         /printable-page-frame\.webp$/,
         /custom-colors\.webp$/,
         /map-features\.webp$/,
         /labels-and-text\.webp$/,
+        media['editor.layout-tab'],
+        media['editor.wall-preview'],
       ],
     },
     {
       path: '../gpx-map-maker/',
-      hero: /content-desktop\.webp$/,
+      hero: media['editor.layer-route'].src,
       details: [
         /imported-layers-overview\.webp$/,
         /route-appearance\.webp$/,
@@ -142,11 +163,16 @@ test('explore pages use contextual product screenshots', async ({ page }) => {
     for (const format of ['PNG', 'PDF', 'SVG', 'PSD']) {
       await expect(formatRow.getByAltText(`${format} file format`)).toBeVisible();
     }
-    for (const [index, expectedSource] of item.details.entries()) {
+    for (const [index, expected] of item.details.entries()) {
       const detail = page.locator('main figure img').nth(index);
-      await expect(detail).toHaveAttribute('src', expectedSource);
       await expect(detail).toHaveAttribute('loading', 'lazy');
-      await expect(detail).toHaveAttribute('alt', /Print Map Studio/i);
+      if (expected instanceof RegExp) {
+        await expect(detail).toHaveAttribute('src', expected);
+        await expect(detail).toHaveAttribute('alt', /Print Map Studio/i);
+      } else {
+        await expect(detail).toHaveAttribute('src', expected.src);
+        await expect(detail).toHaveAttribute('alt', expected.alt);
+      }
     }
   }
 });

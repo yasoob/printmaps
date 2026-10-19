@@ -1,0 +1,150 @@
+---
+import SeoLandingPage, { type PageSection } from '../marketing/SeoLandingPage.astro';
+import { media } from '../marketing/media';
+import { page } from '../marketing/pages/share-and-embed-maps';
+
+const sections: readonly PageSection[] = [
+  {
+    kind: 'steps',
+    id: 'share-a-link',
+    title: 'Send a read-only link',
+    paragraphs: [
+      'A share link opens your map in any modern browser. The person you send it to does not need an account, an app or a copy of your project.',
+    ],
+    steps: [
+      { title: 'Click Share', body: 'The Share button sits in the editor header. The dialog builds the link from the map exactly as it looks right now.' },
+      { title: 'Copy the link', body: 'Under Read-only link, choose Copy link and paste it into an email, a chat or a booking confirmation.' },
+      { title: 'The recipient opens it', body: 'They see the map in a read-only view with two buttons: Download project, and Remix this map, which opens a copy in their own editor.' },
+      { title: 'Share again after edits', body: 'Each link is a snapshot of the design at the moment you copied it. After you change the map, copy a fresh link and send that one.' },
+    ],
+  },
+  {
+    id: 'inside-the-link',
+    title: 'What travels inside the link',
+    paragraphs: [
+      'Print Map Studio compresses the whole project, routes, places, shapes, photos and poster settings included, and stores it in the part of the URL after the # sign. Browsers keep that part to themselves when they request a page, so the design goes from your clipboard to the recipient without being stored on a server.',
+      'A link holds up to 64 KB of compressed design, which fits most route and place maps comfortably. For a project with lots of photos, send the project file instead. It opens in the same editor and keeps everything editable.',
+      'Shared and embedded maps load without the site analytics, so opening a link is not tracked as a page visit.',
+    ],
+    image: {
+      ...media['share.dialog'],
+      title: 'Link and embed code in one dialog.',
+      caption: 'Copy a read-only link, or set the height and copy an iframe for your website.',
+    },
+    imagePosition: 'beside',
+    highlights: [
+      { icon: 'link', label: 'Read-only links' },
+      { icon: 'embed', label: 'Iframe embed' },
+      { icon: 'no-account', label: 'No account needed' },
+      { icon: 'browser', label: 'Opens in the browser' },
+    ],
+  },
+  {
+    kind: 'definitions',
+    id: 'embed-code',
+    title: 'Embed the map on a website',
+    paragraphs: [
+      'Under Embed this map, set the height, decide whether visitors can pan and zoom, then choose Copy embed code. You get a single iframe that works on any page that accepts HTML, such as a WordPress Custom HTML block or a Squarespace code block. Here is what each part of it does.',
+    ],
+    items: [
+      { term: 'width="100%"', definition: 'The map fills the column it sits in, so the same code works in a narrow sidebar and a full-width article.' },
+      { term: 'height', definition: 'Starts at 480 pixels and accepts anything from 240 to 2000. Around 400 to 500 suits a blog post; a tall portrait poster reads better at 700 or more.' },
+      { term: 'loading="lazy"', definition: 'The browser loads the map when a reader scrolls near it, so the rest of your page appears first.' },
+      { term: 'referrerpolicy="no-referrer"', definition: 'The embedded map is not told which page it sits on.' },
+      { term: 'allowfullscreen', definition: 'Readers can open the map full screen.' },
+      { term: 'Allow preview pan and zoom', definition: 'Switched on, readers can explore the map inside the frame. Switched off, the framing stays exactly as you designed it, which suits a poster-style embed.' },
+    ],
+  },
+  {
+    kind: 'callout',
+    id: 'embed-tip',
+    tone: 'tip',
+    title: 'Pick the height for the shape of your page',
+    paragraphs: [
+      'The embed shows your map with a slim title bar above it and the map credit below. Start with the default 480 pixels for a landscape page and about 700 for a portrait poster, then paste the code into a draft post and adjust until the whole page sits comfortably in view.',
+    ],
+  },
+  {
+    id: 'qr-on-posters',
+    title: 'Put a QR code on the printed map',
+    paragraphs: [
+      'Location QR in the Layout tab adds a scannable code to any corner of the page. Scanning it opens Google Maps at the map centre or at a place you choose, which helps on event posters, wedding invitations and property flyers where guests need directions.',
+      'Size the code for the distance people will scan from. A common rule is to make it at least a tenth of that distance: 20 mm works at arm\'s length, and 40 mm suits a noticeboard read from a step away. The editor accepts 16 to 60 mm and draws a white quiet zone around the code, so phones read it on dark map styles too.',
+      'Print one test page at 100% scale and scan it with two different phones before the full run.',
+    ],
+    image: {
+      ...media['qr.poster-detail'],
+      title: 'The QR code prints with the poster.',
+      caption: 'Pick a corner and a size, then choose the map centre or a place as the destination.',
+    },
+    highlights: [
+      { icon: 'qr-code', label: 'Location QR code' },
+      { icon: 'marker', label: 'Map centre or a place' },
+      { icon: 'dimensions', label: '16 to 60 mm' },
+      { icon: 'print', label: 'Prints with the poster' },
+    ],
+  },
+  {
+    kind: 'table',
+    id: 'link-embed-or-file',
+    title: 'Link, embed or project file',
+    paragraphs: [
+      'All three carry the same design. Pick the one that matches what the other person will do with it.',
+    ],
+    headers: ['', 'Share link', 'Embed', 'Project file'],
+    rows: [
+      ['Best for', 'Sending a design to a friend or client', 'Showing the map on a website', 'Backups and handing over editable work'],
+      ['The viewer can', 'View, download the project, remix a copy', 'View, with or without pan and zoom, and open the full map', 'Open and edit everything in the editor'],
+      ['The design lives in', 'The link itself', 'The iframe address', 'A .printmap.json or .printmap.zip file'],
+      ['Holds up to', '64 KB compressed', '64 KB compressed', '10 MB'],
+    ],
+    caption: 'Ways to hand a Print Map Studio design to someone else.',
+  },
+  {
+    kind: 'callout',
+    id: 'who-can-see',
+    tone: 'important',
+    title: 'Who can see a shared map',
+    paragraphs: [
+      'Anyone with the link can view the map, download the project and remix it. That includes every place name, label and photo in the design. Share a link the way you would share the project file itself, and send a fresh one whenever you want people to see your latest version.',
+    ],
+  },
+];
+
+const faq = [
+  {
+    question: 'Do people need an account to open a shared map?',
+    answer: 'No. The link opens in any modern browser and shows the map straight away.',
+  },
+  {
+    question: 'Does a share link update when I edit the map?',
+    answer: 'Each link is a snapshot of the design when you copied it. Copy a new link after editing and send that one; earlier links keep showing the version they were made from.',
+  },
+  {
+    question: 'Can someone change my original map?',
+    answer: 'Remix this map opens a separate copy in their browser. Your own project stays in your browser storage, exactly as you left it.',
+  },
+  {
+    question: 'Where does the QR code point?',
+    answer: 'To Google Maps, at the map centre or at a place you pick in the Layout tab.',
+  },
+  {
+    question: 'How do I embed a map in WordPress?',
+    answer: 'Copy the embed code from the Share dialog and paste it into a Custom HTML block. The iframe sizes itself to the width of your content column.',
+  },
+] as const;
+---
+
+<SeoLandingPage
+  page={page}
+  eyebrow="Share and embed"
+  heading="Share a map with a link, or embed it on your site"
+  lead="Send a read-only link to anyone, paste an iframe into a blog post or a booking page, and print a QR code that opens the location. The whole design travels inside the link, so there is no account to set up and nothing to upload."
+  primaryCta="Open the editor"
+  facts={['Read-only links', 'Iframe embed code', 'Location QR on prints', 'No account']}
+  heroImage={media['share.embed-example']}
+  sections={sections}
+  ctaHeading="Make a map worth sharing."
+  faq={faq}
+  faqDescription="Links, embeds, QR codes and who can see what."
+/>

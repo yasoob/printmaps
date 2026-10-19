@@ -1,0 +1,175 @@
+---
+import SeoLandingPage, { type PageSection } from '../marketing/SeoLandingPage.astro';
+import { media } from '../marketing/media';
+import { page } from '../marketing/pages/printmaps-net-alternative';
+import { GITHUB_URL } from '../marketing/product';
+
+const checked = '19 October 2026';
+
+const sections: readonly PageSection[] = [
+  {
+    kind: 'callout',
+    id: 'short-answer',
+    tone: 'tip',
+    title: 'The short answer',
+    paragraphs: [
+      'Both editors turn OpenStreetMap data into static files for print. Printmaps.net sells a licence for each map, priced by file type and print run, and sends an invoice with every purchase. Print Map Studio is free, runs in your browser and exports PNG, PDF, layered SVG and layered PSD without an account.',
+      'Choose Printmaps.net when a client or publisher needs a written licence and a VAT invoice for each map, or when you want API access and white-label options through its parent company, Maptoolkit. Choose Print Map Studio when you want to design and download print files at no cost, need a PDF at an exact page size, or want poster tools such as layout presets, photos and a scale bar in the same editor.',
+    ],
+  },
+  {
+    kind: 'comparison',
+    id: 'comparison',
+    title: 'Print Map Studio and Printmaps.net side by side',
+    paragraphs: [
+      `Printmaps.net details come from its own public pages, read on ${checked}. Print Map Studio details describe the editor as it ships today.`,
+    ],
+    columns: ['Print Map Studio', 'Printmaps.net'],
+    highlightColumn: 0,
+    rowHeader: 'What you get',
+    rows: [
+      { label: 'Price model', cells: ['Free for every format and page size', 'Licence per map, priced by file type and print run'] },
+      { label: 'Prices shown on 19 Oct 2026', cells: ['$0', 'PNG $6–$129, layered PSD $25–$319, layered SVG $59–$799 per map'] },
+      { label: 'Print run', cells: ['Print as many copies as you like', 'Mini up to 1,000 copies, Standard up to 35,000, Unlimited'] },
+      { label: 'Account', cells: ['None; files download straight from the browser', 'None to design; files and invoice arrive by email after checkout'] },
+      { label: 'Print formats', cells: ['PNG, PDF, layered SVG, layered PSD', 'PNG, layered PSD, layered SVG'] },
+      { label: 'Resolution', cells: ['300 DPI PNG and PDF; layered PSD at 300 DPI up to A4 and US Letter', '300 dpi PNG and PSD; SVG scales freely'] },
+      { label: 'Largest page', cells: ['Custom sizes up to 1330 mm a side; one-file 300 DPI PNG up to 50 × 70 cm', 'PNG up to 220 × 220 mm, PSD up to 660 × 660 mm, SVG up to 1330 × 1330 mm'] },
+      { label: 'Map styles', cells: ['12 styles plus a palette editor for tone, contrast, detail and 11 colour roles', '11 default styles, with aerial photos in selected countries'] },
+      { label: 'Rotate and tilt', cells: ['Any rotation, tilt up to 60°', 'Any rotation, tilt up to 60°'] },
+      { label: 'Label language', cells: ['Local names, English, German, French, Italian, Spanish or Chinese', 'Label language can be changed'] },
+      { label: 'GPS files', cells: ['GPX, KML and GeoJSON, up to 10 files at once', 'GPX, KML and GeoJSON'] },
+      { label: 'Places in bulk', cells: ['Spreadsheet paste: 300 rows with coordinates or 25 with addresses', 'Spreadsheet paste with addresses or coordinates, around 300 POIs per map'] },
+      { label: 'Custom markers', cells: ['PNG, JPEG or SVG', 'PNG, SVG, JPG or GIF'] },
+      { label: 'Areas', cells: ['Countries and first-level regions, drawn shapes, travel-time areas of 5–60 minutes', 'Administrative areas with an invert option, walking-time areas'] },
+      { label: 'Page layout', cells: ['Layout presets, title block, margins, paper colour, country-shaped map frame', 'Map files built for layout in your own design tool'] },
+      { label: 'Other outputs', cells: ['MP4 map video, STL terrain model, share links and iframe embeds', 'Free elevation profile maker with SVG, PDF and PNG downloads'] },
+      { label: 'Business options', cells: ['Source code on GitHub', 'VAT invoices, volume discounts, API, white label, free plan for non-profits'] },
+      { label: 'Map credit on the print', cells: ['OpenStreetMap, OpenMapTiles and OpenFreeMap caption in the bottom margin', '"© Printmaps.net / OSM Contributors" in the bottom-right corner'] },
+    ],
+    caption: `Print Map Studio compared with Printmaps.net, checked ${checked}.`,
+    footnotes: [
+      'Printmaps.net prices are the figures its pricing page showed a visitor in the United States. The page estimates your country from your IP address to work out VAT, so other regions may see different amounts. It also lists a free option for web use.',
+      'Sources: printmaps.net/pricing, printmaps.net/features, printmaps.net/information-for-ai and printmaps.net/free-printable-maps.',
+    ],
+  },
+  {
+    id: 'what-printmaps-net-does-well',
+    title: 'What Printmaps.net does well',
+    paragraphs: [
+      'Printmaps.net is built for buying maps for client work. Every purchase comes with usage rights tied to a print run, commercial use included, and an invoice your accountant can file. When an agency is asked who licensed the map on page 12 of a brochure, that paperwork already exists.',
+      'Its layered SVG goes up to 1330 × 1330 mm and keeps the map itself in named layers, so a designer can recolour roads, water and buildings in Illustrator. Around the editor sits a business that serves publishers and tourism boards: volume pricing, an API and white-label reselling through Maptoolkit, a 30-day refund policy and a free plan for registered non-profits.',
+      'It also runs a free elevation profile maker. Upload a GPX file and you get a profile as layered SVG, PDF and PNG for a guidebook or race flyer.',
+    ],
+  },
+  {
+    id: 'where-print-map-studio-fits',
+    title: 'Where Print Map Studio fits',
+    paragraphs: [
+      'Print Map Studio is for people who want the finished page out of the same editor, without paying per file. You set the page in millimetres, design the poster around the map, and download the result directly from the browser.',
+      'PDF is the format most print shops ask for first. Print Map Studio writes it at the exact page size, keeps routes, places, shapes and poster text as vectors, and renders the basemap at 300 DPI. An A2 poster comes out as a 594 × 420 mm page with a basemap of 7,016 × 4,961 pixels.',
+      'The poster tools sit in the Layout tab: five layout presets, a title block with subtitle and coordinates, margins, paper colour, photos pinned to places, a north compass, a scale bar, a coordinate grid and a QR code that opens the location in Google Maps. When the print is done, the same project can become a short MP4 map video or an STL terrain model for a 3D printer.',
+    ],
+    image: {
+      ...media['compare.export-dialog'],
+      title: 'One export dialog for print files.',
+      caption: 'PNG, PDF, layered SVG and layered PSD sit side by side, with video and 3D model exports in their own tabs.',
+    },
+  },
+  {
+    id: 'which-to-choose',
+    title: 'Which one suits your job',
+    paragraphs: [
+      'The right tool depends on who the map is for and what happens to it after export. These are the cases we see most often.',
+    ],
+    points: [
+      'A guidebook publisher who needs a licence and an invoice per map: Printmaps.net.',
+      'An A2 city poster for your own wall: Print Map Studio, as a 300 DPI PDF or PNG.',
+      'A designer restyling every road in Illustrator: Printmaps.net layered SVG, or Print Map Studio layered SVG with the vector basemap option on a flat map.',
+      'A property flyer with drive times to schools: either works; Print Map Studio draws driving, cycling and walking areas from 5 to 60 minutes.',
+      'A wedding or travel poster with photos and a QR code: Print Map Studio.',
+      'A map with an aerial photo background: Printmaps.net, in the countries it covers.',
+    ],
+  },
+  {
+    kind: 'steps',
+    id: 'moving-over',
+    title: 'Moving a map from Printmaps.net to Print Map Studio',
+    paragraphs: [
+      'Rebuild the map from its source data. The files you uploaded to Printmaps.net work in Print Map Studio too.',
+    ],
+    steps: [
+      {
+        title: 'Collect the source files',
+        body: 'Find the GPX, KML or GeoJSON files you uploaded and the spreadsheet of addresses or coordinates you pasted for your places.',
+      },
+      {
+        title: 'Set the same page size',
+        body: 'Open the editor and pick a preset, or type the width and height in millimetres. A 220 × 220 mm map becomes a custom 220 × 220 mm page.',
+      },
+      {
+        title: 'Import routes and paste places',
+        body: 'Drop up to 10 GPX, KML or GeoJSON files at once. Paste places into the spreadsheet: up to 300 rows with coordinates, or 25 rows with addresses to look up.',
+      },
+      {
+        title: 'Rebuild shaded areas',
+        body: 'Add countries and regions from the boundary catalogue, or draw a shape. Fill colour, outline and opacity are set per layer.',
+      },
+      {
+        title: 'Match the style and export',
+        body: 'Start from the closest of the 12 styles and adjust the palette. Download a PDF for the print shop or a layered PSD for Photoshop. The map data credit prints as a small caption in the bottom margin.',
+      },
+    ],
+  },
+  {
+    kind: 'callout',
+    id: 'how-we-checked',
+    tone: 'note',
+    title: 'How this comparison was made',
+    paragraphs: [
+      `Print Map Studio is our product, so read this page with that in mind. Every Printmaps.net figure here comes from Printmaps.net's own pricing, features, information-for-AI and non-profit pages, read on ${checked}. Prices and features change, so confirm on printmaps.net before you buy.`,
+      'If something on this page is out of date, open an issue on GitHub and we will correct it.',
+    ],
+    link: { href: `${GITHUB_URL}/issues`, label: 'Report a correction on GitHub' },
+  },
+];
+
+const faq = [
+  {
+    question: 'Is Print Map Studio free for every export?',
+    answer: 'Yes. PNG, PDF, layered SVG and layered PSD are free at every page size, with no account and no watermark. The only text added to your page is the small map data credit.',
+  },
+  {
+    question: 'What do I need to move a project from Printmaps.net?',
+    answer: 'Your original GPX, KML or GeoJSON files and your list of places. Import the files, paste the places into the spreadsheet, and set the same page size in millimetres.',
+  },
+  {
+    question: 'Which editor handles bigger prints?',
+    answer: 'Both handle poster sizes. Printmaps.net layered SVG goes up to 1330 × 1330 mm. Print Map Studio accepts pages up to 1330 mm a side, writes 300 DPI PDFs up to A1, and saves 300 DPI PNGs up to 50 × 70 cm in one file, with larger PNGs streamed straight to disk in Chrome and Edge.',
+  },
+  {
+    question: 'Do both use OpenStreetMap data?',
+    answer: 'Yes. Printmaps.net uses OpenStreetMap. Print Map Studio styles use OpenFreeMap and OpenMapTiles, which are built from OpenStreetMap, and every export prints the OpenStreetMap licence URL in its credit line.',
+  },
+  {
+    question: 'Do I need an account for Printmaps.net?',
+    answer: 'Its own documentation says you can create maps without signing up. You pay at checkout and receive download links and an invoice by email.',
+  },
+] as const;
+---
+
+<SeoLandingPage
+  page={page}
+  eyebrow="Comparison"
+  heading="A free Printmaps.net alternative for print-ready maps"
+  lead="Printmaps.net and Print Map Studio both make map files for print. One sells a licence per map; the other is free, with its source code on GitHub. Here is how they compare on price, formats, page sizes and map tools."
+  primaryCta="Try Print Map Studio"
+  secondaryCta={{ href: '#comparison', label: 'Jump to the comparison' }}
+  facts={[`Checked ${checked}`, 'Sources linked', 'Written by the Print Map Studio developer']}
+  heroImage={media['editor.export-print']}
+  heroLayout="split"
+  sections={sections}
+  ctaHeading="Open the editor and design your first map for free."
+  faq={faq}
+  faqDescription="Pricing, file formats and moving your maps across."
+/>

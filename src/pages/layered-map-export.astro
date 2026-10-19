@@ -1,13 +1,13 @@
 ---
 import { page } from '../marketing/pages/layered-map-export';
-import SeoLandingPage from '../marketing/SeoLandingPage.astro';
+import SeoLandingPage, { type PageSection } from '../marketing/SeoLandingPage.astro';
 
-const sections = [
+const sections: readonly PageSection[] = [
   {
     title: 'PNG for a finished image',
     paragraphs: [
-      'PNG downloads the complete map as one high-resolution image at the page size you chose. Place it in a presentation, document, image editor, or print layout.',
-      'Choose PNG when you want a file that is easy to place and share. Print Map Studio keeps the selected dimensions and adds no watermark.',
+      'PNG downloads the complete map as one 300 DPI image at the page size you chose. The DPI is written into the file, so InDesign, Word or a print shop RIP opens an A3 export as a 420 × 297 mm image without any resizing.',
+      'Choose PNG when you want a file that is easy to place and share. A single PNG goes up to 50 × 70 cm, and A1 or 24 × 36 in posters stream straight to disk in Chrome and Edge. There is no watermark.',
     ],
     highlights: [
       { icon: 'pixels', label: 'High-resolution image' },
@@ -27,8 +27,8 @@ const sections = [
   {
     title: 'PDF for exact-size printing',
     paragraphs: [
-      'PDF keeps the physical page size you set in the editor. Routes, markers, and shapes stay sharp when the file is opened or printed.',
-      'Choose PDF for print shops, reports, brochures, or any layout that must preserve exact dimensions.',
+      'PDF keeps the physical page size you set in the editor. The basemap is rendered at 300 DPI, while routes, markers, shapes and poster text stay as vectors, so they print crisp at any size up to A1.',
+      'Choose PDF for print shops, reports, brochures, or any layout that must keep exact dimensions. Most online printers accept it as is.',
     ],
     highlights: [
       { icon: 'us-letter', label: 'Exact page dimensions' },
@@ -48,8 +48,8 @@ const sections = [
   {
     title: 'Layered SVG for flexible editing',
     paragraphs: [
-      'Layered SVG keeps routes, markers, and shapes in named groups. Open the file in Illustrator, Inkscape, or another SVG editor to recolor, hide, or move them.',
-      'Choose SVG when you want to keep editing the map after download or reuse individual map elements in another layout.',
+      'Layered SVG keeps routes, markers and shapes in named groups. Open the file in Illustrator, Inkscape or Affinity Designer to recolour, hide or move them.',
+      'On a flat map you can also switch the basemap to vector artwork, with roads, water and labels as editable paths and text. That is the option to pick when a designer wants to restyle the map itself.',
     ],
     highlights: [
       { icon: 'layers', label: 'Named content groups' },
@@ -61,8 +61,8 @@ const sections = [
   {
     title: 'Layered PSD for Photoshop',
     paragraphs: [
-      'Layered PSD opens as an organized Photoshop document. Routes, places, shapes, and attribution arrive as separately named Smart Objects, so they are easy to find and adjust.',
-      'Choose PSD when Photoshop is the next step and you want map elements separated instead of flattened into one image.',
+      'Layered PSD opens as an organised Photoshop document. Routes, places, shapes and the map credit arrive as separately named Smart Objects over the basemap, so they are easy to find and adjust.',
+      'PSD files are rendered at 300 DPI up to A4 and US Letter. On larger pages the exporter picks a resolution that keeps the layered file responsive in Photoshop and shows it before you download.',
     ],
     highlights: [
       { icon: 'psd-file', label: 'Photoshop-ready' },
@@ -75,8 +75,8 @@ const sections = [
   {
     title: 'Export without uploading your project',
     paragraphs: [
-      'Print Map Studio builds each file in your browser and downloads it directly. There is no account and no waiting for a server job.',
-      'Download the project file too if you want to return and change the map later.',
+      'Print Map Studio builds each file in your browser and downloads it directly, with no account and no queue. Your map, photos and imported tracks stay on your device.',
+      'Download the project file too, as a .printmap.json or .printmap.zip, if you want to come back and change the map later.',
     ],
     highlights: [
       { icon: 'browser', label: 'Stays in your browser' },
@@ -93,17 +93,27 @@ const sections = [
       caption: 'Use the Project menu to download a copy that you can open again.',
     },
   },
-] as const;
+  {
+    title: 'Video and 3D model exports',
+    paragraphs: [
+      'The Export dialog has two more tabs next to Print. Video records the poster as an MP4 with an orbit or sway camera move, 5, 10 or 15 seconds long at 30 or 60 fps, in the page shape or in 16:9, 9:16, 1:1 or 4:5 for social posts. It records in Chrome, Edge and Safari.',
+      '3D model turns the terrain inside the print area into an STL file for a 3D printer, sized in millimetres, with an optional raised ridge along your route.',
+    ],
+    highlights: [
+      { icon: 'video', label: 'MP4 map video' },
+      { icon: 'relief-3d', label: 'STL terrain model' },
+      { icon: 'terrain', label: 'Route ridge option' },
+      { icon: 'download', label: 'Direct download' },
+    ],
+  },
+];
 const faq = [
   { question: 'Which export format should I choose?', answer: 'Choose PNG for a finished image, PDF for exact-size printing, SVG for editing in a vector design tool, or PSD for an organized Photoshop file.' },
   { question: 'Can I edit the map after exporting?', answer: 'Yes. Choose layered SVG or layered PSD when you want routes, places, and shapes kept in separate named groups or Smart Objects.' },
   { question: 'Does PDF keep the page size I selected?', answer: 'Yes. PDF preserves the physical page dimensions set in the editor, including standard and custom page sizes.' },
-  { question: 'Do I need Photoshop?', answer: 'Only for the layered PSD format. PNG works in image and layout tools, PDF opens in standard PDF readers, and SVG opens in vector design tools.' },
-  { question: 'Are exports uploaded to a server?', answer: 'No. Export files are generated in your browser and downloaded directly to your device.' },
-] as const;
-const relatedLinks = [
-  { href: '/printable-map-maker/', label: 'Set up a printable map', description: 'Choose page dimensions, style the basemap, and add content.' },
-  { href: '/gpx-map-maker/', label: 'Import a GPX route', description: 'Turn recorded tracks and waypoints into editable map layers.' },
+  { question: 'Which apps open each format?', answer: 'PNG opens in any image or layout tool, PDF in any PDF reader, layered SVG in Illustrator, Inkscape or Affinity Designer, and layered PSD in Photoshop.' },
+  { question: 'Where are export files made?', answer: 'In your browser. Each file is generated on your device and saved straight to your downloads folder.' },
+  { question: 'Is the map data credit included?', answer: 'Yes. Every export prints a small credit for OpenStreetMap, OpenMapTiles and OpenFreeMap in the bottom margin, which covers the attribution the map data licence asks for.' },
 ] as const;
 ---
 
@@ -119,11 +129,10 @@ const relatedLinks = [
     mobileSrc: '/explore-shots/export-editor-overview-mobile.webp',
     alt: 'Print Map Studio editor showing named layers, a route, places, and a walking area',
   }}
-  lead="Download a high-resolution image, a print-ready PDF, an editable SVG, or a layered PSD. Every export is made in your browser with no account or watermark."
+  lead="Download a 300 DPI PNG, an exact-size PDF, an editable SVG or a layered PSD. Every export is made in your browser with no account or watermark, and the same project can also become a map video or a 3D model."
   primaryCta="Create an export"
   facts={['High-resolution exports', 'No account', 'No watermark']}
   showHeroExportFormats
   sections={sections}
-  relatedLinks={relatedLinks}
   faq={faq}
 />

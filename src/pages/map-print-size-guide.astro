@@ -1,0 +1,222 @@
+---
+import SeoLandingPage, { type PageSection } from '../marketing/SeoLandingPage.astro';
+import { media } from '../marketing/media';
+import { page } from '../marketing/pages/map-print-size-guide';
+import {
+  PRINT_SIZES,
+  dimensionPair,
+  formatInches,
+  formatMillimetres,
+  megapixels,
+  pixelDimensions,
+  pixelsPerInchForDistance,
+  printSize,
+} from '../marketing/printSizes';
+import { millimetresToPixels } from '../export/preflight';
+
+const a2 = printSize('A2');
+const a3 = printSize('A3');
+const poster = printSize('50 × 70 cm');
+const px = (mm: number) => millimetresToPixels(mm, 300, 'round').toLocaleString('en-US');
+const ppi = (cm: number) => `about ${Math.round(pixelsPerInchForDistance(cm) / 5) * 5} PPI`;
+
+const sizeRows = PRINT_SIZES.map((size) => [
+  size.name,
+  dimensionPair(formatMillimetres(size.longEdgeMm), formatMillimetres(size.shortEdgeMm)),
+  dimensionPair(formatInches(size.longEdgeMm), formatInches(size.shortEdgeMm)),
+  pixelDimensions(size, 150),
+  pixelDimensions(size, 300),
+  size.preset ? 'Preset' : 'Custom size',
+]);
+
+const sections: readonly PageSection[] = [
+  {
+    id: 'short-version',
+    title: 'The short version',
+    paragraphs: [
+      `For a map that people read up close, print at 300 DPI at the final size. To get the pixel count, divide the size in millimetres by 25.4 and multiply by the DPI. An A3 page is ${a3.longEdgeMm} × ${a3.shortEdgeMm} mm, so at 300 DPI it needs ${pixelDimensions(a3, 300)} pixels.`,
+      'Print Map Studio does this maths for you. Pick a page size and the PNG and PDF exports render the map at 300 DPI for that page. The PNG also stores its DPI, so layout and print software open it at the right physical size instead of guessing.',
+    ],
+    highlights: [
+      { icon: 'a-series', label: 'A2 to A6 presets' },
+      { icon: 'us-letter', label: 'US Letter' },
+      { icon: 'dimensions', label: 'Custom millimetres' },
+      { icon: 'pixels', label: '300 DPI exports' },
+    ],
+  },
+  {
+    kind: 'table',
+    id: 'size-table',
+    title: 'Paper sizes in millimetres, inches and pixels',
+    paragraphs: [
+      'Sizes are listed long edge first. Turn the numbers around for portrait. The last column shows whether the size is a one-click preset in the editor or something you type into the custom width and height fields.',
+    ],
+    headers: ['Size', 'Millimetres', 'Inches', 'Pixels at 150 DPI', 'Pixels at 300 DPI', 'In the editor'],
+    rows: sizeRows,
+    caption: 'Common map print sizes with pixel dimensions at 150 and 300 DPI.',
+    footnotes: [
+      'Pixel values are rounded to the nearest whole pixel, the same rounding the exporter uses.',
+      'Custom pages accept any width and height in 0.1 mm steps, up to 1330 mm a side.',
+    ],
+  },
+  {
+    kind: 'table',
+    id: 'viewing-distance',
+    title: 'How viewing distance changes the resolution you need',
+    paragraphs: [
+      'Normal eyesight separates details about one arcminute apart. Turn that angle into pixels and you get a handy rule: the PPI you need is roughly 3438 divided by the viewing distance in inches. Double the distance and you need half the pixels.',
+      'Maps bend this rule because people walk up to them. Someone admiring an A2 poster from across the room will step in to read a street name, and at 30 cm small labels need the full 300 DPI. That is why Print Map Studio renders PNG and PDF exports at 300 DPI, for the closest reader.',
+    ],
+    headers: ['Viewing distance', 'Resolution the eye can use', 'Typical map'],
+    rows: [
+      ['30 cm (1 ft)', ppi(30), 'Handouts, guidebook pages, A5 and A4 maps held in the hand'],
+      ['60 cm (2 ft)', ppi(60), 'Desk maps and A3 sheets on a pinboard'],
+      ['1 m (3.3 ft)', ppi(100), 'A2 posters on a wall'],
+      ['2 m (6.6 ft)', ppi(200), 'Large posters seen across a room'],
+    ],
+    caption: 'Approximate resolution limit of normal vision at common viewing distances.',
+  },
+  {
+    kind: 'example',
+    id: 'worked-example',
+    title: 'Worked example: a 50 × 70 cm framed poster',
+    paragraphs: [
+      '50 × 70 cm is one of the most common ready-made frame sizes in Europe. It is bigger than A2 and smaller than A1, so it goes in as a custom size.',
+    ],
+    image: {
+      ...media['sizes.page-presets'],
+      title: 'Page size, orientation and margins live in one panel.',
+      caption: 'Pick a preset or type your own width and height in millimetres.',
+    },
+    notes: [
+      {
+        title: 'Set a custom page',
+        body: `Choose Custom and enter ${poster.shortEdgeMm} × ${poster.longEdgeMm} mm in portrait. Measure the frame opening first, because some frames are cut slightly smaller than their label.`,
+      },
+      {
+        title: 'Work out the pixels',
+        body: `${poster.longEdgeMm} ÷ 25.4 × 300 = ${px(poster.longEdgeMm)} pixels tall, and ${poster.shortEdgeMm} ÷ 25.4 × 300 = ${px(poster.shortEdgeMm)} wide. That is about ${megapixels(poster, 300)} megapixels, and Print Map Studio exports it as a single 300 DPI PNG.`,
+      },
+      {
+        title: 'Leave room for the mat',
+        body: 'A mat usually overlaps the print by a few millimetres on each side. If yours covers 5 mm, raise the margins from the default 10 mm to 15 mm so the title and the map credit stay visible.',
+      },
+      {
+        title: 'Check it at room scale',
+        body: 'Open the wall preview, pick a black, white, oak or walnut frame, set the mat width and wall colour, and see how the poster reads before you order the print.',
+      },
+    ],
+  },
+  {
+    kind: 'definitions',
+    id: 'print-terms',
+    title: 'Trim, bleed, safe area and margin',
+    paragraphs: [
+      'Print shops use these four words constantly. Knowing them makes the upload form much less confusing.',
+    ],
+    items: [
+      { term: 'Trim size', definition: 'The final size of the sheet after cutting. This is the page size you set in the editor.' },
+      { term: 'Bleed', definition: 'Extra artwork beyond the trim, usually 3 mm per side, so colour that runs to the edge leaves no white sliver after cutting. Ask your print shop whether they want it, and how much.' },
+      { term: 'Safe area', definition: 'The zone inside the trim where text belongs, usually 3 to 5 mm in from the edge, because the guillotine can drift by a millimetre or two.' },
+      { term: 'Margin', definition: 'Paper-coloured space between the page edge and the map. Print Map Studio starts with 10 mm on every side, and you can set each side from 0 to 100 mm in 0.5 mm steps.' },
+    ],
+  },
+  {
+    id: 'margins-and-credit',
+    title: 'Margins, bleed and the map credit in Print Map Studio',
+    paragraphs: [
+      'Margins live in the Layout tab. With white paper and a 10 mm margin, the edge of the sheet is blank paper, which already works as a safe area. Bleed matters once colour reaches the trim: a dark paper colour like the one in the After dark layout preset, or margins set to zero so the map runs off the edge.',
+      `For a 3 mm bleed, enter the trim size plus 6 mm in each direction, so an A3 becomes ${a3.shortEdgeMm + 6} × ${a3.longEdgeMm + 6} mm in portrait. If the design keeps its margins, as a dark poster usually does, add the same 3 mm to each one. The default 10 mm becomes 13 mm, and your title and the credit stay clear of the cut.`,
+      'The map data credit (© OpenStreetMap contributors, OpenMapTiles and OpenFreeMap) prints as a 6 pt caption in the bottom margin, lined up with the poster text. A long credit steps down to 5 pt and wraps onto a second line. With the bottom margin at zero, the editor adds a slim paper-coloured strip for the credit, so it always sits just below the map.',
+    ],
+    image: {
+      ...media['editor.layout-tab'],
+      title: 'Margins and paper colour sit next to the page size.',
+      caption: 'Each side has its own margin, and the credit follows the bottom one.',
+    },
+    imagePosition: 'beside',
+  },
+  {
+    kind: 'table',
+    id: 'file-formats',
+    title: 'Which file to send to a print shop',
+    paragraphs: [
+      'All four print formats come out of the same Export dialog at the page size you set. The right one depends on who handles the file next.',
+    ],
+    headers: ['Format', 'What you get', 'Send it when'],
+    rows: [
+      ['PDF', `Exact page size with a 300 DPI basemap. Routes, places, shapes and poster text stay as vectors. 300 DPI holds up to A1.`, 'Most print shops. A PDF at trim size, or trim plus bleed, is the safest upload.'],
+      ['PNG', `One 300 DPI image with its DPI stored in the file, in one piece up to 50 × 70 cm. A1 and 24 × 36 in PNGs stream straight to disk in Chrome and Edge.`, 'The shop prints posters or photos from image files, or the map is going into Canva, Word or InDesign.'],
+      ['Layered SVG', 'Routes, places and shapes as named vector groups over the basemap. Flat maps can also use a fully vector basemap with editable text.', 'A designer will finish the map in Illustrator, Affinity Designer or Inkscape.'],
+      ['Layered PSD', 'Each content layer and the credit as its own Smart Object over the basemap. 300 DPI up to A4 and US Letter, with resolution set automatically on bigger pages so the file stays workable in Photoshop.', 'Photoshop is the next step.'],
+    ],
+    caption: 'Print Map Studio export formats and when to use each.',
+    footnotes: [
+      'Press printing converts colours to CMYK, and bright blues and greens can shift. Ask for a proof when a colour has to match.',
+    ],
+  },
+  {
+    id: 'paper',
+    title: 'Choosing paper for a map print',
+    paragraphs: [
+      'Paper changes how a map reads more than most people expect. Thin roads and small labels want a smooth surface, and dark styles want a paper that holds deep ink.',
+    ],
+    points: [
+      'Matte poster paper, 170 to 200 gsm: no glare and easy to read under any light. A safe default for light styles such as Paper and Porcelain.',
+      'Satin or lustre: a soft sheen and deeper blacks. Good for Night Ink and other dark styles.',
+      'Gloss: the richest colour, with reflections to match. Best on a wall away from windows.',
+      'Cotton rag fine art paper, 300 gsm and up: heavy and textured, for a framed gift. Pick a smooth finish for street maps so thin lines stay sharp.',
+      'Office paper, 80 to 120 gsm: fine for handouts and proofs. Colours print lighter, so check that routes still stand out.',
+      'Heavy card, 250 to 350 gsm: for invitations and place cards with a small map on them.',
+    ],
+  },
+  {
+    kind: 'steps',
+    id: 'checklist',
+    title: 'Before you send the file',
+    steps: [
+      { title: 'Confirm the trim size', body: 'Check the exact size with the print shop or the frame. A "poster" can mean A2, 18 × 24 in or 50 × 70 cm depending on who you ask.' },
+      { title: 'Ask about bleed', body: 'If the shop wants bleed and your colour reaches the edge, add it to the page size and the margins as described above.' },
+      { title: 'Export a PDF and open it', body: 'Zoom to 100% in a PDF reader and read the smallest street label. If you can read it on screen at that zoom, it will print.' },
+      { title: 'Order a small proof', body: 'Print an A4 section at full scale, or ask the shop for a proof, before paying for a large run.' },
+    ],
+  },
+];
+
+const faq = [
+  {
+    question: 'What DPI should a map poster be?',
+    answer: '300 DPI at the final size. Large posters seen from a few metres look fine at lower resolutions, but people step closer to read map labels, so 300 is the safer choice for anything with street names.',
+  },
+  {
+    question: 'How many pixels is an A2 print at 300 DPI?',
+    answer: `${pixelDimensions(a2, 300)} pixels for a ${a2.longEdgeMm} × ${a2.shortEdgeMm} mm sheet. At 150 DPI it is ${pixelDimensions(a2, 150)}.`,
+  },
+  {
+    question: 'Can I print an A4 map at A2?',
+    answer: 'Set the page to A2 in the editor before you export. Print Map Studio renders map detail for the page you choose, so an A2 export has four times the pixels of an A4 one rather than an enlarged A4.',
+  },
+  {
+    question: 'What size is 11 × 17 in millimetres?',
+    answer: `Tabloid is 279.4 × 431.8 mm. Enter it as a custom size; at 300 DPI it is ${pixelDimensions(printSize('Tabloid (11 × 17 in)'), 300)} pixels.`,
+  },
+  {
+    question: 'Do I need bleed for a map with white margins?',
+    answer: 'Usually not. Bleed exists for colour that touches the trim edge, and with white paper and margins the edge is blank either way. Your print shop has the final word, so ask if you are unsure.',
+  },
+] as const;
+---
+
+<SeoLandingPage
+  page={page}
+  eyebrow="Print guide"
+  heading="Map print sizes, DPI and pixel dimensions"
+  lead="Pick the paper size first, then work out how many pixels the map needs. This guide lists the common A-series and US sizes with their pixel dimensions, explains when you can get away with fewer pixels, and covers margins, bleed and the files print shops ask for."
+  primaryCta="Set up a page in the editor"
+  secondaryCta={{ href: '#size-table', label: 'Jump to the size table' }}
+  facts={['A6 to A1 and US sizes', 'Pixels at 150 and 300 DPI', 'Bleed and margins explained', 'Worked example']}
+  sections={sections}
+  ctaHeading="Pick a page size and start your map."
+  faq={faq}
+  faqDescription="Quick answers about DPI, pixel sizes and bleed."
+/>
