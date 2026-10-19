@@ -78,16 +78,14 @@ test('marketing routes render crawlable content and metadata without editor code
   expect(editorRequests).toEqual([]);
 });
 
-test('FAQ structured data matches the visible questions', async ({ page }) => {
+test('FAQ stays visible on-page content without FAQPage schema', async ({ page }) => {
   await page.goto('../#faq');
   const faq = page.getByRole('region', { name: 'Frequently asked questions.' });
-  const visibleQuestions = await faq.locator('summary h3').allTextContents();
+  await expect(faq.locator('details')).toHaveCount(22);
   const structuredData = await page.locator('script[type="application/ld+json"]').textContent();
   expect(structuredData).not.toBeNull();
-  const parsed = JSON.parse(structuredData!);
-  const faqPage = parsed['@graph'].find((entry: { '@type': string }) => entry['@type'] === 'FAQPage');
-  expect(faqPage.mainEntity.map((entry: { name: string }) => entry.name)).toEqual(visibleQuestions);
-  await expect(faq.locator('details')).toHaveCount(22);
+  const types = JSON.parse(structuredData!)['@graph'].map((entry: { '@type': string }) => entry['@type']);
+  expect(types).not.toContain('FAQPage');
 });
 
 test('homepage ships the selected hero without review controls', async ({ page }) => {

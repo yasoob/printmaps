@@ -4,7 +4,7 @@ const port = process.env.MARKETING_TEST_PORT ?? '4176';
 
 export default defineConfig({
   testDir: './tests/e2e',
-  testMatch: /marketing(?:-seo)?\.spec\.ts$/,
+  testMatch: 'marketing*.spec.ts',
   fullyParallel: false,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {

@@ -76,6 +76,21 @@ async function checkImages(page: Page, path: string): Promise<void> {
     expect(image.alt, `${path} ${image.src} alt`).not.toBeNull();
     expect(image.sized, `${path} ${image.src} dimensions`).toBe(true);
   }
+
+  // Lazy and hidden-panel images load only on demand; force them so broken sources fail here.
+  const broken = await page.locator('img').evaluateAll(async (elements) => {
+    const results = await Promise.all((elements as HTMLImageElement[]).map(async (image) => {
+      image.loading = 'eager';
+      try {
+        await image.decode();
+      } catch {
+        // A failed decode leaves naturalWidth at 0, which is reported below.
+      }
+      return image.naturalWidth > 0 ? null : image.currentSrc || image.getAttribute('src');
+    }));
+    return results.filter(Boolean);
+  });
+  expect(broken, `${path} has images that fail to load`).toEqual([]);
 }
 
 async function checkAnchor(page: Page, path: string, href: string): Promise<void> {
@@ -88,7 +103,7 @@ async function checkInternalLink(page: Page, path: string, href: string, statuse
     const response = await page.request.get(target);
     statuses.set(target, response.status());
   }
-  expect(statuses.get(target), `${path} links to ${href}`).toBeLessThan(400);
+  expect.soft(statuses.get(target), `${path} links to ${href}`).toBeLessThan(400);
   if (target !== '/editor/' && !target.includes('.')) expect(target, `${path} link ${href} uses a trailing slash`).toMatch(/\/$/);
 }
 
@@ -163,4 +178,16 @@ test('404 page is not indexable and links back into the site', async ({ page }) 
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex');
   await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
   await expect(page.getByRole('main').getByRole('link', { name: 'Open the editor' })).toHaveAttribute('href', '/editor/');
+});
+
+test('skip link stays hidden until it receives keyboard focus', async ({ page }) => {
+  await page.goto('/');
+  const skipLink = page.getByRole('link', { name: 'Skip to content' });
+  await expect(skipLink).not.toBeFocused();
+  const hiddenBox = await skipLink.boundingBox();
+  expect(hiddenBox?.width ?? 0).toBeLessThanOrEqual(1);
+  await page.keyboard.press('Tab');
+  await expect(skipLink).toBeFocused();
+  const focusedBox = await skipLink.boundingBox();
+  expect(focusedBox?.width ?? 0).toBeGreaterThan(40);
 });
