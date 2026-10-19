@@ -12,4 +12,5 @@ export const page: MarketingPageEntry = {
   summaryForLlms: 'Overview of the print editor: A2-A6, US Letter or custom millimetre pages, 12 map styles with a palette editor, 7 label languages, layout presets with title and margins, compass, scale bar, grid and location QR, wall preview, and PNG, PDF, layered SVG and layered PSD export.',
   updated: '2026-10-19',
   published: '2026-08-31',
+  related: ['city-map-poster', 'map-poster-templates', 'map-print-size-guide', 'gpx-map-maker'],
 };

@@ -13,5 +13,5 @@ export const page: MarketingPageEntry = {
   updated: '2026-10-19',
   published: '2026-10-19',
   kind: 'comparison',
-  related: ['layered-map-export', 'map-print-size-guide', 'printable-map-maker'],
+  related: ['layered-map-export', 'map-print-size-guide', 'printable-map-maker', 'real-estate-location-map'],
 };

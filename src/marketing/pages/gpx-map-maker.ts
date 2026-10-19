@@ -12,4 +12,5 @@ export const page: MarketingPageEntry = {
   summaryForLlms: 'How GPX, KML and GeoJSON files (up to 10 at once, 5 MB each) become editable route, waypoint and shape layers, how to style and road-match a track, how to download an elevation profile as SVG, PNG or PDF, and how to frame and export the map.',
   updated: '2026-10-19',
   published: '2026-08-31',
+  related: ['route-map-poster', 'topographic-map-maker', 'layered-map-export', 'map-print-size-guide'],
 };

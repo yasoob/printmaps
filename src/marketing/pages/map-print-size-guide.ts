@@ -13,5 +13,5 @@ export const page: MarketingPageEntry = {
   updated: '2026-10-19',
   published: '2026-10-19',
   kind: 'guide',
-  related: ['printable-map-maker', 'layered-map-export', 'printmaps-net-alternative'],
+  related: ['printable-map-maker', 'city-map-poster', 'layered-map-export', 'map-poster-templates'],
 };

@@ -12,5 +12,5 @@ export const page: MarketingPageEntry = {
   summaryForLlms: 'Print Map Studio compresses the whole project into the URL fragment of a read-only share link (up to 64 KB), offers an iframe embed with a 240-2000 px height and an optional pan and zoom toggle, and can print a location QR code that opens Google Maps.',
   updated: '2026-10-19',
   published: '2026-10-19',
-  related: ['layered-map-export', 'printable-map-maker', 'map-print-size-guide'],
+  related: ['wedding-map-poster', 'real-estate-location-map', 'map-video-maker', 'layered-map-export'],
 };
