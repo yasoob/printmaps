@@ -2,9 +2,9 @@ import type { MarketingPageEntry } from './types';
 
 export const page: MarketingPageEntry = {
   slug: 'route-map-poster',
-  title: 'Route Map Posters from Strava and GPX',
+  title: 'Route Map Poster for Runs, Rides & Hikes',
   navLabel: 'Route map posters',
-  description: 'Make a route map poster from a Strava, Garmin or Komoot GPX file. Set a line weight that prints well, mark the start and finish, and add an elevation profile.',
+  description: 'Make a route map poster from a run, ride or hike on Strava, Garmin or Komoot. Pick a line weight that prints well, mark the start and finish, and add elevation.',
   group: 'outdoors',
   order: 1,
   primaryKeyword: 'route map poster',

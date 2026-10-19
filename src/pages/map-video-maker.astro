@@ -8,7 +8,7 @@ const sections: readonly PageSection[] = [
     kind: 'video',
     title: 'Your poster, with a slow camera move',
     paragraphs: [
-      'The video export records the finished poster: the map, routes, places, title, photos, compass and the map credit. The poster frame and text stay still while the map turns inside it, so the clip looks like the print with a little life in it.',
+      'The video export records the finished poster: the map, [routes](/route-map-poster/), places, title, photos, compass and the map credit. The poster frame and text stay still while the map turns inside it, so the clip looks like the print with a little life in it.',
       'If the map is tilted and 3D terrain is on, the video keeps that view. Mountains turn in perspective, which is where an orbit looks its best.',
     ],
     media: media['video.clip'],
@@ -55,7 +55,7 @@ const sections: readonly PageSection[] = [
     steps: [
       {
         title: 'Finish the poster first',
-        body: 'The video records what is on the page, so set the style, routes, text and decorations before you start. For depth, turn on 3D terrain and raise Pitch in the View section of the Map tab.',
+        body: 'The video records what is on the page, so set the style, routes, text and decorations before you start. For depth, turn on [3D terrain](/topographic-map-maker/) and raise Pitch in the View section of the Map tab.',
       },
       {
         title: 'Open the video export',
@@ -120,6 +120,7 @@ const faq = [
   heroImage={media['video.export-dialog']}
   heroLayout="split"
   sections={sections}
+  ctaHeading="Finish the poster, then record the orbit."
   faq={faq}
   faqDescription="Length, sound, terrain and watermarks."
 />

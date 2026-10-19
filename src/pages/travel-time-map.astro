@@ -10,7 +10,7 @@ const sections: readonly PageSection[] = [
     paragraphs: [
       'A circle drawn around a point assumes you can walk through buildings and swim across rivers. A travel-time area, often called an isochrone, follows the real street and path network instead. It stretches out along main roads, pinches in where a river has one bridge, and bends around railway lines until it reaches a crossing.',
       'That makes it a more honest answer to questions like "what can I reach on foot in 15 minutes?" Two flats the same distance from an office can have very different shapes around them.',
-      'In Print Map Studio the area becomes an ordinary shape layer. You can restyle it, stack several of them, and export them as clean vector shapes in PDF, layered SVG and layered PSD.',
+      'In Print Map Studio the area becomes an ordinary shape layer. You can restyle it, stack several of them, and export them as clean vector shapes in [PDF, layered SVG and layered PSD](/layered-map-export/).',
     ],
     image: {
       ...media['isochrone.map'],
@@ -67,7 +67,7 @@ const sections: readonly PageSection[] = [
     kind: 'prose',
     title: 'Where travel time maps earn their place',
     paragraphs: [
-      'Travel-time areas answer practical questions, so they work best on maps that someone will use to decide something.',
+      'Travel-time areas answer practical questions, so they work best on maps that someone will use to decide something. For listings, the [real estate location map](/real-estate-location-map/) guide pairs them with nearby places and a QR code.',
     ],
     points: [
       'Flat hunting: a 30 minute cycling area from the office, printed and marked up with viewings.',
@@ -114,8 +114,8 @@ const faq = [
     answer: 'Yes. PDF, layered SVG and layered PSD keep them as vector shapes. PNG renders them at 300 DPI with the rest of the page.',
   },
   {
-    question: 'Is the travel time tool free?',
-    answer: 'Yes. Like the rest of the editor, it is free and needs no account.',
+    question: 'Which travel mode should I choose?',
+    answer: 'Walking suits city centres, stations and shops. Cycling suits commutes and campus maps. Driving suits suburbs, rural sites and anything measured in tens of kilometres, such as a catchment area for a venue.',
   },
 ] as const;
 ---
@@ -123,13 +123,14 @@ const faq = [
 <SeoLandingPage
   page={page}
   eyebrow="Travel time maps"
-  heading="Show how far you can get in 15 minutes."
+  heading="Make a travel time map of how far you can get in 15 minutes."
   lead="A travel time map shows everywhere you can reach from one point within a time limit, following real streets and paths. Make one for walking, cycling or driving, then print it at the exact page size."
   primaryCta="Make a travel time map"
   facts={['Walking, cycling or driving', '5 to 60 minutes', 'Vector shapes in PDF', 'Free, no account']}
   heroImage={media['isochrone.map']}
   heroLayout="split"
   sections={sections}
+  ctaHeading="Pick a starting point and draw the first ring."
   faq={faq}
-  faqDescription="Isochrones, rings, colours and print output."
+  faqDescription="Isochrones, rings, travel modes and print output."
 />
