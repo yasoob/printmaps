@@ -29,7 +29,10 @@ test('llms.txt lists every page linked from the footer', async ({ page }) => {
 
   const full = await page.request.get('/llms-full.txt');
   expect(full.status()).toBe(200);
-  expect(await full.text()).toContain('## Product facts');
+  const fullText = await full.text();
+  expect(fullText).toContain('## Product facts');
+  expect(fullText).toContain('#### Questions');
+  expect(fullText).not.toMatch(/\]\((?:\/|#)/);
 });
 
 async function checkMetadata(page: Page, path: string): Promise<PageReport> {

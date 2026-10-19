@@ -26,6 +26,15 @@ async function renderVariant(publicDir: string, variant: Variant): Promise<Buffe
     .toBuffer();
 }
 
+async function hasFile(file: string): Promise<boolean> {
+  try {
+    await stat(file);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function htmlFiles(directory: string): Promise<string[]> {
   const entries = await readdir(directory, { withFileTypes: true });
   const nested = await Promise.all(entries.map(async (entry) => {
@@ -36,7 +45,9 @@ async function htmlFiles(directory: string): Promise<string[]> {
   return nested.flat();
 }
 
-/** Serves and builds resized WebP copies of public/ images referenced as `/_img/<w>/<ext>/<path>.webp`. */
+/**
+Serves and builds resized WebP copies of public/ images referenced as `/_img/<w>/<ext>/<path>.webp`.
+*/
 export function responsiveImages(): AstroIntegration {
   let publicDir = '';
   return {
@@ -76,8 +87,7 @@ export function responsiveImages(): AstroIntegration {
           const variant = parseVariant(url);
           if (!variant) throw new Error(`Invalid responsive image URL ${url}`);
           const target = path.join(outDir, url);
-          const exists = await stat(target).then(() => true, () => false);
-          if (exists) continue;
+          if (await hasFile(target)) continue;
           await mkdir(path.dirname(target), { recursive: true });
           await writeFile(target, await renderVariant(publicDir, variant));
           written += 1;

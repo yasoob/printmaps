@@ -8,7 +8,13 @@ import {
 import { navigationGroups, pagePath, pagesInGroup } from './registry';
 
 const year = new Date().getFullYear();
-const contentGroups = navigationGroups().filter((group) => group.id !== 'project');
+const sections = navigationGroups().filter((group) => group.id !== 'project');
+// Guides and use cases are short lists, so they share one footer column.
+const guidePages = sections.filter((group) => group.id === 'guides' || group.id === 'work').flatMap((group) => group.pages);
+const contentGroups = [
+  ...sections.filter((group) => group.id !== 'guides' && group.id !== 'work'),
+  ...(guidePages.length > 0 ? [{ id: 'guides', label: 'Guides and use cases', pages: guidePages }] : []),
+];
 const projectLinks = [
   { href: '/editor/', label: 'Open the editor' },
   ...pagesInGroup('project').map((entry) => ({ href: pagePath(entry), label: entry.navLabel })),
@@ -30,12 +36,12 @@ const linkClass = 'text-sm font-medium text-[#6e6e73] no-underline hover:text-[#
       <div class="grid w-full max-w-[56rem] grid-cols-2 gap-x-8 gap-y-10 pt-4 sm:grid-cols-3 lg:grid-cols-5">
         {contentGroups.map((group) => (
           <nav class="grid content-start gap-3.5" aria-label={`${group.label} pages`}>
-            <h2 class="text-sm font-semibold text-[#1d1d1f]">{group.label}</h2>
+            <p class="text-sm font-semibold text-[#1d1d1f]">{group.label}</p>
             {group.pages.map((entry) => <a class={linkClass} href={pagePath(entry)}>{entry.navLabel}</a>)}
           </nav>
         ))}
         <nav class="grid content-start gap-3.5" aria-label="Project navigation">
-          <h2 class="text-sm font-semibold text-[#1d1d1f]">Project</h2>
+          <p class="text-sm font-semibold text-[#1d1d1f]">Project</p>
           {projectLinks.map((item) => <a class={linkClass} href={item.href}>{item.label}</a>)}
         </nav>
       </div>

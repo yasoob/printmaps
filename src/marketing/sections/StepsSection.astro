@@ -23,7 +23,7 @@ const numbered = section.numbered ?? true;
           <div class="min-w-0 pt-1.5 sm:pt-2.5">
             <h3 class="text-lg font-semibold tracking-[-0.02em] sm:text-xl">{step.title}</h3>
             <p class="mt-2 text-base leading-7 text-[#515154]"><InlineText text={step.body} /></p>
-            {step.image && <SectionFigure class="mt-5" image={step.image} />}
+            {step.image && <SectionFigure class="mt-5" image={step.image} sizes="(min-width: 60rem) 50rem, calc(100vw - 5rem)" />}
           </div>
         </li>
       ))}
@@ -31,12 +31,10 @@ const numbered = section.numbered ?? true;
   ) : (
     <ul class="mt-8 list-none divide-y divide-[#e8e8ed] border-y border-[#e8e8ed] p-0" aria-labelledby={`${id}-title`}>
       {section.steps.map((step) => (
-        <li class="grid gap-x-10 gap-y-1.5 py-5 sm:grid-cols-[minmax(10rem,15rem)_minmax(0,1fr)]">
+        <li class="grid min-w-0 gap-x-10 gap-y-1.5 py-5 sm:grid-cols-[minmax(10rem,15rem)_minmax(0,1fr)]">
           <h3 class="text-base font-semibold tracking-[-0.01em] text-[#1d1d1f] sm:text-lg">{step.title}</h3>
-          <div class="min-w-0">
-            <p class="text-base leading-7 text-[#515154]"><InlineText text={step.body} /></p>
-            {step.image && <SectionFigure class="mt-5" image={step.image} />}
-          </div>
+          <p class="min-w-0 text-base leading-7 text-[#515154]"><InlineText text={step.body} /></p>
+          {step.image && <SectionFigure class="mt-4 sm:col-span-2" image={step.image} />}
         </li>
       ))}
     </ul>

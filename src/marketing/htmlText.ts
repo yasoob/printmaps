@@ -1,4 +1,6 @@
-/** Small helpers for pulling FAQ answers and tables out of rendered marketing pages as plain text. */
+/**
+Small helpers for pulling FAQ answers and tables out of rendered marketing pages as plain text.
+*/
 const ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
 
 export function htmlToText(html: string): string {
@@ -25,7 +27,9 @@ export function extractFaq(html: string): FaqText[] {
     .map(([, question = '', answer = '']) => ({ question: htmlToText(question), answer: htmlToText(answer) }));
 }
 
-/** First table inside <main>, as a Markdown table with its section heading. */
+/**
+First table inside <main>, as a Markdown table with its section heading.
+*/
 export function extractFirstTable(html: string): { heading: string; markdown: string } | undefined {
   const main = html.slice(Math.max(0, html.indexOf('<main')));
   const tableMatch = /<table[\s\S]*?<\/table>/.exec(main);

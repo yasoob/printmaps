@@ -13,7 +13,9 @@ export function variantUrl(src: string, width: number): string | undefined {
   return `/_img/${width}/${extension.toLowerCase()}/${path}.webp`;
 }
 
-/** `srcset` with smaller WebP variants plus the original at its own width. */
+/**
+`srcset` with smaller WebP variants plus the original at its own width.
+*/
 export function responsiveSrcset(src: string, width: number): string | undefined {
   const smaller = RESPONSIVE_WIDTHS.filter((candidate) => candidate < width * 0.9);
   const variants = smaller

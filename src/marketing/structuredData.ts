@@ -19,13 +19,15 @@ export function personNode(): JsonLdNode {
   };
 }
 
-export function websiteNode(description: string): JsonLdNode {
+export const SITE_DESCRIPTION = `${SITE_NAME} is a free browser-based editor for print-ready maps and map posters.`;
+
+export function websiteNode(): JsonLdNode {
   return {
     '@type': 'WebSite',
     '@id': WEBSITE_ID,
     name: SITE_NAME,
     url: `${SITE_URL}/`,
-    description,
+    description: SITE_DESCRIPTION,
     inLanguage: 'en',
     publisher: { '@id': PERSON_ID },
   };
@@ -60,8 +62,9 @@ export function applicationNode(description: string, screenshot: MarketingImage)
       priceCurrency: 'USD',
     },
     featureList: [
-      'A2-A6, US Letter and custom millimetre page sizes',
+      'A2–A6, US Letter and custom millimetre page sizes',
       '12 map styles with a palette editor',
+      'Map labels in local names plus 6 languages',
       'Routes, places, custom markers, areas and travel-time areas',
       'GPX, KML and GeoJSON import',
       'Poster titles, layout presets and country or region shaped map frames',
@@ -127,7 +130,7 @@ export function pageGraph({ entry, title, description: rawDescription, image }: 
   };
   const graph: JsonLdNode[] = [
     personNode(),
-    websiteNode(`${SITE_NAME} is a free browser-based editor for print-ready maps and map posters.`),
+    websiteNode(),
     webPage,
     breadcrumbNode(url, breadcrumbsFor(entry)),
   ];

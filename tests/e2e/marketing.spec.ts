@@ -92,7 +92,7 @@ test('homepage ships the selected hero without review controls', async ({ page }
   await page.goto('../');
   await expect(page.locator('h1')).toHaveCount(1);
   await expect(page.getByText('Free · no account · no watermark')).toBeVisible();
-  await expect(page.getByRole('link', { name: "Open the editor - it's free" })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Open the free editor' })).toBeVisible();
   await expect(page.getByText('Free to use')).toHaveCount(0);
   await expect(page.getByText('Layered PSD', { exact: true })).toHaveCount(0);
 });
@@ -153,7 +153,9 @@ test('explore pages use contextual product screenshots', async ({ page }) => {
     const hero = page.locator('main picture img').first();
     await expect(hero).toBeVisible();
     await expect(hero).toHaveAttribute('src', item.hero);
-    await expect(hero).toHaveAttribute('fetchpriority', 'high');
+    await expect(hero).toHaveAttribute('loading', 'eager');
+    await expect(hero).not.toHaveAttribute('fetchpriority', 'high');
+    await expect(hero).toHaveAttribute('sizes', /.+/);
     await expect(page.locator('main figure')).toHaveCount(item.details.length);
     const formatRow = page.getByRole('list', { name: 'Available export formats' });
     await expect(formatRow).toHaveCount(1);
@@ -250,7 +252,7 @@ test('mobile homepage CTA leads to the relocated editor', async ({ page }) => {
   const iconStates = secondFaq.locator('[data-accordion-icon] > span');
   await expect(iconStates.nth(0)).toBeHidden();
   await expect(iconStates.nth(1)).toBeVisible();
-  await expect(iconStates.nth(1)).toHaveText('-');
+  await expect(iconStates.nth(1).locator('svg')).toHaveCount(1);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 
   await page.locator('[data-hero-image-link]').click();

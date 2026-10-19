@@ -156,7 +156,7 @@ function sectionId(section: PageSection, index: number): string {
   structuredData={structuredData}
 >
   <section class:list={[
-    'overflow-hidden bg-[#f5f5f7] px-4 pt-14 font-inter text-[#1d1d1f] sm:px-8 sm:pt-20',
+    'overflow-hidden bg-[#f5f5f7] px-4 pt-8 font-inter text-[#1d1d1f] sm:px-8 sm:pt-20',
     (!hero || heroLayout === 'split') && 'pb-16 sm:pb-24',
   ]}>
     <div class:list={[
@@ -165,22 +165,22 @@ function sectionId(section: PageSection, index: number): string {
     ]}>
       <div>
         {showBreadcrumbs && breadcrumbs.length > 0 && (
-          <Breadcrumbs class:list={['mb-8', heroLayout === 'split' && hero ? '' : '[&_ol]:justify-center']} items={breadcrumbs} />
+          <Breadcrumbs class:list={['mb-5 sm:mb-8', heroLayout === 'split' && hero ? '' : '[&_ol]:justify-center']} items={breadcrumbs} />
         )}
         <span class="text-[0.72rem] font-semibold tracking-[0.1em] text-[#6e6e73] uppercase">{eyebrow}</span>
         <h1 class:list={[
-          'mt-4 text-4xl leading-[0.95] font-semibold tracking-[-0.045em] sm:text-5xl lg:text-6xl',
+          'mt-3 text-[2.15rem] leading-[0.98] sm:mt-4 sm:leading-[0.95] font-semibold tracking-[-0.045em] sm:text-5xl lg:text-6xl',
           heroLayout === 'split' && hero ? 'max-w-2xl' : 'mx-auto max-w-5xl',
         ]}>
           {heading}
         </h1>
         <p class:list={[
-          'mt-7 text-base leading-7 text-[#6e6e73] sm:text-xl sm:leading-8',
+          'mt-5 text-base leading-7 text-[#6e6e73] sm:mt-7 sm:text-xl sm:leading-8',
           heroLayout === 'split' && hero ? 'max-w-xl' : 'mx-auto max-w-3xl',
         ]}>
           <InlineText text={lead} />
         </p>
-        <div class:list={['mt-8 flex flex-wrap items-center gap-3', !(heroLayout === 'split' && hero) && 'justify-center']}>
+        <div class:list={['mt-6 flex flex-wrap items-center gap-3 sm:mt-8', !(heroLayout === 'split' && hero) && 'justify-center']}>
           <a class="inline-flex min-h-12 items-center justify-center rounded-full bg-[#0071e3] px-6 text-sm font-semibold text-white no-underline transition hover:-translate-y-0.5 hover:bg-[#0077ed] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#8bb9ff] motion-reduce:transition-none" href="/editor/">
             {primaryCta}
           </a>
@@ -192,12 +192,14 @@ function sectionId(section: PageSection, index: number): string {
         </div>
         {facts.length > 0 && (
           <ul class:list={[
-            'mt-7 flex max-w-3xl list-none flex-wrap gap-x-6 gap-y-2 p-0 text-sm font-medium text-[#6e6e73]',
-            !(heroLayout === 'split' && hero) && 'mx-auto justify-center',
+            'mt-5 list-none p-0 text-sm font-medium text-[#6e6e73] sm:mt-7',
+            // Four chips wrap unevenly in one line, so they sit in a 2 × 2 grid.
+            facts.length === 4 ? 'grid w-fit grid-cols-2 gap-x-8 gap-y-2 text-left' : 'flex max-w-3xl flex-wrap gap-x-6 gap-y-2',
+            !(heroLayout === 'split' && hero) && (facts.length === 4 ? 'mx-auto' : 'mx-auto justify-center'),
           ]}>
             {facts.map((fact) => (
-              <li class="inline-flex items-center gap-1.5">
-                <Check class="size-4 text-[#0071e3]" stroke-width={2.25} aria-hidden="true" />
+              <li class="inline-flex items-start gap-1.5">
+                <Check class="mt-0.5 size-4 shrink-0 text-[#0071e3]" stroke-width={2.25} aria-hidden="true" />
                 {fact}
               </li>
             ))}
@@ -218,7 +220,7 @@ function sectionId(section: PageSection, index: number): string {
         return (
           <Wrapper
             class:list={[
-              'group relative mx-auto mt-14 block max-w-[68rem] overflow-hidden rounded-t-xl border border-b-0 border-[#d2d2d7] bg-white',
+              'group relative mx-auto mt-10 block max-w-[68rem] sm:mt-14 overflow-hidden rounded-t-xl border border-b-0 border-[#d2d2d7] bg-white',
               heroLinksToEditor && 'focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[#8bb9ff]',
             ]}
             href={heroLinksToEditor ? '/editor/' : undefined}

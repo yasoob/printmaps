@@ -109,21 +109,33 @@ export function pagesInGroup(group: MarketingPageGroup): readonly MarketingPageE
   return marketingPages.filter((entry) => entry.group === group);
 }
 
+/**
+How groups are presented in menus, the footer and llms.txt. Small groups share a section.
+*/
+export const NAV_SECTIONS: readonly { id: string; label: string; groups: readonly MarketingPageGroup[]; menu: 'features' | 'guides' | null }[] = [
+  { id: 'posters', label: 'Map posters', groups: ['make'], menu: 'features' },
+  { id: 'outdoors', label: 'Routes and terrain', groups: ['outdoors'], menu: 'features' },
+  { id: 'export', label: 'Export and share', groups: ['export'], menu: 'features' },
+  { id: 'guides', label: 'Guides & comparisons', groups: ['guide', 'compare'], menu: 'guides' },
+  { id: 'work', label: 'Use cases', groups: ['business'], menu: 'guides' },
+  { id: 'project', label: 'Project', groups: ['project'], menu: null },
+];
+
 export type NavigationGroup = {
-  id: MarketingPageGroup;
+  id: string;
   label: string;
   pages: readonly MarketingPageEntry[];
 };
 
 export function navigationGroups(menu?: 'features' | 'guides'): readonly NavigationGroup[] {
-  return GROUPS
-    .filter((group) => (menu ? group.menu === menu : true))
-    .map((group) => ({
-      id: group.id,
-      label: group.label,
-      pages: pagesInGroup(group.id).filter((entry) => !menu || !entry.hideFromNav),
+  return NAV_SECTIONS
+    .filter((section) => (menu ? section.menu === menu : true))
+    .map((section) => ({
+      id: section.id,
+      label: section.label,
+      pages: marketingPages.filter((entry) => section.groups.includes(entry.group) && (!menu || !entry.hideFromNav)),
     }))
-    .filter((group) => group.pages.length > 0);
+    .filter((section) => section.pages.length > 0);
 }
 
 const OG_FALLBACK: MarketingImage = {
