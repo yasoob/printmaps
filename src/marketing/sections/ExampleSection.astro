@@ -1,4 +1,5 @@
 ---
+import InlineText from '../InlineText.astro';
 import SectionFigure from './SectionFigure.astro';
 import SectionIntro from './SectionIntro.astro';
 import type { ExampleSection } from './types';
@@ -23,7 +24,7 @@ const { id, section } = Astro.props;
           <span class="grid size-8 place-items-center rounded-full border border-[#0071e3] text-sm font-semibold text-[#0071e3]" aria-hidden="true">{index + 1}</span>
           <div>
             <h3 class="text-base font-semibold tracking-[-0.01em]">{note.title}</h3>
-            <p class="mt-1 text-sm leading-6 text-[#515154]">{note.body}</p>
+            <p class="mt-1 text-sm leading-6 text-[#515154]"><InlineText text={note.body} /></p>
           </div>
         </li>
       ))}

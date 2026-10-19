@@ -1,3 +1,4 @@
+import { stripInline } from './inlineLinks';
 import type { MarketingImage } from './media';
 import { pageKind, pageUrl, type MarketingPageEntry } from './registry';
 import { CREATOR_NAME, CREATOR_URL, GITHUB_URL, SITE_NAME, SITE_URL } from './product';
@@ -106,7 +107,8 @@ type PageGraphOptions = {
 /**
 Structured data for a registry page: Person, WebSite, the page, its breadcrumb, and a TechArticle for guides.
 */
-export function pageGraph({ entry, title, description, image }: PageGraphOptions): JsonLdNode {
+export function pageGraph({ entry, title, description: rawDescription, image }: PageGraphOptions): JsonLdNode {
+  const description = stripInline(rawDescription);
   const url = pageUrl(entry);
   const kind = pageKind(entry);
   const imageUrl = `${SITE_URL}${image.src}`;

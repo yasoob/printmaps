@@ -4,6 +4,7 @@ import MarketingFooter from './MarketingFooter.astro';
 import MarketingHeader from './MarketingHeader.astro';
 import { interFontUrl } from './interFont';
 import { marketingFontUrl } from './font';
+import { stripInline } from './inlineLinks';
 import type { MarketingImage } from './media';
 import { SITE_NAME } from './product';
 import { fullTitle as titleWithSuffix, ogImageFor } from './registry';
@@ -24,7 +25,7 @@ type Props = {
 
 const {
   title,
-  description,
+  description: rawDescription,
   includeSiteNameSuffix = true,
   ogImage,
   ogType = 'website',
@@ -32,6 +33,7 @@ const {
   showHeader = true,
   structuredData,
 } = Astro.props;
+const description = stripInline(rawDescription);
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
 const slug = Astro.url.pathname.replace(/^\/|\/$/g, '');
 const socialImage = ogImage ?? ogImageFor(slug);

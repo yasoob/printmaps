@@ -1,3 +1,4 @@
+import { stripInline } from './inlineLinks';
 import { faqItems, GITHUB_URL, SITE_NAME, SITE_URL } from './product';
 import { productFactSections } from './productFacts';
 import { HOME_PAGE, navigationGroups, pageUrl } from './registry';
@@ -8,7 +9,7 @@ function pageLines(): string[] {
   return navigationGroups().flatMap((group) => [
     `## ${group.label}`,
     '',
-    ...group.pages.map((entry) => `- [${entry.navLabel}](${pageUrl(entry)}): ${entry.summaryForLlms}`),
+    ...group.pages.map((entry) => `- [${entry.navLabel}](${pageUrl(entry)}): ${stripInline(entry.summaryForLlms)}`),
     ...(group.id === 'project' ? [`- [Source code](${GITHUB_URL}): Public repository and issue tracker.`] : []),
     '',
   ]);
@@ -24,7 +25,7 @@ export function llmsText(): string {
     '',
     '## Start',
     '',
-    `- [Homepage](${SITE_URL}/): ${HOME_PAGE.description}`,
+    `- [Homepage](${SITE_URL}/): ${stripInline(HOME_PAGE.description)}`,
     `- [Map editor](${SITE_URL}/editor/): Create and export a map in the browser.`,
     '',
     ...pageLines(),
@@ -39,7 +40,7 @@ export function llmsFullText(): string {
   const facts = productFactSections.flatMap((section) => [
     `### ${section.heading}`,
     '',
-    ...section.facts.map((fact) => `- ${fact}`),
+    ...section.facts.map((fact) => `- ${stripInline(fact)}`),
     '',
   ]);
   const pages = navigationGroups().flatMap((group) => group.pages.map((entry) => [
@@ -47,12 +48,12 @@ export function llmsFullText(): string {
     '',
     `URL: ${pageUrl(entry)}`,
     '',
-    entry.description,
+    stripInline(entry.description),
     '',
-    entry.summaryForLlms,
+    stripInline(entry.summaryForLlms),
     '',
   ].join('\n')));
-  const faq = faqItems.flatMap((item) => [`### ${item.question}`, '', item.answer, '']);
+  const faq = faqItems.flatMap((item) => [`### ${item.question}`, '', stripInline(item.answer), '']);
   return [
     `# ${SITE_NAME}`,
     '',

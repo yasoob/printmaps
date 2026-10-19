@@ -1,4 +1,5 @@
 ---
+import InlineText from '../InlineText.astro';
 import ExportFormatRow from '../ExportFormatRow.astro';
 import FeatureIconGrid from '../FeatureIconGrid.astro';
 import PhotoshopHandoff from '../PhotoshopHandoff.astro';
@@ -21,7 +22,7 @@ const beside = section.image && section.imagePosition === 'beside';
     {section.highlights && <FeatureIconGrid label={`${section.title} features`} items={section.highlights} />}
     {section.points && (
       <ul class="mt-6 grid list-none gap-3 p-0 sm:grid-cols-2">
-        {section.points.map((point) => <li class="rounded-xl bg-[#f5f5f7] px-4 py-3 text-sm font-medium text-[#3a3a3c]">{point}</li>)}
+        {section.points.map((point) => <li class="rounded-xl bg-[#f5f5f7] px-4 py-3 text-sm font-medium text-[#3a3a3c]"><InlineText text={point} /></li>)}
       </ul>
     )}
     {section.showExportFormats && <ExportFormatRow class="mt-8" />}
