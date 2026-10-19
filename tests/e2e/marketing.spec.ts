@@ -10,8 +10,8 @@ const marketingRoutes = [
   },
   {
     path: '../printable-map-maker/',
-    title: 'Printable Map Maker | Print Map Studio',
-    heading: 'Build a printable map at the exact page size.',
+    title: 'Free Printable Map Maker with PDF, SVG and PSD Export',
+    heading: 'A printable map maker for handouts, reports and guidebooks',
     canonical: 'https://printmaps.yasoob.me/printable-map-maker/',
   },
   {
@@ -22,8 +22,8 @@ const marketingRoutes = [
   },
   {
     path: '../layered-map-export/',
-    title: 'Layered Map Export | Print Map Studio',
-    heading: 'Download the map in the format you need.',
+    title: 'Layered Map Export: SVG, PSD, PDF and PNG | Print Map Studio',
+    heading: 'Export a map as PNG, PDF, layered SVG or layered PSD.',
     canonical: 'https://printmaps.yasoob.me/layered-map-export/',
   },
   {
@@ -124,8 +124,6 @@ test('explore pages use contextual product screenshots', async ({ page }) => {
         /custom-colors\.webp$/,
         /map-features\.webp$/,
         /labels-and-text\.webp$/,
-        media['editor.layout-tab'],
-        media['editor.wall-preview'],
       ],
     },
     {
@@ -163,16 +161,11 @@ test('explore pages use contextual product screenshots', async ({ page }) => {
     for (const format of ['PNG', 'PDF', 'SVG', 'PSD']) {
       await expect(formatRow.getByAltText(`${format} file format`)).toBeVisible();
     }
-    for (const [index, expected] of item.details.entries()) {
+    for (const [index, expectedSource] of item.details.entries()) {
       const detail = page.locator('main figure img').nth(index);
+      await expect(detail).toHaveAttribute('src', expectedSource);
       await expect(detail).toHaveAttribute('loading', 'lazy');
-      if (expected instanceof RegExp) {
-        await expect(detail).toHaveAttribute('src', expected);
-        await expect(detail).toHaveAttribute('alt', /Print Map Studio/i);
-      } else {
-        await expect(detail).toHaveAttribute('src', expected.src);
-        await expect(detail).toHaveAttribute('alt', expected.alt);
-      }
+      await expect(detail).toHaveAttribute('alt', /Print Map Studio/i);
     }
   }
 });
@@ -193,8 +186,9 @@ test('feature highlights use two mobile columns and four desktop columns', async
       path: '../printable-map-maker/',
       labels: [
         'Set the page size before you design features',
-        'Pick a style and control the labels features',
-        'Add routes, places, and boundaries features',
+        'Make the map readable on paper features',
+        'Add routes, places and boundaries features',
+        'Add a scale bar, grid and compass features',
       ],
     },
     {

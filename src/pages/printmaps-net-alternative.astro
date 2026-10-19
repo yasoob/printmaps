@@ -33,7 +33,7 @@ const sections: readonly PageSection[] = [
       { label: 'Print run', cells: ['Print as many copies as you like', 'Mini up to 1,000 copies, Standard up to 35,000, Unlimited'] },
       { label: 'Account', cells: ['None; files download straight from the browser', 'None to design; files and invoice arrive by email after checkout'] },
       { label: 'Print formats', cells: ['PNG, PDF, layered SVG, layered PSD', 'PNG, layered PSD, layered SVG'] },
-      { label: 'Resolution', cells: ['300 DPI PNG and PDF; layered PSD at 300 DPI up to A4 and US Letter', '300 dpi PNG and PSD; SVG scales freely'] },
+      { label: 'Resolution', cells: ['300 DPI PNG and PDF, PDF up to A1; layered PSD sized to stay quick to edit in Photoshop', '300 dpi PNG and PSD; SVG scales freely'] },
       { label: 'Largest page', cells: ['Custom sizes up to 1330 mm a side; one-file 300 DPI PNG up to 50 × 70 cm', 'PNG up to 220 × 220 mm, PSD up to 660 × 660 mm, SVG up to 1330 × 1330 mm'] },
       { label: 'Map styles', cells: ['12 styles plus a palette editor for tone, contrast, detail and 11 colour roles', '11 default styles, with aerial photos in selected countries'] },
       { label: 'Rotate and tilt', cells: ['Any rotation, tilt up to 60°', 'Any rotation, tilt up to 60°'] },
@@ -67,8 +67,8 @@ const sections: readonly PageSection[] = [
     title: 'Where Print Map Studio fits',
     paragraphs: [
       'Print Map Studio is for people who want the finished page out of the same editor, without paying per file. You set the page in millimetres, design the poster around the map, and download the result directly from the browser.',
-      'PDF is the format most print shops ask for first. Print Map Studio writes it at the exact page size, keeps routes, places, shapes and poster text as vectors, and renders the basemap at 300 DPI. An A2 poster comes out as a 594 × 420 mm page with a basemap of 7,016 × 4,961 pixels.',
-      'The poster tools sit in the Layout tab: five layout presets, a title block with subtitle and coordinates, margins, paper colour, photos pinned to places, a north compass, a scale bar, a coordinate grid and a QR code that opens the location in Google Maps. When the print is done, the same project can become a short MP4 map video or an STL terrain model for a 3D printer.',
+      'PDF is the format most print shops ask for first, as the [map print size guide](/map-print-size-guide/) explains. Print Map Studio writes it at the exact page size, keeps routes, places, shapes and poster text as vectors, and renders the basemap at 300 DPI. An A2 poster comes out as a 594 × 420 mm page with a basemap of 7,016 × 4,961 pixels.',
+      'The poster tools sit in the Layout tab: five layout presets, a title block with subtitle and coordinates, margins, paper colour, photos pinned to places, a north compass, a scale bar, a coordinate grid and a QR code that opens the location in Google Maps. When the print is done, the same project can become a short [MP4 map video](/map-video-maker/), an [STL terrain model](/3d-terrain-map-stl/) or a [read-only share link](/share-and-embed-maps/).',
     ],
     image: {
       ...media['compare.export-dialog'],
@@ -80,14 +80,14 @@ const sections: readonly PageSection[] = [
     id: 'which-to-choose',
     title: 'Which one suits your job',
     paragraphs: [
-      'The right tool depends on who the map is for and what happens to it after export. These are the cases we see most often.',
+      'The right tool depends on who the map is for and what happens to it after export. A few common jobs:',
     ],
     points: [
       'A guidebook publisher who needs a licence and an invoice per map: Printmaps.net.',
-      'An A2 city poster for your own wall: Print Map Studio, as a 300 DPI PDF or PNG.',
+      'An A2 [city poster](/city-map-poster/) for your own wall: Print Map Studio, as a 300 DPI PDF or PNG.',
       'A designer restyling every road in Illustrator: Printmaps.net layered SVG, or Print Map Studio layered SVG with the vector basemap option on a flat map.',
-      'A property flyer with drive times to schools: either works; Print Map Studio draws driving, cycling and walking areas from 5 to 60 minutes.',
-      'A wedding or travel poster with photos and a QR code: Print Map Studio.',
+      'A [property flyer](/real-estate-location-map/) with drive times to schools: either works; Print Map Studio draws driving, cycling and walking areas from 5 to 60 minutes.',
+      'A [wedding](/wedding-map-poster/) or [travel poster with photos](/travel-map-with-photos/) and a QR code: Print Map Studio.',
       'A map with an aerial photo background: Printmaps.net, in the countries it covers.',
     ],
   },
@@ -127,7 +127,7 @@ const sections: readonly PageSection[] = [
     tone: 'note',
     title: 'How this comparison was made',
     paragraphs: [
-      `Print Map Studio is our product, so read this page with that in mind. Every Printmaps.net figure here comes from Printmaps.net's own pricing, features, information-for-AI and non-profit pages, read on ${checked}. Prices and features change, so confirm on printmaps.net before you buy.`,
+      `This page was written by [Yasoob Khalid](/about/), who builds Print Map Studio, so read it with that in mind. Every Printmaps.net figure here comes from Printmaps.net's own pricing, features, information-for-AI and non-profit pages, read on ${checked}. Prices and features change, so confirm on printmaps.net before you buy.`,
       'If something on this page is out of date, open an issue on GitHub and we will correct it.',
     ],
     link: { href: `${GITHUB_URL}/issues`, label: 'Report a correction on GitHub' },
@@ -136,8 +136,8 @@ const sections: readonly PageSection[] = [
 
 const faq = [
   {
-    question: 'Is Print Map Studio free for every export?',
-    answer: 'Yes. PNG, PDF, layered SVG and layered PSD are free at every page size, with no account and no watermark. The only text added to your page is the small map data credit.',
+    question: 'Which map credit stays on the print?',
+    answer: 'Printmaps.net adds "© Printmaps.net / OSM Contributors" in the bottom-right corner, and if you remove it the credit has to appear legibly near the map. Print Map Studio prints a small OpenStreetMap, OpenMapTiles and OpenFreeMap caption in the bottom margin of every export.',
   },
   {
     question: 'What do I need to move a project from Printmaps.net?',
@@ -165,7 +165,7 @@ const faq = [
   lead="Printmaps.net and Print Map Studio both make map files for print. One sells a licence per map; the other is free, with its source code on GitHub. Here is how they compare on price, formats, page sizes and map tools."
   primaryCta="Try Print Map Studio"
   secondaryCta={{ href: '#comparison', label: 'Jump to the comparison' }}
-  facts={[`Checked ${checked}`, 'Sources linked', 'Written by the Print Map Studio developer']}
+  facts={[`Checked ${checked}`, 'Sources linked', 'Written by Yasoob Khalid, who builds Print Map Studio']}
   heroImage={media['editor.export-print']}
   heroLayout="split"
   sections={sections}

@@ -8,10 +8,10 @@ const sections: readonly PageSection[] = [
     title: 'Set the page size before you design',
     paragraphs: [
       'Choose A2, A3, A4, A5, A6 or US Letter, switch between portrait and landscape, or type a custom width and height in millimetres. The editor draws a print frame at that size, so you compose against the real page instead of a browser window.',
-      'Decide on the size first. A street map that looks balanced on A4 fills an A2 sheet with four times the area, and you will usually want to zoom in a step or turn some detail off. The map size guide lists the pixel dimensions for every common size if a print shop asks.',
+      'For a map that goes inside a document, size the page to the space it will fill. A4 with 25 mm margins leaves a 160 mm text column, and US Letter with one-inch margins leaves 165 mm. A 160 × 110 mm custom page drops into either without scaling. The [map print size guide](/map-print-size-guide/) lists the pixel dimensions for every common size.',
     ],
     highlights: [
-      { icon: 'a-series', label: 'A2-A6 presets' },
+      { icon: 'a-series', label: 'A2–A6 presets' },
       { icon: 'us-letter', label: 'US Letter' },
       { icon: 'orientation', label: 'Portrait or landscape' },
       { icon: 'dimensions', label: 'Custom millimetres' },
@@ -26,33 +26,51 @@ const sections: readonly PageSection[] = [
     },
   },
   {
-    title: 'Pick a style and control the labels',
+    kind: 'table',
+    id: 'document-maps',
+    title: 'Maps for handouts, reports and guidebooks',
     paragraphs: [
-      'Print Map Studio has 12 styles, from Paper and Sandstone to Night Ink, Blueprint, Alpine and Coastal. Each one sets the colours for land, water, roads, parks, buildings, boundaries, transit and labels. Shift the palette warmer or cooler, adjust contrast and detail, or replace any of those colours with your own.',
-      'Show labels in the local language, English, German, French, Italian, Spanish or Chinese, and scale the text from 50% to 200%. Turning off buildings and transit is the quickest way to make a busy city calm enough for your own routes and places.',
+      'Most printed maps are not posters. They sit on a handout, in a report appendix or on a guidebook page, next to text that explains them. These are good starting points for the jobs that come up most.',
+    ],
+    headers: ['Document', 'Page to set', 'What to add', 'File to export'],
+    rows: [
+      ['Event handout', 'A4 or US Letter portrait', 'The venue and parking as places, a walking route from the station, a scale bar', 'PDF for the copy shop'],
+      ['Report figure', '160 × 110 mm custom page, margins 0', 'Site boundary as a shape, a coordinate grid with labels, a north compass', 'PNG for Word, PDF for InDesign'],
+      ['Guidebook page', 'A5 or A6 portrait', 'A day walk with its stops, labels at 120–130% text scale', 'PDF or layered SVG for the designer'],
+      ['Brochure panel', 'Custom 99 × 210 mm for a DL panel', 'Two or three places with your own marker, quiet base map', 'PDF'],
+      ['Field sheet', 'A4 landscape', 'Coordinate grid at a round interval, metric scale bar, contour lines', 'PDF'],
+    ],
+    caption: 'Suggested page sizes and exports for common print documents.',
+  },
+  {
+    title: 'Make the map readable on paper',
+    paragraphs: [
+      'Print Map Studio has 12 styles, from Paper and Porcelain to Graphite, Night Ink, Blueprint and Alpine. Each sets the colours for land, water, roads, parks, buildings, boundaries, transit and labels, and the palette editor lets you shift tone, contrast and detail or replace any of them.',
+      'Labels come in local names plus 6 languages: English, German, French, Italian, Spanish and Chinese. Text scales from 50% to 200%. Street names that look fine on screen often print too small on an A5 page, so a text scale of 120–130% is a sensible start for handouts.',
+      'If the document will be photocopied in black and white, pick Graphite or Porcelain and give each route a dashed or solid line, so they stay distinct without colour.',
     ],
     highlights: [
       { icon: 'palette', label: '12 map styles' },
-      { icon: 'language', label: '7 label languages' },
-      { icon: 'text-scale', label: '50-200% text scale' },
+      { icon: 'language', label: 'Local names plus 6 languages' },
+      { icon: 'text-scale', label: '50–200% text scale' },
       { icon: 'visibility', label: '7 detail toggles' },
     ],
     imageRow: [
       {
         src: '/explore-shots/custom-colors.webp',
-        alt: 'Print Map Studio custom palette with tone contrast detail and color controls',
+        alt: 'Print Map Studio custom palette with tone, contrast, detail and colour controls',
         width: 1130,
         height: 1716,
-        title: 'Customize the palette',
+        title: 'Customise the palette',
         caption: 'Adjust tone, contrast, detail and individual map colours.',
       },
       {
         src: '/explore-shots/map-features.webp',
-        alt: 'Print Map Studio map detail controls with roads buildings and transit turned off',
+        alt: 'Print Map Studio map detail controls with roads, buildings and transit turned off',
         width: 1130,
         height: 1716,
         title: 'Toggle map details',
-        caption: 'Show or hide roads, buildings, labels, water, parks, land use and transit.',
+        caption: 'Show or hide roads, buildings, labels, water, parks, land detail and transit.',
       },
       {
         src: '/explore-shots/labels-and-text.webp',
@@ -65,29 +83,10 @@ const sections: readonly PageSection[] = [
     ],
   },
   {
-    title: 'Lay out the poster around the map',
+    title: 'Add routes, places and boundaries',
     paragraphs: [
-      'The Layout tab turns the map into a finished page. Start from one of five layout presets (City edition, Quiet lines, After dark, Land & outline or Field notes), then edit the title, subtitle, caption and coordinates. Pick a modern sans, a classic serif or a field-notes mono typeface and set the text anywhere from 6 to 120 pt.',
-      'Margins default to 10 mm and can be set per side. Change the paper colour for a dark poster, or switch the map frame from a rectangle to the outline of a country or region, so Portugal or Hokkaido becomes the shape of the map itself.',
-    ],
-    highlights: [
-      { icon: 'template', label: '5 layout presets' },
-      { icon: 'title', label: 'Title and caption' },
-      { icon: 'layout', label: 'Margins and paper colour' },
-      { icon: 'country-shape', label: 'Country-shaped frame' },
-    ],
-    image: {
-      ...media['editor.layout-tab'],
-      title: 'Layout presets, text and margins in one tab.',
-      caption: 'Change the design without touching the map, routes or places underneath.',
-    },
-    imagePosition: 'beside',
-  },
-  {
-    title: 'Add routes, places, and boundaries',
-    paragraphs: [
-      'Draw routes as straight lines, arcs or road-following directions, drop single places, or paste up to 300 rows of coordinates into the place spreadsheet. Shade countries and first-level regions from the boundary catalogue, draw your own shapes, or add travel-time areas for 5 to 60 minutes by car, bike or on foot.',
-      'GPX, KML and GeoJSON files become editable layers. Every route, place and shape can be styled, reordered, hidden or duplicated, and places can use your own PNG, JPEG or SVG marker.',
+      'Draw routes as straight lines, arcs or road-following directions, drop single places, or paste up to 300 rows of coordinates into the place spreadsheet. Shade countries and first-level regions from the boundary catalogue, draw your own shapes, or add [travel-time areas](/travel-time-map/) for 5 to 60 minutes by car, bike or on foot.',
+      'Recorded tracks come in through the [GPX map maker](/gpx-map-maker/) as editable layers. Every route, place and shape can be styled, reordered, hidden or duplicated, and places can use your own PNG, JPEG or SVG marker, such as a company logo.',
     ],
     highlights: [
       { icon: 'route', label: 'Routes and waypoints' },
@@ -97,34 +96,24 @@ const sections: readonly PageSection[] = [
     ],
   },
   {
-    title: 'Finish with a compass, scale bar or QR code',
+    title: 'Add a scale bar, grid and compass',
     paragraphs: [
-      'Small cartographic details make a printed map easier to use. Add a north compass as an arrow or a rose, a metric or imperial scale bar, a coordinate grid with labelled lines, or a QR code that opens the location in Google Maps. Each one goes in the corner you pick and is sized in millimetres, so it prints at a predictable size.',
-      'A scale bar is most useful on hiking and site maps where people estimate distance. On a city poster, a 30 mm compass in the lower corner usually reads better than a grid.',
+      'Reference maps need the small cartographic details that posters leave out. Add a metric or imperial scale bar from 10 to 100 mm wide, a coordinate grid at any interval from 0.01° to 90° with labelled lines, and a north compass as an arrow or a rose. Each sits in the corner you choose and is sized in millimetres, so it prints exactly as large as you set it.',
+      'Pick a round grid interval that suits the area: 0.01° on a town plan, 0.1° on a regional map. For a printed map people will use to find a venue, a [location QR code](/share-and-embed-maps/) that opens Google Maps does more than a grid.',
     ],
     highlights: [
-      { icon: 'compass', label: 'North compass' },
-      { icon: 'scale-bar', label: 'Scale bar' },
-      { icon: 'grid', label: 'Coordinate grid' },
+      { icon: 'scale-bar', label: 'Metric or imperial scale' },
+      { icon: 'grid', label: 'Labelled coordinate grid' },
+      { icon: 'compass', label: 'Arrow or rose compass' },
       { icon: 'qr-code', label: 'Location QR code' },
     ],
   },
   {
-    title: 'Preview the print on a wall',
+    title: 'Place the map in Word, InDesign or a print shop file',
     paragraphs: [
-      'Before you order a print, open the wall preview. It places your poster in an unframed, black, white, oak or walnut frame, with a mat up to 50 mm wide and the wall colour of your choice. It is a quick way to check whether a dark style feels heavy in a bright room, or whether the title is big enough from across the sofa.',
-    ],
-    image: {
-      ...media['editor.wall-preview'],
-      title: 'See the poster framed before you print it.',
-      caption: 'Frame finish, mat and wall colour are for the preview and stay out of your export.',
-    },
-  },
-  {
-    title: 'Choose PNG, PDF, SVG, or PSD',
-    paragraphs: [
-      'PNG gives a flat 300 DPI image at the physical page size. PDF keeps the exact page dimensions with routes, places, shapes and poster text as vectors over a 300 DPI basemap. Layered SVG keeps content in named vector groups, and layered PSD puts each content layer in its own Smart Object for Photoshop.',
-      'Every format carries a small map data credit for OpenStreetMap, OpenMapTiles and OpenFreeMap in the bottom margin. Files are made in your browser and download straight away, with no watermark.',
+      'PDF keeps the exact page size, with routes, places, shapes, the grid and the scale bar as vectors over a 300 DPI basemap. It places cleanly in InDesign, Affinity Publisher and Illustrator, and most print shops accept it as it is.',
+      'PNG is a 300 DPI image with its DPI written into the file, so Word and InDesign place a 160 mm map at 160 mm. Layered SVG and layered PSD keep each layer separate for a designer to finish. The [layered export page](/layered-map-export/) compares all four formats.',
+      'Every export carries a small credit for OpenStreetMap, OpenMapTiles and OpenFreeMap in the bottom margin, or in a slim strip under the map when the margins are zero. Files are made in your browser and download straight away, with no watermark.',
     ],
     showExportFormats: true,
   },
@@ -132,22 +121,22 @@ const sections: readonly PageSection[] = [
 
 const faq = [
   { question: 'What page sizes can I use?', answer: 'Choose A2, A3, A4, A5, A6 or US Letter, or enter a custom width and height in millimetres. Portrait and landscape both work, and custom pages go up to 1330 mm a side.' },
-  { question: 'Do I need an account to export?', answer: 'No. The editor and every export format work without signing up.' },
-  { question: 'Can I add a title and text to the map?', answer: 'Yes. The Layout tab has a title, subtitle, caption and coordinates line, five layout presets, three typefaces and per-side margins.' },
-  { question: 'Where is my project saved?', answer: 'The project autosaves in your browser storage. Download a portable project file as a backup or to move the map to another computer.' },
-  { question: 'How do I get a printed copy?', answer: 'Download a PDF or PNG and send it to any print shop or online printer. The map print size guide explains which file to send and how to handle margins and bleed.' },
-  { question: 'Which export format should I choose?', answer: 'PNG for a flat image, PDF for an exact page with vector overlays, layered SVG for named vector groups, or layered PSD for separate Smart Object layers in Photoshop.' },
+  { question: 'How do I put a map into a Word document?', answer: 'Set a custom page the width of your text column, for example 160 × 110 mm, set the margins to 0 and export a PNG. Word reads the DPI stored in the file and inserts the map at 160 mm wide.' },
+  { question: 'Will the map print sharply on an office printer?', answer: 'Yes. PNG and PDF exports are rendered at 300 DPI for the page you set, and in PDF the routes, places, scale bar and grid stay as vector lines.' },
+  { question: 'Can I add a scale bar and a grid?', answer: 'Yes. The Layout tab has a metric or imperial scale bar, a coordinate grid with optional labels, a north compass and a location QR code.' },
+  { question: 'Which export format should I choose?', answer: 'PDF for a print shop or InDesign, PNG for Word and slide decks, layered SVG for Illustrator or Inkscape, and layered PSD for Photoshop.' },
+  { question: 'Where is my project saved?', answer: 'The project autosaves in your browser storage. Download a portable project file to keep a copy you can open on any computer.' },
 ] as const;
 ---
 
 <SeoLandingPage
   page={page}
-  eyebrow="Free browser-based map editor"
-  heading="Build a printable map at the exact page size."
+  eyebrow="Maps for print documents"
+  heading="A printable map maker for handouts, reports and guidebooks"
   heroImage={media['editor.map-tab']}
-  lead="Set the page size, choose a map style, add routes and places, and lay out the poster around them. Then export a print-ready PNG, PDF, layered SVG or PSD. The editor runs in your browser with no account and no watermark."
+  lead="Set an exact page size, style the map so it reads on paper, add routes, places, a scale bar and a grid, then export a 300 DPI PDF or PNG that drops straight into your document. It runs in your browser with no account and no watermark."
   primaryCta="Open the map editor"
-  facts={['Free to use', 'No account', 'Custom page sizes', 'Four print formats']}
+  facts={['A4, US Letter and custom sizes', 'Scale bar and grid', 'Vector PDF', 'No account']}
   sections={sections}
   faq={faq}
 />

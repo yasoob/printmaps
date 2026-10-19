@@ -28,7 +28,7 @@ const sections: readonly PageSection[] = [
     title: 'PDF for exact-size printing',
     paragraphs: [
       'PDF keeps the physical page size you set in the editor. The basemap is rendered at 300 DPI, while routes, markers, shapes and poster text stay as vectors, so they print crisp at any size up to A1.',
-      'Choose PDF for print shops, reports, brochures, or any layout that must keep exact dimensions. Most online printers accept it as is.',
+      'Choose PDF for print shops, reports, brochures, or any layout that must keep exact dimensions. Most online printers accept it as is, and the [map print size guide](/map-print-size-guide/) covers margins and bleed.',
     ],
     highlights: [
       { icon: 'us-letter', label: 'Exact page dimensions' },
@@ -53,7 +53,7 @@ const sections: readonly PageSection[] = [
     ],
     highlights: [
       { icon: 'layers', label: 'Named content groups' },
-      { icon: 'color-edit', label: 'Edit route and marker colors' },
+      { icon: 'color-edit', label: 'Edit route and marker colours' },
       { icon: 'transform', label: 'Hide or move content' },
       { icon: 'svg-editor', label: 'Works in SVG editors' },
     ],
@@ -75,8 +75,8 @@ const sections: readonly PageSection[] = [
   {
     title: 'Export without uploading your project',
     paragraphs: [
-      'Print Map Studio builds each file in your browser and downloads it directly, with no account and no queue. Your map, photos and imported tracks stay on your device.',
-      'Download the project file too, as a .printmap.json or .printmap.zip, if you want to come back and change the map later.',
+      'Print Map Studio builds each file in your browser and downloads it directly, with no account and no queue. Your map, photos and imported tracks stay on your device, and every format is free at every page size; the [Printmaps.net comparison](/printmaps-net-alternative/) shows how that differs from per-map licensing.',
+      'Download the project file too, as a .printmap.json or .printmap.zip, if you want to come back and change the map later. To show the map to someone without exporting, [share a read-only link](/share-and-embed-maps/).',
     ],
     highlights: [
       { icon: 'browser', label: 'Stays in your browser' },
@@ -96,8 +96,8 @@ const sections: readonly PageSection[] = [
   {
     title: 'Video and 3D model exports',
     paragraphs: [
-      'The Export dialog has two more tabs next to Print. Video records the poster as an MP4 with an orbit or sway camera move, 5, 10 or 15 seconds long at 30 or 60 fps, in the page shape or in 16:9, 9:16, 1:1 or 4:5 for social posts. It records in Chrome, Edge and Safari.',
-      '3D model turns the terrain inside the print area into an STL file for a 3D printer, sized in millimetres, with an optional raised ridge along your route.',
+      'The Export dialog has two more tabs next to Print. Video records the poster as an MP4 with an orbit or sway camera move, 5, 10 or 15 seconds long at 30 or 60 fps, in the page shape or in 16:9, 9:16, 1:1 or 4:5 for social posts. It records in Chrome, Edge and Safari; the [map video guide](/map-video-maker/) covers the camera moves.',
+      '3D model turns the terrain inside the print area into an [STL file for a 3D printer](/3d-terrain-map-stl/), sized in millimetres, with an optional raised ridge along your route.',
     ],
     highlights: [
       { icon: 'video', label: 'MP4 map video' },
@@ -120,7 +120,7 @@ const faq = [
 <SeoLandingPage
   page={page}
   eyebrow="PNG, PDF, SVG, and PSD"
-  heading="Download the map in the format you need."
+  heading="Export a map as PNG, PDF, layered SVG or layered PSD."
   heroImage={{
     desktopSrc: '/explore-shots/psd-workflow-editor.webp',
     desktopAspect: '2000:1155',
