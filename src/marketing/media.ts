@@ -290,7 +290,3 @@ export const media = {
 } as const satisfies Record<string, MarketingImage>;
 
 export type MediaKey = keyof typeof media;
-
-export function getMedia(key: MediaKey): MarketingImage {
-  return media[key];
-}

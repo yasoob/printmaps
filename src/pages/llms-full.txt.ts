@@ -15,6 +15,8 @@ async function renderPageExtras(): Promise<Map<string, PageExtras>> {
   for (const entry of marketingPages) {
     const load = pageModules[`./${entry.slug}.astro`];
     if (!load) continue;
+    // Render pages one at a time; the container is shared and output order must stay stable.
+    // react-doctor-disable-next-line react-doctor/async-await-in-loop
     const module = await load();
     const html = await container.renderToString(module.default, {
       request: new Request(`${SITE_URL}/${entry.slug}/`),

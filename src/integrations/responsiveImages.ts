@@ -78,8 +78,8 @@ export function responsiveImages(): AstroIntegration {
         const outDir = path.resolve(dir.pathname);
         const files = await htmlFiles(outDir);
         const urls = new Set<string>();
-        for (const file of files) {
-          const html = await readFile(file, 'utf8');
+        const pages = await Promise.all(files.map((file) => readFile(file, 'utf8')));
+        for (const html of pages) {
           for (const match of html.matchAll(VARIANT_PATH)) urls.add(match[0]);
         }
         let written = 0;

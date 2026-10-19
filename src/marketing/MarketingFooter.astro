@@ -10,9 +10,14 @@ import { navigationGroups, pagePath, pagesInGroup } from './registry';
 const year = new Date().getFullYear();
 const sections = navigationGroups().filter((group) => group.id !== 'project');
 // Guides and use cases are short lists, so they share one footer column.
-const guidePages = sections.filter((group) => group.id === 'guides' || group.id === 'work').flatMap((group) => group.pages);
+const guidePages: (typeof sections)[number]['pages'] = [];
+const mainGroups: typeof sections = [];
+for (const group of sections) {
+  if (group.id === 'guides' || group.id === 'work') guidePages.push(...group.pages);
+  else mainGroups.push(group);
+}
 const contentGroups = [
-  ...sections.filter((group) => group.id !== 'guides' && group.id !== 'work'),
+  ...mainGroups,
   ...(guidePages.length > 0 ? [{ id: 'guides', label: 'Guides and use cases', pages: guidePages }] : []),
 ];
 const projectLinks = [

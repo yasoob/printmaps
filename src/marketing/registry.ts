@@ -62,12 +62,6 @@ export function getPage(slug: string): MarketingPageEntry | undefined {
   return marketingPages.find((entry) => entry.slug === slug);
 }
 
-export function requirePage(slug: string): MarketingPageEntry {
-  const entry = getPage(slug);
-  if (!entry) throw new Error(`No marketing page registered for "${slug}".`);
-  return entry;
-}
-
 export function pagePath(entry: Pick<MarketingPageEntry, 'slug'>): string {
   return entry.slug ? `/${entry.slug}/` : '/';
 }

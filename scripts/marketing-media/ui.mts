@@ -71,13 +71,6 @@ export async function selectLayer(page: Page, name: string) {
   await page.waitForTimeout(600);
 }
 
-export async function chooseOption(scope: Page | Locator, label: string, option: string) {
-  const page = 'goto' in scope ? scope : scope.page();
-  await scope.getByRole('combobox', { name: label, exact: true }).click();
-  await page.getByRole('listbox').getByRole('option', { name: option, exact: true }).click();
-  await page.waitForTimeout(300);
-}
-
 export async function settle(page: Page, ms = 2500) {
   await waitForMap(page, ms);
   await tidy(page);
