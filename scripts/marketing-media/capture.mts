@@ -12,10 +12,11 @@ import { copyFile, mkdir, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import type { Browser, Page } from 'playwright';
-import { downloadExport, launchBrowser, loadScene, newEditorPage, type Viewport } from './editor.mts';
+import { downloadExport, launchBrowser, loadScene, newEditorPage, type PageSetup, type Viewport } from './editor.mts';
 import { encode, presentPoster, presentPosterRow } from './compose.mts';
 import { editorJobs } from './editor-jobs.mts';
 import { extraJobs } from './extra-jobs.mts';
+import { legacyJobs } from './legacy-jobs.mts';
 
 export const WORK = process.env.MEDIA_WORK_DIR ?? path.join(tmpdir(), 'print-map-marketing-media');
 export const PUBLIC = new URL('../../public/', import.meta.url).pathname;
@@ -23,7 +24,7 @@ const isFresh = process.argv.includes('--fresh');
 
 export type Context = {
   browser: Browser;
-  page: (viewport?: Viewport) => Promise<Page>;
+  page: (viewport?: Viewport, setup?: PageSetup) => Promise<Page>;
   raw: (name: string) => string;
   out: (publicPath: string) => string;
   poster: (scene: string, prepare?: (page: Page) => Promise<void>) => Promise<string>;
@@ -46,9 +47,9 @@ function createContext(browser: Browser): Context {
   let current: Page | undefined;
   const context: Context = {
     browser,
-    async page(viewport) {
+    async page(viewport, setup) {
       await current?.context().close();
-      current = await newEditorPage(browser, viewport);
+      current = await newEditorPage(browser, viewport, setup);
       return current;
     },
     raw: (name) => path.join(WORK, 'raw', name),
@@ -77,7 +78,7 @@ const posterJobs: Job[] = [
       const poster = await context.poster('lisbon');
       await presentPoster(poster, context.out('marketing/city/lisbon-city-map-poster.webp'));
       await encode(poster, context.out('marketing/city/lisbon-poster-street-detail.webp'), {
-        crop: { x: 1450, y: 2550, width: 2000, height: 1250 }, width: 1600, height: 1000,
+        crop: { x: 1250, y: 2550, width: 2000, height: 1250 }, width: 1600, height: 1000,
       });
     },
   },
@@ -94,7 +95,7 @@ const posterJobs: Job[] = [
       const poster = await context.poster('wedding');
       await presentPoster(poster, context.out('marketing/wedding/edinburgh-wedding-map-poster.webp'));
       await encode(poster, context.out('marketing/wedding/two-places-joined-by-an-arc.webp'), {
-        crop: { x: 120, y: 160, width: 3268, height: 2043 }, width: 1600, height: 1000,
+        crop: { x: 450, y: 1425, width: 2600, height: 2000 }, width: 1600, height: 1231,
       });
     },
   },
@@ -137,7 +138,7 @@ const posterJobs: Job[] = [
   },
 ];
 
-const jobs: Job[] = [...posterJobs, ...editorJobs, ...extraJobs];
+const jobs: Job[] = [...posterJobs, ...editorJobs, ...legacyJobs, ...extraJobs];
 
 const requested = process.argv.slice(2).filter((argument) => !argument.startsWith('--'));
 const selected = requested.length > 0 ? jobs.filter((job) => requested.some((name) => job.id === name || job.id.startsWith(`${name}:`))) : jobs;

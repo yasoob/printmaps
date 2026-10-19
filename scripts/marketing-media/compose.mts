@@ -62,11 +62,13 @@ export async function presentPoster(input: string, output: string, canvas = { wi
 }
 
 /** Lay out several posters side by side on the shared backdrop. */
-export async function presentPosterRow(inputs: string[], output: string, canvas = { width: 1600, height: 1000 }) {
+export async function presentPosterRow(inputs: string[], output: string, width = 1600) {
   const gap = 56;
+  const margin = Math.round(width * 0.06);
   const sizes = await Promise.all(inputs.map((input) => dimensions(input)));
   const totalAspect = sizes.reduce((sum, size) => sum + size.width / size.height, 0);
-  const posterHeight = Math.round(Math.min(canvas.height * 0.8, (canvas.width * 0.9 - gap * (inputs.length - 1)) / totalAspect));
+  const posterHeight = Math.round((width - margin * 2 - gap * (inputs.length - 1)) / totalAspect);
+  const canvas = { width, height: posterHeight + margin * 2 };
   const temporary = `${output}.row.png`;
   await mkdir(path.dirname(output), { recursive: true });
   const tiles: string[] = [];
@@ -97,12 +99,27 @@ export async function labelledGrid(tiles: GridTile[], output: string, layout: { 
   }
   const rows: string[] = [];
   for (let index = 0; index < tiles.length; index += layout.columns) {
-    rows.push('(', ...cells.slice(index, index + layout.columns).flat(), '-background', BACKDROP, '-splice', '28x0', '+append', '-chop', '28x0', ')');
+    rows.push('(', ...cells.slice(index, index + layout.columns).flat(), '-background', BACKDROP, '-gravity', 'West', '-splice', '28x0', '+append', '-gravity', 'West', '-chop', '28x0', ')');
   }
   await magick([
-    ...rows, '-background', BACKDROP, '-splice', '0x24', '-append', '-chop', '0x24',
+    ...rows, '-background', BACKDROP, '-gravity', 'North', '-splice', '0x24', '-append', '-gravity', 'North', '-chop', '0x24',
     '-bordercolor', BACKDROP, '-border', '48', temporary,
   ]);
   await encode(temporary, output, { quality: 88 });
+  await run('rm', ['-f', temporary]);
+}
+
+/** A cut-out object (transparent PNG) with a soft contact shadow on the backdrop. */
+export async function presentObject(input: string, output: string, canvas = { width: 1600, height: 1100 }) {
+  const temporary = `${output}.object.png`;
+  await mkdir(path.dirname(output), { recursive: true });
+  await magick([
+    '(', input, '-trim', '+repage', '-filter', 'Lanczos', '-resize', `${Math.round(canvas.width * 0.8)}x${Math.round(canvas.height * 0.78)}`, ')',
+    '(', '+clone', '-background', '#2b2418', '-shadow', '30x24+0+26', ')', '+swap',
+    '-background', 'none', '-layers', 'merge', '+repage',
+    '-background', BACKDROP, '-gravity', 'center', '-extent', `${canvas.width}x${canvas.height}`, '-flatten',
+    temporary,
+  ]);
+  await encode(temporary, output, { quality: 90 });
   await run('rm', ['-f', temporary]);
 }

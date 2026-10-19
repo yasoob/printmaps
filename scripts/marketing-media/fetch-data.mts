@@ -82,7 +82,7 @@ const ventoux = await osrmRoute('https://routing.openstreetmap.de/routed-bike', 
 const thames = await osrmRoute('https://routing.openstreetmap.de/routed-foot', [
   [-0.0754, 51.5055], [-0.1243, 51.5085], [-0.17, 51.484], [-0.2133, 51.4669], [-0.225, 51.49], [-0.231, 51.487],
   [-0.229, 51.47], [-0.157, 51.4791], [-0.115, 51.507], [-0.0754, 51.504], [-0.03, 51.5], [-0.0098, 51.4828],
-], 0.00003);
+], 0.00011);
 const amsterdam: Position = [4.8932, 52.3731];
 const amsterdamIsochrones = [];
 for (const minutes of [10, 20, 30]) amsterdamIsochrones.push(await valhallaIsochrone(amsterdam, 'pedestrian', minutes));

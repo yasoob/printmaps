@@ -91,7 +91,7 @@ function starterProject(id: string, zoom: number, templateId?: PosterTemplate['i
   const document = structuredClone(createTemplateProject(templateId ?? start.templateId, start));
   document.page = { ...A3_PORTRAIT };
   document.camera = { ...document.camera, zoom };
-  document.style.visibility = { ...document.style.visibility, transit: false };
+  document.style = { ...document.style, textScalePercent: 90, visibility: { ...document.style.visibility, transit: false } };
   return document;
 }
 
@@ -111,22 +111,24 @@ const HEART_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 108"
 
 async function wedding(): Promise<ProjectDocument> {
   const heart = await validateCustomMarkerFile(new File([HEART_SVG], 'heart.svg', { type: 'image/svg+xml' }));
-  const met = poi('where-we-met', 'Where we met', [-3.1925, 55.9407], { color: '#b8475b', size: 26, label: 'Where we met' });
-  const married = poi('where-we-married', 'Where we married', [-3.1823, 55.9552], { color: '#b8475b', size: 26, label: 'Where we said yes' });
+  const met = poi('where-we-met', 'Where we met', [-3.1936, 55.9486], { color: '#b8475b', size: 26, label: 'Where we met' });
+  const married = poi('where-we-married', 'Where we married', [-3.1802, 55.9559], { color: '#b8475b', size: 26, label: 'Where we said yes' });
   const arc: ContentLayer = {
     id: 'our-story', name: 'Our story', type: 'route', visible: true, locked: false, opacity: 100,
     route: { kind: 'arc', closed: false },
     appearance: { ...createDefaultRouteAppearance(1), color: '#b8475b', width: 3, strokeStyle: 'dashed' },
-    geometry: { type: 'Arc', anchors: [[-3.1925, 55.9407], [-3.1823, 55.9552]], curvatures: [0.3] },
+    geometry: { type: 'Arc', anchors: [[-3.1936, 55.9486], [-3.1802, 55.9559]], curvatures: [0.3] },
   };
   for (const layer of [met, married]) {
     if (layer.appearance?.kind === 'poi') layer.appearance.customAssetId = heart.id;
   }
   const document = scene({
-    id: 'isla-and-james', title: 'Isla & James', page: A3_PORTRAIT, center: [-3.1874, 55.948], zoom: 13.55, preset: 'rosewater',
+    id: 'isla-and-james', title: 'Isla & James', page: A3_PORTRAIT, center: [-3.1869, 55.952], zoom: 13.55, preset: 'rosewater',
     layers: [met, married, arc], template: 'classic', subtitle: 'Edinburgh · 14 June 2019',
   });
   document.assets = { [heart.id]: heart };
+  document.studio.wall = { ...document.studio.wall, frame: 'oak', matWidthMm: 40, matColor: '#ffffff', wallColor: '#e4ddd2' };
+  document.style.textScalePercent = 90;
   const poster = document.studio.poster;
   poster.backgroundColor = '#fbf5f2';
   poster.title = { ...poster.title, color: '#5b2a35', fontSizePt: 40 };
@@ -145,9 +147,9 @@ const PHOTO_STOPS = [
 async function roadTrip(): Promise<ProjectDocument> {
   const { utah } = routes;
   const stopLayers = utah.waypoints.map((position, index) => poi(PHOTO_STOPS[index].id, PHOTO_STOPS[index].name, position as Position, { color: '#8a3b1e', size: 12 }));
-  const route = roadRoute('utah-drive', 'Scenic drive', utah, { color: '#8a3b1e', width: 4, profile: 'driving', dashed: true });
+  const route = trackRoute('utah-drive', 'Scenic drive', utah.geometry as Position[], { color: '#8a3b1e', width: 4, dashed: true });
   const document = scene({
-    id: 'southern-utah-road-trip', title: 'Southern Utah', page: A3_LANDSCAPE, center: [-111.2978, 38.1013], zoom: 6.88, preset: 'sandstone',
+    id: 'southern-utah-road-trip', title: 'Southern Utah', page: A3_LANDSCAPE, center: [-111.3, 37.94], zoom: 6.2, preset: 'sandstone',
     layers: [route, ...stopLayers], template: 'journey', subtitle: 'Four parks in nine days · 571 km',
   });
   const photos = document.studio.photos;
@@ -162,14 +164,23 @@ async function roadTrip(): Promise<ProjectDocument> {
   return document;
 }
 
-function roadRoute(id: string, name: string, data: { waypoints: number[][]; geometry: number[][]; distanceMeters: number; durationSeconds: number }, line: { color: string; width: number; profile: 'driving' | 'cycling' | 'walking'; dashed?: boolean }): ContentLayer {
-  const waypoints = data.waypoints as Position[];
+/**
+ * A recorded track (like an imported GPX). Exact repeat positions are nudged by ~1 m because
+ * straight routes need distinct points.
+ */
+function trackRoute(id: string, name: string, coordinates: Position[], line: { color: string; width: number; dashed?: boolean }): ContentLayer {
+  const seen = new Set<string>();
+  const distinct = coordinates.map(([longitude, latitude]) => {
+    let position: Position = [longitude, latitude];
+    while (seen.has(position.join(','))) position = [Number((position[0] + 0.00001).toFixed(5)), position[1]];
+    seen.add(position.join(','));
+    return position;
+  });
   return {
     id, name, type: 'route', visible: true, locked: false, opacity: 100,
-    route: { kind: 'road', closed: false },
-    appearance: { ...createDefaultRouteAppearance(waypoints.length - 1), color: line.color, width: line.width, strokeStyle: line.dashed ? 'dashed' : 'solid' },
-    geometry: { type: 'LineString', coordinates: data.geometry as Position[] },
-    provenance: { provider: 'mapbox', service: 'directions-v5', waypoints, profile: line.profile, distanceMeters: data.distanceMeters, durationSeconds: data.durationSeconds },
+    route: { kind: 'straight', closed: false },
+    appearance: { ...createDefaultRouteAppearance(distinct.length - 1), color: line.color, width: line.width, strokeStyle: line.dashed ? 'dashed' : 'solid' },
+    geometry: { type: 'LineString', coordinates: distinct },
   };
 }
 
@@ -181,7 +192,7 @@ function ventoux(): ProjectDocument {
     layers: [
       poi('summit', 'Summit', coordinates.at(-1) as Position, { color: '#1f2a30', size: 12, label: 'Sommet · 1,910 m' }),
       poi('bedoin', 'Bédoin', coordinates[0], { color: '#1f2a30', size: 12, label: 'Bédoin' }),
-      roadRoute('ventoux-climb', 'Bédoin ascent', ride, { color: '#d9363e', width: 5, profile: 'cycling' }),
+      trackRoute('ventoux-climb', 'Bédoin ascent', coordinates, { color: '#d9363e', width: 5 }),
     ],
     template: 'minimal', subtitle: 'Bédoin ascent · 19 km · 1,610 m of climbing',
   });
@@ -193,11 +204,11 @@ function thames(): ProjectDocument {
   const { thames: run } = routes;
   const coordinates = run.geometry as Position[];
   const document = scene({
-    id: 'thames-marathon', title: 'London, 42.3 km', page: A3_PORTRAIT, center: [-0.1253, 51.4862], zoom: 10.27, preset: 'night-ink',
+    id: 'thames-marathon', title: 'London, 42.3 km', page: A3_PORTRAIT, center: [-0.1175, 51.4885], zoom: 10.05, preset: 'night-ink',
     layers: [
-      poi('finish', 'Finish', coordinates.at(-1) as Position, { color: '#ffffff', size: 16, label: 'Finish · Greenwich' }),
-      poi('start', 'Start', coordinates[0], { color: '#ffffff', size: 16, label: 'Start · Tower Bridge' }),
-      roadRoute('marathon', 'Marathon route', run, { color: '#ff7a2f', width: 7, profile: 'walking' }),
+      poi('finish', 'Finish', coordinates.at(-1) as Position, { color: '#ffffff', size: 16, label: 'Finish' }),
+      poi('start', 'Start', coordinates[0], { color: '#ffffff', size: 16, label: 'Start' }),
+      trackRoute('marathon', 'Marathon route', coordinates, { color: '#ff7a2f', width: 7 }),
     ],
     template: 'gallery', subtitle: 'My first marathon along the Thames · 3:52:14',
   });
@@ -212,6 +223,7 @@ function matterhorn(): ProjectDocument {
     template: 'minimal', subtitle: 'Zermatt and the Matterhorn · contours every 50 m',
   });
   document.studio.terrain = { ...document.studio.terrain, enabled: false, exaggeration: 1.4, contours: { enabled: true, intervalMeters: 50, color: '#6f6656', width: 1 } };
+  document.studio.relief = { ...document.studio.relief, widthMm: 180, heightMm: 127, baseMm: 3, exaggeration: 1.5, detail: 'high' };
   return document;
 }
 
@@ -227,7 +239,6 @@ function amsterdam(): ProjectDocument {
     if (!data) throw new Error(`Missing ${minutes} minute isochrone.`);
     return area(`bike-${minutes}`, `${minutes} min walk`, data.coordinates as Position[][], {
       fill, stroke, opacity: 30,
-      provenance: { provider: 'mapbox', service: 'isochrone-v1', center: data.center as Position, profile: 'walking', minutes },
     });
   });
   return scene({
@@ -237,7 +248,7 @@ function amsterdam(): ProjectDocument {
   });
 }
 
-function clifton(): ProjectDocument {
+function clifton(isBase = false): ProjectDocument {
   const { clifton: spots } = places;
   const walk = isochrones.cliftonWalk;
   const layers = [
@@ -245,16 +256,16 @@ function clifton(): ProjectDocument {
     poi('station', 'Clifton Down station', spots.station as Position, { color: '#3d7a6a', size: 16, symbol: 'information', label: 'Clifton Down station' }),
     poi('school', 'Christ Church Primary School', spots.school as Position, { color: '#3d7a6a', size: 16, symbol: 'information', label: 'Christ Church Primary' }),
     poi('park', 'Brandon Hill', spots.park as Position, { color: '#3d7a6a', size: 16, symbol: 'none', label: 'Brandon Hill park' }),
-    poi('market', 'Whiteladies Road', spots.market as Position, { color: '#3d7a6a', size: 16, symbol: 'food', label: 'Whiteladies Road shops' }),
+    poi('market', 'Whiteladies Road', [spots.market[0] + 0.0016, spots.market[1]] as Position, { color: '#3d7a6a', size: 16, symbol: 'food', label: 'Shops & cafés' }),
     poi('bridge', 'Clifton Suspension Bridge', spots.bridge as Position, { color: '#3d7a6a', size: 16, symbol: 'none', label: 'Suspension Bridge' }),
     area('walk-15', '15 min walk', walk.coordinates as Position[][], {
       fill: '#e2a65b', stroke: '#b9762c', opacity: 20,
-      provenance: { provider: 'mapbox', service: 'isochrone-v1', center: walk.center as Position, profile: 'walking', minutes: 15 },
     }),
   ];
+  const kept = isBase ? layers.filter(({ id }) => id === 'home' || id === 'walk-15') : layers;
   const document = scene({
-    id: 'royal-york-crescent', title: 'Royal York Crescent', page: A4_PORTRAIT, center: [-2.6177, 51.4549], zoom: 13.46, preset: 'porcelain',
-    layers, template: 'minimal', subtitle: 'Clifton, Bristol · everything within a 15-minute walk',
+    id: isBase ? 'royal-york-crescent-draft' : 'royal-york-crescent', title: 'Royal York Crescent', page: A4_PORTRAIT, center: [-2.6177, 51.4549], zoom: 13.46, preset: 'porcelain',
+    layers: kept, template: 'minimal', subtitle: 'Clifton, Bristol · everything within a 15-minute walk',
   });
   const decorations = document.studio.decorations;
   decorations.qr = { ...decorations.qr, enabled: true, position: 'bottom-right', sizeMm: 22, target: 'layer', layerId: 'home' };
@@ -274,7 +285,7 @@ function italy(): ProjectDocument {
 
 function matterhorn3d(): ProjectDocument {
   const document = scene({
-    id: 'matterhorn-3d', title: 'Matterhorn in 3D', page: A3_LANDSCAPE, center: [7.6905, 45.9875], zoom: 12.9, preset: 'alpine',
+    id: 'matterhorn-3d', title: 'Matterhorn in 3D', page: A3_LANDSCAPE, center: [7.6672, 45.9818], zoom: 12.15, preset: 'alpine',
     layers: [poi('summit', 'Matterhorn summit', [7.65861, 45.97639], { color: '#1f2a30', size: 12, label: 'Matterhorn · 4,478 m' })],
   });
   document.camera = { ...document.camera, pitch: 60, bearing: -125 };
@@ -282,22 +293,69 @@ function matterhorn3d(): ProjectDocument {
   return document;
 }
 
+function videoNewYork(): ProjectDocument {
+  const document = starterProject('new-york', 12.35);
+  document.page = { ...A3_LANDSCAPE };
+  document.camera.center = [-73.982, 40.758];
+  document.studio.video = { motion: 'orbit', durationSeconds: 10, fps: 30, aspect: 'page', quality: 'standard' };
+  return document;
+}
+
+function styleSample(): ProjectDocument {
+  return scene({ id: 'style-sample', title: 'Copenhagen', page: { preset: 'A4', widthMm: 297, heightMm: 210, orientation: 'landscape' }, center: [12.5795, 55.6805], zoom: 13.1, preset: 'paper' });
+}
+
+function lisbonGerman(): ProjectDocument {
+  const document = lisbon();
+  document.style = { ...document.style, language: 'de', textScalePercent: 110 };
+  return document;
+}
+
+function lisbonQuietDetails(): ProjectDocument {
+  const document = lisbon('minimal');
+  document.style.visibility = { ...document.style.visibility, roads: false, buildings: false, transit: false };
+  return document;
+}
+
+/**
+ * Editor-only variants: the same route stored as a road route, so selecting it shows a handle
+ * per waypoint instead of one per recorded track point.
+ */
+function withRoadRoute(document: ProjectDocument, layerId: string, data: { waypoints: number[][]; distanceMeters: number; durationSeconds: number }, profile: 'driving' | 'cycling' | 'walking'): ProjectDocument {
+  const waypoints = data.waypoints as Position[];
+  document.layers = document.layers.map((layer) => layer.id !== layerId || layer.appearance?.kind !== 'route' ? layer : {
+    ...layer,
+    route: { kind: 'road', closed: false },
+    appearance: { ...layer.appearance, segmentStyles: waypoints.slice(1).map(() => null) },
+    provenance: { provider: 'mapbox', service: 'directions-v5', waypoints, profile, distanceMeters: data.distanceMeters, durationSeconds: data.durationSeconds },
+  });
+  return document;
+}
+
 const builders: Record<string, () => ProjectDocument | Promise<ProjectDocument>> = {
   lisbon: () => lisbon(),
   'lisbon-quiet': () => lisbon('minimal'),
   'lisbon-dark': () => lisbon('gallery'),
+  'lisbon-german': lisbonGerman,
+  'lisbon-details': lisbonQuietDetails,
   italy,
+  'style-sample': styleSample,
   kyoto: () => starterProject('kyoto', 12.45),
   'new-york': () => starterProject('new-york', 12.45),
+  'video-new-york': videoNewYork,
   copenhagen: () => starterProject('copenhagen', 12.7),
   wedding,
   'road-trip': roadTrip,
   ventoux,
+  'ventoux-editor': () => withRoadRoute(ventoux(), 'ventoux-climb', routes.ventoux, 'cycling'),
+  'thames-editor': () => withRoadRoute(thames(), 'marathon', routes.thames, 'walking'),
+  'road-trip-editor': async () => withRoadRoute(await roadTrip(), 'utah-drive', routes.utah, 'driving'),
   thames,
   matterhorn,
   'matterhorn-3d': matterhorn3d,
   amsterdam,
-  clifton,
+  clifton: () => clifton(),
+  'clifton-base': () => clifton(true),
 };
 
 export const SCENE_IDS = Object.keys(builders);
