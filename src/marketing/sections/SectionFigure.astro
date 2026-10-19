@@ -1,23 +1,35 @@
 ---
 import InlineText from '../InlineText.astro';
+import { responsiveSrcset } from '../responsiveImage';
 import type { SectionImage } from './types';
 
 type Props = {
   image: SectionImage;
   class?: string;
   eager?: boolean;
+  /** Rendered width hint for `sizes`; defaults to the 56rem prose column. */
+  sizes?: string;
 };
 
-const { image, class: className, eager = false } = Astro.props;
+const {
+  image,
+  class: className,
+  eager = false,
+  sizes = '(min-width: 60rem) 56rem, calc(100vw - 2rem)',
+} = Astro.props;
+const srcset = responsiveSrcset(image.src, image.width);
+const mobileSrcset = image.mobileSrc && image.mobileWidth ? responsiveSrcset(image.mobileSrc, image.mobileWidth) ?? image.mobileSrc : image.mobileSrc;
 ---
 
 <figure class:list={['min-w-0', className]}>
   <div class="overflow-hidden rounded-xl border border-[#d2d2d7] bg-white">
     <picture class="block">
-      {image.mobileSrc && <source media="(max-width: 640px)" srcset={image.mobileSrc} width={image.mobileWidth} height={image.mobileHeight} />}
+      {image.mobileSrc && <source media="(max-width: 640px)" srcset={mobileSrcset} sizes="calc(100vw - 2rem)" width={image.mobileWidth} height={image.mobileHeight} />}
       <img
         class="h-auto w-full"
         src={image.src}
+        srcset={srcset}
+        sizes={srcset ? sizes : undefined}
         alt={image.alt}
         width={image.width}
         height={image.height}

@@ -10,6 +10,7 @@ export const page: MarketingPageEntry = {
   primaryKeyword: 'printable map maker',
   secondaryKeywords: ['map for handout', 'map for report', 'map for word document', 'print map at exact page size'],
   summaryForLlms: 'Print-document maps: A2–A6, US Letter or custom millimetre pages sized to a text column, styles and label settings that read on paper, routes, places, scale bar, coordinate grid, compass and location QR, and 300 DPI PDF or PNG export for Word, InDesign or a print shop.',
+  cardBlurb: 'Maps for handouts, reports and guidebooks at an exact page size, as PDF or PNG.',
   updated: '2026-10-19',
   published: '2026-08-31',
   related: ['map-print-size-guide', 'layered-map-export', 'real-estate-location-map', 'city-map-poster'],

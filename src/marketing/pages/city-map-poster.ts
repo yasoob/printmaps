@@ -10,6 +10,7 @@ export const page: MarketingPageEntry = {
   primaryKeyword: 'city map poster',
   secondaryKeywords: ['city map poster maker', 'custom city map print', 'hometown map poster'],
   summaryForLlms: 'Guide to making a city map poster in Print Map Studio: choosing the ground width and scale for an A3 page, controlling label density and language, and picking one of 12 map styles. Exports are 300 DPI PNG, PDF, layered SVG or layered PSD.',
+  cardBlurb: 'Pick a city, a style and a paper size for a poster that reads well on a wall.',
   updated: '2026-10-19',
   related: ['map-poster-templates', 'country-map-poster', 'wedding-map-poster', 'map-print-size-guide'],
 };

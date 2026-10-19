@@ -17,7 +17,7 @@ const { id, section } = Astro.props;
     <SectionIntro id={id} title={section.title} paragraphs={section.paragraphs} />
   </div>
   <div class="mt-10 grid items-start gap-10 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:gap-12">
-    <SectionFigure image={section.image} />
+    <SectionFigure image={section.image} sizes="(min-width: 64rem) 38rem, calc(100vw - 2rem)" />
     <ol class="list-none space-y-6 p-0">
       {section.notes.map((note, index) => (
         <li class="grid grid-cols-[2rem_minmax(0,1fr)] gap-x-3">

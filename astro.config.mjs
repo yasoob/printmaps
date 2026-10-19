@@ -3,6 +3,7 @@ import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'astro/config';
 import path from 'node:path';
 import process from 'node:process';
+import { responsiveImages } from './src/integrations/responsiveImages.ts';
 import { HOME_PAGE, marketingPages } from './src/marketing/registry.ts';
 
 const clientEnvironment = Object.fromEntries(
@@ -31,6 +32,7 @@ export default defineConfig({
     enabled: false,
   },
   integrations: [
+    responsiveImages(),
     sitemap({
       filter: (page) => !/\/404\/?$/.test(page),
       serialize: (item) => ({

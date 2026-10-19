@@ -71,6 +71,10 @@ export type MarketingPageEntry = {
   */
   related?: readonly string[];
   /**
+  Short text for related-page cards, at most 90 characters. Falls back to `description`.
+  */
+  cardBlurb?: string;
+  /**
   Keep the page out of the header menus (it still appears in the footer and llms.txt).
   */
   hideFromNav?: boolean;

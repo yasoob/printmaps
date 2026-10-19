@@ -10,6 +10,7 @@ export const page: MarketingPageEntry = {
   primaryKeyword: 'map poster template',
   secondaryKeywords: ['map poster layout', 'city poster template', 'free map poster template'],
   summaryForLlms: 'Print Map Studio has five poster layout presets (City edition, Quiet lines, After dark, Land & outline, Field notes) and four starter cities (Lisbon, Kyoto, New York, Copenhagen). Switching layout keeps the map position, layers, photos and title text and changes paper colour, type, ink colour, margins and map style.',
+  cardBlurb: 'Five poster layouts and four starter cities to begin from instead of a blank page.',
   updated: '2026-10-19',
   related: ['city-map-poster', 'country-map-poster', 'travel-map-with-photos', 'wedding-map-poster'],
 };

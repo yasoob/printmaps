@@ -36,23 +36,33 @@ export function llmsText(): string {
   ].join('\n');
 }
 
-export function llmsFullText(): string {
+export type PageExtras = {
+  faq: readonly { question: string; answer: string }[];
+  table?: { heading: string; markdown: string };
+};
+
+export function llmsFullText(extras: ReadonlyMap<string, PageExtras> = new Map()): string {
   const facts = productFactSections.flatMap((section) => [
     `### ${section.heading}`,
     '',
     ...section.facts.map((fact) => `- ${stripInline(fact)}`),
     '',
   ]);
-  const pages = navigationGroups().flatMap((group) => group.pages.map((entry) => [
-    `### ${entry.navLabel}`,
-    '',
-    `URL: ${pageUrl(entry)}`,
-    '',
-    stripInline(entry.description),
-    '',
-    stripInline(entry.summaryForLlms),
-    '',
-  ].join('\n')));
+  const pages = navigationGroups().flatMap((group) => group.pages.map((entry) => {
+    const extra = extras.get(entry.slug);
+    return [
+      `### ${entry.navLabel}`,
+      '',
+      `URL: ${pageUrl(entry)}`,
+      '',
+      stripInline(entry.description),
+      '',
+      stripInline(entry.summaryForLlms),
+      '',
+      ...(extra?.table ? [`#### ${extra.table.heading}`, '', extra.table.markdown, ''] : []),
+      ...(extra && extra.faq.length > 0 ? ['#### Questions', '', ...extra.faq.flatMap((item) => [`Q: ${item.question}`, `A: ${item.answer}`, ''])] : []),
+    ].join('\n');
+  }));
   const faq = faqItems.flatMap((item) => [`### ${item.question}`, '', stripInline(item.answer), '']);
   return [
     `# ${SITE_NAME}`,

@@ -8,7 +8,13 @@ import {
 import { navigationGroups, pagePath, pagesInGroup } from './registry';
 
 const year = new Date().getFullYear();
-const contentGroups = navigationGroups().filter((group) => group.id !== 'project');
+const sections = navigationGroups().filter((group) => group.id !== 'project');
+// Guides and use cases are short lists, so they share one footer column.
+const guidePages = sections.filter((group) => group.id === 'guides' || group.id === 'work').flatMap((group) => group.pages);
+const contentGroups = [
+  ...sections.filter((group) => group.id !== 'guides' && group.id !== 'work'),
+  ...(guidePages.length > 0 ? [{ id: 'guides', label: 'Guides and use cases', pages: guidePages }] : []),
+];
 const projectLinks = [
   { href: '/editor/', label: 'Open the editor' },
   ...pagesInGroup('project').map((entry) => ({ href: pagePath(entry), label: entry.navLabel })),
@@ -22,7 +28,7 @@ const linkClass = 'text-sm font-medium text-[#6e6e73] no-underline hover:text-[#
     <div class="flex items-start justify-between gap-16 max-lg:flex-col max-lg:gap-12">
       <div class="shrink-0">
         <a class="flex w-max items-center gap-3 text-xl font-semibold tracking-[-0.03em] text-[#1d1d1f] no-underline focus-visible:rounded focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#8bb9ff] sm:gap-5 sm:text-3xl" href="/" aria-label={`${SITE_NAME} home`}>
-          <img class="h-auto w-14 border-0! sm:w-22" src="/logo.png" alt="" width="88" height="59" loading="lazy" />
+          <img class="h-auto w-14 border-0! sm:w-22" src="/logo-176.webp" alt="" width="88" height="59" loading="lazy" decoding="async" />
           <span>{SITE_NAME}</span>
         </a>
         <p class="mt-3 max-w-xs text-sm leading-6 text-[#6e6e73] sm:mt-5 sm:text-lg">Free print-ready maps and map posters, made in your browser.</p>
@@ -30,12 +36,12 @@ const linkClass = 'text-sm font-medium text-[#6e6e73] no-underline hover:text-[#
       <div class="grid w-full max-w-[56rem] grid-cols-2 gap-x-8 gap-y-10 pt-4 sm:grid-cols-3 lg:grid-cols-5">
         {contentGroups.map((group) => (
           <nav class="grid content-start gap-3.5" aria-label={`${group.label} pages`}>
-            <h2 class="text-sm font-semibold text-[#1d1d1f]">{group.label}</h2>
+            <p class="text-sm font-semibold text-[#1d1d1f]">{group.label}</p>
             {group.pages.map((entry) => <a class={linkClass} href={pagePath(entry)}>{entry.navLabel}</a>)}
           </nav>
         ))}
         <nav class="grid content-start gap-3.5" aria-label="Project navigation">
-          <h2 class="text-sm font-semibold text-[#1d1d1f]">Project</h2>
+          <p class="text-sm font-semibold text-[#1d1d1f]">Project</p>
           {projectLinks.map((item) => <a class={linkClass} href={item.href}>{item.label}</a>)}
         </nav>
       </div>

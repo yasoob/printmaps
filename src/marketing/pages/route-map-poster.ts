@@ -10,6 +10,7 @@ export const page: MarketingPageEntry = {
   primaryKeyword: 'route map poster',
   secondaryKeywords: ['strava route poster', 'marathon route poster', 'cycling route print', 'hiking route map poster', 'gpx elevation profile'],
   summaryForLlms: 'Guide to designing a printed running, cycling or hiking route poster from a GPX export: page size, route line width (0.3 mm per pixel in PDF, SVG and PSD), start and finish places, poster text and a separately downloaded elevation profile.',
+  cardBlurb: 'Turn a run, ride or hike into a poster with the route drawn over the map.',
   updated: '2026-10-19',
   published: '2026-10-19',
   related: ['gpx-map-maker', 'topographic-map-maker', '3d-terrain-map-stl', 'map-video-maker'],

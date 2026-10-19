@@ -10,6 +10,7 @@ export const page: MarketingPageEntry = {
   primaryKeyword: 'wedding map poster',
   secondaryKeywords: ['where we met map', 'anniversary map poster', 'personalised map gift'],
   summaryForLlms: 'Guide to making a wedding or anniversary map poster in Print Map Studio: marking two places with place markers or an arc route, writing the title and date, how the coordinates line is derived from the map centre, choosing paper colour, and preparing PDF or 300 DPI PNG files for a print shop.',
+  cardBlurb: 'Map where you met or married, with your date and a short line of text.',
   updated: '2026-10-19',
   related: ['city-map-poster', 'travel-map-with-photos', 'map-poster-templates', 'printable-map-maker'],
 };

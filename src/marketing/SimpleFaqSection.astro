@@ -1,4 +1,5 @@
 ---
+import { Minus, Plus } from '@lucide/astro';
 import InlineText from './InlineText.astro';
 type FaqItem = {
   question: string;
@@ -38,8 +39,8 @@ const titleId = `${id}-title`;
           <summary class="flex cursor-pointer list-none items-center justify-between gap-6 py-4 text-left [&::-webkit-details-marker]:hidden">
             <h3 class="text-base font-semibold tracking-[-0.01em] sm:text-lg">{item.question}</h3>
             <span data-accordion-icon class="grid size-7 shrink-0 place-items-center text-2xl font-light leading-none text-[#6e6e73] group-open:text-[#0071e3]" aria-hidden="true">
-              <span class="group-open:hidden">+</span>
-              <span class="hidden group-open:inline">-</span>
+              <span class="group-open:hidden"><Plus class="size-5" stroke-width={1.75} /></span>
+              <span class="hidden group-open:inline"><Minus class="size-5" stroke-width={1.75} /></span>
             </span>
           </summary>
           <p class="max-w-3xl pb-5 pr-12 text-sm leading-6 text-[#6e6e73] sm:text-base sm:leading-7">

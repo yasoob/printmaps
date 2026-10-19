@@ -29,7 +29,7 @@ export const productFactSections = [
     facts: [
       '12 map styles: Paper, Graphite, Porcelain, Sandstone, Night Ink, Blueprint, Sea Glass, Rosewater, Alpine, Coastal, Terracotta and Signal.',
       'A palette editor adjusts tone, contrast and detail, plus individual colours for land, water, parks, buildings, roads, boundaries, transit and labels.',
-      'Labels can show local names, English, German, French, Italian, Spanish or Chinese, at 50% to 200% text scale.',
+      'Labels use local names plus 6 languages (English, German, French, Italian, Spanish and Chinese), at 50–200% text scale.',
       'Roads, buildings, labels, water, parks, land detail and transit can each be shown or hidden.',
     ],
   },

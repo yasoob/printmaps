@@ -10,6 +10,7 @@ export const page: MarketingPageEntry = {
   primaryKeyword: 'share and embed maps',
   secondaryKeywords: ['embed map on website', 'map iframe embed', 'map with qr code', 'share map link'],
   summaryForLlms: 'Print Map Studio compresses the whole project into the URL fragment of a read-only share link (up to 64 KB), offers an iframe embed with a 240–2000 px height and an optional pan and zoom toggle, and can print a location QR code that opens Google Maps.',
+  cardBlurb: 'Send a read-only link to a map or embed it on a website with an iframe.',
   updated: '2026-10-19',
   published: '2026-10-19',
   related: ['wedding-map-poster', 'real-estate-location-map', 'map-video-maker', 'layered-map-export'],
