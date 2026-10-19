@@ -124,8 +124,11 @@ function installPixelCanvasMock() {
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(function getContext() {
     return {
       fillRect: vi.fn(),
+      fill: vi.fn(),
       fillText,
       measureText: vi.fn(() => ({ width: 80 })),
+      save: vi.fn(), restore: vi.fn(), translate: vi.fn(), scale: vi.fn(), beginPath: vi.fn(), rect: vi.fn(),
+      set textAlign(_value: CanvasTextAlign) {},
       getImageData: vi.fn((_x: number, _y: number, width: number, height: number) => {
         const data = new Uint8ClampedArray(width * height * 4);
         for (let index = 0; index < data.length; index += 4) {
@@ -175,7 +178,7 @@ describe('large streamed PNG', () => {
     const scanlines = await inflate(png.idat);
     expect(scanlines).toHaveLength(100 * (1 + 100 * 4));
     expect([...new Set(Array.from({ length: 100 }, (_, row) => scanlines[row * 401]))]).toEqual([0]);
-    expect(fillText).toHaveBeenCalledOnce();
+    expect(fillText.mock.calls.map((call) => call[0]).join(' ')).toBe('© OpenStreetMap contributors');
     expect(renders).toBeGreaterThan(1);
     expect(writable.close).toHaveBeenCalledOnce();
     expect(writable.abort).not.toHaveBeenCalled();

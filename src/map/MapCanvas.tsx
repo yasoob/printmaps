@@ -1,4 +1,4 @@
-import { memo, useState, type CSSProperties } from 'react';
+import { memo, useState, type CSSProperties, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import type { CustomMarkerAsset } from '../domain/customMarkerAssets';
 import type { CameraSettings, ContentLayer, MapFeatureVisibility, MapLanguage, MapStylePreset, PageSettings, ShapeGeometry } from '../domain/project';
@@ -64,6 +64,10 @@ type MapCanvasProps = {
   pageBoundaryVisible?: boolean;
   contentRevision?: object;
   interactionMode?: string;
+  /**
+  Page artwork that does not follow the camera, positioned inside the print frame (e.g. the map credit strip).
+  */
+  printFrameContent?: ReactNode;
 };
 
 const DEFAULT_FEATURE_VISIBILITY: MapFeatureVisibility = {
@@ -162,6 +166,7 @@ export function MapCanvas({
   pageBoundaryVisible,
   contentRevision,
   interactionMode,
+  printFrameContent,
 }: MapCanvasProps) {
   const [routeEditorError, setRouteEditorError] = useState<string | null>(null);
   const mutationFeedback = useGeometryMutationFeedback({
@@ -216,6 +221,7 @@ export function MapCanvas({
           } as CSSProperties}
           aria-hidden="true"
         >
+          {printFrameContent}
           <span className="page-label">{page?.preset ?? 'A4'} · {orientation === 'landscape' ? 'Landscape' : 'Portrait'}</span>
         </div>
       </div>

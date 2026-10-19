@@ -21,14 +21,16 @@ function physicalDensity(bytes: Uint8Array): number | undefined {
 
 async function verifyNativeTileComposition() {
   const drawImage = vi.fn();
-  const fillRect = vi.fn();
+  const fill = vi.fn();
   const fillText = vi.fn();
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
     drawImage,
-    fillRect,
+    fill,
     fillText,
     measureText: vi.fn(() => ({ width: 80 })),
+    save: vi.fn(), restore: vi.fn(), translate: vi.fn(), scale: vi.fn(), beginPath: vi.fn(), rect: vi.fn(),
     set fillStyle(_value: string) {},
+    set textAlign(_value: CanvasTextAlign) {},
     set font(_value: string) {},
     set globalAlpha(_value: number) {},
     set textBaseline(_value: CanvasTextBaseline) {},
@@ -91,13 +93,9 @@ async function verifyNativeTileComposition() {
       && sourceWidth === destinationWidth
       && sourceHeight === destinationHeight;
   })).toBe(true);
-  expect(fillRect).toHaveBeenCalledOnce();
-  expect(fillText).toHaveBeenCalledWith(
-    '© OpenStreetMap contributors',
-    expect.any(Number),
-    expect.any(Number),
-    expect.any(Number),
-  );
+  // The shared strip-fallback credit: one paper strip, caption wrapped on this 1-inch page.
+  expect(fill).toHaveBeenCalledOnce();
+  expect(fillText.mock.calls.map((call) => call[0]).join(' ')).toBe('© OpenStreetMap contributors');
 }
 
 async function verifyPhysicalMetadata() {

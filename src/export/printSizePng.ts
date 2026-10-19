@@ -6,6 +6,8 @@ import {
   type RasterTileRenderRequest,
 } from './rasterCompositor';
 import { embedPngPhysicalResolution } from './pngPhysicalResolution';
+import { layoutStudioCredit } from '../print/studioCredit';
+import { paintStudioCredit } from './studioComposition';
 
 const PRINT_PNG_DPI = 300;
 
@@ -128,32 +130,10 @@ function createSurface(width: number, height: number, unavailableMessage: string
   }
 }
 
-function drawNativeAttribution(
-  context: CanvasRenderingContext2D,
-  width: number,
-  height: number,
-  attributions: readonly string[],
-): void {
-  const text = attributions.join(' · ').replaceAll(/\s+/g, ' ').trim();
-  if (!text) throw new Error('Map attribution is unavailable, so this PNG cannot be exported.');
-  const pixelScale = Math.max(1, Math.min(width / 600, height / 400));
-  const padding = Math.max(4, Math.round(4 * pixelScale));
-  let fontSize = Math.max(8, Math.round(8 * pixelScale));
-  context.font = `${fontSize}px sans-serif`;
-  const availableWidth = Math.max(1, width - padding * 2);
-  const measuredWidth = context.measureText(text).width;
-  if (measuredWidth > availableWidth) {
-    fontSize = Math.max(7, Math.floor(fontSize * availableWidth / measuredWidth));
-    context.font = `${fontSize}px sans-serif`;
-  }
-  const barHeight = Math.max(14, fontSize + padding);
-  const rootStyle = getComputedStyle(document.documentElement);
-  context.globalAlpha = 1;
-  context.fillStyle = rootStyle.getPropertyValue('--studio-surface').trim() || '#ffffff';
-  context.fillRect(0, height - barHeight, width, barHeight);
-  context.fillStyle = rootStyle.getPropertyValue('--studio-text-secondary').trim() || '#666666';
-  context.textBaseline = 'middle';
-  context.fillText(text, padding, height - barHeight / 2, availableWidth);
+function drawNativeAttribution(context: CanvasRenderingContext2D, preflight: ExportPreflightResult, output: Readonly<{ width: number; height: number }>): void {
+  const text = preflight.attributions.join(' · ');
+  if (!text.trim()) throw new Error('Map attribution is unavailable, so this PNG cannot be exported.');
+  paintStudioCredit(context, layoutStudioCredit({ page: preflight.page, text, poster: null }), { page: preflight.page, output });
 }
 
 export async function createPrintSizePng({
@@ -250,12 +230,7 @@ export async function createPrintSizePng({
     }, { signal });
 
     throwIfCancelled(signal);
-    if (renderTile && !isAttributionIncluded) drawNativeAttribution(
-      outputContext,
-      dimensions.widthPx,
-      dimensions.heightPx,
-      preflight.attributions,
-    );
+    if (renderTile && !isAttributionIncluded) drawNativeAttribution(outputContext, preflight, { width: dimensions.widthPx, height: dimensions.heightPx });
     onStage?.('encoding');
     return await encodePng(output, dimensions.widthPx, dimensions.heightPx, signal);
   } catch (error) {

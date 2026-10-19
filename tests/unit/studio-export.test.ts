@@ -30,7 +30,7 @@ it('puts shared poster vectors and embedded photos below topmost attribution in 
   document.studio.photos.stops = [{ id: 'one', layerId: 'poi-cafe', assetId: image.id, caption: 'A photo' }];
   document.studio.photos.map.enabled = true;
   const svg = serializePrintScene(document, {
-    basemap: { dataUri: image.dataUri, pixelWidth: 1, pixelHeight: 1 }, attribution: 'Required attribution',
+    basemap: { dataUri: image.dataUri, pixelWidth: 1, pixelHeight: 1 },
     project: (coordinate, context) => {
       const point = project(coordinate);
       return { x: point.x * context.pageWidthMm, y: point.y * context.pageHeightMm };

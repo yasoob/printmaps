@@ -181,6 +181,7 @@ function finishResult(
   return {
     safe: state.errors.length === 0,
     format: request.format,
+    page: { widthMm: request.page.widthMm, heightMm: request.page.heightMm },
     delivery: request.rasterDelivery ?? 'single-png',
     ...state,
     plan: state.errors.length === 0 ? plan : null,

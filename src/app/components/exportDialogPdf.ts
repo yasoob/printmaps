@@ -1,7 +1,7 @@
 import type React from 'react';
 import { trackEditorAction } from '../../analytics/editorAnalytics';
 import type { ProjectDocument } from '../../domain/project';
-import { projectAttributions } from '../../domain/projectAttributions';
+import { projectPrintAttributions } from '../../domain/projectAttributions';
 import { DEFAULT_EXPORT_PREFLIGHT_LIMITS, planExportPreflight, type ExportPreflightResult } from '../../export/preflight';
 import type { PreviewPngExporter } from '../../export/previewPng';
 import { createPrintRegionExportPlan, NATIVE_SYMBOL_BUFFER_PX } from './exportDialogRaster';
@@ -28,7 +28,7 @@ export function planPdfExport(document: ProjectDocument) {
     format: 'pdf',
     page: { widthMm: document.page.widthMm, heightMm: document.page.heightMm },
     dpi: 300,
-    attributions: projectAttributions(document),
+    attributions: projectPrintAttributions(document),
     basemap: 'raster',
     vectorOverlays: true,
     missing: {},

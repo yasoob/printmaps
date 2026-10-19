@@ -1,10 +1,15 @@
 import type { CameraSettings, ProjectDocument } from '../domain/project';
 import type { PosterText, StudioSettings } from '../domain/studio';
 import type { TerrainAttributionSettings } from '../domain/projectAttributions';
+import { deriveStudioCredit, type StudioCreditLayout } from './studioCredit';
 import { canonicalStudioLongitude, type StudioBox } from './studioGeometry';
 import { studioText, type StudioPrimitive } from './studioPrimitives';
 
 export type StudioCompositionDocument = Pick<ProjectDocument, 'page' | 'camera' | 'layers'> & {
+  /**
+  Overrides Mapbox credit detection when `layers` is a filtered subset of the project's layers.
+  */
+  mapboxCredit?: boolean;
   studio: Pick<StudioSettings, 'poster' | 'photos' | 'decorations'> & {
     terrain: TerrainAttributionSettings;
   };
@@ -12,6 +17,7 @@ export type StudioCompositionDocument = Pick<ProjectDocument, 'page' | 'camera' 
 export type StudioCamera = Readonly<Pick<CameraSettings, 'zoom' | 'bearing' | 'pitch'> & { center: readonly [number, number] }>;
 export type StudioLayout = Readonly<{
   page: StudioBox; printable: StudioBox; map: StudioBox; title: StudioBox | null; strip: StudioBox | null;
+  credit: StudioCreditLayout;
 }>;
 const MM_PER_POINT = 25.4 / 72;
 const NO_MARGINS = { top: 0, right: 0, bottom: 0, left: 0 };
@@ -56,9 +62,11 @@ function allocateStrip(document: StudioCompositionDocument, map: StudioBox): { m
 
 export function deriveStudioLayout(document: StudioCompositionDocument): StudioLayout {
   const { widthMm: width, heightMm: height } = document.page;
-  if (width <= 0 || height <= 5) throw new Error('The poster needs a page taller than its 5 mm attribution bar.');
+  if (width <= 0 || height <= 0) throw new Error('The poster needs a page with a positive size.');
+  const credit = deriveStudioCredit(document);
+  if (height <= credit.reserveMm) throw new Error('The poster needs a page taller than its map credit.');
   const page = { x: 0, y: 0, width, height };
-  const printable = { ...page, height: height - 5 };
+  const printable = { ...page, height: height - credit.reserveMm };
   const margins = document.studio.poster.enabled ? document.studio.poster.marginsMm : NO_MARGINS;
   const available = { x: margins.left, y: margins.top, width: width - margins.left - margins.right, height: printable.height - margins.top - margins.bottom };
   const titleArea = allocateTitle(document, available);
@@ -66,7 +74,7 @@ export function deriveStudioLayout(document: StudioCompositionDocument): StudioL
   if (map.width < 12 || map.height < 12) {
     throw new Error('The poster margins, text, and photo strip leave less than 12 mm for the map. Reduce their sizes or choose a larger page.');
   }
-  return { page, printable, map, title: titleArea.title, strip };
+  return { page, printable, map, title: titleArea.title, strip, credit };
 }
 
 export function posterPrimitives(document: StudioCompositionDocument, layout: StudioLayout, camera: StudioCamera = document.camera): StudioPrimitive[] {

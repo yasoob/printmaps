@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
+import { hasMapboxCredit } from '../../domain/projectAttributions';
 import { useProject } from '../projectStoreContext';
 import { StudioMapCanvas, type StudioMapCanvasProps } from './StudioMapCanvas';
 
@@ -10,6 +11,7 @@ export const EditorStudioMapCanvas = memo(function EditorStudioMapCanvas(props: 
   const enabled = useProject((state) => state.document.studio.terrain.enabled);
   const contours = useProject((state) => state.document.studio.terrain.contours.enabled);
   const page = useProject((state) => state.document.page);
+  const mapboxCredit = useProject((state) => hasMapboxCredit(state.document));
   const layers = useProject(useShallow((state) => {
     const ids = new Set([
       ...(poster.enabled && poster.silhouetteLayerId ? [poster.silhouetteLayerId] : []),
@@ -19,7 +21,7 @@ export const EditorStudioMapCanvas = memo(function EditorStudioMapCanvas(props: 
     return state.document.layers.filter((layer) => ids.has(layer.id));
   }));
   const composition = useMemo(() => ({
-    page, layers, studio: { poster, photos, decorations, terrain: { enabled, contours: { enabled: contours } } },
-  }), [page, layers, poster, photos, decorations, enabled, contours]);
+    page, layers, mapboxCredit, studio: { poster, photos, decorations, terrain: { enabled, contours: { enabled: contours } } },
+  }), [page, layers, mapboxCredit, poster, photos, decorations, enabled, contours]);
   return <StudioMapCanvas {...props} composition={composition} />;
 });

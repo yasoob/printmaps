@@ -94,6 +94,7 @@ async function verifyPdfDownload() {
     return Promise.resolve(tile);
   });
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+    save: vi.fn(), restore: vi.fn(), translate: vi.fn(), scale: vi.fn(), beginPath: vi.fn(), rect: vi.fn(), fill: vi.fn(), fillText: vi.fn(), measureText: vi.fn(() => ({ width: 80 })),
     getImageData: vi.fn((_x: number, _y: number, width: number, height: number) => ({
       data: new Uint8ClampedArray(width * height * 4).fill(255),
       width,
@@ -163,7 +164,10 @@ async function verifyPdfDownload() {
   expect(pdfText).toContain('Coffee stop');
   expect(pdfText).toContain('City center');
   expect(pdfText).toContain('/Type /OCG');
-  expect(pdfText).toContain(String.raw`(OpenFreeMap \267 OpenMapTiles \267 \251 OpenStreetMap contributors) Tj`);
+  const creditSection = pdfText.slice(pdfText.indexOf('/OC /Attribution BDC'));
+  const creditText = [...creditSection.slice(0, creditSection.indexOf('EMC')).matchAll(/\((.*)\) Tj/g)].map((match) => match[1]).join(' ');
+  // A 1-inch page wraps the printed credit (with its licence URL) over several live-text lines; line breaks replace separators.
+  expect(creditText).toBe(String.raw`\251 OpenStreetMap contributors \(openstreetmap.org/copyright\) OpenMapTiles OpenFreeMap`);
   expect(dialog).toHaveTextContent('lossless basemap');
   expect(dialog).toHaveTextContent('vector overlays');
   expect(source).toMatchObject({ width: 0, height: 0 });
@@ -207,7 +211,7 @@ async function verifyNativeTileProgressCancellation() {
   const user = userEvent.setup();
   const drawImage = vi.fn();
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
-    drawImage,
+    drawImage, save: vi.fn(), restore: vi.fn(), translate: vi.fn(), scale: vi.fn(), beginPath: vi.fn(), rect: vi.fn(), fill: vi.fn(), fillText: vi.fn(), measureText: vi.fn(() => ({ width: 80 })),
   } as unknown as CanvasRenderingContext2D);
   const encode = vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation((callback) => {
     callback(new Blob(['png'], { type: 'image/png' }));
@@ -409,7 +413,7 @@ describe('editor export', () => {
   it('keeps focus contained and cancels an in-progress print-size export', async () => {
     const user = userEvent.setup();
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
-      drawImage: vi.fn(),
+      drawImage: vi.fn(), save: vi.fn(), restore: vi.fn(), translate: vi.fn(), scale: vi.fn(), beginPath: vi.fn(), rect: vi.fn(), fill: vi.fn(), fillText: vi.fn(), measureText: vi.fn(() => ({ width: 80 })),
     } as unknown as CanvasRenderingContext2D);
     let finishExport: ((result: HTMLCanvasElement) => void) | undefined;
     const renderPrintTile = vi.fn(() => new Promise<HTMLCanvasElement>((resolve) => { finishExport = resolve; }));
@@ -448,8 +452,7 @@ describe('editor export', () => {
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
       drawImage: vi.fn(),
       fillRect: vi.fn(),
-      fillText: vi.fn(),
-      measureText: vi.fn(() => ({ width: 80 })),
+      save: vi.fn(), restore: vi.fn(), translate: vi.fn(), scale: vi.fn(), beginPath: vi.fn(), rect: vi.fn(), fill: vi.fn(), fillText: vi.fn(), measureText: vi.fn(() => ({ width: 80 })),
     } as unknown as CanvasRenderingContext2D);
     vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation((callback) => {
       callback(new Blob([ONE_PIXEL_PNG], { type: 'image/png' }));

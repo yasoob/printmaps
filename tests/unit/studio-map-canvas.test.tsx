@@ -38,6 +38,30 @@ it('does not attach a projection listener when all composition features are off'
   expect(screen.queryByLabelText('Poster artwork')).not.toBeInTheDocument();
 });
 
+it('puts the export credit strip in the print frame without poster artwork and keeps it stable across camera moves', () => {
+  const props = propsForProject();
+  const { rerender } = render(<StudioMapCanvas {...props} />);
+  const credit = mapRender.mock.calls.at(-1)?.[0].printFrameContent;
+  expect(credit).toBeTruthy();
+  const { container } = render(<>{credit}</>);
+  expect(container.querySelector('rect')?.getAttribute('fill')).toBe('#ffffff');
+  expect(container.querySelector('text')?.textContent).toBe('© OpenStreetMap contributors (openstreetmap.org/copyright) · OpenMapTiles · OpenFreeMap');
+  rerender(<StudioMapCanvas {...props} camera={{ ...props.camera!, zoom: props.camera!.zoom + 1 }} />);
+  expect(mapRender.mock.calls.at(-1)?.[0].printFrameContent).toBe(credit);
+});
+
+it('paints the credit with the poster artwork, and not in the print frame, when a poster is composed', () => {
+  const props = propsForProject();
+  props.composition!.studio.poster.enabled = true;
+  render(<StudioMapCanvas {...props} />);
+  expect(mapRender.mock.calls.at(-1)?.[0].printFrameContent).toBeUndefined();
+  act(() => mapRender.mock.calls.at(-1)?.[0].onFrameProjectionChange?.({
+    projectToFrame: () => ({ x: 0.5, y: 0.5 }), frame: { x: 0, y: 0, width: 400, height: 300 },
+    referenceLongitude: 16, bearing: 0, pitch: 0, camera: { center: [16, 48], zoom: 11, bearing: 0, pitch: 0 },
+  }));
+  expect(screen.getByLabelText('Poster artwork')).toHaveTextContent('openstreetmap.org/copyright');
+});
+
 it('updates only the derived artwork on live projection events without rerendering the map', () => {
   const props = propsForProject();
   if (!props.composition) throw new Error('Fixture composition is missing.');

@@ -1,5 +1,4 @@
 import type { ContentLayer, ProjectDocument } from '../domain/project';
-import { projectAttributionText } from '../domain/projectAttributions';
 import { serializePrintScene } from '../print/scene';
 import {
   createPsdSurface,
@@ -91,7 +90,6 @@ export function createPsdSvgRasterLayers(
   output: Readonly<{ width: number; height: number }>,
 ): PsdSvgRasterLayer[] {
   const scene = serializePrintScene(document, {
-    attribution: projectAttributionText(document),
     basemap: { dataUri: ONE_PIXEL_PNG, pixelWidth: 1, pixelHeight: 1 },
     metadata: 'Rasterized named layers for Photoshop export.',
     referenceLongitude: capture.referenceLongitude,

@@ -42,7 +42,6 @@ export type PreviewPngExporter = ((
 
 type PreviewCaptureOptions = Readonly<{
   projectToCanvas?: (coordinate: readonly [number, number]) => Readonly<{ x: number; y: number }>;
-  isAttributionIncluded?: boolean;
   referenceLongitude?: number;
 }>;
 
@@ -116,12 +115,10 @@ function calculateCrop(canvasRect: DOMRect, frameRect: DOMRect, mapCanvas: HTMLC
   };
 }
 
-function drawPreview(
-  context: CanvasRenderingContext2D,
-  mapCanvas: HTMLCanvasElement,
-  crop: PreviewCrop,
-  attribution: Readonly<{ text: string; isIncluded: boolean }>,
-): void {
+/**
+Crops the live map only; callers paint the shared map credit (export/studioComposition) on top.
+*/
+function drawPreview(context: CanvasRenderingContext2D, mapCanvas: HTMLCanvasElement, crop: PreviewCrop): void {
   context.drawImage(
     mapCanvas,
     crop.sourceX,
@@ -133,28 +130,6 @@ function drawPreview(
     crop.width,
     crop.height,
   );
-
-  if (!attribution.isIncluded) return;
-
-  const pixelScale = Math.max(1, Math.min(crop.scaleX, crop.scaleY));
-  const padding = Math.max(4, Math.round(4 * pixelScale));
-  let fontSize = Math.max(8, Math.round(8 * pixelScale));
-  context.font = `${fontSize}px sans-serif`;
-  const availableWidth = Math.max(1, crop.width - padding * 2);
-  const measuredWidth = context.measureText(attribution.text).width;
-  if (measuredWidth > availableWidth) {
-    fontSize = Math.max(7, Math.floor(fontSize * availableWidth / measuredWidth));
-    context.font = `${fontSize}px sans-serif`;
-  }
-  const barHeight = Math.max(14, fontSize + padding);
-  const rootStyle = getComputedStyle(document.documentElement);
-  context.globalAlpha = 1;
-  context.fillStyle = rootStyle.getPropertyValue('--studio-surface').trim();
-  context.fillRect(0, crop.height - barHeight, crop.width, barHeight);
-  context.globalAlpha = 1;
-  context.fillStyle = rootStyle.getPropertyValue('--studio-text-secondary').trim();
-  context.textBaseline = 'middle';
-  context.fillText(attribution.text, padding, crop.height - barHeight / 2, availableWidth);
 }
 
 function encodePreview(output: HTMLCanvasElement, width: number, height: number): Promise<PreviewPng> {
@@ -177,17 +152,11 @@ function encodePreview(output: HTMLCanvasElement, width: number, height: number)
 export async function capturePrintFramePng(
   mapCanvas: HTMLCanvasElement,
   printFrame: HTMLElement,
-  attribution: string,
   options: PreviewCaptureOptions = {},
 ): Promise<PreviewPng> {
   const canvasRect = mapCanvas.getBoundingClientRect();
   const frameRect = printFrame.getBoundingClientRect();
   if (!hasRenderableBounds(mapCanvas, canvasRect, frameRect)) throw unavailableError();
-
-  const attributionText = attribution.replaceAll(/\s+/g, ' ').trim();
-  if (!attributionText) {
-    throw new Error('Map attribution is unavailable, so this preview cannot be exported.');
-  }
 
   const crop = calculateCrop(canvasRect, frameRect, mapCanvas);
   if (!crop) throw unavailableError();
@@ -209,10 +178,7 @@ export async function capturePrintFramePng(
   }
 
   try {
-    drawPreview(context, mapCanvas, crop, {
-      text: attributionText,
-      isIncluded: options.isAttributionIncluded ?? true,
-    });
+    drawPreview(context, mapCanvas, crop);
   } catch {
     releaseOutput(output);
     throw new Error('The browser could not render the PNG. The map canvas may be unavailable or blocked by its source.');

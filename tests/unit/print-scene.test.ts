@@ -28,7 +28,6 @@ describe('layered SVG print scene', () => {
 
     const svgText = serializePrintScene(project, {
       basemap: { dataUri: onePixelPng, pixelWidth: 1, pixelHeight: 1 },
-      attribution: '© OpenStreetMap contributors · OpenFreeMap',
       project: projector,
     });
     const svgDocument = parseSvg(svgText);
@@ -63,14 +62,14 @@ describe('layered SVG print scene', () => {
     expect(groups[1].querySelector('path')).not.toBeNull();
     expect(groups[2].querySelector('circle')).not.toBeNull();
     expect(groups[3].querySelector('path')).not.toBeNull();
-    expect(groups[4].textContent).toContain('© OpenStreetMap contributors · OpenFreeMap');
+    expect(groups[4].textContent).toContain('© OpenStreetMap contributors (openstreetmap.org/copyright) · OpenMapTiles · OpenFreeMap');
+    expect(groups[4].querySelectorAll('text')).toHaveLength(1);
 
     const overlayIds = groups.slice(1, 4).map((group) => group.id);
     expect(new Set(overlayIds).size).toBe(3);
     expect(overlayIds.every((id) => id.startsWith('layer-'))).toBe(true);
     expect(serializePrintScene(project, {
       basemap: { dataUri: onePixelPng, pixelWidth: 1, pixelHeight: 1 },
-      attribution: '© OpenStreetMap contributors · OpenFreeMap',
       project: projector,
     })).toBe(svgText);
   });
@@ -83,7 +82,6 @@ describe('layered SVG print scene', () => {
 
     const svgDocument = parseSvg(serializePrintScene(project, {
       basemap: { dataUri: onePixelPng, pixelWidth: 1, pixelHeight: 1 },
-      attribution: '© OpenStreetMap contributors',
       project: projector,
     }));
     const path = requiredElement(svgDocument, '[data-layer-id="route-01"] > path').getAttribute('d') ?? '';
@@ -99,7 +97,6 @@ describe('layered SVG print scene', () => {
 
     const svgDocument = parseSvg(serializePrintScene(project, {
       basemap: { dataUri: onePixelPng, pixelWidth: 1, pixelHeight: 1 },
-      attribution: '© OpenStreetMap contributors',
       project: projector,
     }));
 
@@ -108,18 +105,16 @@ describe('layered SVG print scene', () => {
     expect(svgDocument.documentElement.getAttribute('viewBox')).toBe('0 0 215.9000001 279.4000001');
   });
 
-  it('escapes untrusted project, layer, metadata, and attribution text without changing their values', () => {
+  it('escapes untrusted project, layer, and metadata text without changing their values', () => {
     const project = createInitialProjectDocument();
     project.id = 'project&"<unsafe>';
     project.title = 'Atlas </title><script>owned()</script> & friends';
     project.layers[0].id = 'route" onload="owned()';
     project.layers[0].name = 'Route </title><script>owned()</script> & "quoted"';
-    const attribution = '© Source </text><script>owned()</script> & partners';
     const metadata = 'Created by </metadata><script>owned()</script> & team';
 
     const svgDocument = parseSvg(serializePrintScene(project, {
       basemap: { dataUri: onePixelPng, pixelWidth: 1, pixelHeight: 1 },
-      attribution,
       metadata,
       project: projector,
     }));
@@ -132,7 +127,7 @@ describe('layered SVG print scene', () => {
     expect(routeGroup?.dataset.layerId).toBe(project.layers[0].id);
     expect(routeGroup?.dataset.layerName).toBe(project.layers[0].name);
     expect(routeGroup?.querySelector('title')?.textContent).toBe(project.layers[0].name);
-    expect(svgDocument.documentElement.querySelector(':scope #attribution text')?.textContent).toBe(attribution);
+    expect(svgDocument.documentElement.querySelector(':scope #attribution text')?.textContent).toContain('openstreetmap.org/copyright');
     expect(routeGroup?.id).toMatch(/^layer-[a-z0-9_-]+-[a-z0-9]+$/);
   });
 
@@ -154,7 +149,6 @@ describe('layered SVG print scene', () => {
 
     const svgDocument = parseSvg(serializePrintScene(project, {
       basemap: { dataUri: onePixelPng, pixelWidth: 1, pixelHeight: 1 },
-      attribution: '© OpenStreetMap contributors',
       project: projector,
     }));
     const route = requiredElement(svgDocument, '[data-layer-id="route-01"]');
@@ -192,7 +186,6 @@ describe('layered SVG print scene', () => {
 
     const svgDocument = parseSvg(serializePrintScene(project, {
       basemap: { dataUri: onePixelPng, pixelWidth: 1, pixelHeight: 1 },
-      attribution: '© OpenStreetMap contributors',
       project: projector,
     }));
     const routeGroup = requiredElement(svgDocument, '[data-layer-id="route-01"]');
@@ -203,16 +196,13 @@ describe('layered SVG print scene', () => {
 });
 
 describe('layered SVG print scene validation', () => {
-  it('rejects missing or malformed required raster and attribution assets', () => {
+  it('rejects missing or malformed required raster assets', () => {
     const project = createInitialProjectDocument();
     const validOptions = {
       basemap: { dataUri: onePixelPng, pixelWidth: 1, pixelHeight: 1 },
-      attribution: '© OpenStreetMap contributors',
       project: projector,
     };
 
-    expect(() => serializePrintScene(project, { ...validOptions, attribution: ' '.repeat(3) }))
-      .toThrow('attribution is required');
     expect(() => serializePrintScene(project, {
       ...validOptions,
       basemap: { dataUri: 'https://tiles.example/map.png', pixelWidth: 100, pixelHeight: 100 },
@@ -231,7 +221,6 @@ describe('layered SVG print scene validation', () => {
     const project = createInitialProjectDocument();
     const options = {
       basemap: { dataUri: onePixelPng, pixelWidth: 1, pixelHeight: 1 },
-      attribution: '© OpenStreetMap contributors',
       project: () => ({ x: NaN, y: 10 }),
     };
 
@@ -245,7 +234,6 @@ describe('layered SVG print scene validation', () => {
     const project = createInitialProjectDocument();
     const options = {
       basemap: { dataUri: onePixelPng, pixelWidth: 1, pixelHeight: 1 },
-      attribution: '© OpenStreetMap contributors',
       project: projector,
     };
 
@@ -286,7 +274,6 @@ describe('route travel SVG markers', () => {
 
     const svgDocument = parseSvg(serializePrintScene(project, {
       basemap: { dataUri: onePixelPng, pixelWidth: 1, pixelHeight: 1 },
-      attribution: '© OpenStreetMap contributors',
       project: projector,
     }));
     const marker = requiredElement(svgDocument, '[data-layer-id="route-01"] [data-route-pictogram="air"]');
@@ -311,7 +298,6 @@ describe('POI SVG markers and labels', () => {
 
     const svgDocument = parseSvg(serializePrintScene(project, {
       basemap: { dataUri: onePixelPng, pixelWidth: 1, pixelHeight: 1 },
-      attribution: '© OpenStreetMap contributors',
       project: projector,
     }));
     const poi = requiredElement(svgDocument, '[data-layer-id="poi-cafe"]');
@@ -344,7 +330,6 @@ describe('POI SVG markers and labels', () => {
 
     const svgDocument = parseSvg(serializePrintScene(project, {
       basemap: { dataUri: onePixelPng, pixelWidth: 1, pixelHeight: 1 },
-      attribution: '© OpenStreetMap contributors',
       project: projector,
     }));
     const poi = requiredElement(svgDocument, '[data-layer-id="poi-cafe"]');

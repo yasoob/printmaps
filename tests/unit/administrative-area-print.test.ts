@@ -43,7 +43,6 @@ describe('inverted shape print parity', () => {
 
     const svgText = serializePrintScene(project, {
       basemap: { dataUri: onePixelPng, pixelWidth: 1, pixelHeight: 1 },
-      attribution: '© OpenStreetMap contributors',
       project: projector,
     });
     const svg = new DOMParser().parseFromString(svgText, 'image/svg+xml');
@@ -61,7 +60,6 @@ describe('inverted shape print parity', () => {
   it('fills outside the polygon in layered SVG without outlining the page edge', () => {
     const svgText = serializePrintScene(invertedProject(), {
       basemap: { dataUri: onePixelPng, pixelWidth: 1, pixelHeight: 1 },
-      attribution: '© OpenStreetMap contributors',
       project: projector,
     });
     const svg = new DOMParser().parseFromString(svgText, 'image/svg+xml');

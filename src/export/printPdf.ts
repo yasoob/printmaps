@@ -1,6 +1,6 @@
 import type { ContentLayer, ProjectDocument } from '../domain/project';
-import { fitAttributionFontSize, projectAttributionText } from '../domain/projectAttributions';
-import { asciiBytes, buildPdfBlob, pdfContentString, pdfString, streamObject, type PdfObject } from './pdfWriter';
+import { deriveStudioCredit, type StudioCreditLayout } from '../print/studioCredit';
+import { asciiBytes, buildPdfBlob, pdfString, streamObject, type PdfObject } from './pdfWriter';
 import { pdfVectorCommands } from './pdfVectorCommands';
 import {
   createLosslessPdfRaster,
@@ -10,7 +10,7 @@ import {
 import type { PreviewPng } from './previewPng';
 import type { VectorBasemapCapture } from './vector/scene';
 import { createVectorPdfDocument } from './vector/document';
-import { prepareStudioPdf, studioPdfResources } from './studioPdf';
+import { creditCommands, prepareStudioPdf, studioPdfResources } from './studioPdf';
 
 const POINTS_PER_MM = 72 / 25.4;
 type ProjectedCapture = Pick<PreviewPng, 'referenceLongitude'> & Required<Pick<PreviewPng, 'projectToFrame'>>;
@@ -110,10 +110,10 @@ function createContentStream(options: Readonly<{
   capture: ProjectedCapture;
   width: number;
   height: number;
-  attributionText: string;
+  credit: StudioCreditLayout;
   compositionCommands: string;
 }>): Uint8Array {
-  const { attributionText, basemapImages, basemapOutput, capture, groups, height, width } = options;
+  const { credit, basemapImages, basemapOutput, capture, groups, height, width } = options;
   const basemap = groups.find(({ layer }) => layer?.type === 'basemap');
   if (!basemap) throw new Error('The project must contain one basemap for PDF export.');
   if (basemapImages.length === 0) throw new Error('The PDF basemap has no printable image regions.');
@@ -157,21 +157,7 @@ function createContentStream(options: Readonly<{
   const attribution = groups.at(-1);
   if (!attribution) throw new Error('The PDF attribution layer is unavailable.');
   if (options.compositionCommands) lines.push('/OC /Composition BDC', options.compositionCommands, 'EMC');
-  const attributionFontSize = fitAttributionFontSize(attributionText, Math.max(0.1, width - 12), 6);
-  lines.push(
-    '/OC /Attribution BDC',
-    'q',
-    '1 1 1 rg',
-    `0 0 ${formatNumber(width)} ${formatNumber(5 * POINTS_PER_MM)} re f`,
-    '0.066667 0.094118 0.152941 rg',
-    'BT',
-    `/F1 ${formatNumber(attributionFontSize)} Tf`,
-    `6 ${formatNumber(1.8 * POINTS_PER_MM)} Td`,
-    `${pdfContentString(attributionText)} Tj`,
-    'ET',
-    'Q',
-    'EMC',
-  );
+  lines.push('/OC /Attribution BDC', creditCommands(credit, height), 'EMC');
   return asciiBytes(lines.join('\n'));
 }
 
@@ -248,7 +234,7 @@ async function createPdf(
     capture,
     width,
     height,
-    attributionText: projectAttributionText(document),
+    credit: deriveStudioCredit(document),
     compositionCommands: composition.commands,
   });
 

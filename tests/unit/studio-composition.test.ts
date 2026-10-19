@@ -45,7 +45,8 @@ describe('canonical poster composition', () => {
     expect(document).toEqual(original);
     const scene = deriveStudioComposition({ ...document, studio: { ...document.studio, poster: application.poster } }, project);
     expect(scene.some((primitive) => primitive.kind === 'text' && primitive.text === document.title)).toBe(true);
-    expect(scene.every((primitive) => primitive.clip && primitive.clip.y + primitive.clip.height <= document.page.heightMm - 5)).toBe(true);
+    const { credit } = deriveStudioLayout({ ...document, studio: { ...document.studio, poster: application.poster } });
+    expect(scene.every((primitive) => primitive.clip && primitive.clip.y + primitive.clip.height <= document.page.heightMm - credit.reserveMm)).toBe(true);
   });
 
   it('moves only explicit starters and respects camera lock', () => {

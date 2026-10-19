@@ -26,7 +26,6 @@ describe('route SVG and PDF parity', () => {
   it('serializes every semantic leg and derived marker with resolved color, width, and dash', () => {
     const { project } = styledRoute();
     const svg = serializePrintScene(project, {
-      attribution: '© OpenStreetMap contributors',
       basemap: { dataUri: onePixelPng, pixelWidth: 1, pixelHeight: 1 },
       project: ([longitude, latitude]) => ({ x: longitude, y: latitude }),
     });
@@ -92,7 +91,6 @@ describe('route SVG and PDF parity', () => {
       reverseFacing: false,
     };
     const svg = serializePrintScene(project, {
-      attribution: '© OpenStreetMap contributors',
       basemap: { dataUri: onePixelPng, pixelWidth: 1, pixelHeight: 1 },
       project: ([longitude, latitude]) => ({ x: latitude, y: longitude }),
     });
@@ -126,7 +124,6 @@ describe('route SVG and PDF parity', () => {
     };
     const svgLongitudes: number[] = [];
     serializePrintScene(project, {
-      attribution: '© OpenStreetMap contributors',
       basemap: { dataUri: onePixelPng, pixelWidth: 1, pixelHeight: 1 },
       project: ([longitude], context) => {
         if (context.layerId === route.id) svgLongitudes.push(longitude);

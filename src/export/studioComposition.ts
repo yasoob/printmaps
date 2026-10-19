@@ -1,13 +1,16 @@
-import { projectAttributionText } from '../domain/projectAttributions';
 import { deriveStudioComposition } from '../print/studioComposition';
+import { deriveStudioCredit, studioCreditPrimitives, type StudioCreditLayout } from '../print/studioCredit';
 import type { StudioCamera, StudioCompositionDocument } from '../print/studioLayout';
-import { STUDIO_FONTS, studioText, type StudioPrimitive } from '../print/studioPrimitives';
+import { STUDIO_FONTS, type StudioPrimitive } from '../print/studioPrimitives';
 import type { StudioBox, StudioProjector } from '../print/studioGeometry';
 
 export type StudioDrawOptions = Readonly<{
   signal?: AbortSignal;
   camera?: StudioCamera;
   referenceLongitude?: number;
+  /**
+  Paints the shared map credit on top; every export and preview raster sets this.
+  */
   includeAttribution?: boolean;
   output?: Readonly<{ width: number; height: number }>;
   region?: StudioBox;
@@ -106,44 +109,72 @@ function drawText(context: CanvasRenderingContext2D, primitive: Extract<StudioPr
   context.fillText(primitive.text, 0, 0);
 }
 
+function drawVectorPrimitive(context: CanvasRenderingContext2D, primitive: Exclude<StudioPrimitive, { kind: 'image' }>): void {
+  if (primitive.kind === 'text') return drawText(context, primitive);
+  context.globalAlpha = primitive.opacity ?? 1;
+  shapePath(context, primitive);
+  if (primitive.fill !== 'none') {
+    context.fillStyle = primitive.fill;
+    context.fill();
+  }
+  if (primitive.stroke && primitive.strokeWidth) {
+    context.strokeStyle = primitive.stroke;
+    context.lineWidth = primitive.strokeWidth;
+    context.stroke();
+  }
+}
+
 async function drawPrimitive(context: CanvasRenderingContext2D, primitive: StudioPrimitive, images: ReturnType<typeof imageLoader>, signal?: AbortSignal): Promise<void> {
   context.save();
   try {
     if (primitive.clip) clipBox(context, primitive.clip);
-    if (primitive.kind === 'text') return drawText(context, primitive);
-    if (primitive.kind === 'image') {
-      const image = await abortableImage(images.load(primitive.asset.id, primitive.asset.dataUri), signal);
-      throwIfCancelled(signal);
-      const { box, imageBox } = primitive;
-      const path = new Path2D();
-      if (primitive.shape === 'circle') path.arc(box.x + box.width / 2, box.y + box.height / 2, Math.min(box.width, box.height) / 2, 0, Math.PI * 2);
-      else path.rect(box.x, box.y, box.width, box.height);
-      context.clip(path);
-      context.drawImage(image, imageBox.x, imageBox.y, imageBox.width, imageBox.height);
-      return;
-    }
-    context.globalAlpha = primitive.opacity ?? 1;
-    shapePath(context, primitive);
-    if (primitive.fill !== 'none') {
-      context.fillStyle = primitive.fill;
-      context.fill();
-    }
-    if (primitive.stroke && primitive.strokeWidth) {
-      context.strokeStyle = primitive.stroke;
-      context.lineWidth = primitive.strokeWidth;
-      context.stroke();
-    }
+    if (primitive.kind !== 'image') return drawVectorPrimitive(context, primitive);
+    const image = await abortableImage(images.load(primitive.asset.id, primitive.asset.dataUri), signal);
+    throwIfCancelled(signal);
+    const { box, imageBox } = primitive;
+    const path = new Path2D();
+    if (primitive.shape === 'circle') path.arc(box.x + box.width / 2, box.y + box.height / 2, Math.min(box.width, box.height) / 2, 0, Math.PI * 2);
+    else path.rect(box.x, box.y, box.width, box.height);
+    context.clip(path);
+    context.drawImage(image, imageBox.x, imageBox.y, imageBox.width, imageBox.height);
   } finally {
     context.restore();
   }
 }
 
+/**
+The shared map credit (caption and, in the strip fallback, its paper strip) in page millimetres.
+*/
 export function studioAttributionPrimitives(document: StudioCompositionDocument): StudioPrimitive[] {
-  const { widthMm: width, heightMm: height } = document.page;
-  return [
-    { kind: 'rect', box: { x: 0, y: height - 5, width, height: 5 }, fill: '#ffffff' },
-    studioText(projectAttributionText(document), { x: 2, y: height - 1.5 }, { size: 2.5, maxWidth: width - 4, color: '#111827', font: 'sans', align: 'left' }),
-  ];
+  return studioCreditPrimitives(deriveStudioCredit(document));
+}
+
+/**
+ * Paints a credit layout onto a raster whose full page is `output` pixels, offset by `region`
+ * (the same page-to-pixel mapping the tile renderers use).
+ */
+export function paintStudioCredit(context: CanvasRenderingContext2D, layout: StudioCreditLayout, target: Readonly<{
+  page: Readonly<{ widthMm: number; heightMm: number }>;
+  output: Readonly<{ width: number; height: number }>;
+  region?: Readonly<{ x: number; y: number }>;
+}>): void {
+  const { page, output, region } = target;
+  context.save();
+  try {
+    context.translate(-(region?.x ?? 0), -(region?.y ?? 0));
+    context.scale(output.width / page.widthMm, output.height / page.heightMm);
+    for (const primitive of studioCreditPrimitives(layout)) {
+      if (primitive.kind === 'image') continue;
+      context.save();
+      try {
+        drawVectorPrimitive(context, primitive);
+      } finally {
+        context.restore();
+      }
+    }
+  } finally {
+    context.restore();
+  }
 }
 
 export function prepareStudioComposition(document: StudioCompositionDocument) {

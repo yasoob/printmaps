@@ -98,6 +98,7 @@ export type ExportTilePlan = {
 export type ExportPreflightResult = {
   safe: boolean;
   format: ExportFormat;
+  page: { widthMm: number; heightMm: number };
   delivery: RasterDelivery;
   dimensions: {
     widthPx: number;

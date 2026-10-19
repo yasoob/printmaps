@@ -1,5 +1,4 @@
 import type { ProjectDocument } from '../domain/project';
-import { projectAttributionText } from '../domain/projectAttributions';
 import { serializePrintScene } from '../print/scene';
 import type { PreviewPng } from './previewPng';
 import type { VectorBasemapCapture } from './vector/scene';
@@ -9,7 +8,6 @@ export const VECTOR_ARTWORK_DESCRIPTION = 'True vector artwork from vector tiles
 export function createVectorSvg(document: ProjectDocument, capture: VectorBasemapCapture): Blob {
   const svg = serializePrintScene(document, {
     basemap: capture.scene,
-    attribution: projectAttributionText(document),
     metadata: VECTOR_ARTWORK_DESCRIPTION,
     referenceLongitude: capture.referenceLongitude,
     project: (coordinate, context) => {
@@ -46,7 +44,6 @@ export async function createLayeredSvg(document: ProjectDocument, capture: Previ
   const dataUri = `data:${mime};base64,${bytesToBase64(new Uint8Array(await capture.blob.arrayBuffer()))}`;
   const svg = serializePrintScene(document, {
     basemap: { dataUri, pixelWidth: capture.width, pixelHeight: capture.height },
-    attribution: projectAttributionText(document),
     metadata: 'Raster basemap captured from the current browser map; user route, POI, and shape overlays remain named vectors.',
     referenceLongitude: capture.referenceLongitude,
     project: (coordinate, context) => {

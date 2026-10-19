@@ -2,6 +2,8 @@ import type { ExportPreflightResult, ExportTilePlan } from './preflight';
 import type { RasterProgress, RasterTileRenderRequest } from './rasterCompositor';
 import { planStreamingPngStrips } from './streamingPngPlan';
 import { StreamingPngWriter, type LargeRasterWritable } from './streamingPngWriter';
+import { layoutStudioCredit } from '../print/studioCredit';
+import { paintStudioCredit } from './studioComposition';
 
 export type { LargeRasterWritable } from './streamingPngWriter';
 export type LargeRasterStage = 'rendering' | 'encoding' | 'writing';
@@ -126,39 +128,41 @@ function copyPixels(target: Uint8Array, outputWidth: number, pixels: Uint8Clampe
   }
 }
 
-function attributionPixels(width: number, height: number, attributions: readonly string[]) {
-  const text = attributions.join(' · ').replaceAll(/\s+/g, ' ').trim();
-  if (!text) throw new Error('Map attribution is unavailable, so this PNG cannot be exported.');
-  const scale = Math.max(1, Math.min(4, width / 600, height / 400));
-  const padding = Math.max(4, Math.round(4 * scale));
-  const fontSize = Math.max(8, Math.round(8 * scale));
-  const barHeight = Math.max(14, fontSize + padding);
+const MAX_CREDIT_CANVAS_WIDTH_PX = 16_384;
+
+/**
+Renders the shared strip-fallback credit once; it is opaque, so its rows replace the map rows beneath it.
+*/
+function attributionPixels(preflight: ExportPreflightResult, width: number, height: number) {
+  const text = preflight.attributions.join(' · ');
+  if (!text.trim()) throw new Error('Map attribution is unavailable, so this PNG cannot be exported.');
+  const layout = layoutStudioCredit({ page: preflight.page, text, poster: null });
+  const startRow = Math.max(0, Math.floor(height - layout.reserveMm * height / preflight.page.heightMm));
+  const barHeight = height - startRow;
   const canvas = document.createElement('canvas');
-  canvas.width = Math.min(width, 4096);
+  canvas.width = Math.min(width, MAX_CREDIT_CANVAS_WIDTH_PX);
   canvas.height = barHeight;
-  const context = canvas.getContext('2d', { willReadFrequently: true });
-  if (!context) throw new Error('The browser cannot render PNG attribution.');
-  const style = getComputedStyle(document.documentElement);
-  context.fillStyle = style.getPropertyValue('--studio-surface').trim() || '#ffffff';
-  context.fillRect(0, 0, canvas.width, barHeight);
-  context.fillStyle = style.getPropertyValue('--studio-text-secondary').trim() || '#666666';
-  context.font = `${fontSize}px sans-serif`;
-  context.textBaseline = 'middle';
-  context.fillText(text, padding, barHeight / 2, canvas.width - padding * 2);
-  const pixels = context.getImageData(0, 0, canvas.width, barHeight).data;
-  canvas.width = 0;
-  canvas.height = 0;
-  return { barHeight, pixels, width: Math.min(width, 4096) };
+  try {
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context) throw new Error('The browser cannot render PNG attribution.');
+    context.fillStyle = layout.paper;
+    context.fillRect(0, 0, canvas.width, barHeight);
+    paintStudioCredit(context, layout, { page: preflight.page, output: { width, height }, region: { x: 0, y: startRow } });
+    return { startRow, barHeight, pixels: context.getImageData(0, 0, canvas.width, barHeight).data, width: canvas.width };
+  } finally {
+    canvas.width = 0;
+    canvas.height = 0;
+  }
 }
 
-function applyAttribution(strip: Uint8Array, outputWidth: number, stripHeight: number, attribution: ReturnType<typeof attributionPixels>): void {
-  const startRow = stripHeight - attribution.barHeight;
+function applyAttribution(strip: RenderedStrip, outputWidth: number, attribution: ReturnType<typeof attributionPixels>): void {
   const background = attribution.pixels.subarray(0, 4);
-  for (let row = 0; row < attribution.barHeight; row += 1) {
-    const rowStart = (startRow + row) * outputWidth * 4;
-    for (let x = 0; x < outputWidth; x += 1) strip.set(background, rowStart + x * 4);
-    const sourceStart = row * attribution.width * 4;
-    strip.set(attribution.pixels.subarray(sourceStart, sourceStart + attribution.width * 4), rowStart);
+  const first = Math.max(attribution.startRow, strip.y), last = Math.min(attribution.startRow + attribution.barHeight, strip.y + strip.height);
+  for (let row = first; row < last; row += 1) {
+    const rowStart = (row - strip.y) * outputWidth * 4;
+    for (let x = attribution.width; x < outputWidth; x += 1) strip.pixels.set(background, rowStart + x * 4);
+    const sourceStart = (row - attribution.startRow) * attribution.width * 4;
+    strip.pixels.set(attribution.pixels.subarray(sourceStart, sourceStart + attribution.width * 4), rowStart);
   }
 }
 
@@ -220,9 +224,13 @@ async function beginStrip(options: Readonly<{
   writer: StreamingPngWriter;
   width: number;
   signal?: AbortSignal;
+  attribution: ReturnType<typeof attributionPixels> | null;
 }>): Promise<RenderedStrip> {
-  const { previous, region, signal, width, writer } = options;
-  if (previous) await encodeStrip({ writer, strip: previous, width, signal });
+  const { attribution, previous, region, signal, width, writer } = options;
+  if (previous) {
+    if (attribution) applyAttribution(previous, width, attribution);
+    await encodeStrip({ writer, strip: previous, width, signal });
+  }
   return {
     y: region.destination.y,
     height: region.destination.height,
@@ -255,13 +263,13 @@ export async function createLargeRasterPng(options: Options): Promise<Readonly<{
     const { dimensions } = requireStreamingPlan(preflight);
     const regions = createLargeRasterPngRegions(preflight);
     writer = new StreamingPngWriter(writable);
-    const attribution = options.isAttributionIncluded ? null : attributionPixels(dimensions.widthPx, dimensions.heightPx, preflight.attributions);
+    const attribution = options.isAttributionIncluded ? null : attributionPixels(preflight, dimensions.widthPx, dimensions.heightPx);
     await writer.start(dimensions.widthPx, dimensions.heightPx);
     for (const region of regions) {
       throwIfCancelled(signal);
       if (region.destination.y !== currentY) {
         onStage?.('encoding');
-        strip = await beginStrip({ previous: strip, region, writer, width: dimensions.widthPx, signal });
+        strip = await beginStrip({ previous: strip, region, writer, width: dimensions.widthPx, signal, attribution });
         currentY = region.destination.y;
       }
       onStage?.('rendering');
@@ -271,7 +279,7 @@ export async function createLargeRasterPng(options: Options): Promise<Readonly<{
     }
     if (strip) {
       onStage?.('encoding');
-      if (attribution) applyAttribution(strip.pixels, dimensions.widthPx, strip.height, attribution);
+      if (attribution) applyAttribution(strip, dimensions.widthPx, attribution);
       await encodeStrip({ writer, strip, width: dimensions.widthPx, signal });
     }
     onStage?.('writing');

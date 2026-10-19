@@ -41,26 +41,14 @@ export function createLifecycleExportPreview(
     }
     const printFrame = references.container.current?.parentElement?.querySelector<HTMLElement>('.print-frame');
     if (!printFrame) throw new Error('The print frame is not ready to export.');
-    const attribution = references.container.current
-      ?.querySelector<HTMLElement>('.maplibregl-ctrl-attrib-inner')
-      ?.textContent ?? '';
-    const capture = (isAttributionIncluded: boolean) => {
-      const referenceLongitude = map.getCenter().lng;
-      return capturePrintFramePng(
-        map.getCanvas(),
-        printFrame,
-        attribution,
-        {
-          projectToCanvas: (coordinate) => map.project([coordinate[0], coordinate[1]]),
-          isAttributionIncluded,
-          referenceLongitude,
-        },
-      );
-    };
-    if (exportOptions?.content !== 'basemap') return capture(true);
+    const capture = () => capturePrintFramePng(map.getCanvas(), printFrame, {
+      projectToCanvas: (coordinate) => map.project([coordinate[0], coordinate[1]]),
+      referenceLongitude: map.getCenter().lng,
+    });
+    if (exportOptions?.content !== 'basemap') return capture();
     return captureBasemapOnly(
       references.contentAdapter.current,
-      () => capture(false),
+      () => capture(),
       (signal) => waitForMapExportReady(map, { isCurrent, isReady: isSourceReady, signal }),
       {
         onRestoreFailure: () => {

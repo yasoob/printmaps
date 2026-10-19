@@ -1,5 +1,5 @@
 import type { ProjectDocument } from '../domain/project';
-import { projectAttributions } from '../domain/projectAttributions';
+import { projectPrintAttributions } from '../domain/projectAttributions';
 import { millimetresToPixels, planExportPreflight, type ExportPreflightResult } from './preflight';
 
 export const LAYERED_PSD_TARGET_DPI = 300;
@@ -55,7 +55,7 @@ export function planLayeredPsdExport(document: ProjectDocument): LayeredPsdExpor
     format: 'psd',
     page: { widthMm: document.page.widthMm, heightMm: document.page.heightMm },
     dpi: effectiveDpi,
-    attributions: projectAttributions(document),
+    attributions: projectPrintAttributions(document),
     basemap: 'raster',
     vectorOverlays: true,
     missing: {},

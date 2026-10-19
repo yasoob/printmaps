@@ -47,19 +47,16 @@ describe('preview PNG export', () => {
     vi.restoreAllMocks();
   });
 
-  it('crops the print frame and writes bounded map attribution into the PNG', async () => {
+  it('crops the print frame without painting a credit, which callers add from the shared credit layout', async () => {
     const context = installCanvasContext(900);
     const { mapCanvas, frame } = createFixture();
-    const attribution = '© OpenStreetMap contributors — long attribution text that must remain inside the image';
 
-    const result = await capturePrintFramePng(mapCanvas, frame, attribution);
+    const result = await capturePrintFramePng(mapCanvas, frame);
 
     expect(result).toMatchObject({ width: 600, height: 400 });
     expect(context.drawImage).toHaveBeenCalledWith(mapCanvas, 100, 80, 600, 400, 0, 0, 600, 400);
-    expect(context.fillRect).toHaveBeenCalled();
-    expect(context.fillText).toHaveBeenCalledWith(attribution, expect.any(Number), expect.any(Number), expect.any(Number));
-    const maxWidth = context.fillText.mock.calls[0][3] as number;
-    expect(maxWidth).toBeLessThanOrEqual(result.width - 8);
+    expect(context.fillRect).not.toHaveBeenCalled();
+    expect(context.fillText).not.toHaveBeenCalled();
   });
 
   it('projects map coordinates into normalized print-frame positions', async () => {
@@ -69,7 +66,6 @@ describe('preview PNG export', () => {
     const result = await capturePrintFramePng(
       mapCanvas,
       frame,
-      '© OpenStreetMap contributors',
       { projectToCanvas: ([longitude, latitude]) => ({ x: longitude * 10, y: latitude * 10 }) },
     );
 
@@ -77,26 +73,11 @@ describe('preview PNG export', () => {
     expect(result.projectToFrame?.([5, 4])).toEqual({ x: 0, y: 0 });
   });
 
-  it('omits the raster attribution strip when the caller will add vector attribution', async () => {
-    const context = installCanvasContext();
-    const { mapCanvas, frame } = createFixture();
-
-    await capturePrintFramePng(
-      mapCanvas,
-      frame,
-      '© OpenStreetMap contributors',
-      { isAttributionIncluded: false },
-    );
-
-    expect(context.fillRect).not.toHaveBeenCalled();
-    expect(context.fillText).not.toHaveBeenCalled();
-  });
-
   it('exports only the actual intersection when the frame is partially outside the canvas', async () => {
     const context = installCanvasContext();
     const { mapCanvas, frame } = createFixture(rect(-10, 20, 100, 40));
 
-    const result = await capturePrintFramePng(mapCanvas, frame, '© OpenStreetMap contributors');
+    const result = await capturePrintFramePng(mapCanvas, frame);
 
     expect(result).toMatchObject({ width: 180, height: 80 });
     expect(context.drawImage).toHaveBeenCalledWith(mapCanvas, 0, 40, 180, 80, 0, 0, 180, 80);
@@ -111,7 +92,7 @@ describe('preview PNG export', () => {
     mapCanvas.width = canvasWidth;
     mapCanvas.height = canvasHeight;
 
-    await expect(capturePrintFramePng(mapCanvas, frame, '© OpenStreetMap contributors'))
+    await expect(capturePrintFramePng(mapCanvas, frame))
       .rejects.toThrow('print frame is not ready');
   });
 
@@ -122,7 +103,7 @@ describe('preview PNG export', () => {
     mapCanvas.height = 3000;
     const createElement = vi.spyOn(document, 'createElement');
 
-    await expect(capturePrintFramePng(mapCanvas, frame, '© OpenStreetMap contributors'))
+    await expect(capturePrintFramePng(mapCanvas, frame))
       .rejects.toThrow('too large to export safely');
     expect(createElement).not.toHaveBeenCalledWith('canvas');
   });
@@ -131,15 +112,8 @@ describe('preview PNG export', () => {
     installCanvasContext();
     const { mapCanvas, frame } = createFixture(rect(0, 0, 400, 1));
 
-    await expect(capturePrintFramePng(mapCanvas, frame, '© OpenStreetMap contributors'))
+    await expect(capturePrintFramePng(mapCanvas, frame))
       .rejects.toThrow('too small');
-  });
-
-  it('rejects export when required attribution is missing', async () => {
-    installCanvasContext();
-    const { mapCanvas, frame } = createFixture();
-
-    await expect(capturePrintFramePng(mapCanvas, frame, ' '.repeat(3))).rejects.toThrow('attribution is unavailable');
   });
 
   it('reports canvas rendering failures through the exporter promise', async () => {
@@ -148,7 +122,7 @@ describe('preview PNG export', () => {
     const { mapCanvas, frame } = createFixture();
     const createElement = vi.spyOn(document, 'createElement');
 
-    await expect(capturePrintFramePng(mapCanvas, frame, '© OpenStreetMap contributors'))
+    await expect(capturePrintFramePng(mapCanvas, frame))
       .rejects.toThrow('could not render the PNG');
     const output = createElement.mock.results[0]?.value as HTMLCanvasElement;
     expect(output).toMatchObject({ width: 0, height: 0 });
@@ -159,7 +133,7 @@ describe('preview PNG export', () => {
     const { mapCanvas, frame } = createFixture();
     const createElement = vi.spyOn(document, 'createElement');
 
-    await expect(capturePrintFramePng(mapCanvas, frame, '© OpenStreetMap contributors'))
+    await expect(capturePrintFramePng(mapCanvas, frame))
       .rejects.toThrow('PNG export is unavailable');
     const output = createElement.mock.results[0]?.value as HTMLCanvasElement;
     expect(output).toMatchObject({ width: 0, height: 0 });
@@ -171,7 +145,7 @@ describe('preview PNG export', () => {
     const { mapCanvas, frame } = createFixture();
     const createElement = vi.spyOn(document, 'createElement');
 
-    await expect(capturePrintFramePng(mapCanvas, frame, '© OpenStreetMap contributors'))
+    await expect(capturePrintFramePng(mapCanvas, frame))
       .rejects.toThrow('could not create the PNG');
     const output = createElement.mock.results[0]?.value as HTMLCanvasElement;
     expect(output).toMatchObject({ width: 0, height: 0 });
@@ -183,7 +157,7 @@ describe('preview PNG export', () => {
     const { mapCanvas, frame } = createFixture();
     const createElement = vi.spyOn(document, 'createElement');
 
-    await expect(capturePrintFramePng(mapCanvas, frame, '© OpenStreetMap contributors'))
+    await expect(capturePrintFramePng(mapCanvas, frame))
       .rejects.toThrow('could not create the PNG');
     const output = createElement.mock.results[0]?.value as HTMLCanvasElement;
     expect(output).toMatchObject({ width: 0, height: 0 });

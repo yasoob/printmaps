@@ -2,13 +2,14 @@ import { deriveRenderedRoute, projectedRouteMarkerBearing, rebaseRenderedRouteMa
 import { rebasePathLongitudes } from '../domain/routeArcGeometry';
 import { routePictogramSvg } from '../domain/routePictograms';
 import type { ContentLayer, LayerGeometry, LayerType, ProjectDocument } from '../domain/project';
-import { fitAttributionFontSize } from '../domain/projectAttributions';
 import { resolvePrintLayerStyle } from './layerStyle';
 import { serializePoiMarker } from './poiMarker';
 import type { CustomMarkerAsset } from '../domain/customMarkerAssets';
 import { serializeShapeElement } from './shapeElement';
 import { serializeBasemapAsset, type PrintBasemapAsset, type RasterBasemapAsset } from './basemap';
 import { serializeStudioComposition } from './studioComposition';
+import { deriveStudioCredit, studioCreditPrimitives } from './studioCredit';
+import { serializeStudioPrimitives } from './studioPrimitives';
 
 export type PagePoint = Readonly<{ x: number; y: number }>;
 
@@ -20,7 +21,7 @@ export type CoordinateProjector = (
 export type { RasterBasemapAsset } from './basemap';
 
 export type PrintSceneOptions = Readonly<{
-  basemap: PrintBasemapAsset; attribution: string; project: CoordinateProjector;
+  basemap: PrintBasemapAsset; project: CoordinateProjector;
   metadata?: string; referenceLongitude?: number;
 }>;
 
@@ -257,14 +258,6 @@ function layerGroupAttributes(layer: ContentLayer, role: 'raster-basemap' | 'vec
   ].join(' ');
 }
 
-function requiredAttribution(options: PrintSceneOptions): string {
-  const attribution = options.attribution?.replaceAll(/\s+/g, ' ').trim();
-  if (!attribution) {
-    throw new PrintSceneError('Map attribution is required for the print scene.');
-  }
-  return attribution;
-}
-
 function splitLayers(layers: readonly ContentLayer[]): {
   basemapLayer: ContentLayer;
   vectorLayers: ContentLayer[];
@@ -295,8 +288,7 @@ function validateSceneInputs(document: ProjectDocument, options: PrintSceneOptio
   const width = document.page.widthMm, height = document.page.heightMm;
   if (!options.basemap || !('kind' in options.basemap)) validateBasemap(options.basemap);
   if (!Array.isArray(document.layers)) throw new PrintSceneError('Project layers are unavailable.');
-  const attribution = requiredAttribution(options);
-  return { width, height, attribution, ...splitLayers(document.layers) };
+  return { width, height, ...splitLayers(document.layers) };
 }
 
 /**
@@ -304,7 +296,7 @@ function validateSceneInputs(document: ProjectDocument, options: PrintSceneOptio
  * Raster compatibility and true-vector basemaps share the same physical overlay scene.
  */
 export function serializePrintScene(document: ProjectDocument, options: PrintSceneOptions): string {
-  const { width, height, attribution, basemapLayer, vectorLayers } = validateSceneInputs(document, options);
+  const { width, height, basemapLayer, vectorLayers } = validateSceneInputs(document, options);
   const widthText = formatDimension(width), heightText = formatDimension(height), metadata = options.metadata?.replaceAll(/\s+/g, ' ').trim();
 
   const isVector = 'kind' in options.basemap, basemapContent = serializeBasemapAsset(options.basemap, width, height);
@@ -312,9 +304,8 @@ export function serializePrintScene(document: ProjectDocument, options: PrintSce
   const vectorGroups = vectorLayers.map((layer) => (
     `<g ${layerGroupAttributes(layer, 'vector-overlay')}><title>${escapeXml(layer.name)}</title>${geometryElement(layer, options, { assets: document.assets, width, height })}</g>`
   ));
-  const attributionHeight = Math.min(5, height), attributionY = height - attributionHeight;
-  const attributionFontSize = fitAttributionFontSize(attribution, Math.max(0.1, width - 4), 2.5);
-  const attributionGroup = `<g id="attribution" data-scene-role="attribution" data-layer-name="Attribution" clip-path="url(#page-clip)"><title>Attribution</title><rect x="0" y="${formatNumber(attributionY)}" width="${widthText}" height="${formatNumber(attributionHeight)}" fill="#ffffff" opacity="0.88"/><text x="2" y="${formatNumber(height - attributionHeight / 2)}" fill="#111827" font-family="sans-serif" font-size="${formatNumber(attributionFontSize)}" dominant-baseline="middle">${escapeXml(attribution)}</text></g>`;
+  const credit = studioCreditPrimitives(deriveStudioCredit(document));
+  const attributionGroup = `<g id="attribution" data-scene-role="attribution" data-layer-name="Attribution" clip-path="url(#page-clip)"><title>Attribution</title>${serializeStudioPrimitives(credit, 'attribution')}</g>`;
 
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',

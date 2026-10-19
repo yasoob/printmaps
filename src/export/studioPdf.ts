@@ -1,10 +1,11 @@
 import { zlibSync } from 'fflate';
 import type { PhotoAsset } from '../domain/studio';
 import { deriveStudioComposition } from '../print/studioComposition';
+import { helveticaTextWidthEm, type StudioCreditLayout } from '../print/studioCredit';
 import { decimal, type StudioBox, type StudioProjector } from '../print/studioGeometry';
 import type { StudioCompositionDocument } from '../print/studioLayout';
 import { STUDIO_FONTS, type StudioPrimitive } from '../print/studioPrimitives';
-import { streamObject, type PdfObject } from './pdfWriter';
+import { pdfContentString, streamObject, type PdfObject } from './pdfWriter';
 
 export type StudioPdfImage = Readonly<{ name: string; width: number; height: number; rgb: Uint8Array; alpha: Uint8Array }>;
 export type StudioPdfComposition = Readonly<{ commands: string; images: readonly StudioPdfImage[]; opacities: readonly number[] }>;
@@ -121,6 +122,34 @@ async function decodePhoto(asset: PhotoAsset, name: string, signal?: AbortSignal
   } finally {
     canvas.width = 0; canvas.height = 0; image.src = '';
   }
+}
+
+const POINTS_PER_MM = 72 / 25.4;
+
+/**
+ * Vector (live text) commands for the shared map credit in PDF points with a bottom-left origin.
+ * Uses the page's /F1 Helvetica, whose metrics the credit layout was measured with.
+ */
+export function creditCommands(credit: StudioCreditLayout, pageHeight: number): string {
+  const lines = ['q'];
+  if (credit.strip) {
+    const { x, y, width, height } = credit.strip;
+    lines.push(`${color(credit.paper)} rg`, `${decimal(x * POINTS_PER_MM)} ${decimal(pageHeight - (y + height) * POINTS_PER_MM)} ${decimal(width * POINTS_PER_MM)} ${decimal(height * POINTS_PER_MM)} re f`);
+  }
+  lines.push(`${color(credit.color)} rg`);
+  for (const line of credit.lines) {
+    const natural = helveticaTextWidthEm(line.text) * credit.fontSizeMm;
+    lines.push(
+      'BT',
+      `/F1 ${decimal(credit.fontSizeMm * POINTS_PER_MM)} Tf`,
+      `${decimal(natural > 0 ? Math.min(100, line.width / natural * 100) : 100)} Tz`,
+      `${decimal(line.x * POINTS_PER_MM)} ${decimal(pageHeight - line.baseline * POINTS_PER_MM)} Td`,
+      `${pdfContentString(line.text)} Tj`,
+      'ET',
+    );
+  }
+  lines.push('Q');
+  return lines.join('\n');
 }
 
 export async function prepareStudioPdf(document: StudioCompositionDocument, projectToFrame: StudioProjector, signal?: AbortSignal, referenceLongitude?: number): Promise<StudioPdfComposition> {
