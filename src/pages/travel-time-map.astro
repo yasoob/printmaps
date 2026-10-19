@@ -1,0 +1,135 @@
+---
+import SeoLandingPage, { type PageSection } from '../marketing/SeoLandingPage.astro';
+import { media } from '../marketing/media';
+import { page } from '../marketing/pages/travel-time-map';
+
+const sections: readonly PageSection[] = [
+  {
+    kind: 'prose',
+    title: 'What a travel time map shows',
+    paragraphs: [
+      'A circle drawn around a point assumes you can walk through buildings and swim across rivers. A travel-time area, often called an isochrone, follows the real street and path network instead. It stretches out along main roads, pinches in where a river has one bridge, and bends around railway lines until it reaches a crossing.',
+      'That makes it a more honest answer to questions like "what can I reach on foot in 15 minutes?" Two flats the same distance from an office can have very different shapes around them.',
+      'In Print Map Studio the area becomes an ordinary shape layer. You can restyle it, stack several of them, and export them as clean vector shapes in PDF, layered SVG and layered PSD.',
+    ],
+    image: {
+      ...media['isochrone.map'],
+      title: 'Travel-time areas sit on the map as shape layers.',
+      caption: 'Each area keeps its own fill, outline and opacity.',
+    },
+  },
+  {
+    kind: 'definitions',
+    title: 'What you can set',
+    items: [
+      { term: 'Starting point', definition: 'Click the map or pick a search result. The coordinates show under the point so you can check it.' },
+      { term: 'Travel mode', definition: 'Walking, Cycling or Driving, using the matching Mapbox routing profile.' },
+      { term: 'Travel time', definition: 'Any whole number of minutes from 5 to 60.' },
+      { term: 'Result', definition: 'A new area layer named after its settings, such as "15 min walking area", drawn at 28% opacity so streets show through.' },
+      { term: 'Style', definition: 'Fill colour, outline colour, outline width from 0.5 to 12 px, and layer opacity.' },
+      { term: 'Credit', definition: 'The areas come from the Mapbox Isochrone API, and "© Mapbox" is added to the printed map credit for you.' },
+    ],
+  },
+  {
+    kind: 'steps',
+    title: 'Worked example: three walking rings around a station',
+    paragraphs: [
+      'Nested rings are the most readable way to show travel time on paper. Here is a 5, 10 and 15 minute walking map around Utrecht Centraal, set up for an A4 handout.',
+    ],
+    steps: [
+      {
+        title: 'Find the station with search',
+        body: 'Search for the station and use the result as the starting point. Every ring then starts from the same exact coordinates, which a click on the map will not quite match.',
+      },
+      {
+        title: 'Generate the smallest ring first',
+        body: 'Open the Area tool, choose Travel time, set Walking and 5 minutes, and generate the area. New areas are added beneath the ones already on the map, so starting small leaves the smallest ring on top.',
+      },
+      {
+        title: 'Add the 10 and 15 minute rings',
+        body: 'Repeat with 10 and then 15 minutes from the same search result. Each larger ring settles underneath, and you can drag layers in the layer list if you want a different order.',
+      },
+      {
+        title: 'Shade from light to dark',
+        body: 'Use one colour family: the palest fill for 15 minutes and the strongest for 5. Give all three the same thin outline so the edges stay crisp in print.',
+      },
+      {
+        title: 'Mark the station and explain the rings',
+        body: 'Add a place for the station entrance. Use the poster caption for the key, for example "Walking time from the main entrance: 5, 10 and 15 minutes."',
+      },
+      {
+        title: 'Export',
+        body: 'PDF keeps the three rings as vector shapes at the exact A4 size. Layered SVG and PSD put each ring in its own named layer for further design work.',
+      },
+    ],
+  },
+  {
+    kind: 'prose',
+    title: 'Where travel time maps earn their place',
+    paragraphs: [
+      'Travel-time areas answer practical questions, so they work best on maps that someone will use to decide something.',
+    ],
+    points: [
+      'Flat hunting: a 30 minute cycling area from the office, printed and marked up with viewings.',
+      'Shops and cafés: how far a customer walks in 10 minutes, for a leaflet or a planning meeting.',
+      'Property listings: the walk to the station or the nearest school, shown on the listing map.',
+      'Events: a 15 minute walking area around the venue, with car parks and stations marked.',
+      'Comparing two sites: generate an area from each and give them contrasting fills.',
+      'Teaching: the same 20 minutes on foot in a dense old town and a car-built suburb, side by side.',
+    ],
+    imageRow: [
+      {
+        ...media['isochrone.controls'],
+        title: 'Travel time controls',
+        caption: 'Choose the starting point, travel mode and minutes, then generate the area.',
+      },
+    ],
+  },
+  {
+    kind: 'callout',
+    tone: 'tip',
+    title: 'Get the most from each area',
+    paragraphs: [
+      'Travel-time areas are calculated live from Mapbox, so generate them while you are online. The editor sends only the starting point, the mode and the minutes.',
+      'Drive times are typical figures, which makes them ideal for comparing places. Write "about 20 minutes" rather than "20 minutes" in the caption.',
+    ],
+  },
+];
+
+const faq = [
+  {
+    question: 'What is an isochrone map?',
+    answer: 'An isochrone is a line joining places that take the same time to reach from a starting point. A travel time map fills the area inside that line, so you see everywhere reachable within the limit.',
+  },
+  {
+    question: 'How many rings can I add?',
+    answer: 'As many as the map needs. Each one is its own layer, so you can mix modes too, for example a 15 minute walk and a 15 minute ride from the same point.',
+  },
+  {
+    question: 'Can I change the colours after generating an area?',
+    answer: 'Yes. Select the layer and change the fill, outline, outline width and opacity at any time.',
+  },
+  {
+    question: 'Do travel-time areas print as vectors?',
+    answer: 'Yes. PDF, layered SVG and layered PSD keep them as vector shapes. PNG renders them at 300 DPI with the rest of the page.',
+  },
+  {
+    question: 'Is the travel time tool free?',
+    answer: 'Yes. Like the rest of the editor, it is free and needs no account.',
+  },
+] as const;
+---
+
+<SeoLandingPage
+  page={page}
+  eyebrow="Travel time maps"
+  heading="Show how far you can get in 15 minutes."
+  lead="A travel time map shows everywhere you can reach from one point within a time limit, following real streets and paths. Make one for walking, cycling or driving, then print it at the exact page size."
+  primaryCta="Make a travel time map"
+  facts={['Walking, cycling or driving', '5 to 60 minutes', 'Vector shapes in PDF', 'Free, no account']}
+  heroImage={media['isochrone.map']}
+  heroLayout="split"
+  sections={sections}
+  faq={faq}
+  faqDescription="Isochrones, rings, colours and print output."
+/>

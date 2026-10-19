@@ -1,0 +1,147 @@
+---
+import SeoLandingPage, { type PageSection } from '../marketing/SeoLandingPage.astro';
+import { media } from '../marketing/media';
+import { page } from '../marketing/pages/route-map-poster';
+
+const sections: readonly PageSection[] = [
+  {
+    kind: 'example',
+    title: 'A marathon on an A3 page',
+    paragraphs: [
+      'A city marathon is a good test for a route poster because the course runs through dense streets and the line has to stay readable over all of them. This is how one A3 portrait poster comes together.',
+    ],
+    image: {
+      ...media['route.poster'],
+      title: 'A recorded route framed on a portrait page.',
+      caption: 'The route is its own layer, so the line can be restyled without touching the base map.',
+    },
+    notes: [
+      { title: 'Page', body: 'A3 portrait, 297 × 420 mm. At 300 DPI the PNG comes out at 3508 × 4961 pixels, which is plenty for a print shop.' },
+      { title: 'Base map', body: 'A light style with the detail turned down, so streets sit back and the course reads first.' },
+      { title: 'Route line', body: '6 px in a deep red. That prints at 1.8 mm, thick enough to follow from across a room.' },
+      { title: 'Start and finish', body: 'Two places labelled "Start" and "Finish", with a square marker for one and a circle for the other.' },
+      { title: 'Text', body: 'The race name as the title, the date and finish time as the subtitle, and the distance in the caption.' },
+      { title: 'Export', body: 'PDF for the print shop, because it keeps the route as a vector line at the exact page size.' },
+    ],
+  },
+  {
+    kind: 'steps',
+    title: 'From your watch to a print file',
+    paragraphs: [
+      'Most apps hand you a GPX file in a couple of clicks. Once you have one, the rest happens in the editor.',
+    ],
+    steps: [
+      {
+        title: 'Export the GPX from your app',
+        body: 'On Strava, open your activity on the website and choose Export GPX from the "..." menu. On Garmin Connect, open the activity, click the gear icon and choose Export to GPX. On Komoot, open the tour and use the GPX download in its menu.',
+      },
+      {
+        title: 'Import it into a new map',
+        body: 'Open the editor, choose Import map data and pick the file. The track arrives as a route layer you can style. The GPX map maker page covers file sizes and how waypoints come in.',
+      },
+      {
+        title: 'Set the page and frame the route',
+        body: 'Pick the page size first, then fit the map to the route. Leave a band of empty space above or below the course if you want the title to sit off the map.',
+      },
+      {
+        title: 'Choose a base map that stays quiet',
+        body: 'Light styles with fewer labels work best under a bright route. Turn down detail and text scale until the streets give context without competing with the line.',
+      },
+      {
+        title: 'Style the line and mark the ends',
+        body: 'Set the route colour and width, then add a place at the start and another at the finish. For a loop, one place labelled "Start / Finish" keeps the corner tidy.',
+      },
+      {
+        title: 'Add the words',
+        body: 'Use the title for the event or trail name, the subtitle for the date, and the caption for distance and time. Coordinates can go in too, in decimal or degrees-minutes-seconds.',
+      },
+      {
+        title: 'Export',
+        body: 'PDF for professional printing, PNG for a home printer or online print service, layered SVG or PSD if you want to finish the layout in another program.',
+      },
+    ],
+  },
+  {
+    kind: 'table',
+    title: 'Pick a line weight that prints well',
+    paragraphs: [
+      'Route width is set in pixels in the editor. In the PDF, SVG and PSD exports every pixel of width prints as 0.3 mm, so the default 4 px line comes out at 1.2 mm on paper. Use the table as a starting point and check the preview at full page view.',
+    ],
+    headers: ['Route width', 'Printed line', 'Works well for'],
+    rows: [
+      ['2 px', '0.6 mm', 'A6 and A5 cards, or a second route drawn under the main one'],
+      ['4 px', '1.2 mm', 'A4 prints and routes through dense city streets'],
+      ['6 px', '1.8 mm', 'A3 posters that people look at from a metre or two away'],
+      ['8 px', '2.4 mm', 'A2 posters and long rides where the line carries the whole design'],
+    ],
+    caption: 'Printed widths for the PDF, SVG and PSD exports.',
+    footnotes: [
+      'Dashed lines read as planned or unfinished. Keep a solid line for the route you completed and use dashes for an alternative or a future attempt.',
+    ],
+  },
+  {
+    kind: 'callout',
+    tone: 'tip',
+    title: 'Markers that suit a route',
+    paragraphs: [
+      'Places make good start and finish markers. Choose a circle, square or diamond, set the colour to match the route, and give each one a short label of up to 40 characters.',
+      'Routes also take a travel marker: a walker, bike, car, train, ship or plane pictogram. Put one at the middle of the line or repeat it along the route. Repeated markers suit a road trip or a multi-day ride.',
+    ],
+  },
+  {
+    kind: 'prose',
+    title: 'Add an elevation profile',
+    paragraphs: [
+      'Open the route and choose Generate elevation profile. The editor samples up to 100 points along the line and reads their heights from the Copernicus GLO-90 elevation model through Open-Meteo. You get distance, elevation range, total ascent and total descent.',
+      'Set the chart to metric or imperial, choose a print width between 50 and 300 mm, and switch the curve, gradient fill, elevation markers and grid lines on or off. Download the profile as SVG, PNG or PDF.',
+      'For a finished poster, raise the bottom page margin to leave a strip under the map, then place the profile there in your layout program. The layered SVG export and the profile SVG drop into the same document in Illustrator, Affinity Designer or Inkscape.',
+    ],
+    image: {
+      ...media['route.elevation'],
+      title: 'Route tools include the elevation profile.',
+      caption: 'Generate the profile from the route, style it, then download it as SVG, PNG or PDF.',
+    },
+    imagePosition: 'beside',
+  },
+];
+
+const faq = [
+  {
+    question: 'Which apps can I use for the GPX file?',
+    answer: 'Any app that exports GPX, KML or GeoJSON. Strava, Garmin Connect and Komoot all export GPX, and so do the companion apps for most GPS watches.',
+  },
+  {
+    question: 'Can I put several runs or rides on one poster?',
+    answer: 'Yes. Import each file and it becomes its own route layer. Give each one a colour, then use the layer order to decide which line sits on top.',
+  },
+  {
+    question: 'How do I keep my home address off the poster?',
+    answer: 'Trim the track before you import it. Strava\'s Crop option or a free GPX editor such as gpx.studio can cut the first and last few hundred metres. Then put the start and finish places where the trimmed line begins and ends.',
+  },
+  {
+    question: 'What paper size should I choose?',
+    answer: 'A3 portrait suits most city races and day hikes. Long, thin routes like a coastal ride often look better in landscape or on a custom page size in millimetres.',
+  },
+  {
+    question: 'Can I make a 3D model of the route as well?',
+    answer: 'Yes. The 3D terrain export can raise the route as a ridge on an STL relief model for 3D printing.',
+  },
+  {
+    question: 'How much does it cost?',
+    answer: 'Nothing. The editor is free, needs no account and adds no watermark to the exported files.',
+  },
+] as const;
+---
+
+<SeoLandingPage
+  page={page}
+  eyebrow="Route map posters"
+  heading="Make a route map poster from the race you ran."
+  lead="Bring in the GPX file from Strava, Garmin Connect or Komoot, give the route a line that reads from across the room, and export a print file at A3, A2 or any size in millimetres."
+  primaryCta="Start a route poster"
+  facts={['Strava, Garmin and Komoot GPX', 'Line widths for print', 'Elevation profile download', 'Free, no account']}
+  heroImage={media['editor.layer-route']}
+  sections={sections}
+  faq={faq}
+  faqDescription="GPX files, privacy, sizes and extras for route posters."
+/>

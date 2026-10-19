@@ -1,0 +1,153 @@
+---
+import SeoLandingPage, { type PageSection } from '../marketing/SeoLandingPage.astro';
+import { media } from '../marketing/media';
+import { page } from '../marketing/pages/real-estate-location-map';
+
+const sections: readonly PageSection[] = [
+  {
+    kind: 'prose',
+    title: 'What a good listing map answers',
+    paragraphs: [
+      'Buyers look at a location map to answer a few quick questions: where exactly is it, what is within walking distance, and how do I get there. A good real estate location map answers those at a glance and leaves everything else off.',
+      'That usually means the property in a strong colour, six to twelve nearby places in a quieter one, a walking-time area if the neighbourhood is walkable, and a QR code for directions. Street detail stays in the background.',
+    ],
+    image: {
+      ...media['realestate.places'],
+      title: 'Nearby places styled as one group.',
+      caption: 'Marker shape, symbol, colour, size and label are set per place or for a whole pasted list.',
+    },
+    imagePosition: 'beside',
+  },
+  {
+    kind: 'steps',
+    title: 'Paste nearby places from a spreadsheet',
+    paragraphs: [
+      'Keep a sheet of schools, stations, parks and shops for each listing. Copying cells from Excel or Google Sheets gives tab-separated text, which is exactly what the place list expects.',
+    ],
+    steps: [
+      {
+        title: 'Lay out the columns',
+        body: 'For coordinates, use three columns in this order: Name, Longitude, Latitude. Google Maps shows latitude first when you copy a point, so swap the two numbers into the right columns before pasting.',
+      },
+      {
+        title: 'Or use addresses',
+        body: 'Switch the list to Addresses and use two columns: Name and Address. Each lookup handles 25 rows, and each address can be up to 160 characters.',
+      },
+      {
+        title: 'Paste up to 300 rows',
+        body: 'Open Place multiple from the Place tool and paste the cells. Coordinate lists take up to 300 rows at once, which covers a whole neighbourhood guide.',
+      },
+      {
+        title: 'Check and add',
+        body: 'For addresses, choose Look up addresses, review each match, and add the ones you want. Add the list before closing the panel so the places land on the map.',
+      },
+      {
+        title: 'Style the group',
+        body: 'Give nearby places a circle or square with a symbol such as Coffee, Food, Lodging, Parking or Information. Use a larger diamond in a brand colour for the property itself.',
+      },
+    ],
+  },
+  {
+    kind: 'example',
+    title: 'One listing, start to finish',
+    paragraphs: [
+      'A two-bedroom flat near a station, for a US Letter flyer with a map box in the lower half of the page.',
+    ],
+    image: {
+      ...media['realestate.flyer'],
+      title: 'A listing map ready to drop into a flyer.',
+      caption: 'Property, nearby places and the map credit, at the exact size of the map box.',
+    },
+    notes: [
+      { title: 'Page', body: 'A custom page of 180 × 110 mm, the size of the map box in the flyer template. At 300 DPI that is 2126 × 1299 pixels.' },
+      { title: 'Property', body: 'One place with a 24 px diamond in the agency colour, labelled with the street name.' },
+      { title: 'Nearby', body: 'Nine places pasted from the agent\'s sheet: two schools, the station, a park, a supermarket and four cafés.' },
+      { title: 'Walking area', body: 'A 10 minute walking area from the property at a light fill, so buyers can see what is close.' },
+      { title: 'Directions', body: 'A 20 mm location QR code in the bottom-right corner, set to open the property in Google Maps.' },
+      { title: 'Export', body: 'PDF for the printer, and a PNG of the same page for the listing website.' },
+    ],
+  },
+  {
+    kind: 'table',
+    title: 'Flyer and handout sizes',
+    paragraphs: [
+      'A4, A5, A6 and US Letter are presets. Everything else is a custom page in millimetres. Size the page to the map box in your layout, not to the whole flyer, and the map drops in at exactly 100%.',
+    ],
+    headers: ['Use', 'Page (mm)', 'PNG at 300 DPI (px)'],
+    rows: [
+      ['US Letter flyer, 8.5 × 11 in', '215.9 × 279.4', '2550 × 3300'],
+      ['A4 flyer', '210 × 297', '2480 × 3508'],
+      ['A5 leaflet', '148 × 210', '1748 × 2480'],
+      ['Half Letter handout, 5.5 × 8.5 in', '139.7 × 215.9', '1650 × 2550'],
+      ['Postcard, 4 × 6 in', '101.6 × 152.4', '1200 × 1800'],
+      ['Map box on a flyer', '180 × 110', '2126 × 1299'],
+    ],
+    caption: 'Width × height. Swap the numbers for the other orientation.',
+    footnotes: [
+      'When the map runs to the trimmed edge of the sheet, add 3 mm on every side for bleed, for example 216 × 303 mm for A4, and let the printer trim it back.',
+    ],
+  },
+  {
+    kind: 'prose',
+    title: 'Numbered places with photos',
+    paragraphs: [
+      'For a neighbourhood guide, attach a photo to each nearby place from the Photos section of the Layout tab. Each one gets a numbered badge on the map, and a strip along the top or bottom of the page shows the photos in the same order with their captions.',
+      'A map can hold up to 24 photo stops. Use PNG or JPEG files up to 1 MiB and 2048 pixels per side. Photos are centre-cropped to fit, so a landscape shot of a park and a portrait shot of a café line up neatly.',
+    ],
+  },
+  {
+    kind: 'callout',
+    tone: 'tip',
+    title: 'Point the QR code at the property',
+    paragraphs: [
+      'The location QR code opens a place in Google Maps, ready for directions. Set it to open the property rather than the map centre, then pick a corner and a size from 16 to 60 mm. 20 mm or larger scans easily from a flyer held at arm\'s length.',
+      'The white quiet zone around the code is part of every export, so it scans cleanly on any background.',
+    ],
+  },
+  {
+    kind: 'callout',
+    tone: 'note',
+    title: 'Map credits on the page',
+    paragraphs: [
+      'Every export prints a small credit in the bottom margin: OpenStreetMap contributors, OpenMapTiles and OpenFreeMap, with "© Mapbox" added when the map includes Mapbox data such as a travel-time area or a road-following route. It is set at 6 pt in a muted tone of the text colour, so it stays readable without drawing the eye.',
+      'Keep a bottom margin of a few millimetres and the credit sits neatly under the map.',
+    ],
+  },
+];
+
+const faq = [
+  {
+    question: 'Can I use my agency logo as the property marker?',
+    answer: 'Yes. Upload a PNG, JPEG or SVG as a custom marker. Raster images can be 100 to 2048 pixels per side and up to 1 MiB. Custom markers export in PNG, layered SVG and layered PSD.',
+  },
+  {
+    question: 'Can I match our brand colours?',
+    answer: 'Yes. Set any colour for markers, areas and text, and adjust the base map palette until the streets and water sit comfortably with your brand.',
+  },
+  {
+    question: 'How do I reuse the setup for the next listing?',
+    answer: 'Download the project file once the first map looks right. For the next listing, open that file, move the property marker, paste the new nearby places and export.',
+  },
+  {
+    question: 'Can I use the map in commercial listings?',
+    answer: 'Yes. The editor is free with no account, and the exported files are yours to use. Keep the printed map credit on the page.',
+  },
+  {
+    question: 'Which format should I send to the printer?',
+    answer: 'PDF, at the exact page size you set. It keeps places, areas and text sharp. Use the PNG for the website and email.',
+  },
+] as const;
+---
+
+<SeoLandingPage
+  page={page}
+  eyebrow="Real estate location maps"
+  heading="A location map for your listing, sized for the flyer."
+  lead="Mark the property, paste the nearby places from a spreadsheet, add a walking-time area and a QR code for directions, then export at A4, US Letter or the exact size of your flyer's map box."
+  primaryCta="Make a listing map"
+  facts={['Paste up to 300 places', 'Walking and drive time', 'Location QR code', 'Free, no account']}
+  heroImage={media['realestate.flyer']}
+  sections={sections}
+  faq={faq}
+  faqDescription="Logos, brand colours, reuse and printing."
+/>

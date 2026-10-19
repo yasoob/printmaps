@@ -1,0 +1,125 @@
+---
+import SeoLandingPage, { type PageSection } from '../marketing/SeoLandingPage.astro';
+import { media } from '../marketing/media';
+import { page } from '../marketing/pages/map-video-maker';
+
+const sections: readonly PageSection[] = [
+  {
+    kind: 'video',
+    title: 'Your poster, with a slow camera move',
+    paragraphs: [
+      'The video export records the finished poster: the map, routes, places, title, photos, compass and the map credit. The poster frame and text stay still while the map turns inside it, so the clip looks like the print with a little life in it.',
+      'If the map is tilted and 3D terrain is on, the video keeps that view. Mountains turn in perspective, which is where an orbit looks its best.',
+    ],
+    media: media['video.clip'],
+    caption: 'An orbit clip recorded from a poster in the editor.',
+  },
+  {
+    kind: 'comparison',
+    title: 'Orbit or sway',
+    paragraphs: [
+      'Both motions loop cleanly, so a clip can repeat on a feed or a screen without a visible jump.',
+    ],
+    columns: ['Orbit', 'Sway'],
+    rowHeader: 'Motion',
+    rows: [
+      { label: 'Camera move', cells: ['One full 360° turn', 'A gentle swing of 18° each way'] },
+      { label: 'Feels like', cells: ['Walking around a model', 'A slow look left and right'] },
+      { label: 'North', cells: ['Comes back to the top at the end', 'Stays near the top throughout'] },
+      { label: 'Best with', cells: ['3D terrain, a peak or a valley', 'City maps, route posters, anything with lots of text'] },
+    ],
+  },
+  {
+    kind: 'table',
+    title: 'Sizes for each platform',
+    paragraphs: [
+      'Pick the aspect ratio for where the video will go. The whole poster always fits inside the frame. A portrait poster in a landscape video sits between white bands, which looks deliberate on YouTube or a slide.',
+    ],
+    headers: ['Aspect', 'Standard', 'High', 'Use it for'],
+    rows: [
+      ['9:16 portrait', '720 × 1280', '1080 × 1920', 'Reels, TikTok, YouTube Shorts and Stories'],
+      ['4:5 portrait', '856 × 1072', '1286 × 1608', 'Instagram and Facebook feed posts'],
+      ['1:1 square', '960 × 960', '1440 × 1440', 'Square feed posts and LinkedIn'],
+      ['16:9 landscape', '1280 × 720', '1920 × 1080', 'YouTube, slide decks and websites'],
+      ['Poster aspect', '806 × 1140', '1210 × 1712', 'The poster with no bands (A3 portrait shown)'],
+    ],
+    caption: 'Output size in pixels.',
+    footnotes: [
+      'For a full-bleed vertical clip, set the page itself to a 9:16 custom size, such as 180 × 320 mm, and choose Poster aspect when you record.',
+      'High quality records at 12 Mbps at 30 fps, so a 10 second clip is about 15 MB. Standard uses half that. Both double at 60 fps.',
+    ],
+  },
+  {
+    kind: 'steps',
+    title: 'Record a clip',
+    steps: [
+      {
+        title: 'Finish the poster first',
+        body: 'The video records what is on the page, so set the style, routes, text and decorations before you start. For depth, turn on 3D terrain and raise Pitch in the View section of the Map tab.',
+      },
+      {
+        title: 'Open the video export',
+        body: 'Choose Export, then Video. Pick Orbit or Sway, a length of 5, 10 or 15 seconds, and a target of 30 or 60 frames per second.',
+      },
+      {
+        title: 'Choose the aspect and quality',
+        body: 'Match the aspect to the platform from the table above. Standard goes up to 1280 px on the long side and High goes up to 1920 px.',
+      },
+      {
+        title: 'Record and keep the tab in view',
+        body: 'The editor plays the motion in real time and records it as it goes. A 10 second clip takes about 10 seconds, plus a few more to prepare and finish the file. Leave the editor tab visible while it records.',
+      },
+      {
+        title: 'Download the MP4',
+        body: 'The finished MP4 downloads straight from the browser. The recording happens on your device, so nothing is uploaded.',
+      },
+    ],
+  },
+  {
+    kind: 'callout',
+    tone: 'note',
+    title: 'Browsers and smooth playback',
+    paragraphs: [
+      'Video export works in current versions of Chrome, Edge and Safari, which can all record MP4 straight from the page.',
+      'For the smoothest clip, let the map finish loading before you record and keep other heavy tabs closed. The dialog counts frames as it records. On an older laptop, 30 fps and Standard quality give the steadiest result.',
+    ],
+  },
+];
+
+const faq = [
+  {
+    question: 'How long can the video be?',
+    answer: 'Choose 5, 10 or 15 seconds. Both motions loop cleanly, so you can repeat a clip in any video editor to make a longer one.',
+  },
+  {
+    question: 'Will the video have a watermark?',
+    answer: 'No. The clip shows your poster and the map credit, the same as the printed version.',
+  },
+  {
+    question: 'Can I add music?',
+    answer: 'The MP4 drops straight into CapCut, iMovie, Premiere or the Instagram and TikTok editors, where you can add music, captions and cuts.',
+  },
+  {
+    question: 'Does it record the 3D terrain?',
+    answer: 'Yes. The video uses the same pitch and terrain as your map, so a tilted mountain view stays tilted for the whole clip.',
+  },
+  {
+    question: 'What should I make first, the poster or the video?',
+    answer: 'The poster. The video records the finished page, so the same project gives you a print file and a clip to share it.',
+  },
+] as const;
+---
+
+<SeoLandingPage
+  page={page}
+  eyebrow="Map video maker"
+  heading="Make a short map video from your poster."
+  lead="The video export records your finished poster with a slow camera move: one full orbit or a gentle sway. It saves as an MP4, sized for Reels, Shorts, feed posts or a slide deck."
+  primaryCta="Make a map video"
+  facts={['Orbit or sway', '5, 10 or 15 seconds', 'Up to 1920 px', 'Free, no watermark']}
+  heroImage={media['video.export-dialog']}
+  heroLayout="split"
+  sections={sections}
+  faq={faq}
+  faqDescription="Length, sound, terrain and watermarks."
+/>

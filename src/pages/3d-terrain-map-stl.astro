@@ -1,0 +1,143 @@
+---
+import SeoLandingPage, { type PageSection } from '../marketing/SeoLandingPage.astro';
+import { media } from '../marketing/media';
+import { page } from '../marketing/pages/3d-terrain-map-stl';
+
+const sections: readonly PageSection[] = [
+  {
+    kind: 'steps',
+    title: 'From map frame to slicer',
+    paragraphs: [
+      'The STL covers exactly what sits inside the print frame, so set the map up the way you want the model to look from above.',
+    ],
+    steps: [
+      {
+        title: 'Frame the area and flatten the camera',
+        body: 'Move the map until the area fills the print frame. In the View section of the Map tab, set Pitch to 0. Bearing is kept, so rotate the map first if you want a ridge to run across the model instead of up it.',
+      },
+      {
+        title: 'Open the 3D model export',
+        body: 'Choose Export, then 3D model. Click Fit dimensions to print frame so the model has the same proportions as the frame, then type the width you want. Height follows.',
+      },
+      {
+        title: 'Set base, exaggeration and detail',
+        body: 'Start with a 2 mm base, 1× exaggeration and Medium detail, then use the height table below to decide whether the terrain needs more lift.',
+      },
+      {
+        title: 'Download the STL',
+        body: 'The editor builds the mesh in your browser and downloads terrain-relief-mm.stl, a watertight binary STL with side walls and a flat bottom.',
+      },
+      {
+        title: 'Import it in millimetres',
+        body: 'Open the file in PrusaSlicer, Cura, Bambu Studio or OrcaSlicer. The coordinates are millimetres, so a 150 mm model measures 150 mm on the bed.',
+      },
+      {
+        title: 'Slice for smooth slopes',
+        body: 'Print it flat on its base. A 0.12 to 0.16 mm layer height softens the steps on gentle slopes, and 10 to 15% infill is plenty under a solid top.',
+      },
+    ],
+  },
+  {
+    kind: 'definitions',
+    title: 'Export settings',
+    items: [
+      { term: 'Width and height', definition: '10 to 1000 mm per side, 150 × 100 mm by default. The two stay in proportion so the model matches the print frame.' },
+      { term: 'Base thickness', definition: '0.2 to 100 mm, 2 mm by default. The lowest point in the frame sits directly on top of the base.' },
+      { term: 'Exaggeration', definition: '0.1 to 50 times the real relief, 1× by default.' },
+      { term: 'Detail', definition: 'Low, Medium or High: 64, 128 or 256 elevation samples along the longer side.' },
+      { term: 'Route ridge', definition: 'Raises a visible route above the terrain. Height and width from 0.1 to 20 mm, 1 mm each by default.' },
+      { term: 'File', definition: 'Binary STL in millimetres, built as one closed solid.' },
+    ],
+  },
+  {
+    kind: 'table',
+    title: 'How tall will it print?',
+    paragraphs: [
+      'The height of the terrain depends on two things: how much the ground rises inside the frame, and how much you shrink it to fit the model. Divide the frame width by the model width to get the scale, then divide the relief by that scale.',
+      'Mountains need nothing extra. Rolling country often needs 2× or 3× before the hills read on the desk.',
+    ],
+    headers: ['Area', 'Frame on a 150 mm model', 'Relief', 'Terrain at 1×', 'Try'],
+    rows: [
+      ['Mount Rainier, Washington', '20 km, scale 1:133,000', 'about 3,800 m', '28 mm', '1×'],
+      ['San Francisco', '10 km, scale 1:67,000', 'about 280 m', '4.2 mm', '2× for 8.4 mm'],
+      ['Lake District, England', '30 km, scale 1:200,000', 'about 940 m', '4.7 mm', '3× for 14 mm'],
+    ],
+    caption: 'Terrain height above the base. Add the base thickness for the full model height.',
+    footnotes: [
+      'Terrain height in mm = relief in metres × 1,000 ÷ scale × exaggeration. For Rainier: 3,800 × 1,000 ÷ 133,333 × 1 ≈ 28.5 mm.',
+    ],
+  },
+  {
+    kind: 'callout',
+    tone: 'tip',
+    title: 'Raise a route as a ridge',
+    paragraphs: [
+      'Turn on Route ridge and pick any visible route: a hike you finished, a ski tour, a race course. The editor fuses a raised line into the terrain so you can trace it with a finger or pick it out with paint.',
+      'Make the ridge at least twice as wide as your nozzle, so 0.8 mm or more with a 0.4 mm nozzle. About 1.2 mm wide and 1 mm tall reads well on a 150 mm model. When the ridge is close to the sample spacing, switch to High detail so it stays continuous.',
+    ],
+  },
+  {
+    kind: 'prose',
+    title: 'Choosing a detail level',
+    paragraphs: [
+      'On a 150 mm model, High detail places a sample every 0.6 mm, which is close to what a 0.4 mm nozzle can draw. Medium places one every 1.2 mm and slices faster.',
+      'Heights come from elevation tiles at up to zoom 12, about 27 m per pixel at 45° latitude. High detail pays off on frames wider than roughly 7 km. For a single hill or a small island, Medium already captures what the data holds.',
+    ],
+    image: {
+      ...media['stl.export-dialog'],
+      title: 'The 3D model export.',
+      caption: 'Size, base, exaggeration, detail and the optional route ridge, all in millimetres.',
+    },
+    imagePosition: 'beside',
+  },
+  {
+    kind: 'callout',
+    tone: 'note',
+    title: 'Elevation data and credits',
+    paragraphs: [
+      'Heights come from AWS Terrain Tiles (Mapzen), compiled from USGS, SRTM and other sources. That is a global model of the ground, well suited to display pieces, gifts and teaching models.',
+      'The export dialog links to the full credit list, including the regional sources. Keep the credit with the model when you share the file or sell prints of it.',
+    ],
+  },
+];
+
+const faq = [
+  {
+    question: 'Which slicers can open the file?',
+    answer: 'Any slicer that reads binary STL, including PrusaSlicer, Cura, Bambu Studio and OrcaSlicer.',
+  },
+  {
+    question: 'Does it need supports?',
+    answer: 'The model is a solid block with a flat bottom and terrain on top, so it prints straight off the bed with supports turned off.',
+  },
+  {
+    question: 'How do I print a model larger than my bed?',
+    answer: 'Export at the full size you want, up to 1000 mm per side, then use your slicer\'s cut tool to split it into tiles that fit the bed.',
+  },
+  {
+    question: 'Can I print it in more than one colour?',
+    answer: 'The STL is one solid body. Paint it after printing, or use the colour painting tool in a multi-material slicer to pick out water, the route ridge or a snow line.',
+  },
+  {
+    question: 'Can I rotate the model so north is not at the top?',
+    answer: 'Yes. Set the map bearing before you export and the model keeps that rotation.',
+  },
+  {
+    question: 'Is the STL export free?',
+    answer: 'Yes. The editor is free, needs no account, and the model is generated in your browser.',
+  },
+] as const;
+---
+
+<SeoLandingPage
+  page={page}
+  eyebrow="3D terrain STL"
+  heading="Download a 3D terrain map as an STL for your printer."
+  lead="Frame the area on the map, set the model size in millimetres, and download a watertight binary STL. Slice it like any other model and print a relief of a mountain, a valley or the hills behind your house."
+  primaryCta="Export a terrain STL"
+  facts={['Watertight binary STL', 'Sizes in millimetres', 'Route ridge option', 'Free, no account']}
+  heroImage={media['stl.relief-preview']}
+  sections={sections}
+  faq={faq}
+  faqDescription="Slicers, sizes and colours for terrain models."
+/>
