@@ -9,7 +9,7 @@ const sections: readonly PageSection[] = [
     title: 'What a good listing map answers',
     paragraphs: [
       'Buyers look at a location map to answer a few quick questions: where exactly is it, what is within walking distance, and how do I get there. A good real estate location map answers those at a glance and leaves everything else off.',
-      'That usually means the property in a strong colour, six to twelve nearby places in a quieter one, a walking-time area if the neighbourhood is walkable, and a QR code for directions. Street detail stays in the background.',
+      'That usually means the property in a strong colour, six to twelve nearby places in a quieter one, a [walking-time area](/travel-time-map/) if the neighbourhood is walkable, and a QR code for directions. Street detail stays in the background.',
     ],
     image: {
       ...media['realestate.places'],
@@ -71,7 +71,7 @@ const sections: readonly PageSection[] = [
     kind: 'table',
     title: 'Flyer and handout sizes',
     paragraphs: [
-      'A4, A5, A6 and US Letter are presets. Everything else is a custom page in millimetres. Size the page to the map box in your layout, not to the whole flyer, and the map drops in at exactly 100%.',
+      'A4, A5, A6 and US Letter are presets. Everything else is a custom page in millimetres, and the [map print size guide](/map-print-size-guide/) covers the pixel maths. Size the page to the map box in your layout, not to the whole flyer, and the map drops in at exactly 100%.',
     ],
     headers: ['Use', 'Page (mm)', 'PNG at 300 DPI (px)'],
     rows: [
@@ -91,7 +91,7 @@ const sections: readonly PageSection[] = [
     kind: 'prose',
     title: 'Numbered places with photos',
     paragraphs: [
-      'For a neighbourhood guide, attach a photo to each nearby place from the Photos section of the Layout tab. Each one gets a numbered badge on the map, and a strip along the top or bottom of the page shows the photos in the same order with their captions.',
+      'For a neighbourhood guide, [attach a photo](/travel-map-with-photos/) to each nearby place from the Photos section of the Layout tab. Each one gets a numbered badge on the map, and a strip along the top or bottom of the page shows the photos in the same order with their captions.',
       'A map can hold up to 24 photo stops. Use PNG or JPEG files up to 1 MiB and 2048 pixels per side. Photos are centre-cropped to fit, so a landscape shot of a park and a portrait shot of a café line up neatly.',
     ],
   },
@@ -100,7 +100,7 @@ const sections: readonly PageSection[] = [
     tone: 'tip',
     title: 'Point the QR code at the property',
     paragraphs: [
-      'The location QR code opens a place in Google Maps, ready for directions. Set it to open the property rather than the map centre, then pick a corner and a size from 16 to 60 mm. 20 mm or larger scans easily from a flyer held at arm\'s length.',
+      'The location QR code opens a place in Google Maps, ready for directions. Set it to open the property rather than the map centre, then pick a corner and a size from 16 to 60 mm. 20 mm or larger scans comfortably from a flyer in your hand.',
       'The white quiet zone around the code is part of every export, so it scans cleanly on any background.',
     ],
   },
@@ -148,6 +148,7 @@ const faq = [
   facts={['Paste up to 300 places', 'Walking and drive time', 'Location QR code', 'Free, no account']}
   heroImage={media['realestate.flyer']}
   sections={sections}
+  ctaHeading="Map your next listing for the flyer."
   faq={faq}
   faqDescription="Logos, brand colours, reuse and printing."
 />

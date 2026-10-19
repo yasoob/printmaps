@@ -8,7 +8,7 @@ export const page: MarketingPageEntry = {
   group: 'project',
   order: 2,
   primaryKeyword: 'print map studio privacy',
-  summaryForLlms: 'What is stored in the browser, which third-party services receive requests (OpenFreeMap, Mapbox, Open-Meteo, Google Analytics, GitHub Pages), and what is never uploaded.',
-  updated: '2026-09-13',
+  summaryForLlms: 'What is stored in the browser, which third-party services receive requests (OpenFreeMap, Mapbox, Open-Meteo, AWS Terrain Tiles, Google Analytics, GitHub Pages), and what is never uploaded.',
+  updated: '2026-10-19',
   kind: 'info',
 };
