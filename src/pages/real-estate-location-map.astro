@@ -48,23 +48,27 @@ const sections: readonly PageSection[] = [
     ],
   },
   {
-    kind: 'example',
+    kind: 'steps',
+    numbered: false,
     title: 'One listing, start to finish',
     paragraphs: [
       'A two-bedroom flat near a station, for a US Letter flyer with a map box in the lower half of the page.',
     ],
-    image: {
-      ...media['realestate.flyer'],
-      title: 'A listing map ready to drop into a flyer.',
-      caption: 'Property, nearby places and the map credit, at the exact size of the map box.',
-    },
-    notes: [
+    steps: [
       { title: 'Page', body: 'A custom page of 180 × 110 mm, the size of the map box in the flyer template. At 300 DPI that is 2126 × 1299 pixels.' },
       { title: 'Property', body: 'One place with a 24 px diamond in the agency colour, labelled with the street name.' },
       { title: 'Nearby', body: 'Nine places pasted from the agent\'s sheet: two schools, the station, a park, a supermarket and four cafés.' },
       { title: 'Walking area', body: 'A 10 minute walking area from the property at a light fill, so buyers can see what is close.' },
       { title: 'Directions', body: 'A 20 mm location QR code in the bottom-right corner, set to open the property in Google Maps.' },
-      { title: 'Export', body: 'PDF for the printer, and a PNG of the same page for the listing website.' },
+      {
+        title: 'Export',
+        body: 'PDF for the printer, and a PNG of the same page for the listing website.',
+        image: {
+          ...media['realestate.flyer'],
+          title: 'A listing map ready to drop into a flyer.',
+          caption: 'Property, nearby places and the map credit, at the exact size of the map box.',
+        },
+      },
     ],
   },
   {
