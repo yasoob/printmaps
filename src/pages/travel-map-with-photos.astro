@@ -35,17 +35,13 @@ const sections: readonly PageSection[] = [
     ],
   },
   {
-    kind: 'example',
+    kind: 'steps',
+    numbered: false,
     title: 'The Photos panel',
     paragraphs: [
       'All photo settings live in Layout › Photos. The photo on the map and the tile in the strip share one number, so readers can match the two at a glance.',
     ],
-    image: {
-      ...media['photos.controls'],
-      title: 'Layout › Photos',
-      caption: 'Attach photos to places, write captions, then style the map photos and the strip.',
-    },
-    notes: [
+    steps: [
       { title: 'Attach to', body: 'Pick an existing place from the list, or New pin at center to create one. Removing a photo keeps its place, and deleting a place removes its photo.' },
       { title: 'The photo list', body: 'Stops are numbered in the order you add them, so add photos in trip order and stop 1 is the first morning. Each one has its own caption field.' },
       { title: 'Photos on the map', body: 'Circle or square, 5 to 100 mm across, with a border colour of your choice and the stop number in the corner. Pictures are centre-cropped, so keep faces and horizons near the middle of the frame.' },
@@ -107,6 +103,8 @@ highlights: [
       { icon: 'route', label: 'Route between stops' },
       { icon: 'visibility', label: 'Hide a stop to try a shorter trip' },
     ],
+    image: { ...media['photos.controls'], title: 'Layout › Photos', caption: 'Attach photos to places, write captions, then style the map photos and the strip.' },
+    imagePosition: 'beside',
   },
 ];
 

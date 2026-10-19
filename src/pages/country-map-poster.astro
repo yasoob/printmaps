@@ -18,19 +18,17 @@ const sections: readonly PageSection[] = [
       { icon: 'pdf-reader', label: 'Vector edge in PDF' },
       { icon: 'region', label: 'States and provinces' },
     ],
+    image: { ...media['country.frame-controls'], title: 'Layout › Map frame', caption: 'Choose the frame shape, the country and the boundary.' },
+    imagePosition: 'beside',
   },
   {
-    kind: 'example',
+    kind: 'steps',
+    numbered: false,
     title: 'The Map frame controls',
     paragraphs: [
       'Everything happens in one panel, Layout › Map frame. The fit moves the map, so switch off Lock map area in Map › View first if it is on.',
     ],
-    image: {
-      ...media['country.frame-controls'],
-      title: 'Layout › Map frame',
-      caption: 'Choose the frame shape, the country and the boundary.',
-    },
-    notes: [
+    steps: [
       { title: 'Rectangle or Country / region', body: 'Switch to Country / region to open the picker. Switching back to Rectangle hides the mask and keeps it in the project.' },
       { title: 'Country', body: 'Pick from the full list of countries and territories.' },
       { title: 'Boundary', body: 'Choose Entire country or one region. The camera moves so the boundary fills about 90% of the map area.' },
