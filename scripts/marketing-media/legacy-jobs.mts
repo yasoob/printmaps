@@ -120,7 +120,7 @@ export const legacyJobs: Job[] = [
       const layers = await scenePage(context, 'clifton');
       await save(context, await rawShot(context, layers, 'legacy-layers', { x: 0, y: 0, width: 920, height: 650 }), 'explore-shots/imported-layers-overview.webp', { width: 1840, height: 1300 });
       await save(context, await rawShot(context, layers, 'legacy-overview-desktop'), 'explore-shots/export-editor-overview-desktop.webp', { width: 1440, height: 900 });
-      const psd = await scenePage(context, 'clifton', { width: 1386, height: 800 });
+      const psd = await scenePage(context, 'vienna-psd', { width: 1386, height: 800 });
       await save(context, await rawShot(context, psd, 'legacy-psd-editor'), 'explore-shots/psd-workflow-editor.webp', { width: 2000, height: 1155 });
     },
   },

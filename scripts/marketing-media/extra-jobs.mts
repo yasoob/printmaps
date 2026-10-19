@@ -153,7 +153,7 @@ async function ogCards(context: Context) {
     { slug: 'layered-map-export', kicker: 'Layered export', title: 'SVG, PSD, PDF and PNG from one map', visual: raw('export-print.png') },
     { slug: 'about', kicker: 'About', title: 'An open-source map editor for print', visual: raw('editor-map-tab.png') },
     { slug: 'privacy', kicker: 'Privacy', title: 'Your maps stay in your browser', visual: raw('poster-copenhagen.png') },
-    { slug: 'product-facts', kicker: 'Product facts', title: 'What the editor can and can’t do', visual: raw('editor-layout-tab.png') },
+    { slug: 'product-facts', kicker: 'Product facts', title: 'Every number, straight from the source code', visual: raw('editor-layout-tab.png') },
     { slug: 'city-map-poster', kicker: 'City map posters', title: 'A poster of any town, ready to print', visual: raw('poster-lisbon.png') },
     { slug: 'country-map-poster', kicker: 'Country map posters', title: 'A map shaped like the country', visual: raw('poster-italy.png') },
     { slug: 'wedding-map-poster', kicker: 'Wedding map posters', title: 'The place you met, on paper', visual: raw('poster-wedding.png') },
@@ -167,7 +167,7 @@ async function ogCards(context: Context) {
     { slug: 'real-estate-location-map', kicker: 'Real estate maps', title: 'Location maps for listings and flyers', visual: raw('poster-clifton.png') },
     { slug: 'printmaps-net-alternative', kicker: 'Printmaps.net alternative', title: 'Free, with PDF and layered files', visual: raw('compare-export.png') },
     { slug: 'map-print-size-guide', kicker: 'Print size guide', title: 'Paper sizes, DPI and pixels for maps', visual: raw('sizes.png') },
-    { slug: 'share-and-embed-maps', kicker: 'Share and embed', title: 'Read-only links and iframe embeds', visual: raw('share-dialog.png') },
+    { slug: 'share-and-embed-maps', kicker: 'Share and embed', title: 'Read-only links and iframe embeds', visual: raw('embed-example.png') },
   ];
   const page = await context.page();
   for (const card of cards) {
@@ -216,8 +216,6 @@ const MOBILE_CROPS: [raw: string, publicPath: string][] = [
   ['photos-controls', 'marketing/photos/photo-story-controls-mobile.webp'],
   ['topo-3d', 'marketing/topo/matterhorn-3d-terrain-with-contours-mobile.webp'],
   ['route-elevation', 'marketing/route/mont-ventoux-elevation-panel-mobile.webp'],
-  ['isochrone-controls', 'marketing/travel-time/travel-time-area-controls-mobile.webp'],
-  ['realestate-places', 'marketing/real-estate/bulk-places-address-lookup-mobile.webp'],
   ['sizes', 'marketing/sizes/page-size-presets-mobile.webp'],
   ['editor-map-tab', 'marketing/editor/map-tab-style-gallery-mobile.webp'],
   ['editor-layout-tab', 'marketing/editor/layout-tab-poster-text-mobile.webp'],

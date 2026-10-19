@@ -1,7 +1,7 @@
 # Demo photos
 
 These photos are used only to build the road-trip demo project for marketing screenshots.
-All are US National Park Service works in the public domain, downloaded from Wikimedia Commons,
+All four are photos taken by US National Park Service staff as part of their official duties. Under 17 U.S.C. § 105 they are in the public domain (no copyright, no attribution required); Wikimedia Commons lists each as "Public domain". They were downloaded from Commons,
 then cropped to 900 × 675 and re-encoded.
 
 | File | Source | Author | Licence |
