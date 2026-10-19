@@ -2,7 +2,7 @@ import type { MarketingPageEntry } from './types';
 
 export const page: MarketingPageEntry = {
   slug: 'layered-map-export',
-  title: 'Layered Map Export',
+  title: 'Layered Map Export: SVG, PSD, PDF and PNG',
   navLabel: 'Layered SVG and PSD export',
   description: 'Export a map as a print-size PNG, an exact-page PDF, a layered SVG with named vector groups, or a layered PSD with Smart Objects for Photoshop.',
   group: 'export',
@@ -13,5 +13,5 @@ export const page: MarketingPageEntry = {
   cardBlurb: 'Compare PNG, PDF, layered SVG and layered PSD for print and design work.',
   updated: '2026-10-19',
   published: '2026-08-31',
-  related: ['map-print-size-guide', 'map-video-maker', '3d-terrain-map-stl', 'share-and-embed-maps'],
+  related: ['map-print-size-guide', 'printmaps-net-alternative', 'share-and-embed-maps', 'map-video-maker'],
 };

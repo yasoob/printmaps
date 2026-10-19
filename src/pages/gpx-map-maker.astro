@@ -41,7 +41,7 @@ const sections: readonly PageSection[] = [
     imageRow: [
       {
         src: '/explore-shots/route-appearance.webp',
-        alt: 'Print Map Studio route line color width and travel marker controls',
+        alt: 'Print Map Studio route line colour, width and travel marker controls',
         width: 1130,
         height: 1716,
         title: 'Style the route line',
@@ -57,7 +57,7 @@ const sections: readonly PageSection[] = [
       },
       {
         src: '/explore-shots/waypoint-style.webp',
-        alt: 'Print Map Studio waypoint color size shape symbol and label controls',
+        alt: 'Print Map Studio waypoint colour, size, shape, symbol and label controls',
         width: 1130,
         height: 1716,
         title: 'Style each waypoint',
@@ -70,6 +70,7 @@ const sections: readonly PageSection[] = [
     paragraphs: [
       'GPS recordings drift, especially between tall buildings. Road matching in the advanced route tools fits a recorded trace to the road network, so a city bike ride follows the streets instead of cutting across blocks.',
       'The same panel can reverse a route, close a loop, convert between line types and edit individual points when one stray reading spoils the shape.',
+      'It also generates an elevation profile from Copernicus elevation data, which you download as SVG, PNG or PDF at 50 to 300 mm wide. The [route map poster guide](/route-map-poster/) shows how to place one under a race or hiking map.',
     ],
     highlights: [
       { icon: 'route', label: 'Road matching' },
@@ -79,24 +80,10 @@ const sections: readonly PageSection[] = [
     ],
   },
   {
-    kind: 'steps',
-    id: 'elevation-profile',
-    title: 'Make an elevation profile for the route',
-    paragraphs: [
-      'An elevation profile shows the climbs at a glance, which is what most hikers and riders look for first. Print Map Studio builds one from Copernicus elevation data via Open-Meteo.',
-    ],
-    steps: [
-      { title: 'Generate the profile', body: 'Select the route, open the advanced route tools and generate an elevation profile.' },
-      { title: 'Size it for the page', body: 'Set a print width from 50 to 300 mm, choose metric or imperial units, and pick colours, a fill or gradient, grid lines and a font.' },
-      { title: 'Read the numbers', body: 'The panel shows total ascent and descent, plus distance-based walking and cycling time estimates.' },
-      { title: 'Download and place it', body: 'Save the profile as SVG, PNG or PDF and place it under the map in your layout, guidebook page or race flyer.' },
-    ],
-  },
-  {
     title: 'Set the print area and page size',
     paragraphs: [
-      'Fit the map around the full track or focus on one section. Use a standard page preset from A2 through A6 or US Letter, choose portrait or landscape, or enter custom dimensions in millimetres.',
-      'The project autosaves in browser storage. Download a project file if you want a backup, because clearing browser data removes the local autosave.',
+      'Fit the map around the full track or focus on one section. Use a standard page preset from A2 through A6 or US Letter, choose portrait or landscape, or enter custom dimensions in millimetres. The [map print size guide](/map-print-size-guide/) lists pixel sizes and paper choices for each.',
+      'The project autosaves in browser storage. Download a project file to keep a copy you can open on any computer, or [send a read-only link](/share-and-embed-maps/) to the people who rode it with you.',
     ],
     highlights: [
       { icon: 'fit', label: 'Fit the full route' },
@@ -116,7 +103,7 @@ const sections: readonly PageSection[] = [
   {
     title: 'Export the route as raster or vector content',
     paragraphs: [
-      'Use PNG for a flat 300 DPI image, or PDF for an exact physical page where routes and waypoints stay sharp as vector lines. Layered SVG keeps content as named vector groups for Illustrator or Inkscape.',
+      'Use PNG for a flat 300 DPI image, or PDF for an exact physical page where routes and waypoints stay sharp as vector lines. Layered SVG keeps content as named vector groups for Illustrator or Inkscape. The [export formats page](/layered-map-export/) compares all four.',
       'Layered PSD puts each route, waypoint and shape in its own Smart Object in Photoshop. The browser generates and downloads every format directly.',
     ],
     showExportFormats: true,
@@ -128,7 +115,7 @@ const faq = [
   { question: 'What happens to waypoints?', answer: 'Waypoints are imported as place content that can be styled and managed separately from route layers.' },
   { question: 'Can I change the map after importing?', answer: 'Yes. Imported routes, places, and shapes become editable layers that can be styled, reordered, hidden, duplicated, or deleted.' },
   { question: 'Does the export keep my route as a vector?', answer: 'Yes. PDF, layered SVG and layered PSD keep routes and waypoints as vector content, so lines stay sharp at any print size.' },
-  { question: 'Can I add an elevation profile?', answer: 'Yes. Generate one from the advanced route tools and download it as SVG, PNG or PDF, from 50 to 300 mm wide. Sampled route coordinates are sent to Open-Meteo to look up the elevations.' },
+  { question: 'Can I add an elevation profile?', answer: 'Yes. Generate one from the advanced route tools and download it as SVG, PNG or PDF. The [route map poster guide](/route-map-poster/) covers sizing and placement.' },
 ] as const;
 ---
 
@@ -141,5 +128,7 @@ const faq = [
   primaryCta="Import your track"
   facts={['GPX, KML, and GeoJSON', 'Editable route layers', 'No account', 'Browser-based export']}
   sections={sections}
+  ctaHeading="Drop in a GPX file and see your route on a page."
   faq={faq}
+  faqDescription="GPS file formats, waypoints, elevation and vector export."
 />

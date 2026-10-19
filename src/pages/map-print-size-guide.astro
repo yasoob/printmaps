@@ -35,7 +35,7 @@ const sections: readonly PageSection[] = [
     title: 'The short version',
     paragraphs: [
       `For a map that people read up close, print at 300 DPI at the final size. To get the pixel count, divide the size in millimetres by 25.4 and multiply by the DPI. An A3 page is ${a3.longEdgeMm} × ${a3.shortEdgeMm} mm, so at 300 DPI it needs ${pixelDimensions(a3, 300)} pixels.`,
-      'Print Map Studio does this maths for you. Pick a page size and the PNG and PDF exports render the map at 300 DPI for that page. The PNG also stores its DPI, so layout and print software open it at the right physical size instead of guessing.',
+      'Print Map Studio does this maths for you. Pick a page size in the [printable map maker](/printable-map-maker/) and the PNG and PDF exports render the map at 300 DPI for that page. The PNG also stores its DPI, so layout and print software open it at the right physical size instead of guessing.',
     ],
     highlights: [
       { icon: 'a-series', label: 'A2 to A6 presets' },
@@ -81,7 +81,7 @@ const sections: readonly PageSection[] = [
     id: 'worked-example',
     title: 'Worked example: a 50 × 70 cm framed poster',
     paragraphs: [
-      '50 × 70 cm is one of the most common ready-made frame sizes in Europe. It is bigger than A2 and smaller than A1, so it goes in as a custom size.',
+      '50 × 70 cm is one of the most common ready-made frame sizes in Europe, and a popular size for a [city map poster](/city-map-poster/). It is bigger than A2 and smaller than A1, so it goes in as a custom size.',
     ],
     image: {
       ...media['sizes.page-presets'],
@@ -141,7 +141,7 @@ const sections: readonly PageSection[] = [
     id: 'file-formats',
     title: 'Which file to send to a print shop',
     paragraphs: [
-      'All four print formats come out of the same Export dialog at the page size you set. The right one depends on who handles the file next.',
+      'All four print formats come out of the same Export dialog at the page size you set. The right one depends on who handles the file next, and the [export formats page](/layered-map-export/) goes into each in more depth.',
     ],
     headers: ['Format', 'What you get', 'Send it when'],
     rows: [
@@ -159,7 +159,7 @@ const sections: readonly PageSection[] = [
     id: 'paper',
     title: 'Choosing paper for a map print',
     paragraphs: [
-      'Paper changes how a map reads more than most people expect. Thin roads and small labels want a smooth surface, and dark styles want a paper that holds deep ink.',
+      'Thin roads and small labels want a smooth surface, and dark styles want a paper that holds deep ink.',
     ],
     points: [
       'Matte poster paper, 170 to 200 gsm: no glare and easy to read under any light. A safe default for light styles such as Paper and Porcelain.',

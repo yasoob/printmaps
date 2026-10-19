@@ -13,11 +13,11 @@ const sections: readonly PageSection[] = [
     ],
     headers: ['Layout', 'Look', 'Use it for'],
     rows: [
-      ['City edition', 'Cream paper, Classic serif title below the map, Paper style', 'Hometown and city posters with a traditional title block'],
+      ['City edition', 'Cream paper, slate-black Classic serif title below the map, Paper style', 'Hometown and [city posters](/city-map-poster/) with a traditional title block'],
       ['Quiet lines', 'White paper, Modern sans title above the map, Paper style', 'Minimal rooms, lots of open space and exact coordinates'],
       ['After dark', 'Deep navy paper, Modern sans title below the map, Night Ink style', 'A statement piece. Dense street grids glow against the dark ground'],
-      ['Land & outline', 'Cream paper, Classic serif title below the map, Paper style', 'Country and region posters with a shaped map frame'],
-      ['Field notes', 'Warm parchment, Field notes mono title above the map, Paper style', 'Trips, routes and photo stories with a logbook feel'],
+      ['Land & outline', 'Cream paper, dark green-grey Classic serif title below the map, Paper style', '[Country and region posters](/country-map-poster/) with a shaped map frame'],
+      ['Field notes', 'Warm parchment, Field notes mono title above the map, Paper style', 'Trips, routes and [photo stories](/travel-map-with-photos/) with a logbook feel'],
     ],
     caption: 'Every layout also turns on the coordinates line and uses 10 mm margins on all four sides.',
   },
@@ -73,25 +73,13 @@ const sections: readonly PageSection[] = [
     ],
   },
   {
-    kind: 'steps',
+    kind: 'definitions',
     title: 'When to switch, and when to stay',
-    steps: [
-      {
-        title: 'Switch early',
-        body: 'Try layouts while the map is still rough. Each switch resets margins and type sizes, so finish those details after you have settled on a look.',
-      },
-      {
-        title: 'Switch for the room',
-        body: 'A poster for a dark hallway might suit After dark, while the same map for a bright kitchen might suit Quiet lines. The map framing carries over, so comparing takes seconds.',
-      },
-      {
-        title: 'Switch for the subject',
-        body: 'For a trip with photos and a route, Field notes puts the title on top and leaves the bottom free for a photo strip. For a country shape, Land & outline is tuned for the cut-out.',
-      },
-      {
-        title: 'Stay and customise',
-        body: 'Once the layout is close, adjust the paper colour, margins and type in Layout › Page and Layout › Text, and the map colours in Map › Style › Customize colors. Those changes are yours to keep.',
-      },
+    items: [
+      { term: 'Early on', definition: 'Try layouts while the map is still rough. Each switch resets margins and type sizes, so finish those details after you have settled on a look.' },
+      { term: 'For the room', definition: 'A poster for a dark hallway might suit After dark, while the same map for a bright kitchen might suit Quiet lines. The map framing carries over, so comparing takes seconds.' },
+      { term: 'For the subject', definition: 'For a trip with photos and a route, Field notes puts the title on top and leaves the bottom free for a photo strip. For a country shape, Land & outline is tuned for the cut-out.' },
+      { term: 'Once it is close', definition: 'Stay on the layout and adjust the paper colour, margins and type in Layout › Page and Layout › Text, and the map colours in Map › Style › Customize colors. Those changes are yours to keep.' },
     ],
   },
   {
@@ -106,8 +94,8 @@ const sections: readonly PageSection[] = [
 
 const faq = [
   {
-    question: 'Are the map poster templates free?',
-    answer: 'Yes. All five layouts and the four starter cities are part of the free editor. Make as many posters from them as you like, with no account and no watermark.',
+    question: 'Which layout should I use with a country or region outline?',
+    answer: 'Land & outline. It sets cream paper and a serif title in dark green-grey, which suits a cut-out shape. Choose it before fitting the outline in Layout › Map frame, because the mask takes the paper colour at the moment you fit it.',
   },
   {
     question: 'What page size does a template start on?',
@@ -137,5 +125,7 @@ const faq = [
   primaryCta="Try a template"
   facts={['5 layout presets', '4 starter cities', 'Switch without losing your map', 'Free, no account']}
   sections={sections}
+  ctaHeading="Pick a layout and make it yours."
+  faqDescription="Starter cities, switching layouts and saving your own look."
   faq={faq}
 />

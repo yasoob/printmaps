@@ -30,7 +30,7 @@ const sections: readonly PageSection[] = [
       },
       {
         title: 'Draw the way between',
-        body: 'Use the Route tool to join the stops. Road follows real roads by car, on foot or by bike, Arc draws a curve for flights and ferries, and Straight joins the points directly. If you recorded the trip, import the GPX file instead.',
+        body: 'Use the Route tool to join the stops. Road follows real roads by car, on foot or by bike, Arc draws a curve for flights and ferries, and Straight joins the points directly. If you recorded the trip, [import the GPX file](/gpx-map-maker/) instead.',
       },
     ],
   },
@@ -97,7 +97,7 @@ const sections: readonly PageSection[] = [
   {
     title: 'Pick a layout that leaves room for pictures',
     paragraphs: [
-      'The Field notes layout was made for this kind of map: warm parchment paper, a monospace title above the map and the Paper style underneath. The Copenhagen starter in New from template uses it with the subtitle "A weekend by the water", which is a quick way to see the look before adding your own trip.',
+      'The Field notes [layout](/map-poster-templates/) was made for this kind of map: warm parchment paper, a monospace title above the map and the Paper style underneath. The Copenhagen starter in New from template uses it with the subtitle "A weekend by the water", which is a quick way to see the look before adding your own trip.',
       'Put the strip on the opposite side to the title. With the title above the map, the strip reads well along the bottom, and the map keeps a clear block of space in the middle.',
       'Hiding a place on the map hides its photo too, which is handy for trying a shorter version of the trip before you print.',
     ],
@@ -133,7 +133,7 @@ const faq = [
   },
   {
     question: 'Can I add the route I drove?',
-    answer: 'Yes. Draw it with the Route tool using Road, Arc or Straight segments, or import a GPX, KML or GeoJSON track from your phone, car or bike computer.',
+    answer: 'Yes. Draw it with the Route tool using Road, Arc or Straight segments, or import a GPX, KML or GeoJSON track from your phone, car or bike computer. For a poster built around the route itself, see [route map posters](/route-map-poster/).',
   },
 ] as const;
 ---
@@ -148,5 +148,7 @@ const faq = [
   primaryCta="Start a photo map"
   facts={['Up to 24 photo stops', 'Numbered strip with captions', 'Road, arc or straight routes', 'Photos stay on your device']}
   sections={sections}
+  ctaHeading="Put your trip on the map, one photo per stop."
+  faqDescription="Photo limits, numbering, privacy and routes."
   faq={faq}
 />

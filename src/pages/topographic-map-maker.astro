@@ -43,6 +43,7 @@ const sections: readonly PageSection[] = [
     title: 'Flat contours or tilted 3D terrain',
     paragraphs: [
       '3D terrain shows up once you raise the camera Pitch, up to 60°. It turns the map into a picture of the landscape. That suits some prints more than others, so decide early.',
+      'Each choice also leads somewhere after the print. A flat frame becomes a [3D printed relief model](/3d-terrain-map-stl/), and a tilted view makes a good [orbit video](/map-video-maker/).',
     ],
     columns: ['Flat contours', 'Tilted 3D terrain'],
     rowHeader: 'For this print',
@@ -86,7 +87,7 @@ const sections: readonly PageSection[] = [
       },
       {
         title: 'Add routes, places and text',
-        body: 'A hiking route in a strong colour reads well over grey contours. Add a title, the coordinates of the summit, and a scale bar on a flat map.',
+        body: 'A [hiking route](/route-map-poster/) in a strong colour reads well over grey contours. Add a title, the coordinates of the summit, and a scale bar on a flat map.',
       },
       {
         title: 'Export',
@@ -111,7 +112,7 @@ const faq = [
   },
   {
     question: 'Can I 3D print the terrain?',
-    answer: 'Yes. Set Pitch to 0 and use the 3D model export to download a watertight STL of the print area for your slicer.',
+    answer: 'Yes. Set Pitch to 0 and use the [3D model export](/3d-terrain-map-stl/) to download a watertight STL of the print area for your slicer.',
   },
   {
     question: 'Will the terrain show in the exported file?',
@@ -130,6 +131,7 @@ const faq = [
   heroImage={media['topo.terrain-3d']}
   heroLayout="split"
   sections={sections}
+  ctaHeading="Pick a range and turn the contours on."
   faq={faq}
   faqDescription="Intervals, accuracy and exports for contour maps."
 />

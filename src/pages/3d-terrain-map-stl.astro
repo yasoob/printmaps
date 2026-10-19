@@ -13,7 +13,7 @@ const sections: readonly PageSection[] = [
     steps: [
       {
         title: 'Frame the area and flatten the camera',
-        body: 'Move the map until the area fills the print frame. In the View section of the Map tab, set Pitch to 0. Bearing is kept, so rotate the map first if you want a ridge to run across the model instead of up it.',
+        body: 'Move the map until the area fills the print frame. Turning on [contour lines](/topographic-map-maker/) helps you see where the ridges and valleys fall. In the View section of the Map tab, set Pitch to 0. Bearing is kept, so rotate the map first if you want a ridge to run across the model instead of up it.',
       },
       {
         title: 'Open the 3D model export',
@@ -72,7 +72,7 @@ const sections: readonly PageSection[] = [
     tone: 'tip',
     title: 'Raise a route as a ridge',
     paragraphs: [
-      'Turn on Route ridge and pick any visible route: a hike you finished, a ski tour, a race course. The editor fuses a raised line into the terrain so you can trace it with a finger or pick it out with paint.',
+      'Turn on Route ridge and pick any visible route: a hike you finished, a ski tour, a race course [imported from a GPX file](/gpx-map-maker/). The editor fuses a raised line into the terrain so you can trace it with a finger or pick it out with paint.',
       'Make the ridge at least twice as wide as your nozzle, so 0.8 mm or more with a 0.4 mm nozzle. About 1.2 mm wide and 1 mm tall reads well on a 150 mm model. When the ridge is close to the sample spacing, switch to High detail so it stays continuous.',
     ],
   },
@@ -123,8 +123,8 @@ const faq = [
     answer: 'Yes. Set the map bearing before you export and the model keeps that rotation.',
   },
   {
-    question: 'Is the STL export free?',
-    answer: 'Yes. The editor is free, needs no account, and the model is generated in your browser.',
+    question: 'What scale is the model?',
+    answer: 'Divide the width of the area on the ground by the model width. A 20 km frame on a 150 mm model is about 1:133,000. The height table above shows how that scale turns real relief into millimetres of terrain.',
   },
 ] as const;
 ---
@@ -138,6 +138,7 @@ const faq = [
   facts={['Watertight binary STL', 'Sizes in millimetres', 'Route ridge option', 'Free, no account']}
   heroImage={media['stl.relief-preview']}
   sections={sections}
+  ctaHeading="Frame a mountain and download the STL."
   faq={faq}
-  faqDescription="Slicers, sizes and colours for terrain models."
+  faqDescription="Slicers, supports, scale and colours for terrain models."
 />

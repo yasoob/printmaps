@@ -37,7 +37,7 @@ const sections: readonly PageSection[] = [
       },
       {
         title: 'Import it into a new map',
-        body: 'Open the editor, choose Import map data and pick the file. The track arrives as a route layer you can style. The GPX map maker page covers file sizes and how waypoints come in.',
+        body: 'Open the editor, choose Import map data and pick the file. The track arrives as a route layer you can style. The [GPX map maker](/gpx-map-maker/) page covers file sizes and how waypoints come in.',
       },
       {
         title: 'Set the page and frame the route',
@@ -45,7 +45,7 @@ const sections: readonly PageSection[] = [
       },
       {
         title: 'Choose a base map that stays quiet',
-        body: 'Light styles with fewer labels work best under a bright route. Turn down detail and text scale until the streets give context without competing with the line.',
+        body: 'Light styles with fewer labels work best under a bright route. Turn down detail and text scale until the streets give context without competing with the line. For a hike, [contour lines](/topographic-map-maker/) show the climb on the map itself.',
       },
       {
         title: 'Style the line and mark the ends',
@@ -94,7 +94,7 @@ const sections: readonly PageSection[] = [
     paragraphs: [
       'Open the route and choose Generate elevation profile. The editor samples up to 100 points along the line and reads their heights from the Copernicus GLO-90 elevation model through Open-Meteo. You get distance, elevation range, total ascent and total descent.',
       'Set the chart to metric or imperial, choose a print width between 50 and 300 mm, and switch the curve, gradient fill, elevation markers and grid lines on or off. Download the profile as SVG, PNG or PDF.',
-      'For a finished poster, raise the bottom page margin to leave a strip under the map, then place the profile there in your layout program. The layered SVG export and the profile SVG drop into the same document in Illustrator, Affinity Designer or Inkscape.',
+      'For a finished poster, raise the bottom page margin to leave a strip under the map, then place the profile there in your layout program. The [layered SVG export](/layered-map-export/) and the profile SVG drop into the same document in Illustrator, Affinity Designer or Inkscape.',
     ],
     image: {
       ...media['route.elevation'],
@@ -124,11 +124,11 @@ const faq = [
   },
   {
     question: 'Can I make a 3D model of the route as well?',
-    answer: 'Yes. The 3D terrain export can raise the route as a ridge on an STL relief model for 3D printing.',
+    answer: 'Yes. The [3D terrain export](/3d-terrain-map-stl/) can raise the route as a ridge on an STL relief model for 3D printing.',
   },
   {
-    question: 'How much does it cost?',
-    answer: 'Nothing. The editor is free, needs no account and adds no watermark to the exported files.',
+    question: 'Can I show my finish time or pace?',
+    answer: 'Yes. Put the time in the subtitle and the distance and pace in the caption, for example "42.2 km · 3:58:12 · 5:39 /km". Each text line has its own font, size and colour.',
   },
 ] as const;
 ---
@@ -139,9 +139,10 @@ const faq = [
   heading="Make a route map poster from the race you ran."
   lead="Bring in the GPX file from Strava, Garmin Connect or Komoot, give the route a line that reads from across the room, and export a print file at A3, A2 or any size in millimetres."
   primaryCta="Start a route poster"
-  facts={['Strava, Garmin and Komoot GPX', 'Line widths for print', 'Elevation profile download', 'Free, no account']}
+  facts={['Strava, Garmin and Komoot', 'Line widths for print', 'Elevation profile download', 'Free, no account']}
   heroImage={media['editor.layer-route']}
   sections={sections}
+  ctaHeading="Bring your last race onto an A3 page."
   faq={faq}
-  faqDescription="GPX files, privacy, sizes and extras for route posters."
+  faqDescription="Apps, privacy, sizes and race details for route posters."
 />
