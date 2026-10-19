@@ -1,0 +1,144 @@
+---
+import SeoLandingPage from '../marketing/SeoLandingPage.astro';
+import { media } from '../marketing/media';
+import { page } from '../marketing/pages/country-map-poster';
+import type { PageSection } from '../marketing/sections/types';
+
+const sections: readonly PageSection[] = [
+  {
+    title: 'How the shaped frame works',
+    paragraphs: [
+      'A country poster here is a real map cropped to a border. Roads, rivers, lakes and town names run right up to the coast or the frontier, and everything beyond it is plain paper.',
+      'The crop is done by a mask: an inverted shape that covers everything outside the boundary with your paper colour and leaves the inside open. It is a normal shape layer, so it exports like one. In PDF, layered SVG and layered PSD the outline stays vector, and the coastline edge is clean at any print size.',
+      'Boundaries come from Natural Earth 5.1.1 at 1:10 million scale, so islands and exclaves are part of the shape. The catalogue covers 258 countries and territories, and 251 of them have first-level regions: US states, Canadian provinces, German Länder, Japanese prefectures, Indian states and so on.',
+    ],
+    highlights: [
+      { icon: 'country-shape', label: 'Country or region outline' },
+      { icon: 'layers', label: 'Mask as a shape layer' },
+      { icon: 'pdf-reader', label: 'Vector edge in PDF' },
+      { icon: 'region', label: 'States and provinces' },
+    ],
+  },
+  {
+    kind: 'example',
+    title: 'The Map frame controls',
+    paragraphs: [
+      'Everything happens in one panel, Layout › Map frame. The fit moves the map, so switch off Lock map area in Map › View first if it is on.',
+    ],
+    image: {
+      ...media['country.frame-controls'],
+      title: 'Layout › Map frame',
+      caption: 'Choose the frame shape, the country and the boundary.',
+    },
+    notes: [
+      { title: 'Rectangle or Country / region', body: 'Switch to Country / region to open the picker. Switching back to Rectangle hides the mask and keeps it in the project.' },
+      { title: 'Country', body: 'Pick from the full list of countries and territories.' },
+      { title: 'Boundary', body: 'Choose Entire country or one region. The camera moves so the boundary fills about 90% of the map area.' },
+      { title: 'The mask layer', body: 'A layer named after the place, for example "Portugal silhouette", appears in the layer list. Undo returns you to the previous frame.' },
+    ],
+  },
+  {
+    kind: 'steps',
+    title: 'Make one in five steps',
+    steps: [
+      {
+        title: 'Pick a layout first',
+        body: 'Open Layout and choose Land & outline from the layout presets. It sets cream paper, dark green-grey type in a serif face and the Paper map style. The mask takes the paper colour at the moment you fit it, so settle the paper colour before step 3.',
+      },
+      {
+        title: 'Set the page',
+        body: 'Choose the size and orientation in Layout › Page. Tall countries such as Chile, Norway or Italy want portrait. Wide ones such as Russia, Canada or Indonesia want landscape.',
+      },
+      {
+        title: 'Fit the boundary',
+        body: 'In Layout › Map frame, choose Country / region, pick the country and then Entire country or a region. The map moves to the shape and fits it inside the frame.',
+      },
+      {
+        title: 'Tune what is inside',
+        body: 'Go to Map › Labels & details. For a big country, hide roads for a clean shape or keep them for texture. For a small one, keep labels on and raise the text scale.',
+      },
+      {
+        title: 'Title and export',
+        body: 'Type the name in Layout › Text and export. PDF keeps the outline and title as vector content, and PNG renders at 300 DPI.',
+      },
+    ],
+  },
+  {
+    kind: 'table',
+    title: 'Small countries and big countries print differently',
+    paragraphs: [
+      'The fit always fills the frame, so the scale changes enormously from one country to the next. Monaco on an A3 sheet is a street map. Canada on the same sheet is a coastline with a few city names. Plan the poster around what will actually be visible.',
+    ],
+    headers: ['Country size', 'Examples', 'What you see inside the outline', 'Settings that help'],
+    rows: [
+      ['City-states', 'Monaco, Singapore, Vatican City', 'Individual streets, blocks, the harbour', 'Treat it as a city poster with a shaped border. Keep street labels on.'],
+      ['Small countries', 'Luxembourg, Malta, Slovenia, Cyprus', 'Towns, main roads, rivers, forests', 'Text scale around 130%, parks and land detail on.'],
+      ['Mid-sized', 'Ireland, Portugal, Italy, Japan', 'Coast, motorways, major cities', 'Hide minor detail or labels for a shape-first look.'],
+      ['Large', 'Brazil, Canada, Australia, Russia', 'Coastline, big lakes and rivers, the largest cities', 'Landscape page, roads hidden, a strong style such as Night Ink or Coastal.'],
+    ],
+    caption: 'For a large country, a single region often makes a better poster than the whole: a US state, a Canadian province or an Australian state fits the page at a much closer scale.',
+  },
+  {
+    kind: 'callout',
+    tone: 'important',
+    title: 'Countries with distant islands and territories',
+    paragraphs: [
+      'Natural Earth draws some countries with every island and overseas territory included, and the fit makes room for all of them. France comes with its overseas departments from Guadeloupe to Réunion. The Netherlands includes Bonaire, Sint Eustatius and Saba. Chile includes Easter Island, about 3,500 km offshore, and Portugal includes the Azores and Madeira. The United States, Russia, Fiji and New Zealand cross the 180° meridian, so their fit spans both sides of it.',
+      'Two ways to handle it. Fit the country, then zoom and pan by hand to the part you want: the mask moves with the map, so mainland France or the lower 48 states stay neatly cut out. Or pick a single region: French overseas departments such as Réunion and Martinique are regions in their own right. You can also keep the wide view on purpose and show every outpost.',
+    ],
+  },
+  {
+    title: 'Type for a country poster',
+    paragraphs: [
+      'A shaped map is a busy silhouette, so the title works best when it is calm. There are three type families: Modern sans, Classic serif and Field notes mono. Sizes run from 6 to 120 pt, and the title, subtitle and caption each have their own font, size and colour.',
+      'One name, set large, usually beats a long subtitle. Long names such as "Bosnia and Herzegovina" shrink automatically to fit on one line, so try a smaller size and see if the spacing looks more natural. Match the type colour to the darkest colour in the map, such as the label colour of the style, rather than pure black.',
+      'The coordinates line shows the centre of the map in decimal degrees or degrees, minutes and seconds. On a country poster it marks roughly the middle of the country, which is a nice detail for a gift.',
+    ],
+    points: [
+      'Placement: above the map, below it, or over it',
+      'Alignment: left, centre or right',
+      'Title up to 200 characters, subtitle and caption up to 400',
+      'Paper colour and margins from 0 to 100 mm per side in Layout › Page',
+    ],
+  },
+];
+
+const faq = [
+  {
+    question: 'Which countries and regions can I use?',
+    answer: '258 countries and territories from Natural Earth 5.1.1, plus first-level regions for 251 of them, such as US states, Canadian provinces, French départements and Japanese prefectures.',
+  },
+  {
+    question: 'Can I make a poster of a single state or province?',
+    answer: 'Yes. After choosing the country, pick the region instead of Entire country. The map fits that region and masks everything around it, including the rest of the country.',
+  },
+  {
+    question: 'Will the outline print sharply?',
+    answer: 'Yes. The outline is a vector shape in PDF, layered SVG and layered PSD exports, and PNG renders it at 300 DPI for the page size you set.',
+  },
+  {
+    question: 'Can I change the paper colour after fitting the outline?',
+    answer: 'Yes. Change the paper colour, switch the map frame to Rectangle, then choose Country / region again and refit. The new mask uses the new paper colour.',
+  },
+  {
+    question: 'Can I move the map after the outline is fitted?',
+    answer: 'Yes. The mask is attached to the map, so you can zoom into one part of the country and the coastline stays cut out. Lock the map area in Map › View when you are happy with it.',
+  },
+  {
+    question: 'Where does the boundary data come from?',
+    answer: 'From Natural Earth, a public domain dataset of country and region boundaries at 1:10 million scale. The map inside the outline uses OpenStreetMap data through OpenMapTiles and OpenFreeMap, with the credit printed in the bottom margin.',
+  },
+] as const;
+---
+
+<SeoLandingPage
+  page={page}
+  eyebrow="Country map posters"
+  heading="A country map poster cut to the shape of the country."
+  lead="Pick a country, a state or a province and the map is clipped to its outline, with everything beyond the border left as plain paper. Inside, the streets, rivers and towns stay live, so you still choose the style, labels and page size."
+  heroImage={media['country.poster-filled']}
+  primaryCta="Make a country poster"
+  facts={['258 countries and territories', 'States, provinces and regions', 'Vector outline in PDF and SVG', 'Free, no account']}
+  sections={sections}
+  faq={faq}
+/>
