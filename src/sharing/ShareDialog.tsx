@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
-import { Copy } from 'lucide-react';
+import { Check, Copy } from 'lucide-react';
 import { Dialog } from '../components/ui/dialog';
-import { Input } from '../components/ui/input';
-import { InputGroup, InputGroupAddon, InputGroupInput } from '../components/ui/input-group';
-import { Notice } from '../components/ui/notice';
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '../components/ui/input-group';
 import { Textarea } from '../components/ui/textarea';
+import { Notice } from '../components/ui/notice';
 import { StudioDialog, StudioDialogActions, StudioDialogBody, StudioDialogButton, StudioDialogHeader } from '../components/ui/studio-dialog';
 import { PropertyRow } from '../app/components/PropertyControls';
 import { Switch } from '../app/components/UiControls';
@@ -12,6 +11,20 @@ import { createEmbedHtml, createShareUrl } from './urls';
 import { FeatureHelp } from '../app/components/FeatureHelp';
 
 type ShareResult = { payload: string; title: string } | { error: string };
+type CopyTarget = 'link' | 'embed';
+type CopyFeedback = Readonly<{ target: CopyTarget; error?: string }>;
+const COPIED_RESET_MS = 2000;
+
+// Copy confirmation lives on the button itself ("Copied" + check), so no loose status line is needed.
+function CopyButton({ label, state, onCopy }: Readonly<{ label: string; state: 'idle' | 'copied'; onCopy: () => void }>) {
+  const isCopied = state === 'copied';
+  return (
+    <InputGroupButton variant="secondary" size="sm" className="share-copy-button" aria-label={label} data-state={state} onClick={onCopy}>
+      {isCopied ? <Check aria-hidden="true" size={16} strokeWidth={1.75} /> : <Copy aria-hidden="true" size={16} strokeWidth={1.75} />}
+      {isCopied ? 'Copied' : 'Copy'}
+    </InputGroupButton>
+  );
+}
 
 function shareOutput(result: ShareResult, canNavigate: boolean) {
   if ('error' in result) return result;
@@ -41,23 +54,28 @@ export function ShareDialog({ result, onClose, returnFocusRef }: {
   const dialogRef = useRef<HTMLDivElement>(null);
   const [navigation, setNavigation] = useState(true);
   const [height, setHeight] = useState('480');
-  const [feedback, setFeedback] = useState<{ error: boolean; text: string } | null>(null);
+  const [feedback, setFeedback] = useState<CopyFeedback | null>(null);
   const request = useRef(0);
-  useEffect(() => () => { request.current += 1; }, []);
+  const resetTimer = useRef<number | undefined>(undefined);
+  useEffect(() => () => { request.current += 1; window.clearTimeout(resetTimer.current); }, []);
   const output = shareOutput(result, navigation);
   const embed = embedOutput(output, height);
-  const copy = async (text: string) => {
+  const copy = async (target: CopyTarget, text: string) => {
     const id = ++request.current;
+    window.clearTimeout(resetTimer.current);
     try {
       const clipboard = window.navigator.clipboard;
       if (!clipboard?.writeText) throw new Error('Clipboard access is unavailable. Select and copy the text manually.');
       await clipboard.writeText(text);
-      if (request.current === id) setFeedback({ error: false, text: 'Copied to clipboard.' });
+      if (request.current !== id) return;
+      setFeedback({ target });
+      resetTimer.current = window.setTimeout(() => { if (request.current === id) setFeedback(null); }, COPIED_RESET_MS);
     } catch (error) {
-      if (request.current === id) setFeedback({ error: true, text: error instanceof Error ? error.message : 'Copy failed. Select and copy the text manually.' });
+      if (request.current === id) setFeedback({ target, error: error instanceof Error ? error.message : 'Copy failed. Select and copy the text manually.' });
     }
   };
-  const clearCopyFeedback = () => { request.current += 1; setFeedback(null); };
+  const clearCopyFeedback = () => { request.current += 1; window.clearTimeout(resetTimer.current); setFeedback(null); };
+  const copyState = (target: CopyTarget) => (feedback?.target === target && !feedback.error ? 'copied' : 'idle');
   return <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
     <StudioDialog ref={dialogRef} initialFocus={dialogRef} className="share-dialog" finalFocus={returnFocusRef}>
       <StudioDialogHeader title="Share this map" description="Anyone with the link can view, download and remix."
@@ -68,10 +86,13 @@ export function ShareDialog({ result, onClose, returnFocusRef }: {
         {'error' in output ? <Notice tone="error">{output.error}</Notice> : <>
           <section className="share-section">
             <label className="share-section-title" htmlFor="share-link">Read-only link</label>
-            <div className="share-copy-row">
-              <Input id="share-link" className="flex-1 text-label text-ink-secondary text-ellipsis" readOnly value={output.link} onFocus={(event) => event.currentTarget.select()} />
-              <StudioDialogButton variant="secondary" aria-label="Copy link" onClick={() => void copy(output.link)}><Copy aria-hidden="true" strokeWidth={1.75} />Copy</StudioDialogButton>
-            </div>
+            <InputGroup className="share-link-field">
+              <InputGroupInput id="share-link" className="text-label text-ink-secondary text-ellipsis" readOnly value={output.link} onFocus={(event) => event.currentTarget.select()} />
+              <InputGroupAddon align="inline-end">
+                <CopyButton label="Copy link" state={copyState('link')} onCopy={() => void copy('link', output.link)} />
+              </InputGroupAddon>
+            </InputGroup>
+            {feedback?.target === 'link' && feedback.error && <Notice tone="error">{feedback.error}</Notice>}
           </section>
           <section className="share-section" aria-labelledby="share-embed-title">
             <div className="feature-help-row"><h3 id="share-embed-title" className="share-section-title">Embed this map</h3><FeatureHelp label="Embed preview help">Responsive width, map attribution retained. Preview pan and zoom never changes the shared design.</FeatureHelp></div>
@@ -83,14 +104,15 @@ export function ShareDialog({ result, onClose, returnFocusRef }: {
               </InputGroup>
             </PropertyRow>
             {'error' in embed ? <p role="alert" className="export-error">{embed.error}</p> : <>
-              <div className="share-copy-row is-multiline">
-                <Textarea id="embed-code" aria-label="Embed HTML" className="h-24 flex-1 [field-sizing:fixed] font-mono text-meta text-ink-secondary break-all" readOnly value={embed.html} rows={4} onFocus={(event) => event.currentTarget.select()} />
-                <StudioDialogButton variant="secondary" aria-label="Copy embed code" onClick={() => void copy(embed.html)}><Copy aria-hidden="true" strokeWidth={1.75} />Copy</StudioDialogButton>
+              <div className="share-code-block">
+                <Textarea id="embed-code" aria-label="Embed HTML" className="share-code h-28 [field-sizing:fixed] resize-none pr-24 font-mono text-meta text-ink-secondary break-all" readOnly value={embed.html} rows={5} onFocus={(event) => event.currentTarget.select()} />
+                <CopyButton label="Copy embed code" state={copyState('embed')} onCopy={() => void copy('embed', embed.html)} />
               </div>
+              {feedback?.target === 'embed' && feedback.error && <Notice tone="error">{feedback.error}</Notice>}
             </>}
           </section>
         </>}
-        {feedback && <p className={feedback.error ? 'export-error' : 'share-feedback'} role={feedback.error ? 'alert' : 'status'}>{feedback.text}</p>}
+        <p className="sr-only" role="status">{feedback && !feedback.error ? 'Copied to clipboard.' : ''}</p>
       </StudioDialogBody>
       <StudioDialogActions><StudioDialogButton onClick={onClose}>Done</StudioDialogButton></StudioDialogActions>
     </StudioDialog>

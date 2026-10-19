@@ -71,6 +71,9 @@
   --studio-left-panel-width: 15rem;
   --studio-right-panel-width: 19rem;
   --studio-control-height: 2rem;
+  /* Disclosure triggers bleed this far past their content column (negative margin + equal padding),
+     so the hover band has breathing room while chevron and title stay aligned with the revealed content. */
+  --studio-disclosure-inset: 0.5rem;
   --studio-touch-target: 2.75rem;
   --studio-tool-size: 2rem;
   --studio-radius-xs: 0.1875rem;

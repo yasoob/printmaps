@@ -29,18 +29,22 @@ Soft tinted inline status message on shadcn Alert. Errors announce assertively; 
 */
 export function Notice({ tone, title, action, children, className, role, ...props }: NoticeProps) {
   const Icon = toneIcons[tone]
+  // A title-only or body-only notice is one text row: centre icon, text and action on it instead of
+  // reserving the second (description) row that leaves the text top-aligned in a taller box.
+  const isSingleRow = !(title && children)
   return (
     <Alert
       variant={toneVariants[tone]}
-      className={cn("studio-notice", className)}
+      className={cn("studio-notice", isSingleRow && "items-center *:[svg]:row-span-1 *:[svg]:mt-0", className)}
       data-tone={tone}
+      data-layout={isSingleRow ? "single" : "stacked"}
       role={role ?? (tone === "error" ? "alert" : "status")}
       {...props}
     >
       <Icon className="studio-notice-icon" aria-hidden="true" size={16} strokeWidth={1.75} />
       {title && <AlertTitle className="studio-notice-title">{title}</AlertTitle>}
       {children && <AlertDescription className="studio-notice-body">{children}</AlertDescription>}
-      {action && <AlertAction className="studio-notice-action">{action}</AlertAction>}
+      {action && <AlertAction className={cn("studio-notice-action", isSingleRow && "row-span-1")}>{action}</AlertAction>}
     </Alert>
   )
 }
