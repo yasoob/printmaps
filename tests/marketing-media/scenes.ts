@@ -281,7 +281,7 @@ function clifton(isBase = false): ProjectDocument {
 async function italy(): Promise<ProjectDocument> {
   const response = await fetch('/data/administrative/countries/ITA.json');
   const shard = await response.json() as { country: { geometry: ContentLayer['geometry'] } };
-  const document = scene({ id: 'italy', title: 'Italy', page: A3_PORTRAIT, center: [12.55, 41.8], zoom: 4.98, preset: 'terracotta', template: 'silhouette', subtitle: 'From the Alps to Sicily' });
+  const document = scene({ id: 'italy', title: 'Italy', page: A3_PORTRAIT, center: [12.57, 41.5], zoom: 4.56, preset: 'terracotta', template: 'silhouette', subtitle: 'From the Alps to Sicily' });
   const paper = document.studio.poster.backgroundColor;
   const outline: ContentLayer = {
     id: 'silhouette-italy', name: 'Italy silhouette', type: 'shape', visible: true, locked: false, opacity: 100,
