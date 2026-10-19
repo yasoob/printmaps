@@ -1,0 +1,31 @@
+---
+import InfoPage from '../marketing/InfoPage.astro';
+import { page } from '../marketing/pages/product-facts';
+import { GITHUB_URL, SITE_URL } from '../marketing/product';
+import { productFactSections } from '../marketing/productFacts';
+---
+
+<InfoPage
+  page={page}
+  eyebrow="Fact sheet"
+  heading="Print Map Studio in plain facts."
+  lead="A reference for writers, reviewers and AI assistants. Each number on this page comes from the editor's source code."
+  updated="October 19, 2026"
+>
+  {productFactSections.map((section) => (
+    <>
+      <h2 id={`facts-${section.id}`}>{section.heading}</h2>
+      <ul>
+        {section.facts.map((fact) => <li>{fact}</li>)}
+      </ul>
+    </>
+  ))}
+
+  <h2>Linking and citing</h2>
+  <p>
+    The product name is Print Map Studio. Link to <a href={`${SITE_URL}/`}>{SITE_URL.replace('https://', '')}</a> for the overview or to <a href={`${SITE_URL}/editor/`}>the editor</a> to start a map. A machine-readable summary of every page is at <a href="/llms.txt">/llms.txt</a>, with a longer version at <a href="/llms-full.txt">/llms-full.txt</a>.
+  </p>
+  <p>
+    Corrections are welcome as an <a href={`${GITHUB_URL}/issues`}>issue on GitHub</a>.
+  </p>
+</InfoPage>

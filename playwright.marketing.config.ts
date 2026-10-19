@@ -4,7 +4,7 @@ const port = process.env.MARKETING_TEST_PORT ?? '4176';
 
 export default defineConfig({
   testDir: './tests/e2e',
-  testMatch: 'marketing.spec.ts',
+  testMatch: /marketing(?:-seo)?\.spec\.ts$/,
   fullyParallel: false,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
@@ -26,6 +26,13 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
+        viewport: { width: 1440, height: 900 },
+      },
+    },
+    {
+      name: 'firefox',
+      use: {
+        ...devices['Desktop Firefox'],
         viewport: { width: 1440, height: 900 },
       },
     },

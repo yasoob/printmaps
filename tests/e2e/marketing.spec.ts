@@ -3,8 +3,8 @@ import { expect, test } from '@playwright/test';
 const marketingRoutes = [
   {
     path: '../',
-    title: 'Free Printable Map Maker - Print Map Studio',
-    heading: 'Beautiful maps. Ready to print.',
+    title: 'Free Map Poster Maker for Printable Maps | Print Map Studio',
+    heading: 'Map posters and printable maps, made in your browser.',
     canonical: 'https://printmaps.yasoob.me/',
   },
   {
@@ -68,13 +68,13 @@ test('FAQ structured data matches the visible questions', async ({ page }) => {
   const parsed = JSON.parse(structuredData!);
   const faqPage = parsed['@graph'].find((entry: { '@type': string }) => entry['@type'] === 'FAQPage');
   expect(faqPage.mainEntity.map((entry: { name: string }) => entry.name)).toEqual(visibleQuestions);
-  await expect(faq.locator('details')).toHaveCount(20);
+  await expect(faq.locator('details')).toHaveCount(22);
 });
 
 test('homepage ships the selected hero without review controls', async ({ page }) => {
   await page.goto('../');
   await expect(page.locator('h1')).toHaveCount(1);
-  await expect(page.getByText('Free · browser-based · no account')).toBeVisible();
+  await expect(page.getByText('Free · no account · no watermark')).toBeVisible();
   await expect(page.getByRole('link', { name: "Open the editor - it's free" })).toBeVisible();
   await expect(page.getByText('Free to use')).toHaveCount(0);
   await expect(page.getByText('Layered PSD', { exact: true })).toHaveCount(0);
@@ -89,9 +89,11 @@ test('homepage schema identifies the creator and indexable application URL', asy
     name: 'Yasoob Khalid',
     url: 'https://yasoob.me',
   });
-  expect(graph.find((entry: { '@type': string }) => entry['@type'] === 'SoftwareApplication')).toMatchObject({
-    operatingSystem: 'Web',
-    url: 'https://printmaps.yasoob.me',
+  expect(graph.find((entry: { '@type': string }) => entry['@type'] === 'WebApplication')).toMatchObject({
+    applicationCategory: 'DesignApplication',
+    operatingSystem: 'Web browser',
+    url: 'https://printmaps.yasoob.me/editor/',
+    offers: { price: '0' },
   });
 });
 
@@ -212,7 +214,7 @@ test('mobile homepage CTA leads to the relocated editor', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('../');
   await expect(page.locator('header').getByRole('link', { name: 'Open Editor', exact: true })).toBeVisible();
-  await expect(page.locator('#main-content > section')).toHaveCount(5);
+  await expect(page.locator('#main-content > section')).toHaveCount(7);
   const capabilities = page.getByRole('region', { name: 'Add what matters.' });
   await expect(capabilities.getByRole('heading', { name: 'Add what matters.' })).toBeVisible();
   await expect(capabilities.getByRole('link', { name: 'Isochrones' })).toBeVisible();

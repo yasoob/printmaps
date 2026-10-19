@@ -1,24 +1,118 @@
 ---
+import { ChevronDown, Menu, X } from '@lucide/astro';
 import { navigation, SITE_NAME } from './product';
+import { navigationGroups, pagePath } from './registry';
+
+const featureGroups = navigationGroups('features');
+const guideGroups = navigationGroups('guides');
+const menus = [
+  { id: 'features', label: 'Features', groups: featureGroups },
+  { id: 'guides', label: 'Guides', groups: guideGroups },
+].filter((menu) => menu.groups.length > 0);
+const sectionLinks = navigation.filter((item) => item.href !== '/#features');
+const currentPath = Astro.url.pathname;
+const linkClass = 'block rounded-lg px-3 py-2 text-sm font-medium text-[#3a3a3c] no-underline hover:bg-[#f5f5f7] hover:text-[#0071e3] focus-visible:outline-3 focus-visible:outline-offset-1 focus-visible:outline-[#8bb9ff] aria-[current=page]:text-[#0071e3]';
 ---
 
-<header class="bg-[#f5f5f7] font-inter text-[#1d1d1f]">
-  <div class="mx-auto grid min-h-18 w-[calc(100%_-_4rem)] max-w-[76rem] grid-cols-[1fr_auto_1fr] items-center max-md:w-[calc(100%_-_2rem)] max-md:grid-cols-[1fr_auto]">
+<header class="relative z-40 bg-[#f5f5f7] font-inter text-[#1d1d1f]" data-marketing-header>
+  <div class="relative mx-auto grid min-h-18 w-[calc(100%_-_4rem)] max-w-[76rem] grid-cols-[1fr_auto_1fr] items-center max-md:w-[calc(100%_-_2rem)] max-md:grid-cols-[1fr_auto]">
     <a class="flex w-max items-center gap-2.5 text-base font-semibold tracking-[-0.015em] no-underline focus-visible:rounded focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#8bb9ff]" href="/" aria-label={`${SITE_NAME} home`}>
       <img class="h-8 w-12 rounded-[0.35rem] object-cover" src="/logo.png" alt="" width="48" height="32" />
       <span class="max-sm:text-sm">{SITE_NAME}</span>
     </a>
 
-    <nav class="flex items-center gap-7 max-md:hidden" aria-label="Main navigation">
-      {
-        navigation.map((item) => (
-          <a class="text-sm font-medium text-[#6e6e73] no-underline hover:text-[#1d1d1f] focus-visible:rounded focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#8bb9ff]" href={item.href}>
-            {item.label}
-          </a>
-        ))
-      }
+    <nav class="flex items-center gap-2 max-md:hidden" aria-label="Main navigation">
+      {menus.map((menu) => (
+        <details class="group/menu" data-nav-menu>
+          <summary class="flex cursor-pointer list-none items-center gap-1 rounded-full px-3 py-2 text-sm font-medium text-[#6e6e73] select-none hover:text-[#1d1d1f] focus-visible:outline-3 focus-visible:outline-offset-1 focus-visible:outline-[#8bb9ff] group-open/menu:text-[#1d1d1f] [&::-webkit-details-marker]:hidden">
+            {menu.label}
+            <ChevronDown class="size-4 transition-transform group-open/menu:rotate-180 motion-reduce:transition-none" stroke-width={2} aria-hidden="true" />
+          </summary>
+          <div class:list={[
+            'absolute top-[calc(100%_-_0.25rem)] left-1/2 z-50 -translate-x-1/2 rounded-2xl border border-[#e8e8ed] bg-white p-5 shadow-[0_1.25rem_3rem_rgba(0,0,0,0.12)]',
+            menu.groups.length > 3 ? 'w-[min(52rem,calc(100vw_-_4rem))]' : menu.groups.length === 3 ? 'w-[min(42rem,calc(100vw_-_4rem))]' : 'w-[min(30rem,calc(100vw_-_4rem))]',
+          ]}>
+            <div class:list={['grid gap-x-4 gap-y-5', ['grid-cols-1', 'grid-cols-2', 'grid-cols-3', 'grid-cols-4'][Math.min(menu.groups.length, 4) - 1]]}>
+              {menu.groups.map((group) => (
+                <div>
+                  <p class="px-3 text-xs font-semibold tracking-[0.06em] text-[#86868b] uppercase">{group.label}</p>
+                  <ul class="mt-2 list-none space-y-0.5 p-0">
+                    {group.pages.map((entry) => (
+                      <li>
+                        <a class={linkClass} href={pagePath(entry)} aria-current={currentPath === pagePath(entry) ? 'page' : undefined}>{entry.navLabel}</a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        </details>
+      ))}
+      {sectionLinks.map((item) => (
+        <a class="rounded-full px-3 py-2 text-sm font-medium text-[#6e6e73] no-underline hover:text-[#1d1d1f] focus-visible:outline-3 focus-visible:outline-offset-1 focus-visible:outline-[#8bb9ff]" href={item.href}>
+          {item.label}
+        </a>
+      ))}
     </nav>
 
-    <a class="justify-self-end rounded-full bg-[#0071e3] px-4.5 py-3 text-sm font-semibold text-white no-underline transition hover:-translate-y-0.5 hover:bg-[#0077ed] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#8bb9ff] motion-reduce:transition-none" href="/editor/">Open Editor</a>
+    <div class="flex items-center justify-self-end gap-2">
+      <details class="group/mobile md:hidden" data-nav-menu>
+        <summary class="grid size-11 cursor-pointer list-none place-items-center rounded-full text-[#1d1d1f] hover:bg-white focus-visible:outline-3 focus-visible:outline-offset-1 focus-visible:outline-[#8bb9ff] [&::-webkit-details-marker]:hidden" aria-label="Menu">
+          <Menu class="size-6 group-open/mobile:hidden" stroke-width={1.75} aria-hidden="true" />
+          <X class="hidden size-6 group-open/mobile:block" stroke-width={1.75} aria-hidden="true" />
+        </summary>
+        <nav class="absolute inset-x-0 top-full z-50 max-h-[calc(100svh_-_5rem)] overflow-y-auto border-y border-[#e8e8ed] bg-white px-4 pt-4 pb-6 shadow-[0_1.25rem_3rem_rgba(0,0,0,0.12)]" aria-label="Mobile navigation">
+          <div class="grid gap-5 sm:grid-cols-2">
+            {[...featureGroups, ...guideGroups].map((group) => (
+              <div>
+                <p class="px-3 text-xs font-semibold tracking-[0.06em] text-[#86868b] uppercase">{group.label}</p>
+                <ul class="mt-1 list-none p-0">
+                  {group.pages.map((entry) => (
+                    <li>
+                      <a class={linkClass} href={pagePath(entry)} aria-current={currentPath === pagePath(entry) ? 'page' : undefined}>{entry.navLabel}</a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <ul class="mt-4 flex list-none flex-wrap gap-x-2 border-t border-[#e8e8ed] p-0 pt-3">
+            {navigation.map((item) => (
+              <li><a class={linkClass} href={item.href}>{item.label}</a></li>
+            ))}
+          </ul>
+        </nav>
+      </details>
+      <a class="rounded-full bg-[#0071e3] px-4.5 py-3 text-sm font-semibold text-white no-underline transition hover:-translate-y-0.5 hover:bg-[#0077ed] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#8bb9ff] motion-reduce:transition-none" href="/editor/">Open Editor</a>
+    </div>
   </div>
 </header>
+
+<script>
+  const menus = [...document.querySelectorAll<HTMLDetailsElement>('[data-nav-menu]')];
+
+  const closeAll = (except?: HTMLDetailsElement) => {
+    for (const menu of menus) if (menu !== except) menu.open = false;
+  };
+
+  for (const menu of menus) {
+    menu.addEventListener('toggle', () => {
+      if (menu.open) closeAll(menu);
+    });
+    menu.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape' || !menu.open) return;
+      menu.open = false;
+      menu.querySelector('summary')?.focus();
+    });
+    menu.addEventListener('focusout', (event) => {
+      const next = event.relatedTarget;
+      if (menu.open && next instanceof Node && !menu.contains(next)) menu.open = false;
+    });
+  }
+
+  document.addEventListener('click', (event) => {
+    const target = event.target;
+    if (target instanceof Node && !menus.some((menu) => menu.contains(target))) closeAll();
+  });
+</script>

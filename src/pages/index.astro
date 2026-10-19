@@ -1,94 +1,46 @@
 ---
+import HomeCapabilities from '../marketing/HomeCapabilities.astro';
+import HomeExplore from '../marketing/HomeExplore.astro';
 import HomeFeatures from '../marketing/HomeFeatures.astro';
 import HomeUseCases from '../marketing/HomeUseCases.astro';
 import MapCapabilityStrip from '../marketing/MapCapabilityStrip.astro';
 import MarketingHero from '../marketing/MarketingHero.astro';
 import MarketingLayout from '../marketing/MarketingLayout.astro';
+import { media } from '../marketing/media';
+import { faqItems, SITE_URL } from '../marketing/product';
+import { HOME_PAGE, ogImageFor } from '../marketing/registry';
 import SimpleFaqSection from '../marketing/SimpleFaqSection.astro';
 import {
-  CREATOR_NAME,
-  CREATOR_URL,
-  faqItems,
-  GITHUB_URL,
-  SITE_NAME,
-  SITE_URL,
-} from '../marketing/product';
+  APPLICATION_ID,
+  applicationNode,
+  personNode,
+  WEBSITE_ID,
+  websiteNode,
+} from '../marketing/structuredData';
 
-const title = 'Free Printable Map Maker - Print Map Studio';
-const description = 'Free browser-based map maker for print. Import GPX, KML or GeoJSON, add routes and places, then export PNG, PDF, layered SVG or PSD - no account or watermark.';
+const { title, description } = HOME_PAGE;
+const ogImage = ogImageFor('');
 const structuredData = {
   '@context': 'https://schema.org',
   '@graph': [
-    {
-      '@type': 'Person',
-      '@id': `${CREATOR_URL}/#person`,
-      name: CREATOR_NAME,
-      url: CREATOR_URL,
-      sameAs: ['https://github.com/yasoob'],
-    },
-    {
-      '@type': 'WebSite',
-      '@id': `${SITE_URL}/#website`,
-      name: SITE_NAME,
-      url: SITE_URL,
-      description,
-      publisher: {
-        '@id': `${CREATOR_URL}/#person`,
-      },
-    },
+    personNode(),
+    websiteNode(description),
     {
       '@type': 'WebPage',
       '@id': `${SITE_URL}/#webpage`,
       name: title,
       url: `${SITE_URL}/`,
       description,
-      isPartOf: {
-        '@id': `${SITE_URL}/#website`,
-      },
-      about: {
-        '@id': `${SITE_URL}/#application`,
-      },
-    },
-    {
-      '@type': 'SoftwareApplication',
-      '@id': `${SITE_URL}/#application`,
-      name: SITE_NAME,
-      url: SITE_URL,
-      sameAs: [GITHUB_URL],
-      applicationCategory: 'DesignApplication',
-      applicationSubCategory: 'Map design software',
-      operatingSystem: 'Web',
-      browserRequirements: 'Requires a modern browser with JavaScript enabled',
       inLanguage: 'en',
-      isAccessibleForFree: true,
-      description,
-      screenshot: {
-        '@type': 'ImageObject',
-        url: `${SITE_URL}/hero-assets/editor-new-york.webp`,
-        width: 1600,
-        height: 924,
-      },
-      author: {
-        '@id': `${CREATOR_URL}/#person`,
-      },
-      creator: {
-        '@id': `${CREATOR_URL}/#person`,
-      },
-      offers: {
-        '@type': 'Offer',
-        price: '0',
-        priceCurrency: 'USD',
-      },
-      featureList: [
-        'Map style and page controls',
-        'Route, point and shape authoring',
-        'GPX, KML and GeoJSON import',
-        'PNG, PDF, layered SVG and layered PSD export',
-        'Local browser autosave',
-      ],
+      isPartOf: { '@id': WEBSITE_ID },
+      about: { '@id': APPLICATION_ID },
+      primaryImageOfPage: { '@type': 'ImageObject', url: `${SITE_URL}${ogImage.src}`, width: ogImage.width, height: ogImage.height },
+      dateModified: HOME_PAGE.updated,
     },
+    applicationNode(description, media['hero.desktop']),
     {
       '@type': 'FAQPage',
+      '@id': `${SITE_URL}/#faq`,
       mainEntity: faqItems.map((item) => ({
         '@type': 'Question',
         name: item.question,
@@ -106,12 +58,15 @@ const structuredData = {
   title={title}
   description={description}
   includeSiteNameSuffix={false}
+  ogImage={ogImage}
   showHeader={false}
   structuredData={structuredData}
 >
   <MarketingHero />
   <MapCapabilityStrip />
   <HomeFeatures />
+  <HomeCapabilities />
   <HomeUseCases />
+  <HomeExplore />
   <SimpleFaqSection items={faqItems} />
 </MarketingLayout>
