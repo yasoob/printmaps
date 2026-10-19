@@ -15,6 +15,7 @@ import {
   relatedPages,
   type MarketingPageEntry,
 } from './registry';
+import { responsiveSrcset } from './responsiveImage';
 import SectionRenderer from './sections/SectionRenderer.astro';
 import type { PageSection } from './sections/types';
 import { pageGraph } from './structuredData';
@@ -65,12 +66,14 @@ type Props = {
   heroLinksToEditor?: boolean;
   showHeroExportFormats?: boolean;
   sections: readonly PageSection[];
-  ctaHeading?: string;
+  /** Heading of the closing call-to-action band. Required and page-specific. */
+  ctaHeading: string;
   /** Defaults to related registry pages. */
   relatedLinks?: readonly RelatedLink[];
   relatedTitle?: string;
   faq?: readonly FaqItem[];
   faqTitle?: string;
+  /** Subtitle under the FAQ heading. Required when `faq` has items. */
   faqDescription?: string;
   /** Show the visible breadcrumb trail (default true when `page` is set). */
   showBreadcrumbs?: boolean;
@@ -89,15 +92,16 @@ const {
   heroLayout = 'stacked',
   showHeroExportFormats = false,
   sections,
-  ctaHeading = 'Open the editor and make a map for your next project.',
   relatedTitle = 'More ways to use Print Map Studio.',
   faq = [],
   faqTitle = 'Common questions.',
-  faqDescription = 'Details about file formats, storage, and exports.',
   showBreadcrumbs = Boolean(page),
 } = Astro.props;
 
 const title = Astro.props.title ?? page?.title;
+const { ctaHeading, faqDescription } = Astro.props;
+if (!ctaHeading) throw new Error(`${Astro.url.pathname} needs a page-specific \`ctaHeading\`.`);
+if (faq.length > 0 && !faqDescription) throw new Error(`${Astro.url.pathname} needs a page-specific \`faqDescription\` for its FAQ.`);
 const description = Astro.props.description ?? page?.description;
 if (!title || !description) throw new Error('SeoLandingPage needs a `page` entry or explicit `title` and `description`.');
 if (page && pagePath(page) !== Astro.url.pathname) {
@@ -115,10 +119,14 @@ const hero = heroImage && ('desktopSrc' in heroImage
       legacy: true,
     }
   : { ...heroImage, aspectClass: '', legacy: false });
+const heroSrcset = hero ? responsiveSrcset(hero.src, hero.width) : undefined;
+const heroMobileWidth = hero && 'mobileWidth' in hero ? hero.mobileWidth : undefined;
+const heroMobileSrcset = hero?.mobileSrc && heroMobileWidth ? responsiveSrcset(hero.mobileSrc, heroMobileWidth) ?? hero.mobileSrc : hero?.mobileSrc;
+// On phones the hero sits below the heading and lead, so it is not the LCP element there.
 const heroLinksToEditor = Astro.props.heroLinksToEditor ?? heroLayout === 'stacked';
 const ogImage = Astro.props.ogImage ?? ogImageFor(page?.slug ?? Astro.url.pathname.replace(/^\/|\/$/g, ''), page?.ogImage);
 const relatedLinks: readonly RelatedLink[] = Astro.props.relatedLinks
-  ?? (page ? relatedPages(page).map((entry) => ({ href: pagePath(entry), label: entry.navLabel, description: entry.description })) : []);
+  ?? (page ? relatedPages(page).map((entry) => ({ href: pagePath(entry), label: entry.navLabel, description: entry.cardBlurb ?? entry.description })) : []);
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
 const structuredData = page
   ? pageGraph({ entry: page, title: fullTitle(title), description, image: ogImage })
@@ -200,8 +208,8 @@ function sectionId(section: PageSection, index: number): string {
       {hero && heroLayout === 'split' && (
         <figure class="overflow-hidden rounded-xl border border-[#d2d2d7] bg-white shadow-[0_1.5rem_4rem_rgba(0,0,0,0.12)]">
           <picture class="block">
-            {hero.mobileSrc && <source media="(max-width: 640px)" srcset={hero.mobileSrc} />}
-            <img class="h-auto w-full" src={hero.src} alt={hero.alt} width={hero.width} height={hero.height} loading="eager" fetchpriority="high" />
+            {heroMobileSrcset && <source media="(max-width: 640px)" srcset={heroMobileSrcset} sizes="calc(100vw - 2rem)" />}
+            <img class="h-auto w-full" src={hero.src} srcset={heroSrcset} sizes={heroSrcset ? '(min-width: 64rem) 38rem, calc(100vw - 2rem)' : undefined} alt={hero.alt} width={hero.width} height={hero.height} loading="eager" />
           </picture>
         </figure>
       )}
@@ -217,15 +225,16 @@ function sectionId(section: PageSection, index: number): string {
             aria-label={heroLinksToEditor ? `Open ${SITE_NAME} editor` : undefined}
           >
             <picture class="block">
-              {hero.mobileSrc && <source media="(max-width: 640px)" srcset={hero.mobileSrc} type={hero.legacy ? 'image/webp' : undefined} />}
+              {heroMobileSrcset && <source media="(max-width: 640px)" srcset={heroMobileSrcset} sizes="calc(100vw - 2rem)" type={hero.legacy ? 'image/webp' : undefined} />}
               <img
                 class:list={['w-full', hero.legacy ? 'object-cover object-top max-sm:aspect-[13/14]' : 'h-auto', hero.aspectClass]}
                 src={hero.src}
+                srcset={heroSrcset}
+                sizes={heroSrcset ? '(min-width: 70rem) 68rem, calc(100vw - 2rem)' : undefined}
                 alt={hero.alt}
                 width={hero.width}
                 height={hero.height}
                 loading="eager"
-                fetchpriority="high"
               />
             </picture>
           </Wrapper>

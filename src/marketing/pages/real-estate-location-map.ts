@@ -10,6 +10,7 @@ export const page: MarketingPageEntry = {
   primaryKeyword: 'real estate location map',
   secondaryKeywords: ['property location map', 'listing map', 'neighborhood map for flyer', 'real estate map maker'],
   summaryForLlms: 'Workflow for property listing maps: paste up to 300 nearby places with coordinates or look up 25 addresses at a time, add a walking or driving travel-time area, a location QR code that opens Google Maps, numbered photo stops, and export at flyer sizes such as A4 or US Letter.',
+  cardBlurb: 'Mark a property and the places around it on a map sized for a listing flyer.',
   updated: '2026-10-19',
   published: '2026-10-19',
   related: ['travel-time-map', 'printable-map-maker', 'layered-map-export', 'route-map-poster'],

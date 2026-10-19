@@ -1,4 +1,7 @@
 ---
+import { media } from './media';
+import { responsiveSrcset } from './responsiveImage';
+
 type Props = {
   class?: string;
   compact?: boolean;
@@ -8,6 +11,8 @@ const {
   class: className,
   compact = false,
 } = Astro.props;
+const hero = media['hero.desktop'];
+const srcset = responsiveSrcset(hero.src, hero.width);
 ---
 
 <a
@@ -21,14 +26,15 @@ const {
   aria-label="Open Print Map Studio editor"
 >
   <picture class="block">
-    <source media="(max-width: 640px)" srcset="/hero-assets/editor-mobile.webp" type="image/webp" />
-    <source media="(max-width: 1024px)" srcset="/hero-assets/editor-tablet.webp" type="image/webp" />
+    {hero.mobileSrc && <source media="(max-width: 640px)" srcset={hero.mobileSrc} width={hero.mobileWidth} height={hero.mobileHeight} />}
     <img
       class:list={['h-auto w-full', compact && 'lg:min-h-[34rem] lg:object-cover']}
-      src="/hero-assets/editor-new-york.webp"
-      alt="Print Map Studio showing a map with responsive editing controls"
-      width="1600"
-      height="924"
+      src={hero.src}
+      srcset={srcset}
+      sizes={srcset ? '(min-width: 78rem) 76rem, 100vw' : undefined}
+      alt={hero.alt}
+      width={hero.width}
+      height={hero.height}
       loading="eager"
       fetchpriority="high"
     />

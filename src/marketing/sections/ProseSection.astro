@@ -30,9 +30,9 @@ const beside = section.image && section.imagePosition === 'beside';
     {section.image && !beside && <SectionFigure class="mt-10" image={section.image} />}
     {section.imageRow && (
       <div class="-mx-4 mt-10 grid snap-x snap-mandatory auto-cols-[78%] grid-flow-col gap-3 overflow-x-auto overscroll-x-contain px-4 pb-2 sm:mx-0 sm:grid-flow-row sm:grid-cols-3 sm:overflow-visible sm:px-0 sm:pb-0">
-        {section.imageRow.map((image) => <SectionFigure class="snap-start" image={image} />)}
+        {section.imageRow.map((image) => <SectionFigure class="snap-start" image={image} sizes="(min-width: 40rem) 18rem, 78vw" />)}
       </div>
     )}
   </div>
-  {section.image && beside && <SectionFigure image={section.image} />}
+  {section.image && beside && <SectionFigure image={section.image} sizes="(min-width: 64rem) 32rem, calc(100vw - 2rem)" />}
 </div>

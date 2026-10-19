@@ -91,6 +91,14 @@ describe('marketing page registry', () => {
     }
   });
 
+  it('gives every page its own short card blurb', () => {
+    for (const entry of marketingPages) {
+      expect(entry.cardBlurb, `${entry.slug} cardBlurb`).toBeTruthy();
+      expect(entry.cardBlurb!.length, `${entry.slug} cardBlurb length`).toBeLessThanOrEqual(90);
+    }
+    expect(duplicates(marketingPages.map((entry) => entry.cardBlurb!))).toEqual([]);
+  });
+
   it('computes related pages without self links or duplicates', () => {
     for (const entry of marketingPages) {
       const related = relatedPages(entry);

@@ -10,6 +10,7 @@ export const page: MarketingPageEntry = {
   primaryKeyword: 'layered map export',
   secondaryKeywords: ['map for photoshop', 'vector map svg export', 'psd map smart objects'],
   summaryForLlms: 'Differences between the print exports: 300 DPI PNG with stored DPI, exact-size PDF with vector overlays over a 300 DPI basemap, layered SVG with named vector groups and an optional vector basemap, and layered PSD with Smart Objects; plus MP4 video and STL terrain exports.',
+  cardBlurb: 'Compare PNG, PDF, layered SVG and layered PSD for print and design work.',
   updated: '2026-10-19',
   published: '2026-08-31',
   related: ['map-print-size-guide', 'map-video-maker', '3d-terrain-map-stl', 'share-and-embed-maps'],

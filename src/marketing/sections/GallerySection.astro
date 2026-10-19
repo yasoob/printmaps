@@ -21,6 +21,6 @@ const columns = section.columns ?? 3;
     columns === 3 && 'lg:grid-cols-3',
     columns === 4 && 'lg:grid-cols-4',
   ]}>
-    {section.images.map((image) => <SectionFigure image={image} />)}
+    {section.images.map((image) => <SectionFigure image={image} sizes={columns === 2 ? '(min-width: 40rem) 33rem, calc(100vw - 2rem)' : columns === 4 ? '(min-width: 64rem) 16rem, (min-width: 40rem) 33rem, calc(100vw - 2rem)' : '(min-width: 64rem) 22rem, (min-width: 40rem) 33rem, calc(100vw - 2rem)'} />)}
   </div>
 </div>

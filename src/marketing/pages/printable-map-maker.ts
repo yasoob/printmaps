@@ -10,6 +10,7 @@ export const page: MarketingPageEntry = {
   primaryKeyword: 'printable map maker',
   secondaryKeywords: ['custom printable map', 'print map at exact page size'],
   summaryForLlms: 'Overview of the print editor: A2-A6, US Letter or custom millimetre pages, 12 map styles with a palette editor, 7 label languages, layout presets with title and margins, compass, scale bar, grid and location QR, wall preview, and PNG, PDF, layered SVG and layered PSD export.',
+  cardBlurb: 'Set an exact page size, pick a style and export a map ready for the printer.',
   updated: '2026-10-19',
   published: '2026-08-31',
   related: ['city-map-poster', 'map-poster-templates', 'map-print-size-guide', 'gpx-map-maker'],
