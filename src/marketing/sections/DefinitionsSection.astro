@@ -1,4 +1,5 @@
 ---
+import InlineText from '../InlineText.astro';
 import SectionIntro from './SectionIntro.astro';
 import type { DefinitionsSection } from './types';
 
@@ -15,8 +16,8 @@ const { id, section } = Astro.props;
   <dl class="mt-8 grid gap-x-10 gap-y-6 sm:grid-cols-[minmax(10rem,14rem)_minmax(0,1fr)]">
     {section.items.map((item) => (
       <>
-        <dt class="text-base font-semibold text-[#1d1d1f] max-sm:mt-2">{item.term}</dt>
-        <dd class="m-0 text-base leading-7 text-[#515154]">{item.definition}</dd>
+        <dt class="text-base font-semibold text-[#1d1d1f] max-sm:mt-2"><InlineText text={item.term} /></dt>
+        <dd class="m-0 text-base leading-7 text-[#515154]"><InlineText text={item.definition} /></dd>
       </>
     ))}
   </dl>

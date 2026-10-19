@@ -1,4 +1,5 @@
 ---
+import InlineText from '../InlineText.astro';
 import SectionFigure from './SectionFigure.astro';
 import SectionIntro from './SectionIntro.astro';
 import type { StepsSection } from './types';
@@ -21,7 +22,7 @@ const { id, section } = Astro.props;
           <h3 class="text-lg font-semibold tracking-[-0.02em] sm:text-xl">
             <span class="sr-only">Step {index + 1}: </span>{step.title}
           </h3>
-          <p class="mt-2 text-base leading-7 text-[#515154]">{step.body}</p>
+          <p class="mt-2 text-base leading-7 text-[#515154]"><InlineText text={step.body} /></p>
           {step.image && <SectionFigure class="mt-5" image={step.image} />}
         </div>
       </li>

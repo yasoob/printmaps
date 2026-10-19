@@ -97,17 +97,20 @@ async function checkAnchor(page: Page, path: string, href: string): Promise<void
   if (href.length > 1) await expect(page.locator(href), `${path} anchor ${href}`).toHaveCount(1);
 }
 
-async function checkInternalLink(page: Page, path: string, href: string, statuses: Map<string, number>): Promise<void> {
-  const target = href.split('#', 1)[0]!;
-  if (!statuses.has(target)) {
+async function checkInternalLink(page: Page, path: string, href: string, pages: Map<string, { status: number; html: string }>): Promise<void> {
+  const [target = '', fragment] = href.split('#', 2);
+  if (!pages.has(target)) {
     const response = await page.request.get(target);
-    statuses.set(target, response.status());
+    const html = target.endsWith('/') ? await response.text() : '';
+    pages.set(target, { status: response.status(), html });
   }
-  expect.soft(statuses.get(target), `${path} links to ${href}`).toBeLessThan(400);
+  const result = pages.get(target)!;
+  expect.soft(result.status, `${path} links to ${href}`).toBeLessThan(400);
+  if (fragment && target !== '/editor/') expect.soft(result.html, `${path} links to missing anchor ${href}`).toContain(`id="${fragment}"`);
   if (target !== '/editor/' && !target.includes('.')) expect(target, `${path} link ${href} uses a trailing slash`).toMatch(/\/$/);
 }
 
-async function checkLinks(page: Page, path: string, statuses: Map<string, number>): Promise<void> {
+async function checkLinks(page: Page, path: string, statuses: Map<string, { status: number; html: string }>): Promise<void> {
   const hrefs = await page.locator('a[href]').evaluateAll((links) => links.map((link) => link.getAttribute('href')!));
   for (const href of hrefs) {
     if (href.startsWith('#')) await checkAnchor(page, path, href);
@@ -124,12 +127,13 @@ test('every registry page passes on-page SEO checks', async ({ page }) => {
   test.setTimeout(180_000);
   const paths = await registryPaths(page);
   const reports: PageReport[] = [];
-  const statuses = new Map<string, number>();
+  const statuses = new Map<string, { status: number; html: string }>();
 
   for (const path of paths) {
     const response = await page.goto(path);
     expect(response?.status(), path).toBe(200);
     reports.push(await checkMetadata(page, path));
+    expect(await page.locator('main').textContent(), `${path} shows raw inline link syntax`).not.toMatch(/\]\((?:\/|#)/);
     await checkSocialImage(page, path);
     await checkStructuredData(page, path);
     await checkImages(page, path);

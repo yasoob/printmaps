@@ -1,4 +1,5 @@
 ---
+import InlineText from './InlineText.astro';
 import Breadcrumbs from './Breadcrumbs.astro';
 import MarketingLayout from './MarketingLayout.astro';
 import { SITE_NAME, SITE_URL } from './product';
@@ -56,7 +57,7 @@ const structuredData = page
         {heading}
       </h1>
       <p class="mt-7 max-w-2xl text-base leading-7 text-[#6e6e73] sm:text-lg sm:leading-8">
-        {lead}
+        <InlineText text={lead} />
       </p>
       {updated && <p class="mt-5 text-sm text-[#86868b]">Last updated {updated}</p>}
     </div>

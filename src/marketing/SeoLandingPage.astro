@@ -1,4 +1,5 @@
 ---
+import InlineText from './InlineText.astro';
 import { Check } from '@lucide/astro';
 import Breadcrumbs from './Breadcrumbs.astro';
 import ExportFormatRow from './ExportFormatRow.astro';
@@ -169,7 +170,7 @@ function sectionId(section: PageSection, index: number): string {
           'mt-7 text-base leading-7 text-[#6e6e73] sm:text-xl sm:leading-8',
           heroLayout === 'split' && hero ? 'max-w-xl' : 'mx-auto max-w-3xl',
         ]}>
-          {lead}
+          <InlineText text={lead} />
         </p>
         <div class:list={['mt-8 flex flex-wrap items-center gap-3', !(heroLayout === 'split' && hero) && 'justify-center']}>
           <a class="inline-flex min-h-12 items-center justify-center rounded-full bg-[#0071e3] px-6 text-sm font-semibold text-white no-underline transition hover:-translate-y-0.5 hover:bg-[#0077ed] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#8bb9ff] motion-reduce:transition-none" href="/editor/">

@@ -89,11 +89,11 @@ export const faqItems = [
   },
   {
     question: 'Can I get my map printed?',
-    answer: 'Yes. Download a PNG or PDF at the exact page size and send it to any print shop or online printing service. Wall preview shows the poster in a black, white, oak or walnut frame first.',
+    answer: 'Yes. Download a PNG or PDF at the exact page size and send it to any print shop or online printing service. The [map print size guide](/map-print-size-guide/) lists pixel sizes for each paper size. Wall preview shows the poster in a black, white, oak or walnut frame first.',
   },
   {
     question: 'Can I share a map online?',
-    answer: 'Yes. Create a read-only share link or copy an iframe embed code for your website. The shared map keeps your design and the map attribution.',
+    answer: 'Yes. Create a read-only share link or copy an iframe embed code for your website, as described in [share and embed maps](/share-and-embed-maps/). The shared map keeps your design and the map attribution.',
   },
   {
     question: 'What map data does Print Map Studio use?',

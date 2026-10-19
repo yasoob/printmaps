@@ -1,4 +1,5 @@
 ---
+import InlineText from '../InlineText.astro';
 import { Check, X } from '@lucide/astro';
 import { isCompactValue } from './cellText';
 import SectionIntro from './SectionIntro.astro';
@@ -22,7 +23,7 @@ function cellValue(cell: ComparisonCell): { value: boolean | string; note?: stri
   </div>
   <div class="relative mt-10 overflow-x-auto rounded-xl border border-[#d2d2d7]" role="region" aria-labelledby={`${id}-title`} tabindex="0">
     <table class="w-full min-w-[36rem] border-collapse text-left text-sm">
-      {section.caption && <caption class="px-5 pt-4 text-left text-xs text-[#6e6e73]">{section.caption}</caption>}
+      {section.caption && <caption class="px-5 pt-4 text-left text-xs text-[#6e6e73]"><InlineText text={section.caption} /></caption>}
       <thead>
         <tr class="border-b border-[#d2d2d7]">
           <th scope="col" class="px-5 py-4 font-semibold text-[#6e6e73]">{section.rowHeader ?? 'Feature'}</th>
@@ -51,8 +52,8 @@ function cellValue(cell: ComparisonCell): { value: boolean | string; note?: stri
                       <span class="sr-only">No</span>
                     </span>
                   )}
-                  {typeof cell.value === 'string' && <span class:list={[isCompactValue(cell.value) && 'whitespace-nowrap']}>{cell.value}</span>}
-                  {cell.note && <span class="mt-1 block text-xs leading-5 text-[#6e6e73]">{cell.note}</span>}
+                  {typeof cell.value === 'string' && <span class:list={[isCompactValue(cell.value) && 'whitespace-nowrap']}><InlineText text={cell.value} /></span>}
+                  {cell.note && <span class="mt-1 block text-xs leading-5 text-[#6e6e73]"><InlineText text={cell.note} /></span>}
                 </td>
               );
             })}
@@ -63,7 +64,7 @@ function cellValue(cell: ComparisonCell): { value: boolean | string; note?: stri
   </div>
   {section.footnotes && (
     <ol class="mt-4 list-none space-y-1 p-0 text-xs leading-5 text-[#6e6e73]">
-      {section.footnotes.map((note) => <li>{note}</li>)}
+      {section.footnotes.map((note) => <li><InlineText text={note} /></li>)}
     </ol>
   )}
 </div>

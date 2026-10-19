@@ -1,0 +1,13 @@
+---
+import { parseInline } from './inlineLinks';
+
+type Props = {
+  text: string;
+};
+
+const segments = parseInline(Astro.props.text);
+---
+
+{segments.map((segment) => (segment.kind === 'link'
+  ? <a class="font-medium text-[#0071e3] underline decoration-[#b9d7f7] underline-offset-4 hover:decoration-[#0071e3] focus-visible:rounded focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#8bb9ff]" href={segment.href}>{segment.text}</a>
+  : segment.text))}
