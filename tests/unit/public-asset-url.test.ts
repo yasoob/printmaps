@@ -15,7 +15,8 @@ describe('public deployment asset paths', () => {
     };
     const astroConfiguration = readFileSync('astro.config.mjs', 'utf8');
     expect(packageDefinition.scripts['build:pages']).toBe('npm run build');
-    expect(astroConfiguration).toContain("site: 'https://printmaps.yasoob.me'");
+    expect(astroConfiguration).toContain("const site = 'https://printmaps.yasoob.me';");
+    expect(astroConfiguration).toMatch(/^\s+site,$/m);
     expect(astroConfiguration).toContain("output: 'static'");
   });
 });
