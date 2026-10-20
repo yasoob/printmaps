@@ -1,3 +1,4 @@
+import { pageUpdated } from './contentDates';
 import { stripInline } from './inlineLinks';
 import type { MarketingImage } from './media';
 import { pageKind, pageUrl, type MarketingPageEntry } from './registry';
@@ -125,7 +126,7 @@ export function pageGraph({ entry, title, description: rawDescription, image }: 
     isPartOf: { '@id': WEBSITE_ID },
     breadcrumb: { '@id': `${url}#breadcrumb` },
     primaryImageOfPage: { '@type': 'ImageObject', url: imageUrl, width: image.width, height: image.height },
-    dateModified: entry.updated,
+    dateModified: pageUpdated(entry),
     ...(kind !== 'info' && { about: { '@id': APPLICATION_ID } }),
   };
   const graph: JsonLdNode[] = [
@@ -147,7 +148,7 @@ export function pageGraph({ entry, title, description: rawDescription, image }: 
       author: { '@id': PERSON_ID },
       publisher: { '@id': PERSON_ID },
       datePublished: entry.published ?? entry.updated,
-      dateModified: entry.updated,
+      dateModified: pageUpdated(entry),
       about: { '@id': APPLICATION_ID },
     });
   }

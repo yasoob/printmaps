@@ -1,4 +1,5 @@
-import { HOME_PAGE, marketingPages, pageUrl } from './registry';
+import { homeUpdated, pageUpdated } from './contentDates';
+import { marketingPages, pageUrl } from './registry';
 import { SITE_URL } from './product';
 
 type SitemapEntry = Readonly<{ loc: string; lastmod: string }>;
@@ -8,7 +9,8 @@ function escapeXml(value: string): string {
 }
 
 /**
-Every indexable URL on the site, from the page registry. The editor shares the newest content date.
+Every indexable URL on the site, from the page registry, dated by its last content commit.
+The editor shares the newest date.
 */
 function newestDate(dates: readonly string[]): string {
   let newest = '';
@@ -19,10 +21,11 @@ function newestDate(dates: readonly string[]): string {
 }
 
 export function sitemapEntries(): SitemapEntry[] {
-  const pages = marketingPages.map((entry) => ({ loc: pageUrl(entry), lastmod: entry.updated }));
-  const newest = newestDate([HOME_PAGE.updated, ...pages.map((entry) => entry.lastmod)]);
+  const pages = marketingPages.map((entry) => ({ loc: pageUrl(entry), lastmod: pageUpdated(entry) }));
+  const home = homeUpdated();
+  const newest = newestDate([home, ...pages.map((entry) => entry.lastmod)]);
   const entries = [
-    { loc: `${SITE_URL}/`, lastmod: HOME_PAGE.updated },
+    { loc: `${SITE_URL}/`, lastmod: home },
     { loc: `${SITE_URL}/editor/`, lastmod: newest },
     ...pages,
   ];

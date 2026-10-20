@@ -54,7 +54,8 @@ export type MarketingPageEntry = {
   */
   summaryForLlms: string;
   /**
-  Last meaningful content change, `YYYY-MM-DD`. Drives sitemap lastmod and dateModified.
+  Minimum "last updated" date, `YYYY-MM-DD`. The sitemap lastmod and dateModified use the newest
+  git commit touching this page's route or entry, or this date if it is later or git history is unavailable.
   */
   updated: string;
   /**

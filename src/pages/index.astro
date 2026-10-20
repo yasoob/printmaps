@@ -6,6 +6,7 @@ import HomeUseCases from '../marketing/HomeUseCases.astro';
 import MapCapabilityStrip from '../marketing/MapCapabilityStrip.astro';
 import MarketingHero from '../marketing/MarketingHero.astro';
 import MarketingLayout from '../marketing/MarketingLayout.astro';
+import { homeUpdated } from '../marketing/contentDates';
 import { media } from '../marketing/media';
 import { faqItems, SITE_URL } from '../marketing/product';
 import { HOME_PAGE, ogImageFor } from '../marketing/registry';
@@ -35,7 +36,7 @@ const structuredData = {
       isPartOf: { '@id': WEBSITE_ID },
       about: { '@id': APPLICATION_ID },
       primaryImageOfPage: { '@type': 'ImageObject', url: `${SITE_URL}${ogImage.src}`, width: ogImage.width, height: ogImage.height },
-      dateModified: HOME_PAGE.updated,
+      dateModified: homeUpdated(),
     },
     applicationNode(description, media['hero.desktop']),
   ],
