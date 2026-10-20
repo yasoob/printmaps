@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://printmaps.yasoob.me/sitemap-index.xml
+Sitemap: https://printmaps.yasoob.me/sitemap.xml
